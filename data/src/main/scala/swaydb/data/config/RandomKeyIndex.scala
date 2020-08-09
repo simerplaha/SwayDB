@@ -28,7 +28,7 @@ import swaydb.Compression
 import swaydb.data.config.builder.RandomKeyIndexBuilder
 import swaydb.data.util.Java.JavaFunction
 
-import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters._
 
 sealed trait RandomKeyIndex {
   def toOption =
@@ -72,7 +72,7 @@ object RandomKeyIndex {
       this.copy(ioStrategy = ioStrategy.apply)
 
     def copyWithCompressions(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-      this.copy(compression = info => compression.apply(info).asScala)
+      this.copy(compression = compression.apply(_).asScala)
   }
 
   object RequiredSpace {

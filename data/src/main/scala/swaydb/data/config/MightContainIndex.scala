@@ -28,7 +28,7 @@ import swaydb.Compression
 import swaydb.data.config.builder.MightContainIndexBuilder
 import swaydb.data.util.Java.JavaFunction
 
-import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters._
 
 sealed trait MightContainIndex {
   def toOption: Option[MightContainIndex.Enable] =
@@ -65,6 +65,6 @@ object MightContainIndex {
       this.copy(ioStrategy = ioStrategy.apply)
 
     def copyWithCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-      this.copy(compression = info => compression.apply(info).asScala)
+      this.copy(compression = compression.apply(_).asScala)
   }
 }
