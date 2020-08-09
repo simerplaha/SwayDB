@@ -45,11 +45,11 @@ def publishScalaOptions(scalaVersion: String): Seq[String] =
   CrossVersion.partialVersion(scalaVersion) match {
     case Some((2, major)) if major >= 12 =>
       Seq(
-//        "-opt:l:inline",
-//        "-opt-warnings",
-//        "-opt-inline-from:swaydb.**",
-//        "-Yopt-log-inline",
-//        "_"
+        "-opt:l:inline",
+        "-opt-warnings",
+        "-opt-inline-from:swaydb.**",
+        "-Yopt-log-inline",
+        "_"
       )
 
     case Some((2, 11)) =>
@@ -80,7 +80,7 @@ val publishSettings = Seq[Setting[_]](
   publishMavenStyle := true,
   licenses := Seq("LAGPL3" -> url("https://github.com/simerplaha/SwayDB/blob/master/LICENSE.md")),
   publish := {},
-  publishLocal := {},
+//  publishLocal := {},
   sonatypeProjectHosting := Some(GitHubHosting("simerplaha", "SwayDB", "simer.j@gmail.com")),
   developers := List(
     Developer(id = "simerplaha", name = "Simer JS Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))
@@ -148,34 +148,30 @@ lazy val core =
     .in(file("core"))
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(
-      libraryDependencies ++= commonDependencies(scalaVersion.value)
-    ).dependsOn(data, macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(data, macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
 
 lazy val data =
   project
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(
-      libraryDependencies ++= commonDependencies(scalaVersion.value)
-    ).dependsOn(macros % "compile-internal")
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(macros % "compile-internal")
 
 lazy val `data-java` =
   project
+    .settings(crossPaths := false)
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(
-      libraryDependencies ++= commonJavaDependencies
-    ).dependsOn(data)
+    .settings(libraryDependencies ++= commonJavaDependencies)
+    .dependsOn(data)
 
 lazy val swaydb =
   project
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(
-      libraryDependencies ++=
-        commonDependencies(scalaVersion.value)
-    ).dependsOn(core % "test->test;compile->compile", serializers, configs)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(core % "test->test;compile->compile", serializers, configs)
 
 lazy val configs =
   project
@@ -192,16 +188,14 @@ lazy val serializers =
 lazy val `core-stress` =
   project
     .settings(commonSettings)
-    .settings(
-      libraryDependencies ++= testDependencies(scalaVersion.value)
-    ).dependsOn(core)
+    .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
+    .dependsOn(core)
 
 lazy val `core-performance` =
   project
     .settings(commonSettings)
-    .settings(
-      libraryDependencies ++= testDependencies(scalaVersion.value)
-    ).dependsOn(core)
+    .settings(libraryDependencies ++= testDependencies(scalaVersion.value))
+    .dependsOn(core)
 
 lazy val compression =
   project
@@ -219,26 +213,24 @@ lazy val macros =
   project
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(
-      libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
-    )
+    .settings(libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value)
 
 lazy val `swaydb-stress` =
   project
     .settings(commonSettings)
-    .settings(
-      libraryDependencies ++= commonDependencies(scalaVersion.value)
-    ).dependsOn(core, configs)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
+    .dependsOn(core, configs)
     .dependsOn(swaydb, core % "test->test")
 
 lazy val `swaydb-java` =
   project
-    .settings(name := "java")
+    .settings(
+      name := "java",
+      crossPaths := false
+    )
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(
-      libraryDependencies ++= commonJavaDependencies
-    )
+    .settings(libraryDependencies ++= commonJavaDependencies)
     .dependsOn(swaydb, `data-java`)
 
 /**
@@ -249,9 +241,7 @@ lazy val `swaydb-monix` =
     .settings(name := "monix")
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(
-      libraryDependencies += "io.monix" %% "monix" % monixVersion
-    )
+    .settings(libraryDependencies += "io.monix" %% "monix" % monixVersion)
     .dependsOn(data)
 
 lazy val `swaydb-zio` =
@@ -259,9 +249,7 @@ lazy val `swaydb-zio` =
     .settings(name := "zio")
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(
-      libraryDependencies += "dev.zio" %% "zio" % zioVersion
-    )
+    .settings(libraryDependencies += "dev.zio" %% "zio" % zioVersion)
     .dependsOn(data)
 
 lazy val `swaydb-cats-effect` =
@@ -269,7 +257,5 @@ lazy val `swaydb-cats-effect` =
     .settings(name := "cats-effect")
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(
-      libraryDependencies += "org.typelevel" %% "cats-effect" % catsEffectVersion
-    )
+    .settings(libraryDependencies += "org.typelevel" %% "cats-effect" % catsEffectVersion)
     .dependsOn(data)
