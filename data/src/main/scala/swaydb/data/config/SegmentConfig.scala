@@ -26,6 +26,9 @@ package swaydb.data.config
 
 import swaydb.Compression
 import swaydb.data.config.builder.SegmentConfigBuilder
+import swaydb.data.util.Java.JavaFunction
+
+import scala.jdk.CollectionConverters._
 
 object SegmentConfig {
   def builder(): SegmentConfigBuilder.Step0 =
@@ -39,4 +42,29 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          minSegmentSize: Int,
                          maxKeyValuesPerSegment: Int,
                          ioStrategy: IOAction => IOStrategy,
-                         compression: UncompressedBlockInfo => Iterable[Compression])
+                         compression: UncompressedBlockInfo => Iterable[Compression]) {
+
+  def setCacheSegmentBlocksOnCreate(cacheSegmentBlocksOnCreate: Boolean): SegmentConfig =
+    this.copy(cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate)
+
+  def setDeleteSegmentsEventually(deleteSegmentsEventually: Boolean): SegmentConfig =
+    this.copy(deleteSegmentsEventually = deleteSegmentsEventually)
+
+  def setPushForward(pushForward: Boolean): SegmentConfig =
+    this.copy(pushForward = pushForward)
+
+  def setMmap(mmap: MMAP): SegmentConfig =
+    this.copy(mmap = mmap)
+
+  def setMinSegmentSize(minSegmentSize: Int): SegmentConfig =
+    this.copy(minSegmentSize = minSegmentSize)
+
+  def setMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int): SegmentConfig =
+    this.copy(maxKeyValuesPerSegment = maxKeyValuesPerSegment)
+
+  def setIoStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]): SegmentConfig =
+    this.copy(ioStrategy = ioStrategy.apply)
+
+  def setCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): SegmentConfig =
+    this.copy(compression = info => compression.apply(info).asScala)
+}

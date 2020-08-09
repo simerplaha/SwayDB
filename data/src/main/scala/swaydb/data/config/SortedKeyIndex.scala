@@ -26,6 +26,9 @@ package swaydb.data.config
 
 import swaydb.Compression
 import swaydb.data.config.builder.SortedKeyIndexBuilder
+import swaydb.data.util.Java.JavaFunction
+
+import scala.jdk.CollectionConverters._
 
 sealed trait SortedKeyIndex
 object SortedKeyIndex {
@@ -36,5 +39,17 @@ object SortedKeyIndex {
   case class Enable(prefixCompression: PrefixCompression,
                     enablePositionIndex: Boolean,
                     ioStrategy: IOAction => IOStrategy,
-                    compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedKeyIndex
+                    compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedKeyIndex {
+    def setPrefixCompression(prefixCompression: PrefixCompression) =
+      this.copy(prefixCompression = prefixCompression)
+
+    def setEnablePositionIndex(enablePositionIndex: Boolean) =
+      this.copy(enablePositionIndex = enablePositionIndex)
+
+    def setIoStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) =
+      this.copy(ioStrategy = ioStrategy.apply)
+
+    def setCompressions(compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
+      this.copy(compressions = info => compressions.apply(info).asScala)
+  }
 }
