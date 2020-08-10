@@ -54,7 +54,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val state = State(ListBuffer.empty)
 
       val actor =
-        Actor[Int, State](state) {
+        Actor[Int, State]("", state) {
           case (int, self) =>
             self.state.processed += int
         }
@@ -78,7 +78,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val expectedMessages = (1 to messageCount).map(_.toString)
 
       val actor =
-        Actor[String, State](state) {
+        Actor[String, State]("", state) {
           case (int, self) =>
             self.state.processed += int
         }
@@ -101,7 +101,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val state = State(ListBuffer.empty)
 
       val actor =
-        Actor[Int, State](state) {
+        Actor[Int, State]("", state) {
           case (int, self) =>
             if (int == 2) throw IO.throwable(s"Oh no! Failed at $int")
             self.state.processed += int
@@ -121,7 +121,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val state = State(ListBuffer.empty, ListBuffer.empty)
 
       val actor =
-        Actor[Int, State](state) {
+        Actor[Int, State]("", state) {
           case (int, self) =>
             if (int == 2) throw IO.throwable(s"Oh no! Failed at $int")
             self.state.processed += int
@@ -145,7 +145,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val state = State(ListBuffer.empty, ListBuffer.empty)
 
       val actor =
-        Actor[Int, State](state) {
+        Actor[Int, State]("", state) {
           case (int, self) =>
             if (int == 2) throw IO.throwable(s"Oh no! Failed at $int")
             self.state.processed += int
@@ -172,7 +172,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val state = State(new ConcurrentSkipListSet[Int](), new ConcurrentSkipListSet[Int]())
 
       val actor =
-        Actor[Int, State](state) {
+        Actor[Int, State]("", state) {
           case (int, self) =>
             self.state.processed add int
         } recover[Int, Throwable] {
@@ -207,7 +207,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val state = State(ListBuffer.empty)
 
       val actor =
-        Actor.timer[Int, State](state, 100, 1.second) {
+        Actor.timer[Int, State]("", state, 100, 1.second) {
           case (int, self) =>
             println("Message: " + int)
             self.state.processed += int
@@ -235,7 +235,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val state = State(ListBuffer.empty)
 
       val actor =
-        Actor.timerLoop[Int, State](state, stashCapacity = 100, 1.second) {
+        Actor.timerLoop[Int, State]("", state, stashCapacity = 100, 1.second) {
           case (int, self) =>
             self.state.processed += int
             //after 5 messages decrement time so that it's visible
@@ -328,7 +328,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
         val state = State(new ConcurrentSkipListSet[Int](), new ConcurrentSkipListSet[Int]())
 
         val actor =
-          Actor.cache[Int, State](state, 10, _ => 1) {
+          Actor.cache[Int, State]("", state, 10, _ => 1) {
             case (int, self) =>
               self.state.processed add int
           }
@@ -363,7 +363,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val stash = randomIntMax(100) max 1
 
       val actor =
-        Actor.timerCache[Int](stashCapacity = stash, weigher = _ => 1, interval = 5.second) {
+        Actor.timerCache[Int]("", stashCapacity = stash, weigher = _ => 1, interval = 5.second) {
           (int: Int, self: ActorRef[Int, Unit]) =>
             runs += 1
         }
@@ -395,7 +395,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       val stash = 10
 
       val actor =
-        Actor.timerLoopCache[Int](stash, _ => 1, 5.second) {
+        Actor.timerLoopCache[Int]("", stash, _ => 1, 5.second) {
           (_: Int, self: ActorRef[Int, Unit]) =>
             checks += 1
         }
@@ -421,7 +421,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
     "ask" in {
       val actor =
-        Actor[ToInt] {
+        Actor[ToInt]("") {
           (message, _) =>
             message.replyTo send message.string.toInt
         }
@@ -465,7 +465,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
     "process all messages" when {
       "basic" in {
-        val actor = Actor[() => Any] {
+        val actor = Actor[() => Any]("") {
           (run, _) =>
             run()
         }
@@ -474,7 +474,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       }
 
       "timer" in {
-        val actor = Actor.timer[() => Any](0, 1.second) {
+        val actor = Actor.timer[() => Any]("", 0, 1.second) {
           (run, _) =>
             run()
         }

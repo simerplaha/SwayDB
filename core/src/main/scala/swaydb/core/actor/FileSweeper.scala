@@ -64,6 +64,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
     def close(file: FileSweeperItem): Unit
     def delete(file: FileSweeperItem): Unit
     def terminate(): Unit
+    def messageCount(): Int
   }
 
   private sealed trait Action {
@@ -139,6 +140,9 @@ private[swaydb] object FileSweeper extends LazyLogging {
 
       override def terminate(): Unit =
         queue.terminateAndClear()
+
+      override def messageCount(): Int =
+        queue.messageCount
     }
   }
 }

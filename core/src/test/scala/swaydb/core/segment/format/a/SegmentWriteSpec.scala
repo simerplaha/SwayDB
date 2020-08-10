@@ -534,7 +534,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(10.times) {
         //        implicit val fileSweeper = FileSweeper.Disabled
         implicit val blockCache: Option[BlockCache.State] = None
-        implicit val fileSweeper = FileSweeper(50, ActorConfig.TimeLoop(10.seconds, TestExecutionContext.executionContext))
+        implicit val fileSweeper = FileSweeper(50, ActorConfig.TimeLoop("", 10.seconds, TestExecutionContext.executionContext))
 
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues)
@@ -633,7 +633,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       } else {
         runThis(5.times, log = true) {
           implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
-          implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop(2.second, ec))
+          implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop("", 2.second, ec))
 
           val keyValues = randomizedKeyValues(keyValuesCount)
 

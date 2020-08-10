@@ -217,6 +217,11 @@ private[core] object BufferCleaner extends LazyLogging {
   def validateDeleteRequest(path: Path, state: State): Boolean =
     state.pendingClean.get(path).forall(_.get() <= 0)
 
+  /**
+   * Cleans or prepares for cleaning the [[ByteBuffer]].
+   *
+   * Used from within the Actor.
+   */
   private def performClean(command: Command.Clean, self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
     if (command.isOverdue) {
       BufferCleaner.clean(self.state, command.buffer, command.path)
@@ -226,18 +231,23 @@ private[core] object BufferCleaner extends LazyLogging {
       self.send(command.copy(isOverdue = true), messageReschedule)
     }
 
+  /**
+   * Deletes or prepares to delete the [[ByteBuffer]] file.
+   *
+   * If there are pending cleans then the delete is postponed until the clean is successful.
+   */
   private def performDelete(command: Command.Delete, self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
     if (validateDeleteRequest(command.path, self.state))
       try
         Effect.walkDelete(command.path) //try delete the file or folder.
       catch {
         case exception: AccessDeniedException =>
-          //this exception handling is backup process for handling deleting memory-mapped files
+          //For Windows - this exception handling is backup process for handling deleting memory-mapped files
           //for windows and is not really required because State's pendingClean should already
           //handle this and not allow deletes if there are pending clean requests.
           logger.info(s"Scheduling delete retry after ${messageReschedule.asString}. Unable to delete file ${command.path}. Retried ${command.deleteTries} times", exception)
           //if it results in access denied then try schedule for another delete.
-          //this can occur on windows if delete was performed before the mapped
+          //This can occur on windows if delete was performed before the mapped
           //byte buffer is cleaned.
           if (command.deleteTries >= maxDeleteRetries)
             logger.error(s"Unable to delete file ${command.path}. Retried ${command.deleteTries} times", exception)

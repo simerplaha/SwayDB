@@ -196,6 +196,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
         val actor =
           Actor.wire[Compactor[ThrottleState], ThrottleState](
+            name = "test",
             impl = compactor,
             state = testState
           )
@@ -225,6 +226,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
         val actor =
           Actor.wire[Compactor[ThrottleState], ThrottleState](
+            name = "test",
             impl = compactor,
             state = state
           )
@@ -254,6 +256,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
         val actor =
           Actor.wire[Compactor[ThrottleState], ThrottleState](
+            name = "",
             impl = compactor,
             state = state
           )
@@ -309,6 +312,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
         //initialise Compactor with the mocked class
         val actor =
           Actor.wire[Compactor[ThrottleState], ThrottleState](
+            name = "test",
             impl = compactor,
             state = state
           )
@@ -362,6 +366,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
         //initialise Compactor with the mocked class
         val actor =
           Actor.wire[Compactor[ThrottleState], ThrottleState](
+            name = "test",
             impl = compactor,
             state = state
           )
@@ -406,6 +411,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
       val childActor =
         Actor.wire[Compactor[ThrottleState], ThrottleState](
+          name = "test",
           impl = childCompactor,
           state = testState
         )
@@ -415,6 +421,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
       val actor =
         Actor.wire[Compactor[ThrottleState], ThrottleState](
+          name = "test",
           impl = parentCompactor,
           state = state
         )

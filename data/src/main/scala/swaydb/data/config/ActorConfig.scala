@@ -33,12 +33,14 @@ sealed trait ActorConfig {
 
 object ActorConfig {
 
-  case class Basic(ec: ExecutionContext) extends ActorConfig
+  case class Basic(name: String, ec: ExecutionContext) extends ActorConfig
 
-  case class Timer(delay: FiniteDuration,
+  case class Timer(name: String,
+                   delay: FiniteDuration,
                    ec: ExecutionContext) extends ActorConfig
 
-  case class TimeLoop(delay: FiniteDuration,
+  case class TimeLoop(name: String,
+                      delay: FiniteDuration,
                       ec: ExecutionContext) extends ActorConfig
 
   sealed trait QueueOrder[+T]

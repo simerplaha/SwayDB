@@ -46,7 +46,7 @@ object Bag {
 
       override def createSerial(): Serial[IO] =
         new Serial[IO] {
-          val actor = Actor[() => Unit] {
+          val actor = Actor[() => Unit]("Cats-effect serial Actor") {
             (run, _) =>
               run()
           }(ec, QueueOrder.FIFO)

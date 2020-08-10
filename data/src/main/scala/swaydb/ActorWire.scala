@@ -33,7 +33,8 @@ import scala.concurrent.Promise
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
-final class ActorWire[I, S] private[swaydb](impl: I,
+final class ActorWire[I, S] private[swaydb](name: String,
+                                            impl: I,
                                             interval: Option[(FiniteDuration, Int)],
                                             state: S)(implicit val scheduler: Scheduler) { wire =>
 
@@ -45,6 +46,7 @@ final class ActorWire[I, S] private[swaydb](impl: I,
         implicit val queueOrder = QueueOrder.FIFO
 
         Actor.timer[(I, S) => Unit, S](
+          name = name,
           state = state,
           stashCapacity = stashCapacity,
           interval = delays
@@ -56,7 +58,7 @@ final class ActorWire[I, S] private[swaydb](impl: I,
       case None =>
         implicit val queueOrder = QueueOrder.FIFO
 
-        Actor[(I, S) => Unit, S](state) {
+        Actor[(I, S) => Unit, S](name, state) {
           (function, self) =>
             function(impl, self.state)
         }

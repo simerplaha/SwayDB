@@ -1803,11 +1803,11 @@ object TestData {
   implicit class ActorConfigImplicits(actorConfig: ActorConfig.type) {
     def random(delay: FiniteDuration = 2.seconds)(implicit ec: ExecutionContext): ActorConfig =
       if (randomBoolean())
-        ActorConfig.Basic(ec)
+        ActorConfig.Basic("Random Basic config", ec)
       else if (randomBoolean())
-        ActorConfig.Timer(delay, ec)
+        ActorConfig.Timer("Random Timer config", delay, ec)
       else
-        ActorConfig.TimeLoop(delay, ec)
+        ActorConfig.TimeLoop("Random TimeLoop config", delay, ec)
   }
 
   def randomBuilder(enablePrefixCompressionForCurrentWrite: Boolean = randomBoolean(),

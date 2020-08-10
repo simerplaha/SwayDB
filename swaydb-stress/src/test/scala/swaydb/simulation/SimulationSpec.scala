@@ -582,7 +582,7 @@ sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
             )
 
           val actor =
-            Actor[ProductCommand, UserState](state) {
+            Actor[ProductCommand, UserState]("User Actor", state) {
               (command, self) =>
                 processCommand(self.state, command, self)
             }

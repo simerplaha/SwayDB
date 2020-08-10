@@ -46,7 +46,7 @@ object Bag {
           /**
            * May be use zio.Actor instead since fromFuture is ignoring the ec.
            */
-          val actor = Actor[() => Unit] {
+          val actor = Actor[() => Unit]("ZIO Serial Actor") {
             (run, _) =>
               run()
           }(executionContext, QueueOrder.FIFO)

@@ -37,19 +37,19 @@ private[swaydb] object TestSweeper {
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
   val memorySweeperMax: Option[MemorySweeper.All] =
-    MemorySweeper(MemoryCache.All(4098, 1.mb / 2, 600.mb, None, false, ActorConfig.TimeLoop(10.seconds, level0PushDownPool)))
+    MemorySweeper(MemoryCache.All(4098, 1.mb / 2, 600.mb, None, false, ActorConfig.TimeLoop("TimeLoop test", 10.seconds, level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.All])
 
   val memorySweeper10: Option[MemorySweeper.All] =
-    MemorySweeper(MemoryCache.All(4098, 1.mb / 2, 600.mb, Some(1), false, ActorConfig.TimeLoop(10.seconds, level0PushDownPool)))
+    MemorySweeper(MemoryCache.All(4098, 1.mb / 2, 600.mb, Some(1), false, ActorConfig.TimeLoop("TimeLoop test 2", 10.seconds, level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.All])
 
   val memorySweeperBlock: Option[MemorySweeper.BlockSweeper] =
-    MemorySweeper(MemoryCache.ByteCacheOnly(4098, 1.mb / 2, 600.mb, ActorConfig.Basic(level0PushDownPool)))
+    MemorySweeper(MemoryCache.ByteCacheOnly(4098, 1.mb / 2, 600.mb, ActorConfig.Basic("Basic Actor",level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
 
   val keyValueSweeperBlock: Option[MemorySweeper.KeyValueSweeper] =
-    MemorySweeper(MemoryCache.KeyValueCacheOnly(600.mb, Some(100), Some(ActorConfig.Basic(level0PushDownPool))))
+    MemorySweeper(MemoryCache.KeyValueCacheOnly(600.mb, Some(100), Some(ActorConfig.Basic("Basic Actor 2", level0PushDownPool))))
       .map(_.asInstanceOf[MemorySweeper.KeyValueSweeper])
 
   val someMemorySweeperMax = memorySweeperMax
@@ -62,5 +62,5 @@ private[swaydb] object TestSweeper {
     orNone(blockCache)
 
   val fileSweeper: FileSweeper.Enabled =
-    FileSweeper(50, ActorConfig.Basic(level0PushDownPool))
+    FileSweeper(50, ActorConfig.Basic("Basic test 3", level0PushDownPool))
 }

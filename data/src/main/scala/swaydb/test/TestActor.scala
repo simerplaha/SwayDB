@@ -38,7 +38,9 @@ import scala.util.{Failure, Success, Try}
  * TO-DO - Move this to a test module.
  */
 //@formatter:off
-case class TestActor[T]()(implicit override val executionContext: ExecutionContext) extends Actor[T, Unit](state = (),
+case class TestActor[T]()(implicit override val executionContext: ExecutionContext) extends Actor[T, Unit](
+                                                                                           name = "TestActor",
+                                                                                           state = (),
                                                                                            queue = ActorQueue(QueueOrder.FIFO),
                                                                                            stashCapacity = 0,
                                                                                            weigher = _ => 1,

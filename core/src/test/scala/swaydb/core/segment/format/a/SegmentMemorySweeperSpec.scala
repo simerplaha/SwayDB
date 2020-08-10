@@ -58,7 +58,7 @@ class SegmentMemorySweeperSpec extends TestBase {
 
       //set the limiter to drop key-values fast
       implicit val memorySweeper: MemorySweeper.KeyValue =
-        MemorySweeper(MemoryCache.KeyValueCacheOnly(1, None, Some(ActorConfig.TimeLoop(2.seconds, ec))))
+        MemorySweeper(MemoryCache.KeyValueCacheOnly(1, None, Some(ActorConfig.TimeLoop("", 2.seconds, ec))))
           .value
           .asInstanceOf[MemorySweeper.KeyValue]
 

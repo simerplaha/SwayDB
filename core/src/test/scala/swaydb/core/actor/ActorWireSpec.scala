@@ -47,7 +47,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
         def get(): Iterable[Int] = message
       }
 
-      val actor = Actor.wire(new MyImpl(ListBuffer.empty))
+      val actor = Actor.wire("", new MyImpl(ListBuffer.empty))
 
       actor
         .ask
@@ -73,7 +73,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
           s"Hello $name"
       }
 
-      Actor.wire(MyImpl)
+      Actor.wire("", MyImpl)
         .ask
         .map {
           (impl, state, self) =>
@@ -88,7 +88,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
           Future(s"Hello $name")
       }
 
-      Actor.wire(MyImpl)
+      Actor.wire("", MyImpl)
         .ask
         .flatMap {
           (impl, _, self) =>
@@ -109,7 +109,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
           Future(name)
       }
 
-      val actor = Actor.wire(new MyImpl(""))
+      val actor = Actor.wire("", new MyImpl(""))
 
       actor.send {
         (impl, state) =>
@@ -136,7 +136,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
           invoked
       }
 
-      val actor = Actor.wire(new MyImpl(invoked = false))
+      val actor = Actor.wire("", new MyImpl(invoked = false))
 
       actor.send(2.second) {
         (impl, _) =>
@@ -181,7 +181,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
           invoked
       }
 
-      val actor = Actor.wire(new MyImpl(invoked = false))
+      val actor = Actor.wire("", new MyImpl(invoked = false))
 
       val result =
         actor
@@ -238,7 +238,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
           invoked
       }
 
-      val actor = Actor.wire(new MyImpl())
+      val actor = Actor.wire("", new MyImpl())
 
       val result =
         actor

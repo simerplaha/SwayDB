@@ -26,7 +26,7 @@ package swaydb.java
 
 import java.util.concurrent.{CompletionStage, ExecutorService}
 import java.util.function.{BiConsumer, Consumer}
-import java.util.{Comparator, TimerTask}
+import java.util.{Comparator, TimerTask, UUID}
 
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.java.data.TriFunctionVoid
@@ -36,6 +36,7 @@ import swaydb.{Bag, Scheduler}
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext
+import scala.util.Random
 
 object Actor {
 
@@ -143,7 +144,7 @@ object Actor {
       consumer.accept(message)
 
     val scalaActorRef =
-      swaydb.Actor[T, Void](null)(execution = scalaExecution)(
+      swaydb.Actor[T, Void](UUID.randomUUID().toString, null)(execution = scalaExecution)(
         ec = scala.concurrent.ExecutionContext.Implicits.global,
         queueOrder = QueueOrder.FIFO
       )
@@ -156,7 +157,7 @@ object Actor {
       consumer.accept(message, new Instance(actor))
 
     val scalaActorRef =
-      swaydb.Actor[T, Void](null)(execution = scalaExecution)(
+      swaydb.Actor[T, Void](UUID.randomUUID().toString, null)(execution = scalaExecution)(
         ec = scala.concurrent.ExecutionContext.Implicits.global,
         queueOrder = QueueOrder.FIFO
       )
@@ -186,7 +187,7 @@ object Actor {
       consumer.accept(message)
 
     val scalaActorRef =
-      swaydb.Actor[T, Void](null)(execution = scalaExecution)(
+      swaydb.Actor[T, Void](UUID.randomUUID().toString, null)(execution = scalaExecution)(
         ec = scala.concurrent.ExecutionContext.Implicits.global,
         queueOrder = QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator))
       )
@@ -200,7 +201,7 @@ object Actor {
       consumer.accept(message, new Instance(actor))
 
     val scalaActorRef =
-      swaydb.Actor[T, Void](null)(execution = scalaExecution)(
+      swaydb.Actor[T, Void](UUID.randomUUID().toString, null)(execution = scalaExecution)(
         ec = scala.concurrent.ExecutionContext.Implicits.global,
         queueOrder = QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator))
       )
@@ -244,7 +245,7 @@ object Actor {
       consumer.accept(message, new Instance(actor))
 
     val scalaActorRef =
-      swaydb.Actor[T, S](initialState)(execution = scalaExecution)(
+      swaydb.Actor[T, S](UUID.randomUUID().toString, initialState)(execution = scalaExecution)(
         ec = scala.concurrent.ExecutionContext.Implicits.global,
         queueOrder = QueueOrder.FIFO
       )
@@ -272,7 +273,7 @@ object Actor {
       consumer.accept(message, new Instance(actor))
 
     val scalaActorRef =
-      swaydb.Actor[T, S](initialState)(execution = scalaExecution)(
+      swaydb.Actor[T, S](UUID.randomUUID().toString, initialState)(execution = scalaExecution)(
         ec = ExecutionContext.fromExecutorService(executorService),
         queueOrder = QueueOrder.FIFO
       )
@@ -304,7 +305,7 @@ object Actor {
       consumer.accept(message, new Instance(actor))
 
     val scalaActorRef =
-      swaydb.Actor[T, S](initialState)(execution = scalaExecution)(
+      swaydb.Actor[T, S](UUID.randomUUID().toString, initialState)(execution = scalaExecution)(
         ec = ExecutionContext.fromExecutorService(executorService),
         queueOrder = QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator))
       )

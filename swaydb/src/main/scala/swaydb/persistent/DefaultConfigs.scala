@@ -124,6 +124,7 @@ object DefaultConfigs {
       maxOpen = 500,
       actorConfig =
         ActorConfig.TimeLoop(
+          name = s"${this.getClass.getName} - FileCache TimeLoop Actor",
           delay = 10.seconds,
           ec = ec
         )
@@ -136,6 +137,7 @@ object DefaultConfigs {
       cacheCapacity = 1.gb,
       actorConfig =
         ActorConfig.TimeLoop(
+          name = s"${this.getClass.getName} - MemoryCache TimeLoop Actor",
           delay = 10.seconds,
           ec = ec
         )

@@ -39,7 +39,7 @@ object PingPong extends App {
   case class State(var count: Int)
 
   val ping =
-    Actor[Ping, State](State(0)) {
+    Actor[Ping, State]("Ping", State(0)) {
       case (message, self) =>
         self.state.count += 1
         println(s"Ping: ${self.state.count}")
@@ -48,7 +48,7 @@ object PingPong extends App {
     }
 
   val pong =
-    Actor[Pong, State](State(0)) {
+    Actor[Pong, State]("Pong", State(0)) {
       case (message, self) =>
         self.state.count += 1
         println(s"Pong: ${self.state.count}")

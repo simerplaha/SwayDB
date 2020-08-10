@@ -34,7 +34,7 @@ import scala.concurrent.duration._
 object DefaultConfigs {
 
   def fileCache(maxOpen: Int = 100,
-                actorConfig: ActorConfig = ActorConfig.TimeLoop(delay = 10.seconds, ec = SwayDB.sweeperExecutionContext)): FileCache.Enable =
+                actorConfig: ActorConfig = ActorConfig.TimeLoop(s"${this.getClass.getName} - File Cache Actor", delay = 10.seconds, ec = SwayDB.sweeperExecutionContext)): FileCache.Enable =
     FileCache.Enable(
       maxOpen = maxOpen,
       actorConfig = actorConfig
