@@ -25,7 +25,7 @@
 package swaydb.core.io.file
 
 import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
-import java.nio.file.{AccessDeniedException, Path}
+import java.nio.file.{AccessDeniedException, Path, Paths}
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
@@ -51,25 +51,46 @@ private[core] class Cleaner(handle: MethodHandle) {
 
 private[core] object BufferCleaner extends LazyLogging {
 
-  private[core] var cleaner = Option.empty[BufferCleaner]
-
   val actorInterval = 5.seconds
   val actorStashCapacity = 20
 
   val maxDeleteRetries = 5
   val messageReschedule = 5.seconds
 
+  private var _cleaner = Option.empty[BufferCleaner]
+
   /**
    * [[BufferCleaner.actor]]'s commands.
    */
-  private sealed trait Command {
-    def path: Path
-  }
+  private sealed trait Command
+
   private object Command {
+    sealed trait FileCommand extends Command {
+      def filePath: Path
+    }
+
     //cleans memory-mapped byte buffer
-    case class Clean(buffer: MappedByteBuffer, path: Path, isOverdue: Boolean) extends Command
+    case class Clean(buffer: MappedByteBuffer, filePath: Path, isOverdue: Boolean) extends FileCommand
+
+    sealed trait DeleteCommand extends FileCommand {
+      def deleteTries: Int
+
+      def copyWithDeleteTries(deleteTries: Int): Command
+    }
     //delete the file.
-    case class Delete(path: Path, deleteTries: Int) extends Command
+    case class DeleteFile(filePath: Path, deleteTries: Int) extends DeleteCommand {
+      override def copyWithDeleteTries(deleteTries: Int): Command =
+        copy(deleteTries = deleteTries)
+    }
+
+    //deletes the folder ensuring that file is cleaned first.
+    case class DeleteFolder(folderPath: Path, filePath: Path, deleteTries: Int) extends DeleteCommand {
+      override def copyWithDeleteTries(deleteTries: Int): Command =
+        copy(deleteTries = deleteTries)
+    }
+
+    //deletes the folder ensure the file
+    case class GetState(replyTo: ActorRef[State, _]) extends Command
   }
 
   /**
@@ -153,25 +174,59 @@ private[core] object BufferCleaner extends LazyLogging {
   //FIXME: Currently BufferCleaner is required to be globally known.
   //       Instead this should be passed around whenever required and be explicit.
   def initialiseCleaner(implicit scheduler: Scheduler) =
-    if (cleaner.isEmpty)
-      cleaner = Some(new BufferCleaner)
+    if (_cleaner.isEmpty)
+      _cleaner = Some(new BufferCleaner)
 
   def clean(buffer: MappedByteBuffer, path: Path): Unit =
-    cleaner match {
+    _cleaner match {
       case Some(cleaner) =>
-        cleaner.actor.send(Command.Clean(buffer = buffer, path = path, isOverdue = false))
+        cleaner.actor.send(Command.Clean(buffer = buffer, filePath = path, isOverdue = false))
 
       case None =>
         logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
     }
 
   /**
-   * Send delete command to the actor.
+   * Sends [[Command.DeleteFile]] command to the actor.
    */
-  def delete(path: Path): Unit =
-    cleaner match {
+  def deleteFile(path: Path): Unit =
+    _cleaner match {
       case Some(cleaner) =>
-        cleaner.actor.send(Command.Delete(path = path, deleteTries = 0))
+        val command =
+          Command.DeleteFile(
+            filePath = path,
+            deleteTries = 0
+          )
+
+        cleaner.actor.send(command)
+
+      case None =>
+        logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
+    }
+
+  /**
+   * Send [[Command.DeleteFolder]] command to the actor.
+   */
+  def deleteFolder(folderPath: Path, filePath: Path): Unit =
+    _cleaner match {
+      case Some(cleaner) =>
+        val command =
+          Command.DeleteFolder(
+            folderPath = folderPath,
+            filePath = filePath,
+            deleteTries = 0
+          )
+
+        cleaner.actor.send(command)
+
+      case None =>
+        logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
+    }
+
+  def getState[T](replyTo: ActorRef[State, T]): Unit =
+    _cleaner match {
+      case Some(cleaner) =>
+        cleaner.actor send Command.GetState(replyTo)
 
       case None =>
         logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
@@ -224,10 +279,10 @@ private[core] object BufferCleaner extends LazyLogging {
    */
   private def performClean(command: Command.Clean, self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
     if (command.isOverdue) {
-      BufferCleaner.clean(self.state, command.buffer, command.path)
-      BufferCleaner.recordCleanSuccessful(command.path, self.state.pendingClean)
+      BufferCleaner.clean(self.state, command.buffer, command.filePath)
+      BufferCleaner.recordCleanSuccessful(command.filePath, self.state.pendingClean)
     } else {
-      BufferCleaner.recordCleanRequest(command.path, self.state.pendingClean)
+      BufferCleaner.recordCleanRequest(command.filePath, self.state.pendingClean)
       self.send(command.copy(isOverdue = true), messageReschedule)
     }
 
@@ -236,26 +291,32 @@ private[core] object BufferCleaner extends LazyLogging {
    *
    * If there are pending cleans then the delete is postponed until the clean is successful.
    */
-  private def performDelete(command: Command.Delete, self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
-    if (validateDeleteRequest(command.path, self.state))
+  private def performDelete(command: Command.DeleteCommand, self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
+    if (validateDeleteRequest(command.filePath, self.state))
       try
-        Effect.walkDelete(command.path) //try delete the file or folder.
+        command match {
+          case command: Command.DeleteFile =>
+            Effect.walkDelete(command.filePath) //try delete the file or folder.
+
+          case command: Command.DeleteFolder =>
+            Effect.walkDelete(command.folderPath) //try delete the file or folder.
+        }
       catch {
         case exception: AccessDeniedException =>
           //For Windows - this exception handling is backup process for handling deleting memory-mapped files
           //for windows and is not really required because State's pendingClean should already
           //handle this and not allow deletes if there are pending clean requests.
-          logger.info(s"Scheduling delete retry after ${messageReschedule.asString}. Unable to delete file ${command.path}. Retried ${command.deleteTries} times", exception)
+          logger.info(s"Scheduling delete retry after ${messageReschedule.asString}. Unable to delete file ${command.filePath}. Retried ${command.deleteTries} times", exception)
           //if it results in access denied then try schedule for another delete.
           //This can occur on windows if delete was performed before the mapped
           //byte buffer is cleaned.
           if (command.deleteTries >= maxDeleteRetries)
-            logger.error(s"Unable to delete file ${command.path}. Retried ${command.deleteTries} times", exception)
+            logger.error(s"Unable to delete file ${command.filePath}. Retried ${command.deleteTries} times", exception)
           else
-            self.send(command.copy(deleteTries = command.deleteTries + 1), messageReschedule)
+            self.send(command.copyWithDeleteTries(deleteTries = command.deleteTries + 1), messageReschedule)
 
         case exception: Throwable =>
-          logger.error(s"Unable to delete file ${command.path}. Retries ${command.deleteTries}", exception)
+          logger.error(s"Unable to delete file ${command.filePath}. Retries ${command.deleteTries}", exception)
       }
     else
       self.send(command, messageReschedule)
@@ -276,17 +337,29 @@ private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLog
       case (command: Command.Clean, self) =>
         BufferCleaner.performClean(command, self)
 
-      case (command: Command.Delete, self) =>
+      case (command: Command.DeleteCommand, self) =>
         BufferCleaner.performDelete(command, self)
+
+      case (command: Command.GetState, self) =>
+        command.replyTo send self.state
 
     } recoverException[Command] {
       case (message, error, _) =>
+        val pathInfo =
+          message match {
+            case _: Command.GetState =>
+              ""
+
+            case command: Command.FileCommand =>
+              s"""Path: ${command.filePath}."""
+          }
+
         error match {
           case IO.Right(_) =>
-            logger.error(s"Terminated actor: Failed to process message ${message.getClass.getSimpleName}. Path: ${message.path}.")
+            logger.error(s"Terminated actor: Failed to process message ${message.getClass.getSimpleName}. $pathInfo")
 
           case IO.Left(exception) =>
-            logger.error(s"Failed to process message ${message.getClass.getSimpleName}. Path: ${message.path}.", exception)
+            logger.error(s"Failed to process message ${message.getClass.getSimpleName}. $pathInfo", exception)
         }
     }
 }

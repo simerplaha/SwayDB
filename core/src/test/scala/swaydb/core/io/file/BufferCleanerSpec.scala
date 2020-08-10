@@ -39,6 +39,7 @@ import swaydb.core.{TestBase, TestExecutionContext, TestSweeper}
 import swaydb.data.config.ActorConfig
 import swaydb.data.slice.Slice
 import org.scalatest.OptionValues._
+import swaydb.test.TestActor
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -175,35 +176,132 @@ class BufferCleanerSpec extends TestBase {
     }
   }
 
+  /**
+   * These tests are slow because [[BufferCleaner]] is a timer actor and is processing messages
+   * at [[BufferCleaner.actorInterval]] intervals.
+   */
+
   "clean and delete" when {
-    "delete after clean" in {
-      val path = randomFilePath
-      val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
-      val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
+    /**
+     * Asserts the [[BufferCleaner.State]] contains a counter entry for the file path.
+     */
+    def assertStateContainsFileRequestCounter(filePath: Path): Unit = {
+      val testActor = TestActor[BufferCleaner.State]()
+      BufferCleaner.getState(testActor)
+      val pending = testActor.getMessage(1.minute).pendingClean
+      pending should have size 1
+      pending.get(filePath).value.get() shouldBe 1
+    }
 
-      //clean first
-      BufferCleaner.clean(buffer, path)
-      //and then delete
-      BufferCleaner.delete(path)
+    /**
+     * Asserts the state is empty/cleared.
+     */
+    def assertStateIsCleared(): Unit = {
+      //state should be cleared
+      val testActor = TestActor[BufferCleaner.State]()
+      BufferCleaner.getState(testActor)
+      testActor.getMessage(1.minute).pendingClean shouldBe empty
+    }
 
-      eventual(2.minutes) {
-        Effect.exists(path) shouldBe false
+    "deleteFile" when {
+      "delete after clean" in {
+        val filePath = randomFilePath
+        val folderPath = filePath.getParent
+
+        val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+        val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
+
+        //clean first
+        BufferCleaner.clean(buffer, filePath)
+        //and then delete
+        BufferCleaner.deleteFile(filePath)
+
+        //assert that the state of Actor increment the could of clean requests
+        assertStateContainsFileRequestCounter(filePath)
+
+        //file is eventually deleted but the folder is not deleted
+        eventual(2.minutes) {
+          Effect.exists(filePath) shouldBe false
+          Effect.exists(folderPath) shouldBe true
+        }
+
+        //state should be cleared
+        assertStateIsCleared()
+      }
+
+      "delete before clean" in {
+        val filePath = randomFilePath
+        val folderPath = filePath.getParent
+
+        val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+        val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
+
+        //delete first this will result is delete reschedule on windows.
+        BufferCleaner.deleteFile(filePath)
+        BufferCleaner.clean(buffer, filePath)
+
+        //assert that the state of Actor increment the could of clean requests
+        assertStateContainsFileRequestCounter(filePath)
+
+        //file is eventually deleted but the folder is not deleted
+        eventual(2.minutes) {
+          Effect.exists(filePath) shouldBe false
+          Effect.exists(folderPath) shouldBe true
+        }
+
+        //state should be cleared
+        assertStateIsCleared()
       }
     }
 
-    "delete before clean" in {
-      val path = randomFilePath
-      val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
-      val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
+    "deleteFolder" when {
+      "delete after clean" in {
+        val filePath = randomFilePath
+        val folderPath = filePath.getParent
 
-      //delete first this will result is delete reschedule on windows.
-      BufferCleaner.delete(path)
+        val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+        val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
-      sleep(2.seconds)
-      BufferCleaner.clean(buffer, path)
+        //clean first
+        BufferCleaner.clean(buffer, filePath)
+        //and then delete
+        BufferCleaner.deleteFolder(folderPath, filePath)
 
-      eventual(2.minutes) {
-        Effect.exists(path) shouldBe false
+        //assert that the state of Actor increment the could of clean requests
+        //state is created for filePath and not for folderPath
+        assertStateContainsFileRequestCounter(filePath)
+
+        eventual(2.minutes) {
+          Effect.exists(folderPath) shouldBe false
+          Effect.exists(filePath) shouldBe false
+        }
+
+        //state should be cleared
+        assertStateIsCleared()
+      }
+
+      "delete before clean" in {
+        val filePath = randomFilePath
+        val folderPath = filePath.getParent
+
+        val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+        val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
+
+        //delete first this will result is delete reschedule on windows.
+        BufferCleaner.deleteFolder(folderPath, filePath)
+        BufferCleaner.clean(buffer, filePath)
+
+        //assert that the state of Actor increment the could of clean requests
+        //state is created for filePath and not for folderPath
+        assertStateContainsFileRequestCounter(filePath)
+
+        eventual(2.minutes) {
+          Effect.exists(folderPath) shouldBe false
+          Effect.exists(filePath) shouldBe false
+        }
+
+        //state should be cleared
+        assertStateIsCleared()
       }
     }
   }
