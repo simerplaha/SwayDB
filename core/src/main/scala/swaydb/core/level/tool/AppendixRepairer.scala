@@ -38,6 +38,7 @@ import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
 import swaydb.core.util.Extension
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
@@ -169,7 +170,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         nullKey = Slice.Null,
         nullValue = Segment.Null,
         folder = appendixDir,
-        mmap = false,
+        mmap = MMAP.Disabled,
         flushOnOverflow = true,
         fileSize = 1.gb
       )

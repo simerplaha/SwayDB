@@ -34,6 +34,7 @@ import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
@@ -51,9 +52,9 @@ object MapConfig {
 
   final class Config[K, V, F](dir: Path,
                               private var mapSize: Int = 4.mb,
-                              private var mmapMaps: Boolean = true,
+                              private var mmapMaps: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
                               private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                              private var mmapAppendix: Boolean = true,
+                              private var mmapAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
                               private var appendixFlushCheckpointSize: Int = 2.mb,
                               private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                               private var cacheKeyValueIds: Boolean = true,
@@ -85,7 +86,7 @@ object MapConfig {
       this
     }
 
-    def setMmapMaps(mmapMaps: Boolean) = {
+    def setMmapMaps(mmapMaps: MMAP.Map) = {
       this.mmapMaps = mmapMaps
       this
     }
@@ -95,7 +96,7 @@ object MapConfig {
       this
     }
 
-    def setMmapAppendix(mmapAppendix: Boolean) = {
+    def setMmapAppendix(mmapAppendix: MMAP.Map) = {
       this.mmapAppendix = mmapAppendix
       this
     }

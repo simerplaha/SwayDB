@@ -291,8 +291,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     Segment.persistent(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
-      mmapReads = segmentConfig.mmapReads,
-      mmapWrites = segmentConfig.mmapWrites,
+      mmap = segmentConfig.mmap,
       segments = segments
     )
   }
@@ -323,8 +322,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     Segment.persistent(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
-      mmapReads = segmentConfig.mmapReads,
-      mmapWrites = segmentConfig.mmapWrites,
+      mmap = segmentConfig.mmap,
       segments = segments
     )
   }

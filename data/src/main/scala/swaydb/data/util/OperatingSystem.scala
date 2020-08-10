@@ -54,6 +54,9 @@ object OperatingSystem {
     override val isOther: Boolean = true
   }
 
+  def isWindows: Boolean =
+    get().isWindows
+
   def get(): OperatingSystem =
     operatingSystem getOrElse getFromProperty()
 

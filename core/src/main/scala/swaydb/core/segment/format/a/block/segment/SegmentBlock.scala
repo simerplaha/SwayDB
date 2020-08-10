@@ -40,7 +40,7 @@ import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.merge.MergeStats.Persistent
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections}
-import swaydb.data.config.{IOAction, IOStrategy, SegmentConfig, UncompressedBlockInfo}
+import swaydb.data.config.{IOAction, IOStrategy, MMAP, SegmentConfig, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -78,8 +78,7 @@ private[core] object SegmentBlock extends LazyLogging {
         minSize = 2.mb,
         maxCount = 200000,
         pushForward = true,
-        mmapWrites = false,
-        mmapReads = false,
+        mmap = MMAP.disabled(),
         deleteEventually = true,
         compressions = _ => Seq.empty
       )
@@ -91,8 +90,7 @@ private[core] object SegmentBlock extends LazyLogging {
         minSize = config.minSegmentSize,
         maxCount = config.maxKeyValuesPerSegment,
         pushForward = config.pushForward,
-        mmapWrites = config.mmap.mmapWrite,
-        mmapReads = config.mmap.mmapRead,
+        mmap = config.mmap,
         deleteEventually = config.deleteSegmentsEventually,
         compressions = config.compression
       )
@@ -102,8 +100,7 @@ private[core] object SegmentBlock extends LazyLogging {
               minSize: Int,
               maxCount: Int,
               pushForward: Boolean,
-              mmapWrites: Boolean,
-              mmapReads: Boolean,
+              mmap: MMAP.Segment,
               deleteEventually: Boolean,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       applyInternal(
@@ -112,8 +109,7 @@ private[core] object SegmentBlock extends LazyLogging {
         minSize = minSize,
         maxCount = maxCount,
         pushForward = pushForward,
-        mmapWrites = mmapWrites,
-        mmapReads = mmapReads,
+        mmap = mmap,
         deleteEventually = deleteEventually,
         compressions =
           uncompressedBlockInfo =>
@@ -128,8 +124,7 @@ private[core] object SegmentBlock extends LazyLogging {
                                     minSize: Int,
                                     maxCount: Int,
                                     pushForward: Boolean,
-                                    mmapWrites: Boolean,
-                                    mmapReads: Boolean,
+                                    mmap: MMAP.Segment,
                                     deleteEventually: Boolean,
                                     compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
       new Config(
@@ -138,8 +133,7 @@ private[core] object SegmentBlock extends LazyLogging {
         minSize = minSize max 1,
         maxCount = maxCount max 1,
         pushForward = pushForward,
-        mmapWrites = mmapWrites,
-        mmapReads = mmapReads,
+        mmap = mmap,
         deleteEventually = deleteEventually,
         compressions = compressions
       )
@@ -150,8 +144,7 @@ private[core] object SegmentBlock extends LazyLogging {
                        val minSize: Int,
                        val maxCount: Int,
                        val pushForward: Boolean,
-                       val mmapWrites: Boolean,
-                       val mmapReads: Boolean,
+                       val mmap: MMAP.Segment,
                        val deleteEventually: Boolean,
                        val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
@@ -162,8 +155,7 @@ private[core] object SegmentBlock extends LazyLogging {
         minSize = minSize,
         maxCount = maxCount,
         pushForward = pushForward,
-        mmapWrites = mmapWrites,
-        mmapReads = mmapReads,
+        mmap = mmap,
         deleteEventually = deleteEventually,
         compressions = compressions
       )

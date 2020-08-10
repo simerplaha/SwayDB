@@ -37,8 +37,10 @@ import swaydb.core.level.NextLevel
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -50,18 +52,16 @@ class CompactionSpec0 extends CompactionSpec
 
 class CompactionSpec1 extends CompactionSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = true
-  override def mmapSegmentsOnRead = true
-  override def level0MMAP = true
-  override def appendixStorageMMAP = true
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
 }
 
 class CompactionSpec2 extends CompactionSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = false
-  override def mmapSegmentsOnRead = false
-  override def level0MMAP = false
-  override def appendixStorageMMAP = false
+  override def mmapSegments = MMAP.Disabled
+  override def level0MMAP = MMAP.Disabled
+  override def appendixStorageMMAP = MMAP.Disabled
 }
 
 class CompactionSpec3 extends CompactionSpec {

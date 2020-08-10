@@ -42,10 +42,11 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.{Extension, ReserveRange}
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
-import swaydb.data.config.Dir
+import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -56,18 +57,16 @@ class LevelSpec0 extends LevelSpec
 
 class LevelSpec1 extends LevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = true
-  override def mmapSegmentsOnRead = true
-  override def level0MMAP = true
-  override def appendixStorageMMAP = true
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
 }
 
 class LevelSpec2 extends LevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = false
-  override def mmapSegmentsOnRead = false
-  override def level0MMAP = false
-  override def appendixStorageMMAP = false
+  override def mmapSegments = MMAP.Disabled
+  override def level0MMAP = MMAP.Disabled
+  override def appendixStorageMMAP = MMAP.Disabled
 }
 
 class LevelSpec3 extends LevelSpec {

@@ -38,7 +38,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
-import swaydb.data.config.IOStrategy
+import swaydb.data.config.{IOStrategy, MMAP}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -505,8 +505,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minSize = randomIntMax(2.mb),
                   maxCount = randomIntMax(1000),
                   pushForward = randomBoolean(),
-                  mmapWrites = randomBoolean(),
-                  mmapReads = randomBoolean(),
+                  mmap = MMAP.randomSegment(),
                   deleteEventually = randomBoolean()
                 )
             )

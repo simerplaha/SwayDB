@@ -36,8 +36,10 @@ import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.SegmentIO
 import swaydb.core.util.skiplist.SkipList
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -51,7 +53,7 @@ class MapCodecSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
-  val appendixReader = AppendixMapEntryReader(true, true)
+  val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
 
   "MemoryMapCodec" should {
     "write and read empty bytes" in {

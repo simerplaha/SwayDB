@@ -33,8 +33,10 @@ import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, ThreadReadState}
 import swaydb.data.compaction.Throttle
+import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.util.OperatingSystem
 
 import scala.concurrent.duration._
 
@@ -42,18 +44,16 @@ class TrashLevelSpec0 extends TrashLevelSpec
 
 class TrashLevelSpec1 extends TrashLevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = true
-  override def mmapSegmentsOnRead = true
-  override def level0MMAP = true
-  override def appendixStorageMMAP = true
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
 }
 
 class TrashLevelSpec2 extends TrashLevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = false
-  override def mmapSegmentsOnRead = false
-  override def level0MMAP = false
-  override def appendixStorageMMAP = false
+  override def mmapSegments = MMAP.Disabled
+  override def level0MMAP = MMAP.Disabled
+  override def appendixStorageMMAP = MMAP.Disabled
 }
 
 class TrashLevelSpec3 extends TrashLevelSpec {

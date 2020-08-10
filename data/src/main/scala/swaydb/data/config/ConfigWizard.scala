@@ -47,7 +47,7 @@ object ConfigWizard {
 
   def withPersistentLevel0(dir: Path,
                            mapSize: Long,
-                           mmap: Boolean,
+                           mmap: MMAP.Map,
                            recoveryMode: RecoveryMode,
                            compactionExecutionContext: CompactionExecutionContext.Create,
                            acceleration: LevelZeroMeter => Accelerator,
@@ -97,7 +97,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
                                              throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
   def withPersistentLevel1(dir: Path,
                            otherDirs: Seq[Dir],
-                           mmapAppendix: Boolean,
+                           mmapAppendix: MMAP.Map,
                            appendixFlushCheckpointSize: Long,
                            sortedKeyIndex: SortedKeyIndex,
                            randomKeyIndex: RandomKeyIndex,
@@ -175,7 +175,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
 
   def withPersistentLevel1(dir: Path,
                            otherDirs: Seq[Dir],
-                           mmapAppendix: Boolean,
+                           mmapAppendix: MMAP.Map,
                            appendixFlushCheckpointSize: Long,
                            sortedKeyIndex: SortedKeyIndex,
                            randomKeyIndex: RandomKeyIndex,
@@ -281,7 +281,7 @@ object PersistentLevelConfig {
 
 case class PersistentLevelConfig(dir: Path,
                                  otherDirs: Seq[Dir],
-                                 mmapAppendix: Boolean,
+                                 mmapAppendix: MMAP.Map,
                                  appendixFlushCheckpointSize: Long,
                                  sortedKeyIndex: SortedKeyIndex,
                                  randomKeyIndex: RandomKeyIndex,
@@ -300,7 +300,7 @@ case class PersistentLevelConfig(dir: Path,
   def copyWithOtherDirs(otherDirs: java.util.Collection[Dir]) =
     this.copy(otherDirs = otherDirs.asScala.toList)
 
-  def copyWithMmapAppendix(mmapAppendix: Boolean) =
+  def copyWithMmapAppendix(mmapAppendix: MMAP.Map) =
     this.copy(mmapAppendix = mmapAppendix)
 
   def copyWithAppendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) =
@@ -348,7 +348,7 @@ sealed trait SwayDBConfig {
         false
 
       case config: PersistentLevelConfig =>
-        config.mmapAppendix || config.segmentConfig.mmap.mmapRead || config.segmentConfig.mmap.mmapWrite
+        config.mmapAppendix.isMMAP || config.segmentConfig.mmap.mmapReads || config.segmentConfig.mmap.mmapWrites
     }
 
   def hasMMAP: Boolean =
@@ -368,7 +368,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
 
   def withPersistentLevel(dir: Path,
                           otherDirs: Seq[Dir],
-                          mmapAppendix: Boolean,
+                          mmapAppendix: MMAP.Map,
                           appendixFlushCheckpointSize: Long,
                           sortedKeyIndex: SortedKeyIndex,
                           randomKeyIndex: RandomKeyIndex,
@@ -432,7 +432,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
 
   def withPersistentLevel(dir: Path,
                           otherDirs: Seq[Dir],
-                          mmapAppendix: Boolean,
+                          mmapAppendix: MMAP.Map,
                           appendixFlushCheckpointSize: Long,
                           sortedKeyIndex: SortedKeyIndex,
                           randomKeyIndex: RandomKeyIndex,

@@ -33,8 +33,10 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.{TestBase, TestExecutionContext, TestSweeper, TestTimer}
 import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.util.OperatingSystem
 import swaydb.{Actor, Scheduler}
 
 import scala.collection.mutable
@@ -45,18 +47,16 @@ class ThrottleCompactorSpec0 extends ThrottleCompactorSpec
 
 class ThrottleCompactorSpec1 extends ThrottleCompactorSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = true
-  override def mmapSegmentsOnRead = true
-  override def level0MMAP = true
-  override def appendixStorageMMAP = true
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
 }
 
 class ThrottleCompactorSpec2 extends ThrottleCompactorSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = false
-  override def mmapSegmentsOnRead = false
-  override def level0MMAP = false
-  override def appendixStorageMMAP = false
+  override def mmapSegments = MMAP.Disabled
+  override def level0MMAP = MMAP.Disabled
+  override def appendixStorageMMAP = MMAP.Disabled
 }
 
 class ThrottleCompactorSpec3 extends ThrottleCompactorSpec {

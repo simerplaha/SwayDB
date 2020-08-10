@@ -24,48 +24,43 @@
 
 package swaydb.core.segment.format.a
 
-import swaydb.compression.CompressionInternal
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Memory
 import swaydb.core.io.file.BlockCache
-import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
-import swaydb.core.segment.{PersistentSegmentOne, Segment, SegmentSearcher, ThreadReadState}
-import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
+import swaydb.core.segment.{Segment, ThreadReadState}
+import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
-import swaydb.data.config.{IOAction, IOStrategy}
+import swaydb.data.config.{IOAction, IOStrategy, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.util.OperatingSystem
 
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  override def mmapSegmentsOnWrite = false
-  override def mmapSegmentsOnRead = false
+  override def mmapSegments = MMAP.Disabled
 }
 
 class SegmentReadPerformanceSpec1 extends SegmentReadPerformanceSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = true
-  override def mmapSegmentsOnRead = true
-  override def level0MMAP = true
-  override def appendixStorageMMAP = true
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
 }
 
 class SegmentReadPerformanceSpec2 extends SegmentReadPerformanceSpec {
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = false
-  override def mmapSegmentsOnRead = false
-  override def level0MMAP = false
-  override def appendixStorageMMAP = false
+  override def mmapSegments = MMAP.Disabled
+  override def level0MMAP = MMAP.Disabled
+  override def appendixStorageMMAP = MMAP.Disabled
 }
 
 class SegmentReadPerformanceSpec3 extends SegmentReadPerformanceSpec {
@@ -169,8 +164,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
               minSize = Int.MaxValue,
               maxCount = keyValuesCount / 100,
               pushForward = false,
-              mmapWrites = mmapSegmentsOnWrite,
-              mmapReads = mmapSegmentsOnRead,
+              mmap = mmapSegments,
               deleteEventually = false,
 //              compressions = _ => Seq(CompressionInternal.randomLZ4(Double.MinValue))
               compressions = _ => Seq.empty
@@ -321,7 +315,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     //      }
     //    }
 
-    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       assertGet(segment)
       //            segment.getAll()
       //      blockCache.foreach(_.clear())
@@ -335,7 +329,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       //      segment.getAll().get
     }
 
-    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       assertGet(segment)
     }
 
@@ -393,7 +387,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     //
     //    //todo - TOO MANY BINARY HOPS BUT SUCCESSES ARE LESS.
     //    //
-    //    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    //    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
     //      assertGet(segment)
     //      //      segment.getAll().get
     //    }
@@ -402,7 +396,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   }
 
   "Segment value benchmark 2" in {
-    Benchmark(s"value ${keyValues.size} cached key values when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    Benchmark(s"value ${keyValues.size} cached key values when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       assertGet(segment)
     }
   }
@@ -410,17 +404,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   "Segment higher benchmark 5" in {
     initSegment()
     //    if (persistent) reopenSegment()
-    Benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    Benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       assertHigher(segment)
     }
 
-    Benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    Benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       assertHigher(segment)
     }
   }
 
   "Segment higher benchmark 6" in {
-    Benchmark(s"higher ${keyValues.size} cached higher keys when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    Benchmark(s"higher ${keyValues.size} cached higher keys when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       assertHigher(segment)
     }
   }
@@ -428,17 +422,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   "Segment lower benchmark 3" in {
     initSegment()
     //    if (persistent) reopenSegment()
-    Benchmark(s"lower ${keyValues.size} lower keys when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    Benchmark(s"lower ${keyValues.size} lower keys when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       assertLower(segment)
     }
 
-    Benchmark(s"lower ${keyValues.size} lower keys when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    Benchmark(s"lower ${keyValues.size} lower keys when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       assertLower(segment)
     }
   }
 
   "Segment lower benchmark 4" in {
-    Benchmark(s"lower ${keyValues.size} cached lower keys when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+    Benchmark(s"lower ${keyValues.size} cached lower keys when Segment memory = $memory, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       assertLower(segment)
     }
   }

@@ -34,6 +34,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.util.IDGenerator
 import swaydb.core.util.skiplist.{SkipList, SkipListBase}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -48,7 +49,7 @@ private[core] object Map extends LazyLogging {
   def persistent[OK, OV, K <: OK, V <: OV](nullKey: OK,
                                            nullValue: OV,
                                            folder: Path,
-                                           mmap: Boolean,
+                                           mmap: MMAP.Map,
                                            flushOnOverflow: Boolean,
                                            fileSize: Long,
                                            dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
@@ -71,7 +72,7 @@ private[core] object Map extends LazyLogging {
   def persistent[OK, OV, K <: OK, V <: OV](nullKey: OK,
                                            nullValue: OV,
                                            folder: Path,
-                                           mmap: Boolean,
+                                           mmap: MMAP.Map,
                                            flushOnOverflow: Boolean,
                                            fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                            timeOrder: TimeOrder[Slice[Byte]],

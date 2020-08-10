@@ -24,6 +24,8 @@
 
 package swaydb.data.storage
 
+import swaydb.data.config.MMAP
+
 sealed trait AppendixStorage {
   val memory: Boolean
 
@@ -36,7 +38,7 @@ object AppendixStorage {
     override val memory: Boolean = true
   }
 
-  case class Persistent(mmap: Boolean,
+  case class Persistent(mmap: MMAP.Map,
                         appendixFlushCheckpointSize: Long) extends AppendixStorage {
     override val memory: Boolean = false
   }

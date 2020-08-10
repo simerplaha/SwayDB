@@ -34,6 +34,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 import swaydb.{IO, KeyOrderConverter, SwayDB}
@@ -56,7 +57,7 @@ object Set extends LazyLogging {
                           persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                           otherDirs: Seq[Dir] = Seq.empty,
                           cacheKeyValueIds: Boolean = true,
-                          mmapPersistentLevelAppendix: Boolean = true,
+                          mmapPersistentLevelAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
                           deleteMemorySegmentsEventually: Boolean = true,
                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                           persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),

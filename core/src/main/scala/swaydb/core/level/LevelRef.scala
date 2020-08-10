@@ -31,6 +31,7 @@ import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.config.MMAP
 import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
@@ -57,12 +58,31 @@ object LevelRef {
   def hasMMAP(level: Option[LevelRef]): Boolean =
     firstPersistentLevel(level) exists {
       case level: Level =>
-        level.segmentConfig.mmapReads || level.segmentConfig.mmapWrites
+        level.segmentConfig.mmap.mmapReads || level.segmentConfig.mmap.mmapWrites
 
       case _: LevelZero =>
         //not true. LevelZero can also be mmap.
         false
     }
+
+  def hasDeleteOnClean(level: Option[LevelRef]): Boolean =
+    firstPersistentLevel(level) exists {
+      case level: Level =>
+        level.segmentConfig.mmap.deleteOnClean
+
+      case _: LevelZero =>
+        //not true. LevelZero can also be mmap.
+        false
+    }
+
+  /**
+   * Returns the first enabled [[MMAP.Map]] setting from first encountered PersistentLevel.
+   */
+  def getMMAPLog(level: Option[LevelRef]): MMAP.Map =
+    firstPersistentLevel(level) collectFirst {
+      case level: Level if level.segmentConfig.mmap.mmapReads || level.segmentConfig.mmap.mmapWrites =>
+        MMAP.enabled(level.segmentConfig.mmap.deleteOnClean)
+    } getOrElse MMAP.Disabled
 
   def getLevels(level: LevelRef): List[LevelRef] = {
     @tailrec

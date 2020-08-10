@@ -35,9 +35,10 @@ import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
 import swaydb.core.util.skiplist.SkipList
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.{ByteSizeOf, OperatingSystem}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -54,7 +55,7 @@ class MapEntrySpec extends TestBase {
   implicit def segmentIO: SegmentIO = SegmentIO.random
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
-  val appendixReader = AppendixMapEntryReader(true, true)
+  val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
 
   val keyValues = randomKeyValues(count = 10)
 

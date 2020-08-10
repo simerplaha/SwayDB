@@ -34,7 +34,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 import scala.annotation.tailrec
 

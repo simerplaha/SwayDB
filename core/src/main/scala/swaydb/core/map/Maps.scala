@@ -40,7 +40,7 @@ import swaydb.core.io.file.Effect._
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.config.RecoveryMode
+import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -76,7 +76,7 @@ private[core] object Maps extends LazyLogging {
   def persistent[OK, OV, K <: OK, V <: OV](nullKey: OK,
                                            nullValue: OV,
                                            path: Path,
-                                           mmap: Boolean,
+                                           mmap: MMAP.Map,
                                            fileSize: Long,
                                            acceleration: LevelZeroMeter => Accelerator,
                                            recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
@@ -144,7 +144,7 @@ private[core] object Maps extends LazyLogging {
   private def recover[OK, OV, K <: OK, V <: OV](nullKey: OK,
                                                 nullValue: OV,
                                                 folder: Path,
-                                                mmap: Boolean,
+                                                mmap: MMAP.Map,
                                                 fileSize: Long,
                                                 recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
                                                                         timeOrder: TimeOrder[Slice[Byte]],

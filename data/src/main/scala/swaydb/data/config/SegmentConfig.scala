@@ -38,7 +38,7 @@ object SegmentConfig {
 case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          deleteSegmentsEventually: Boolean,
                          pushForward: Boolean,
-                         mmap: MMAP,
+                         mmap: MMAP.Segment,
                          minSegmentSize: Int,
                          maxKeyValuesPerSegment: Int,
                          ioStrategy: IOAction => IOStrategy,
@@ -53,7 +53,7 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
   def copyWithPushForward(pushForward: Boolean): SegmentConfig =
     this.copy(pushForward = pushForward)
 
-  def copyWithMmap(mmap: MMAP): SegmentConfig =
+  def copyWithMmap(mmap: MMAP.Segment): SegmentConfig =
     this.copy(mmap = mmap)
 
   def copyWithMinSegmentSize(minSegmentSize: Int): SegmentConfig =

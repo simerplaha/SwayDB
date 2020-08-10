@@ -31,6 +31,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.{TestBase, TestSweeper}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -61,8 +62,7 @@ class SegmentSerialiserSpec extends TestBase {
       val readSegment =
         SegmentSerialiser.FormatA.read(
           reader = Reader(bytes),
-          mmapSegmentsOnRead = randomBoolean(),
-          mmapSegmentsOnWrite = randomBoolean(),
+          mmapSegment = MMAP.randomSegment(),
           checkExists = segment.persistent
         )
 

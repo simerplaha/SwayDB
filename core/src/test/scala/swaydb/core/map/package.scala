@@ -29,6 +29,7 @@ import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.StorageUnits._
@@ -51,7 +52,7 @@ package object map {
       map.close().runRandomIO.right.value
       Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
         folder = map.path,
-        mmap = Random.nextBoolean(),
+        mmap = MMAP.randomMap(),
         flushOnOverflow = Random.nextBoolean(),
         fileSize = 10.mb,
         dropCorruptedTailEntries = false,

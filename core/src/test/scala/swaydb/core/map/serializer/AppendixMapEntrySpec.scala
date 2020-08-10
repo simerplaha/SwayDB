@@ -35,8 +35,10 @@ import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
 import swaydb.core.util.skiplist.SkipList
 import swaydb.core.{TestBase, TestSweeper}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -49,7 +51,7 @@ class AppendixMapEntrySpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
-  val appendixReader = AppendixMapEntryReader(true, true)
+  val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
   val segment = TestSegment()
 
   "MapEntryWriterAppendix & MapEntryReaderAppendix" should {

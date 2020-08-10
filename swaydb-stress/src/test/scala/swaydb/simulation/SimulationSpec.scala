@@ -86,7 +86,7 @@ class Persistent_SimulationSpec extends SimulationSpec {
 class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
   override def newDB(implicit functions: swaydb.Map.Functions[Long, Domain, Functions]) =
-    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = false, mmapMaps = false, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(mmap = MMAP.Disabled)).get
+    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = MMAP.Disabled, mmapMaps = MMAP.Disabled, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(mmap = MMAP.Disabled)).get
 }
 
 sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {

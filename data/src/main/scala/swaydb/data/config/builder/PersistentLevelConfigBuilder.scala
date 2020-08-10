@@ -38,7 +38,7 @@ import scala.jdk.CollectionConverters._
 class PersistentLevelConfigBuilder {
   private var dir: Path = _
   private var otherDirs: Seq[Dir] = _
-  private var mmapAppendix: Boolean = _
+  private var mmapAppendix: MMAP.Map = _
   private var appendixFlushCheckpointSize: Long = _
   private var sortedKeyIndex: SortedKeyIndex = _
   private var randomKeyIndex: RandomKeyIndex = _
@@ -75,7 +75,7 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step2(builder: PersistentLevelConfigBuilder) {
-    def mmapAppendix(mmapAppendix: Boolean) = {
+    def mmapAppendix(mmapAppendix: MMAP.Map) = {
       builder.mmapAppendix = mmapAppendix
       new Step3(builder)
     }

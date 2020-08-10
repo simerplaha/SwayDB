@@ -24,61 +24,40 @@
 
 package swaydb.core.map.serializer
 
-import java.nio.file.Path
-
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.BlockCache
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentIO, SegmentSerialiser}
-import swaydb.core.util.MinMax
-import swaydb.data.MaxKey
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
 
-import scala.concurrent.duration.Deadline
-
 private[core] object AppendixMapEntryReader {
-  def apply(mmapSegmentsOnRead: Boolean,
-            mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                          timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore,
-                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                          fileSweeper: FileSweeper.Enabled,
-                                          blockCache: Option[BlockCache.State],
-                                          segmentIO: SegmentIO): AppendixMapEntryReader =
-    new AppendixMapEntryReader(
-      mmapSegmentsOnRead = mmapSegmentsOnRead,
-      mmapSegmentsOnWrite = mmapSegmentsOnWrite
-    )
-
+  def apply(mmapSegment: MMAP.Segment)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                       timeOrder: TimeOrder[Slice[Byte]],
+                                       functionStore: FunctionStore,
+                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                       fileSweeper: FileSweeper.Enabled,
+                                       blockCache: Option[BlockCache.State],
+                                       segmentIO: SegmentIO): AppendixMapEntryReader =
+    new AppendixMapEntryReader(mmapSegment)
 }
 
-private[core] case class AppendixSegment(path: Path,
-                                         mmapReads: Boolean,
-                                         mmapWrites: Boolean,
-                                         minKey: Slice[Byte],
-                                         maxKey: MaxKey[Slice[Byte]],
-                                         segmentSize: Int,
-                                         minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                                         nearestExpiryDeadline: Option[Deadline])
-
-private[core] class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
-                                           mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                                         functionStore: FunctionStore,
-                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                         fileSweeper: FileSweeper.Enabled,
-                                                                         blockCache: Option[BlockCache.State],
-                                                                         segmentIO: SegmentIO) {
+private[core] class AppendixMapEntryReader(mmapSegment: MMAP.Segment)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                                      functionStore: FunctionStore,
+                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                      fileSweeper: FileSweeper.Enabled,
+                                                                      blockCache: Option[BlockCache.State],
+                                                                      segmentIO: SegmentIO) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Segment] = {
       val segment =
         SegmentSerialiser.FormatA.read(
           reader = reader,
-          mmapSegmentsOnRead = mmapSegmentsOnRead,
-          mmapSegmentsOnWrite = mmapSegmentsOnWrite,
+          mmapSegment = mmapSegment,
           checkExists = false
         )
 

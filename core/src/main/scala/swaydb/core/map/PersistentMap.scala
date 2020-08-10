@@ -38,7 +38,7 @@ import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
-import swaydb.data.config.IOStrategy
+import swaydb.data.config.{IOStrategy, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -47,7 +47,7 @@ import scala.annotation.tailrec
 private[map] object PersistentMap extends LazyLogging {
 
   private[map] def apply[OK, OV, K <: OK, V <: OV](folder: Path,
-                                                   mmap: Boolean,
+                                                   mmap: MMAP.Map,
                                                    flushOnOverflow: Boolean,
                                                    fileSize: Long,
                                                    dropCorruptedTailEntries: Boolean,
@@ -78,7 +78,7 @@ private[map] object PersistentMap extends LazyLogging {
   }
 
   private[map] def apply[OK, OV, K <: OK, V <: OV](folder: Path,
-                                                   mmap: Boolean,
+                                                   mmap: MMAP.Map,
                                                    flushOnOverflow: Boolean,
                                                    fileSize: Long,
                                                    nullKey: OK,
@@ -103,15 +103,30 @@ private[map] object PersistentMap extends LazyLogging {
   }
 
   private[map] def firstFile(folder: Path,
-                             memoryMapped: Boolean,
+                             memoryMapped: MMAP.Map,
                              fileSize: Long)(implicit fileSweeper: FileSweeper): DBFile =
-    if (memoryMapped)
-      DBFile.mmapInit(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), fileSize, autoClose = false, blockCacheFileId = 0)(fileSweeper, None)
-    else
-      DBFile.channelWrite(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None)
+    memoryMapped match {
+      case MMAP.Enabled(deleteOnClean) =>
+        DBFile.mmapInit(
+          folder.resolve(0.toLogFileId),
+          IOStrategy.SynchronisedIO(true),
+          fileSize,
+          autoClose = false,
+          blockCacheFileId = 0
+        )(fileSweeper, None)
+
+      case _: MMAP.Disabled =>
+        DBFile.channelWrite(
+          folder.resolve(0.toLogFileId),
+          IOStrategy.SynchronisedIO(true),
+          autoClose = false,
+          blockCacheFileId = 0
+        )(fileSweeper, None)
+    }
+
 
   private[map] def recover[OK, OV, K <: OK, V <: OV](folder: Path,
-                                                     mmap: Boolean,
+                                                     mmap: MMAP.Map,
                                                      fileSize: Long,
                                                      skipList: SkipListConcurrent[OK, OV, K, V],
                                                      dropCorruptedTailEntries: Boolean)(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -186,7 +201,7 @@ private[map] object PersistentMap extends LazyLogging {
    * oldFiles value deleted after the recovery is successful. In case of a failure an error message is logged.
    */
   private[map] def nextFile[OK, OV, K <: OK, V <: OV](oldFiles: Iterable[DBFile],
-                                                      mmap: Boolean,
+                                                      mmap: MMAP.Map,
                                                       fileSize: Long,
                                                       skipList: SkipListConcurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                   fileSweeper: FileSweeper): Option[DBFile] =
@@ -210,7 +225,7 @@ private[map] object PersistentMap extends LazyLogging {
     }
 
   private[map] def nextFile[OK, OV, K <: OK, V <: OV](currentFile: DBFile,
-                                                      mmap: Boolean,
+                                                      mmap: MMAP.Map,
                                                       size: Long,
                                                       skipList: SkipListConcurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                   fileSweeper: FileSweeper): DBFile = {
@@ -218,10 +233,25 @@ private[map] object PersistentMap extends LazyLogging {
     val nextPath = currentFile.path.incrementFileId
     val bytes = MapCodec.write(skipList)
     val newFile =
-      if (mmap)
-        DBFile.mmapInit(path = nextPath, IOStrategy.SynchronisedIO(true), bufferSize = bytes.size + size, autoClose = false, blockCacheFileId = 0)(fileSweeper, None)
-      else
-        DBFile.channelWrite(nextPath, IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None)
+
+      mmap match {
+        case MMAP.Enabled(deleteOnClean) =>
+          DBFile.mmapInit(
+            path = nextPath,
+            IOStrategy.SynchronisedIO(true),
+            bufferSize = bytes.size + size,
+            blockCacheFileId = 0,
+            autoClose = false
+          )(fileSweeper, None)
+
+        case _: MMAP.Disabled =>
+          DBFile.channelWrite(
+            path = nextPath,
+            ioStrategy = IOStrategy.SynchronisedIO(true),
+            blockCacheFileId = 0,
+            autoClose = false
+          )(fileSweeper, None)
+      }
 
     newFile.append(bytes)
     currentFile.delete()
@@ -230,7 +260,7 @@ private[map] object PersistentMap extends LazyLogging {
 }
 
 protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
-                                                             mmap: Boolean,
+                                                             mmap: MMAP.Map,
                                                              fileSize: Long,
                                                              flushOnOverflow: Boolean,
                                                              private val _skipList: SkipListConcurrent[OK, OV, K, V],

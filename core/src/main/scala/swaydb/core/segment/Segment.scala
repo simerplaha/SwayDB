@@ -48,7 +48,7 @@ import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.MaxKey
-import swaydb.data.config.{Dir, IOAction}
+import swaydb.data.config.{Dir, IOAction, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.SomeOrNone
@@ -68,6 +68,7 @@ private[core] object Segment extends LazyLogging {
 
   final case object Null extends SegmentOption {
     override def isNoneS: Boolean = true
+
     override def getS: Segment = throw new Exception("Segment is of type Null")
   }
 
@@ -225,16 +226,14 @@ private[core] object Segment extends LazyLogging {
     persistent(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
-      mmapReads = segmentConfig.mmapReads,
-      mmapWrites = segmentConfig.mmapWrites,
+      mmap = segmentConfig.mmap,
       segments = transient
     )
   }
 
   def persistent(pathsDistributor: PathsDistributor,
                  createdInLevel: Int,
-                 mmapReads: Boolean,
-                 mmapWrites: Boolean,
+                 mmap: MMAP.Segment,
                  segments: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                        functionStore: FunctionStore,
@@ -255,8 +254,7 @@ private[core] object Segment extends LazyLogging {
 
             val file: DBFile =
               segmentFile(
-                mmapReads = mmapReads,
-                mmapWrites = mmapWrites,
+                mmap = mmap,
                 segmentBytes = segment.segmentBytes,
                 path = path
               )
@@ -291,22 +289,12 @@ private[core] object Segment extends LazyLogging {
     )
 
   private def segmentFile(path: Path,
-                          mmapReads: Boolean,
-                          mmapWrites: Boolean,
+                          mmap: MMAP.Segment,
                           segmentBytes: Slice[Slice[Byte]])(implicit segmentIO: SegmentIO,
                                                             fileSweeper: FileSweeper.Enabled,
                                                             blockCache: Option[BlockCache.State]): DBFile =
-    if (mmapWrites && mmapReads) //if both read and writes are mmaped. Keep the file open.
-      DBFile.mmapWriteAndRead(
-        path = path,
-        autoClose = true,
-        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-        bytes = segmentBytes
-      )
-    //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
-    else if (mmapWrites && !mmapReads) {
-      val file =
+    mmap match {
+      case MMAP.Enabled(deleteOnClean) => //if both read and writes are mmaped. Keep the file open.
         DBFile.mmapWriteAndRead(
           path = path,
           autoClose = true,
@@ -315,30 +303,44 @@ private[core] object Segment extends LazyLogging {
           bytes = segmentBytes
         )
 
-      //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
-      //is probably not the most efficient and should not be used.
-      file.close()
-      DBFile.channelRead(
-        path = file.path,
-        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-        autoClose = true
-      )
+      case MMAP.ReadOnly(deleteOnClean) =>
+        DBFile.mmapRead(
+          path = Effect.write(path, segmentBytes),
+          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+          autoClose = true
+        )
+
+      case _: MMAP.Disabled =>
+        DBFile.channelRead(
+          path = Effect.write(path, segmentBytes),
+          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+          autoClose = true
+        )
+
+      //another case if mmapReads is false, write bytes in mmaped mode and then close and re-open for read. Currently not inuse.
+      //    else if (mmap.mmapWrites && !mmap.mmapReads) {
+      //      val file =
+      //        DBFile.mmapWriteAndRead(
+      //          path = path,
+      //          autoClose = true,
+      //          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+      //          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+      //          bytes = segmentBytes
+      //        )
+      //
+      //      //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
+      //      //is probably not the most efficient and should not be used.
+      //      file.close()
+      //      DBFile.channelRead(
+      //        path = file.path,
+      //        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+      //        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+      //        autoClose = true
+      //      )
+      //    }
     }
-    else if (!mmapWrites && mmapReads)
-      DBFile.mmapRead(
-        path = Effect.write(path, segmentBytes),
-        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-        autoClose = true
-      )
-    else
-      DBFile.channelRead(
-        path = Effect.write(path, segmentBytes),
-        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-        autoClose = true
-      )
 
   def copyToPersist(segment: Segment,
                     createdInLevel: Int,
@@ -370,8 +372,7 @@ private[core] object Segment extends LazyLogging {
               createdInLevel = segment.createdInLevel,
               blockCacheFileId = segment.file.blockCacheFileId,
               copiedFrom = Some(segment),
-              mmapReads = segmentConfig.mmapReads,
-              mmapWrites = segmentConfig.mmapWrites,
+              mmap = segmentConfig.mmap,
               minKey = segment.minKey,
               maxKey = segment.maxKey,
               segmentSize = segment.segmentSize,
@@ -495,8 +496,7 @@ private[core] object Segment extends LazyLogging {
             formatId: Byte,
             createdInLevel: Int,
             blockCacheFileId: Long,
-            mmapReads: Boolean,
-            mmapWrites: Boolean,
+            mmap: MMAP.Segment,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             segmentSize: Int,
@@ -512,7 +512,7 @@ private[core] object Segment extends LazyLogging {
                                          segmentIO: SegmentIO): PersistentSegment = {
 
     val file =
-      if (mmapReads)
+      if (mmap.mmapReads)
         DBFile.mmapRead(
           path = path,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),

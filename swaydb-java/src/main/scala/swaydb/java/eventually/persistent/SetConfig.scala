@@ -33,6 +33,7 @@ import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.java._
 import swaydb.java.data.slice.ByteSlice
@@ -56,7 +57,7 @@ object SetConfig {
                            private var persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
-                           private var mmapPersistentLevelAppendix: Boolean = true,
+                           private var mmapPersistentLevelAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
                            private var deleteMemorySegmentsEventually: Boolean = true,
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -113,7 +114,7 @@ object SetConfig {
       this
     }
 
-    def setMmapPersistentLevelAppendix(mmapPersistentLevelAppendix: Boolean) = {
+    def setMmapPersistentLevelAppendix(mmapPersistentLevelAppendix: MMAP.Map) = {
       this.mmapPersistentLevelAppendix = mmapPersistentLevelAppendix
       this
     }

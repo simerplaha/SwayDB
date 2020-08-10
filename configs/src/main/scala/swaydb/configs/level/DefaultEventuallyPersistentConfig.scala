@@ -63,7 +63,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             memoryLevelMaxKeyValuesCountPerSegment: Int,
             deleteMemorySegmentsEventually: Boolean,
             persistentLevelAppendixFlushCheckpointSize: Int,
-            mmapPersistentLevelAppendix: Boolean,
+            mmapPersistentLevelAppendix: MMAP.Map,
             persistentLevelSortedKeyIndex: SortedKeyIndex,
             persistentLevelRandomKeyIndex: RandomKeyIndex,
             persistentLevelBinarySearchIndex: BinarySearchIndex,

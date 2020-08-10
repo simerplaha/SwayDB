@@ -30,8 +30,9 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
+import swaydb.data.util.OperatingSystem
 
 class SegmentKeyValueCount0 extends SegmentKeyValueCount {
   val keyValuesCount = 1000
@@ -40,19 +41,17 @@ class SegmentKeyValueCount0 extends SegmentKeyValueCount {
 class SegmentKeyValueCount1 extends SegmentKeyValueCount {
   val keyValuesCount = 1000
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = true
-  override def mmapSegmentsOnRead = true
-  override def level0MMAP = true
-  override def appendixStorageMMAP = true
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
 }
 
 class SegmentKeyValueCount2 extends SegmentKeyValueCount {
   val keyValuesCount = 1000
   override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = false
-  override def mmapSegmentsOnRead = false
-  override def level0MMAP = false
-  override def appendixStorageMMAP = false
+  override def mmapSegments = MMAP.Disabled
+  override def level0MMAP = MMAP.Disabled
+  override def appendixStorageMMAP = MMAP.Disabled
 }
 
 class SegmentKeyValueCount3 extends SegmentKeyValueCount {

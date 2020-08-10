@@ -35,6 +35,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.util.skiplist.SkipListConcurrent
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -56,7 +57,7 @@ private[core] object PersistentTimer extends LazyLogging {
   }
 
   def apply(path: Path,
-            mmap: Boolean,
+            mmap: MMAP.Map,
             mod: Long,
             flushCheckpointSize: Long)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                        timeOrder: TimeOrder[Slice[Byte]],

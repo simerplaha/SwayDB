@@ -31,9 +31,10 @@ import swaydb.core.TestBase
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, TimerMapEntryReader, TimerMapEntryWriter}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.Bytez
+import swaydb.data.util.{Bytez, OperatingSystem}
 
 import scala.concurrent.ExecutionContext
 
@@ -47,7 +48,12 @@ class PersistentTimerSpec extends TimerSpec {
                            ec: ExecutionContext,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
-    Timer.persistent(path, true, 100, 1000).get
+    Timer.persistent(
+      path = path,
+      mmap = MMAP.Enabled(OperatingSystem.isWindows),
+      mod = 100,
+      flushCheckpointSize = 1000
+    ).get
 }
 
 class MemoryTimerSpec extends TimerSpec {
@@ -96,11 +102,25 @@ sealed trait TimerSpec extends TestBase {
       timer.close
 
       if (persistent) {
-        val reopenedTimer = Timer.persistent(dir, true, 100, 1000).get
+        val reopenedTimer =
+          Timer.persistent(
+            path = dir,
+            mmap = MMAP.Enabled(OperatingSystem.isWindows),
+            mod = 100,
+            flushCheckpointSize = 1000
+          ).get
+
         write(1000 + 101 to 2000 + 201, reopenedTimer)
         reopenedTimer.close
 
-        val reopenedTimer2 = Timer.persistent(dir, true, 100, 1000).get
+        val reopenedTimer2 =
+          Timer.persistent(
+            path = dir,
+            mmap = MMAP.Enabled(OperatingSystem.isWindows),
+            mod = 100,
+            flushCheckpointSize = 1000
+          ).get
+
         write(2000 + 201 to 300 + 301, reopenedTimer2)
         reopenedTimer2.close
       }

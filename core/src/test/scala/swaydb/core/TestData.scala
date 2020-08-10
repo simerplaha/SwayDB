@@ -36,16 +36,13 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestSweeper.fileSweeper
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.Cache
-import swaydb.core.data.KeyValue
-import swaydb.core.data.Memory.Range
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
-import swaydb.core.data._
+import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.file.BlockCache
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
-import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -59,14 +56,15 @@ import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO, ThreadReadState}
-import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
+import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{ActorConfig, Dir, IOAction, IOStrategy, PrefixCompression, RecoveryMode, UncompressedBlockInfo}
+import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -115,8 +113,7 @@ object TestData {
           formatId = segment.formatId,
           createdInLevel = segment.createdInLevel,
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-          mmapReads = randomBoolean(),
-          mmapWrites = randomBoolean(),
+          mmap = MMAP.randomSegment(),
           minKey = segment.minKey,
           maxKey = segment.maxKey,
           segmentSize = segment.segmentSize,
@@ -276,7 +273,7 @@ object TestData {
                     dir = level.pathDistributor.headPath,
                     otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
                   ),
-                appendixStorage = AppendixStorage.Persistent(mmap = randomBoolean(), 4.mb),
+                appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomMap(), 4.mb),
                 nextLevel = nextLevel,
                 throttle = throttle
               )
@@ -305,7 +302,7 @@ object TestData {
                   enableTimer = true,
                   storage =
                     Level0Storage.Persistent(
-                      mmap = true,
+                      mmap = MMAP.enabled(OperatingSystem.isWindows),
                       dir = level.path.getParent,
                       recovery = RecoveryMode.ReportFailure
                     ),
@@ -455,8 +452,7 @@ object TestData {
                minSegmentSize: Int = randomIntMax(4.mb),
                maxKeyValuesPerSegment: Int = randomIntMax(100000),
                deleteEventually: Boolean = randomBoolean(),
-               mmapWrites: Boolean = randomBoolean(),
-               mmapReads: Boolean = randomBoolean(),
+               mmap: MMAP.Segment = MMAP.randomSegment(),
                pushForward: Boolean = randomBoolean(),
                cacheBlocksOnCreate: Boolean = randomBoolean(),
                cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
@@ -466,8 +462,7 @@ object TestData {
         maxCount = maxKeyValuesPerSegment,
         minSize = minSegmentSize,
         pushForward = pushForward,
-        mmapWrites = mmapWrites,
-        mmapReads = mmapReads,
+        mmap = mmap,
         deleteEventually = deleteEventually,
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
@@ -477,8 +472,7 @@ object TestData {
                 compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = _ => randomCompressionsOrEmpty(),
                 maxKeyValuesPerSegment: Int = randomIntMax(1000000),
                 deleteEventually: Boolean = randomBoolean(),
-                mmapWrites: Boolean = randomBoolean(),
-                mmapReads: Boolean = randomBoolean(),
+                mmap: MMAP.Segment = MMAP.randomSegment(),
                 pushForward: Boolean = randomBoolean(),
                 minSegmentSize: Int = randomIntMax(30.mb)): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
@@ -487,8 +481,7 @@ object TestData {
         maxCount = maxKeyValuesPerSegment,
         minSize = minSegmentSize,
         pushForward = pushForward,
-        mmapWrites = mmapWrites,
-        mmapReads = mmapReads,
+        mmap = mmap,
         deleteEventually = deleteEventually,
         compressions = compressions
       )

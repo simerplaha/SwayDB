@@ -26,7 +26,7 @@ package swaydb.data.storage
 
 import java.nio.file.Path
 
-import swaydb.data.config.RecoveryMode
+import swaydb.data.config.{MMAP, RecoveryMode}
 
 sealed trait Level0Storage {
   val memory: Boolean
@@ -43,10 +43,10 @@ object Level0Storage {
     override def isMMAP: Boolean = false
   }
 
-  case class Persistent(mmap: Boolean,
+  case class Persistent(mmap: MMAP.Map,
                         dir: Path,
                         recovery: RecoveryMode) extends Level0Storage {
     override val memory: Boolean = false
-    override def isMMAP: Boolean = mmap
+    override def isMMAP: Boolean = mmap.isMMAP
   }
 }

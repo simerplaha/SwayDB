@@ -34,6 +34,7 @@ import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.util.Options._
 import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
 import swaydb.data.MaxKey
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -45,8 +46,7 @@ private[core] sealed trait SegmentSerialiser {
   def write(value: Segment, bytes: Slice[Byte]): Unit
 
   def read(reader: ReaderBase,
-           mmapSegmentsOnRead: Boolean,
-           mmapSegmentsOnWrite: Boolean,
+           mmapSegment: MMAP.Segment,
            checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  functionStore: FunctionStore,
@@ -109,8 +109,7 @@ private[core] object SegmentSerialiser {
     }
 
     def read(reader: ReaderBase,
-             mmapSegmentsOnRead: Boolean,
-             mmapSegmentsOnWrite: Boolean,
+             mmapSegment: MMAP.Segment,
              checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
                                    functionStore: FunctionStore,
@@ -174,8 +173,7 @@ private[core] object SegmentSerialiser {
         formatId = segmentFormatId,
         createdInLevel = createdInLevel,
         blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-        mmapReads = mmapSegmentsOnRead,
-        mmapWrites = mmapSegmentsOnWrite,
+        mmap = mmapSegment,
         minKey = minKey,
         maxKey = maxKey,
         segmentSize = segmentSize,

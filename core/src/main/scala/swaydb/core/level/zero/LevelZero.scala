@@ -133,7 +133,7 @@ private[core] object LevelZero extends LazyLogging {
                   Effect createDirectoriesIfAbsent timerDir
                   Timer.persistent(
                     path = timerDir,
-                    mmap = LevelRef.hasMMAP(nextLevel),
+                    mmap = LevelRef.getMMAPLog(nextLevel),
                     mod = 100000,
                     flushCheckpointSize = 1.mb
                   )(keyOrder = KeyOrder.default,

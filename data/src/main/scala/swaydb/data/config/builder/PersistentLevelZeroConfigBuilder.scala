@@ -28,7 +28,7 @@ import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionExecutionContext
-import swaydb.data.config.{ConfigWizard, RecoveryMode}
+import swaydb.data.config.{ConfigWizard, MMAP, RecoveryMode}
 import swaydb.data.util.Java.JavaFunction
 
 import scala.concurrent.duration.FiniteDuration
@@ -39,7 +39,7 @@ import scala.concurrent.duration.FiniteDuration
 class PersistentLevelZeroConfigBuilder {
   private var dir: Path = _
   private var mapSize: Long = _
-  private var mmap: Boolean = _
+  private var mmap: MMAP.Map = _
   private var recoveryMode: RecoveryMode = _
   private var compactionExecutionContext: CompactionExecutionContext.Create = _
   private var acceleration: LevelZeroMeter => Accelerator = _
@@ -62,7 +62,7 @@ object PersistentLevelZeroConfigBuilder {
   }
 
   class Step2(builder: PersistentLevelZeroConfigBuilder) {
-    def mmap(mmap: Boolean) = {
+    def mmap(mmap: MMAP.Map) = {
       builder.mmap = mmap
       new Step3(builder)
     }

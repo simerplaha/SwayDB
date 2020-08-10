@@ -516,8 +516,7 @@ protected case class PersistentSegmentMany(file: DBFile,
 
     Segment.persistent(
       pathsDistributor = pathsDistributor,
-      mmapReads = segmentConfig.mmapReads,
-      mmapWrites = segmentConfig.mmapWrites,
+      mmap = segmentConfig.mmap,
       createdInLevel = createdInLevel,
       segments = transient
     )
@@ -548,8 +547,7 @@ protected case class PersistentSegmentMany(file: DBFile,
 
     Segment.persistent(
       pathsDistributor = pathsDistributor,
-      mmapReads = segmentConfig.mmapReads,
-      mmapWrites = segmentConfig.mmapWrites,
+      mmap = segmentConfig.mmap,
       createdInLevel = createdInLevel,
       segments = transient
     )

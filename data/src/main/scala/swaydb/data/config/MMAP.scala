@@ -24,39 +24,65 @@
 
 package swaydb.data.config
 
+import swaydb.data.util.OperatingSystem
+
+import scala.util.Random
+
 sealed trait MMAP {
-  val mmapRead: Boolean
-  val mmapWrite: Boolean
+  val mmapReads: Boolean
+  val mmapWrites: Boolean
   val deleteOnClean: Boolean
 }
 
 object MMAP {
 
-  sealed trait Map extends MMAP
+  /**
+   * This type is only for [[swaydb.core.map.Map]] type.
+   */
+  sealed trait Segment extends MMAP
+  sealed trait Map extends Segment {
+    def isMMAP: Boolean
+  }
 
   def enabled(deleteOnClean: Boolean): MMAP.Enabled =
     Enabled(deleteOnClean)
 
-  case class Enabled(deleteOnClean: Boolean) extends Map {
-    override val mmapRead: Boolean = true
-    override val mmapWrite: Boolean = true
+  case class Enabled(deleteOnClean: Boolean) extends MMAP.Segment with MMAP.Map {
+    override val mmapReads: Boolean = true
+    override val mmapWrites: Boolean = true
+    override val isMMAP: Boolean = true
   }
 
   def readOnly(deleteOnClean: Boolean): MMAP.ReadOnly =
     ReadOnly(deleteOnClean)
 
-  case class ReadOnly(deleteOnClean: Boolean) extends MMAP {
-    override val mmapRead: Boolean = true
-    override val mmapWrite: Boolean = false
+  case class ReadOnly(deleteOnClean: Boolean) extends MMAP.Segment {
+    override val mmapReads: Boolean = true
+    override val mmapWrites: Boolean = false
   }
 
   def disabled(): MMAP.Disabled =
     Disabled
 
-  sealed trait Disabled extends Map
+  sealed trait Disabled extends MMAP.Segment with MMAP.Map
   case object Disabled extends Disabled {
-    override val mmapRead: Boolean = false
-    override val mmapWrite: Boolean = false
+    override val mmapReads: Boolean = false
+    override val mmapWrites: Boolean = false
+    override val isMMAP: Boolean = false
     override val deleteOnClean: Boolean = false
   }
+
+  def randomSegment(): MMAP.Segment =
+    if (Random.nextBoolean())
+      MMAP.Enabled(OperatingSystem.get().isWindows)
+    else if (Random.nextBoolean())
+      MMAP.ReadOnly(OperatingSystem.get().isWindows)
+    else
+      MMAP.Disabled
+
+  def randomMap(): MMAP.Map =
+    if (Random.nextBoolean())
+      MMAP.Enabled(OperatingSystem.get().isWindows)
+    else
+      MMAP.Disabled
 }

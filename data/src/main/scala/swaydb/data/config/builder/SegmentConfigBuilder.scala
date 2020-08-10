@@ -34,7 +34,7 @@ class SegmentConfigBuilder {
   private var cacheSegmentBlocksOnCreate: Boolean = _
   private var deleteSegmentsEventually: Boolean = _
   private var pushForward: Boolean = _
-  private var mmap: MMAP = _
+  private var mmap: MMAP.Segment = _
   private var minSegmentSize: Int = _
   private var maxKeyValuesPerSegment: Int = _
   private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
@@ -64,7 +64,7 @@ object SegmentConfigBuilder {
   }
 
   class Step3(builder: SegmentConfigBuilder) {
-    def mmap(mmap: MMAP) = {
+    def mmap(mmap: MMAP.Segment) = {
       builder.mmap = mmap
       new Step4(builder)
     }

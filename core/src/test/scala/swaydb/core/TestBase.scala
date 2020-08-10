@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterEach
 import swaydb.ActorWire
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -48,7 +48,6 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
-import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -59,11 +58,11 @@ import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
-import swaydb.data.config.{Dir, RecoveryMode}
+import swaydb.data.config.{Dir, MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
-import swaydb.data.util.Futures
+import swaydb.data.util.{Futures, OperatingSystem}
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
@@ -98,13 +97,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
 
   def levelFoldersCount = 0
 
-  def mmapSegmentsOnWrite = true
+  def mmapSegments: MMAP.Segment = MMAP.Enabled(OperatingSystem.isWindows)
 
-  def mmapSegmentsOnRead = true
+  def level0MMAP: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows)
 
-  def level0MMAP = true
-
-  def appendixStorageMMAP = true
+  def appendixStorageMMAP: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows)
 
   def inMemoryStorage = false
 
@@ -224,10 +221,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               fileSize: Int = 4.mb,
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
-              mmap: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                    fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+              mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
+                                                                        fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerger
@@ -625,62 +622,62 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
       //if throttle is only the top most Level's (Level0) assert should
       // be executed because throttle behaviour is unknown during runtime
       // and lower Level's key-values would change as compaction continues.
-        (1 to 5) map (
-          i =>
-            if (i == 1)
-              (
-                (level0KV, level0Assert),
-                (level1KV, noAssert),
-                (level2KV, noAssert),
-                (Slice.empty, noAssert)
-              )
-            else
-              (
-                (Slice.empty, level0Assert),
-                (Slice.empty, noAssert),
-                (Slice.empty, noAssert),
-                (Slice.empty, noAssert)
-              )
-          )
-      else
-        Seq(
-          (
-            (level0KV, level0Assert),
-            (level1KV, level1Assert),
-            (level2KV, level2Assert),
-            (Slice.empty, noAssert)
-          ),
-          (
-            (level0KV, level0Assert),
-            (level1KV, level1Assert),
-            (Slice.empty, level2Assert),
-            (level2KV, level2Assert)
-          ),
-          (
-            (level0KV, level0Assert),
-            (Slice.empty, level1Assert),
-            (level1KV, level1Assert),
-            (level2KV, level2Assert)
-          ),
-          (
-            (Slice.empty, level0Assert),
-            (level0KV, level0Assert),
-            (level1KV, level1Assert),
-            (level2KV, level2Assert)
-          ),
-          (
-            (Slice.empty, level0Assert),
-            (Slice.empty, level0Assert),
-            (level0KV, level0Assert),
-            (level1KV, level1Assert)
-          ),
-          (
-            (Slice.empty, level0Assert),
-            (Slice.empty, level0Assert),
-            (Slice.empty, level0Assert),
-            (level0KV, level0Assert)
-          )
+      (1 to 5) map (
+        i =>
+          if (i == 1)
+            (
+              (level0KV, level0Assert),
+              (level1KV, noAssert),
+              (level2KV, noAssert),
+              (Slice.empty, noAssert)
+            )
+          else
+            (
+              (Slice.empty, level0Assert),
+              (Slice.empty, noAssert),
+              (Slice.empty, noAssert),
+              (Slice.empty, noAssert)
+            )
         )
+      else
+      Seq(
+        (
+          (level0KV, level0Assert),
+          (level1KV, level1Assert),
+          (level2KV, level2Assert),
+          (Slice.empty, noAssert)
+        ),
+        (
+          (level0KV, level0Assert),
+          (level1KV, level1Assert),
+          (Slice.empty, level2Assert),
+          (level2KV, level2Assert)
+        ),
+        (
+          (level0KV, level0Assert),
+          (Slice.empty, level1Assert),
+          (level1KV, level1Assert),
+          (level2KV, level2Assert)
+        ),
+        (
+          (Slice.empty, level0Assert),
+          (level0KV, level0Assert),
+          (level1KV, level1Assert),
+          (level2KV, level2Assert)
+        ),
+        (
+          (Slice.empty, level0Assert),
+          (Slice.empty, level0Assert),
+          (level0KV, level0Assert),
+          (level1KV, level1Assert)
+        ),
+        (
+          (Slice.empty, level0Assert),
+          (Slice.empty, level0Assert),
+          (Slice.empty, level0Assert),
+          (level0KV, level0Assert)
+        )
+      )
 
     runAsserts(asserts)
 
@@ -793,8 +790,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     //ensure that only one segment gets created
     val adjustedSegmentConfig =
       if (!ensureOneSegmentOnly || keyValues.size == 1) //one doesn't matter.
-        segmentConfig
-      else if (memory)
+      segmentConfig
+        else if (memory)
         segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
       else
         segmentConfig.copy(minSize = Int.MaxValue, maxCount = randomIntMax(keyValues.size + 1))
