@@ -482,7 +482,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 val readSegment =
                   Segment(
                     path = segment.path,
-                    mmapReads = randomBoolean(),
+                    mmap = MMAP.randomForSegment(),
                     checkExists = randomBoolean()
                   )
               }

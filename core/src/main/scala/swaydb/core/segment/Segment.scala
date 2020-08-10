@@ -298,6 +298,7 @@ private[core] object Segment extends LazyLogging {
         DBFile.mmapWriteAndRead(
           path = path,
           autoClose = true,
+          deleteOnClean = deleteOnClean,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           bytes = segmentBytes
@@ -308,7 +309,8 @@ private[core] object Segment extends LazyLogging {
           path = Effect.write(path, segmentBytes),
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-          autoClose = true
+          autoClose = true,
+          deleteOnClean = deleteOnClean
         )
 
       case _: MMAP.Disabled =>
@@ -512,22 +514,26 @@ private[core] object Segment extends LazyLogging {
                                          segmentIO: SegmentIO): PersistentSegment = {
 
     val file =
-      if (mmap.mmapReads)
-        DBFile.mmapRead(
-          path = path,
-          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-          blockCacheFileId = blockCacheFileId,
-          autoClose = true,
-          checkExists = checkExists
-        )
-      else
-        DBFile.channelRead(
-          path = path,
-          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-          blockCacheFileId = blockCacheFileId,
-          autoClose = true,
-          checkExists = checkExists
-        )
+      mmap match {
+        case _: MMAP.Enabled | _: MMAP.ReadOnly =>
+          DBFile.mmapRead(
+            path = path,
+            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+            blockCacheFileId = blockCacheFileId,
+            autoClose = true,
+            deleteOnClean = mmap.deleteOnClean,
+            checkExists = checkExists
+          )
+
+        case _: MMAP.Disabled =>
+          DBFile.channelRead(
+            path = path,
+            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+            blockCacheFileId = blockCacheFileId,
+            autoClose = true,
+            checkExists = checkExists
+          )
+      }
 
     if (formatId == PersistentSegmentOne.formatId)
       copiedFrom match {
@@ -593,7 +599,7 @@ private[core] object Segment extends LazyLogging {
    * This function is only used for Appendix file recovery initialization.
    */
   def apply(path: Path,
-            mmapReads: Boolean,
+            mmap: MMAP.Segment,
             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
@@ -605,22 +611,27 @@ private[core] object Segment extends LazyLogging {
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
     val file =
-      if (mmapReads)
-        DBFile.mmapRead(
-          path = path,
-          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-          autoClose = false,
-          checkExists = checkExists
-        )
-      else
-        DBFile.channelRead(
-          path = path,
-          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-          autoClose = false,
-          checkExists = checkExists
-        )
+      mmap match {
+        case _: MMAP.Enabled | _: MMAP.ReadOnly =>
+          DBFile.mmapRead(
+            path = path,
+            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+            autoClose = false,
+            deleteOnClean = mmap.deleteOnClean,
+            checkExists = checkExists
+          )
+
+        case _: MMAP.Disabled =>
+          DBFile.channelRead(
+            path = path,
+            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+            autoClose = false,
+            checkExists = checkExists
+          )
+      }
+
 
     val formatId = file.get(0)
 

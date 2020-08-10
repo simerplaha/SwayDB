@@ -30,6 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestSweeper.fileSweeper
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestSweeper}
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.Future
@@ -39,6 +40,7 @@ class DBFileStressWriteSpec extends TestBase {
 
   implicit val limiter = fileSweeper
   implicit val memorySweeper = TestSweeper.memorySweeperMax
+
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
   "DBFile" should {
@@ -76,7 +78,16 @@ class DBFileStressWriteSpec extends TestBase {
     "write key values to a MMAPlFile" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+      val file =
+        DBFile.mmapInit(
+          path = path,
+          ioStrategy = randomIOAccess(true),
+          bufferSize = bytes.size * 50,
+          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+          autoClose = false,
+          deleteOnClean = OperatingSystem.isWindows
+        ).runRandomIO.right.value
+
       Benchmark("write 1 million key values to a MMAPlFile") {
         bytes foreach {
           chunk =>
@@ -89,7 +100,16 @@ class DBFileStressWriteSpec extends TestBase {
     "write key values to a MMAPlFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+      val file =
+        DBFile.mmapInit(
+          path = path,
+          ioStrategy = randomIOAccess(true),
+          bufferSize = bytes.size * 50,
+          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+          autoClose = false,
+          deleteOnClean = OperatingSystem.isWindows
+        ).runRandomIO.right.value
+
       Benchmark("write 1 million key values to a MMAPlFile concurrently") {
         Future.sequence {
           bytes map {

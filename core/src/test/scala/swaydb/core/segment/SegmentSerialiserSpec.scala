@@ -62,7 +62,7 @@ class SegmentSerialiserSpec extends TestBase {
       val readSegment =
         SegmentSerialiser.FormatA.read(
           reader = Reader(bytes),
-          mmapSegment = MMAP.randomSegment(),
+          mmapSegment = MMAP.randomForSegment(),
           checkExists = segment.persistent
         )
 

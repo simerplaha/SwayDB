@@ -505,7 +505,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minSize = randomIntMax(2.mb),
                   maxCount = randomIntMax(1000),
                   pushForward = randomBoolean(),
-                  mmap = MMAP.randomSegment(),
+                  mmap = MMAP.randomForSegment(),
                   deleteEventually = randomBoolean()
                 )
             )

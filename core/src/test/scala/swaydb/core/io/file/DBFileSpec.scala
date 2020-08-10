@@ -37,11 +37,13 @@ import swaydb.core.actor.FileSweeper
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.slice.Slice
+import swaydb.data.util.OperatingSystem
 
 class DBFileSpec extends TestBase with MockFactory {
 
   implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
   implicit val memorySweeper = TestSweeper.memorySweeper10
+
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
   "write" should {
@@ -276,8 +278,9 @@ class DBFileSpec extends TestBase with MockFactory {
         DBFile.mmapWriteAndRead(
           path = testFile,
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
-          blockCacheFileId = idGenerator.nextID,
           autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows,
+          blockCacheFileId = idGenerator.nextID,
           bytes = bytes
         )
 
@@ -314,8 +317,9 @@ class DBFileSpec extends TestBase with MockFactory {
       DBFile.mmapRead(
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
-        blockCacheFileId = idGenerator.nextID,
-        autoClose = true
+        autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
+        blockCacheFileId = idGenerator.nextID
       ) ==> {
         file =>
           file.readAll shouldBe expectedBytes
@@ -336,6 +340,7 @@ class DBFileSpec extends TestBase with MockFactory {
           path = testFile,
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows,
           blockCacheFileId = idGenerator.nextID,
           bytes = bytes
         )
@@ -350,6 +355,7 @@ class DBFileSpec extends TestBase with MockFactory {
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = idGenerator.nextID,
         bytes = bytes
       ).close()
@@ -359,6 +365,7 @@ class DBFileSpec extends TestBase with MockFactory {
           path = testFile,
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows,
           blockCacheFileId = idGenerator.nextID,
           bytes = bytes
         )
@@ -369,6 +376,7 @@ class DBFileSpec extends TestBase with MockFactory {
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = idGenerator.nextID
       ) ==> {
         file =>
@@ -390,6 +398,7 @@ class DBFileSpec extends TestBase with MockFactory {
           path = testFile,
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows,
           blockCacheFileId = idGenerator.nextID
         )
 
@@ -418,6 +427,7 @@ class DBFileSpec extends TestBase with MockFactory {
           path = randomFilePath,
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows,
           blockCacheFileId = idGenerator.nextID
         )
       }.left.value shouldBe a[swaydb.Exception.NoSuchFile]
@@ -438,7 +448,8 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           bufferSize = bytes1.size + bytes2.size + bytes3.size,
           blockCacheFileId = idGenerator.nextID,
-          autoClose = true
+          autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows
         )
 
       file.append(bytes1)
@@ -465,7 +476,8 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           bufferSize = 10,
           blockCacheFileId = idGenerator.nextID,
-          autoClose = true
+          autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows
         )
       }.left.value shouldBe a[FileAlreadyExistsException]
     }
@@ -532,7 +544,8 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           bufferSize = bytes.size,
           blockCacheFileId = idGenerator.nextID,
-          autoClose = true
+          autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows
         )
 
       file.append(bytes)
@@ -597,7 +610,8 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           bufferSize = bytes.size,
           blockCacheFileId = idGenerator.nextID,
-          autoClose = true
+          autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows
         )
 
       file.append(bytes)
@@ -646,6 +660,7 @@ class DBFileSpec extends TestBase with MockFactory {
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = idGenerator.nextID
       ) ==> {
         file =>
@@ -667,7 +682,8 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           bufferSize = allBytesSize,
           blockCacheFileId = idGenerator.nextID,
-          autoClose = true
+          autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows
         )
 
       file.append(bytes(0))
@@ -686,6 +702,7 @@ class DBFileSpec extends TestBase with MockFactory {
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = idGenerator.nextID
       ) ==> {
         file =>
@@ -710,13 +727,15 @@ class DBFileSpec extends TestBase with MockFactory {
       val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
       val allBytesSize = bytes.foldLeft(0)(_ + _.size)
 
-      val file = DBFile.mmapInit(
-        path = testFile,
-        ioStrategy = randomIOStrategy(cacheOnAccess = true),
-        bufferSize = bytes.head.size,
-        blockCacheFileId = idGenerator.nextID,
-        autoClose = true
-      )
+      val file =
+        DBFile.mmapInit(
+          path = testFile,
+          ioStrategy = randomIOStrategy(cacheOnAccess = true),
+          bufferSize = bytes.head.size,
+          blockCacheFileId = idGenerator.nextID,
+          autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows
+        )
 
       file.append(bytes(0))
       file.append(bytes(1))
@@ -736,6 +755,7 @@ class DBFileSpec extends TestBase with MockFactory {
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = idGenerator.nextID
       ) ==> {
         file =>
@@ -784,7 +804,8 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         bufferSize = 100,
         blockCacheFileId = idGenerator.nextID,
-        autoClose = true
+        autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows
       )
 
       file.append(Slice.emptyBytes)
@@ -795,6 +816,7 @@ class DBFileSpec extends TestBase with MockFactory {
         path = file.path,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = idGenerator.nextID
       ) ==> {
         file2 =>
@@ -866,6 +888,7 @@ class DBFileSpec extends TestBase with MockFactory {
           path = randomFilePath,
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows,
           blockCacheFileId = idGenerator.nextID,
           bytes = randomBytesSlice()
         )
@@ -919,7 +942,8 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           bufferSize = bytes.size,
           blockCacheFileId = idGenerator.nextID,
-          autoClose = true
+          autoClose = true,
+          deleteOnClean = OperatingSystem.isWindows
         )
 
       file.append(bytes)

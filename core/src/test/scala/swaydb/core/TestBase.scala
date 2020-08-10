@@ -464,6 +464,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
       path = path,
       ioStrategy = randomIOStrategy(),
       autoClose = true,
+      deleteOnClean = OperatingSystem.isWindows,
       blockCacheFileId = BlockCacheFileIDGenerator.nextID,
       bytes = bytes
     )
@@ -471,6 +472,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
   def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
                                                                 blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): DBFile = {
     val blockCacheFileId = BlockCacheFileIDGenerator.nextID
+
     val file =
       DBFile.channelWrite(
         path = path,
@@ -486,6 +488,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
       path = path,
       ioStrategy = randomIOStrategy(),
       autoClose = true,
+      deleteOnClean = OperatingSystem.isWindows,
       blockCacheFileId = blockCacheFileId
     )
   }
@@ -494,7 +497,13 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestSweeper.memorySweeperMax
     new FileReader(
-      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID)
+      DBFile.mmapRead(
+        path = path,
+        ioStrategy = randomIOStrategy(),
+        autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID
+      )
     )
   }
 

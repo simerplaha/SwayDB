@@ -33,12 +33,14 @@ import swaydb.core.segment.format.a.block.reader.{BlockReader, BlockRefReader}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.config.IOStrategy
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
 class BlockReaderPerformanceSpec extends TestBase {
 
   implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
   implicit val memorySweeper = TestSweeper.memorySweeperMax
+
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
   "random access" in {
@@ -47,19 +49,35 @@ class BlockReaderPerformanceSpec extends TestBase {
 
     val ioStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
-    val file = DBFile.mmapInit(randomFilePath, ioStrategy, bytes.size, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+    val file =
+      DBFile.mmapInit(
+        path = randomFilePath,
+        ioStrategy = ioStrategy,
+        bufferSize = bytes.size,
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+        autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows
+      ).runRandomIO.right.value
+
     file.append(bytes).runRandomIO.right.value
     file.isFull.runRandomIO.right.value shouldBe true
     file.forceSave()
     file.close()
 
-    val readerFile = DBFile.mmapRead(path = file.path, ioStrategy = ioStrategy, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID)
+    val readerFile =
+      DBFile.mmapRead(
+        path = file.path,
+        ioStrategy = ioStrategy,
+        autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID
+      )
 
     /**
      * @note For randomReads:
      *       - [[FileReader]] seem to outperform [[BlockRefReader]] for random reads and
-     *       [[BlockRefReader]] beats [[FileReader]] for sequential.
-     *       [[BlockReader]] might need some more improvements to detect between random and sequential reads.
+     *         [[BlockRefReader]] beats [[FileReader]] for sequential.
+     *         [[BlockReader]] might need some more improvements to detect between random and sequential reads.
      *
      *       - [[FileReader]] has the same performance as reading from the [[file]] directly.
      */

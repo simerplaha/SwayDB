@@ -65,7 +65,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
               IO {
                 Segment(
                   path = segmentPath,
-                  mmapReads = false,
+                  mmap = MMAP.Disabled,
                   checkExists = true
                 )(keyOrder, timeOrder, functionStore, None, memorySweeper, fileSweeper)
               }

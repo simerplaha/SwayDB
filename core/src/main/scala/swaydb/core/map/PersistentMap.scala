@@ -34,7 +34,7 @@ import swaydb.IO._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{DBFile, Effect}
+import swaydb.core.io.file.{BufferCleaner, DBFile, Effect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
@@ -60,8 +60,17 @@ private[map] object PersistentMap extends LazyLogging {
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] = {
     Effect.createDirectoryIfAbsent(folder)
+
     val skipList: SkipListConcurrent[OK, OV, K, V] = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder)
-    val (fileRecoveryResult, hasRange) = recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries)
+
+    val (fileRecoveryResult, hasRange) =
+      recover(
+        folder = folder,
+        mmap = mmap,
+        fileSize = fileSize,
+        skipList = skipList,
+        dropCorruptedTailEntries = dropCorruptedTailEntries
+      )
 
     RecoveryResult(
       item = new PersistentMap[OK, OV, K, V](
@@ -89,8 +98,16 @@ private[map] object PersistentMap extends LazyLogging {
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] = {
     Effect.createDirectoryIfAbsent(folder)
+
     val skipList: SkipListConcurrent[OK, OV, K, V] = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder)
-    val file = firstFile(folder, mmap, fileSize)
+
+    val file =
+      firstFile(
+        folder = folder,
+        memoryMapped = mmap,
+        fileSize = fileSize
+      )
+
     new PersistentMap[OK, OV, K, V](
       path = folder,
       mmap = mmap,
@@ -112,6 +129,7 @@ private[map] object PersistentMap extends LazyLogging {
           IOStrategy.SynchronisedIO(true),
           fileSize,
           autoClose = false,
+          deleteOnClean = deleteOnClean,
           blockCacheFileId = 0
         )(fileSweeper, None)
 
@@ -241,7 +259,8 @@ private[map] object PersistentMap extends LazyLogging {
             IOStrategy.SynchronisedIO(true),
             bufferSize = bytes.size + size,
             blockCacheFileId = 0,
-            autoClose = false
+            autoClose = false,
+            deleteOnClean = deleteOnClean
           )(fileSweeper, None)
 
         case _: MMAP.Disabled =>
@@ -340,7 +359,14 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
     } else {
       val nextFilesSize = entryTotalByteSize.toLong max fileSize
       try {
-        val newFile = PersistentMap.nextFile(currentFile, mmap, nextFilesSize, _skipList)
+        val newFile =
+          PersistentMap.nextFile(
+            currentFile = currentFile,
+            mmap = mmap,
+            size = nextFilesSize,
+            skipList = _skipList
+          )
+
         currentFile = newFile
         actualFileSize = nextFilesSize
         bytesWritten = 0
@@ -359,10 +385,18 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
   override def exists: Boolean =
     currentFile.existsOnDisk
 
-  override def delete: Unit = {
-    currentFile.delete()
-    Effect.delete(path)
-  }
+  override def delete: Unit =
+    if (mmap.deleteOnClean) {
+      //if it's require deleteOnClean then do not invoke delete directly
+      //instead invoke close (which will also call BufferCleaner for closing)
+      // and then submit delete to BufferCleaner actor.
+      currentFile.close()
+      BufferCleaner.deleteFolder(path, currentFile.path)
+    } else {
+      //else delete immediately.
+      currentFile.delete()
+      Effect.delete(path)
+    }
 
   override def pathOption: Option[Path] =
     Some(path)

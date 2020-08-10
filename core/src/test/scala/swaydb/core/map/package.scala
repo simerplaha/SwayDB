@@ -52,7 +52,7 @@ package object map {
       map.close().runRandomIO.right.value
       Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
         folder = map.path,
-        mmap = MMAP.randomMap(),
+        mmap = MMAP.randomForMap(),
         flushOnOverflow = Random.nextBoolean(),
         fileSize = 10.mb,
         dropCorruptedTailEntries = false,

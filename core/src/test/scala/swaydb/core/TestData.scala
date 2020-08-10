@@ -113,7 +113,7 @@ object TestData {
           formatId = segment.formatId,
           createdInLevel = segment.createdInLevel,
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-          mmap = MMAP.randomSegment(),
+          mmap = MMAP.randomForSegment(),
           minKey = segment.minKey,
           maxKey = segment.maxKey,
           segmentSize = segment.segmentSize,
@@ -273,7 +273,7 @@ object TestData {
                     dir = level.pathDistributor.headPath,
                     otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
                   ),
-                appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomMap(), 4.mb),
+                appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomForMap(), 4.mb),
                 nextLevel = nextLevel,
                 throttle = throttle
               )
@@ -452,7 +452,7 @@ object TestData {
                minSegmentSize: Int = randomIntMax(4.mb),
                maxKeyValuesPerSegment: Int = randomIntMax(100000),
                deleteEventually: Boolean = randomBoolean(),
-               mmap: MMAP.Segment = MMAP.randomSegment(),
+               mmap: MMAP.Segment = MMAP.randomForSegment(),
                pushForward: Boolean = randomBoolean(),
                cacheBlocksOnCreate: Boolean = randomBoolean(),
                cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
@@ -472,7 +472,7 @@ object TestData {
                 compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = _ => randomCompressionsOrEmpty(),
                 maxKeyValuesPerSegment: Int = randomIntMax(1000000),
                 deleteEventually: Boolean = randomBoolean(),
-                mmap: MMAP.Segment = MMAP.randomSegment(),
+                mmap: MMAP.Segment = MMAP.randomForSegment(),
                 pushForward: Boolean = randomBoolean(),
                 minSegmentSize: Int = randomIntMax(30.mb)): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(

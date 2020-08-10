@@ -232,7 +232,7 @@ class MapSpec extends TestBase {
             nullKey = Slice.Null,
             nullValue = Memory.Null,
             folder = map.path,
-            mmap = MMAP.randomMap(),
+            mmap = MMAP.randomForMap(),
             flushOnOverflow = false,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false
@@ -285,7 +285,7 @@ class MapSpec extends TestBase {
             nullKey = Slice.Null,
             nullValue = Segment.Null,
             folder = map.path,
-            mmap = MMAP.randomMap(),
+            mmap = MMAP.randomForMap(),
             flushOnOverflow = false,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false
@@ -1004,7 +1004,7 @@ class MapSpec extends TestBase {
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
-              mmap = MMAP.randomMap(),
+              mmap = MMAP.randomForMap(),
               flushOnOverflow = true,
               fileSize = randomIntMax(1.mb),
               dropCorruptedTailEntries = false

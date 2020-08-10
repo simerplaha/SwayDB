@@ -41,6 +41,7 @@ object DBFile extends LazyLogging {
 
   def fileCache(filePath: Path,
                 memoryMapped: Boolean,
+                deleteOnClean: Boolean,
                 ioStrategy: IOStrategy,
                 file: Option[DBFileType],
                 blockCacheFileId: Long,
@@ -52,7 +53,14 @@ object DBFile extends LazyLogging {
     val closer: FileSweeperItem =
       new FileSweeperItem {
         override def path: Path = filePath
-        override def delete(): Unit = IO.failed("only closable")
+
+        override def delete(): Unit = {
+          val message = s"Delete invoked on only closeable ${classOf[FileSweeperItem].getSimpleName}. Path: $path. autoClose = $autoClose. deleteOnClean = $deleteOnClean. file.isDefined = ${file.isDefined}."
+          val exception = new Exception(message)
+          logger.error(message, exception)
+          exception.printStackTrace()
+        }
+
         override def close(): Unit =
           self.get() foreach {
             fileType =>
@@ -76,9 +84,16 @@ object DBFile extends LazyLogging {
           IO {
             val openResult =
               if (memoryMapped)
-                MMAPFile.read(filePath, blockCacheFileId)
+                MMAPFile.read(
+                  path = filePath,
+                  blockCacheFileId = blockCacheFileId,
+                  deleteOnClean = deleteOnClean
+                )
               else
-                ChannelFile.read(filePath, blockCacheFileId)
+                ChannelFile.read(
+                  path = filePath,
+                  blockCacheFileId = blockCacheFileId
+                )
 
             if (autoClose)
               fileSweeper.close(closer)
@@ -103,11 +118,13 @@ object DBFile extends LazyLogging {
       path = path,
       memoryMapped = false,
       autoClose = autoClose,
+      deleteOnClean = false,
       blockCacheFileId = blockCacheFileId,
       fileCache =
         fileCache(
           filePath = path,
           memoryMapped = false,
+          deleteOnClean = false,
           file = Some(file),
           ioStrategy = ioStrategy,
           autoClose = autoClose,
@@ -129,15 +146,17 @@ object DBFile extends LazyLogging {
         path = path,
         memoryMapped = false,
         autoClose = autoClose,
+        deleteOnClean = false,
         blockCacheFileId = blockCacheFileId,
         fileCache =
           fileCache(
             filePath = path,
             memoryMapped = false,
-            file = None,
+            deleteOnClean = false,
             ioStrategy = ioStrategy,
-            autoClose = autoClose,
-            blockCacheFileId = blockCacheFileId
+            file = None,
+            blockCacheFileId = blockCacheFileId,
+            autoClose = autoClose
           )
       )
     }
@@ -145,6 +164,7 @@ object DBFile extends LazyLogging {
   def mmapWriteAndRead(path: Path,
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
+                       deleteOnClean: Boolean,
                        blockCacheFileId: Long,
                        bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeper,
                                                      blockCache: Option[BlockCache.State]): DBFile = {
@@ -160,10 +180,11 @@ object DBFile extends LazyLogging {
     val file =
       mmapInit(
         path = path,
-        bufferSize = totalWritten,
         ioStrategy = ioStrategy,
+        bufferSize = totalWritten,
+        blockCacheFileId = blockCacheFileId,
         autoClose = autoClose,
-        blockCacheFileId = blockCacheFileId
+        deleteOnClean = deleteOnClean
       )
 
     file.append(bytes)
@@ -173,6 +194,7 @@ object DBFile extends LazyLogging {
   def mmapWriteAndRead(path: Path,
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
+                       deleteOnClean: Boolean,
                        blockCacheFileId: Long,
                        bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
                                            blockCache: Option[BlockCache.State]): DBFile =
@@ -183,10 +205,11 @@ object DBFile extends LazyLogging {
       val file =
         mmapInit(
           path = path,
-          bufferSize = bytes.size,
           ioStrategy = ioStrategy,
+          bufferSize = bytes.size,
           blockCacheFileId = blockCacheFileId,
-          autoClose = autoClose
+          autoClose = autoClose,
+          deleteOnClean = deleteOnClean
         )
 
       file.append(bytes)
@@ -196,6 +219,7 @@ object DBFile extends LazyLogging {
   def mmapRead(path: Path,
                ioStrategy: IOStrategy,
                autoClose: Boolean,
+               deleteOnClean: Boolean,
                blockCacheFileId: Long,
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                             blockCache: Option[BlockCache.State]): DBFile =
@@ -206,14 +230,16 @@ object DBFile extends LazyLogging {
         path = path,
         memoryMapped = true,
         autoClose = autoClose,
+        deleteOnClean = deleteOnClean,
         blockCacheFileId = blockCacheFileId,
         fileCache =
           fileCache(
             filePath = path,
             memoryMapped = true,
-            blockCacheFileId = blockCacheFileId,
+            deleteOnClean = deleteOnClean,
             ioStrategy = ioStrategy,
             file = None,
+            blockCacheFileId = blockCacheFileId,
             autoClose = autoClose
           )
       )
@@ -223,21 +249,31 @@ object DBFile extends LazyLogging {
                ioStrategy: IOStrategy,
                bufferSize: Long,
                blockCacheFileId: Long,
-               autoClose: Boolean)(implicit fileSweeper: FileSweeper,
-                                   blockCache: Option[BlockCache.State]): DBFile = {
-    val file = MMAPFile.write(path, bufferSize, blockCacheFileId)
+               autoClose: Boolean,
+               deleteOnClean: Boolean)(implicit fileSweeper: FileSweeper,
+                                       blockCache: Option[BlockCache.State]): DBFile = {
+    val file =
+      MMAPFile.write(
+        path = path,
+        bufferSize = bufferSize,
+        blockCacheFileId = blockCacheFileId,
+        deleteOnClean = deleteOnClean
+      )
+
     new DBFile(
       path = path,
       memoryMapped = true,
       autoClose = autoClose,
+      deleteOnClean = deleteOnClean,
       blockCacheFileId = blockCacheFileId,
       fileCache =
         fileCache(
           filePath = path,
           memoryMapped = true,
+          deleteOnClean = deleteOnClean,
+          ioStrategy = ioStrategy,
           file = Some(file),
           blockCacheFileId = blockCacheFileId,
-          ioStrategy = ioStrategy,
           autoClose = autoClose
         )
     )
@@ -251,6 +287,7 @@ object DBFile extends LazyLogging {
 class DBFile(val path: Path,
              memoryMapped: Boolean,
              autoClose: Boolean,
+             deleteOnClean: Boolean,
              val blockCacheFileId: Long,
              fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit blockCache: Option[BlockCache.State]) extends LazyLogging {
 
@@ -269,7 +306,11 @@ class DBFile(val path: Path,
     //try delegating the delete to the file itself.
     //If the file is already closed, then delete it from disk.
     //memory files are never closed so the first statement will always be executed for memory files.
-    fileCache.get().map(_.delete()) getOrElse Effect.deleteIfExists(path)
+    if (deleteOnClean)
+      BufferCleaner.deleteFile(path)
+    else
+      fileCache.get().map(_.delete()) getOrElse Effect.deleteIfExists(path)
+
     fileCache.clear()
   }
 

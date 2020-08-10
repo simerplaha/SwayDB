@@ -39,6 +39,7 @@ import swaydb.core.{TestBase, TestExecutionContext, TestSweeper}
 import swaydb.data.config.ActorConfig
 import swaydb.data.slice.Slice
 import org.scalatest.OptionValues._
+import swaydb.data.util.OperatingSystem
 import swaydb.test.TestActor
 
 import scala.collection.mutable
@@ -59,6 +60,7 @@ class BufferCleanerSpec extends TestBase {
         path = randomDir,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
+        deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = BlockCacheFileIDGenerator.nextID,
         bytes = Slice(randomBytesSlice())
       )
@@ -86,6 +88,7 @@ class BufferCleanerSpec extends TestBase {
                   path = randomDir,
                   ioStrategy = randomIOStrategy(cacheOnAccess = true),
                   autoClose = true,
+                  deleteOnClean = OperatingSystem.isWindows,
                   blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                   bytes = Slice(randomBytesSlice())
                 )
