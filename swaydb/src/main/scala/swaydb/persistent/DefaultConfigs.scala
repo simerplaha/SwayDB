@@ -29,6 +29,7 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext
@@ -108,7 +109,7 @@ object DefaultConfigs {
       cacheSegmentBlocksOnCreate = true,
       deleteSegmentsEventually = true,
       pushForward = true,
-      mmap = MMAP.WriteAndRead,
+      mmap = MMAP.Enabled(deleteOnClean = OperatingSystem.get().isWindows),
       minSegmentSize = 2.mb,
       maxKeyValuesPerSegment = Int.MaxValue,
       ioStrategy = {

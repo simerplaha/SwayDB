@@ -27,23 +27,25 @@ package swaydb.data.config
 sealed trait MMAP {
   val mmapRead: Boolean
   val mmapWrite: Boolean
+  val deleteOnClean: Boolean
 }
+
 object MMAP {
 
-  def writeAndRead(): MMAP.WriteAndRead =
-    WriteAndRead
+  sealed trait Map extends MMAP
 
-  sealed trait WriteAndRead extends MMAP
-  case object WriteAndRead extends WriteAndRead {
+  def enabled(deleteOnClean: Boolean): MMAP.Enabled =
+    Enabled(deleteOnClean)
+
+  case class Enabled(deleteOnClean: Boolean) extends Map {
     override val mmapRead: Boolean = true
     override val mmapWrite: Boolean = true
   }
 
-  def readOnly(): MMAP.ReadOnly =
-    ReadOnly
+  def readOnly(deleteOnClean: Boolean): MMAP.ReadOnly =
+    ReadOnly(deleteOnClean)
 
-  sealed trait ReadOnly extends MMAP
-  case object ReadOnly extends ReadOnly {
+  case class ReadOnly(deleteOnClean: Boolean) extends MMAP {
     override val mmapRead: Boolean = true
     override val mmapWrite: Boolean = false
   }
@@ -51,9 +53,10 @@ object MMAP {
   def disabled(): MMAP.Disabled =
     Disabled
 
-  sealed trait Disabled extends MMAP
+  sealed trait Disabled extends Map
   case object Disabled extends Disabled {
     override val mmapRead: Boolean = false
     override val mmapWrite: Boolean = false
+    override val deleteOnClean: Boolean = false
   }
 }
