@@ -25,12 +25,12 @@
 package swaydb.core.io.file
 
 import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
-import java.nio.file.Path
+import java.nio.file.{AccessDeniedException, Path}
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
-import swaydb.core.io.file.BufferCleaner.State
+import swaydb.core.io.file.BufferCleaner.{Command, State}
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorRef, IO, Scheduler}
 
@@ -50,6 +50,22 @@ private[core] object BufferCleaner extends LazyLogging {
 
   private[core] var cleaner = Option.empty[BufferCleaner]
 
+  /**
+   * [[BufferCleaner.actor]]'s commands.
+   */
+  private sealed trait Command
+  private object Command {
+    //cleans memory-mapped byte buffer
+    case class Clean(buffer: MappedByteBuffer, path: Path, isOverdue: Boolean) extends Command
+    //delete the file.
+    case class Delete(path: Path, deleteTries: Int, isOverdue: Boolean) extends Command
+  }
+
+  /**
+   * [[BufferCleaner.actor]]'s internal state.
+   *
+   * @param cleaner initialised unsafe memory-mapped cleaner
+   */
   case class State(var cleaner: Option[Cleaner])
 
   private def java9Cleaner(): MethodHandle = {
@@ -132,7 +148,16 @@ private[core] object BufferCleaner extends LazyLogging {
   def clean(buffer: MappedByteBuffer, path: Path): Unit =
     cleaner match {
       case Some(cleaner) =>
-        cleaner.actor.send((buffer, path, false))
+        cleaner.actor.send(Command.Clean(buffer = buffer, path = path, isOverdue = false))
+
+      case None =>
+        logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
+    }
+
+  def delete(path: Path): Unit =
+    cleaner match {
+      case Some(cleaner) =>
+        cleaner.actor.send(Command.Delete(path = path, deleteTries = 0, isOverdue = false))
 
       case None =>
         logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
@@ -140,22 +165,42 @@ private[core] object BufferCleaner extends LazyLogging {
 }
 
 private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLogging {
-  logger.debug("Starting buffer cleaner.")
-  implicit val queueOrder = QueueOrder.FIFO
+  logger.info("Starting memory-mapped files cleaner.")
 
-  private val actor: ActorRef[(MappedByteBuffer, Path, Boolean), State] =
-    Actor.timer[(MappedByteBuffer, Path, Boolean), State](
+  implicit val queueOrder = QueueOrder.FIFO
+  private val notOverdueReschedule = 5.seconds
+  private val maxDeleteRetries = 5
+
+  private val actor: ActorRef[Command, State] =
+    Actor.timer[Command, State](
       state = State(None),
       stashCapacity = 20,
       interval = 5.seconds
     ) {
-      case (message @ (buffer, path, isOverdue), self) =>
+      case (command @ Command.Clean(buffer, path, isOverdue), self) =>
         if (isOverdue)
           BufferCleaner.clean(self.state, buffer, path)
         else
-          self.send((message._1, path, true), 5.seconds)
-    }
+          self.send(command.copy(isOverdue = true), notOverdueReschedule)
 
-  def clean(buffer: MappedByteBuffer, path: Path): Unit =
-    actor.send((buffer, path, false))
+      case (command @ Command.Delete(path, deleteTries, isOverdue), self) =>
+        if (isOverdue)
+          try
+            Effect.walkDelete(path) //try delete the file or folder.
+          catch {
+            case exception: AccessDeniedException =>
+              //if it results in access denied then try schedule for another delete.
+              //this can occur on windows if delete was performed before the mapped
+              //byte buffer is cleaned.
+              if (deleteTries >= maxDeleteRetries)
+                logger.error(s"Unable to delete file $path. Retries $deleteTries", exception)
+              else
+                self.send(command.copy(deleteTries = deleteTries + 1), notOverdueReschedule)
+
+            case exception: Throwable =>
+              logger.error(s"Unable to delete file $path. Retries $deleteTries", exception)
+          }
+        else
+          self.send(command.copy(isOverdue = true), notOverdueReschedule)
+    }
 }

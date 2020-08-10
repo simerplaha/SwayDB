@@ -32,6 +32,7 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.{Benchmark, Extension}
 import swaydb.data.util.StorageUnits._
+import swaydb.core.RunThis._
 
 class EffectSpec extends TestBase {
 
@@ -203,6 +204,51 @@ class EffectSpec extends TestBase {
         )
 
       Effect.segmentFilesOnDisk(dirs) shouldBe expect
+    }
+  }
+
+  "walkDelete" in {
+    //this iterators counts the number of nested directories to create.
+    (0 to 10) foreach {
+      maxNestedDirectories =>
+        //initialise the root test directory
+        val testDirectory = testDir
+
+        //but path for nested directory hierarchy.
+        val testCaseDirectory =
+          (0 to maxNestedDirectories).foldLeft(testDirectory) {
+            case (dir, i) =>
+              dir.resolve(s"dir$maxNestedDirectories$i")
+          }
+
+        Effect.createDirectoriesIfAbsent(testCaseDirectory)
+
+        val testFile = Effect.createFile(testCaseDirectory.resolve("file.txt"))
+
+        println(s"Creating file = $testFile")
+
+        //the testDirectory, testCaseDirectory and the testFile should exist
+        Effect.exists(testDirectory) shouldBe true
+        Effect.exists(testCaseDirectory) shouldBe true
+        Effect.exists(testFile) shouldBe true
+
+        //walk delete all in any order and they should all get deleted.
+        Seq(
+          () => {
+            Effect.walkDelete(testFile)
+            Effect.exists(testFile) shouldBe false
+          },
+
+          () => {
+            Effect.walkDelete(testCaseDirectory)
+            Effect.exists(testCaseDirectory) shouldBe false
+          },
+
+          () => {
+            Effect.walkDelete(testDirectory)
+            Effect.exists(testDirectory) shouldBe false
+          }
+        ).runThisRandomly
     }
   }
 

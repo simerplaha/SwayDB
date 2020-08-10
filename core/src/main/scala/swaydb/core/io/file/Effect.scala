@@ -41,25 +41,25 @@ import scala.util.Try
 private[core] object Effect extends LazyLogging {
 
   implicit class PathExtensionImplicits(path: Path) {
-    def fileId =
+    @inline def fileId =
       Effect.fileId(path)
 
-    def incrementFileId =
+    @inline def incrementFileId =
       Effect.incrementFileId(path)
 
-    def incrementFolderId =
+    @inline def incrementFolderId =
       Effect.incrementFolderId(path)
 
-    def folderId =
+    @inline def folderId =
       Effect.folderId(path)
 
-    def files(extension: Extension): List[Path] =
+    @inline def files(extension: Extension): List[Path] =
       Effect.files(path, extension)
 
-    def folders =
+    @inline def folders =
       Effect.folders(path)
 
-    def exists =
+    @inline def exists =
       Effect.exists(path)
   }
 
@@ -275,9 +275,7 @@ private[core] object Effect extends LazyLogging {
       new BiPredicate[Path, BasicFileAttributes] {
         override def test(path: Path, attributes: BasicFileAttributes): Boolean = {
           val fileName = path.getFileName.toString
-          val isSST = fileName.contains(fileExtension)
-          //if (isSST) println(fileName)
-          isSST
+          fileName.contains(fileExtension)
         }
       }
 
