@@ -31,9 +31,12 @@ import java.nio.{ByteBuffer, MappedByteBuffer}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.io.file.BufferCleaner.{Command, State}
+import swaydb.core.util.Counter
+import swaydb.core.util.FiniteDurations._
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorRef, IO, Scheduler}
 
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 private[core] object Cleaner {
@@ -50,15 +53,23 @@ private[core] object BufferCleaner extends LazyLogging {
 
   private[core] var cleaner = Option.empty[BufferCleaner]
 
+  val actorInterval = 5.seconds
+  val actorStashCapacity = 20
+
+  val maxDeleteRetries = 5
+  val messageReschedule = 5.seconds
+
   /**
    * [[BufferCleaner.actor]]'s commands.
    */
-  private sealed trait Command
+  private sealed trait Command {
+    def path: Path
+  }
   private object Command {
     //cleans memory-mapped byte buffer
     case class Clean(buffer: MappedByteBuffer, path: Path, isOverdue: Boolean) extends Command
     //delete the file.
-    case class Delete(path: Path, deleteTries: Int, isOverdue: Boolean) extends Command
+    case class Delete(path: Path, deleteTries: Int) extends Command
   }
 
   /**
@@ -66,7 +77,8 @@ private[core] object BufferCleaner extends LazyLogging {
    *
    * @param cleaner initialised unsafe memory-mapped cleaner
    */
-  case class State(var cleaner: Option[Cleaner])
+  case class State(var cleaner: Option[Cleaner],
+                   pendingClean: mutable.HashMap[Path, Counter.IntCounter])
 
   private def java9Cleaner(): MethodHandle = {
     val unsafeClass = Class.forName("sun.misc.Unsafe")
@@ -118,7 +130,7 @@ private[core] object BufferCleaner extends LazyLogging {
     }
 
   /**
-   * Mutates the state after cleaner is initialised. Do not copy state to avoid necessary GC workload.
+   * Mutates the state after cleaner is initialised.
    */
   private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[swaydb.Error.IO, State] =
     state.cleaner match {
@@ -138,8 +150,7 @@ private[core] object BufferCleaner extends LazyLogging {
         initialiseCleaner(state, buffer, path)
     }
 
-  //FIXME: Rah! Not very nice way to initialise BufferCleaner.
-  //       Currently BufferCleaner is required to be globally known.
+  //FIXME: Currently BufferCleaner is required to be globally known.
   //       Instead this should be passed around whenever required and be explicit.
   def initialiseCleaner(implicit scheduler: Scheduler) =
     if (cleaner.isEmpty)
@@ -154,53 +165,118 @@ private[core] object BufferCleaner extends LazyLogging {
         logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
     }
 
+  /**
+   * Send delete command to the actor.
+   */
   def delete(path: Path): Unit =
     cleaner match {
       case Some(cleaner) =>
-        cleaner.actor.send(Command.Delete(path = path, deleteTries = 0, isOverdue = false))
+        cleaner.actor.send(Command.Delete(path = path, deleteTries = 0))
 
       case None =>
         logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
     }
+
+  /**
+   * Maintains the count of all delete request for each memory-mapped file.
+   */
+  def recordCleanRequest(path: Path, pendingClean: mutable.HashMap[Path, Counter.IntCounter]): Int =
+    pendingClean.get(path) match {
+      case Some(value) =>
+        value.incrementAndGet()
+
+      case None =>
+        val integer = Counter.forInt(1)
+        pendingClean.put(path, integer)
+        integer.get()
+    }
+
+  /**
+   * Updates current records for the file.
+   * If all
+   */
+  def recordCleanSuccessful(path: Path, pendingClean: mutable.HashMap[Path, Counter.IntCounter]): Int =
+    pendingClean.get(path) match {
+      case Some(counter) =>
+        if (counter.get() <= 1) {
+          pendingClean.remove(path)
+          0
+        } else {
+          counter.decrementAndGet()
+        }
+
+      case None =>
+        0
+    }
+
+  /**
+   * Validates is a memory-mapped file is read to be deleted.
+   *
+   * @return true only if there are no pending clean request for the file.
+   */
+  def validateDeleteRequest(path: Path, state: State): Boolean =
+    state.pendingClean.get(path).forall(_.get() <= 0)
+
+  private def performClean(command: Command.Clean, self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
+    if (command.isOverdue) {
+      BufferCleaner.clean(self.state, command.buffer, command.path)
+      BufferCleaner.recordCleanSuccessful(command.path, self.state.pendingClean)
+    } else {
+      BufferCleaner.recordCleanRequest(command.path, self.state.pendingClean)
+      self.send(command.copy(isOverdue = true), messageReschedule)
+    }
+
+  private def performDelete(command: Command.Delete, self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
+    if (validateDeleteRequest(command.path, self.state))
+      try
+        Effect.walkDelete(command.path) //try delete the file or folder.
+      catch {
+        case exception: AccessDeniedException =>
+          //this exception handling is backup process for handling deleting memory-mapped files
+          //for windows and is not really required because State's pendingClean should already
+          //handle this and not allow deletes if there are pending clean requests.
+          logger.info(s"Scheduling delete retry after ${messageReschedule.asString}. Unable to delete file ${command.path}. Retried ${command.deleteTries} times", exception)
+          //if it results in access denied then try schedule for another delete.
+          //this can occur on windows if delete was performed before the mapped
+          //byte buffer is cleaned.
+          if (command.deleteTries >= maxDeleteRetries)
+            logger.error(s"Unable to delete file ${command.path}. Retried ${command.deleteTries} times", exception)
+          else
+            self.send(command.copy(deleteTries = command.deleteTries + 1), messageReschedule)
+
+        case exception: Throwable =>
+          logger.error(s"Unable to delete file ${command.path}. Retries ${command.deleteTries}", exception)
+      }
+    else
+      self.send(command, messageReschedule)
 }
 
 private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLogging {
   logger.info("Starting memory-mapped files cleaner.")
 
-  implicit val queueOrder = QueueOrder.FIFO
-  private val notOverdueReschedule = 5.seconds
-  private val maxDeleteRetries = 5
+  implicit val actorQueueOrder = QueueOrder.FIFO
 
   private val actor: ActorRef[Command, State] =
     Actor.timer[Command, State](
-      state = State(None),
-      stashCapacity = 20,
-      interval = 5.seconds
+      name = classOf[BufferCleaner].getSimpleName + " Actor",
+      state = State(None, new mutable.HashMap[Path, Counter.IntCounter]()),
+      stashCapacity = BufferCleaner.actorStashCapacity,
+      interval = BufferCleaner.actorInterval
     ) {
-      case (command @ Command.Clean(buffer, path, isOverdue), self) =>
-        if (isOverdue)
-          BufferCleaner.clean(self.state, buffer, path)
-        else
-          self.send(command.copy(isOverdue = true), notOverdueReschedule)
+      case (command: Command.Clean, self) =>
+        BufferCleaner.performClean(command, self)
 
-      case (command @ Command.Delete(path, deleteTries, isOverdue), self) =>
-        if (isOverdue)
-          try
-            Effect.walkDelete(path) //try delete the file or folder.
-          catch {
-            case exception: AccessDeniedException =>
-              //if it results in access denied then try schedule for another delete.
-              //this can occur on windows if delete was performed before the mapped
-              //byte buffer is cleaned.
-              if (deleteTries >= maxDeleteRetries)
-                logger.error(s"Unable to delete file $path. Retries $deleteTries", exception)
-              else
-                self.send(command.copy(deleteTries = deleteTries + 1), notOverdueReschedule)
+      case (command: Command.Delete, self) =>
+        BufferCleaner.performDelete(command, self)
 
-            case exception: Throwable =>
-              logger.error(s"Unable to delete file $path. Retries $deleteTries", exception)
-          }
-        else
-          self.send(command.copy(isOverdue = true), notOverdueReschedule)
+    } recoverException[Command] {
+      case (message, error, _) =>
+        error match {
+          case IO.Right(_) =>
+            logger.error(s"Terminated actor: Failed to process message ${message.getClass.getSimpleName}. Path: ${message.path}.")
+
+          case IO.Left(exception) =>
+            logger.error(s"Failed to process message ${message.getClass.getSimpleName}. Path: ${message.path}.", exception)
+        }
     }
 }
