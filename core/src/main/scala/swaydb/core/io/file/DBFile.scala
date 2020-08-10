@@ -285,9 +285,9 @@ object DBFile extends LazyLogging {
  * Responsible for lazy loading files for reads and opening closed files in a thread safe manner.
  */
 class DBFile(val path: Path,
-             memoryMapped: Boolean,
-             autoClose: Boolean,
-             deleteOnClean: Boolean,
+             val memoryMapped: Boolean,
+             val autoClose: Boolean,
+             val deleteOnClean: Boolean,
              val blockCacheFileId: Long,
              fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit blockCache: Option[BlockCache.State]) extends LazyLogging {
 

@@ -264,11 +264,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                                               fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                                                               timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                               blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Segment = {
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = 100.mb))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
+                                                                                                                           fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                                                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                                           blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Segment = {
 
       val segmentId = Effect.fileId(path)._1 - 1
 
@@ -300,13 +300,13 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
              binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
              hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
              bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-             segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                                              fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                                                              timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                              pathsDistributor: PathsDistributor,
-                                                                              idGenerator: IDGenerator,
-                                                                              blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Slice[Segment] = {
+             segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
+                                                                                                        fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                        pathsDistributor: PathsDistributor,
+                                                                                                        idGenerator: IDGenerator,
+                                                                                                        blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Slice[Segment] = {
 
       implicit val segmentIO: SegmentIO =
         SegmentIO(
@@ -376,7 +376,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random2(pushForward = false, deleteEventually = false),
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random2(pushForward = false, deleteEventually = false, mmap = mmapSegments),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                       fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
@@ -783,7 +783,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
 
   def assertSegment[T](keyValues: Slice[Memory],
                        assert: (Slice[Memory], Segment) => T,
-                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
+                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments),
                        ensureOneSegmentOnly: Boolean = true,
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false,

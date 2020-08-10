@@ -148,7 +148,7 @@ private[core] object SegmentBlock extends LazyLogging {
                        val deleteEventually: Boolean,
                        val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
-    def copy(minSize: Int = minSize, maxCount: Int = maxCount): SegmentBlock.Config =
+    def copy(minSize: Int = minSize, maxCount: Int = maxCount, mmap: MMAP.Segment = mmap): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
         ioStrategy = ioStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,

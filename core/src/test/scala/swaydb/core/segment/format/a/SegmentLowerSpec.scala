@@ -45,7 +45,6 @@ class SegmentLowerSpec0 extends SegmentLowerSpec {
 
 class SegmentLowerSpec1 extends SegmentLowerSpec {
   val keyValuesCount = 100
-
   override def levelFoldersCount = 10
   override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
   override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
@@ -54,7 +53,6 @@ class SegmentLowerSpec1 extends SegmentLowerSpec {
 
 class SegmentLowerSpec2 extends SegmentLowerSpec {
   val keyValuesCount = 100
-
   override def levelFoldersCount = 10
   override def mmapSegments = MMAP.Disabled
   override def level0MMAP = MMAP.Disabled
@@ -98,7 +96,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
         assert =
           (keyValues, segment) => {
             val readState = ThreadReadState.random
-            
+
             segment.lower(0, readState).toOptional shouldBe empty //smallest key in this segment is 1
             segment.lower(1, readState).toOptional shouldBe empty
 
@@ -114,7 +112,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
 
     "value the lower from the segment when there are Range key-values" in {
       //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-      runThis(1000.times) {
+      runThis(100000.times, log = true) {
         assertSegment(
           keyValues = Slice(
             randomFixedKeyValue(1),
@@ -127,7 +125,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
           assert =
             (keyValues, segment) => {
               val readState = ThreadReadState.random
-              
+
               //0
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(0, readState).toOptional shouldBe empty
