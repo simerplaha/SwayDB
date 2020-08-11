@@ -23,15 +23,15 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Bag
 
+import scala.collection.mutable.ListBuffer
+
 class BagSpec extends AnyWordSpec with Matchers {
 
-  "tryMap" should {
-    "" in {
-      implicit val tag = Bag.tryBag
+  "tryMap" in {
+    implicit val tag = Bag.tryBag
 
-      val result: swaydb.Stream[Int] = swaydb.Stream(1 to 100)
+    val result: swaydb.Stream[Int] = swaydb.Stream(1 to 100)
 
-      result.foreach(println)
-    }
+    result.materialize.get shouldBe ListBuffer.range(1, 101)
   }
 }

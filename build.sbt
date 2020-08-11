@@ -151,7 +151,7 @@ lazy val core =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(data, macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
+    .dependsOn(data, data % "test->test", macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
 
 lazy val data =
   project

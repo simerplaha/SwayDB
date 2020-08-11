@@ -74,24 +74,14 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
 
   val currentLevelId = new AtomicInteger(100000000)
 
-  private def nextLevelId: Int = {
-    //use unsignedInt instead of byte so level number's can be > 1.byte.
-    val id = currentLevelId.decrementAndGet()
-    //LevelNumber cannot be greater than 1 byte. If more than one byte is used, reset. - Nope not needed anymore!
-    //    if (id < 0) {
-    //      currentLevelId.set(Byte.MaxValue)
-    //      Byte.MaxValue.toInt
-    //    } else {
-    //      id
-    //    }
-    id
-  }
+  private def nextLevelId: Int =
+    currentLevelId.decrementAndGet()
 
-  val testFileDirectory = Paths.get(ClassLoader.getSystemResource("").toURI).getParent.getParent.resolve("TEST_FILES")
+  val projectDirectory = Paths.get(System.getProperty("user.dir")).resolve("target")
 
-  val testMemoryFileDirectory = Paths.get(ClassLoader.getSystemResource("").toURI).getParent.getParent.resolve("TEST_MEMORY_FILES")
+  val testFileDirectory = projectDirectory.resolve("TEST_FILES")
 
-  //default setting, these can be overridden to apply different settings for test cases.
+  val testMemoryFileDirectory = projectDirectory.resolve("TEST_MEMORY_FILES")
 
   def levelFoldersCount = 0
 
@@ -205,11 +195,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
           FileVisitResult.CONTINUE
         }
       })
-
-  //
-  //  sys.addShutdownHook {
-  //    walkDeleteFolder(testDir)
-  //  }
 
   override protected def afterEach(): Unit =
     walkDeleteFolder(testDir)
@@ -343,17 +328,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
   }
 
   object TestLevel {
-
-    implicit class TestLevelImplicit(level: Level) {
-      def addSegments(segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Level = {
-        //        val replyTo = TestActor[PushSegmentsResponse]()
-        //        level ! PushSegments(segments, replyTo)
-        ???
-        //        replyTo.getMessage(5.seconds).result.runIO
-        //        level.segmentsCount() shouldBe segments.size
-        level
-      }
-    }
 
     def testDefaultThrottle(meter: LevelMeter): Throttle =
       if (meter.segmentsCount > 15)
