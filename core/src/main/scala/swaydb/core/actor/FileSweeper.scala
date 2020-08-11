@@ -27,9 +27,10 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.config.{ActorConfig, FileCache}
-import swaydb.{Actor, ActorRef}
+import swaydb.{Actor, ActorRef, Bag, Scheduler}
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
 import scala.ref.WeakReference
 
 private[core] trait FileSweeperItem {
@@ -63,8 +64,9 @@ private[swaydb] object FileSweeper extends LazyLogging {
     def ec: ExecutionContext
     def close(file: FileSweeperItem): Unit
     def delete(file: FileSweeperItem): Unit
-    def terminate(): Unit
     def messageCount(): Int
+    def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG],
+                                                                      scheduler: Scheduler): BAG[Unit]
   }
 
   private sealed trait Action {
@@ -138,11 +140,12 @@ private[swaydb] object FileSweeper extends LazyLogging {
       override def delete(file: FileSweeperItem): Unit =
         queue send Action.Delete(file)
 
-      override def terminate(): Unit =
-        queue.terminateAndClear()
-
       override def messageCount(): Int =
         queue.messageCount
+
+      override def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG],
+                                                                                 scheduler: Scheduler): BAG[Unit] =
+        queue.terminateAndRecover(retryOnBusyDelay)
     }
   }
 }

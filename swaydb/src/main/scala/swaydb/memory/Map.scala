@@ -37,7 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
@@ -47,6 +47,7 @@ object Map extends LazyLogging {
                              maxKeyValuesPerSegment: Int = Int.MaxValue,
                              fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
                              deleteSegmentsEventually: Boolean = true,
+                             shutdownTimeout: FiniteDuration = 30.seconds,
                              acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                              levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                              lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
@@ -66,6 +67,7 @@ object Map extends LazyLogging {
           enableTimer = functionClassTag != ClassTag.Nothing,
           cacheKeyValueIds = false,
           threadStateCache = threadStateCache,
+          shutdownTimeout = shutdownTimeout,
           config =
             DefaultMemoryConfig(
               mapSize = mapSize,

@@ -762,5 +762,5 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     innerMap.delete()
 
   override def toString(): String =
-    classOf[Map[_, _, _, BAG]].getClass.getSimpleName
+    classOf[Map[_, _, _, BAG]].getSimpleName
 }

@@ -28,7 +28,7 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{NoSuchFileException, Path, Paths, StandardOpenOption}
 
-import swaydb.IO
+import swaydb.{Bag, IO}
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.RunThis._
@@ -71,7 +71,7 @@ class BufferCleanerSpec extends TestBase {
       innerFile.isBufferEmpty shouldBe true
     }
 
-    limiter.terminate()
+    limiter.terminateAndRecover[Future](10.seconds).await(10.seconds)
   }
 
   "it should not fatal terminate" when {
@@ -113,7 +113,7 @@ class BufferCleanerSpec extends TestBase {
       //keep this test running for a few seconds.
       sleep(timeout)
 
-      limiter.terminate()
+      limiter.terminateAndRecover[Future](10.seconds).await(10.seconds)
       limiter.messageCount() shouldBe 0
     }
   }

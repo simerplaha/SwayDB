@@ -28,6 +28,7 @@ import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
+import swaydb.core.CoreShutdown.shutdown
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
@@ -48,123 +49,13 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.{ActorWire, Bag, Error, IO, Scheduler}
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
 
 /**
  * Creates all configured Levels via [[ConfigWizard]] instances and starts compaction.
  */
 private[core] object CoreInitializer extends LazyLogging {
-
-  /**
-   * This does the final clean up on all Levels.
-   *
-   * - Releases all locks on all system folders
-   * - Flushes all files and persists them to disk for persistent databases.
-   */
-  private def closeLevels(zero: LevelZero) = {
-    logger.info("Closing files.")
-    zero.close onLeftSideEffect {
-      error =>
-        logger.error("Failed to close files.", error.exception)
-    } onRightSideEffect {
-      _ =>
-        logger.info("Files closed!")
-    }
-
-    logger.info("Releasing locks.")
-    zero.releaseLocks onLeftSideEffect {
-      error =>
-        logger.error("Failed to release locks.", error.exception)
-    } onRightSideEffect {
-      _ =>
-        logger.info("Locks released!")
-    }
-  }
-
-  /**
-   * Closes all the open files and releases the locks on database folders.
-   */
-  private def addShutdownHook(zero: LevelZero,
-                              compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit executionContext: ExecutionContext): Unit =
-    sys.addShutdownHook {
-      logger.info("Shutting down compaction.")
-
-      def compactionShutdown: Future[Unit] =
-        compactor
-          .ask
-          .flatMap {
-            (impl, state, self) =>
-              impl.terminate(state, self)
-          }
-
-      IO {
-        Await.result(compactionShutdown, 30.seconds)
-      } onLeftSideEffect {
-        error =>
-          logger.error("Failed compaction shutdown.", error.exception)
-      } onRightSideEffect {
-        _ =>
-          logger.info("Compaction stopped!")
-      }
-
-      closeLevels(zero)
-    }
-
-  /**
-   * Closes all the open files and releases the locks on database folders.
-   */
-  private def addShutdownHookNoCompaction(zero: LevelZero): Unit =
-    sys.addShutdownHook {
-      closeLevels(zero)
-    }
-
-  def apply(config: PersistentLevelZeroConfig,
-            enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore,
-                                  bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[Bag.Less]] =
-    if (config.storage.isMMAP && bufferCleanerEC.isEmpty)
-      IO.failed[swaydb.Error.Boot, Core[Bag.Less]]("ExecutionContext for ByteBuffer is required for memory-mapped configured databases.") //FIXME - create a LevelZeroPersistentMMAPConfig type to remove this error check.
-    else
-      LevelZero(
-        mapSize = config.mapSize,
-        storage = config.storage,
-        enableTimer = enableTimer,
-        cacheKeyValueIds = false,
-        nextLevel = None,
-        acceleration = config.acceleration,
-        throttle = config.throttle
-      ) match {
-        case IO.Right(zero) =>
-          bufferCleanerEC foreach (ec => BufferCleaner.initialiseCleaner(Scheduler()(ec)))
-          addShutdownHookNoCompaction(zero)
-          IO[swaydb.Error.Boot, Core[Bag.Less]](new Core(zero, ThreadStateCache.NoLimit, IO.Defer.unit))
-
-        case IO.Left(error) =>
-          IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
-      }
-
-  def apply(config: MemoryLevelZeroConfig,
-            enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
-    LevelZero(
-      mapSize = config.mapSize,
-      storage = config.storage,
-      nextLevel = None,
-      enableTimer = enableTimer,
-      cacheKeyValueIds = false,
-      throttle = config.throttle,
-      acceleration = config.acceleration
-    ) match {
-      case IO.Right(zero) =>
-        addShutdownHookNoCompaction(zero)
-        IO[swaydb.Error.Boot, Core[Bag.Less]](new Core(zero, ThreadStateCache.NoLimit, IO.Defer.unit))
-
-      case IO.Left(error) =>
-        IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
-    }
 
   /**
    * Based on the configuration returns execution context for the Level.
@@ -227,9 +118,10 @@ private[core] object CoreInitializer extends LazyLogging {
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             threadStateCache: ThreadStateCache,
-            memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                      timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
+            memoryCache: MemoryCache,
+            shutdownTimeout: FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                             timeOrder: TimeOrder[Slice[Byte]],
+                                             functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
 
     implicit val fileSweeper: FileSweeper.Enabled =
       FileSweeper(fileCache)
@@ -337,32 +229,27 @@ private[core] object CoreInitializer extends LazyLogging {
                     zero = zero,
                     executionContexts = contexts
                   ) map {
-                    compactor =>
+                    implicit compactor =>
                       implicit val shutdownEC =
                         contexts collectFirst {
                           case CompactionExecutionContext.Create(executionContext) =>
                             executionContext
                         } getOrElse scala.concurrent.ExecutionContext.Implicits.global
 
-                      addShutdownHook(
-                        zero = zero,
-                        compactor = compactor
-                      )
+                      implicit val optionalFileSweeper = Some(fileSweeper)
+
+                      sys.addShutdownHook {
+                        implicit val scheduler = Scheduler()
+                        Await.result(shutdown(zero, shutdownTimeout), shutdownTimeout)
+                      }
 
                       //trigger initial wakeUp.
                       sendInitialWakeUp(compactor)
 
                       def onClose =
                         IO.fromFuture[swaydb.Error.Close, Unit] {
-                          compactor
-                            .ask
-                            .flatMap {
-                              (impl, state, actor) =>
-                                impl.terminate(state, actor)
-                            }
-                        } flatMapIO {
-                          _ =>
-                            closeLevels(zero)
+                          implicit val scheduler = Scheduler()
+                          CoreShutdown.shutdown(zero, shutdownTimeout)
                         }
 
                       new Core[Bag.Less](

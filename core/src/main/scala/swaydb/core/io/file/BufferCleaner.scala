@@ -29,12 +29,13 @@ import java.nio.file.{AccessDeniedException, Path, Paths}
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Actor.Error
 import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.io.file.BufferCleaner.{Command, State}
 import swaydb.core.util.Counter
 import swaydb.core.util.FiniteDurations._
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, ActorRef, IO, Scheduler}
+import swaydb.{Actor, ActorRef, Bag, IO, Scheduler}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -232,6 +233,16 @@ private[core] object BufferCleaner extends LazyLogging {
         logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
     }
 
+  def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG],
+                                                                    scheduler: Scheduler): BAG[Unit] =
+    _cleaner match {
+      case Some(cleaner) =>
+        cleaner.actor.terminateAndRecover(retryOnBusyDelay)
+
+      case None =>
+        bag.unit
+    }
+
   /**
    * Maintains the count of all delete request for each memory-mapped file.
    */
@@ -345,20 +356,20 @@ private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLog
 
     } recoverException[Command] {
       case (message, error, _) =>
-        val pathInfo =
-          message match {
-            case _: Command.GetState =>
-              ""
-
-            case command: Command.FileCommand =>
-              s"""Path: ${command.filePath}."""
-          }
-
         error match {
-          case IO.Right(_) =>
-            logger.error(s"Terminated actor: Failed to process message ${message.getClass.getSimpleName}. $pathInfo")
+          case IO.Right(Actor.Error.TerminatedActor) =>
+            ???
 
           case IO.Left(exception) =>
+            val pathInfo =
+              message match {
+                case _: Command.GetState =>
+                  ""
+
+                case command: Command.FileCommand =>
+                  s"""Path: ${command.filePath}."""
+              }
+
             logger.error(s"Failed to process message ${message.getClass.getSimpleName}. $pathInfo", exception)
         }
     }

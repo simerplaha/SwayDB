@@ -41,8 +41,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
 import swaydb.{Bag, IO, OK, Prepare}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Deadline
+import scala.concurrent.duration._
 
 /**
  * Core defines the interface to SwayDB's internals. User level APIs interact with SwayDB via this instance only
@@ -55,6 +54,7 @@ private[swaydb] object Core {
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache,
+            shutdownTimeout: FiniteDuration,
             threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                 functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
@@ -64,7 +64,8 @@ private[swaydb] object Core {
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       threadStateCache = threadStateCache,
-      memoryCache = memoryCache
+      memoryCache = memoryCache,
+      shutdownTimeout = shutdownTimeout
     )
 
   def apply(config: SwayDBMemoryConfig,
@@ -72,6 +73,7 @@ private[swaydb] object Core {
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache,
+            shutdownTimeout: FiniteDuration,
             threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                 functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
@@ -81,26 +83,8 @@ private[swaydb] object Core {
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       threadStateCache = threadStateCache,
-      memoryCache = memoryCache
-    )
-
-  def apply(enableTimer: Boolean,
-            config: PersistentLevelZeroConfig)(implicit mmapCleanerEC: Option[ExecutionContext],
-                                               keyOrder: KeyOrder[Slice[Byte]],
-                                               timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
-    CoreInitializer(
-      config = config,
-      enableTimer = enableTimer
-    )
-
-  def apply(config: MemoryLevelZeroConfig,
-            enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
-    CoreInitializer(
-      config = config,
-      enableTimer = enableTimer
+      memoryCache = memoryCache,
+      shutdownTimeout = shutdownTimeout
     )
 
   /**

@@ -85,7 +85,7 @@ class SegmentMemorySweeperSpec extends TestBase {
 
         segment.close
       } finally {
-        memorySweeper.terminate()
+        memorySweeper.terminateAndClear()
       }
     }
   }

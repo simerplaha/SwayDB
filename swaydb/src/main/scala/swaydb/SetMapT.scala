@@ -137,5 +137,5 @@ trait SetMapT[K, V, F, BAG[_]] {
   def delete(): BAG[Unit]
 
   override def toString(): String =
-    classOf[SetMapT[_, _, _, BAG]].getClass.getSimpleName
+    classOf[SetMapT[_, _, _, BAG]].getSimpleName
 }

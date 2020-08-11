@@ -39,6 +39,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 import swaydb.{IO, KeyOrderConverter}
 
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
@@ -56,6 +57,7 @@ object Map extends LazyLogging {
                              memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
                              persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                              otherDirs: Seq[Dir] = Seq.empty,
+                             shutdownTimeout: FiniteDuration = 30.seconds,
                              cacheKeyValueIds: Boolean = true,
                              mmapPersistentLevelAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
                              deleteMemorySegmentsEventually: Boolean = true,
@@ -83,6 +85,7 @@ object Map extends LazyLogging {
       Core(
         enableTimer = functionClassTag != ClassTag.Nothing,
         cacheKeyValueIds = cacheKeyValueIds,
+        shutdownTimeout = shutdownTimeout,
         threadStateCache = threadStateCache,
         config =
           DefaultEventuallyPersistentConfig(

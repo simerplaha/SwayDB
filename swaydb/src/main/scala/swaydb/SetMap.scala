@@ -278,6 +278,6 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
     set.delete()
 
   override def toString(): String =
-    classOf[SetMap[_, _, _, BAG]].getClass.getSimpleName
+    classOf[SetMap[_, _, _, BAG]].getSimpleName
 
 }

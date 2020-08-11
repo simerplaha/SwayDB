@@ -58,6 +58,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -562,7 +563,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         //finally also close the segment to close the file.
         close
 
-        fileSweeper.terminate()
+        fileSweeper.terminateAndRecover[Future](10.seconds).await(10.seconds)
       }
     }
 
@@ -671,7 +672,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           segment1.close
           segment2.close
-          segmentOpenLimit.terminate()
+          segmentOpenLimit.terminateAndRecover[Future](10.seconds).await(10.seconds)
         }
       }
     }

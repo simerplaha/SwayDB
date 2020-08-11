@@ -153,14 +153,14 @@ private[core] object MemorySweeper {
           }
       }
 
-    def terminate() =
+    def terminateAndClear() =
       actor.foreach(_.terminateAndClear())
   }
 
   case object Disabled extends MemorySweeper
 
   sealed trait Enabled extends MemorySweeper {
-    def terminate(): Unit
+    def terminateAndClear(): Unit
   }
 
   sealed trait Cache extends Enabled {
