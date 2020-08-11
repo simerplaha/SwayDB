@@ -27,7 +27,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.config.{ActorConfig, FileCache}
-import swaydb.{Actor, ActorRef, Bag, Scheduler}
+import swaydb.{Actor, ActorRef, Bag, IO, Scheduler}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -99,6 +99,28 @@ private[swaydb] object FileSweeper extends LazyLogging {
       actorConfig = fileCache.actorConfig
     )
 
+  private def processAction(action: Action): Unit =
+    action match {
+      case Action.Delete(file) =>
+        try
+          file.delete()
+        catch {
+          case exception: Exception =>
+            logger.error(s"Failed to delete file. ${file.path}", exception)
+        }
+
+      case Action.Close(file) =>
+        file.get foreach {
+          file =>
+            try
+              file.close()
+            catch {
+              case exception: Exception =>
+                logger.error(s"Failed to close file. ${file.path}", exception)
+            }
+        }
+    }
+
   def apply(maxOpenSegments: Int, actorConfig: ActorConfig): FileSweeper.Enabled = {
     lazy val queue: ActorRef[Action, Unit] =
       Actor.cacheFromConfig[Action](
@@ -106,22 +128,21 @@ private[swaydb] object FileSweeper extends LazyLogging {
         stashCapacity = maxOpenSegments,
         weigher = FileSweeper.weigher
       ) {
-        case (Action.Delete(file), _) =>
-          try
-            file.delete()
-          catch {
-            case exception: Exception =>
-              logger.error(s"Failed to delete file. ${file.path}", exception)
-          }
+        case (action, _) =>
+          processAction(action)
+      } recoverException[Action] {
+        case (action, io, _) =>
+          io match {
+            case IO.Right(Actor.Error.TerminatedActor) =>
+              processAction(action)
 
-        case (Action.Close(file), _) =>
-          file.get foreach {
-            file =>
-              try
-                file.close()
-              catch {
-                case exception: Exception =>
-                  logger.error(s"Failed to close file. ${file.path}", exception)
+            case IO.Left(exception) =>
+              action match {
+                case Action.Delete(file) =>
+                  logger.error(s"Failed to delete file. Path = ${file.path}.", exception)
+
+                case Action.Close(file) =>
+                  logger.error(s"Failed to close file. WeakReference(path: Path) = ${file.get.map(_.path)}.", exception)
               }
           }
       }

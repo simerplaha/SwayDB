@@ -33,10 +33,12 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.ExceptionHandler
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.data.util.Functions
+import swaydb.data.util.{Functions, Futures}
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success, Try}
 
 sealed trait ActorRef[-T, S] { self =>
 
@@ -66,6 +68,11 @@ sealed trait ActorRef[-T, S] { self =>
 
   def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
     recover[M, Throwable](f)
+
+  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
+                                                                bag: Bag.Async[BAG]): BAG[Unit]
+
+  def receiveAllBlocking(retryCounts: Int): Try[Unit]
 
   def terminate(): Unit
 
@@ -490,7 +497,7 @@ class Actor[-T, S](val name: String,
     val isOverflown = overflow > 0
     //do not check for terminated actor here for receive to apply recovery.
     if (isOverflown && busy.compareAndSet(false, true))
-      Future(receive(overflow))
+      Future(receive(overflow, wakeUpOnComplete = true))
   }
 
   /**
@@ -511,7 +518,7 @@ class Actor[-T, S](val name: String,
         //if it's overflown then wakeUp Actor now!
         try {
           if (isOverflown)
-            Future(receive(overflow))
+            Future(receive(overflow, wakeUpOnComplete = true))
 
           //if there is no task schedule based on current stash so that eventually all messages get dropped without hammering.
           if (task.isEmpty)
@@ -562,7 +569,13 @@ class Actor[-T, S](val name: String,
 
   private def receiveAllInFuture(retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler): Future[Unit] =
     if (busy.compareAndSet(false, true))
-      Future(receive(Int.MaxValue))
+      Future(receive(Int.MaxValue, wakeUpOnComplete = false)) flatMap {
+        _ =>
+          if (messageCount <= 0)
+            Futures.unit
+          else
+            receiveAllInFuture(retryOnBusyDelay)
+      }
     else
       scheduler(retryOnBusyDelay)(receiveAllInFuture(retryOnBusyDelay))
 
@@ -575,7 +588,29 @@ class Actor[-T, S](val name: String,
                                                                 bag: Bag.Async[BAG]): BAG[Unit] =
     bag.suspend(bag.fromFuture(receiveAllInFuture(retryOnBusyDelay)))
 
-  private def receive(overflow: Int): Unit = {
+  override def receiveAllBlocking(retryCounts: Int): Try[Unit] =
+    receiveAllBlocking(0, retryCounts)
+
+  @tailrec
+  private def receiveAllBlocking(retires: Int, maxRetries: Int): Try[Unit] =
+    if (retires > maxRetries)
+      Failure(new Exception(s"Retries timeout. Retries: $retires. maxRetries: $maxRetries"))
+    else if (busy.compareAndSet(false, true))
+      Try(receive(Int.MaxValue, wakeUpOnComplete = false)) match {
+        case Success(_) =>
+          if (messageCount <= 0)
+            Success()
+          else
+            receiveAllBlocking(0, maxRetries)
+
+        case Failure(exception) =>
+          Failure(exception)
+      }
+    else
+      receiveAllBlocking(retires + 1, maxRetries)
+
+
+  private def receive(overflow: Int, wakeUpOnComplete: Boolean): Unit = {
     var processedWeight = 0
     var break = false
     try
@@ -618,7 +653,9 @@ class Actor[-T, S](val name: String,
       }
       busy.set(false)
       //after setting busy to false fetch the totalWeight again.
-      wakeUp(currentStashed = totalWeight)
+
+      if (wakeUpOnComplete)
+        wakeUp(currentStashed = totalWeight)
     }
   }
 

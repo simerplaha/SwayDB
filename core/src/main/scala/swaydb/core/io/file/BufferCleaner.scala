@@ -104,8 +104,16 @@ private[core] object BufferCleaner extends LazyLogging {
       .bindTo(theUnsafe.get(null))
   }
 
-  def apply()(implicit scheduler: Scheduler): BufferCleaner =
-    new BufferCleaner()(scheduler)
+  def apply(actorInterval: FiniteDuration = 5.seconds,
+            actorStashCapacity: Int = 20,
+            maxDeleteRetries: Int = 5,
+            messageReschedule: FiniteDuration = 5.seconds)(implicit scheduler: Scheduler): BufferCleaner =
+    new BufferCleaner(
+      actorInterval = actorInterval,
+      actorStashCapacity = actorStashCapacity,
+      maxDeleteRetries = maxDeleteRetries,
+      messageReschedule = messageReschedule
+    )(scheduler)
 
   private def java8Cleaner(): MethodHandle = {
     val directByteBuffer = Class.forName("java.nio.DirectByteBuffer")
@@ -340,10 +348,10 @@ private[core] object BufferCleaner extends LazyLogging {
  * @param messageReschedule  reschedule delay for [[maxDeleteRetries]]
  * @param scheduler          used for rescheduling messages.
  */
-private[core] class BufferCleaner(actorInterval: FiniteDuration = 5.seconds,
-                                  actorStashCapacity: Int = 20,
-                                  maxDeleteRetries: Int = 5,
-                                  messageReschedule: FiniteDuration = 5.seconds)(implicit scheduler: Scheduler) extends LazyLogging {
+private[core] class BufferCleaner(actorInterval: FiniteDuration,
+                                  actorStashCapacity: Int,
+                                  maxDeleteRetries: Int,
+                                  messageReschedule: FiniteDuration)(implicit scheduler: Scheduler) extends LazyLogging {
   logger.info("Starting memory-mapped files cleaner.")
 
   implicit val actorQueueOrder = QueueOrder.FIFO

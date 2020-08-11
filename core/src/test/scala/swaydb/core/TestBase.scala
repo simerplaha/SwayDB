@@ -266,6 +266,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = 100.mb))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                                                                            fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                                                                           cleaner: BufferCleaner = TestSweeper.bufferCleaner,
                                                                                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                                            blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Segment = {
 
@@ -806,9 +807,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
 
     //ensure that only one segment gets created
     val adjustedSegmentConfig =
-      if (!ensureOneSegmentOnly || keyValues.size == 1) //one doesn't matter.
-      segmentConfig
-        else if (memory)
+      if (!ensureOneSegmentOnly || keyValues.size == 1)
+        segmentConfig //one doesn't matter.
+      else if (memory)
         segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
       else
         segmentConfig.copy(minSize = Int.MaxValue, maxCount = randomIntMax(keyValues.size + 1))
@@ -830,7 +831,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     if (testAgainAfterAssert) {
       assert(keyValues, segment) //with cache populated
 
-      //clear cace and asssert
+      //clear cache and assert
       segment.clearCachedKeyValues()
       assert(keyValues, segment) //same Segment but test with cleared cache.
 

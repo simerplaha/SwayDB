@@ -69,7 +69,7 @@ class SegmentMemorySweeperSpec extends TestBase {
           TestSegment(
             keyValues = keyValues,
             segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false)
-          )(KeyOrder.default, Some(memorySweeper), TestSweeper.fileSweeper, timeOrder, blockCache)
+          )(KeyOrder.default, Some(memorySweeper), TestSweeper.fileSweeper, TestSweeper.bufferCleaner, timeOrder, blockCache)
 
         //initially Segment's cache is empty
         segment.areAllCachesEmpty shouldBe true
