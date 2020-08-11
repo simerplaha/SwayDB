@@ -66,7 +66,7 @@ private[core] object CoreShutdown extends LazyLogging {
             impl.terminate(state, self)
         }
         .recoverWith {
-          exception =>
+          case exception =>
             logger.error("Failed compaction shutdown.", exception)
             Future.failed(exception)
         }
