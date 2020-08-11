@@ -59,7 +59,7 @@ private[file] object MMAPFile {
 
     MMAPFile(
       path = path,
-      channel = FileChannel.open(path, StandardOpenOption.READ),
+      channel = channel,
       mode = MapMode.READ_ONLY,
       bufferSize = channel.size(),
       blockCacheFileId = blockCacheFileId,
