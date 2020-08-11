@@ -26,6 +26,7 @@ package swaydb.simulation
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import swaydb.IOValues._
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestBase
@@ -160,7 +161,7 @@ sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
             self.send(AssertState(removeAsserted = RemoveAsserted.Remove(10)), 3.seconds)
           //other do not remove any in-memory data.
           else
-          self.send(AssertState(removeAsserted = RemoveAsserted.RemoveNone), 3.seconds)
+            self.send(AssertState(removeAsserted = RemoveAsserted.RemoveNone), 3.seconds)
 
           //also schedule a Create to repeatedly keep creating more Products by this User.
           self.send(Create, 1.second)
@@ -554,43 +555,50 @@ sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
   "Users" should {
 
-//    "print DB" in {
-//      println(db.get(160000000000001887L).get)
-//    }
+    //    "print DB" in {
+    //      println(db.get(160000000000001887L).get)
+    //    }
 
     "concurrently Create, Update, Read & Delete (CRUD) Products" in {
       val maxUsers: Int = 30
       val runFor = 10.minutes
       implicit val queue = QueueOrder.FIFO
 
-      (1 to maxUsers) map { //create Users in the database
-        id =>
-          val user = User(s"user-$id")
-          db.put(id, user).get
-          (id, user)
-      } foreach {
-        case (userId, user) =>
+      val actors =
+        (1 to maxUsers) map { //create Users in the database
+          id =>
+            val user = User(s"user-$id")
+            db.put(id, user).get
+            (id, user)
+        } map {
+          case (userId, user) =>
 
-          val state =
-            UserState(
-              userId = userId,
-              nextProductId = s"${userId}0000000000000000".toLong,
-              user = user,
-              products = mutable.SortedMap(),
-              removedProducts = mutable.Set(),
-              productsCreatedCountBeforeAssertion = 0
-            )
+            val state =
+              UserState(
+                userId = userId,
+                nextProductId = s"${userId}0000000000000000".toLong,
+                user = user,
+                products = mutable.SortedMap(),
+                removedProducts = mutable.Set(),
+                productsCreatedCountBeforeAssertion = 0
+              )
 
-          val actor =
-            Actor[ProductCommand, UserState]("User Actor", state) {
-              (command, self) =>
-                processCommand(self.state, command, self)
-            }
+            val actor =
+              Actor[ProductCommand, UserState](s"User $userId", state) {
+                (command, self) =>
+                  processCommand(self.state, command, self)
+              }
 
-          actor send ProductCommand.Create
-      }
+            actor send ProductCommand.Create
+
+            actor
+        }
 
       Thread.sleep(runFor.toMillis)
+
+      actors.foreach(_.terminateAndClear())
+
+      db.delete().value
     }
   }
 }

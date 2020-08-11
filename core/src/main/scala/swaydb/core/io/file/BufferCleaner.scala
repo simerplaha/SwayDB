@@ -35,6 +35,7 @@ import swaydb.core.util.Counter
 import swaydb.core.util.FiniteDurations._
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb._
+import swaydb.core.cache.{Lazy, LazyValue}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -348,15 +349,22 @@ private[core] object BufferCleaner extends LazyLogging {
  * @param messageReschedule  reschedule delay for [[maxDeleteRetries]]
  * @param scheduler          used for rescheduling messages.
  */
-private[core] class BufferCleaner(actorInterval: FiniteDuration,
-                                  actorStashCapacity: Int,
-                                  maxDeleteRetries: Int,
-                                  messageReschedule: FiniteDuration)(implicit scheduler: Scheduler) extends LazyLogging {
+private[core] class BufferCleaner(val actorInterval: FiniteDuration,
+                                  val actorStashCapacity: Int,
+                                  val maxDeleteRetries: Int,
+                                  val messageReschedule: FiniteDuration)(implicit scheduler: Scheduler) extends LazyLogging {
   logger.info("Starting memory-mapped files cleaner.")
 
-  implicit val actorQueueOrder = QueueOrder.FIFO
+  implicit private val actorQueueOrder = QueueOrder.FIFO
 
-  private lazy val _actor: ActorRef[Command, State] =
+  private val lazyActor: LazyValue[ActorRef[Command, State]] =
+    Lazy.value(
+      synchronised = true,
+      stored = true,
+      initial = None
+    )
+
+  private def createActor(): ActorRef[Command, State] =
     Actor.timer[Command, State](
       name = classOf[BufferCleaner].getSimpleName + " Actor",
       state = State(None, new mutable.HashMap[Path, Counter.IntCounter]()),
@@ -414,15 +422,22 @@ private[core] class BufferCleaner(actorInterval: FiniteDuration,
         }
     }
 
-  private def actor: ActorRef[Command, State] = _actor
+  private def actor: ActorRef[Command, State] =
+    lazyActor.getOrSet(createActor())
 
   def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG],
                                                                     scheduler: Scheduler): BAG[Unit] =
-    actor.terminateAndRecover(retryOnBusyDelay)
+    if (lazyActor.isDefined)
+      actor.terminateAndRecover(retryOnBusyDelay)
+    else
+      bag.unit
 
   def messageCount: Int =
-    actor.messageCount
+    if (lazyActor.isDefined)
+      actor.messageCount
+    else
+      0
 
   def isTerminated: Boolean =
-    actor.isTerminated
+    lazyActor.isEmpty || actor.isTerminated
 }

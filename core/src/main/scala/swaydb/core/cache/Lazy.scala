@@ -88,7 +88,7 @@ private[swaydb] class LazyValue[A](synchronised: Boolean, val stored: Boolean) e
 
   def getOrSet(value: => A): A =
     cache getOrElse {
-      if (synchronised)
+      if (synchronised) {
         this.synchronized {
           cache.getOrElse {
             val got = value
@@ -96,7 +96,7 @@ private[swaydb] class LazyValue[A](synchronised: Boolean, val stored: Boolean) e
             got
           }
         }
-      else {
+      } else {
         val got = value
         if (stored) cache = Some(got)
         got

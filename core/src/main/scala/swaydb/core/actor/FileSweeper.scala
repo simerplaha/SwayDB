@@ -26,6 +26,7 @@ package swaydb.core.actor
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.cache.Lazy
 import swaydb.data.config.{ActorConfig, FileCache}
 import swaydb.{Actor, ActorRef, Bag, IO, Scheduler}
 
@@ -121,52 +122,68 @@ private[swaydb] object FileSweeper extends LazyLogging {
         }
     }
 
+  private def createActor(maxOpenSegments: Int, actorConfig: ActorConfig): ActorRef[Action, Unit] =
+    Actor.cacheFromConfig[Action](
+      config = actorConfig,
+      stashCapacity = maxOpenSegments,
+      weigher = FileSweeper.weigher
+    ) {
+      case (action, _) =>
+        processAction(action)
+    } recoverException[Action] {
+      case (action, io, _) =>
+        io match {
+          case IO.Right(Actor.Error.TerminatedActor) =>
+            processAction(action)
+
+          case IO.Left(exception) =>
+            action match {
+              case Action.Delete(file) =>
+                logger.error(s"Failed to delete file. Path = ${file.path}.", exception)
+
+              case Action.Close(file) =>
+                logger.error(s"Failed to close file. WeakReference(path: Path) = ${file.get.map(_.path)}.", exception)
+            }
+        }
+    }
+
   def apply(maxOpenSegments: Int, actorConfig: ActorConfig): FileSweeper.Enabled = {
-    lazy val queue: ActorRef[Action, Unit] =
-      Actor.cacheFromConfig[Action](
-        config = actorConfig,
-        stashCapacity = maxOpenSegments,
-        weigher = FileSweeper.weigher
-      ) {
-        case (action, _) =>
-          processAction(action)
-      } recoverException[Action] {
-        case (action, io, _) =>
-          io match {
-            case IO.Right(Actor.Error.TerminatedActor) =>
-              processAction(action)
+    val lazyActor =
+      Lazy.value[ActorRef[Action, Unit]](
+        synchronised = true,
+        stored = true,
+        initial = None
+      )
 
-            case IO.Left(exception) =>
-              action match {
-                case Action.Delete(file) =>
-                  logger.error(s"Failed to delete file. Path = ${file.path}.", exception)
-
-                case Action.Close(file) =>
-                  logger.error(s"Failed to close file. WeakReference(path: Path) = ${file.get.map(_.path)}.", exception)
-              }
-          }
-      }
+    def actor(): ActorRef[Action, Unit] =
+      lazyActor.getOrSet(createActor(maxOpenSegments, actorConfig))
 
     new FileSweeper.Enabled {
 
       def ec = actorConfig.ec
 
       override def close(file: FileSweeperItem): Unit =
-        queue send Action.Close(new WeakReference[FileSweeperItem](file))
+        actor() send Action.Close(new WeakReference[FileSweeperItem](file))
 
       //Delete cannot be a WeakReference because Levels can
       //remove references to the file after eventualDelete is invoked.
       //If the file gets garbage collected due to it being WeakReference before
       //delete on the file is triggered, the physical file will remain on disk.
       override def delete(file: FileSweeperItem): Unit =
-        queue send Action.Delete(file)
+        actor() send Action.Delete(file)
 
       override def messageCount(): Int =
-        queue.messageCount
+        if (lazyActor.isDefined)
+          actor().messageCount
+        else
+          0
 
       override def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG],
                                                                                  scheduler: Scheduler): BAG[Unit] =
-        queue.terminateAndRecover(retryOnBusyDelay)
+        if (lazyActor.isDefined)
+          actor().terminateAndRecover(retryOnBusyDelay)
+        else
+          bag.unit
     }
   }
 }

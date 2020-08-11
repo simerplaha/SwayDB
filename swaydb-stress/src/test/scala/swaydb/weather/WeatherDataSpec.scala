@@ -316,8 +316,8 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAft
     //    }
 
     readRequests runThis 10.times await 10.minutes
-    //    doDeleteAll
-    //    sleep(10.minutes)
+
+    db.delete().value
     println("************************* DONE *************************")
   }
 }
