@@ -36,7 +36,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.file.{BlockCache, BufferCleaner, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -97,6 +97,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   //  override def deleteFiles = false
 
   implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val bufferCleaner: BufferCleaner = TestSweeper.bufferCleaner
 
   "Segment" should {
 
@@ -843,7 +844,16 @@ sealed trait SegmentWriteSpec extends TestBase {
           bloomFilterConfig = bloomFilterConfig,
           segmentConfig = segmentConfig,
           removeDeletes = true
-        )(keyOrder, timeOrder, functionStore, keyValueMemorySweeper, fileSweeper, blockCache, segmentIO, segmentIDGenerator)
+        )(keyOrder = keyOrder,
+          timeOrder = timeOrder,
+          functionStore = functionStore,
+          keyValueMemorySweeper = keyValueMemorySweeper,
+          fileSweeper = fileSweeper,
+          bufferCleaner = bufferCleaner,
+          blockCache = blockCache,
+          segmentIO = segmentIO,
+          idGenerator = segmentIDGenerator
+        )
       }
 
       Effect.size(conflictingPath) shouldBe 0

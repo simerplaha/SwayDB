@@ -29,7 +29,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.io.file.BlockCache
+import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
@@ -46,6 +46,7 @@ class AppendixMapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

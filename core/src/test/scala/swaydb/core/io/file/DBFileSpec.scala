@@ -42,6 +42,7 @@ import swaydb.data.util.OperatingSystem
 class DBFileSpec extends TestBase with MockFactory {
 
   implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
   implicit val memorySweeper = TestSweeper.memorySweeper10
 
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache

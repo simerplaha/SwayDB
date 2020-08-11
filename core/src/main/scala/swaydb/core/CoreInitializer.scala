@@ -126,7 +126,6 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val fileSweeper: FileSweeper.Enabled =
       FileSweeper(fileCache)
 
-    //TODO - do not initialise for in-memory no grouping databases.
     val memorySweeper: Option[MemorySweeper.Enabled] =
       MemorySweeper(memoryCache)
 
@@ -151,8 +150,8 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val compactionStrategy: Compactor[ThrottleState] =
       ThrottleCompactor
 
-    if (config.hasMMAP)
-      BufferCleaner.initialiseCleaner(Scheduler()(fileSweeper.ec))
+    implicit val bufferCleaner: BufferCleaner =
+      BufferCleaner()(Scheduler()(fileSweeper.ec))
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],

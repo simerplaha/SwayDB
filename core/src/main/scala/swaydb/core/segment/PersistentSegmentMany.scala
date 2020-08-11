@@ -32,7 +32,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, DBFile, Effect}
+import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -43,7 +43,7 @@ import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, Transi
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
-import swaydb.core.util.skiplist.{SkipListMap, SkipList}
+import swaydb.core.util.skiplist.{SkipList, SkipListMap}
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -67,6 +67,7 @@ protected object PersistentSegmentMany {
                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                             blockCache: Option[BlockCache.State],
                                             fileSweeper: FileSweeper.Enabled,
+                                            bufferCleaner: BufferCleaner,
                                             segmentIO: SegmentIO): PersistentSegmentMany = {
     val initial =
       if (segment.segments.isEmpty) {
@@ -142,6 +143,7 @@ protected object PersistentSegmentMany {
                                                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                                         blockCache: Option[BlockCache.State],
                                                                                                         fileSweeper: FileSweeper.Enabled,
+                                                                                                        bufferCleaner: BufferCleaner,
                                                                                                         segmentIO: SegmentIO): PersistentSegmentMany = {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
@@ -194,6 +196,7 @@ protected object PersistentSegmentMany {
                           blockCacheMemorySweeper: Option[MemorySweeper.Block],
                           blockCache: Option[BlockCache.State],
                           fileSweeper: FileSweeper.Enabled,
+                          bufferCleaner: BufferCleaner,
                           segmentIO: SegmentIO): PersistentSegmentMany = {
 
     val fileExtension = Effect.fileExtension(file.path)
@@ -416,6 +419,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                                                                                                                                                                                       functionStore: FunctionStore,
                                                                                                                                                                                       blockCache: Option[BlockCache.State],
                                                                                                                                                                                       fileSweeper: FileSweeper.Enabled,
+                                                                                                                                                                                      bufferCleaner: BufferCleaner,
                                                                                                                                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                                                                                                                       segmentIO: SegmentIO) extends PersistentSegment with LazyLogging {
 

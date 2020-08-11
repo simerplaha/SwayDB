@@ -42,7 +42,7 @@ private[file] object MMAPFile {
   def write(path: Path,
             bufferSize: Long,
             blockCacheFileId: Long,
-            deleteOnClean: Boolean): MMAPFile =
+            deleteOnClean: Boolean)(implicit cleaner: BufferCleaner): MMAPFile =
     MMAPFile(
       path = path,
       channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
@@ -54,7 +54,7 @@ private[file] object MMAPFile {
 
   def read(path: Path,
            blockCacheFileId: Long,
-           deleteOnClean: Boolean): MMAPFile = {
+           deleteOnClean: Boolean)(implicit cleaner: BufferCleaner): MMAPFile = {
     val channel = FileChannel.open(path, StandardOpenOption.READ)
 
     MMAPFile(
@@ -72,7 +72,7 @@ private[file] object MMAPFile {
                     mode: MapMode,
                     bufferSize: Long,
                     blockCacheFileId: Long,
-                    deleteOnClean: Boolean): MMAPFile = {
+                    deleteOnClean: Boolean)(implicit cleaner: BufferCleaner): MMAPFile = {
     val buff = channel.map(mode, 0, bufferSize)
     new MMAPFile(
       path = path,
@@ -92,7 +92,7 @@ private[file] class MMAPFile(val path: Path,
                              bufferSize: Long,
                              val blockCacheFileId: Long,
                              val deleteOnClean: Boolean,
-                             @volatile private var buffer: MappedByteBuffer) extends LazyLogging with DBFileType {
+                             @volatile private var buffer: MappedByteBuffer)(implicit cleaner: BufferCleaner) extends LazyLogging with DBFileType {
 
   private val open = new AtomicBoolean(true)
 

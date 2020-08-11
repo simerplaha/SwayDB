@@ -28,6 +28,7 @@ import swaydb.IOValues._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.BufferCleaner
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -45,6 +46,7 @@ package object map {
                timeOrder: TimeOrder[Slice[Byte]],
                functionStore: FunctionStore,
                fileSweeper: FileSweeper,
+               bufferCleaner: BufferCleaner,
                ec: ExecutionContext,
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory]],

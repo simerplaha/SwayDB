@@ -31,6 +31,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.BufferCleaner
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.util.IDGenerator
 import swaydb.core.util.skiplist.{SkipList, SkipListBase}
@@ -56,6 +57,7 @@ private[core] object Map extends LazyLogging {
                                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                                               functionStore: FunctionStore,
                                                                               fileSweeper: FileSweeper,
+                                                                              bufferCleaner: BufferCleaner,
                                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                               reader: MapEntryReader[MapEntry[K, V]],
                                                                               skipListMerge: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] =
@@ -78,6 +80,7 @@ private[core] object Map extends LazyLogging {
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            functionStore: FunctionStore,
                                                            fileSweeper: FileSweeper,
+                                                           bufferCleaner: BufferCleaner,
                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                            skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] =
     PersistentMap(

@@ -28,6 +28,7 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestSweeper.fileSweeper
+import swaydb.core.actor.FileSweeper
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.util.OperatingSystem
@@ -38,7 +39,8 @@ import scala.concurrent.duration._
 
 class DBFileStressWriteSpec extends TestBase {
 
-  implicit val limiter = fileSweeper
+  implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val bufferCleaner: BufferCleaner = TestSweeper.bufferCleaner
   implicit val memorySweeper = TestSweeper.memorySweeperMax
 
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache

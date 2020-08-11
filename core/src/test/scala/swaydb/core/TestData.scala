@@ -33,13 +33,13 @@ import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestSweeper.fileSweeper
+import swaydb.core.TestSweeper.{bufferCleaner, fileSweeper}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.Cache
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.BlockCache
+import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
@@ -99,6 +99,7 @@ object TestData {
                                                            ec: ExecutionContext,
                                                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                            fileSweeper: FileSweeper.Enabled = fileSweeper,
+                                                           bufferCleaner: BufferCleaner = bufferCleaner,
                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                            blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
                                                            segmentIO: SegmentIO = SegmentIO.random) {
@@ -174,6 +175,7 @@ object TestData {
       implicit val segmentIO = level.segmentIO
       implicit val fileSweeper = level.fileSweeper
       implicit val blockCache = level.blockCache
+      implicit val bufferCleaner = level.bufferCleaner
 
       if (keyValues.isEmpty)
         IO.unit
@@ -256,6 +258,7 @@ object TestData {
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                   fileSweeper: FileSweeper.Enabled = fileSweeper,
+                                                                  bufferCleaner: BufferCleaner = bufferCleaner,
                                                                   blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): IO[swaydb.Error.Level, Level] =
       level.releaseLocks flatMap {
         _ =>
@@ -291,7 +294,8 @@ object TestData {
 
     def reopen(mapSize: Long = level.maps.map.size)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                    fileSweeper: FileSweeper.Enabled = fileSweeper): LevelZero = {
+                                                    fileSweeper: FileSweeper.Enabled = fileSweeper,
+                                                    bufferCleaner: BufferCleaner = bufferCleaner): LevelZero = {
       val reopened =
         level.releaseLocks flatMap {
           _ =>

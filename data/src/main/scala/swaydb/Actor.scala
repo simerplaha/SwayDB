@@ -646,10 +646,10 @@ class Actor[-T, S](val name: String,
           case (_, error, _) =>
             error match {
               case IO.Right(Actor.Error.TerminatedActor) =>
-                logger.error("Failed to recover failed message.", new Exception("Cause: Terminated Actor"))
+                logger.error(s"""Failed to recover failed message. Actor("$name").""", new Exception("Cause: Terminated Actor"))
 
               case IO.Left(exception: Throwable) =>
-                logger.error("Failed to recover failed message.", exception)
+                logger.error(s"""Failed to recover failed message. Actor("$name").""", exception)
             }
         }
     )
@@ -675,7 +675,7 @@ class Actor[-T, S](val name: String,
       if (recovery.isDefined) {
         receiveAllForce(retryOnBusyDelay)
       } else {
-        logger.error(s"terminateAndRecover invoked on Actor($name) with no recovery defined. Messages cleared.")
+        logger.error(s"""terminateAndRecover invoked on Actor("$name") with no recovery defined. Messages cleared.""")
         clear()
         bag.unit
       }

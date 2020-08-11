@@ -28,7 +28,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.io.file.BlockCache
+import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.io.reader.Reader
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.config.MMAP
@@ -43,6 +43,7 @@ class SegmentSerialiserSpec extends TestBase {
       implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
       implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
       implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+      implicit val bufferCleaner: BufferCleaner = TestSweeper.bufferCleaner
       implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
       implicit val blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
       implicit val segmentIO: SegmentIO = SegmentIO.random

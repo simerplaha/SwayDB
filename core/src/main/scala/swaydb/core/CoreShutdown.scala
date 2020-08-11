@@ -50,7 +50,8 @@ private[core] object CoreShutdown extends LazyLogging {
                                                  fileSweeper: Option[FileSweeper.Enabled],
                                                  blockCache: Option[BlockCache.State],
                                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                 scheduler: Scheduler): Future[Unit] = {
+                                                 scheduler: Scheduler,
+                                                 cleaner: BufferCleaner): Future[Unit] = {
     implicit val ec = scheduler.ec
     implicit val futureBag = Bag.future(scheduler.ec)
 
@@ -123,7 +124,6 @@ private[core] object CoreShutdown extends LazyLogging {
           logger.info(s"Terminating ${classOf[BufferCleaner].getSimpleName} Actor.")
           BufferCleaner.terminateAndRecover(retryOnBusyDelay)
       }
-
 
     val releaseLocks =
       bufferCleanerResult flatMap {

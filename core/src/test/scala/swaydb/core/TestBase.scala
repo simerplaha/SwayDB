@@ -70,8 +70,6 @@ import scala.util.Random
 
 trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Eventually {
 
-  BufferCleaner.initialiseCleaner(TestData.scheduler)
-
   implicit val idGenerator = IDGenerator()
 
   val currentLevelId = new AtomicInteger(100000000)
@@ -224,6 +222,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                         fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                        cleaner: BufferCleaner = TestSweeper.bufferCleaner,
                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
@@ -303,6 +302,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                                                         fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                                                        cleaner: BufferCleaner = TestSweeper.bufferCleaner,
                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                         pathsDistributor: PathsDistributor,
                                                                                                         idGenerator: IDGenerator,
@@ -380,6 +380,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                       fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                      cleaner: BufferCleaner = TestSweeper.bufferCleaner,
                                                       blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Level =
       Level(
@@ -410,7 +411,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                               fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper): LevelZero =
+                                                                               fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                               cleaner: BufferCleaner = TestSweeper.bufferCleaner): LevelZero =
       LevelZero(
         mapSize = mapSize,
         storage = level0Storage,
@@ -445,6 +447,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
    * Creates all file types currently supported which are MMAP and FileChannel.
    */
   def createDBFiles(mmapPath: Path, mmapBytes: Slice[Byte], channelPath: Path, channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                                                                                          cleaner: BufferCleaner = TestSweeper.bufferCleaner,
                                                                                                           blockCache: Option[BlockCache.State]): List[DBFile] =
     List(
       createMMAPWriteAndRead(mmapPath, mmapBytes),
@@ -452,6 +455,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     )
 
   def createDBFiles(mmapBytes: Slice[Byte], channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                                                       cleaner: BufferCleaner,
                                                                        blockCache: Option[BlockCache.State]): List[DBFile] =
     List(
       createMMAPWriteAndRead(randomFilePath, mmapBytes),
@@ -459,6 +463,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     )
 
   def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                                             cleaner: BufferCleaner = TestSweeper.bufferCleaner,
                                                              blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): DBFile =
     DBFile.mmapWriteAndRead(
       path = path,
@@ -470,6 +475,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     )
 
   def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                                                cleaner: BufferCleaner,
                                                                 blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): DBFile = {
     val blockCacheFileId = BlockCacheFileIDGenerator.nextID
 
@@ -496,6 +502,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
   def createMMAPFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): FileReader = {
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestSweeper.memorySweeperMax
+    implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
     new FileReader(
       DBFile.mmapRead(
         path = path,
@@ -513,6 +520,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
   def createFileChannelFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): FileReader = {
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestSweeper.memorySweeperMax
+    implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
     new FileReader(
       DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID)
     )

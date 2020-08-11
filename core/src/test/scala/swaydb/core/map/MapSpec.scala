@@ -34,7 +34,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, DBFile}
+import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile}
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer._
@@ -60,6 +60,7 @@ class MapSpec extends TestBase {
   implicit def testTimer: TestTimer = TestTimer.Empty
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache

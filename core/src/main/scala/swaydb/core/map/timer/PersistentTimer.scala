@@ -32,6 +32,7 @@ import swaydb.IO
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.BufferCleaner
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.util.skiplist.SkipListConcurrent
@@ -61,10 +62,12 @@ private[core] object PersistentTimer extends LazyLogging {
             mod: Long,
             flushCheckpointSize: Long)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                        timeOrder: TimeOrder[Slice[Byte]],
+                                       bufferCleaner: BufferCleaner,
                                        functionStore: FunctionStore,
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                                        reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] = {
-    implicit val limiter = FileSweeper.Disabled
+    //Disabled because autoClose is not required here.
+    implicit val fileSweeper = FileSweeper.Disabled
 
     IO {
       Map.persistent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]](

@@ -27,8 +27,9 @@ package swaydb.core.map.timer
 import java.nio.file.Path
 
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestSweeper}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.BufferCleaner
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.data.config.MMAP
@@ -46,6 +47,7 @@ class PersistentTimerSpec extends TimerSpec {
                            timeOrder: TimeOrder[Slice[Byte]],
                            functionStore: FunctionStore,
                            ec: ExecutionContext,
+                           cleaner: BufferCleaner,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
     Timer.persistent(
@@ -64,6 +66,7 @@ class MemoryTimerSpec extends TimerSpec {
                            timeOrder: TimeOrder[Slice[Byte]],
                            functionStore: FunctionStore,
                            ec: ExecutionContext,
+                           cleaner: BufferCleaner,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
     Timer.memory()
@@ -76,11 +79,13 @@ sealed trait TimerSpec extends TestBase {
   implicit val functionStore = FunctionStore.memory()
   implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
   implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
+  implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
 
   def newTimer(path: Path)(implicit keyOrder: KeyOrder[Slice[Byte]],
                            timeOrder: TimeOrder[Slice[Byte]],
                            functionStore: FunctionStore,
                            ec: ExecutionContext,
+                           cleaner: BufferCleaner,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer
 

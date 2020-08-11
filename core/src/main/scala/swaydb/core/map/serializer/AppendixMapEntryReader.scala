@@ -26,7 +26,7 @@ package swaydb.core.map.serializer
 
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.BlockCache
+import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentIO, SegmentSerialiser}
 import swaydb.data.config.MMAP
@@ -39,6 +39,7 @@ private[core] object AppendixMapEntryReader {
                                        functionStore: FunctionStore,
                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                        fileSweeper: FileSweeper.Enabled,
+                                       bufferCleaner: BufferCleaner,
                                        blockCache: Option[BlockCache.State],
                                        segmentIO: SegmentIO): AppendixMapEntryReader =
     new AppendixMapEntryReader(mmapSegment)
@@ -49,6 +50,7 @@ private[core] class AppendixMapEntryReader(mmapSegment: MMAP.Segment)(implicit k
                                                                       functionStore: FunctionStore,
                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                       fileSweeper: FileSweeper.Enabled,
+                                                                      bufferCleaner: BufferCleaner,
                                                                       blockCache: Option[BlockCache.State],
                                                                       segmentIO: SegmentIO) {
 

@@ -51,9 +51,12 @@ class BufferCleanerSpec extends TestBase {
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
   implicit val memorySweeper = TestSweeper.memorySweeper10
+  implicit val futureBag = Bag.future
+  implicit val terminateTimeout = 10.seconds
 
   "clear a MMAP file" in {
-    implicit val limiter = FileSweeper(0, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext))
+    implicit val fileSweeper = FileSweeper(0, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext))
+    implicit val cleaner: BufferCleaner = BufferCleaner()
 
     val file: DBFile =
       DBFile.mmapWriteAndRead(
@@ -71,13 +74,17 @@ class BufferCleanerSpec extends TestBase {
       innerFile.isBufferEmpty shouldBe true
     }
 
-    limiter.terminateAndRecover[Future](10.seconds).await(10.seconds)
+    fileSweeper.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+    cleaner.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+    cleaner.messageCount shouldBe 0
+    cleaner.isTerminated shouldBe true
   }
 
   "it should not fatal terminate" when {
     "concurrently reading a deleted MMAP file" in {
 
-      implicit val limiter = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 1.second, TestExecutionContext.executionContext))
+      implicit val fileSweeper = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 1.second, TestExecutionContext.executionContext))
+      implicit val cleaner: BufferCleaner = BufferCleaner()
 
       val files =
         (1 to 20) map {
@@ -113,13 +120,18 @@ class BufferCleanerSpec extends TestBase {
       //keep this test running for a few seconds.
       sleep(timeout)
 
-      limiter.terminateAndRecover[Future](10.seconds).await(10.seconds)
-      limiter.messageCount() shouldBe 0
+      fileSweeper.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      fileSweeper.messageCount() shouldBe 0
+
+      cleaner.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      cleaner.messageCount shouldBe 0
+      cleaner.isTerminated shouldBe true
     }
   }
 
   "recordCleanRequest & recordCleanSuccessful" should {
     "create a record on empty and remove on all clean" in {
+      implicit val cleaner: BufferCleaner = BufferCleaner()
 
       val path = Paths.get("test")
       val map = mutable.HashMap.empty[Path, Counter.IntCounter]
@@ -131,9 +143,14 @@ class BufferCleanerSpec extends TestBase {
       BufferCleaner.recordCleanSuccessful(path, map)
       map shouldBe empty
       map.get(path) shouldBe empty
+
+      cleaner.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      cleaner.messageCount shouldBe 0
+      cleaner.isTerminated shouldBe true
     }
 
     "increment record if non-empty and decrement on success" in {
+      implicit val cleaner: BufferCleaner = BufferCleaner()
 
       val path = Paths.get("test")
       val map = mutable.HashMap.empty[Path, Counter.IntCounter]
@@ -160,11 +177,17 @@ class BufferCleanerSpec extends TestBase {
           else
             map.get(path).value.get() shouldBe (i - 1)
       }
+
+      cleaner.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      cleaner.messageCount shouldBe 0
+      cleaner.isTerminated shouldBe true
     }
   }
 
   "clean ByteBuffer" should {
     "initialise cleaner" in {
+      implicit val cleaner: BufferCleaner = BufferCleaner()
+
       val path = randomFilePath
       val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
       val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
@@ -176,6 +199,10 @@ class BufferCleanerSpec extends TestBase {
       Effect.exists(path) shouldBe true
       Effect.delete(path)
       Effect.exists(path) shouldBe false
+
+      cleaner.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      cleaner.messageCount shouldBe 0
+      cleaner.isTerminated shouldBe true
     }
   }
 
@@ -188,7 +215,7 @@ class BufferCleanerSpec extends TestBase {
     /**
      * Asserts the [[BufferCleaner.State]] contains a counter entry for the file path.
      */
-    def assertStateContainsFileRequestCounter(filePath: Path): Unit = {
+    def assertStateContainsFileRequestCounter(filePath: Path)(implicit bufferCleaner: BufferCleaner): Unit = {
       val testActor = TestActor[BufferCleaner.State]()
       BufferCleaner.getState(testActor)
       val pending = testActor.getMessage(1.minute).pendingClean
@@ -199,7 +226,7 @@ class BufferCleanerSpec extends TestBase {
     /**
      * Asserts the state is empty/cleared.
      */
-    def assertStateIsCleared(): Unit = {
+    def assertStateIsCleared()(implicit bufferCleaner: BufferCleaner): Unit = {
       //state should be cleared
       val testActor = TestActor[BufferCleaner.State]()
       BufferCleaner.getState(testActor)
@@ -208,6 +235,8 @@ class BufferCleanerSpec extends TestBase {
 
     "deleteFile" when {
       "delete after clean" in {
+        implicit val cleaner: BufferCleaner = BufferCleaner()
+
         val filePath = randomFilePath
         val folderPath = filePath.getParent
 
@@ -230,9 +259,15 @@ class BufferCleanerSpec extends TestBase {
 
         //state should be cleared
         assertStateIsCleared()
+
+        cleaner.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+        cleaner.messageCount shouldBe 0
+        cleaner.isTerminated shouldBe true
       }
 
       "delete before clean" in {
+        implicit val cleaner: BufferCleaner = BufferCleaner()
+
         val filePath = randomFilePath
         val folderPath = filePath.getParent
 
@@ -254,11 +289,17 @@ class BufferCleanerSpec extends TestBase {
 
         //state should be cleared
         assertStateIsCleared()
+
+        cleaner.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+        cleaner.messageCount shouldBe 0
+        cleaner.isTerminated shouldBe true
       }
     }
 
     "deleteFolder" when {
       "delete after clean" in {
+        implicit val cleaner: BufferCleaner = BufferCleaner()
+
         val filePath = randomFilePath
         val folderPath = filePath.getParent
 
@@ -281,9 +322,15 @@ class BufferCleanerSpec extends TestBase {
 
         //state should be cleared
         assertStateIsCleared()
+
+        cleaner.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+        cleaner.messageCount shouldBe 0
+        cleaner.isTerminated shouldBe true
       }
 
       "delete before clean" in {
+        implicit val cleaner: BufferCleaner = BufferCleaner()
+
         val filePath = randomFilePath
         val folderPath = filePath.getParent
 
@@ -305,6 +352,10 @@ class BufferCleanerSpec extends TestBase {
 
         //state should be cleared
         assertStateIsCleared()
+
+        cleaner.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+        cleaner.messageCount shouldBe 0
+        cleaner.isTerminated shouldBe true
       }
     }
   }

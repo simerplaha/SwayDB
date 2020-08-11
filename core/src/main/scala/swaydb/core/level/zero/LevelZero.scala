@@ -34,7 +34,7 @@ import swaydb.core.data.KeyValue.{Put, PutOption}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.Effect
+import swaydb.core.io.file.{BufferCleaner, Effect}
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
@@ -65,6 +65,7 @@ private[core] object LevelZero extends LazyLogging {
             acceleration: LevelZeroMeter => Accelerator,
             throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                        bufferCleaner: BufferCleaner,
                                                         functionStore: FunctionStore): IO[swaydb.Error.Level, LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
@@ -93,6 +94,7 @@ private[core] object LevelZero extends LazyLogging {
               )(keyOrder = KeyOrder.default,
                 timeOrder = timeOrder,
                 functionStore = functionStore,
+                bufferCleaner = bufferCleaner,
                 writer = TimerMapEntryWriter.TimerPutMapEntryWriter,
                 reader = TimerMapEntryReader.TimerPutMapEntryReader)
             } else {
@@ -139,6 +141,7 @@ private[core] object LevelZero extends LazyLogging {
                   )(keyOrder = KeyOrder.default,
                     timeOrder = timeOrder,
                     functionStore = functionStore,
+                    bufferCleaner = bufferCleaner,
                     writer = TimerMapEntryWriter.TimerPutMapEntryWriter,
                     reader = TimerMapEntryReader.TimerPutMapEntryReader)
 

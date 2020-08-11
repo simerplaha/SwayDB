@@ -33,6 +33,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
+import swaydb.core.io.file.BufferCleaner
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.ThreadReadState
@@ -77,6 +78,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   //    false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 

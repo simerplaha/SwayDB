@@ -32,11 +32,11 @@ import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.Effect
+import swaydb.core.io.file.{BufferCleaner, Effect}
 import swaydb.core.level.AppendixSkipListMerger
-import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryWriter}
+import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
-import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.Extension
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -56,6 +56,8 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
     implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
+    //mmap is false. FIXME - use BufferCleaner.Disabled instead
+    implicit val bufferCleaner: BufferCleaner = null
 
     IO(Effect.files(levelPath, Extension.Seg)) flatMap {
       files =>
@@ -67,7 +69,14 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                   path = segmentPath,
                   mmap = MMAP.Disabled,
                   checkExists = true
-                )(keyOrder, timeOrder, functionStore, None, memorySweeper, fileSweeper)
+                )(keyOrder = keyOrder,
+                  timeOrder = timeOrder,
+                  functionStore = functionStore,
+                  blockCache = None,
+                  keyValueMemorySweeper = memorySweeper,
+                  fileSweeper = fileSweeper,
+                  bufferCleaner = bufferCleaner
+                )
               }
           }
           .flatMap {
@@ -161,6 +170,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                        segments: Slice[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  fileSweeper: FileSweeper.Enabled,
+                                                 bufferCleaner: BufferCleaner,
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  skipListMerger: SkipListMerger[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =

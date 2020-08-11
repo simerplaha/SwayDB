@@ -56,6 +56,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                   functionStore: FunctionStore,
                                                                   fileSweeper: FileSweeper,
+                                                                  bufferCleaner: BufferCleaner,
                                                                   reader: MapEntryReader[MapEntry[K, V]],
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] = {
@@ -94,6 +95,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                    nullValue: OV)(implicit keyOrder: KeyOrder[K],
                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                   fileSweeper: FileSweeper,
+                                                                  bufferCleaner: BufferCleaner,
                                                                   functionStore: FunctionStore,
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] = {
@@ -121,7 +123,8 @@ private[map] object PersistentMap extends LazyLogging {
 
   private[map] def firstFile(folder: Path,
                              memoryMapped: MMAP.Map,
-                             fileSize: Long)(implicit fileSweeper: FileSweeper): DBFile =
+                             fileSize: Long)(implicit fileSweeper: FileSweeper,
+                                             bufferCleaner: BufferCleaner): DBFile =
     memoryMapped match {
       case MMAP.Enabled(deleteOnClean) =>
         DBFile.mmapInit(
@@ -131,7 +134,7 @@ private[map] object PersistentMap extends LazyLogging {
           autoClose = false,
           deleteOnClean = deleteOnClean,
           blockCacheFileId = 0
-        )(fileSweeper, None)
+        )(fileSweeper, None, bufferCleaner)
 
       case _: MMAP.Disabled =>
         DBFile.channelWrite(
@@ -139,7 +142,7 @@ private[map] object PersistentMap extends LazyLogging {
           IOStrategy.SynchronisedIO(true),
           autoClose = false,
           blockCacheFileId = 0
-        )(fileSweeper, None)
+        )(fileSweeper, None, bufferCleaner)
     }
 
 
@@ -152,6 +155,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                                         skipListMerger: SkipListMerger[OK, OV, K, V],
                                                                                         keyOrder: KeyOrder[K],
                                                                                         fileSweeper: FileSweeper,
+                                                                                        bufferCleaner: BufferCleaner,
                                                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                                                         functionStore: FunctionStore): (RecoveryResult[DBFile], Boolean) = {
     //read all existing logs and populate skipList
@@ -161,7 +165,7 @@ private[map] object PersistentMap extends LazyLogging {
       folder.files(Extension.Log) mapRecover {
         path =>
           logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
-          val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None)
+          val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None, bufferCleaner)
           val bytes = file.readAll
           logger.info("{}: Reading file.", path)
           val recovery = MapCodec.read[K, V](bytes, dropCorruptedTailEntries).get
@@ -222,7 +226,8 @@ private[map] object PersistentMap extends LazyLogging {
                                                       mmap: MMAP.Map,
                                                       fileSize: Long,
                                                       skipList: SkipListConcurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                  fileSweeper: FileSweeper): Option[DBFile] =
+                                                                                                  fileSweeper: FileSweeper,
+                                                                                                  bufferCleaner: BufferCleaner): Option[DBFile] =
     oldFiles.lastOption map {
       lastFile =>
         val file = nextFile(lastFile, mmap, fileSize, skipList)
@@ -246,7 +251,8 @@ private[map] object PersistentMap extends LazyLogging {
                                                       mmap: MMAP.Map,
                                                       size: Long,
                                                       skipList: SkipListConcurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                  fileSweeper: FileSweeper): DBFile = {
+                                                                                                  fileSweeper: FileSweeper,
+                                                                                                  bufferCleaner: BufferCleaner): DBFile = {
 
     val nextPath = currentFile.path.incrementFileId
     val bytes = MapCodec.write(skipList)
@@ -261,7 +267,7 @@ private[map] object PersistentMap extends LazyLogging {
             blockCacheFileId = 0,
             autoClose = false,
             deleteOnClean = deleteOnClean
-          )(fileSweeper, None)
+          )(fileSweeper, None, bufferCleaner)
 
         case _: MMAP.Disabled =>
           DBFile.channelWrite(
@@ -269,7 +275,7 @@ private[map] object PersistentMap extends LazyLogging {
             ioStrategy = IOStrategy.SynchronisedIO(true),
             blockCacheFileId = 0,
             autoClose = false
-          )(fileSweeper, None)
+          )(fileSweeper, None, bufferCleaner)
       }
 
     newFile.append(bytes)
@@ -287,6 +293,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
                                                              private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                                    fileSweeper: FileSweeper,
+                                                                                                   bufferCleaner: BufferCleaner,
                                                                                                    functionStore: FunctionStore,
                                                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                    skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {

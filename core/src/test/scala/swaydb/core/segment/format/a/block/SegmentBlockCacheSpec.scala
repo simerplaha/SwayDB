@@ -186,6 +186,8 @@ class SegmentBlockCacheSpec extends TestBase {
 
         blockCache.createSegmentBlockReader()
         assertSweeperIsEmpty()
+
+        sweeper.foreach(_.terminateAndClear())
       }
     }
 

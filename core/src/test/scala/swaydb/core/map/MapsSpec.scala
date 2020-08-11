@@ -33,6 +33,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MemoryOption, Value}
+import swaydb.core.io.file.BufferCleaner
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Extension
@@ -55,6 +56,7 @@ class MapsSpec extends TestBase {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
   implicit val memorySweeper = TestSweeper.memorySweeperMax
 
   implicit def testTimer: TestTimer = TestTimer.Empty

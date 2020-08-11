@@ -112,7 +112,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
 
     "value the lower from the segment when there are Range key-values" in {
       //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-      runThis(100000.times, log = true) {
+      runThis(100.times, log = true) {
         assertSegment(
           keyValues = Slice(
             randomFixedKeyValue(1),
