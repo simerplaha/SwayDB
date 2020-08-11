@@ -24,20 +24,24 @@
 
 package swaydb.core.actor
 
-import java.util.concurrent.ConcurrentSkipListSet
+import java.util.concurrent.{ConcurrentLinkedDeque, ConcurrentSkipListSet}
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.data.util.Futures
 
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, Promise}
-import scala.collection.parallel.CollectionConverters._
-import scala.util.Try
+import scala.jdk.CollectionConverters._
+import scala.util.{Random, Try}
 
 class ActorSpec extends AnyWordSpec with Matchers {
 
@@ -45,7 +49,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
   implicit val ordering = QueueOrder.FIFO
 
-  "Actor" should {
+  "it" should {
 
     "process messages in order of arrival" in {
       val messageCount = 10000
@@ -445,15 +449,17 @@ class ActorSpec extends AnyWordSpec with Matchers {
         case (request, response) =>
           response shouldBe request
       }
+
+      actor.terminate()
     }
   }
 
-  "Actor" should {
+  "it" should {
 
     def assertActor(actor: ActorRef[() => Any, Unit]) = {
       (1 to 1000000) foreach {
         i =>
-          if(i % 100000 == 0) println(s"Message number: $i")
+          if (i % 100000 == 0) println(s"Message number: $i")
           val promise = Promise[Unit]()
           actor.send(() => promise.tryComplete(Try(i)))
           promise.future.await(2.seconds)
@@ -461,6 +467,8 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
       actor.totalWeight shouldBe 0
       actor.messageCount shouldBe 0
+
+      actor.terminate()
     }
 
     "process all messages" when {
@@ -484,45 +492,213 @@ class ActorSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "terminateAndRecover" should {
+    "do not apply recovery if no recovery function is specified" in {
+      runThis(100.times) {
+        val queue = new ConcurrentLinkedDeque[Int]()
 
-  //  "play" in {
-  //    implicit val scheduler = Scheduler()
-  //
-  //    //    val actor =
-  //    //      Actor[Int] {
-  //    //        (int: Int, self: ActorRef[Int, Unit]) =>
-  //    //          println(int)
-  //    //      }
-  //
-  //    val actor =
-  //      Actor.timerLoop[Int](stashCapacity = 10, interval = 5.second) {
-  //        (int: Int, self: ActorRef[Int, Unit]) =>
-  //          println(s"Received: $int")
-  //      }
-  //
-  //    (1 to 20) foreach {
-  //      i =>
-  //        actor ! i
-  //        Thread.sleep(1000)
-  //    }
-  //
-  //    //    val actor =
-  //    //      Actor.timerCache[Int](10, _ => 1, 5.second) {
-  //    //        (int: Int, self: ActorRef[Int, Unit]) =>
-  //    //          self.messageCount shouldBe 10
-  //    //          println(s"Received: $int")
-  //    //      }
-  //
-  //    Future {
-  //      sleep(40.seconds)
-  //      var int = 0
-  //      while (true) {
-  //        scheduler.future(1.second)(actor ! int)
-  //        Thread.sleep(100)
-  //        int = int + 1
-  //      }
-  //    }
-  //
-  //    sleep(100.seconds)
-  //  }
+        val actor =
+          Actor[Int]("") {
+            case (message, self) =>
+              queue add message
+          }
+
+        (1 to 100) foreach {
+          i =>
+            actor send i
+        }
+
+        val result = actor.terminateAndRecover[Future](0.seconds)
+
+        (101 to 200) foreach {
+          i =>
+            actor send i
+        }
+
+        //all messages are still cleared
+        eventual(2.seconds) {
+          actor.messageCount shouldBe 0
+        }
+
+        //Future does not throw exception
+        result.await(2.seconds)
+
+        actor.terminate()
+      }
+    }
+
+    "apply recovery if recovery function is specified" in {
+      //Stores successful messages
+      val success = new ConcurrentLinkedDeque[Int]()
+      //Stores failure messages
+      val recovered = new ConcurrentLinkedDeque[Int]()
+
+      val actor =
+        Actor[Int]("") {
+          case (message, self) =>
+            success add message
+        } recoverException[Int] {
+          case (message, error: IO[Throwable, Actor.Error], self) =>
+            error match {
+              case IO.Right(error) =>
+                error shouldBe Actor.Error.TerminatedActor
+                //message sent after termination should be >= 101
+                message should be >= 101
+                recovered add message
+
+              case IO.Left(exception) =>
+                exception.printStackTrace()
+                fail(exception)
+            }
+        }
+
+      (1 to 100) foreach {
+        i =>
+          actor send i
+      }
+
+      eventual(20.seconds) {
+        success.asScala.toList shouldBe (1 to 100).toList
+        recovered.asScala shouldBe empty
+      }
+
+      //force termination so that recovery happens.
+      actor.terminate()
+
+      (101 to 200) foreach {
+        i =>
+          actor send i
+      }
+
+      //terminate here does not work because it's in the future
+      //and the second send messages will get returned as success
+      //so actor.terminate() is invoked before terminateAndRecover.
+      val future = actor.terminateAndRecover[Future](0.seconds)
+
+      eventual(20.seconds) {
+        success.asScala.toList shouldBe (1 to 100).toList
+        recovered.asScala.toList shouldBe (101 to 200).toList
+      }
+
+      //does not throw exception
+      future.await(20.seconds)
+
+      actor.terminate()
+    }
+
+    "apply recovery on concurrent message does not result in duplicate messages" in {
+      runThis(1000.times, log = true) {
+        // number of messages to send
+        val maxMessages = 1000
+
+        //Stores successful messages
+        val success = new ConcurrentLinkedDeque[Int]()
+        //Stores failure messages
+        val recovered = new ConcurrentLinkedDeque[Int]()
+
+        //randomly create Actors.
+        val noRecoveryActor =
+          eitherOne(
+            Actor[Int]("Basic Actor") {
+              case (message, self) =>
+                success add message
+            },
+
+            Actor.timer[Int](
+              name = "Timer Actor",
+              stashCapacity = randomIntMax(maxMessages),
+              interval = randomIntMax(5).second
+            ) {
+              case (message, self) =>
+                success add message
+            },
+
+            Actor.timerLoop[Int](
+              name = "TimerLoop Actor",
+              stashCapacity = randomIntMax(maxMessages),
+              interval = randomIntMax(5).seconds
+            ) {
+              case (message, self) =>
+                success add message
+            },
+
+            Actor.timerCache[Int](
+              name = "TimerCache Actor",
+              stashCapacity = randomIntMax(maxMessages),
+              weigher = _ => 1,
+              interval = randomIntMax(5).seconds
+            ) {
+              case (message, self) =>
+                success add message
+            },
+
+            Actor.timerLoopCache[Int](
+              name = "TimerLoopCache Actor",
+              stashCapacity = randomIntMax(maxMessages),
+              weigher = _ => 1,
+              interval = randomIntMax(5).seconds
+            ) {
+              case (message, self) =>
+                success add message
+            }
+          )
+
+        val actor =
+          noRecoveryActor recoverException[Int] {
+            case (message, error: IO[Throwable, Actor.Error], self) =>
+              error match {
+                case IO.Right(error) =>
+                  error shouldBe Actor.Error.TerminatedActor
+                  recovered add message
+
+                case IO.Left(exception) =>
+                  exception.printStackTrace()
+                  fail(exception)
+              }
+          }
+
+        //not yet terminated
+        actor.isTerminated shouldBe false
+
+        val messages = (1 to maxMessages).toList
+
+        println(s"Sending $maxMessages messages concurrently to ${actor.name}.")
+
+        @volatile var terminated = false
+
+        //concurrently send messages and randomly invoke terminateAndRecover
+        val futures: ListBuffer[Future[Unit]] =
+          messages.par.map {
+            i =>
+              actor send i
+              //random enough to randomly balance messages for both success and recovered queue.
+              //see logged output to see how messages are distributed.
+              if (Random.nextDouble() < 0.001) {
+                val future = actor.terminateAndRecover[Future](0.seconds)
+                terminated = true
+                future
+              } else {
+                Futures.unit
+              }
+          }.to(ListBuffer)
+
+        //if the actor was terminated in the loop then assert that it's marked terminated.
+        actor.isTerminated shouldBe terminated
+
+        //if it's not already terminates then terminate it so that cache Actors also drop their
+        //stashed messages.
+        if (!terminated)
+          futures += actor.terminateAndRecover[Future](0.seconds)
+
+        println(s"Messages sent. Success: ${success.size()}. Recovered messages: ${recovered.size()}")
+        //does not throw exception
+        Future.sequence(futures).await(2.minutes)
+
+        //there should be no duplicate messages either in success or recovered messages.
+        val allMessages = (success.asScala ++ recovered.asScala).toList
+        allMessages.sorted shouldBe messages
+        allMessages should have size maxMessages
+      }
+    }
+  }
 }

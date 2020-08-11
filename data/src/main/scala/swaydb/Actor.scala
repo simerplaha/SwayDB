@@ -40,6 +40,8 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 
 sealed trait ActorRef[-T, S] { self =>
 
+  def name: String
+
   def executionContext: ExecutionContext
 
   def send(message: T): Unit
@@ -60,6 +62,11 @@ sealed trait ActorRef[-T, S] { self =>
   def hasMessages: Boolean =
     totalWeight > 0
 
+  def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
+
+  def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
+    recover[M, Throwable](f)
+
   def terminate(): Unit
 
   def isTerminated: Boolean
@@ -68,15 +75,8 @@ sealed trait ActorRef[-T, S] { self =>
 
   def terminateAndClear(): Unit
 
-  def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
-
-  def terminateAndRecover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
-
-  def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
-    recover[M, Throwable](f)
-
-  def terminateAndRecoverException[M <: T](function: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
-    terminateAndRecover[M, Throwable](function)
+  def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
+                                                                    bag: Bag.Async[BAG]): BAG[Unit]
 }
 
 object Actor {
@@ -456,16 +456,17 @@ class Actor[-T, S](val name: String,
         wakeUp(currentStashed = currentStashed)
     }
 
-  override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit bag: Bag.Async[X]): X[R] = {
-    val promise = Promise[R]()
+  override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit bag: Bag.Async[X]): X[R] =
+    bag.suspend {
+      val promise = Promise[R]()
 
-    implicit val queueOrder = QueueOrder.FIFO
+      implicit val queueOrder = QueueOrder.FIFO
 
-    val replyTo: ActorRef[R, Unit] = Actor[R](name + "_response")((response, _) => promise.success(response))
-    this send message(replyTo)
+      val replyTo: ActorRef[R, Unit] = Actor[R](name + "_response")((response, _) => promise.success(response))
+      this send message(replyTo)
 
-    bag fromPromise promise
-  }
+      bag fromPromise promise
+    }
 
   override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[X]): Actor.Task[R, X] = {
     val promise = Promise[R]()
@@ -559,36 +560,54 @@ class Actor[-T, S](val name: String,
       }
     }
 
+  private def receiveAllInFuture(retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler): Future[Unit] =
+    if (busy.compareAndSet(false, true))
+      Future(receive(Int.MaxValue))
+    else
+      scheduler(retryOnBusyDelay)(receiveAllInFuture(retryOnBusyDelay))
+
+  /**
+   * Forces the Actor to process all queued messages.
+   *
+   * @param retryOnBusyDelay delay to use if the actor is currently busy processing messages in another thread.
+   */
+  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
+                                                                bag: Bag.Async[BAG]): BAG[Unit] =
+    bag.suspend(bag.fromFuture(receiveAllInFuture(retryOnBusyDelay)))
+
   private def receive(overflow: Int): Unit = {
     var processedWeight = 0
     var break = false
     try
       while (!break && processedWeight < overflow) {
-        val (message, messageWeight) = queue.poll()
-        if (message == null)
+        val messageAndWeight = queue.poll()
+        if (messageAndWeight == null) {
           break = true
-        else if (terminated)
-          try //apply recovery if actor is terminated.
-            recovery foreach {
-              f =>
-                f(message, IO.Right(Actor.Error.TerminatedActor), self)
-            }
-          finally {
-            processedWeight += messageWeight
-          }
-        else // else if the actor is not terminated, process the message.
-          try
-            execution(message, self)
-          catch {
-            case throwable: Throwable =>
-              //apply recovery if failed to process messages.
+        } else {
+          val (message, messageWeight) = messageAndWeight
+
+          if (terminated)
+            try //apply recovery if actor is terminated.
               recovery foreach {
                 f =>
-                  f(message, IO.Left(throwable), self)
+                  f(message, IO.Right(Actor.Error.TerminatedActor), self)
               }
-          } finally {
-            processedWeight += messageWeight
-          }
+            finally
+              processedWeight += messageWeight
+          else // else if the actor is not terminated, process the message.
+            try
+              execution(message, self)
+            catch {
+              case throwable: Throwable =>
+                //apply recovery if failed to process messages.
+                recovery foreach {
+                  f =>
+                    f(message, IO.Left(throwable), self)
+                }
+            } finally {
+              processedWeight += messageWeight
+            }
+        }
       }
     finally {
       weight updateAndGet {
@@ -602,13 +621,6 @@ class Actor[-T, S](val name: String,
       wakeUp(currentStashed = totalWeight)
     }
   }
-
-  override def terminateAndRecover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
-    recover[M, E] {
-      case (message, error, actor) =>
-        actor.terminate()
-        f(message, error, actor)
-    }
 
   override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
     new Actor[T, S](
@@ -650,6 +662,24 @@ class Actor[-T, S](val name: String,
 
   def isTerminated: Boolean =
     terminated
+
+  /**
+   * Terminates the Actor and applies [[recover]] function to all queued messages.
+   *
+   * If [[recover]] function  is not specified then all queues messages are cleared.
+   */
+  def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
+                                                                    bag: Bag.Async[BAG]): BAG[Unit] =
+    bag.suspend {
+      terminate()
+      if (recovery.isDefined) {
+        receiveAllForce(retryOnBusyDelay)
+      } else {
+        logger.error(s"terminateAndRecover invoked on Actor($name) with no recovery defined. Messages cleared.")
+        clear()
+        bag.unit
+      }
+    }
 
   override def terminateAndClear(): Unit = {
     terminate()
