@@ -33,8 +33,9 @@ import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, BufferCleaner, Effect}
+import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
@@ -104,7 +105,7 @@ private[core] object Level extends LazyLogging {
                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                               blockCache: Option[BlockCache.State],
                                               fileSweeper: FileSweeper.Enabled,
-                                              bufferCleaner: BufferCleaner): IO[swaydb.Error.Level, Level] = {
+                                              bufferCleaner: ByteBufferSweeperActor): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -358,7 +359,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                               val fileSweeper: FileSweeper.Enabled,
-                                                              val bufferCleaner: BufferCleaner,
+                                                              val bufferCleaner: ByteBufferSweeperActor,
                                                               val blockCache: Option[BlockCache.State],
                                                               val segmentIDGenerator: IDGenerator,
                                                               val segmentIO: SegmentIO,

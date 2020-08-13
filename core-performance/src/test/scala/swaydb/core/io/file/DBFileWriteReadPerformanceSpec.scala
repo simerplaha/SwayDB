@@ -32,6 +32,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator, Bytes}
 import swaydb.core.{TestBase, TestSweeper}
@@ -45,7 +46,7 @@ import scala.util.Random
 class DBFileWriteReadPerformanceSpec extends TestBase {
 
   implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
-  implicit val bufferCleaner: BufferCleaner = TestSweeper.bufferCleaner
+  implicit val bufferCleaner: ByteBufferSweeperActor  = TestSweeper.bufferCleaner
   implicit val memorySweeper = TestSweeper.memorySweeperMax
 
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache

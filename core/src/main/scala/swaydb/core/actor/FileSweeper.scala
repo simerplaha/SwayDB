@@ -160,7 +160,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
 
     new FileSweeper.Enabled {
 
-      def ec = actorConfig.ec
+      override def ec = actorConfig.ec
 
       override def close(file: FileSweeperItem): Unit =
         actor() send Action.Close(new WeakReference[FileSweeperItem](file))

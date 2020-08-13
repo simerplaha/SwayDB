@@ -17,228 +17,138 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
 package swaydb.core.io.file
 
-import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
 import java.nio.file.{AccessDeniedException, Path}
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
-import swaydb.core.io.file.BufferCleaner.{Command, State}
+import swaydb._
+import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.core.io.file.ByteBufferCleaners.Cleaner
 import swaydb.core.util.Counter
 import swaydb.core.util.FiniteDurations._
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb._
-import swaydb.core.cache.{Lazy, LazyValue}
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.duration._
 
-private[core] object Cleaner {
-  def apply(handle: MethodHandle): Cleaner =
-    new Cleaner(handle)
-}
-
-private[core] class Cleaner(handle: MethodHandle) {
-  def clean(byteBuffer: ByteBuffer): Unit =
-    handle.invoke(byteBuffer)
-}
 
 private[core] object BufferCleaner extends LazyLogging {
 
-  /**
-   * [[BufferCleaner.actor]]'s commands.
-   */
-  private sealed trait Command
+  type ByteBufferSweeperActor = CacheNoIO[Unit, ActorRef[Command, State]]
 
-  private object Command {
+  implicit class ByteBufferSweeperActorImplicits(cache: ByteBufferSweeperActor) {
+    @inline def actor: ActorRef[Command, State] =
+      cache.value(())
+  }
+
+  /**
+   * Actor commands.
+   */
+  sealed trait Command
+
+  object Command {
     sealed trait FileCommand extends Command {
       def filePath: Path
     }
 
-    //cleans memory-mapped byte buffer
-    case class Clean(buffer: MappedByteBuffer, filePath: Path, isOverdue: Boolean) extends FileCommand
+    /**
+     * Cleans memory-mapped byte buffer.
+     */
+    case class Clean(buffer: MappedByteBuffer,
+                     filePath: Path,
+                     isOverdue: Boolean = false) extends FileCommand
 
     sealed trait DeleteCommand extends FileCommand {
       def deleteTries: Int
 
       def copyWithDeleteTries(deleteTries: Int): Command
     }
-    //delete the file.
-    case class DeleteFile(filePath: Path, deleteTries: Int) extends DeleteCommand {
+
+    /**
+     * Deletes a file.
+     */
+    case class DeleteFile(filePath: Path,
+                          deleteTries: Int = 0) extends DeleteCommand {
       override def copyWithDeleteTries(deleteTries: Int): Command =
         copy(deleteTries = deleteTries)
     }
 
-    //deletes the folder ensuring that file is cleaned first.
-    case class DeleteFolder(folderPath: Path, filePath: Path, deleteTries: Int) extends DeleteCommand {
+    /**
+     * Deletes the folder ensuring that file is cleaned first.
+     */
+    case class DeleteFolder(folderPath: Path, filePath: Path, deleteTries: Int = 0) extends DeleteCommand {
       override def copyWithDeleteTries(deleteTries: Int): Command =
         copy(deleteTries = deleteTries)
     }
 
-    //deletes the folder ensure the file
-    case class GetState(replyTo: ActorRef[State, _]) extends Command
+    /**
+     * Checks if the file is cleaned.
+     */
+    case class IsClean[T](filePath: Path)(val replyTo: ActorRef[Boolean, T]) extends Command
+
+    /**
+     * Checks if all files are cleaned
+     */
+    case class IsAllClean[T](replyTo: ActorRef[Boolean, T]) extends Command
+
+
+    object IsTerminatedAndCleaned {
+      def apply[T](replyTo: ActorRef[Boolean, T]): IsTerminatedAndCleaned[T] = new IsTerminatedAndCleaned(resubmitted = false)(replyTo)
+    }
+
+    /**
+     * Checks if the actor is terminated and has executed all [[Command.Clean]] requests. This is does not check if the
+     * files are deleted because [[Command.DeleteCommand]]s are just executed and not monitored.
+     *
+     * @note The Actor should be terminated and [[Actor.receiveAllForce()]] or [[Actor.receiveAllBlocking()]] should be
+     *       invoked for this to return true otherwise the response is always false.
+     */
+    case class IsTerminatedAndCleaned[T] private(resubmitted: Boolean)(val replyTo: ActorRef[Boolean, T]) extends Command
   }
 
   /**
-   * [[BufferCleaner.actor]]'s internal state.
+   * Actors internal state.
    *
-   * @param cleaner initialised unsafe memory-mapped cleaner
+   * @param cleaner      memory-map file cleaner.
+   * @param pendingClean pending [[Command.Clean]] requests.
    */
   case class State(var cleaner: Option[Cleaner],
-                   pendingClean: mutable.HashMap[Path, Counter.IntCounter])
-
-  private def java9Cleaner(): MethodHandle = {
-    val unsafeClass = Class.forName("sun.misc.Unsafe")
-    val theUnsafe = unsafeClass.getDeclaredField("theUnsafe")
-    theUnsafe.setAccessible(true)
-
-    MethodHandles
-      .lookup
-      .findVirtual(unsafeClass, "invokeCleaner", MethodType.methodType(classOf[Unit], classOf[ByteBuffer]))
-      .bindTo(theUnsafe.get(null))
-  }
-
-  def apply(actorInterval: FiniteDuration = 5.seconds,
-            actorStashCapacity: Int = 20,
-            maxDeleteRetries: Int = 5,
-            messageReschedule: FiniteDuration = 5.seconds)(implicit scheduler: Scheduler): BufferCleaner =
-    new BufferCleaner(
-      actorInterval = actorInterval,
-      actorStashCapacity = actorStashCapacity,
-      maxDeleteRetries = maxDeleteRetries,
-      messageReschedule = messageReschedule
-    )(scheduler)
-
-  private def java8Cleaner(): MethodHandle = {
-    val directByteBuffer = Class.forName("java.nio.DirectByteBuffer")
-    val cleanerMethod = directByteBuffer.getDeclaredMethod("cleaner")
-    cleanerMethod.setAccessible(true)
-    val cleaner = MethodHandles.lookup.unreflect(cleanerMethod)
-
-    val cleanerClass = Class.forName("sun.misc.Cleaner")
-    val cleanMethod = cleanerClass.getDeclaredMethod("clean")
-    cleanerMethod.setAccessible(true)
-    val clean = MethodHandles.lookup.unreflect(cleanMethod)
-    val cleanDroppedArgument = MethodHandles.dropArguments(clean, 1, directByteBuffer)
-
-    MethodHandles.foldArguments(cleanDroppedArgument, cleaner)
-  }
-
-  private[file] def initialiseCleaner(state: State, buffer: MappedByteBuffer, path: Path): IO[swaydb.Error.IO, State] =
-    IO {
-      val cleaner = java9Cleaner()
-      cleaner.invoke(buffer)
-      state.cleaner = Some(Cleaner(cleaner))
-      logger.info("Initialised Java 9 ByteBuffer cleaner.")
-      state
-    } orElse {
-      IO {
-        val cleaner = java8Cleaner()
-        cleaner.invoke(buffer)
-        state.cleaner = Some(Cleaner(cleaner))
-        logger.info("Initialised Java 8 ByteBuffer cleaner.")
-        state
-      }
-    } onLeftSideEffect {
-      error =>
-        val errorMessage = s"ByteBuffer cleaner not initialised. Failed to clean MMAP file: ${path.toString}."
-        val exception = error.exception
-        logger.error(errorMessage, exception)
-        throw new Exception(errorMessage, exception) //also throw to output to stdout in-case logging is not enabled since this is critical.
-    }
-
-  /**
-   * Mutates the state after cleaner is initialised.
-   */
-  private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[swaydb.Error.IO, State] =
-    state.cleaner match {
-      case Some(cleaner) =>
-        IO {
-          cleaner.clean(buffer)
-          state
-        } onLeftSideEffect {
-          error =>
-            val errorMessage = s"Failed to clean MappedByteBuffer at path '${path.toString}'."
-            val exception = error.exception
-            logger.error(errorMessage, exception)
-            throw IO.throwable(errorMessage, exception) //also throw to output to stdout in-case logging is not enabled since this is critical.
-        }
-
-      case None =>
-        initialiseCleaner(state, buffer, path)
-    }
-
-  def clean(buffer: MappedByteBuffer, path: Path)(implicit cleaner: BufferCleaner): Unit =
-    cleaner.actor.send(Command.Clean(buffer = buffer, filePath = path, isOverdue = false))
-
-  /**
-   * Sends [[Command.DeleteFile]] command to the actor.
-   */
-  def deleteFile(path: Path)(implicit cleaner: BufferCleaner): Unit = {
-    val command =
-      Command.DeleteFile(
-        filePath = path,
-        deleteTries = 0
-      )
-
-    cleaner.actor.send(command)
-  }
-
-  /**
-   * Send [[Command.DeleteFolder]] command to the actor.
-   */
-  def deleteFolder(folderPath: Path, filePath: Path)(implicit cleaner: BufferCleaner): Unit = {
-    val command =
-      Command.DeleteFolder(
-        folderPath = folderPath,
-        filePath = filePath,
-        deleteTries = 0
-      )
-
-    cleaner.actor.send(command)
-  }
-
-  def getState[T](replyTo: ActorRef[State, T])(implicit cleaner: BufferCleaner): Unit =
-    cleaner.actor send Command.GetState(replyTo)
-
-  def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG],
-                                                                    scheduler: Scheduler,
-                                                                    cleaner: BufferCleaner): BAG[Unit] =
-    cleaner.actor.terminateAndRecover(retryOnBusyDelay)
+                   pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]])
 
   /**
    * Maintains the count of all delete request for each memory-mapped file.
    */
-  def recordCleanRequest(path: Path, pendingClean: mutable.HashMap[Path, Counter.IntCounter]): Int =
-    pendingClean.get(path) match {
-      case Some(value) =>
-        value.incrementAndGet()
+  private[file] def recordCleanRequest(command: Command.Clean, pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]]): Int =
+    pendingClean.get(command.filePath) match {
+      case Some(request) =>
+        request.counter.incrementAndGet()
 
       case None =>
-        val integer = Counter.forInt(1)
-        pendingClean.put(path, integer)
-        integer.get()
+        val request = Counter.Request(item = command, start = 1)
+        pendingClean.put(command.filePath, request)
+        request.counter.get()
     }
 
   /**
-   * Updates current records for the file.
-   * If all
+   * Updates current clean count for the file.
    */
-  def recordCleanSuccessful(path: Path, pendingClean: mutable.HashMap[Path, Counter.IntCounter]): Int =
+  private[file] def recordCleanSuccessful(path: Path, pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]]): Int =
     pendingClean.get(path) match {
-      case Some(counter) =>
-        if (counter.get() <= 1) {
+      case Some(request) =>
+        if (request.counter.get() <= 1) {
           pendingClean.remove(path)
           0
         } else {
-          counter.decrementAndGet()
+          request.counter.decrementAndGet()
         }
 
       case None =>
@@ -250,22 +160,54 @@ private[core] object BufferCleaner extends LazyLogging {
    *
    * @return true only if there are no pending clean request for the file.
    */
-  def validateDeleteRequest(path: Path, state: State): Boolean =
-    state.pendingClean.get(path).forall(_.get() <= 0)
+  private def isReadyToDelete(path: Path, state: State): Boolean =
+    state.pendingClean.get(path).forall(_.counter.get() <= 0)
+
+  /**
+   * Sets the cleaner in state after it's successfully applied the clean
+   * to the input buffer.
+   */
+  private[file] def initCleanerAndPerformClean(state: State,
+                                               buffer: MappedByteBuffer,
+                                               path: Path): IO[swaydb.Error.IO, State] =
+    state.cleaner match {
+      case Some(cleaner) =>
+        IO {
+          cleaner.clean(buffer)
+          BufferCleaner.recordCleanSuccessful(path, state.pendingClean)
+          state
+        } onLeftSideEffect {
+          error =>
+            val errorMessage = s"Failed to clean MappedByteBuffer at path '${path.toString}'."
+            val exception = error.exception
+            logger.error(errorMessage, exception)
+            throw IO.throwable(errorMessage, exception) //also throw to output to stdout in-case logging is not enabled since this is critical.
+        }
+
+      case None =>
+        ByteBufferCleaners.initialiseCleaner(buffer, path) transform {
+          cleaner =>
+            state.cleaner = Some(cleaner)
+            BufferCleaner.recordCleanSuccessful(path, state.pendingClean)
+            state
+        }
+    }
 
   /**
    * Cleans or prepares for cleaning the [[ByteBuffer]].
    *
-   * Used from within the Actor.
+   * @param isOverdue         overwrites isOverdue in [[Command.Clean]]. Used to perfrom clean immediately.
+   * @param command           clean command
+   * @param messageReschedule reschedule if clean is not overdue.
    */
-  private def performClean(command: Command.Clean,
+  private def performClean(isOverdue: Boolean,
+                           command: Command.Clean,
                            self: Actor[Command, State],
                            messageReschedule: FiniteDuration)(implicit scheduler: Scheduler): Unit =
-    if (command.isOverdue) {
-      BufferCleaner.clean(self.state, command.buffer, command.filePath)
-      BufferCleaner.recordCleanSuccessful(command.filePath, self.state.pendingClean)
+    if (isOverdue || command.isOverdue || messageReschedule.fromNow.isOverdue()) {
+      BufferCleaner.initCleanerAndPerformClean(self.state, command.buffer, command.filePath)
     } else {
-      BufferCleaner.recordCleanRequest(command.filePath, self.state.pendingClean)
+      BufferCleaner.recordCleanRequest(command, self.state.pendingClean)
       self.send(command.copy(isOverdue = true), messageReschedule)
     }
 
@@ -274,11 +216,12 @@ private[core] object BufferCleaner extends LazyLogging {
    *
    * If there are pending cleans then the delete is postponed until the clean is successful.
    */
+  @tailrec
   private def performDelete(command: Command.DeleteCommand,
                             self: Actor[Command, State],
                             maxDeleteRetries: Int,
                             messageReschedule: FiniteDuration)(implicit scheduler: Scheduler): Unit =
-    if (validateDeleteRequest(command.filePath, self.state))
+    if (isReadyToDelete(command.filePath, self.state))
       try
         command match {
           case command: Command.DeleteFile =>
@@ -292,7 +235,7 @@ private[core] object BufferCleaner extends LazyLogging {
           //For Windows - this exception handling is backup process for handling deleting memory-mapped files
           //for windows and is not really required because State's pendingClean should already
           //handle this and not allow deletes if there are pending clean requests.
-          logger.info(s"Scheduling delete retry after ${messageReschedule.asString}. Unable to delete file ${command.filePath}. Retried ${command.deleteTries} times", exception)
+          logger.debug(s"Scheduling delete retry after ${messageReschedule.asString}. Unable to delete file ${command.filePath}. Retried ${command.deleteTries} times", exception)
           //if it results in access denied then try schedule for another delete.
           //This can occur on windows if delete was performed before the mapped
           //byte buffer is cleaned.
@@ -304,81 +247,57 @@ private[core] object BufferCleaner extends LazyLogging {
         case exception: Throwable =>
           logger.error(s"Unable to delete file ${command.filePath}. Retries ${command.deleteTries}", exception)
       }
+    else if (messageReschedule.fromNow.isOverdue())
+      performDelete(command, self, maxDeleteRetries, messageReschedule)
     else
       self.send(command, messageReschedule)
 
   /**
-   * Deletes without rescheduling. On failure delete is ignored.
-   *
-   * @return true if delete has been handled via execution of rescheduling else returns false.
+   * Checks if the actor is terminated and has executed all [[Command.Clean]] requests. This is does not check if the
+   * files are deleted because [[Command.DeleteCommand]]s are just executed and not monitored.
    */
-  private def performDeleteLazy(command: Command.DeleteCommand,
-                                self: Actor[Command, State])(implicit scheduler: Scheduler): Boolean =
-    if (validateDeleteRequest(command.filePath, self.state))
-      try
-        command match {
-          case command: Command.DeleteFile =>
-            Effect.walkDelete(command.filePath) //try delete the file or folder.
-            true
-
-          case command: Command.DeleteFolder =>
-            Effect.walkDelete(command.folderPath) //try delete the file or folder.
-            true
-        }
-      catch {
-        case exception: Throwable =>
-          //debug because this error message is not really important. If we are unable delete after termination
-          //then the file should just be ignored because it will be deleted on reboot.
-          logger.error(s"Unable to delete file ${command.filePath}. Retries ${command.deleteTries}", exception)
-          false
-      }
+  private def performIsTerminatedAndCleaned(command: Command.IsTerminatedAndCleaned[_],
+                                            self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
+    if (self.isTerminated && self.state.pendingClean.isEmpty)
+      command.replyTo send true
+    else if (command.resubmitted) //already double checked.
+      command.replyTo send false
     else
-      false //cannot delete because there are pending cleans.
-}
+      self send command.copy(resubmitted = true)(command.replyTo) //resubmit so that if Actor's receiveAll is in progress then this message goes last.
 
-/**
- * Cleans and deletes in-memory [[ByteBuffer]] and persistent files backing the [[ByteBuffer]].
- *
- * This [[Actor]] is optionally started if the database instances is booted with memory-mapped enabled.
- *
- * @param actorInterval      Interval for the timer Actor.
- * @param actorStashCapacity Max number of [[ByteBuffer]] to keep permanently in-memory.
- * @param maxDeleteRetries   If a [[Command.DeleteFile]] command is submitting but the file is not cleaned
- *                           yet [[maxDeleteRetries]] defines the max number of retries before the file
- *                           is un-deletable.
- * @param messageReschedule  reschedule delay for [[maxDeleteRetries]]
- * @param scheduler          used for rescheduling messages.
- */
-private[core] class BufferCleaner(val actorInterval: FiniteDuration,
-                                  val actorStashCapacity: Int,
-                                  val maxDeleteRetries: Int,
-                                  val messageReschedule: FiniteDuration)(implicit scheduler: Scheduler) extends LazyLogging {
-  logger.info("Starting memory-mapped files cleaner.")
+  def apply(actorInterval: FiniteDuration = 5.seconds,
+            actorStashCapacity: Int = 20,
+            maxDeleteRetries: Int = 5,
+            messageReschedule: FiniteDuration = 5.seconds)(implicit scheduler: Scheduler,
+                                                           actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ByteBufferSweeperActor =
+    Cache.noIO[Unit, ActorRef[Command, State]](synchronised = true, stored = true, initial = None) {
+      (_, _) =>
+        logger.info("Starting ByteBuffer cleaner for memory-mapped files.")
+        createActor(
+          actorInterval = actorInterval,
+          actorStashCapacity = actorStashCapacity,
+          maxDeleteRetries = maxDeleteRetries,
+          messageReschedule = messageReschedule
+        )
+    }
 
-  implicit private val actorQueueOrder = QueueOrder.FIFO
-
-  private val lazyActor: LazyValue[ActorRef[Command, State]] =
-    Lazy.value(
-      synchronised = true,
-      stored = true,
-      initial = None
-    )
-
-  private def createActor(): ActorRef[Command, State] =
-    Actor.timer[Command, State](
-      name = classOf[BufferCleaner].getSimpleName + " Actor",
-      state = State(None, new mutable.HashMap[Path, Counter.IntCounter]()),
-      stashCapacity = actorStashCapacity,
-      interval = actorInterval
-    ) {
-      case (command: Command.Clean, self) =>
+  /**
+   * Actor function
+   */
+  private def process(command: Command,
+                      self: Actor[Command, State],
+                      maxDeleteRetries: Int,
+                      messageReschedule: FiniteDuration)(implicit scheduler: Scheduler) =
+    command match {
+      case command: Command.Clean =>
         BufferCleaner.performClean(
+          isOverdue = self.isTerminated,
           command = command,
           self = self,
           messageReschedule = messageReschedule
         )
 
-      case (command: Command.DeleteCommand, self) =>
+      case command: Command.DeleteCommand =>
         BufferCleaner.performDelete(
           command = command,
           self = self,
@@ -386,58 +305,67 @@ private[core] class BufferCleaner(val actorInterval: FiniteDuration,
           messageReschedule = messageReschedule
         )
 
-      case (command: Command.GetState, self) =>
-        command.replyTo send self.state
+      case command: Command.IsClean[_] =>
+        command.replyTo send isReadyToDelete(command.filePath, self.state)
 
-    } recoverException[Command] {
-      case (message, error, self) =>
-        error match {
-          case IO.Right(Actor.Error.TerminatedActor) =>
-            message match {
-              case command: Command.Clean =>
-                BufferCleaner.clean(self.state, command.buffer, command.filePath)
+      case command: Command.IsAllClean[_] =>
+        command.replyTo send self.state.pendingClean.isEmpty
 
-              case command: Command.DeleteCommand =>
-                //This is for windows.
-                //Delete if possible otherwise ignore deleting this file. Clean is important
-                //so that db.delete can perform root delete. If db.delete was not executed
-                //then this file will deleted on database reboot.
-                BufferCleaner.performDeleteLazy(command = command, self = self)
-
-              case command: Command.GetState =>
-                command.replyTo send self.state
-            }
-
-          case IO.Left(exception) =>
-            val pathInfo =
-              message match {
-                case _: Command.GetState =>
-                  ""
-
-                case command: Command.FileCommand =>
-                  s"""Path: ${command.filePath}."""
-              }
-
-            logger.error(s"Failed to process message ${message.getClass.getSimpleName}. $pathInfo", exception)
-        }
+      case command: Command.IsTerminatedAndCleaned[_] =>
+        BufferCleaner.performIsTerminatedAndCleaned(command, self)
     }
 
-  private def actor: ActorRef[Command, State] =
-    lazyActor.getOrSet(createActor())
+  /**
+   * Cleans and deletes in-memory [[ByteBuffer]] and persistent files backing the [[ByteBuffer]].
+   *
+   * This [[Actor]] is optionally started if the database instances is booted with memory-mapped enabled.
+   *
+   * @param actorInterval      Interval for the timer Actor.
+   * @param actorStashCapacity Max number of [[ByteBuffer]] to keep permanently in-memory.
+   * @param maxDeleteRetries   If a [[Command.DeleteFile]] command is submitting but the file is not cleaned
+   *                           yet [[maxDeleteRetries]] defines the max number of retries before the file
+   *                           is un-deletable.
+   * @param messageReschedule  reschedule delay for [[maxDeleteRetries]]
+   * @param scheduler          used for rescheduling messages.
+   */
+  private def createActor(actorInterval: FiniteDuration,
+                          actorStashCapacity: Int,
+                          maxDeleteRetries: Int,
+                          messageReschedule: FiniteDuration)(implicit scheduler: Scheduler,
+                                                             actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ActorRef[Command, State] =
+    Actor.timer[Command, State](
+      name = this.getClass.getSimpleName + " Actor",
+      state = State(None, new mutable.HashMap[Path, Counter.Request[Command.Clean]]()),
+      stashCapacity = actorStashCapacity,
+      interval = actorInterval
+    ) {
+      (command, self) =>
+        process(
+          command = command,
+          self = self,
+          maxDeleteRetries = maxDeleteRetries,
+          messageReschedule = messageReschedule
+        )
 
-  def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG],
-                                                                    scheduler: Scheduler): BAG[Unit] =
-    if (lazyActor.isDefined)
-      actor.terminateAndRecover(retryOnBusyDelay)
-    else
-      bag.unit
+    } recoverException[Command] {
+      case (command, IO.Right(Actor.Error.TerminatedActor), self) =>
+        process(
+          command = command,
+          self = self,
+          maxDeleteRetries = maxDeleteRetries,
+          messageReschedule = messageReschedule
+        )
 
-  def messageCount: Int =
-    if (lazyActor.isDefined)
-      actor.messageCount
-    else
-      0
+      case (message, IO.Left(exception), _) =>
+        val pathInfo =
+          message match {
+            case command: Command.FileCommand =>
+              s"""Path: ${command.filePath}."""
 
-  def isTerminated: Boolean =
-    lazyActor.isEmpty || actor.isTerminated
+            case _ =>
+              ""
+          }
+
+        logger.error(s"Failed to process message ${message.getClass.getSimpleName}. $pathInfo", exception)
+    }
 }

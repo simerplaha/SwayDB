@@ -34,6 +34,7 @@ protected sealed trait ActorQueue[T] {
   def peek(): T
   def clear(): Unit
   def size: Int
+  def isEmpty: Boolean
 }
 
 protected object ActorQueue {
@@ -60,6 +61,9 @@ protected object ActorQueue {
 
           def size: Int =
             queue.size
+
+          override def isEmpty: Boolean =
+            queue.isEmpty
         }
 
       case ordered: QueueOrder.Ordered[T] =>
@@ -80,6 +84,9 @@ protected object ActorQueue {
 
           def size: Int =
             skipList.size
+
+          override def isEmpty: Boolean =
+            skipList.isEmpty
         }
     }
 }

@@ -39,6 +39,7 @@ import swaydb.core.cache.Cache
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
@@ -99,7 +100,7 @@ object TestData {
                                                            ec: ExecutionContext,
                                                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                            fileSweeper: FileSweeper.Enabled = fileSweeper,
-                                                           bufferCleaner: BufferCleaner = bufferCleaner,
+                                                           bufferCleaner: ByteBufferSweeperActor = bufferCleaner,
                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                            blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
                                                            segmentIO: SegmentIO = SegmentIO.random) {
@@ -258,7 +259,7 @@ object TestData {
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                   fileSweeper: FileSweeper.Enabled = fileSweeper,
-                                                                  bufferCleaner: BufferCleaner = bufferCleaner,
+                                                                  bufferCleaner: ByteBufferSweeperActor = bufferCleaner,
                                                                   blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): IO[swaydb.Error.Level, Level] =
       level.releaseLocks flatMap {
         _ =>
@@ -295,7 +296,7 @@ object TestData {
     def reopen(mapSize: Long = level.maps.map.size)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                     fileSweeper: FileSweeper.Enabled = fileSweeper,
-                                                    bufferCleaner: BufferCleaner = bufferCleaner): LevelZero = {
+                                                    bufferCleaner: ByteBufferSweeperActor = bufferCleaner): LevelZero = {
       val reopened =
         level.releaseLocks flatMap {
           _ =>
@@ -1772,7 +1773,7 @@ object TestData {
           binarySearchIndexConfig = binarySearchIndexConfig,
           sortedIndexConfig = sortedIndexConfig,
           valuesConfig = valuesConfig,
-          segmentConfig = segmentConfig.copy(Int.MaxValue)
+          segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
         )
 
       segments should have size 1

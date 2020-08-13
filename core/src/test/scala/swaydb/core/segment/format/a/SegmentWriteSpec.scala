@@ -35,6 +35,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{BlockCache, BufferCleaner, Effect}
 import swaydb.core.level.PathsDistributor
@@ -97,7 +98,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   //  override def deleteFiles = false
 
   implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
-  implicit val bufferCleaner: BufferCleaner = TestSweeper.bufferCleaner
+  implicit val bufferCleaner: ByteBufferSweeperActor  = TestSweeper.bufferCleaner
 
   "Segment" should {
 
@@ -497,16 +498,28 @@ sealed trait SegmentWriteSpec extends TestBase {
       if (memory) {
         //memory Segments do not value re-initialised
       } else {
+        //memory-mapped files on windows get submitted to ByteBufferCleaner.
+        implicit val bufferCleaner = BufferCleaner(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
+        bufferCleaner.actor
+
+        //create a segment and delete it
         val segment = TestSegment()
         segment.delete
 
-        IO(segment.asInstanceOf[PersistentSegment].tryReopen).left.right.value.exception shouldBe a[NoSuchFileException]
+        eventual(20.seconds) {
+          IO(segment.asInstanceOf[PersistentSegment].tryReopen).left.right.value.exception shouldBe a[NoSuchFileException]
+        }
+
+        bufferCleaner.actor.terminate()
       }
     }
   }
 
   "deleteSegments" should {
     "delete multiple segments" in {
+      implicit val bufferCleaner = BufferCleaner(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
+      bufferCleaner.actor
+
       val segment1 = TestSegment(randomizedKeyValues(keyValuesCount))
       val segment2 = TestSegment(randomizedKeyValues(keyValuesCount))
       val segment3 = TestSegment(randomizedKeyValues(keyValuesCount))
@@ -514,18 +527,22 @@ sealed trait SegmentWriteSpec extends TestBase {
       val deleted = Segment.deleteSegments(Seq(segment1, segment2, segment3))
       deleted shouldBe 3
 
-      //files should be closed
-      segment1.isOpen shouldBe false
-      segment2.isOpen shouldBe false
-      segment3.isOpen shouldBe false
+      eventual(10.seconds) {
+        //files should be closed
+        segment1.isOpen shouldBe false
+        segment2.isOpen shouldBe false
+        segment3.isOpen shouldBe false
 
-      segment1.isFileDefined shouldBe false
-      segment2.isFileDefined shouldBe false
-      segment3.isFileDefined shouldBe false
+        segment1.isFileDefined shouldBe false
+        segment2.isFileDefined shouldBe false
+        segment3.isFileDefined shouldBe false
 
-      segment1.existsOnDisk shouldBe false
-      segment2.existsOnDisk shouldBe false
-      segment3.existsOnDisk shouldBe false
+        segment1.existsOnDisk shouldBe false
+        segment2.existsOnDisk shouldBe false
+        segment3.existsOnDisk shouldBe false
+      }
+
+      bufferCleaner.actor.terminate()
     }
   }
 
@@ -569,6 +586,9 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "fail read and write operations on a Segment that does not exists" in {
+      implicit val bufferCleaner = BufferCleaner(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
+      bufferCleaner.actor
+
       val keyValues = randomizedKeyValues(keyValuesCount)
 
       val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
@@ -590,10 +610,14 @@ sealed trait SegmentWriteSpec extends TestBase {
         )
 
       segment.delete
-      segment.isOpen shouldBe false
-      segment.isFileDefined shouldBe false
 
-      segment.existsOnDisk shouldBe false
+      //segment eventually gets deleted
+      eventual(5.seconds) {
+        segment.isOpen shouldBe false
+        segment.isFileDefined shouldBe false
+        segment.existsOnDisk shouldBe false
+      }
+
       IO(segment.get(keyValues.head.key, ThreadReadState.random)).left.get.exception shouldBe a[NoSuchFileException]
 
       IO {
@@ -625,6 +649,8 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       segment.isOpen shouldBe false
       segment.isFileDefined shouldBe false
+
+      bufferCleaner.actor.terminate()
     }
 
     "reopen closed channel for read when closed by LimitQueue" in {
@@ -681,6 +707,9 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   "delete" should {
     "close the channel and delete the file" in {
+      implicit val bufferCleaner = BufferCleaner(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
+      bufferCleaner.actor
+
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues)
       assertReads(keyValues, segment) //populate the cache
@@ -689,11 +718,16 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       segment.delete
       segment.cachedKeyValueSize shouldBe keyValues.size //cache is not cleared
-      if (persistent) {
-        segment.isOpen shouldBe false
-        segment.isFooterDefined shouldBe false //on delete in-memory footer is cleared
+
+      eventual(5.seconds) {
+        if (persistent) {
+          segment.isOpen shouldBe false
+          segment.isFooterDefined shouldBe false //on delete in-memory footer is cleared
+        }
+        segment.existsOnDisk shouldBe false
       }
-      segment.existsOnDisk shouldBe false
+
+      bufferCleaner.actor.terminate()
     }
   }
 

@@ -31,6 +31,7 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.CoreShutdown.shutdown
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.level.compaction._
@@ -150,7 +151,7 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val compactionStrategy: Compactor[ThrottleState] =
       ThrottleCompactor
 
-    implicit val bufferCleaner: BufferCleaner =
+    implicit val bufferCleaner: ByteBufferSweeperActor =
       BufferCleaner()(Scheduler()(fileSweeper.ec))
 
     def createLevel(id: Long,

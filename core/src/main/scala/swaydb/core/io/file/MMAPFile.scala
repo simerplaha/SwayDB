@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
@@ -42,7 +43,7 @@ private[file] object MMAPFile {
   def write(path: Path,
             bufferSize: Long,
             blockCacheFileId: Long,
-            deleteOnClean: Boolean)(implicit cleaner: BufferCleaner): MMAPFile =
+            deleteOnClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile =
     MMAPFile(
       path = path,
       channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
@@ -54,7 +55,7 @@ private[file] object MMAPFile {
 
   def read(path: Path,
            blockCacheFileId: Long,
-           deleteOnClean: Boolean)(implicit cleaner: BufferCleaner): MMAPFile = {
+           deleteOnClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
     val channel = FileChannel.open(path, StandardOpenOption.READ)
 
     MMAPFile(
@@ -72,7 +73,7 @@ private[file] object MMAPFile {
                     mode: MapMode,
                     bufferSize: Long,
                     blockCacheFileId: Long,
-                    deleteOnClean: Boolean)(implicit cleaner: BufferCleaner): MMAPFile = {
+                    deleteOnClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
     val buff = channel.map(mode, 0, bufferSize)
     new MMAPFile(
       path = path,
@@ -92,7 +93,7 @@ private[file] class MMAPFile(val path: Path,
                              bufferSize: Long,
                              val blockCacheFileId: Long,
                              val deleteOnClean: Boolean,
-                             @volatile private var buffer: MappedByteBuffer)(implicit cleaner: BufferCleaner) extends LazyLogging with DBFileType {
+                             @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor) extends LazyLogging with DBFileType {
 
   private val open = new AtomicBoolean(true)
 
@@ -143,7 +144,7 @@ private[file] class MMAPFile(val path: Path,
       //the resulting NullPointerException will re-route request to the new Segment.
       //TO-DO: Use Option here instead. Test using Option does not have read performance impact.
       buffer = null
-      BufferCleaner.clean(swapBuffer, path)
+      cleaner.actor send BufferCleaner.Command.Clean(swapBuffer, path)
     }
 
   override def append(slice: Iterable[Slice[Byte]]): Unit =
@@ -209,7 +210,7 @@ private[file] class MMAPFile(val path: Path,
     watchNullPointer {
       close()
       if (deleteOnClean)
-        BufferCleaner.deleteFile(path)
+        cleaner.actor send BufferCleaner.Command.DeleteFile(path)
       else
         Effect.delete(path)
     }

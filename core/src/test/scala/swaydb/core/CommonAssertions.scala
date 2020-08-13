@@ -38,11 +38,12 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
-import swaydb.core.io.file.Effect
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.{BufferCleaner, Effect}
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
-import swaydb.core.map.MapEntry
+import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.merge._
 import swaydb.core.segment.KeyMatcher.Result
@@ -58,7 +59,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.segment.{KeyMatcher, Segment, SegmentIO, SegmentOption, SegmentSearcher, ThreadReadState}
-import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
+import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption}
@@ -1765,4 +1766,17 @@ object CommonAssertions {
             other == Result.BehindFetchNext
         }
     }
+
+  implicit class MapsImplicit[OK, OV, K <: OK, V <: OV](maps: Maps[OK, OV, K, V]) {
+    /**
+     * Manages closing of Map accouting for Windows where
+     * Memory-mapped files require in-memory ByteBuffer be cleared.
+     */
+    def ensureClose(): Unit = {
+      maps.close.value
+      maps.bufferCleaner.actor.receiveAllBlocking(Int.MaxValue).get
+      (maps.bufferCleaner.actor ask BufferCleaner.Command.IsTerminatedAndCleaned[Unit]).await(10.seconds)
+    }
+  }
 }
+

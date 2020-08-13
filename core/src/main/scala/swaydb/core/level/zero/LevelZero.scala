@@ -34,7 +34,8 @@ import swaydb.core.data.KeyValue.{Put, PutOption}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BufferCleaner, Effect}
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.Effect
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
@@ -65,7 +66,7 @@ private[core] object LevelZero extends LazyLogging {
             acceleration: LevelZeroMeter => Accelerator,
             throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                        bufferCleaner: BufferCleaner,
+                                                        bufferCleaner: ByteBufferSweeperActor,
                                                         functionStore: FunctionStore): IO[swaydb.Error.Level, LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
@@ -230,7 +231,7 @@ private[swaydb] case class LevelZero(path: Path,
     else if (toKey.isEmpty)
       throw new IllegalArgumentException("toKey cannot be empty.")
     else if (fromKey > toKey) //fromKey cannot also be equal to toKey. The invoking this assert should also check for equality and call update on single key-value.
-    throw new IllegalArgumentException("fromKey should be less than toKey.")
+      throw new IllegalArgumentException("fromKey should be less than toKey.")
 
   def put(key: Slice[Byte]): OK = {
     validateInput(key)

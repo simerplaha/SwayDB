@@ -61,6 +61,8 @@ sealed trait ActorRef[-T, S] { self =>
 
   def messageCount: Int
 
+  def isEmpty: Boolean
+
   def hasMessages: Boolean =
     totalWeight > 0
 
@@ -75,6 +77,8 @@ sealed trait ActorRef[-T, S] { self =>
   def receiveAllBlocking(retryCounts: Int): Try[Unit]
 
   def terminate(): Unit
+
+  def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S]
 
   def isTerminated: Boolean
 
@@ -475,7 +479,8 @@ class Actor[-T, S](val name: String,
       bag fromPromise promise
     }
 
-  override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[X]): Actor.Task[R, X] = {
+  override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler,
+                                                                                    bag: Bag.Async[X]): Actor.Task[R, X] = {
     val promise = Promise[R]()
 
     implicit val queueOrder = QueueOrder.FIFO
@@ -597,14 +602,14 @@ class Actor[-T, S](val name: String,
       Failure(new Exception(s"Retries timeout. Retries: $retires. maxRetries: $maxRetries"))
     else if (busy.compareAndSet(false, true))
       Try(receive(Int.MaxValue, wakeUpOnComplete = false)) match {
-        case Success(_) =>
+        case success @ Success(_) =>
           if (messageCount <= 0)
-            Success()
+            success
           else
             receiveAllBlocking(0, maxRetries)
 
-        case Failure(exception) =>
-          Failure(exception)
+        case failure @ Failure(_) =>
+          failure
       }
     else
       receiveAllBlocking(retires + 1, maxRetries)
@@ -691,15 +696,6 @@ class Actor[-T, S](val name: String,
         }
     )
 
-  override def clear(): Unit =
-    queue.clear()
-
-  override def terminate(): Unit =
-    terminated = true
-
-  def isTerminated: Boolean =
-    terminated
-
   /**
    * Terminates the Actor and applies [[recover]] function to all queued messages.
    *
@@ -722,4 +718,21 @@ class Actor[-T, S](val name: String,
     terminate()
     clear()
   }
+
+  override def clear(): Unit =
+    queue.clear()
+
+  override def terminate(): Unit =
+    terminated = true
+
+  def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): Actor[T, S] = {
+    scheduler.task(timeout)(this.terminate())
+    this
+  }
+
+  def isTerminated: Boolean =
+    terminated
+
+  override def isEmpty: Boolean =
+    queue.isEmpty
 }

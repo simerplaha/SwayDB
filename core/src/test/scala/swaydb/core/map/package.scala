@@ -25,10 +25,12 @@
 package swaydb.core
 
 import swaydb.IOValues._
+import swaydb.core.RunThis._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.BufferCleaner
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -36,6 +38,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
 package object map {
@@ -46,7 +49,7 @@ package object map {
                timeOrder: TimeOrder[Slice[Byte]],
                functionStore: FunctionStore,
                fileSweeper: FileSweeper,
-               bufferCleaner: BufferCleaner,
+               bufferCleaner: ByteBufferSweeperActor,
                ec: ExecutionContext,
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory]],
@@ -63,4 +66,18 @@ package object map {
       ).runRandomIO.right.value.item
     }
   }
+
+  implicit class PersistentMapImplicit[OK, OV, K <: OK, V <: OV](map: PersistentMap[OK, OV, K, V]) {
+    /**
+     * Manages closing of Map accouting for Windows where
+     * Memory-mapped files require in-memory ByteBuffer be cleared.
+     */
+    def ensureClose(): Unit = {
+      map.close()
+      map.bufferCleaner.actor.receiveAllBlocking(Int.MaxValue).get
+      val isShut = (map.bufferCleaner.actor ask BufferCleaner.Command.IsTerminatedAndCleaned[Unit]).await(10.seconds)
+      assert(isShut, "Is not shut")
+    }
+  }
+
 }

@@ -52,4 +52,13 @@ object Counter {
       value
   }
 
+  /**
+   * Maintains a count of number of requests for an item.
+   */
+  object Request {
+    def apply[T](item: T, start: Int): Request[T] =
+      new Request(item, Counter.forInt(start))
+  }
+
+  class Request[+T](val item: T, val counter: Counter.IntCounter)
 }

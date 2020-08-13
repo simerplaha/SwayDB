@@ -34,6 +34,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.slice.Slice
@@ -42,7 +43,7 @@ import swaydb.data.util.OperatingSystem
 class DBFileSpec extends TestBase with MockFactory {
 
   implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
-  implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
+  implicit val cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner
   implicit val memorySweeper = TestSweeper.memorySweeper10
 
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache

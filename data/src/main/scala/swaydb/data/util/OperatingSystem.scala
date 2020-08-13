@@ -57,6 +57,9 @@ object OperatingSystem {
   def isWindows: Boolean =
     get().isWindows
 
+  def isNotWindows: Boolean =
+    !isWindows
+
   def get(): OperatingSystem =
     operatingSystem getOrElse getFromProperty()
 

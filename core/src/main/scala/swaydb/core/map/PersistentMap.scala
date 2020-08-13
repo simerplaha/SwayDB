@@ -33,6 +33,7 @@ import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{BufferCleaner, DBFile, Effect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
@@ -56,7 +57,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                   functionStore: FunctionStore,
                                                                   fileSweeper: FileSweeper,
-                                                                  bufferCleaner: BufferCleaner,
+                                                                  bufferCleaner: ByteBufferSweeperActor,
                                                                   reader: MapEntryReader[MapEntry[K, V]],
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] = {
@@ -95,7 +96,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                    nullValue: OV)(implicit keyOrder: KeyOrder[K],
                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                   fileSweeper: FileSweeper,
-                                                                  bufferCleaner: BufferCleaner,
+                                                                  bufferCleaner: ByteBufferSweeperActor,
                                                                   functionStore: FunctionStore,
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] = {
@@ -124,7 +125,7 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def firstFile(folder: Path,
                              memoryMapped: MMAP.Map,
                              fileSize: Long)(implicit fileSweeper: FileSweeper,
-                                             bufferCleaner: BufferCleaner): DBFile =
+                                             bufferCleaner: ByteBufferSweeperActor): DBFile =
     memoryMapped match {
       case MMAP.Enabled(deleteOnClean) =>
         DBFile.mmapInit(
@@ -155,7 +156,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                                         skipListMerger: SkipListMerger[OK, OV, K, V],
                                                                                         keyOrder: KeyOrder[K],
                                                                                         fileSweeper: FileSweeper,
-                                                                                        bufferCleaner: BufferCleaner,
+                                                                                        bufferCleaner: ByteBufferSweeperActor,
                                                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                                                         functionStore: FunctionStore): (RecoveryResult[DBFile], Boolean) = {
     //read all existing logs and populate skipList
@@ -227,7 +228,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                       fileSize: Long,
                                                       skipList: SkipListConcurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                   fileSweeper: FileSweeper,
-                                                                                                  bufferCleaner: BufferCleaner): Option[DBFile] =
+                                                                                                  bufferCleaner: ByteBufferSweeperActor): Option[DBFile] =
     oldFiles.lastOption map {
       lastFile =>
         val file = nextFile(lastFile, mmap, fileSize, skipList)
@@ -252,7 +253,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                       size: Long,
                                                       skipList: SkipListConcurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                   fileSweeper: FileSweeper,
-                                                                                                  bufferCleaner: BufferCleaner): DBFile = {
+                                                                                                  bufferCleaner: ByteBufferSweeperActor): DBFile = {
 
     val nextPath = currentFile.path.incrementFileId
     val bytes = MapCodec.write(skipList)
@@ -293,7 +294,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
                                                              private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                                    fileSweeper: FileSweeper,
-                                                                                                   bufferCleaner: BufferCleaner,
+                                                                                                   val bufferCleaner: ByteBufferSweeperActor,
                                                                                                    functionStore: FunctionStore,
                                                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                    skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
@@ -395,10 +396,10 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
   override def delete: Unit =
     if (mmap.deleteOnClean) {
       //if it's require deleteOnClean then do not invoke delete directly
-      //instead invoke close (which will also call BufferCleaner for closing)
-      // and then submit delete to BufferCleaner actor.
+      //instead invoke close (which will also call ByteBufferCleaner for closing)
+      // and then submit delete to ByteBufferCleaner actor.
       currentFile.close()
-      BufferCleaner.deleteFolder(path, currentFile.path)
+      bufferCleaner.actor send BufferCleaner.Command.DeleteFolder(path, currentFile.path)
     } else {
       //else delete immediately.
       currentFile.delete()

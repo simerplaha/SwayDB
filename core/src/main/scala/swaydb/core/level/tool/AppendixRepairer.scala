@@ -32,7 +32,8 @@ import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BufferCleaner, Effect}
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.Effect
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
@@ -56,8 +57,8 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
     implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
-    //mmap is false. FIXME - use BufferCleaner.Disabled instead
-    implicit val bufferCleaner: BufferCleaner = null
+    //mmap is false. FIXME - use ByteBufferCleaner.Disabled instead
+    implicit val bufferCleaner: ByteBufferSweeperActor = null
 
     IO(Effect.files(levelPath, Extension.Seg)) flatMap {
       files =>
@@ -170,7 +171,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                        segments: Slice[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  fileSweeper: FileSweeper.Enabled,
-                                                 bufferCleaner: BufferCleaner,
+                                                 bufferCleaner: ByteBufferSweeperActor,
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  skipListMerger: SkipListMerger[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =

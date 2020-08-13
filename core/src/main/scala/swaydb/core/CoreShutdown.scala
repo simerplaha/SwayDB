@@ -26,6 +26,7 @@ package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
 import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.throttle.ThrottleState
@@ -51,7 +52,7 @@ private[core] object CoreShutdown extends LazyLogging {
                                                  blockCache: Option[BlockCache.State],
                                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                  scheduler: Scheduler,
-                                                 cleaner: BufferCleaner): Future[Unit] = {
+                                                 cleaner: ByteBufferSweeperActor): Future[Unit] = {
     implicit val ec = scheduler.ec
     implicit val futureBag = Bag.future(scheduler.ec)
 
@@ -121,8 +122,24 @@ private[core] object CoreShutdown extends LazyLogging {
     val bufferCleanerResult =
       fileSweeperShutdown flatMap {
         _ =>
-          logger.info(s"Terminating ${classOf[BufferCleaner].getSimpleName} Actor.")
-          BufferCleaner.terminateAndRecover(retryOnBusyDelay)
+          logger.info(s"Terminating ByteBufferCleanerActor.")
+          cleaner.get() match {
+            case Some(actor) =>
+              actor.terminateAndRecover(retryOnBusyDelay) flatMap {
+                _ =>
+                  logger.info(s"Terminated ByteBufferCleanerActor. Awaiting shutdown response.")
+                  actor ask BufferCleaner.Command.IsTerminatedAndCleaned[Unit]
+              } flatMap {
+                isShut =>
+                  if (isShut)
+                    Futures.`true`
+                  else
+                    Futures.`false`
+              }
+
+            case None =>
+              Futures.unit
+          }
       }
 
     val releaseLocks =

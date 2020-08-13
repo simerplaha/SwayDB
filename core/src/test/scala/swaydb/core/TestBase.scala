@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.BeforeAndAfterEach
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import swaydb.ActorWire
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -40,7 +40,8 @@ import swaydb.core.TestData._
 import swaydb.core.TestSweeper.{fileSweeper, _}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Memory, MemoryOption, Time}
-import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, Effect}
+import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
@@ -68,7 +69,7 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Eventually {
+trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eventually {
 
   implicit val idGenerator = IDGenerator()
 
@@ -77,7 +78,13 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
   private def nextLevelId: Int =
     currentLevelId.decrementAndGet()
 
-  val projectDirectory = Paths.get(System.getProperty("user.dir")).resolve("target")
+  private val projectTargetFolder = getClass.getClassLoader.getResource("").getPath
+
+  val projectDirectory =
+    if (OperatingSystem.isWindows)
+      Paths.get(projectTargetFolder.drop(1)).getParent.getParent
+    else
+      Paths.get(projectTargetFolder).getParent.getParent
 
   val testFileDirectory = projectDirectory.resolve("TEST_FILES")
 
@@ -196,7 +203,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
         }
       })
 
-  override protected def afterEach(): Unit =
+  override protected def beforeAll(): Unit =
     walkDeleteFolder(testDir)
 
   object TestMap {
@@ -207,7 +214,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                         fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                                                        cleaner: BufferCleaner = TestSweeper.bufferCleaner,
+                                                                        cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
@@ -248,12 +255,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = 100.mb))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                                                                                           fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                                                                                                           cleaner: BufferCleaner = TestSweeper.bufferCleaner,
-                                                                                                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                                           blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Segment = {
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = 100.mb, maxCount = Int.MaxValue))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
+                                                                                                                                                    fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                                                                                                    cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
+                                                                                                                                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                                                                    blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Segment = {
 
       val segmentId = Effect.fileId(path)._1 - 1
 
@@ -288,7 +295,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                                                         fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                                                                                        cleaner: BufferCleaner = TestSweeper.bufferCleaner,
+                                                                                                        cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                         pathsDistributor: PathsDistributor,
                                                                                                         idGenerator: IDGenerator,
@@ -355,7 +362,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                       fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                                      cleaner: BufferCleaner = TestSweeper.bufferCleaner,
+                                                      cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                       blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Level =
       Level(
@@ -387,7 +394,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                                                               cleaner: BufferCleaner = TestSweeper.bufferCleaner): LevelZero =
+                                                                               cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner): LevelZero =
       LevelZero(
         mapSize = mapSize,
         storage = level0Storage,
@@ -422,7 +429,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
    * Creates all file types currently supported which are MMAP and FileChannel.
    */
   def createDBFiles(mmapPath: Path, mmapBytes: Slice[Byte], channelPath: Path, channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
-                                                                                                          cleaner: BufferCleaner = TestSweeper.bufferCleaner,
+                                                                                                          cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                                                                           blockCache: Option[BlockCache.State]): List[DBFile] =
     List(
       createMMAPWriteAndRead(mmapPath, mmapBytes),
@@ -430,7 +437,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     )
 
   def createDBFiles(mmapBytes: Slice[Byte], channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
-                                                                       cleaner: BufferCleaner,
+                                                                       cleaner: ByteBufferSweeperActor,
                                                                        blockCache: Option[BlockCache.State]): List[DBFile] =
     List(
       createMMAPWriteAndRead(randomFilePath, mmapBytes),
@@ -438,7 +445,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     )
 
   def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
-                                                             cleaner: BufferCleaner = TestSweeper.bufferCleaner,
+                                                             cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                              blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): DBFile =
     DBFile.mmapWriteAndRead(
       path = path,
@@ -450,7 +457,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     )
 
   def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
-                                                                cleaner: BufferCleaner,
+                                                                cleaner: ByteBufferSweeperActor,
                                                                 blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): DBFile = {
     val blockCacheFileId = BlockCacheFileIDGenerator.nextID
 
@@ -477,7 +484,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
   def createMMAPFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): FileReader = {
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestSweeper.memorySweeperMax
-    implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
+    implicit val cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner
     new FileReader(
       DBFile.mmapRead(
         path = path,
@@ -495,7 +502,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
   def createFileChannelFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): FileReader = {
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestSweeper.memorySweeperMax
-    implicit val cleaner: BufferCleaner = TestSweeper.bufferCleaner
+    implicit val cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner
     new FileReader(
       DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID)
     )
@@ -614,62 +621,62 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
       //if throttle is only the top most Level's (Level0) assert should
       // be executed because throttle behaviour is unknown during runtime
       // and lower Level's key-values would change as compaction continues.
-      (1 to 5) map (
-        i =>
-          if (i == 1)
-            (
-              (level0KV, level0Assert),
-              (level1KV, noAssert),
-              (level2KV, noAssert),
-              (Slice.empty, noAssert)
-            )
-          else
-            (
-              (Slice.empty, level0Assert),
-              (Slice.empty, noAssert),
-              (Slice.empty, noAssert),
-              (Slice.empty, noAssert)
-            )
-        )
+        (1 to 5) map (
+          i =>
+            if (i == 1)
+              (
+                (level0KV, level0Assert),
+                (level1KV, noAssert),
+                (level2KV, noAssert),
+                (Slice.empty, noAssert)
+              )
+            else
+              (
+                (Slice.empty, level0Assert),
+                (Slice.empty, noAssert),
+                (Slice.empty, noAssert),
+                (Slice.empty, noAssert)
+              )
+          )
       else
-      Seq(
-        (
-          (level0KV, level0Assert),
-          (level1KV, level1Assert),
-          (level2KV, level2Assert),
-          (Slice.empty, noAssert)
-        ),
-        (
-          (level0KV, level0Assert),
-          (level1KV, level1Assert),
-          (Slice.empty, level2Assert),
-          (level2KV, level2Assert)
-        ),
-        (
-          (level0KV, level0Assert),
-          (Slice.empty, level1Assert),
-          (level1KV, level1Assert),
-          (level2KV, level2Assert)
-        ),
-        (
-          (Slice.empty, level0Assert),
-          (level0KV, level0Assert),
-          (level1KV, level1Assert),
-          (level2KV, level2Assert)
-        ),
-        (
-          (Slice.empty, level0Assert),
-          (Slice.empty, level0Assert),
-          (level0KV, level0Assert),
-          (level1KV, level1Assert)
-        ),
-        (
-          (Slice.empty, level0Assert),
-          (Slice.empty, level0Assert),
-          (Slice.empty, level0Assert),
-          (level0KV, level0Assert)
+        Seq(
+          (
+            (level0KV, level0Assert),
+            (level1KV, level1Assert),
+            (level2KV, level2Assert),
+            (Slice.empty, noAssert)
+          ),
+          (
+            (level0KV, level0Assert),
+            (level1KV, level1Assert),
+            (Slice.empty, level2Assert),
+            (level2KV, level2Assert)
+          ),
+          (
+            (level0KV, level0Assert),
+            (Slice.empty, level1Assert),
+            (level1KV, level1Assert),
+            (level2KV, level2Assert)
+          ),
+          (
+            (Slice.empty, level0Assert),
+            (level0KV, level0Assert),
+            (level1KV, level1Assert),
+            (level2KV, level2Assert)
+          ),
+          (
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (level0KV, level0Assert),
+            (level1KV, level1Assert)
+          ),
+          (
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (level0KV, level0Assert)
+          )
         )
-      )
 
     runAsserts(asserts)
 

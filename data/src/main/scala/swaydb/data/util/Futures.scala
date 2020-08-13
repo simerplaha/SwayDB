@@ -30,4 +30,6 @@ object Futures {
 
   val none = Future.successful(None)
   val unit: Future[Unit] = Future.successful(())
+  val `true` = Future.successful(true)
+  val `false` = Future.successful(false)
 }
