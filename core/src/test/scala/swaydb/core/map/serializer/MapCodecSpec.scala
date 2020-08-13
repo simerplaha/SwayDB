@@ -33,6 +33,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.SegmentIO
 import swaydb.core.util.skiplist.SkipList
@@ -48,7 +49,7 @@ class MapCodecSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
   implicit val cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache

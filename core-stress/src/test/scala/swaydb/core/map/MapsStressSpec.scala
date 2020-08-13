@@ -40,7 +40,7 @@
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //  implicit def testTimer: TestTimer = TestTimer.Empty
-//  implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+//  implicit val fileSweeper: FileSweeperActor = TestSweeper.fileSweeper
 //  implicit val memorySweeper = TestSweeper.memorySweeperMax
 //
 //  import swaydb.core.map.serializer.LevelZeroMapEntryReader._

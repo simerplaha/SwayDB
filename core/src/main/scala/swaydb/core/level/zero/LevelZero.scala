@@ -35,6 +35,7 @@ import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.Effect
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
@@ -51,7 +52,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
-import swaydb.{Bag, IO, OK}
+import swaydb.{Actor, Bag, IO, OK}
 
 import scala.concurrent.duration.{Deadline, _}
 import scala.jdk.CollectionConverters._
@@ -77,7 +78,7 @@ private[core] object LevelZero extends LazyLogging {
       logger.info("cacheKeyValueIds is false. Key-value IDs cache disabled!")
 
     //LevelZero does not required FileSweeper since they are all Map files.
-    implicit val fileSweeper: FileSweeper = FileSweeper.Disabled
+    implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
 
     implicit val skipListMerger: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
     val mapsAndPathAndLock =

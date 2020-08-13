@@ -48,7 +48,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.{ActorWire, Bag, Error, IO, Scheduler}
+import swaydb.{ActorRef, ActorWire, Bag, Error, IO, Scheduler}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -124,7 +124,7 @@ private[core] object CoreInitializer extends LazyLogging {
                                              timeOrder: TimeOrder[Slice[Byte]],
                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
 
-    implicit val fileSweeper: FileSweeper.Enabled =
+    implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] =
       FileSweeper(fileCache)
 
     val memorySweeper: Option[MemorySweeper.Enabled] =
@@ -152,7 +152,7 @@ private[core] object CoreInitializer extends LazyLogging {
       ThrottleCompactor
 
     implicit val bufferCleaner: ByteBufferSweeperActor =
-      ByteBufferSweeper()(Scheduler()(fileSweeper.ec))
+      ByteBufferSweeper()(Scheduler()(fileSweeper.executionContext))
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],

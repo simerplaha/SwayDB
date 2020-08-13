@@ -101,6 +101,28 @@ object Actor {
     case object TerminatedActor extends Actor.Error
   }
 
+  def deadActor[T, S](): ActorRef[T, S] =
+    new ActorRef[T, S] {
+      override def name: String = "Dead actor"
+      override def executionContext: ExecutionContext = throw new Exception("Dead Actor")
+      override def send(message: T): Unit = throw new Exception("Dead Actor")
+      override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit bag: Bag.Async[X]): X[R] = throw new Exception("Dead Actor")
+      override def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask = throw new Exception("Dead Actor")
+      override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[X]): Task[R, X] = throw new Exception("Dead Actor")
+      override def totalWeight: Int = throw new Exception("Dead Actor")
+      override def messageCount: Int = throw new Exception("Dead Actor")
+      override def isEmpty: Boolean = throw new Exception("Dead Actor")
+      override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Error], Actor[T, S]) => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
+      override def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def receiveAllBlocking(retryCounts: Int): Try[Unit] = throw new Exception("Dead Actor")
+      override def terminate(): Unit = throw new Exception("Dead Actor")
+      override def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S] = throw new Exception("Dead Actor")
+      override def isTerminated: Boolean = throw new Exception("Dead Actor")
+      override def clear(): Unit = throw new Exception("Dead Actor")
+      override def terminateAndClear(): Unit = throw new Exception("Dead Actor")
+      override def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+    }
+
   def cacheFromConfig[T](config: ActorConfig,
                          stashCapacity: Int,
                          weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit): ActorRef[T, Unit] =

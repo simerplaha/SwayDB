@@ -29,6 +29,7 @@ import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.FileSweeper
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
@@ -62,7 +63,7 @@ protected case class MemorySegment(path: Path,
                                    nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                                          functionStore: FunctionStore,
-                                                                         fileSweeper: FileSweeper.Enabled) extends Segment with LazyLogging {
+                                                                         fileSweeper: FileSweeperActor) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -276,7 +277,7 @@ protected case class MemorySegment(path: Path,
     !deleted
 
   override def deleteSegmentsEventually: Unit =
-    fileSweeper.delete(this)
+    fileSweeper send FileSweeper.Command.Delete(this)
 
   override def clearCachedKeyValues(): Unit =
     ()

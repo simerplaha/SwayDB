@@ -34,6 +34,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.seek._
@@ -104,7 +105,7 @@ private[core] object Level extends LazyLogging {
                                               functionStore: FunctionStore,
                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                               blockCache: Option[BlockCache.State],
-                                              fileSweeper: FileSweeper.Enabled,
+                                              fileSweeper: FileSweeperActor,
                                               bufferCleaner: ByteBufferSweeperActor): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
@@ -358,7 +359,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                              val fileSweeper: FileSweeper.Enabled,
+                                                              val fileSweeper: FileSweeperActor,
                                                               val bufferCleaner: ByteBufferSweeperActor,
                                                               val blockCache: Option[BlockCache.State],
                                                               val segmentIDGenerator: IDGenerator,

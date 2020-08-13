@@ -36,6 +36,7 @@ import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.PathsDistributor
@@ -97,7 +98,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   //  override def deleteFiles = false
 
-  implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val fileSweeper: FileSweeperActor = TestSweeper.fileSweeper
   implicit val bufferCleaner: ByteBufferSweeperActor  = TestSweeper.bufferCleaner
 
   "Segment" should {
@@ -551,7 +552,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(10.times) {
         //        implicit val fileSweeper = FileSweeper.Disabled
         implicit val blockCache: Option[BlockCache.State] = None
-        implicit val fileSweeper = FileSweeper(50, ActorConfig.TimeLoop("", 10.seconds, TestExecutionContext.executionContext))
+        implicit val fileSweeper = FileSweeper(50, ActorConfig.TimeLoop("", 10.seconds, TestExecutionContext.executionContext)).actor
 
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues)
@@ -659,7 +660,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       } else {
         runThis(5.times, log = true) {
           implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
-          implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop("", 2.second, ec))
+          implicit val fileSweeper = FileSweeper(1, ActorConfig.TimeLoop("", 2.second, ec)).actor
 
           val keyValues = randomizedKeyValues(keyValuesCount)
 
@@ -669,14 +670,14 @@ sealed trait SegmentWriteSpec extends TestBase {
             TestSegment(
               keyValues = keyValues,
               segmentConfig = segmentConfig
-            )(keyOrder, memorySweeper, segmentOpenLimit)
+            )(keyOrder, memorySweeper, fileSweeper)
 
           segment1.isOpen shouldBe !segmentConfig.cacheBlocksOnCreate
           segment1.getKeyValueCount() shouldBe keyValues.size
           segment1.isOpen shouldBe !segmentConfig.cacheBlocksOnCreate
 
           //create another segment should close segment 1
-          val segment2 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit)
+          val segment2 = TestSegment(keyValues)(keyOrder, memorySweeper, fileSweeper)
           segment2.getKeyValueCount() shouldBe keyValues.size
 
           eventual(5.seconds) {
@@ -699,7 +700,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           segment1.close
           segment2.close
-          segmentOpenLimit.terminateAndRecover[Future](10.seconds).await(10.seconds)
+          fileSweeper.terminateAndRecover[Future](10.seconds).await(10.seconds)
         }
       }
     }

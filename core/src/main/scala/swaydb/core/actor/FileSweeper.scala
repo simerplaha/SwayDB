@@ -26,12 +26,11 @@ package swaydb.core.actor
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.cache.Lazy
+import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, State}
+import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.data.config.{ActorConfig, FileCache}
-import swaydb.{Actor, ActorRef, Bag, IO, Scheduler}
+import swaydb.{Actor, ActorRef, IO}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
 import scala.ref.WeakReference
 
 private[core] trait FileSweeperItem {
@@ -41,68 +40,72 @@ private[core] trait FileSweeperItem {
   def isOpen: Boolean
 }
 
-private[swaydb] trait FileSweeper {
-  def close(file: FileSweeperItem): Unit
-}
 /**
  * Actor that manages closing and delete files that are overdue.
  */
 private[swaydb] object FileSweeper extends LazyLogging {
 
-  /**
-   * Disables File management. This is generally enabled for in-memory databases
-   * where closing or deleting files is not really required since GC cleans up these
-   * files.
-   */
-  case object Disabled extends FileSweeper {
-    def close(file: FileSweeperItem): Unit = ()
+  type FileSweeperActor = ActorRef[FileSweeper.Command, Unit]
+
+  implicit class FileSweeperActorActorImplicits(cache: CacheNoIO[Unit, FileSweeperActor]) {
+    @inline def actor =
+      this.cache.value(())
   }
 
-  /**
-   * Enables file management.
-   */
-  sealed trait Enabled extends FileSweeper {
-    def ec: ExecutionContext
-    def close(file: FileSweeperItem): Unit
-    def delete(file: FileSweeperItem): Unit
-    def messageCount(): Int
-    def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG],
-                                                                      scheduler: Scheduler): BAG[Unit]
-  }
-
-  private sealed trait Action {
+  sealed trait Command {
     def isDelete: Boolean
   }
 
-  private object Action {
-    case class Delete(file: FileSweeperItem) extends Action {
+  object Command {
+    //Delete cannot be a WeakReference because Levels can
+    //remove references to the file after eventualDelete is invoked.
+    //If the file gets garbage collected due to it being WeakReference before
+    //delete on the file is triggered, the physical file will remain on disk.
+    case class Delete(file: FileSweeperItem) extends Command {
       def isDelete: Boolean = true
     }
-    case class Close(file: WeakReference[FileSweeperItem]) extends Action {
+
+    object Close {
+      def apply(file: FileSweeperItem): Close =
+        new Close(new WeakReference[FileSweeperItem](file))
+    }
+    case class Close private(file: WeakReference[FileSweeperItem]) extends Command {
       def isDelete: Boolean = false
     }
   }
 
-  def weigher(action: Action) =
-    if (action.isDelete) 10 else 1
+  def weigher(command: Command): Int =
+    if (command.isDelete) 10 else 1
 
-  def apply(fileCache: FileCache): Option[FileSweeper.Enabled] =
+  def apply(fileCache: FileCache): Option[FileSweeperActor] =
     fileCache match {
       case FileCache.Disable =>
         None
+
       case enable: FileCache.Enable =>
         Some(apply(enable))
     }
 
-  def apply(fileCache: FileCache.Enable): FileSweeper.Enabled =
+
+  def apply(fileCache: FileCache.Enable): FileSweeperActor =
     apply(
       maxOpenSegments = fileCache.maxOpen,
       actorConfig = fileCache.actorConfig
-    )
+    ).value(())
 
-  private def processAction(action: Action): Unit =
-    action match {
-      case Action.Delete(file) =>
+  def apply(maxOpenSegments: Int,
+            actorConfig: ActorConfig): CacheNoIO[Unit, FileSweeperActor] =
+    Cache.noIO[Unit, ActorRef[Command, Unit]](synchronised = true, stored = true, initial = None) {
+      (_, _) =>
+        createActor(
+          maxOpenSegments = maxOpenSegments,
+          actorConfig = actorConfig
+        )
+    }
+
+  private def processCommand(command: Command): Unit =
+    command match {
+      case Command.Delete(file) =>
         try
           file.delete()
         catch {
@@ -110,7 +113,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
             logger.error(s"Failed to delete file. ${file.path}", exception)
         }
 
-      case Action.Close(file) =>
+      case Command.Close(file) =>
         file.get foreach {
           file =>
             try
@@ -122,68 +125,28 @@ private[swaydb] object FileSweeper extends LazyLogging {
         }
     }
 
-  private def createActor(maxOpenSegments: Int, actorConfig: ActorConfig): ActorRef[Action, Unit] =
-    Actor.cacheFromConfig[Action](
+  private def createActor(maxOpenSegments: Int, actorConfig: ActorConfig): ActorRef[Command, Unit] =
+    Actor.cacheFromConfig[Command](
       config = actorConfig,
       stashCapacity = maxOpenSegments,
       weigher = FileSweeper.weigher
     ) {
-      case (action, _) =>
-        processAction(action)
-    } recoverException[Action] {
-      case (action, io, _) =>
+      case (command, _) =>
+        processCommand(command)
+    } recoverException[Command] {
+      case (command, io, _) =>
         io match {
           case IO.Right(Actor.Error.TerminatedActor) =>
-            processAction(action)
+            processCommand(command)
 
           case IO.Left(exception) =>
-            action match {
-              case Action.Delete(file) =>
+            command match {
+              case Command.Delete(file) =>
                 logger.error(s"Failed to delete file. Path = ${file.path}.", exception)
 
-              case Action.Close(file) =>
+              case Command.Close(file) =>
                 logger.error(s"Failed to close file. WeakReference(path: Path) = ${file.get.map(_.path)}.", exception)
             }
         }
     }
-
-  def apply(maxOpenSegments: Int, actorConfig: ActorConfig): FileSweeper.Enabled = {
-    val lazyActor =
-      Lazy.value[ActorRef[Action, Unit]](
-        synchronised = true,
-        stored = true,
-        initial = None
-      )
-
-    def actor(): ActorRef[Action, Unit] =
-      lazyActor.getOrSet(createActor(maxOpenSegments, actorConfig))
-
-    new FileSweeper.Enabled {
-
-      override def ec = actorConfig.ec
-
-      override def close(file: FileSweeperItem): Unit =
-        actor() send Action.Close(new WeakReference[FileSweeperItem](file))
-
-      //Delete cannot be a WeakReference because Levels can
-      //remove references to the file after eventualDelete is invoked.
-      //If the file gets garbage collected due to it being WeakReference before
-      //delete on the file is triggered, the physical file will remain on disk.
-      override def delete(file: FileSweeperItem): Unit =
-        actor() send Action.Delete(file)
-
-      override def messageCount(): Int =
-        if (lazyActor.isDefined)
-          actor().messageCount
-        else
-          0
-
-      override def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG],
-                                                                                 scheduler: Scheduler): BAG[Unit] =
-        if (lazyActor.isDefined)
-          actor().terminateAndRecover(retryOnBusyDelay)
-        else
-          bag.unit
-    }
-  }
 }

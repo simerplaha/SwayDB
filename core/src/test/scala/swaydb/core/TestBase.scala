@@ -41,6 +41,7 @@ import swaydb.core.TestSweeper.{fileSweeper, _}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Memory, MemoryOption, Time}
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
@@ -213,7 +214,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
               flushOnOverflow: Boolean = false,
               mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                                        fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                        fileSweeper: FileSweeperActor = TestSweeper.fileSweeper,
                                                                         cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
@@ -257,7 +258,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = 100.mb, maxCount = Int.MaxValue))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                                                                                                                    fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                                                                                                    fileSweeper: FileSweeperActor = TestSweeper.fileSweeper,
                                                                                                                                                     cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                                                                                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                                                                     blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Segment = {
@@ -294,7 +295,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
              bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                                                                        fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                                                        fileSweeper: FileSweeperActor = TestSweeper.fileSweeper,
                                                                                                         cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                         pathsDistributor: PathsDistributor,
@@ -361,7 +362,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random2(pushForward = false, deleteEventually = false, mmap = mmapSegments),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                      fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                      fileSweeper: FileSweeperActor = TestSweeper.fileSweeper,
                                                       cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                       blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Level =
@@ -393,7 +394,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                               fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                               fileSweeper: FileSweeperActor = TestSweeper.fileSweeper,
                                                                                cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner): LevelZero =
       LevelZero(
         mapSize = mapSize,
@@ -428,7 +429,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
   /**
    * Creates all file types currently supported which are MMAP and FileChannel.
    */
-  def createDBFiles(mmapPath: Path, mmapBytes: Slice[Byte], channelPath: Path, channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+  def createDBFiles(mmapPath: Path, mmapBytes: Slice[Byte], channelPath: Path, channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeperActor,
                                                                                                           cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                                                                           blockCache: Option[BlockCache.State]): List[DBFile] =
     List(
@@ -436,7 +437,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
       createChannelWriteAndRead(channelPath, channelBytes)
     )
 
-  def createDBFiles(mmapBytes: Slice[Byte], channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+  def createDBFiles(mmapBytes: Slice[Byte], channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeperActor,
                                                                        cleaner: ByteBufferSweeperActor,
                                                                        blockCache: Option[BlockCache.State]): List[DBFile] =
     List(
@@ -444,7 +445,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
       createChannelWriteAndRead(randomFilePath, channelBytes)
     )
 
-  def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+  def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeperActor,
                                                              cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                              blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): DBFile =
     DBFile.mmapWriteAndRead(
@@ -456,7 +457,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
       bytes = bytes
     )
 
-  def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+  def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeperActor,
                                                                 cleaner: ByteBufferSweeperActor,
                                                                 blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): DBFile = {
     val blockCacheFileId = BlockCacheFileIDGenerator.nextID

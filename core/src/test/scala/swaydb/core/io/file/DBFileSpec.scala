@@ -35,6 +35,7 @@ import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.slice.Slice
@@ -42,7 +43,7 @@ import swaydb.data.util.OperatingSystem
 
 class DBFileSpec extends TestBase with MockFactory {
 
-  implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val fileSweeper: FileSweeperActor = TestSweeper.fileSweeper
   implicit val cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner
   implicit val memorySweeper = TestSweeper.memorySweeper10
 
@@ -142,7 +143,7 @@ class DBFileSpec extends TestBase with MockFactory {
       val bytes = randomBytesSlice()
 
       //      //opening a file should trigger the onOpen function
-      //      implicit val fileSweeper = mock[FileSweeper.Enabled]
+      //      implicit val fileSweeper = mock[FileSweeperActor]
       //
       //      fileSweeper.close _ expects * onCall {
       //        dbFile: FileSweeperItem =>
@@ -201,7 +202,7 @@ class DBFileSpec extends TestBase with MockFactory {
       val bytes = randomBytesSlice()
 
       //      //opening a file should trigger the onOpen function
-      //      implicit val fileSweeper = mock[FileSweeper.Enabled]
+      //      implicit val fileSweeper = mock[FileSweeperActor]
       //      fileSweeper.close _ expects * onCall {
       //        dbFile: FileSweeperItem =>
       //          dbFile.path shouldBe testFile
@@ -268,7 +269,7 @@ class DBFileSpec extends TestBase with MockFactory {
       val bytes = Slice("bytes one".getBytes())
 
       //      //opening a file should trigger the onOpen function
-      //      implicit val fileSweeper = mock[FileSweeper.Enabled]
+      //      implicit val fileSweeper = mock[FileSweeperActor]
       //      fileSweeper.close _ expects * onCall {
       //        dbFile: FileSweeperItem =>
       //          dbFile.path shouldBe testFile

@@ -29,6 +29,7 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.{TestBase, TestExecutionContext, TestSweeper, TestTimer}
@@ -71,7 +72,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val timer = TestTimer.Empty
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeper10
 
   implicit val compactionOrdering = ThrottleLevelOrdering

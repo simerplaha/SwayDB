@@ -33,6 +33,7 @@ import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.util.IDGenerator
 import swaydb.core.util.skiplist.{SkipList, SkipListBase}
@@ -57,7 +58,7 @@ private[core] object Map extends LazyLogging {
                                            dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                                               functionStore: FunctionStore,
-                                                                              fileSweeper: FileSweeper,
+                                                                              fileSweeper: FileSweeperActor,
                                                                               bufferCleaner: ByteBufferSweeperActor,
                                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                               reader: MapEntryReader[MapEntry[K, V]],
@@ -80,7 +81,7 @@ private[core] object Map extends LazyLogging {
                                            fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            functionStore: FunctionStore,
-                                                           fileSweeper: FileSweeper,
+                                                           fileSweeper: FileSweeperActor,
                                                            bufferCleaner: ByteBufferSweeperActor,
                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                            skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] =

@@ -48,7 +48,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
 
   implicit class ByteBufferSweeperActorImplicits(cache: ByteBufferSweeperActor) {
     @inline def actor: ActorRef[Command, State] =
-      cache.value(())
+      this.cache.value(())
   }
 
   /**

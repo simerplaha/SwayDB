@@ -27,6 +27,7 @@ package swaydb.core.map.serializer
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.BlockCache
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentIO, SegmentSerialiser}
@@ -39,7 +40,7 @@ private[core] object AppendixMapEntryReader {
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        functionStore: FunctionStore,
                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                       fileSweeper: FileSweeper.Enabled,
+                                       fileSweeper: FileSweeperActor,
                                        bufferCleaner: ByteBufferSweeperActor,
                                        blockCache: Option[BlockCache.State],
                                        segmentIO: SegmentIO): AppendixMapEntryReader =
@@ -50,7 +51,7 @@ private[core] class AppendixMapEntryReader(mmapSegment: MMAP.Segment)(implicit k
                                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                                       functionStore: FunctionStore,
                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                      fileSweeper: FileSweeper.Enabled,
+                                                                      fileSweeper: FileSweeperActor,
                                                                       bufferCleaner: ByteBufferSweeperActor,
                                                                       blockCache: Option[BlockCache.State],
                                                                       segmentIO: SegmentIO) {

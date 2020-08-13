@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.util.Options._
 import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
@@ -52,7 +53,7 @@ private[core] sealed trait SegmentSerialiser {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  functionStore: FunctionStore,
                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                 fileSweeper: FileSweeper.Enabled,
+                                 fileSweeper: FileSweeperActor,
                                  bufferCleaner: ByteBufferSweeperActor,
                                  blockCache: Option[BlockCache.State],
                                  segmentIO: SegmentIO): Segment
@@ -116,7 +117,7 @@ private[core] object SegmentSerialiser {
                                    timeOrder: TimeOrder[Slice[Byte]],
                                    functionStore: FunctionStore,
                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                   fileSweeper: FileSweeper.Enabled,
+                                   fileSweeper: FileSweeperActor,
                                    bufferCleaner: ByteBufferSweeperActor,
                                    blockCache: Option[BlockCache.State],
                                    segmentIO: SegmentIO): Segment = {

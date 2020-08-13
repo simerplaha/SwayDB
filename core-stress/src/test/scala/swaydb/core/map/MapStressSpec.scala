@@ -37,7 +37,7 @@
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //
 //  implicit val skipListMerger = LevelZeroSkipListMerger
-//  implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+//  implicit val fileSweeper: FileSweeperActor = TestSweeper.fileSweeper
 //  implicit val memorySweeper = TestSweeper.memorySweeperMax
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //

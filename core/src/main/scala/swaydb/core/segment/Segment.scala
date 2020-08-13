@@ -34,6 +34,7 @@ import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
@@ -82,7 +83,7 @@ private[core] object Segment extends LazyLogging {
              keyValues: MergeStats.Memory.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                             functionStore: FunctionStore,
-                                                            fileSweeper: FileSweeper.Enabled,
+                                                            fileSweeper: FileSweeperActor,
                                                             idGenerator: IDGenerator): Slice[MemorySegment] =
     if (keyValues.isEmpty) {
       throw IO.throwable("Empty key-values submitted to memory Segment.")
@@ -207,7 +208,7 @@ private[core] object Segment extends LazyLogging {
                  mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                                      functionStore: FunctionStore,
-                                                                     fileSweeper: FileSweeper.Enabled,
+                                                                     fileSweeper: FileSweeperActor,
                                                                      bufferCleaner: ByteBufferSweeperActor,
                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                      blockCache: Option[BlockCache.State],
@@ -239,7 +240,7 @@ private[core] object Segment extends LazyLogging {
                  segments: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                        functionStore: FunctionStore,
-                                                       fileSweeper: FileSweeper.Enabled,
+                                                       fileSweeper: FileSweeperActor,
                                                        bufferCleaner: ByteBufferSweeperActor,
                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                        blockCache: Option[BlockCache.State],
@@ -294,7 +295,7 @@ private[core] object Segment extends LazyLogging {
   private def segmentFile(path: Path,
                           mmap: MMAP.Segment,
                           segmentBytes: Slice[Slice[Byte]])(implicit segmentIO: SegmentIO,
-                                                            fileSweeper: FileSweeper.Enabled,
+                                                            fileSweeper: FileSweeperActor,
                                                             bufferCleaner: ByteBufferSweeperActor,
                                                             blockCache: Option[BlockCache.State]): DBFile =
     mmap match {
@@ -361,7 +362,7 @@ private[core] object Segment extends LazyLogging {
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                        fileSweeper: FileSweeper.Enabled,
+                                                        fileSweeper: FileSweeperActor,
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         blockCache: Option[BlockCache.State],
                                                         segmentIO: SegmentIO,
@@ -427,7 +428,7 @@ private[core] object Segment extends LazyLogging {
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                        fileSweeper: FileSweeper.Enabled,
+                                                        fileSweeper: FileSweeperActor,
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         blockCache: Option[BlockCache.State],
                                                         segmentIO: SegmentIO,
@@ -464,7 +465,7 @@ private[core] object Segment extends LazyLogging {
                    maxKeyValueCountPerSegment: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                     functionStore: FunctionStore,
-                                                    fileSweeper: FileSweeper.Enabled,
+                                                    fileSweeper: FileSweeperActor,
                                                     idGenerator: IDGenerator): Slice[MemorySegment] =
     copyToMemory(
       keyValues = segment.iterator(),
@@ -483,7 +484,7 @@ private[core] object Segment extends LazyLogging {
                    createdInLevel: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
-                                        fileSweeper: FileSweeper.Enabled,
+                                        fileSweeper: FileSweeperActor,
                                         idGenerator: IDGenerator): Slice[MemorySegment] = {
     val builder =
       new MergeStats.Memory.Closed[Iterable](
@@ -515,7 +516,7 @@ private[core] object Segment extends LazyLogging {
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                         fileSweeper: FileSweeper.Enabled,
+                                         fileSweeper: FileSweeperActor,
                                          bufferCleaner: ByteBufferSweeperActor,
                                          blockCache: Option[BlockCache.State],
                                          segmentIO: SegmentIO): PersistentSegment = {
@@ -612,7 +613,7 @@ private[core] object Segment extends LazyLogging {
                                   functionStore: FunctionStore,
                                   blockCache: Option[BlockCache.State],
                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                  fileSweeper: FileSweeper.Enabled,
+                                  fileSweeper: FileSweeperActor,
                                   bufferCleaner: ByteBufferSweeperActor): PersistentSegment = {
 
     implicit val segmentIO: SegmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed

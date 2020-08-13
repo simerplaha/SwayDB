@@ -33,6 +33,7 @@ import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.Effect
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.MapEntryWriter
@@ -50,7 +51,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
 
   def apply(levelPath: Path,
             strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              fileSweeper: FileSweeper.Enabled,
+                                              fileSweeper: FileSweeperActor,
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): IO[swaydb.Error.Level, Unit] = {
 
@@ -170,7 +171,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
   def buildAppendixMap(appendixDir: Path,
                        segments: Slice[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                 fileSweeper: FileSweeper.Enabled,
+                                                 fileSweeper: FileSweeperActor,
                                                  bufferCleaner: ByteBufferSweeperActor,
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],

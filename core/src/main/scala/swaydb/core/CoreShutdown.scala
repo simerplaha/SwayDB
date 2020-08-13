@@ -25,8 +25,9 @@
 package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.throttle.ThrottleState
@@ -48,7 +49,7 @@ private[core] object CoreShutdown extends LazyLogging {
 
   def shutdown(zero: LevelZero,
                retryOnBusyDelay: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
-                                                 fileSweeper: Option[FileSweeper.Enabled],
+                                                 fileSweeper: Option[FileSweeperActor],
                                                  blockCache: Option[BlockCache.State],
                                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                  scheduler: Scheduler,
@@ -111,7 +112,7 @@ private[core] object CoreShutdown extends LazyLogging {
         _ =>
           fileSweeper match {
             case Some(fileSweeper) =>
-              logger.info(s"Terminating ${classOf[FileSweeper].getSimpleName}Actor.")
+              logger.info(s"Terminating FileSweeperActor.")
               fileSweeper.terminateAndRecover(retryOnBusyDelay)
 
             case None =>

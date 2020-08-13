@@ -31,6 +31,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.SingleThreadFactory
 import swaydb.core.Core
 import swaydb.core.actor.FileSweeper
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.tool.AppendixRepairer
@@ -218,7 +219,7 @@ object SwayDB extends LazyLogging {
    */
   def repairAppendix[K](levelPath: Path,
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
-                                                                fileSweeper: FileSweeper.Enabled,
+                                                                fileSweeper: FileSweeperActor,
                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[swaydb.Error.Level, RepairResult[K]] =
   //convert to typed result.
     AppendixRepairer(levelPath, repairStrategy) match {

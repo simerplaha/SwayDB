@@ -33,6 +33,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -65,7 +66,7 @@ protected object PersistentSegmentOne {
                                            functionStore: FunctionStore,
                                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                            blockCache: Option[BlockCache.State],
-                                           fileSweeper: FileSweeper.Enabled,
+                                           fileSweeper: FileSweeperActor,
                                            bufferCleaner: ByteBufferSweeperActor,
                                            segmentIO: SegmentIO): PersistentSegmentOne =
     PersistentSegmentOne(
@@ -101,7 +102,7 @@ protected object PersistentSegmentOne {
                                                          functionStore: FunctionStore,
                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                          blockCache: Option[BlockCache.State],
-                                                         fileSweeper: FileSweeper.Enabled,
+                                                         fileSweeper: FileSweeperActor,
                                                          bufferCleaner: ByteBufferSweeperActor,
                                                          segmentIO: SegmentIO): PersistentSegmentOne = {
 
@@ -146,7 +147,7 @@ protected object PersistentSegmentOne {
                           functionStore: FunctionStore,
                           blockCache: Option[BlockCache.State],
                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                          fileSweeper: FileSweeper.Enabled,
+                          fileSweeper: FileSweeperActor,
                           bufferCleaner: ByteBufferSweeperActor,
                           segmentIO: SegmentIO): PersistentSegment = {
 
@@ -223,7 +224,7 @@ protected case class PersistentSegmentOne(file: DBFile,
                                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                                 functionStore: FunctionStore,
                                                                                 blockCache: Option[BlockCache.State],
-                                                                                fileSweeper: FileSweeper.Enabled,
+                                                                                fileSweeper: FileSweeperActor,
                                                                                 bufferCleaner: ByteBufferSweeperActor,
                                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                 segmentIO: SegmentIO) extends PersistentSegment with LazyLogging {
@@ -249,7 +250,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     file.isFileDefined
 
   def deleteSegmentsEventually =
-    fileSweeper.delete(this)
+    fileSweeper send FileSweeper.Command.Delete(this)
 
   def delete: Unit = {
     logger.trace(s"{}: DELETING FILE", path)

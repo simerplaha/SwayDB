@@ -32,6 +32,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.io.file.Effect._
@@ -80,7 +81,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 

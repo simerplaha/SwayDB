@@ -33,6 +33,7 @@ import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -67,7 +68,7 @@ protected object PersistentSegmentMany {
                                             functionStore: FunctionStore,
                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                             blockCache: Option[BlockCache.State],
-                                            fileSweeper: FileSweeper.Enabled,
+                                            fileSweeper: FileSweeperActor,
                                             bufferCleaner: ByteBufferSweeperActor,
                                             segmentIO: SegmentIO): PersistentSegmentMany = {
     val initial =
@@ -143,7 +144,7 @@ protected object PersistentSegmentMany {
                                                                                                         functionStore: FunctionStore,
                                                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                                         blockCache: Option[BlockCache.State],
-                                                                                                        fileSweeper: FileSweeper.Enabled,
+                                                                                                        fileSweeper: FileSweeperActor,
                                                                                                         bufferCleaner: ByteBufferSweeperActor,
                                                                                                         segmentIO: SegmentIO): PersistentSegmentMany = {
 
@@ -196,7 +197,7 @@ protected object PersistentSegmentMany {
                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                           blockCacheMemorySweeper: Option[MemorySweeper.Block],
                           blockCache: Option[BlockCache.State],
-                          fileSweeper: FileSweeper.Enabled,
+                          fileSweeper: FileSweeperActor,
                           bufferCleaner: ByteBufferSweeperActor,
                           segmentIO: SegmentIO): PersistentSegmentMany = {
 
@@ -419,7 +420,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                                                                                                                                                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                                                                                       functionStore: FunctionStore,
                                                                                                                                                                                       blockCache: Option[BlockCache.State],
-                                                                                                                                                                                      fileSweeper: FileSweeper.Enabled,
+                                                                                                                                                                                      fileSweeper: FileSweeperActor,
                                                                                                                                                                                       bufferCleaner: ByteBufferSweeperActor,
                                                                                                                                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                                                                                                                       segmentIO: SegmentIO) extends PersistentSegment with LazyLogging {
@@ -474,7 +475,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     file.isFileDefined
 
   def deleteSegmentsEventually =
-    fileSweeper.delete(this)
+    fileSweeper send FileSweeper.Command.Delete(this)
 
   def delete: Unit = {
     logger.trace(s"{}: DELETING FILE", path)

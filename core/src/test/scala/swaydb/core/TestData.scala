@@ -40,6 +40,7 @@ import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.BlockCache
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
@@ -99,7 +100,7 @@ object TestData {
   implicit class ReopenSegment(segment: PersistentSegment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                            ec: ExecutionContext,
                                                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                           fileSweeper: FileSweeper.Enabled = fileSweeper,
+                                                           fileSweeper: FileSweeperActor = fileSweeper,
                                                            bufferCleaner: ByteBufferSweeperActor = bufferCleaner,
                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                            blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
@@ -248,7 +249,7 @@ object TestData {
     def reopen(segmentSize: Int = level.minSegmentSize,
                throttle: LevelMeter => Throttle = level.throttle,
                nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                               fileSweeper: FileSweeper = fileSweeper): Level =
+                                                               fileSweeper: FileSweeperActor = fileSweeper): Level =
       tryReopen(
         segmentSize = segmentSize,
         throttle = throttle,
@@ -258,7 +259,7 @@ object TestData {
     def tryReopen(segmentSize: Int = level.minSegmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                                  fileSweeper: FileSweeper.Enabled = fileSweeper,
+                                                                  fileSweeper: FileSweeperActor = fileSweeper,
                                                                   bufferCleaner: ByteBufferSweeperActor = bufferCleaner,
                                                                   blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): IO[swaydb.Error.Level, Level] =
       level.releaseLocks flatMap {
@@ -295,7 +296,7 @@ object TestData {
 
     def reopen(mapSize: Long = level.maps.map.size)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                    fileSweeper: FileSweeper.Enabled = fileSweeper,
+                                                    fileSweeper: FileSweeperActor = fileSweeper,
                                                     bufferCleaner: ByteBufferSweeperActor = bufferCleaner): LevelZero = {
       val reopened =
         level.releaseLocks flatMap {

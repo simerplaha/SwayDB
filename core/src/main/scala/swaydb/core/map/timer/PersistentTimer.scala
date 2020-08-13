@@ -28,7 +28,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
-import swaydb.IO
+import swaydb.{Actor, ActorRef, IO}
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
@@ -68,7 +68,7 @@ private[core] object PersistentTimer extends LazyLogging {
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                                        reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] = {
     //Disabled because autoClose is not required here.
-    implicit val fileSweeper = FileSweeper.Disabled
+    implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] = Actor.deadActor()
 
     IO {
       Map.persistent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]](

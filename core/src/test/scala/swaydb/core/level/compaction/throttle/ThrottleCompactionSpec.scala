@@ -31,6 +31,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Memory
 import swaydb.core.level.NextLevel
@@ -76,7 +77,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val timer = TestTimer.Empty
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeper10
 
   "putForward" should {

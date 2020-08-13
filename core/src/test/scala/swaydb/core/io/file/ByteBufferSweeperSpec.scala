@@ -56,7 +56,7 @@ class ByteBufferSweeperSpec extends TestBase {
   implicit val terminateTimeout = 10.seconds
 
   "clear a MMAP file" in {
-    implicit val fileSweeper = FileSweeper(0, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext))
+    implicit val fileSweeper = FileSweeper(0, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).actor
     implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
     cleaner.actor.terminateAfter(10.seconds)
 
@@ -85,7 +85,7 @@ class ByteBufferSweeperSpec extends TestBase {
   "it should not fatal terminate" when {
     "concurrently reading a deleted MMAP file" in {
 
-      implicit val fileSweeper = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 1.second, TestExecutionContext.executionContext))
+      implicit val fileSweeper = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 1.second, TestExecutionContext.executionContext)).actor
       implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
       cleaner.actor.terminateAfter(10.seconds)
 
@@ -124,7 +124,7 @@ class ByteBufferSweeperSpec extends TestBase {
       sleep(timeout)
 
       fileSweeper.terminateAndRecover(terminateTimeout).await(terminateTimeout)
-      fileSweeper.messageCount() shouldBe 0
+      fileSweeper.messageCount shouldBe 0
 
       cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
       cleaner.actor.messageCount shouldBe 0

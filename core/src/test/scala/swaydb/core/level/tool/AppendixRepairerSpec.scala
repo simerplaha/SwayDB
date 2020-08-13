@@ -30,6 +30,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
@@ -50,7 +51,7 @@ class AppendixRepairerSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeper10
 
   "AppendixRepair" should {
