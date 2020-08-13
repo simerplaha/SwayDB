@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
@@ -144,7 +144,7 @@ private[file] class MMAPFile(val path: Path,
       //the resulting NullPointerException will re-route request to the new Segment.
       //TO-DO: Use Option here instead. Test using Option does not have read performance impact.
       buffer = null
-      cleaner.actor send BufferCleaner.Command.Clean(swapBuffer, path)
+      cleaner.actor send ByteBufferSweeper.Command.Clean(swapBuffer, path)
     }
 
   override def append(slice: Iterable[Slice[Byte]]): Unit =
@@ -210,7 +210,7 @@ private[file] class MMAPFile(val path: Path,
     watchNullPointer {
       close()
       if (deleteOnClean)
-        cleaner.actor send BufferCleaner.Command.DeleteFile(path)
+        cleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
       else
         Effect.delete(path)
     }

@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.actor.{FileSweeper, FileSweeperItem}
 import swaydb.core.cache.Cache
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice
@@ -316,7 +316,7 @@ class DBFile(val path: Path,
     //If the file is already closed, then delete it from disk.
     //memory files are never closed so the first statement will always be executed for memory files.
     if (deleteOnClean)
-      bufferCleaner.value(()) send BufferCleaner.Command.DeleteFile(path)
+      bufferCleaner.value(()) send ByteBufferSweeper.Command.DeleteFile(path)
     else
       fileCache.get().map(_.delete()) getOrElse Effect.deleteIfExists(path)
 

@@ -34,7 +34,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.slice.Slice

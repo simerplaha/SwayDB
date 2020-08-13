@@ -33,9 +33,9 @@ import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BufferCleaner, DBFile, Effect}
+import swaydb.core.io.file.{ByteBufferSweeper, DBFile, Effect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
@@ -399,7 +399,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
       //instead invoke close (which will also call ByteBufferCleaner for closing)
       // and then submit delete to ByteBufferCleaner actor.
       currentFile.close()
-      bufferCleaner.actor send BufferCleaner.Command.DeleteFolder(path, currentFile.path)
+      bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFolder(path, currentFile.path)
     } else {
       //else delete immediately.
       currentFile.delete()

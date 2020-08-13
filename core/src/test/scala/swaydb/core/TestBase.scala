@@ -40,7 +40,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestSweeper.{fileSweeper, _}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Memory, MemoryOption, Time}
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._

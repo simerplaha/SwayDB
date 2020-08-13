@@ -26,8 +26,8 @@ package swaydb.core.map.serializer
 
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
-import swaydb.core.io.file.{BlockCache, BufferCleaner}
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.{BlockCache, ByteBufferSweeper}
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentIO, SegmentSerialiser}
 import swaydb.data.config.MMAP

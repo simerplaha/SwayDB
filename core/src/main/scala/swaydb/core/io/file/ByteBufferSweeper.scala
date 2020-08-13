@@ -31,7 +31,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.io.file.ByteBufferCleaners.Cleaner
+import swaydb.core.io.file.ByteBufferCleaner.Cleaner
 import swaydb.core.util.Counter
 import swaydb.core.util.FiniteDurations._
 import swaydb.data.config.ActorConfig.QueueOrder
@@ -41,7 +41,7 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 
-private[core] object BufferCleaner extends LazyLogging {
+private[core] object ByteBufferSweeper extends LazyLogging {
 
   type ByteBufferSweeperActor = CacheNoIO[Unit, ActorRef[Command, State]]
 
@@ -174,7 +174,7 @@ private[core] object BufferCleaner extends LazyLogging {
       case Some(cleaner) =>
         IO {
           cleaner.clean(buffer)
-          BufferCleaner.recordCleanSuccessful(path, state.pendingClean)
+          ByteBufferSweeper.recordCleanSuccessful(path, state.pendingClean)
           state
         } onLeftSideEffect {
           error =>
@@ -185,10 +185,10 @@ private[core] object BufferCleaner extends LazyLogging {
         }
 
       case None =>
-        ByteBufferCleaners.initialiseCleaner(buffer, path) transform {
+        ByteBufferCleaner.initialiseCleaner(buffer, path) transform {
           cleaner =>
             state.cleaner = Some(cleaner)
-            BufferCleaner.recordCleanSuccessful(path, state.pendingClean)
+            ByteBufferSweeper.recordCleanSuccessful(path, state.pendingClean)
             state
         }
     }
@@ -205,9 +205,9 @@ private[core] object BufferCleaner extends LazyLogging {
                            self: Actor[Command, State],
                            messageReschedule: FiniteDuration)(implicit scheduler: Scheduler): Unit =
     if (isOverdue || command.isOverdue || messageReschedule.fromNow.isOverdue()) {
-      BufferCleaner.initCleanerAndPerformClean(self.state, command.buffer, command.filePath)
+      ByteBufferSweeper.initCleanerAndPerformClean(self.state, command.buffer, command.filePath)
     } else {
-      BufferCleaner.recordCleanRequest(command, self.state.pendingClean)
+      ByteBufferSweeper.recordCleanRequest(command, self.state.pendingClean)
       self.send(command.copy(isOverdue = true), messageReschedule)
     }
 
@@ -290,7 +290,7 @@ private[core] object BufferCleaner extends LazyLogging {
                       messageReschedule: FiniteDuration)(implicit scheduler: Scheduler) =
     command match {
       case command: Command.Clean =>
-        BufferCleaner.performClean(
+        ByteBufferSweeper.performClean(
           isOverdue = self.isTerminated,
           command = command,
           self = self,
@@ -298,7 +298,7 @@ private[core] object BufferCleaner extends LazyLogging {
         )
 
       case command: Command.DeleteCommand =>
-        BufferCleaner.performDelete(
+        ByteBufferSweeper.performDelete(
           command = command,
           self = self,
           maxDeleteRetries = maxDeleteRetries,
@@ -312,7 +312,7 @@ private[core] object BufferCleaner extends LazyLogging {
         command.replyTo send self.state.pendingClean.isEmpty
 
       case command: Command.IsTerminatedAndCleaned[_] =>
-        BufferCleaner.performIsTerminatedAndCleaned(command, self)
+        ByteBufferSweeper.performIsTerminatedAndCleaned(command, self)
     }
 
   /**

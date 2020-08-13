@@ -34,7 +34,7 @@ import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
-import swaydb.core.io.file.BufferCleaner.{ByteBufferSweeperActor, Command}
+import swaydb.core.io.file.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
 import swaydb.core.util.{BlockCacheFileIDGenerator, Counter}
 import swaydb.core.{TestBase, TestExecutionContext, TestSweeper}
 import swaydb.data.config.ActorConfig
@@ -47,7 +47,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 
-class BufferCleanerSpec extends TestBase {
+class ByteBufferSweeperSpec extends TestBase {
 
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
@@ -57,7 +57,7 @@ class BufferCleanerSpec extends TestBase {
 
   "clear a MMAP file" in {
     implicit val fileSweeper = FileSweeper(0, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext))
-    implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+    implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
     cleaner.actor.terminateAfter(10.seconds)
 
     val file: DBFile =
@@ -86,7 +86,7 @@ class BufferCleanerSpec extends TestBase {
     "concurrently reading a deleted MMAP file" in {
 
       implicit val fileSweeper = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 1.second, TestExecutionContext.executionContext))
-      implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+      implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
       cleaner.actor.terminateAfter(10.seconds)
 
       val files =
@@ -134,17 +134,17 @@ class BufferCleanerSpec extends TestBase {
 
   "recordCleanRequest & recordCleanSuccessful" should {
     "create a record on empty and remove on all clean" in {
-      implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+      implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
       cleaner.actor
 
       val path = Paths.get("test")
-      val map = mutable.HashMap.empty[Path, Counter.Request[BufferCleaner.Command.Clean]]
-      BufferCleaner.recordCleanRequest(Command.Clean(null, path), map) shouldBe 1
+      val map = mutable.HashMap.empty[Path, Counter.Request[ByteBufferSweeper.Command.Clean]]
+      ByteBufferSweeper.recordCleanRequest(Command.Clean(null, path), map) shouldBe 1
 
       map should have size 1
       map.get(path).value.counter.get() shouldBe 1
 
-      BufferCleaner.recordCleanSuccessful(path, map)
+      ByteBufferSweeper.recordCleanSuccessful(path, map)
       map shouldBe empty
       map.get(path) shouldBe empty
 
@@ -154,19 +154,19 @@ class BufferCleanerSpec extends TestBase {
     }
 
     "increment record if non-empty and decrement on success" in {
-      implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+      implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
       cleaner.actor
 
       val path = Paths.get("test")
       val map = mutable.HashMap.empty[Path, Counter.Request[Command.Clean]]
-      BufferCleaner.recordCleanRequest(Command.Clean(null, path), map) shouldBe 1
+      ByteBufferSweeper.recordCleanRequest(Command.Clean(null, path), map) shouldBe 1
 
       map should have size 1
 
       //submit clean request 100 times
       (1 to 100) foreach {
         i =>
-          BufferCleaner.recordCleanRequest(Command.Clean(null, path), map) shouldBe (i + 1)
+          ByteBufferSweeper.recordCleanRequest(Command.Clean(null, path), map) shouldBe (i + 1)
           map.get(path).value.counter.get() shouldBe (i + 1)
       }
 
@@ -175,7 +175,7 @@ class BufferCleanerSpec extends TestBase {
 
       (1 to 101).reverse foreach {
         i =>
-          BufferCleaner.recordCleanSuccessful(path, map) shouldBe (i - 1)
+          ByteBufferSweeper.recordCleanSuccessful(path, map) shouldBe (i - 1)
           //if no pending cleans left then map should be cleared.
           if (i == 1)
             map shouldBe empty
@@ -191,14 +191,14 @@ class BufferCleanerSpec extends TestBase {
 
   "clean ByteBuffer" should {
     "initialise cleaner" in {
-      implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+      implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
       cleaner.actor
 
       val path = randomFilePath
       val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
       val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
-      val cleanResult = BufferCleaner.initCleanerAndPerformClean(BufferCleaner.State(None, mutable.HashMap.empty), buffer, path)
+      val cleanResult = ByteBufferSweeper.initCleanerAndPerformClean(ByteBufferSweeper.State(None, mutable.HashMap.empty), buffer, path)
       cleanResult shouldBe a[IO.Right[_, _]]
       cleanResult.value.cleaner shouldBe defined
 
@@ -220,7 +220,7 @@ class BufferCleanerSpec extends TestBase {
 
     "deleteFile" when {
       "delete after clean" in {
-        implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+        implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
 
         val filePath = randomFilePath
         val folderPath = filePath.getParent
@@ -248,7 +248,7 @@ class BufferCleanerSpec extends TestBase {
       }
 
       "delete before clean" in {
-        implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+        implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
 
         val filePath = randomFilePath
         val folderPath = filePath.getParent
@@ -277,7 +277,7 @@ class BufferCleanerSpec extends TestBase {
 
     "deleteFolder" when {
       "delete after clean" in {
-        implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+        implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
 
         val filePath = randomFilePath
         val folderPath = filePath.getParent
@@ -304,7 +304,7 @@ class BufferCleanerSpec extends TestBase {
       }
 
       "delete before clean" in {
-        implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+        implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
 
         val filePath = randomFilePath
         val folderPath = filePath.getParent
@@ -332,7 +332,7 @@ class BufferCleanerSpec extends TestBase {
 
     "IsClean" should {
       "return true if ByteBufferCleaner is empty" in {
-        implicit val cleaner: ByteBufferSweeperActor = BufferCleaner(0.seconds, 0, 0, 1.seconds)
+        implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(0.seconds, 0, 0, 1.seconds)
 
         (cleaner.actor ask Command.IsClean(Paths.get("somePath"))).await(1.minute) shouldBe true
 
@@ -340,7 +340,7 @@ class BufferCleanerSpec extends TestBase {
       }
 
       "return true if ByteBufferCleaner has cleaned the file" in {
-        implicit val cleaner: ByteBufferSweeperActor = BufferCleaner(actorInterval = 2.second, messageReschedule = 2.seconds)
+        implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(actorInterval = 2.second, messageReschedule = 2.seconds)
 
         val filePath = randomFilePath
 
@@ -363,7 +363,7 @@ class BufferCleanerSpec extends TestBase {
       }
 
       "return true if ByteBufferCleaner has cleaned and delete the file" in {
-        implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+        implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
 
         def sendRandomRequests(): Path = {
           val filePath = randomFilePath
@@ -406,7 +406,7 @@ class BufferCleanerSpec extends TestBase {
 
     "IsTerminatedAndCleaned" when {
       "ByteBufferCleaner is empty" in {
-        implicit val cleaner: ByteBufferSweeperActor = BufferCleaner(actorInterval = 2.second, messageReschedule = 2.seconds)
+        implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(actorInterval = 2.second, messageReschedule = 2.seconds)
 
         cleaner.actor.terminate()
         cleaner.actor.isTerminated shouldBe true
@@ -416,7 +416,7 @@ class BufferCleanerSpec extends TestBase {
       }
 
       "return true if ByteBufferCleaner has cleaned and delete the file" in {
-        implicit val cleaner: ByteBufferSweeperActor = BufferCleaner()
+        implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper()
 
         def sendRandomRequests(): Path = {
           val filePath = randomFilePath

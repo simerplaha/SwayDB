@@ -32,7 +32,7 @@ import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.MapEntryWriter

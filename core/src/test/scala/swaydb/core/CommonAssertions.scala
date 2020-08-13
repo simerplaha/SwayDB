@@ -38,8 +38,8 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
-import swaydb.core.io.file.{BufferCleaner, Effect}
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.{ByteBufferSweeper, Effect}
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
@@ -1775,7 +1775,7 @@ object CommonAssertions {
     def ensureClose(): Unit = {
       maps.close.value
       maps.bufferCleaner.actor.receiveAllBlocking(Int.MaxValue).get
-      (maps.bufferCleaner.actor ask BufferCleaner.Command.IsTerminatedAndCleaned[Unit]).await(10.seconds)
+      (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminatedAndCleaned[Unit]).await(10.seconds)
     }
   }
 }

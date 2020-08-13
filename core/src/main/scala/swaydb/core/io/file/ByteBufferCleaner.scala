@@ -32,7 +32,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.IO.ExceptionHandler
 
-private[core] object ByteBufferCleaners extends LazyLogging {
+private[core] object ByteBufferCleaner extends LazyLogging {
 
   object Cleaner {
     def apply(handle: MethodHandle): Cleaner =

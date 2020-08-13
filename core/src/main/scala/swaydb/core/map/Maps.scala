@@ -35,7 +35,7 @@ import swaydb.IO._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.brake.BrakePedal
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}

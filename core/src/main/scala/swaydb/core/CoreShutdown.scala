@@ -26,8 +26,8 @@ package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
-import swaydb.core.io.file.{BlockCache, BufferCleaner}
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.{BlockCache, ByteBufferSweeper}
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.throttle.ThrottleState
 import swaydb.core.level.zero.LevelZero
@@ -128,7 +128,7 @@ private[core] object CoreShutdown extends LazyLogging {
               actor.terminateAndRecover(retryOnBusyDelay) flatMap {
                 _ =>
                   logger.info(s"Terminated ByteBufferCleanerActor. Awaiting shutdown response.")
-                  actor ask BufferCleaner.Command.IsTerminatedAndCleaned[Unit]
+                  actor ask ByteBufferSweeper.Command.IsTerminatedAndCleaned[Unit]
               } flatMap {
                 isShut =>
                   if (isShut)

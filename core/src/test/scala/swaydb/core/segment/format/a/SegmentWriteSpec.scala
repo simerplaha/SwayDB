@@ -35,9 +35,9 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, BufferCleaner, Effect}
+import swaydb.core.io.file.{BlockCache, ByteBufferSweeper, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -499,7 +499,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         //memory Segments do not value re-initialised
       } else {
         //memory-mapped files on windows get submitted to ByteBufferCleaner.
-        implicit val bufferCleaner = BufferCleaner(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
+        implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
         bufferCleaner.actor
 
         //create a segment and delete it
@@ -517,7 +517,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   "deleteSegments" should {
     "delete multiple segments" in {
-      implicit val bufferCleaner = BufferCleaner(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
+      implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
       bufferCleaner.actor
 
       val segment1 = TestSegment(randomizedKeyValues(keyValuesCount))
@@ -586,7 +586,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "fail read and write operations on a Segment that does not exists" in {
-      implicit val bufferCleaner = BufferCleaner(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
+      implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
       bufferCleaner.actor
 
       val keyValues = randomizedKeyValues(keyValuesCount)
@@ -707,7 +707,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   "delete" should {
     "close the channel and delete the file" in {
-      implicit val bufferCleaner = BufferCleaner(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
+      implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds)
       bufferCleaner.actor
 
       val keyValues = randomizedKeyValues(keyValuesCount)

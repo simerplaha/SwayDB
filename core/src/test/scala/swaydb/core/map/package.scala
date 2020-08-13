@@ -29,8 +29,8 @@ import swaydb.core.RunThis._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.BufferCleaner
-import swaydb.core.io.file.BufferCleaner.ByteBufferSweeperActor
+import swaydb.core.io.file.ByteBufferSweeper
+import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -75,7 +75,7 @@ package object map {
     def ensureClose(): Unit = {
       map.close()
       map.bufferCleaner.actor.receiveAllBlocking(Int.MaxValue).get
-      val isShut = (map.bufferCleaner.actor ask BufferCleaner.Command.IsTerminatedAndCleaned[Unit]).await(10.seconds)
+      val isShut = (map.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminatedAndCleaned[Unit]).await(10.seconds)
       assert(isShut, "Is not shut")
     }
   }
