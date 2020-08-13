@@ -34,12 +34,12 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.actor.MemorySweeper
+import swaydb.core.actor.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.io.file.{ByteBufferSweeper, Effect}
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.Effect
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
 import swaydb.core.level.{Level, LevelRef, NextLevel}

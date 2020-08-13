@@ -33,8 +33,8 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
-import swaydb.core.io.file.ByteBufferSweeper
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.ThreadReadState

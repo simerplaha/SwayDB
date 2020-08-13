@@ -32,7 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 

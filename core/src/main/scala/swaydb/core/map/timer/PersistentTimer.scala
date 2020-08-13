@@ -32,8 +32,8 @@ import swaydb.IO
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ByteBufferSweeper
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.util.skiplist.SkipListConcurrent

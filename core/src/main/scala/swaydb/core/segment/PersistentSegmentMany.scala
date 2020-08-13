@@ -32,7 +32,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock

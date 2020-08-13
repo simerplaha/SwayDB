@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.io.file
+package swaydb.core.actor
 
 import java.nio.file.{AccessDeniedException, Path}
 import java.nio.{ByteBuffer, MappedByteBuffer}
@@ -30,8 +30,9 @@ import java.nio.{ByteBuffer, MappedByteBuffer}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
+import swaydb.core.actor.ByteBufferCleaner.Cleaner
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.io.file.ByteBufferCleaner.Cleaner
+import swaydb.core.io.file.Effect
 import swaydb.core.util.Counter
 import swaydb.core.util.FiniteDurations._
 import swaydb.data.config.ActorConfig.QueueOrder
@@ -127,7 +128,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   /**
    * Maintains the count of all delete request for each memory-mapped file.
    */
-  private[file] def recordCleanRequest(command: Command.Clean, pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]]): Int =
+  def recordCleanRequest(command: Command.Clean, pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]]): Int =
     pendingClean.get(command.filePath) match {
       case Some(request) =>
         request.counter.incrementAndGet()
@@ -141,7 +142,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   /**
    * Updates current clean count for the file.
    */
-  private[file] def recordCleanSuccessful(path: Path, pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]]): Int =
+  def recordCleanSuccessful(path: Path, pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]]): Int =
     pendingClean.get(path) match {
       case Some(request) =>
         if (request.counter.get() <= 1) {
@@ -167,9 +168,9 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    * Sets the cleaner in state after it's successfully applied the clean
    * to the input buffer.
    */
-  private[file] def initCleanerAndPerformClean(state: State,
-                                               buffer: MappedByteBuffer,
-                                               path: Path): IO[swaydb.Error.IO, State] =
+  def initCleanerAndPerformClean(state: State,
+                                 buffer: MappedByteBuffer,
+                                 path: Path): IO[swaydb.Error.IO, State] =
     state.cleaner match {
       case Some(cleaner) =>
         IO {

@@ -31,8 +31,8 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.CacheNoIO
 import swaydb.core.data.{Memory, MemoryOption, Value}
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.io.file.{BlockCache, ByteBufferSweeper}
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}

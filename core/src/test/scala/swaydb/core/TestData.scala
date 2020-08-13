@@ -39,8 +39,8 @@ import swaydb.core.cache.Cache
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.io.file.{BlockCache, ByteBufferSweeper}
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.BlockCache
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}

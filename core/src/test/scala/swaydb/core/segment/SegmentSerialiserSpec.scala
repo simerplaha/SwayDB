@@ -28,8 +28,8 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.io.file.{BlockCache, ByteBufferSweeper}
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.config.MMAP

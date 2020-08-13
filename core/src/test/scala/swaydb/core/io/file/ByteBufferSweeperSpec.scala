@@ -33,8 +33,8 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.actor.FileSweeper
-import swaydb.core.io.file.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
+import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
 import swaydb.core.util.{BlockCacheFileIDGenerator, Counter}
 import swaydb.core.{TestBase, TestExecutionContext, TestSweeper}
 import swaydb.data.config.ActorConfig

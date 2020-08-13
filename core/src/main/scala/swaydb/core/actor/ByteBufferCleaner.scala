@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.io.file
+package swaydb.core.actor
 
 import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
 import java.nio.file.Path

@@ -29,11 +29,11 @@ import java.nio.file.Paths
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.CoreShutdown.shutdown
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, ByteBufferSweeper}
+import swaydb.core.io.file.BlockCache
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero

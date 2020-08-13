@@ -25,9 +25,9 @@
 package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.io.file.{BlockCache, ByteBufferSweeper}
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.BlockCache
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.throttle.ThrottleState
 import swaydb.core.level.zero.LevelZero

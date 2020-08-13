@@ -29,7 +29,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestSweeper.fileSweeper
 import swaydb.core.actor.FileSweeper
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.util.OperatingSystem

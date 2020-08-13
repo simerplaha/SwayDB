@@ -32,12 +32,12 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, ByteBufferSweeper, Effect}
+import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock

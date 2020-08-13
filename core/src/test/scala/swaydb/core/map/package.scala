@@ -29,8 +29,8 @@ import swaydb.core.RunThis._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ByteBufferSweeper
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}

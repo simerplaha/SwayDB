@@ -25,9 +25,9 @@
 package swaydb.core
 
 import swaydb.core.CommonAssertions._
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.io.file.{BlockCache, ByteBufferSweeper}
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.BlockCache
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.util.StorageUnits._
 

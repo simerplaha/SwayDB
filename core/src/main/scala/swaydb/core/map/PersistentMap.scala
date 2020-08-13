@@ -31,11 +31,11 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
-import swaydb.core.actor.FileSweeper
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{ByteBufferSweeper, DBFile, Effect}
+import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}

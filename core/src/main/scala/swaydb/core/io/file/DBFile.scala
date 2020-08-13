@@ -28,9 +28,9 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
-import swaydb.core.actor.{FileSweeper, FileSweeperItem}
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
 import swaydb.core.cache.Cache
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice

@@ -29,8 +29,8 @@ import java.nio.file.Path
 import swaydb.core.RunThis._
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ByteBufferSweeper
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.data.config.MMAP

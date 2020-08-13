@@ -33,8 +33,8 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MemoryOption, Value}
-import swaydb.core.io.file.ByteBufferSweeper
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Extension

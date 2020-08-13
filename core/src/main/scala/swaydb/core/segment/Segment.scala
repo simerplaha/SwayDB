@@ -33,7 +33,7 @@ import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map

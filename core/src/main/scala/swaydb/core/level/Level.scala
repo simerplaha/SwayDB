@@ -33,7 +33,7 @@ import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.seek._
