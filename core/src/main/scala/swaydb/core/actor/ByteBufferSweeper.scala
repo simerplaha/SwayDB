@@ -36,9 +36,11 @@ import swaydb.core.io.file.Effect
 import swaydb.core.util.Counter
 import swaydb.core.util.FiniteDurations._
 import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.data.util.Futures
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 
 
@@ -125,6 +127,59 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   case class State(var cleaner: Option[Cleaner],
                    pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]])
 
+  def closeAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit sweeper: ByteBufferSweeperActor,
+                                                           bag: Bag.Async[BAG],
+                                                           scheduler: Scheduler): BAG[Unit] =
+    sweeper.get() match {
+      case Some(actor) =>
+        bag.flatMap(actor.terminateAndRecoverAsync(retryOnBusyDelay)) {
+          _ =>
+            val ask = actor ask Command.IsTerminatedAndCleaned(resubmitted = false)
+            bag.transform(ask) {
+              isCleaned =>
+                if (isCleaned)
+                  logger.info(s"${ByteBufferSweeper.getClass.getSimpleName.split("\\$").last} terminated!")
+                else
+                  logger.error(s"Failed to terminate ${ByteBufferSweeper.getClass.getSimpleName.split("\\$").last}")
+            }
+        }
+
+      case None =>
+        bag.unit
+    }
+
+  /**
+   * Closes the [[ByteBufferSweeperActor]] synchronously. This simply calls the Actor function [[Actor.terminateAndRecoverSync]]
+   * and dispatches [[Command.IsTerminatedAndCleaned]] to assert that all files are closed and flushed.
+   *
+   * @param retryBlock
+   * @param timeout
+   * @param sweeper
+   * @param bag
+   * @param ec
+   * @tparam BAG
+   * @return
+   */
+  def closeSync[BAG[_]](retryBlock: FiniteDuration,
+                        timeout: FiniteDuration)(implicit sweeper: ByteBufferSweeperActor,
+                                             bag: Bag.Sync[BAG],
+                                             ec: ExecutionContext): BAG[Unit] =
+    sweeper.get() match {
+      case Some(actor) =>
+        bag.map(actor.terminateAndRecoverSync(retryBlock)) {
+          _ =>
+            val future = actor ask Command.IsTerminatedAndCleaned(resubmitted = false)
+            val isCleaned = Await.result(future, timeout)
+            if (isCleaned)
+              logger.info(s"${ByteBufferSweeper.getClass.getSimpleName.split("\\$").last} terminated!")
+            else
+              logger.error(s"Failed to terminate ${ByteBufferSweeper.getClass.getSimpleName.split("\\$").last}")
+        }
+
+      case None =>
+        bag.unit
+    }
+
   /**
    * Maintains the count of all delete request for each memory-mapped file.
    */
@@ -182,7 +237,6 @@ private[core] object ByteBufferSweeper extends LazyLogging {
             val errorMessage = s"Failed to clean MappedByteBuffer at path '${path.toString}'."
             val exception = error.exception
             logger.error(errorMessage, exception)
-            throw IO.throwable(errorMessage, exception) //also throw to output to stdout in-case logging is not enabled since this is critical.
         }
 
       case None =>

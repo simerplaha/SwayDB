@@ -62,7 +62,7 @@ class IODeferSpec extends AnyWordSpec with Matchers with Eventually with MockFac
       val timeBeforeDeferred = System.currentTimeMillis()
 
       future.isCompleted shouldBe false
-      val defer = IO.fromFuture[swaydb.Error.Segment, A](future)
+      val defer = IO.fromFuture[A](future)
       future.isCompleted shouldBe false
       defer.isPending shouldBe true
       defer.isReady shouldBe true
@@ -127,11 +127,11 @@ class IODeferSpec extends AnyWordSpec with Matchers with Eventually with MockFac
                 }
             }
 
-          val defer1 = IO.fromFuture[Error.Segment, Int](futures(0))
-          val defer2 = IO.fromFuture[Error.Segment, Int](futures(1))
-          val defer3 = IO.fromFuture[Error.Segment, Int](futures(2))
-          val defer4 = IO.fromFuture[Error.Segment, Int](futures(3))
-          val defer5 = IO.fromFuture[Error.Segment, Int](futures(4))
+          val defer1 = IO.fromFuture[Int](futures(0))
+          val defer2 = IO.fromFuture[Int](futures(1))
+          val defer3 = IO.fromFuture[Int](futures(2))
+          val defer4 = IO.fromFuture[Int](futures(3))
+          val defer5 = IO.fromFuture[Int](futures(4))
 
           val createDefers = {
             defer1 flatMap {
@@ -160,6 +160,35 @@ class IODeferSpec extends AnyWordSpec with Matchers with Eventually with MockFac
           }
       }
     }
+
+    "concurrent success" when {
+      "future is initialised within deferred" in {
+        (1 to 5) foreach {
+          _ =>
+            def future: Future[Int] =
+              Future {
+                val sleeping = Random.nextInt(10)
+                println(s"Sleep for $sleeping.seconds")
+                Thread.sleep(sleeping.seconds.toMillis)
+                println(s"Completed sleep $sleeping.seconds")
+                1
+              }
+
+            //this re-creates Future again and again on reboot.
+            val createDefers =
+              IO.Defer.unit.and(IO.fromFuture[Int](future))
+
+            if (Random.nextBoolean()) {
+              createDefers.runIO shouldBe IO.Right(1)
+              createDefers.runFutureIO shouldBe IO.Right(1)
+            } else {
+              createDefers.runFutureIO shouldBe IO.Right(1)
+              createDefers.runIO shouldBe IO.Right(1)
+            }
+        }
+      }
+    }
+
   }
 
   "runIO" when {

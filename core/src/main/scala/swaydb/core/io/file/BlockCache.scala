@@ -24,6 +24,7 @@
 
 package swaydb.core.io.file
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.HashedMap
 import swaydb.data.slice.{Slice, SliceOption}
@@ -33,7 +34,7 @@ import scala.annotation.tailrec
 /**
  * Stores all the read bytes given the configured disk blockSize.
  */
-private[core] object BlockCache {
+private[core] object BlockCache extends LazyLogging {
 
   //  var diskSeeks = 0
   //  var memorySeeks = 0
@@ -86,6 +87,15 @@ private[core] object BlockCache {
 
     def remove(key: BlockCache.Key) =
       map remove key
+  }
+
+  def close(blockCache: Option[BlockCache.State]): Unit =
+    blockCache.foreach(close)
+
+  def close(blockCache: BlockCache.State): Unit = {
+    logger.info("Cleared BlockCache")
+    blockCache.clear()
+    blockCache.sweeper.terminateAndClear()
   }
 
   def seekSize(keyPosition: Int,

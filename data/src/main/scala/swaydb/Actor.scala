@@ -74,7 +74,7 @@ sealed trait ActorRef[-T, S] { self =>
   def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
                                                                 bag: Bag.Async[BAG]): BAG[Unit]
 
-  def receiveAllBlocking(retryCounts: Int): Try[Unit]
+  def receiveAllBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit]
 
   def terminate(): Unit
 
@@ -86,8 +86,10 @@ sealed trait ActorRef[-T, S] { self =>
 
   def terminateAndClear(): Unit
 
-  def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
-                                                                    bag: Bag.Async[BAG]): BAG[Unit]
+  def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
+                                                                         bag: Bag.Async[BAG]): BAG[Unit]
+
+  def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit]
 }
 
 object Actor {
@@ -114,13 +116,14 @@ object Actor {
       override def isEmpty: Boolean = throw new Exception("Dead Actor")
       override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Error], Actor[T, S]) => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
-      override def receiveAllBlocking(retryCounts: Int): Try[Unit] = throw new Exception("Dead Actor")
+      override def receiveAllBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] = throw new Exception("Dead Actor")
       override def terminate(): Unit = throw new Exception("Dead Actor")
-      override def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def isTerminated: Boolean = throw new Exception("Dead Actor")
       override def clear(): Unit = throw new Exception("Dead Actor")
       override def terminateAndClear(): Unit = throw new Exception("Dead Actor")
-      override def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S] = throw new Exception("Dead Actor")
+      override def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
     }
 
   def cacheFromConfig[T](config: ActorConfig,
@@ -615,26 +618,30 @@ class Actor[-T, S](val name: String,
                                                                 bag: Bag.Async[BAG]): BAG[Unit] =
     bag.suspend(bag.fromFuture(receiveAllInFuture(retryOnBusyDelay)))
 
-  override def receiveAllBlocking(retryCounts: Int): Try[Unit] =
-    receiveAllBlocking(0, retryCounts)
+  override def receiveAllBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] =
+    receiveAllBlocking(0, retryCounts, block)
 
   @tailrec
-  private def receiveAllBlocking(retires: Int, maxRetries: Int): Try[Unit] =
-    if (retires > maxRetries)
+  private def receiveAllBlocking(retires: Int, maxRetries: Int, block: FiniteDuration): Try[Unit] =
+    if (retires > maxRetries) {
       Failure(new Exception(s"Retries timeout. Retries: $retires. maxRetries: $maxRetries"))
-    else if (busy.compareAndSet(false, true))
+    } else if (busy.compareAndSet(false, true)) {
       Try(receive(Int.MaxValue, wakeUpOnComplete = false)) match {
         case success @ Success(_) =>
-          if (messageCount <= 0)
+          if (messageCount <= 0) {
             success
-          else
-            receiveAllBlocking(0, maxRetries)
+          } else {
+            Thread.sleep(block.toMillis)
+            receiveAllBlocking(0, maxRetries, block)
+          }
 
         case failure @ Failure(_) =>
           failure
       }
-    else
-      receiveAllBlocking(retires + 1, maxRetries)
+    } else {
+      Thread.sleep(block.toMillis)
+      receiveAllBlocking(retires + 1, maxRetries, block)
+    }
 
 
   private def receive(overflow: Int, wakeUpOnComplete: Boolean): Unit = {
@@ -723,12 +730,30 @@ class Actor[-T, S](val name: String,
    *
    * If [[recover]] function  is not specified then all queues messages are cleared.
    */
-  def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
-                                                                    bag: Bag.Async[BAG]): BAG[Unit] =
+  def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
+                                                                         bag: Bag.Async[BAG]): BAG[Unit] =
     bag.suspend {
       terminate()
       if (recovery.isDefined) {
         receiveAllForce(retryOnBusyDelay)
+      } else {
+        logger.error(s"""terminateAndRecover invoked on Actor("$name") with no recovery defined. Messages cleared.""")
+        clear()
+        bag.unit
+      }
+    }
+
+  override def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit] =
+    bag.suspend {
+      terminate()
+      if (recovery.isDefined) {
+        receiveAllBlocking(100, retryOnBusyDelay) match {
+          case Success(_) =>
+            bag.unit
+
+          case Failure(exception) =>
+            bag.failure(exception)
+        }
       } else {
         logger.error(s"""terminateAndRecover invoked on Actor("$name") with no recovery defined. Messages cleared.""")
         clear()

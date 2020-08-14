@@ -30,10 +30,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
@@ -42,7 +40,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.{Extension, ReserveRange}
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -84,8 +82,6 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
   //    override def deleteFiles: Boolean =
   //      false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "acquireLock" should {
@@ -119,55 +115,58 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
 
   "apply" should {
     "create level" in {
-      val level = TestLevel()
-      if (memory) {
-        //memory level always have one folder
-        level.dirs should have size 1
-        level.existsOnDisk shouldBe false
-        level.inMemory shouldBe true
-        //        level.valuesConfig.compressDuplicateValues shouldBe true
-      } else {
-        level.existsOnDisk shouldBe true
-        level.inMemory shouldBe false
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel().clean()
 
-        //there shouldBe at least one path
-        level.dirs should not be empty
+          if (memory) {
+            //memory level always have one folder
+            level.dirs should have size 1
+            level.existsOnDisk shouldBe false
+            level.inMemory shouldBe true
+            //        level.valuesConfig.compressDuplicateValues shouldBe true
+          } else {
+            level.existsOnDisk shouldBe true
+            level.inMemory shouldBe false
 
-        //appendix path gets added to the head path
-        val appendixPath = level.pathDistributor.headPath.resolve("appendix")
-        appendixPath.exists shouldBe true
-        appendixPath.resolve("0.log").exists shouldBe true
+            //there shouldBe at least one path
+            level.dirs should not be empty
 
-        //all paths should exists
-        level.dirs.foreach(_.path.exists shouldBe true)
+            //appendix path gets added to the head path
+            val appendixPath = level.pathDistributor.headPath.resolve("appendix")
+            appendixPath.exists shouldBe true
+            appendixPath.resolve("0.log").exists shouldBe true
+
+            //all paths should exists
+            level.dirs.foreach(_.path.exists shouldBe true)
+          }
+
+          level.segmentsInLevel() shouldBe empty
+          level.removeDeletedRecords shouldBe true
       }
-
-      level.segmentsInLevel() shouldBe empty
-      level.removeDeletedRecords shouldBe true
-
-      level.delete.runRandomIO.right.value
-      level.existsOnDisk shouldBe false
     }
 
     "report error if appendix file and folder does not exists" in {
       if (persistent) {
-        //create a non empty level
-        val level = TestLevel()
-        val segment = TestSegment(randomKeyValues(keyValuesCount))
+        TestCaseSweeper {
+          implicit sweeper =>
+            //create a non empty level
+            val level = TestLevel().clean()
 
-        level.put(segment).right.right.value.right.value
+            val segment = TestSegment(randomKeyValues(keyValuesCount)).clean()
 
-        //delete the appendix file
-        level.pathDistributor.headPath.resolve("appendix").files(Extension.Log) map Effect.delete
-        //expect failure when file does not exists
-        level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
+            level.put(segment).right.right.value.right.value
 
-        //delete folder
-        Effect.delete(level.pathDistributor.headPath.resolve("appendix")).runRandomIO.right.value
-        //expect failure when folder does not exist
-        level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
+            //delete the appendix file
+            level.pathDistributor.headPath.resolve("appendix").files(Extension.Log) map Effect.delete
+            //expect failure when file does not exists
+            level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 
-        level.delete.runRandomIO.right.value
+            //delete folder
+            Effect.delete(level.pathDistributor.headPath.resolve("appendix")).runRandomIO.right.value
+            //expect failure when folder does not exist
+            level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
+        }
       }
     }
   }
@@ -177,181 +176,199 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       if (memory) {
         // memory Level do not have uncommitted Segments
       } else {
-        val level = TestLevel()
-        level.putKeyValuesTest(randomPutKeyValues()).runRandomIO.right.value
-        val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk
-        segmentsIdsBeforeInvalidSegments should have size 1
+        TestCaseSweeper {
+          implicit sweeper =>
+            val level = TestLevel().clean()
 
-        val currentSegmentId = segmentsIdsBeforeInvalidSegments.head.fileId.runRandomIO.right.value._1
+            level.putKeyValuesTest(randomPutKeyValues()).runRandomIO.right.value
+            val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk
+            segmentsIdsBeforeInvalidSegments should have size 1
 
-        //create 3 invalid segments in all the paths of the Level
-        level.dirs.foldLeft(currentSegmentId) {
-          case (currentSegmentId, dir) =>
-            TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId)).runRandomIO.right.value
-            TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId)).runRandomIO.right.value
-            TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).runRandomIO.right.value
-            currentSegmentId + 3
+            val currentSegmentId = segmentsIdsBeforeInvalidSegments.head.fileId.runRandomIO.right.value._1
+
+            //create 3 invalid segments in all the paths of the Level
+            level.dirs.foldLeft(currentSegmentId) {
+              case (currentSegmentId, dir) =>
+                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId)).runRandomIO.right.value.clean()
+                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId)).runRandomIO.right.value.clean()
+                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).runRandomIO.right.value.clean()
+                currentSegmentId + 3
+            }
+            //every level folder has 3 uncommitted Segments plus 1 valid Segment
+            level.segmentFilesOnDisk should have size (level.dirs.size * 3) + 1
+
+            Level.deleteUncommittedSegments(level.dirs, level.segmentsInLevel()).runRandomIO.right.value
+
+            level.segmentFilesOnDisk should have size 1
+            level.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
+            level.reopen.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
         }
-        //every level folder has 3 uncommitted Segments plus 1 valid Segment
-        level.segmentFilesOnDisk should have size (level.dirs.size * 3) + 1
-
-        Level.deleteUncommittedSegments(level.dirs, level.segmentsInLevel()).runRandomIO.right.value
-
-        level.segmentFilesOnDisk should have size 1
-        level.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
-        level.reopen.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
-
-        level.delete.runRandomIO.right.value
       }
     }
   }
 
   "largestSegmentId" should {
     "value the largest segment in the Level when the Level is not empty" in {
-      val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
-      level.putKeyValuesTest(randomizedKeyValues(2000)).runRandomIO.right.value
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
+          level.putKeyValuesTest(randomizedKeyValues(2000)).runRandomIO.right.value
 
-      val largeSegmentId = Level.largestSegmentId(level.segmentsInLevel())
-      largeSegmentId shouldBe level.segmentsInLevel().map(_.path.fileId.runRandomIO.right.value._1).max
-
-      level.delete.runRandomIO.right.value
+          val largeSegmentId = Level.largestSegmentId(level.segmentsInLevel())
+          largeSegmentId shouldBe level.segmentsInLevel().map(_.path.fileId.runRandomIO.right.value._1).max
+      }
     }
 
     "return 0 when the Level is empty" in {
-      val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
-      Level.largestSegmentId(level.segmentsInLevel()) shouldBe 0
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
 
-      level.delete.runRandomIO.right.value
+          Level.largestSegmentId(level.segmentsInLevel()) shouldBe 0
+      }
     }
   }
 
   "optimalSegmentsToPushForward" should {
     "return empty if there Levels are empty" in {
-      val nextLevel = TestLevel()
-      val level = TestLevel()
-      implicit val reserve = ReserveRange.create[Unit]()
+      TestCaseSweeper {
+        implicit sweeper =>
+          val nextLevel = TestLevel()
+          val level = TestLevel().clean()
+          implicit val reserve = ReserveRange.create[Unit]()
 
-      Level.optimalSegmentsToPushForward(
-        level = level,
-        nextLevel = nextLevel,
-        take = 10
-      ) shouldBe Level.emptySegmentsToPush
-
-      level.close.runRandomIO.right.value
-      nextLevel.close.runRandomIO.right.value
-
-      level.delete.runRandomIO.right.value
+          Level.optimalSegmentsToPushForward(
+            level = level,
+            nextLevel = nextLevel,
+            take = 10
+          ) shouldBe Level.emptySegmentsToPush
+      }
     }
 
     "return all Segments to copy if next Level is empty" in {
-      val nextLevel = TestLevel()
-      val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
-      //      level.segmentsCount() should be >= 2
+      TestCaseSweeper {
+        implicit sweeper =>
+          val nextLevel = TestLevel()
+          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
+          //      level.segmentsCount() should be >= 2
 
-      implicit val reserve = ReserveRange.create[Unit]()
+          implicit val reserve = ReserveRange.create[Unit]()
 
-      val (toCopy, toMerge) =
-        Level.optimalSegmentsToPushForward(
-          level = level,
-          nextLevel = nextLevel,
-          take = 10
-        )
+          val (toCopy, toMerge) =
+            Level.optimalSegmentsToPushForward(
+              level = level,
+              nextLevel = nextLevel,
+              take = 10
+            )
 
-      toMerge shouldBe empty
-      toCopy.map(_.path) shouldBe level.segmentsInLevel().take(10).map(_.path)
-
-      level.close.runRandomIO.right.value
-      nextLevel.close.runRandomIO.right.value
+          toMerge shouldBe empty
+          toCopy.map(_.path) shouldBe level.segmentsInLevel().take(10).map(_.path)
+      }
     }
 
     "return all unreserved Segments to copy if next Level is empty" in {
-      val nextLevel = TestLevel()
-      val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
-      level.segmentsCount() should be >= 2
+      TestCaseSweeper {
+        implicit sweeper =>
+          val nextLevel = TestLevel()
+          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
 
-      implicit val reserve = ReserveRange.create[Unit]()
-      val firstSegment = level.segmentsInLevel().head
+          level.segmentsCount() should be >= 2
 
-      ReserveRange.reserveOrGet(firstSegment.minKey, firstSegment.maxKey.maxKey, firstSegment.maxKey.inclusive, ()) shouldBe empty //reserve first segment
+          implicit val reserve = ReserveRange.create[Unit]()
+          val firstSegment = level.segmentsInLevel().head
 
-      val (toCopy, toMerge) =
-        Level.optimalSegmentsToPushForward(
-          level = level,
-          nextLevel = nextLevel,
-          take = 10
-        )
+          ReserveRange.reserveOrGet(firstSegment.minKey, firstSegment.maxKey.maxKey, firstSegment.maxKey.inclusive, ()) shouldBe empty //reserve first segment
 
-      toMerge shouldBe empty
-      toCopy.map(_.path) shouldBe level.segmentsInLevel().drop(1).take(10).map(_.path)
+          val (toCopy, toMerge) =
+            Level.optimalSegmentsToPushForward(
+              level = level,
+              nextLevel = nextLevel,
+              take = 10
+            )
 
-      level.delete.runRandomIO.right.value
-      nextLevel.delete.runRandomIO.right.value
+          toMerge shouldBe empty
+          toCopy.map(_.path) shouldBe level.segmentsInLevel().drop(1).take(10).map(_.path)
+      }
     }
   }
 
   "optimalSegmentsToCollapse" should {
     "return empty if there Levels are empty" in {
-      val level = TestLevel()
-      implicit val reserve = ReserveRange.create[Unit]()
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel().clean()
 
-      Level.optimalSegmentsToCollapse(
-        level = level,
-        take = 10
-      ) shouldBe empty
+          implicit val reserve = ReserveRange.create[Unit]()
 
-      level.delete.runRandomIO.right.value
+          Level.optimalSegmentsToCollapse(
+            level = level,
+            take = 10
+          ) shouldBe empty
+      }
     }
 
     "return empty if all segments were reserved" in {
-      val keyValues = randomizedKeyValues(count = 10000, startId = Some(1))
-      val level = TestLevel(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
-      level.segmentsCount() should be >= 2
+      TestCaseSweeper {
+        implicit sweeper =>
+          val keyValues = randomizedKeyValues(count = 10000, startId = Some(1))
+          val level = TestLevel(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
 
-      implicit val reserve = ReserveRange.create[Unit]()
+          level.segmentsCount() should be >= 2
 
-      val minKey = keyValues.head.key
-      val maxKey = Segment.minMaxKey(level.segmentsInLevel()).get
-      ReserveRange.reserveOrGet(minKey, maxKey._2, maxKey._3, ()) shouldBe empty
+          implicit val reserve = ReserveRange.create[Unit]()
 
-      Level.optimalSegmentsToCollapse(
-        level = level,
-        take = 10
-      ) shouldBe empty
+          val minKey = keyValues.head.key
+          val maxKey = Segment.minMaxKey(level.segmentsInLevel()).get
+          ReserveRange.reserveOrGet(minKey, maxKey._2, maxKey._3, ()) shouldBe empty
 
-      level.delete.runRandomIO.right.value
+          Level.optimalSegmentsToCollapse(
+            level = level,
+            take = 10
+          ) shouldBe empty
+      }
     }
   }
 
   "reserve" should {
     "reserve keys for compaction where Level is empty" in {
-      val level = TestLevel()
-      val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2)
-      val segment1 = TestSegment(keyValues.head).runRandomIO.right.value
-      val segment2 = TestSegment(keyValues.last).runRandomIO.right.value
-      level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Slice[Byte]](keyValues.head.head.key)(IO.ExceptionHandler.PromiseUnit)
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel().clean()
 
-      //cannot reserve again
-      level.reserve(Seq(segment1, segment2)).get shouldBe a[IO.Left[_, _]]
-      level.reserve(Seq(segment1)).get shouldBe a[IO.Left[_, _]]
-      level.reserve(Seq(segment2)).get shouldBe a[IO.Left[_, _]]
+          val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2)
+          val segment1 = TestSegment(keyValues.head).runRandomIO.right.value.clean()
+          val segment2 = TestSegment(keyValues.last).runRandomIO.right.value.clean()
+          level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Slice[Byte]](keyValues.head.head.key)(IO.ExceptionHandler.PromiseUnit)
 
-      level.delete.runRandomIO.right.value
+          //cannot reserve again
+          level.reserve(Seq(segment1, segment2)).get shouldBe a[IO.Left[_, _]]
+          level.reserve(Seq(segment1)).get shouldBe a[IO.Left[_, _]]
+          level.reserve(Seq(segment2)).get shouldBe a[IO.Left[_, _]]
+      }
     }
 
     "return completed Future for empty Segments" in {
-      val level = TestLevel()
-      level.reserve(Seq.empty).get.left.get.isCompleted shouldBe true
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel().clean()
 
-      level.delete.runRandomIO.right.value
+          level.reserve(Seq.empty).get.left.get.isCompleted shouldBe true
+      }
     }
 
     "reserve min and max keys" in {
-      val level = TestLevel()
-      val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2)
-      val segments = Seq(TestSegment(keyValues.head).runRandomIO.right.value, TestSegment(keyValues.last).runRandomIO.right.value)
-      level.put(segments).right.right.value.right.value
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel().clean()
 
-      level.delete.runRandomIO.right.value
+          val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2)
+          val segments =
+            Seq(
+              TestSegment(keyValues.head).runRandomIO.right.value.clean(),
+              TestSegment(keyValues.last).runRandomIO.right.value.clean()
+            )
+          level.put(segments).right.right.value.right.value
+      }
     }
   }
 
@@ -359,60 +376,63 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
 
     "build MapEntry.Put map for the first created Segment" in {
-      val level = TestLevel()
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel().clean()
 
-      val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.right.value
-      val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = Segment.Null, initialMapEntry = None).runRandomIO.right.value
-      val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
+          val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.right.value.clean()
+          val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = Segment.Null, initialMapEntry = None).runRandomIO.right.value
+          val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
 
-      actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
-        expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
-
-      level.delete.runRandomIO.right.value
+          actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
+            expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
+      }
     }
 
     "build MapEntry.Put map for the newly merged Segments and not add MapEntry.Remove map " +
       "for original Segment as it's minKey is replace by one of the new Segment" in {
-      val level = TestLevel()
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel().clean()
 
-      val originalSegment = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
-      val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
-      val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
-      val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
+          val originalSegment = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value.clean()
+          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value.clean()
+          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value.clean()
+          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value.clean()
 
-      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialMapEntry = None).runRandomIO.right.value
+          val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialMapEntry = None).runRandomIO.right.value
 
-      val expectedMapEntry =
-        MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
-          MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
-          MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3)
+          val expectedMapEntry =
+            MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
+              MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
+              MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3)
 
-      actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
-        expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
-
-      level.delete.runRandomIO.right.value
+          actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
+            expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
+      }
     }
 
     "build MapEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
-      val level = TestLevel()
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel().clean()
 
-      val originalSegment = TestSegment(Slice(Memory.put(0, "value"), Memory.put(5, "value"))).runRandomIO.right.value
-      val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
-      val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
-      val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
+          val originalSegment = TestSegment(Slice(Memory.put(0, "value"), Memory.put(5, "value"))).runRandomIO.right.value.clean()
+          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value.clean()
+          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value.clean()
+          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value.clean()
 
-      val expectedMapEntry =
-        MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
-          MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
-          MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3) ++
-          MapEntry.Remove[Slice[Byte]](0)
+          val expectedMapEntry =
+            MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
+              MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
+              MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3) ++
+              MapEntry.Remove[Slice[Byte]](0)
 
-      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialMapEntry = None).runRandomIO.right.value
+          val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialMapEntry = None).runRandomIO.right.value
 
-      actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
-        expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
-
-      level.delete.runRandomIO.right.value
+          actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
+            expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
+      }
     }
   }
 }

@@ -34,7 +34,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers.{Serializer, _}
 
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
 import swaydb.core.function.{FunctionStore => CoreFunctionStore}
 
 object Set {
@@ -329,11 +329,11 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
   def asScala: scala.collection.mutable.Set[A] =
     ScalaSet[A, F](toBag[Bag.Less](Bag.less))
 
-  def close(): BAG[Unit] =
-    bag.suspend(core.close())
+  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
+    bag.suspend(core.close(retryInterval))
 
-  def delete(): BAG[Unit] =
-    bag.suspend(core.delete())
+  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
+    bag.suspend(core.delete(retryInterval))
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getSimpleName

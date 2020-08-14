@@ -28,9 +28,10 @@ import java.nio.file.Path
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.DurationInt
 
 class LevelRefSpec extends TestBase with MockFactory {
 
@@ -53,95 +54,102 @@ class LevelRefSpec extends TestBase with MockFactory {
 
   "getLevels" should {
     "return all levels" in {
-      val level3 = TestLevel()
-      val level2 = TestLevel(nextLevel = Some(level3))
-      val level1 = TestLevel(nextLevel = Some(level2))
-      val level0 = TestLevelZero(nextLevel = Some(level1))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level3 = TestLevel()
+          val level2 = TestLevel(nextLevel = Some(level3))
+          val level1 = TestLevel(nextLevel = Some(level2))
+          val level0 = TestLevelZero(nextLevel = Some(level1))
 
-      val allPaths = Seq(level0, level1, level2, level3).map(_.rootPath)
+          val allPaths = Seq(level0, level1, level2, level3).map(_.rootPath)
 
-      LevelRef.getLevels(level0).map(_.rootPath) shouldBe allPaths
-      LevelRef.getLevels(level1).map(_.rootPath) shouldBe allPaths.drop(1)
-      LevelRef.getLevels(level2).map(_.rootPath) shouldBe allPaths.drop(2)
-      LevelRef.getLevels(level3).map(_.rootPath) shouldBe allPaths.drop(3)
-
-      level0.close.runRandomIO.right.value
+          LevelRef.getLevels(level0).map(_.rootPath) shouldBe allPaths
+          LevelRef.getLevels(level1).map(_.rootPath) shouldBe allPaths.drop(1)
+          LevelRef.getLevels(level2).map(_.rootPath) shouldBe allPaths.drop(2)
+          LevelRef.getLevels(level3).map(_.rootPath) shouldBe allPaths.drop(3)
+      }
     }
   }
 
   "foldLeft" when {
     "single level" in {
-      val level = TestLevel()
-      val paths =
-        level.foldLeftLevels(ListBuffer.empty[Path]) {
-          case (paths, level) =>
-            paths += level.rootPath
-        }
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel()
+          val paths =
+            level.foldLeftLevels(ListBuffer.empty[Path]) {
+              case (paths, level) =>
+                paths += level.rootPath
+            }
 
-      paths should contain only level.rootPath
-
-      level.close.runRandomIO.right.value
+          paths should contain only level.rootPath
+      }
     }
 
     "multi level" in {
-      val level3 = TestLevel()
-      val level2 = TestLevel(nextLevel = Some(level3))
-      val level1 = TestLevel(nextLevel = Some(level2))
-      val level0 = TestLevelZero(nextLevel = Some(level1))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level3 = TestLevel()
+          val level2 = TestLevel(nextLevel = Some(level3))
+          val level1 = TestLevel(nextLevel = Some(level2))
+          val level0 = TestLevelZero(nextLevel = Some(level1))
 
-      def paths(level: LevelRef): Iterable[Path] =
-        level.foldLeftLevels(ListBuffer.empty[Path]) {
-          case (paths, level) =>
-            paths += level.rootPath
-        }
+          def paths(level: LevelRef): Iterable[Path] =
+            level.foldLeftLevels(ListBuffer.empty[Path]) {
+              case (paths, level) =>
+                paths += level.rootPath
+            }
 
-      val allPaths = Seq(level0, level1, level2, level3).map(_.rootPath)
+          val allPaths = Seq(level0, level1, level2, level3).map(_.rootPath)
 
-      paths(level0) shouldBe allPaths
-      paths(level1) shouldBe allPaths.drop(1)
-      paths(level2) shouldBe allPaths.drop(2)
-      paths(level3) shouldBe allPaths.drop(3)
-
-      level0.close.runRandomIO.right.value
+          paths(level0) shouldBe allPaths
+          paths(level1) shouldBe allPaths.drop(1)
+          paths(level2) shouldBe allPaths.drop(2)
+          paths(level3) shouldBe allPaths.drop(3)
+      }
     }
   }
 
   "map" when {
     "single level" in {
-      val level = TestLevel()
-      val paths = level.mapLevels(_.rootPath)
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel()
+          val paths = level.mapLevels(_.rootPath)
 
-      paths should contain only level.rootPath
-      level.close.runRandomIO.right.value
+          paths should contain only level.rootPath
+      }
     }
 
     "multi level" in {
-      val level3 = TestLevel()
-      val level2 = TestLevel(nextLevel = Some(level3))
-      val level1 = TestLevel(nextLevel = Some(level2))
-      val level0 = TestLevelZero(nextLevel = Some(level1))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level3 = TestLevel()
+          val level2 = TestLevel(nextLevel = Some(level3))
+          val level1 = TestLevel(nextLevel = Some(level2))
+          val level0 = TestLevelZero(nextLevel = Some(level1))
 
-      def paths(level: LevelRef) = level.mapLevels(_.rootPath)
+          def paths(level: LevelRef) = level.mapLevels(_.rootPath)
 
-      val allPaths = Seq(level0, level1, level2, level3).map(_.rootPath)
+          val allPaths = Seq(level0, level1, level2, level3).map(_.rootPath)
 
-      paths(level0) shouldBe allPaths
-      paths(level1) shouldBe allPaths.drop(1)
-      paths(level2) shouldBe allPaths.drop(2)
-      paths(level3) shouldBe allPaths.drop(3)
-
-      level0.close.runRandomIO.right.value
+          paths(level0) shouldBe allPaths
+          paths(level1) shouldBe allPaths.drop(1)
+          paths(level2) shouldBe allPaths.drop(2)
+          paths(level3) shouldBe allPaths.drop(3)
+      }
     }
   }
 
   "reversedLevels" in {
-    val level3 = TestLevel()
-    val level2 = TestLevel(nextLevel = Some(level3))
-    val level1 = TestLevel(nextLevel = Some(level2))
-    val level0 = TestLevelZero(nextLevel = Some(level1))
+    TestCaseSweeper {
+      implicit sweeper =>
+        val level3 = TestLevel()
+        val level2 = TestLevel(nextLevel = Some(level3))
+        val level1 = TestLevel(nextLevel = Some(level2))
+        val level0 = TestLevelZero(nextLevel = Some(level1))
 
-    level0.reverseLevels.map(_.rootPath) shouldBe Seq(level3.rootPath, level2.rootPath, level1.rootPath, level0.rootPath)
-
-    level0.close.runRandomIO.right.value
+        level0.reverseLevels.map(_.rootPath) shouldBe Seq(level3.rootPath, level2.rootPath, level1.rootPath, level0.rootPath)
+    }
   }
 }

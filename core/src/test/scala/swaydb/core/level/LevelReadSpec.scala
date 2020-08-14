@@ -35,7 +35,7 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.{TestBase, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
@@ -75,130 +75,145 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
 
   "Level.mightContainKey" should {
     "return true for key-values that exists or else false (bloom filter test on reboot)" in {
-      val keyValues = randomPutKeyValues(keyValuesCount, addPutDeadlines = false)
+      TestCaseSweeper {
+        implicit sweeper =>
+          val keyValues = randomPutKeyValues(keyValuesCount, addPutDeadlines = false)
 
-      def assert(level: Level) = {
-        keyValues foreach {
-          keyValue =>
-            level.mightContainKey(keyValue.key).runRandomIO.right.value shouldBe true
-        }
+          def assert(level: Level) = {
+            keyValues foreach {
+              keyValue =>
+                level.mightContainKey(keyValue.key).runRandomIO.right.value shouldBe true
+            }
 
-        level.mightContainKey("THIS KEY DOES NOT EXISTS").runRandomIO.right.value shouldBe false
+            level.mightContainKey("THIS KEY DOES NOT EXISTS").runRandomIO.right.value shouldBe false
+          }
+
+          val level = TestLevel()
+          level.putKeyValuesTest(keyValues).runRandomIO.right.value
+
+          assert(level)
+          if (persistent) assert(level.reopen)
       }
-
-      val level = TestLevel()
-      level.putKeyValuesTest(keyValues).runRandomIO.right.value
-
-      assert(level)
-      if (persistent) assert(level.reopen)
     }
   }
 
   "Level.takeSmallSegments" should {
     "filter smaller segments from a Level" in {
-      //disable throttling so small segment compaction does not occur
-      val level = TestLevel(nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0), segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.kb))
+      TestCaseSweeper {
+        implicit sweeper =>
+          //disable throttling so small segment compaction does not occur
+          val level = TestLevel(nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0), segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.kb))
 
-      val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)
-      level.putKeyValuesTest(keyValues).runRandomIO.right.value
-      //do another put so split occurs.
-      level.putKeyValuesTest(keyValues.headSlice).runRandomIO.right.value
-      level.segmentsCount() > 1 shouldBe true //ensure there are Segments in this Level
+          val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)
+          level.putKeyValuesTest(keyValues).runRandomIO.right.value
+          //do another put so split occurs.
+          level.putKeyValuesTest(keyValues.headSlice).runRandomIO.right.value
+          level.segmentsCount() > 1 shouldBe true //ensure there are Segments in this Level
 
-      if (persistent) {
-        val reopen = level.reopen(segmentSize = 10.mb)
+          if (persistent) {
+            val reopen = level.reopen(segmentSize = 10.mb)
 
-        reopen.takeSmallSegments(10000) should not be empty
-        //iterate again on the same Iterable.
-        // This test is to ensure that returned List is not a java Iterable which is only iterable once.
-        reopen.takeSmallSegments(10000) should not be empty
+            reopen.takeSmallSegments(10000) should not be empty
+            //iterate again on the same Iterable.
+            // This test is to ensure that returned List is not a java Iterable which is only iterable once.
+            reopen.takeSmallSegments(10000) should not be empty
 
-        reopen.reopen(segmentSize = 10.mb).takeLargeSegments(1) shouldBe empty
+            reopen.reopen(segmentSize = 10.mb).takeLargeSegments(1) shouldBe empty
+          }
       }
     }
   }
 
   "Level.meter" should {
     "return Level stats" in {
-      val level = TestLevel()
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel()
 
-      val putKeyValues = randomPutKeyValues(keyValuesCount)
-      //refresh so that if there is a compression running, this Segment will compressed.
-      val segments =
-        TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
-          .runRandomIO
-          .right.value
-          .refresh(
-            removeDeletes = false,
-            createdInLevel = 0,
-            valuesConfig = ValuesBlock.Config.random,
-            sortedIndexConfig = SortedIndexBlock.Config.random,
-            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-            hashIndexConfig = HashIndexBlock.Config.random,
-            bloomFilterConfig = BloomFilterBlock.Config.random,
-            segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb)
-          ).runRandomIO.right.value
+          val putKeyValues = randomPutKeyValues(keyValuesCount)
+          //refresh so that if there is a compression running, this Segment will compressed.
+          val segments =
+            TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+              .runRandomIO
+              .right.value
+              .refresh(
+                removeDeletes = false,
+                createdInLevel = 0,
+                valuesConfig = ValuesBlock.Config.random,
+                sortedIndexConfig = SortedIndexBlock.Config.random,
+                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                hashIndexConfig = HashIndexBlock.Config.random,
+                bloomFilterConfig = BloomFilterBlock.Config.random,
+                segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb)
+              ).runRandomIO.right.value
 
-      segments should have size 1
-      val segment = segments.head
+          segments should have size 1
+          val segment = segments.head
 
-      level.put(Seq(segment)).right.right.value.right.value
+          level.put(Seq(segment)).right.right.value.right.value
 
-      level.meter.segmentsCount shouldBe 1
-      level.meter.levelSize shouldBe segment.segmentSize
+          level.meter.segmentsCount shouldBe 1
+          level.meter.levelSize shouldBe segment.segmentSize
+      }
     }
   }
 
   "Level.meterFor" should {
     "forward request to the right level" in {
-      val level2 = TestLevel()
-      val level1 = TestLevel(nextLevel = Some(level2))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level2 = TestLevel()
+          val level1 = TestLevel(nextLevel = Some(level2))
 
-      val putKeyValues = randomPutKeyValues(keyValuesCount)
-      //refresh so that if there is a compression running, this Segment will compressed.
-      val segments =
-        TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
-          .runRandomIO.right.value
-          .refresh(
-            removeDeletes = false,
-            createdInLevel = 0,
-            valuesConfig = ValuesBlock.Config.random,
-            sortedIndexConfig = SortedIndexBlock.Config.random,
-            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-            hashIndexConfig = HashIndexBlock.Config.random,
-            bloomFilterConfig = BloomFilterBlock.Config.random,
-            segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb)
-          ).runRandomIO.right.value
+          val putKeyValues = randomPutKeyValues(keyValuesCount)
+          //refresh so that if there is a compression running, this Segment will compressed.
+          val segments =
+            TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+              .runRandomIO.right.value
+              .refresh(
+                removeDeletes = false,
+                createdInLevel = 0,
+                valuesConfig = ValuesBlock.Config.random,
+                sortedIndexConfig = SortedIndexBlock.Config.random,
+                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                hashIndexConfig = HashIndexBlock.Config.random,
+                bloomFilterConfig = BloomFilterBlock.Config.random,
+                segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb)
+              ).runRandomIO.right.value
 
-      segments should have size 1
-      val segment = segments.head
+          segments should have size 1
+          val segment = segments.head
 
-      level2.put(Seq(segment)).right.right.value.right.value
+          level2.put(Seq(segment)).right.right.value.right.value
 
-      level1.meter.levelSize shouldBe 0
-      level1.meter.segmentsCount shouldBe 0
+          level1.meter.levelSize shouldBe 0
+          level1.meter.segmentsCount shouldBe 0
 
-      val level1Meter = level1.meterFor(level1.pathDistributor.headPath.folderId.toInt).get
-      level1Meter.levelSize shouldBe 0
-      level1Meter.segmentsCount shouldBe 0
+          val level1Meter = level1.meterFor(level1.pathDistributor.headPath.folderId.toInt).get
+          level1Meter.levelSize shouldBe 0
+          level1Meter.segmentsCount shouldBe 0
 
-      level2.meter.segmentsCount shouldBe 1
-      level2.meter.levelSize shouldBe segment.segmentSize
+          level2.meter.segmentsCount shouldBe 1
+          level2.meter.levelSize shouldBe segment.segmentSize
 
-      val level2Meter = level1.meterFor(level2.pathDistributor.headPath.folderId.toInt).get
-      level2Meter.segmentsCount shouldBe 1
-      level2Meter.levelSize shouldBe segment.segmentSize
+          val level2Meter = level1.meterFor(level2.pathDistributor.headPath.folderId.toInt).get
+          level2Meter.segmentsCount shouldBe 1
+          level2Meter.levelSize shouldBe segment.segmentSize
+      }
     }
 
     "return None is Level does not exist" in {
-      val level2 = TestLevel()
-      val level1 = TestLevel(nextLevel = Some(level2))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level2 = TestLevel()
+          val level1 = TestLevel(nextLevel = Some(level2))
 
-      val putKeyValues = randomPutKeyValues(keyValuesCount)
-      val segment = TestSegment(putKeyValues).runRandomIO.right.value
-      level2.put(Seq(segment)).right.right.value.right.value
+          val putKeyValues = randomPutKeyValues(keyValuesCount)
+          val segment = TestSegment(putKeyValues).runRandomIO.right.value
+          level2.put(Seq(segment)).right.right.value.right.value
 
-      level1.meterFor(3) shouldBe empty
+          level1.meterFor(3) shouldBe empty
+      }
     }
   }
 }

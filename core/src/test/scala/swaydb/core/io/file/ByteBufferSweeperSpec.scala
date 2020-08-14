@@ -76,8 +76,8 @@ class ByteBufferSweeperSpec extends TestBase {
       innerFile.isBufferEmpty shouldBe true
     }
 
-    fileSweeper.terminateAndRecover(terminateTimeout).await(terminateTimeout)
-    cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+    fileSweeper.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
+    cleaner.actor.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
     cleaner.actor.messageCount shouldBe 0
     cleaner.actor.isTerminated shouldBe true
   }
@@ -123,10 +123,10 @@ class ByteBufferSweeperSpec extends TestBase {
       //keep this test running for a few seconds.
       sleep(timeout)
 
-      fileSweeper.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      fileSweeper.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
       fileSweeper.messageCount shouldBe 0
 
-      cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      cleaner.actor.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
       cleaner.actor.messageCount shouldBe 0
       cleaner.actor.isTerminated shouldBe true
     }
@@ -148,7 +148,7 @@ class ByteBufferSweeperSpec extends TestBase {
       map shouldBe empty
       map.get(path) shouldBe empty
 
-      cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      cleaner.actor.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
       cleaner.actor.messageCount shouldBe 0
       cleaner.actor.isTerminated shouldBe true
     }
@@ -183,7 +183,7 @@ class ByteBufferSweeperSpec extends TestBase {
             map.get(path).value.counter.get() shouldBe (i - 1)
       }
 
-      cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      cleaner.actor.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
       cleaner.actor.messageCount shouldBe 0
       cleaner.actor.isTerminated shouldBe true
     }
@@ -206,7 +206,7 @@ class ByteBufferSweeperSpec extends TestBase {
       Effect.delete(path)
       Effect.exists(path) shouldBe false
 
-      cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+      cleaner.actor.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
       cleaner.actor.messageCount shouldBe 0
       cleaner.actor.isTerminated shouldBe true
     }
@@ -242,7 +242,7 @@ class ByteBufferSweeperSpec extends TestBase {
         //state should be cleared
         cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
 
-        cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+        cleaner.actor.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
         cleaner.actor.messageCount shouldBe 0
         cleaner.actor.isTerminated shouldBe true
       }
@@ -269,7 +269,7 @@ class ByteBufferSweeperSpec extends TestBase {
         //state should be cleared
         cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
 
-        cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+        cleaner.actor.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
         cleaner.actor.messageCount shouldBe 0
         cleaner.actor.isTerminated shouldBe true
       }
@@ -298,7 +298,7 @@ class ByteBufferSweeperSpec extends TestBase {
         //state should be cleared
         cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
 
-        cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+        cleaner.actor.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
         cleaner.actor.messageCount shouldBe 0
         cleaner.actor.isTerminated shouldBe true
       }
@@ -324,7 +324,7 @@ class ByteBufferSweeperSpec extends TestBase {
         //state should be cleared
         cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
 
-        cleaner.actor.terminateAndRecover(terminateTimeout).await(terminateTimeout)
+        cleaner.actor.terminateAndRecoverAsync(terminateTimeout).await(terminateTimeout)
         cleaner.actor.messageCount shouldBe 0
         cleaner.actor.isTerminated shouldBe true
       }
@@ -393,7 +393,7 @@ class ByteBufferSweeperSpec extends TestBase {
         }
 
         //execute all pending Delete commands.
-        cleaner.actor.receiveAllBlocking(Int.MaxValue).get
+        cleaner.actor.receiveAllBlocking(Int.MaxValue, 1.second).get
 
         //there might me some delete messages waiting to be scheduled.
         eventual(1.minute) {
@@ -439,7 +439,7 @@ class ByteBufferSweeperSpec extends TestBase {
         val paths = (1 to 100) map (_ => sendRandomRequests())
 
         //execute all pending Delete commands.
-        cleaner.actor.terminateAndRecover[Future](1.second).await(1.minute)
+        cleaner.actor.terminateAndRecoverAsync[Future](1.second).await(1.minute)
 
         eventual(1.minute) {
           (cleaner.actor ask Command.IsTerminatedAndCleaned[Unit]).await(2.seconds) shouldBe true

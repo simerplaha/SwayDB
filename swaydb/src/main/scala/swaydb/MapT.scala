@@ -29,7 +29,7 @@ import java.nio.file.Path
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
 
 /**
  * Base trait for a basic SwayDB Map type.
@@ -177,7 +177,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def asScala: scala.collection.mutable.Map[K, V]
 
-  def close(): BAG[Unit]
+  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit]
 
-  def delete(): BAG[Unit]
+  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit]
 }

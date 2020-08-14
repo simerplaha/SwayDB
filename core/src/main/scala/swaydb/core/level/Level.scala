@@ -30,7 +30,7 @@ import java.nio.file.{Path, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -56,11 +56,12 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.{Error, IO}
+import swaydb.data.util.Futures.FutureImplicits
+import swaydb.{Bag, Error, IO, Scheduler}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Promise
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
@@ -315,29 +316,6 @@ private[core] object Level extends LazyLogging {
 
     segmentsToCollapse
   }
-
-  def delete(level: NextLevel): IO[swaydb.Error.Delete, Unit] =
-    level
-      .close
-      .flatMap {
-        _ =>
-          import swaydb.Error.Delete.ExceptionHandler
-
-          level
-            .nextLevel
-            .map(_.delete)
-            .getOrElse(IO.unit)
-            .and {
-              level
-                .pathDistributor
-                .dirs
-                .foreachIO {
-                  path =>
-                    IO(Effect.walkDelete(path.path))
-                }
-                .getOrElse(IO.unit)
-            }
-      }
 }
 
 private[core] case class Level(dirs: Seq[Dir],
@@ -358,7 +336,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               functionStore: FunctionStore,
                                                               removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                              val keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                               val fileSweeper: FileSweeperActor,
                                                               val bufferCleaner: ByteBufferSweeperActor,
                                                               val blockCache: Option[BlockCache.State],
@@ -439,12 +417,6 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def appendixPath: Path =
     rootPath.resolve("appendix")
-
-  def releaseLocks: IO[swaydb.Error.Close, Unit] =
-    IO[swaydb.Error.Close, Unit](Effect.release(lock)) flatMap {
-      _ =>
-        nextLevel.map(_.releaseLocks) getOrElse IO.unit
-    }
 
   def nextPushDelay: FiniteDuration =
     throttle(meter).pushDelay
@@ -1556,48 +1528,6 @@ private[core] case class Level(dirs: Seq[Dir],
       .getNearestDeadlineSegment(segmentsInLevel())
       .isSomeS
 
-  def close: IO[swaydb.Error.Close, Unit] =
-    nextLevel
-      .map(_.close)
-      .getOrElse(IO.unit)
-      .flatMap {
-        _ =>
-          IO(appendix.close())
-            .onLeftSideEffect {
-              failure =>
-                logger.error("{}: Failed to close appendix", pathDistributor.head, failure)
-            }
-
-          closeSegments()
-            .onLeftSideEffect {
-              failure =>
-                logger.error("{}: Failed to close segments", pathDistributor.head, failure)
-            }
-
-          releaseLocks
-            .onLeftSideEffect {
-              failure =>
-                logger.error("{}: Failed to release locks", pathDistributor.head, failure)
-            }
-      }
-
-  def closeSegments(): IO[swaydb.Error.Level, Unit] = {
-    segmentsInLevel()
-      .foreachIO(segment => IO(segment.close), failFast = false)
-      .foreach {
-        failure =>
-          logger.error("{}: Failed to close Segment file.", pathDistributor.head, failure.exception)
-      }
-
-    nextLevel match {
-      case Some(nextLevel) =>
-        nextLevel.closeSegments()
-
-      case None =>
-        IO.unit
-    }
-  }
-
   override val isTrash: Boolean =
     false
 
@@ -1618,9 +1548,95 @@ private[core] case class Level(dirs: Seq[Dir],
   override def nextThrottlePushCount: Int =
     throttle(meter).segmentsToPush
 
-  override def delete: IO[swaydb.Error.Delete, Unit] =
-    Level.delete(self)
 
   override def minSegmentSize: Int =
     segmentConfig.minSize
+
+  /**
+   * Closing and delete functions
+   */
+
+  def releaseLocks: IO[swaydb.Error.Close, Unit] =
+    IO[swaydb.Error.Close, Unit](Effect.release(lock))
+      .flatMap {
+        _ =>
+          nextLevel.map(_.releaseLocks) getOrElse IO.unit
+      }
+      .onLeftSideEffect {
+        failure =>
+          logger.error("{}: Failed to release locks", pathDistributor.head, failure)
+      }
+
+  def closeAppendix(): IO[Error.Level, Unit] =
+    IO(appendix.close())
+      .onLeftSideEffect {
+        failure =>
+          logger.error("{}: Failed to close appendix", pathDistributor.head, failure)
+      }
+
+  private def closeSweepers(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] = {
+    implicit val scheduler = Scheduler()
+    val result = LevelCloser.closeAsync[Future](retryInterval)
+
+    result.onComplete {
+      _ =>
+        scheduler.terminate()
+    }
+
+    result
+  }
+
+  def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
+    closeSweepers(retryInterval)
+      .and(closeNoSweep())
+
+  def closeNoSweep(): IO[swaydb.Error.Level, Unit] =
+    nextLevel
+      .map(_.closeNoSweep)
+      .getOrElse(IO.unit)
+      .and(closeAppendix())
+      .and(closeSegments())
+      .and(releaseLocks)
+
+  def closeSegments(): IO[swaydb.Error.Level, Unit] = {
+    segmentsInLevel()
+      .foreachIO(segment => IO(segment.close), failFast = false)
+      .foreach {
+        failure =>
+          logger.error("{}: Failed to close Segment file.", pathDistributor.head, failure.exception)
+      }
+
+    nextLevel match {
+      case Some(nextLevel) =>
+        nextLevel.closeSegments()
+
+      case None =>
+        IO.unit
+    }
+  }
+
+  private def deleteNextLevelNoSweep() =
+    nextLevel
+      .map(_.deleteNoSweep)
+      .getOrElse(IO.unit)
+
+  private def deleteFiles() =
+    pathDistributor
+      .dirs
+      .foreachIO {
+        path =>
+          IO(Effect.walkDelete(path.path))
+      }
+      .getOrElse(IO.unit)
+
+  override def deleteNoSweep: IO[swaydb.Error.Level, Unit] =
+    closeNoSweep()
+      .and(deleteNextLevelNoSweep())
+      .and(deleteFiles())
+
+  override def delete(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
+    close(retryInterval)
+      .and(closeNoSweep())
+      .and(deleteNextLevelNoSweep())
+      .and(deleteFiles())
 }

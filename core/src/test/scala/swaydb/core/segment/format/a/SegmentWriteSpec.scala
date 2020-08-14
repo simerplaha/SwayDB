@@ -582,7 +582,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         //finally also close the segment to close the file.
         close
 
-        fileSweeper.terminateAndRecover[Future](10.seconds).await(10.seconds)
+        fileSweeper.terminateAndRecoverAsync[Future](10.seconds).await(10.seconds)
       }
     }
 
@@ -700,7 +700,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           segment1.close
           segment2.close
-          fileSweeper.terminateAndRecover[Future](10.seconds).await(10.seconds)
+          fileSweeper.terminateAndRecoverAsync[Future](10.seconds).await(10.seconds)
         }
       }
     }

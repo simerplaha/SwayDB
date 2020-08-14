@@ -30,7 +30,7 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 
 import scala.collection.mutable
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
 
 /**
  * Base trait for a basic SwayDB SetMap type.
@@ -132,9 +132,9 @@ trait SetMapT[K, V, F, BAG[_]] {
 
   def asScala: scala.collection.mutable.Map[K, V]
 
-  def close(): BAG[Unit]
+  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit]
 
-  def delete(): BAG[Unit]
+  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit]
 
   override def toString(): String =
     classOf[SetMapT[_, _, _, BAG]].getSimpleName

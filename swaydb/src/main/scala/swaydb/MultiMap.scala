@@ -37,7 +37,7 @@ import swaydb.serializers.{Serializer, _}
 
 import scala.collection.compat._
 import scala.collection.mutable
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
 
 object MultiMap {
 
@@ -755,11 +755,11 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   def asScala: scala.collection.mutable.Map[K, V] =
     ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
 
-  def close(): BAG[Unit] =
-    innerMap.close()
+  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
+    innerMap.close(retryInterval)
 
-  def delete(): BAG[Unit] =
-    innerMap.delete()
+  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
+    innerMap.delete(retryInterval)
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getSimpleName

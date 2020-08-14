@@ -51,9 +51,12 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
+import swaydb.data.util.Futures
+import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.StorageUnits._
-import swaydb.{Actor, Bag, IO, OK}
+import swaydb.{Actor, Bag, Error, IO, OK}
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, _}
 import scala.jdk.CollectionConverters._
 
@@ -76,9 +79,6 @@ private[core] object LevelZero extends LazyLogging {
       PersistentReader.populateBaseEntryIds()
     else
       logger.info("cacheKeyValueIds is false. Key-value IDs cache disabled!")
-
-    //LevelZero does not required FileSweeper since they are all Map files.
-    implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
 
     implicit val skipListMerger: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
     val mapsAndPathAndLock =
@@ -112,6 +112,8 @@ private[core] object LevelZero extends LazyLogging {
               Effect createFileIfAbsent lockFile
               IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
                 lock =>
+                  //LevelZero does not required FileSweeper since they are all Map files.
+                  implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
                   logger.info("{}: Recovering Maps.", path)
                   Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                     path = path,
@@ -155,6 +157,9 @@ private[core] object LevelZero extends LazyLogging {
 
           timer map {
             implicit timer =>
+              //LevelZero does not required FileSweeper since they are all Map files.
+              implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
+
               val map =
                 Maps.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                   fileSize = mapSize,
@@ -180,18 +185,6 @@ private[core] object LevelZero extends LazyLogging {
         )
     }
   }
-
-  def delete(zero: LevelZero): IO[swaydb.Error.Delete, Unit] =
-    zero
-      .close
-      .flatMap {
-        _ =>
-          zero
-            .nextLevel
-            .map(_.delete)
-            .getOrElse(IO.unit)
-            .and(IO[swaydb.Error.Delete, Unit](Effect.walkDelete(zero.path.getParent)))
-      }
 }
 
 private[swaydb] case class LevelZero(path: Path,
@@ -832,27 +825,6 @@ private[swaydb] case class LevelZero(path: Path,
   def existsOnDisk: Boolean =
     Effect.exists(path)
 
-  def close: IO[swaydb.Error.Close, Unit] = {
-    //    Delay.cancelTimer()
-    maps
-      .close
-      .onLeftSideEffect {
-        exception =>
-          logger.error(s"$path: Failed to close maps", exception)
-      }
-
-    releaseLocks
-
-    nextLevel
-      .map(_.close)
-      .getOrElse(IO.unit)
-  }
-
-  def closeSegments: IO[swaydb.Error.Level, Unit] =
-    nextLevel
-      .map(_.closeSegments())
-      .getOrElse(IO.unit)
-
   def mightContainKey(key: Slice[Byte]): Boolean =
     maps.contains(key) ||
       nextLevel.exists(_.mightContainKey(key))
@@ -953,9 +925,6 @@ private[swaydb] case class LevelZero(path: Path,
   override def nextCompactionDelay: FiniteDuration =
     throttle(levelZeroMeter)
 
-  override def delete: IO[swaydb.Error.Delete, Unit] =
-    LevelZero.delete(this)
-
   def iterator(state: ThreadReadState): Iterator[PutOption] =
     new Iterator[PutOption] {
       var nextKeyValue: PutOption = _
@@ -989,6 +958,55 @@ private[swaydb] case class LevelZero(path: Path,
       override def next(): PutOption =
         nextKeyValue
     }
+
+  private def closeMaps: IO[Error.Map, Unit] =
+    maps
+      .close
+      .onLeftSideEffect {
+        exception =>
+          logger.error(s"$path: Failed to close maps", exception)
+      }
+
+  private def closeNextLevelNoSweep: IO[Error.Level, Unit] =
+    nextLevel
+      .map(_.closeNoSweep)
+      .getOrElse(IO.unit)
+
+  def closeNoSweep: IO[swaydb.Error.Level, Unit] =
+    closeMaps
+      .and(closeNextLevelNoSweep)
+      .and(releaseLocks)
+
+  private def closeNextLevel(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
+    nextLevel
+      .map(_.close(retryInterval))
+      .getOrElse(Futures.unit)
+
+  override def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
+    closeMaps
+      .toFuture
+      .and(closeNextLevel(retryInterval))
+      .and(releaseLocks)
+
+  def closeSegments: IO[swaydb.Error.Level, Unit] =
+    nextLevel
+      .map(_.closeSegments())
+      .getOrElse(IO.unit)
+
+  private def deleteNextLevelNoSweep: IO[Error.Level, Unit] =
+    nextLevel
+      .map(_.deleteNoSweep)
+      .getOrElse(IO.unit)
+
+  override def deleteNoSweep: IO[swaydb.Error.Level, Unit] =
+    closeNoSweep
+      .and(deleteNextLevelNoSweep)
+      .and(IO(Effect.walkDelete(path.getParent)))
+
+  override def delete(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
+    close(retryInterval)
+      .and(deleteNextLevelNoSweep)
+      .and(IO(Effect.walkDelete(path.getParent)))
 
   final def run[R, BAG[_]](apply: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
     bag.suspend {

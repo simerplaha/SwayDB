@@ -1774,7 +1774,7 @@ object CommonAssertions {
      */
     def ensureClose(): Unit = {
       maps.close.value
-      maps.bufferCleaner.actor.receiveAllBlocking(Int.MaxValue).get
+      maps.bufferCleaner.actor.receiveAllBlocking(Int.MaxValue, 1.second).get
       (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminatedAndCleaned[Unit]).await(10.seconds)
     }
   }

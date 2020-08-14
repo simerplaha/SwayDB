@@ -37,7 +37,7 @@ import swaydb.data.util.TupleOrNone
 import swaydb.serializers.{Serializer, _}
 
 import scala.collection.mutable
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
 
 object Map {
 
@@ -433,11 +433,11 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
   def asScala: scala.collection.mutable.Map[K, V] =
     ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
 
-  def close(): BAG[Unit] =
-    bag.suspend(core.close())
+  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
+    bag.suspend(core.close(retryInterval))
 
-  def delete(): BAG[Unit] =
-    bag.suspend(core.delete())
+  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
+    bag.suspend(core.delete(retryInterval))
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getSimpleName

@@ -38,7 +38,9 @@ import swaydb.core.io.file.BlockCache
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
+import TestCaseSweeper._
+import TestCaseSweeper._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -82,67 +84,79 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
   "copy" should {
     "copy segments" in {
-      val level = TestLevel()
-      level.isEmpty shouldBe true
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel()
+          level.isEmpty shouldBe true
 
-      val keyValues1 = randomIntKeyStringValues()
-      val keyValues2 = randomIntKeyStringValues()
-      val segments = Iterable(TestSegment(keyValues1), TestSegment(keyValues2))
-      val copiedSegments = level.copyLocal(segments).value
+          val keyValues1 = randomIntKeyStringValues()
+          val keyValues2 = randomIntKeyStringValues()
+          val segments = Iterable(TestSegment(keyValues1), TestSegment(keyValues2))
+          val copiedSegments = level.copyLocal(segments).value
 
-      val allKeyValues = Slice((keyValues1 ++ keyValues2).toArray)
+          val allKeyValues = Slice((keyValues1 ++ keyValues2).toArray)
 
-      level.isEmpty shouldBe true //copy function does not write to appendix.
+          level.isEmpty shouldBe true //copy function does not write to appendix.
 
-      if (persistent) level.segmentFilesOnDisk should not be empty
+          if (persistent) level.segmentFilesOnDisk should not be empty
 
-      Segment.getAllKeyValues(copiedSegments) shouldBe allKeyValues
+          Segment.getAllKeyValues(copiedSegments) shouldBe allKeyValues
+      }
     }
 
     "fail copying Segments if it failed to copy one of the Segments" in {
-      val level = TestLevel()
-      level.isEmpty shouldBe true
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel()
+          level.isEmpty shouldBe true
 
-      val segment1 = TestSegment()
-      val segment2 = TestSegment()
+          val segment1 = TestSegment()
+          val segment2 = TestSegment()
 
-      segment2.delete // delete segment2 so there is a failure in copying Segments
+          segment2.delete // delete segment2 so there is a failure in copying Segments
 
-      val segments = Iterable(segment1, segment2)
-      level.copyLocal(segments).left.value.exception shouldBe a[NoSuchFileException]
+          val segments = Iterable(segment1, segment2)
+          level.copyLocal(segments).left.value.exception shouldBe a[NoSuchFileException]
 
-      level.isEmpty shouldBe true
-      if (persistent) level.reopen.isEmpty shouldBe true
+          level.isEmpty shouldBe true
+          if (persistent) level.reopen.isEmpty shouldBe true
+      }
     }
 
     "copy Map" in {
-      val level = TestLevel()
-      level.isEmpty shouldBe true
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel()
+          level.isEmpty shouldBe true
 
-      val keyValues = randomPutKeyValues(keyValuesCount)
-      val copiedSegments = level.copy(TestMap(keyValues)).value
-      level.isEmpty shouldBe true //copy function does not write to appendix.
+          val keyValues = randomPutKeyValues(keyValuesCount)
+          val copiedSegments = level.copy(TestMap(keyValues)).value
+          level.isEmpty shouldBe true //copy function does not write to appendix.
 
-      if (persistent) level.segmentFilesOnDisk should not be empty
+          if (persistent) level.segmentFilesOnDisk should not be empty
 
-      Segment.getAllKeyValues(copiedSegments) shouldBe keyValues
+          Segment.getAllKeyValues(copiedSegments) shouldBe keyValues
+      }
     }
   }
 
   "copy map directly into lower level" in {
-    val level2 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
-    val level1 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = true), nextLevel = Some(level2))
+    TestCaseSweeper {
+      implicit sweeper =>
+        val level2 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+        val level1 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = true), nextLevel = Some(level2))
 
-    val keyValues = randomPutKeyValues(keyValuesCount)
-    val maps = TestMap(keyValues)
+        val keyValues = randomPutKeyValues(keyValuesCount)
+        val maps = TestMap(keyValues)
 
-    level1.put(maps).right.right.value.right.value should contain only level2.levelNumber
+        level1.put(maps).right.right.value.right.value should contain only level2.levelNumber
 
-    level1.isEmpty shouldBe true
-    level2.isEmpty shouldBe false
+        level1.isEmpty shouldBe true
+        level2.isEmpty shouldBe false
 
-    assertReads(keyValues, level1)
+        assertReads(keyValues, level1)
 
-    level1.segmentsInLevel() foreach (_.createdInLevel shouldBe level2.levelNumber)
+        level1.segmentsInLevel() foreach (_.createdInLevel shouldBe level2.levelNumber)
+    }
   }
 }

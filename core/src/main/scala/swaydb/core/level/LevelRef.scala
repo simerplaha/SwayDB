@@ -36,6 +36,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 
 object LevelRef {
@@ -247,7 +248,9 @@ private[core] trait LevelRef {
 
   def sizeOfSegments: Long
 
-  def close: IO[swaydb.Error.Close, Unit]
+  def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit]
+
+  def closeNoSweep: IO[swaydb.Error.Level, Unit]
 
   def closeSegments(): IO[swaydb.Error.Level, Unit]
 
@@ -263,5 +266,7 @@ private[core] trait LevelRef {
 
   def nextCompactionDelay: FiniteDuration
 
-  def delete: IO[swaydb.Error.Delete, Unit]
+  def delete(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit]
+
+  def deleteNoSweep: IO[swaydb.Error.Level, Unit]
 }

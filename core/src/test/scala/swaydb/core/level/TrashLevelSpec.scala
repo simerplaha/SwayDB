@@ -28,7 +28,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, ThreadReadState}
@@ -69,19 +70,22 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
 
   "A TrashLevel" should {
     "delete Segments when Push from an upper level" in {
-      val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10), segmentConfig = SegmentBlock.Config.random(pushForward = true))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10), segmentConfig = SegmentBlock.Config.random(pushForward = true)).clean()
 
-      val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.right.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.right.value)
-      level.put(segments).right.right.value.right.value
+          val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.right.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.right.value)
+          level.put(segments).right.right.value.right.value
 
-      //throttle is Duration.Zero, Segments value merged to lower ExpiryLevel and deleted from Level.
-      eventual(15.seconds)(level.isEmpty shouldBe true)
-      //key values do not exist
-      Segment.getAllKeyValues(segments).runRandomIO.right.value foreach {
-        keyValue =>
-          level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+          //throttle is Duration.Zero, Segments value merged to lower ExpiryLevel and deleted from Level.
+          eventual(15.seconds)(level.isEmpty shouldBe true)
+          //key values do not exist
+          Segment.getAllKeyValues(segments).runRandomIO.right.value foreach {
+            keyValue =>
+              level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+          }
+          if (persistent) level.reopen.isEmpty shouldBe true
       }
-      if (persistent) level.reopen.isEmpty shouldBe true
     }
   }
 }

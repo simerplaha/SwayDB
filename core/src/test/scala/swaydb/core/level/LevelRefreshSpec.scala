@@ -34,7 +34,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -81,40 +81,46 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
   "refresh" should {
     "remove expired key-values" in {
-      val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte))
-      val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).runRandomIO.right.value
-      //dispatch another put request so that existing Segment gets split
-      level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
-      level.segmentsCount() should be >= 1
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte))
+          val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
+          level.putKeyValuesTest(keyValues).runRandomIO.right.value
+          //dispatch another put request so that existing Segment gets split
+          level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
+          level.segmentsCount() should be >= 1
 
-      //expire all key-values
-      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, Value.FromValue.Null, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO.right.value
-      level.segmentFilesInAppendix should be > 1
+          //expire all key-values
+          level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, Value.FromValue.Null, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO.right.value
+          level.segmentFilesInAppendix should be > 1
 
-      sleep(3.seconds)
-      level.segmentsInLevel() foreach {
-        segment =>
-          level.refresh(segment).right.right.value
+          sleep(3.seconds)
+          level.segmentsInLevel() foreach {
+            segment =>
+              level.refresh(segment).right.right.value
+          }
+
+          level.segmentFilesInAppendix shouldBe 0
       }
-
-      level.segmentFilesInAppendix shouldBe 0
     }
 
     "update createdInLevel" in {
-      val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
 
-      val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
-      val maps = TestMap(keyValues)
-      level.put(maps).right.right.value
+          val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
+          val maps = TestMap(keyValues)
+          level.put(maps).right.right.value
 
-      val nextLevel = TestLevel()
-      nextLevel.put(level.segmentsInLevel()).right.right.value
+          val nextLevel = TestLevel()
+          nextLevel.put(level.segmentsInLevel()).right.right.value
 
-      if (persistent)
-        nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe level.levelNumber)
-      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).right.right.value)
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)
+          if (persistent)
+            nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe level.levelNumber)
+          nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).right.right.value)
+          nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)
+      }
     }
   }
 }

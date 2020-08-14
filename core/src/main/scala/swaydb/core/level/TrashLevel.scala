@@ -28,12 +28,13 @@ import java.nio.file.{Path, Paths}
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory, MemoryOption}
-import swaydb.core.segment.{ThreadReadState, Segment, SegmentOption}
+import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.util.Futures
 import swaydb.{Error, IO}
 
-import scala.concurrent.Promise
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.concurrent.duration._
 
 private[core] object TrashLevel extends NextLevel {
@@ -116,7 +117,7 @@ private[core] object TrashLevel extends NextLevel {
   override def releaseLocks: IO[swaydb.Error.Close, Unit] =
     IO.unit
 
-  override val close: IO[swaydb.Error.Close, Unit] =
+  override val closeNoSweep: IO[swaydb.Error.Close, Unit] =
     IO.unit
 
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
@@ -216,5 +217,11 @@ private[core] object TrashLevel extends NextLevel {
   override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true
 
-  override def delete: IO[swaydb.Error.Delete, Unit] = IO.unit
+  override def deleteNoSweep: IO[swaydb.Error.Delete, Unit] = IO.unit
+
+  override def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
+    Futures.unit
+
+  override def delete(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
+    Futures.unit
 }

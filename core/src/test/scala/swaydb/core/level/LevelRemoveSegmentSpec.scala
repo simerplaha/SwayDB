@@ -33,7 +33,7 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -76,16 +76,19 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
 
   "removeSegments" should {
     "remove segments from disk and remove them from appendix" in {
-      val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false))
-      level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).runRandomIO.right.value
+      TestCaseSweeper {
+        implicit sweeper =>
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false))
+          level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).runRandomIO.right.value
 
-      level.removeSegments(level.segmentsInLevel()).runRandomIO.right.value
+          level.removeSegments(level.segmentsInLevel()).runRandomIO.right.value
 
-      level.isEmpty shouldBe true
+          level.isEmpty shouldBe true
 
-      if (persistent) {
-        level.segmentFilesOnDisk shouldBe empty
-        level.reopen.isEmpty shouldBe true
+          if (persistent) {
+            level.segmentFilesOnDisk shouldBe empty
+            level.reopen.isEmpty shouldBe true
+          }
       }
     }
   }

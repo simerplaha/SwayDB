@@ -31,8 +31,9 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.level.Level
 import swaydb.core.level.compaction.{Compaction, Compactor}
-import swaydb.core.{TestBase, TestExecutionContext, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestExecutionContext, TestCaseSweeper, TestSweeper, TestTimer}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -84,371 +85,409 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
   "createActor" should {
     "build compaction hierarchy" when {
       "there are two Levels and one new ExecutionContext" in {
-        val nextLevel = TestLevel()
-        val zero = TestLevelZero(nextLevel = Some(nextLevel))
+        TestCaseSweeper {
+          implicit sweeper =>
+            val nextLevel = TestLevel()
+            val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-        val actor =
-          ThrottleCompactor.createActor(
-            List(zero, nextLevel),
-            List(
-              CompactionExecutionContext.Create(TestExecutionContext.executionContext),
-              CompactionExecutionContext.Shared
-            )
-          ).get
+            val actor =
+              ThrottleCompactor.createActor(
+                List(zero, nextLevel),
+                List(
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext),
+                  CompactionExecutionContext.Shared
+                )
+              ).get
 
-        actor.state.await.compactionStates shouldBe empty
-        actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
-        actor.state.await.child shouldBe empty
+            actor.state.await.compactionStates shouldBe empty
+            actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
+            actor.state.await.child shouldBe empty
 
-        zero.delete.get
+        }
       }
 
       "there are two Levels and two new ExecutionContext" in {
-        val nextLevel = TestLevel()
-        val zero = TestLevelZero(nextLevel = Some(nextLevel))
+        TestCaseSweeper {
+          implicit sweeper =>
+            val nextLevel = TestLevel()
+            val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-        val actor =
-          ThrottleCompactor.createActor(
-            List(zero, nextLevel),
-            List(
-              CompactionExecutionContext.Create(TestExecutionContext.executionContext),
-              CompactionExecutionContext.Create(TestExecutionContext.executionContext)
-            )
-          ).get
+            val actor =
+              ThrottleCompactor.createActor(
+                List(zero, nextLevel),
+                List(
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext),
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext)
+                )
+              ).get
 
-        actor.state.await.compactionStates shouldBe empty
-        actor.state.await.levels.map(_.rootPath) should contain only zero.rootPath
-        actor.state.await.child shouldBe defined
+            actor.state.await.compactionStates shouldBe empty
+            actor.state.await.levels.map(_.rootPath) should contain only zero.rootPath
+            actor.state.await.child shouldBe defined
 
-        val childActor = actor.state.await.child.get.state.await
-        childActor.child shouldBe empty
-        childActor.levels.map(_.rootPath) should contain only nextLevel.rootPath
-
-        zero.delete.get
+            val childActor = actor.state.await.child.get.state.await
+            childActor.child shouldBe empty
+            childActor.levels.map(_.rootPath) should contain only nextLevel.rootPath
+        }
       }
 
       "there are three Levels and one new ExecutionContext" in {
-        val nextLevel2 = TestLevel()
-        val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
-        val zero = TestLevelZero(nextLevel = Some(nextLevel))
+        TestCaseSweeper {
+          implicit sweeper =>
+            val nextLevel2 = TestLevel()
+            val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
+            val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-        val actor =
-          ThrottleCompactor.createActor(
-            List(zero, nextLevel, nextLevel2),
-            List(
-              CompactionExecutionContext.Create(TestExecutionContext.executionContext),
-              CompactionExecutionContext.Shared,
-              CompactionExecutionContext.Shared
-            )
-          ).get
+            val actor =
+              ThrottleCompactor.createActor(
+                List(zero, nextLevel, nextLevel2),
+                List(
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext),
+                  CompactionExecutionContext.Shared,
+                  CompactionExecutionContext.Shared
+                )
+              ).get
 
-        actor.state.await.compactionStates shouldBe empty
-        actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath, nextLevel2.rootPath)
-        actor.state.await.child shouldBe empty
-
-        zero.delete.get
+            actor.state.await.compactionStates shouldBe empty
+            actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath, nextLevel2.rootPath)
+            actor.state.await.child shouldBe empty
+        }
       }
 
       "there are three Levels and two new ExecutionContext" in {
-        val nextLevel2 = TestLevel()
-        val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
-        val zero = TestLevelZero(nextLevel = Some(nextLevel))
+        TestCaseSweeper {
+          implicit sweeper =>
+            val nextLevel2 = TestLevel()
+            val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
+            val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-        val actor =
-          ThrottleCompactor.createActor(
-            List(zero, nextLevel, nextLevel2),
-            List(
-              CompactionExecutionContext.Create(TestExecutionContext.executionContext),
-              CompactionExecutionContext.Shared,
-              CompactionExecutionContext.Create(TestExecutionContext.executionContext)
-            )
-          ).get
+            val actor =
+              ThrottleCompactor.createActor(
+                List(zero, nextLevel, nextLevel2),
+                List(
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext),
+                  CompactionExecutionContext.Shared,
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext)
+                )
+              ).get
 
-        actor.state.await.compactionStates shouldBe empty
-        actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
-        actor.state.await.child shouldBe defined
+            actor.state.await.compactionStates shouldBe empty
+            actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
+            actor.state.await.child shouldBe defined
 
-        val childActor = actor.state.await.child.get.state.await
-        childActor.child shouldBe empty
-        childActor.levels.map(_.rootPath) should contain only nextLevel2.rootPath
-
-        zero.delete.get
+            val childActor = actor.state.await.child.get.state.await
+            childActor.child shouldBe empty
+            childActor.levels.map(_.rootPath) should contain only nextLevel2.rootPath
+        }
       }
     }
   }
 
   "scheduleNextWakeUp" should {
-    val nextLevel = TestLevel()
-    val level = TestLevel(nextLevel = Some(nextLevel))
+    def createTestLevel()(implicit sweeper: TestCaseSweeper): (Level, Level, ThrottleState) = {
+      val nextLevel = TestLevel()
+      val level = TestLevel(nextLevel = Some(nextLevel))
 
-    val testState =
-      ThrottleState(
-        levels = Slice(level, nextLevel),
-        child = None,
-        //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
-        executionContext = TestExecutionContext.executionContext,
-        compactionStates = mutable.Map.empty
-      )
+      val testState =
+        ThrottleState(
+          levels = Slice(level, nextLevel),
+          child = None,
+          //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
+          executionContext = TestExecutionContext.executionContext,
+          compactionStates = mutable.Map.empty
+        )
+
+      (level, nextLevel, testState)
+    }
 
     "not trigger wakeUp" when {
       "level states were empty" in {
-        val compactor = mock[Compactor[ThrottleState]]
-        implicit val scheduler = Scheduler()
+        TestCaseSweeper {
+          implicit sweeper =>
+            val (level, nextLevel, testState) = createTestLevel()
 
-        val actor =
-          Actor.wire[Compactor[ThrottleState], ThrottleState](
-            name = "test",
-            impl = compactor,
-            state = testState
-          )
+            val compactor = mock[Compactor[ThrottleState]]
+            implicit val scheduler = Scheduler()
 
-        ThrottleCompactor.scheduleNextWakeUp(
-          state = testState,
-          self = actor
-        )
+            val actor =
+              Actor.wire[Compactor[ThrottleState], ThrottleState](
+                name = "test",
+                impl = compactor,
+                state = testState
+              )
 
-        sleep(5.seconds)
+            ThrottleCompactor.scheduleNextWakeUp(
+              state = testState,
+              self = actor
+            )
+
+            sleep(5.seconds)
+        }
       }
 
       "level states were non-empty but level's state is unchanged and has scheduled task" in {
-        val compactor = mock[Compactor[ThrottleState]]
-        implicit val scheduler = Scheduler()
+        TestCaseSweeper {
+          implicit sweeper =>
+            val (level, nextLevel, testState) = createTestLevel()
 
-        val state =
-          testState.copy(
-            compactionStates =
-              mutable.Map(
-                level -> ThrottleLevelState.Sleeping(5.seconds.fromNow, level.stateId),
-                nextLevel -> ThrottleLevelState.Sleeping(5.seconds.fromNow, nextLevel.stateId)
+            val compactor = mock[Compactor[ThrottleState]]
+            implicit val scheduler = Scheduler()
+
+            val state =
+              testState.copy(
+                compactionStates =
+                  mutable.Map(
+                    level -> ThrottleLevelState.Sleeping(5.seconds.fromNow, level.stateId),
+                    nextLevel -> ThrottleLevelState.Sleeping(5.seconds.fromNow, nextLevel.stateId)
+                  )
               )
-          )
 
-        state.sleepTask = Some(null)
+            state.sleepTask = Some(null)
 
-        val actor =
-          Actor.wire[Compactor[ThrottleState], ThrottleState](
-            name = "test",
-            impl = compactor,
-            state = state
-          )
+            val actor =
+              Actor.wire[Compactor[ThrottleState], ThrottleState](
+                name = "test",
+                impl = compactor,
+                state = state
+              )
 
-        state.sleepTask shouldBe defined
+            state.sleepTask shouldBe defined
 
-        ThrottleCompactor.scheduleNextWakeUp(
-          state = state,
-          self = actor
-        )
+            ThrottleCompactor.scheduleNextWakeUp(
+              state = state,
+              self = actor
+            )
 
-        sleep(3.seconds)
+            sleep(3.seconds)
+        }
       }
 
       "level states were non-empty but level's state is unchanged and task is undefined" in {
-        val compactor = mock[Compactor[ThrottleState]]
-        implicit val scheduler = Scheduler()
+        TestCaseSweeper {
+          implicit sweeper =>
+            val (level, nextLevel, testState) = createTestLevel()
 
-        val state =
-          testState.copy(
-            compactionStates =
-              mutable.Map(
-                level -> ThrottleLevelState.Sleeping(4.seconds.fromNow, level.stateId),
-                nextLevel -> ThrottleLevelState.Sleeping(eitherOne(7.seconds.fromNow, 4.seconds.fromNow), nextLevel.stateId)
+            val compactor = mock[Compactor[ThrottleState]]
+            implicit val scheduler = Scheduler()
+
+            val state =
+              testState.copy(
+                compactionStates =
+                  mutable.Map(
+                    level -> ThrottleLevelState.Sleeping(4.seconds.fromNow, level.stateId),
+                    nextLevel -> ThrottleLevelState.Sleeping(eitherOne(7.seconds.fromNow, 4.seconds.fromNow), nextLevel.stateId)
+                  )
               )
-          )
 
-        val actor =
-          Actor.wire[Compactor[ThrottleState], ThrottleState](
-            name = "",
-            impl = compactor,
-            state = state
-          )
+            val actor =
+              Actor.wire[Compactor[ThrottleState], ThrottleState](
+                name = "",
+                impl = compactor,
+                state = state
+              )
 
-        state.sleepTask shouldBe empty
+            state.sleepTask shouldBe empty
 
-        ThrottleCompactor.scheduleNextWakeUp(
-          state = state,
-          self = actor
-        )
+            ThrottleCompactor.scheduleNextWakeUp(
+              state = state,
+              self = actor
+            )
 
-        eventual(state.sleepTask shouldBe defined)
+            eventual(state.sleepTask shouldBe defined)
 
-        sleep(2.seconds)
+            sleep(2.seconds)
 
-        //eventually
-        compactor.wakeUp _ expects(*, *, *) onCall {
-          (throttle, copyForward, actor) =>
-            copyForward shouldBe false
-            throttle shouldBe state
-            actor shouldBe actor
+            //eventually
+            compactor.wakeUp _ expects(*, *, *) onCall {
+              (throttle, copyForward, actor) =>
+                copyForward shouldBe false
+                throttle shouldBe state
+                actor shouldBe actor
+            }
+
+            sleep(3.seconds)
         }
-
-        sleep(3.seconds)
       }
     }
 
     "trigger wakeUp" when {
       "one of level states is awaiting pull and successfully received read" in {
-        implicit val scheduler = Scheduler()
+        TestCaseSweeper {
+          implicit sweeper =>
+            val (level, nextLevel, testState) = createTestLevel()
 
-        //create IO.Later that is busy
-        val promise = Promise[Unit]()
+            implicit val scheduler = Scheduler()
 
-        val awaitingPull = ThrottleLevelState.AwaitingPull(promise, 1.minute.fromNow, 0)
-        awaitingPull.listenerInvoked shouldBe false
-        //set the state to be awaiting pull
-        val state =
-          testState.copy(
-            compactionStates =
-              mutable.Map(
-                level -> awaitingPull
+            //create IO.Later that is busy
+            val promise = Promise[Unit]()
+
+            val awaitingPull = ThrottleLevelState.AwaitingPull(promise, 1.minute.fromNow, 0)
+            awaitingPull.listenerInvoked shouldBe false
+            //set the state to be awaiting pull
+            val state =
+              testState.copy(
+                compactionStates =
+                  mutable.Map(
+                    level -> awaitingPull
+                  )
               )
-          )
-        //mock the compaction that should expect a wakeUp call
-        val compactor = mock[Compactor[ThrottleState]]
-        compactor.wakeUp _ expects(*, *, *) onCall {
-          (callState, doCopy, _) =>
-            callState shouldBe state
-            doCopy shouldBe false
-        }
+            //mock the compaction that should expect a wakeUp call
+            val compactor = mock[Compactor[ThrottleState]]
+            compactor.wakeUp _ expects(*, *, *) onCall {
+              (callState, doCopy, _) =>
+                callState shouldBe state
+                doCopy shouldBe false
+            }
 
-        //initialise Compactor with the mocked class
-        val actor =
-          Actor.wire[Compactor[ThrottleState], ThrottleState](
-            name = "test",
-            impl = compactor,
-            state = state
-          )
+            //initialise Compactor with the mocked class
+            val actor =
+              Actor.wire[Compactor[ThrottleState], ThrottleState](
+                name = "test",
+                impl = compactor,
+                state = state
+              )
 
-        ThrottleCompactor.scheduleNextWakeUp(
-          state = state,
-          self = actor
-        )
-        //after calling scheduleNextWakeUp listener should be initialised.
-        //this ensures that multiple wakeUp callbacks do not value registered for the same pull.
-        awaitingPull.listenerInitialised shouldBe true
+            ThrottleCompactor.scheduleNextWakeUp(
+              state = state,
+              self = actor
+            )
+            //after calling scheduleNextWakeUp listener should be initialised.
+            //this ensures that multiple wakeUp callbacks do not value registered for the same pull.
+            awaitingPull.listenerInitialised shouldBe true
 
-        //free the reserve and compaction should expect a message.
-        scheduler.future(1.second)(promise.success(()))
+            //free the reserve and compaction should expect a message.
+            scheduler.future(1.second)(promise.success(()))
 
-        eventual(3.seconds) {
-          //eventually is set to be ready.
-          awaitingPull.listenerInvoked shouldBe true
-          //next sleep task is initialised & it's the await's timeout.
-          state.sleepTask.value._2 shouldBe awaitingPull.timeout
+            eventual(3.seconds) {
+              //eventually is set to be ready.
+              awaitingPull.listenerInvoked shouldBe true
+              //next sleep task is initialised & it's the await's timeout.
+              state.sleepTask.value._2 shouldBe awaitingPull.timeout
+            }
         }
       }
 
       "one of level states is awaiting pull and other Level's sleep is shorter" in {
-        implicit val scheduler = Scheduler()
+        TestCaseSweeper {
+          implicit sweeper =>
+            val (level, nextLevel, testState) = createTestLevel()
 
-        val promise = Promise[Unit]()
+            implicit val scheduler = Scheduler()
 
-        val level1AwaitingPull = ThrottleLevelState.AwaitingPull(promise, 1.minute.fromNow, 0)
-        level1AwaitingPull.listenerInvoked shouldBe false
+            val promise = Promise[Unit]()
 
-        //level 2's sleep is shorter than level1's awaitPull timeout sleep.
-        val level2Sleep = ThrottleLevelState.Sleeping(5.seconds.fromNow, 0)
-        //set the state to be awaiting pull
-        val state =
-          testState.copy(
-            compactionStates =
-              mutable.Map(
-                level -> level1AwaitingPull,
-                nextLevel -> level2Sleep
+            val level1AwaitingPull = ThrottleLevelState.AwaitingPull(promise, 1.minute.fromNow, 0)
+            level1AwaitingPull.listenerInvoked shouldBe false
+
+            //level 2's sleep is shorter than level1's awaitPull timeout sleep.
+            val level2Sleep = ThrottleLevelState.Sleeping(5.seconds.fromNow, 0)
+            //set the state to be awaiting pull
+            val state =
+              testState.copy(
+                compactionStates =
+                  mutable.Map(
+                    level -> level1AwaitingPull,
+                    nextLevel -> level2Sleep
+                  )
               )
-          )
-        //mock the compaction that should expect a wakeUp call
-        val compactor = mock[Compactor[ThrottleState]]
-        compactor.wakeUp _ expects(*, *, *) onCall {
-          (callState, doCopy, _) =>
-            callState shouldBe state
-            doCopy shouldBe false
+            //mock the compaction that should expect a wakeUp call
+            val compactor = mock[Compactor[ThrottleState]]
+            compactor.wakeUp _ expects(*, *, *) onCall {
+              (callState, doCopy, _) =>
+                callState shouldBe state
+                doCopy shouldBe false
+            }
+
+            //initialise Compactor with the mocked class
+            val actor =
+              Actor.wire[Compactor[ThrottleState], ThrottleState](
+                name = "test",
+                impl = compactor,
+                state = state
+              )
+
+            ThrottleCompactor.scheduleNextWakeUp(
+              state = state,
+              self = actor
+            )
+            //a callback for awaiting pull should always be initialised.
+            level1AwaitingPull.listenerInitialised shouldBe true
+            state.sleepTask shouldBe defined
+            //Level2's sleep is ending earlier than Level1's so task should be set for Level2's deadline.
+            state.sleepTask.get._2 shouldBe level2Sleep.sleepDeadline
+
+            //give it sometime and wakeUp call initialised by Level2 will be triggered.
+            sleep(level2Sleep.sleepDeadline.timeLeft + 1.second)
         }
-
-        //initialise Compactor with the mocked class
-        val actor =
-          Actor.wire[Compactor[ThrottleState], ThrottleState](
-            name = "test",
-            impl = compactor,
-            state = state
-          )
-
-        ThrottleCompactor.scheduleNextWakeUp(
-          state = state,
-          self = actor
-        )
-        //a callback for awaiting pull should always be initialised.
-        level1AwaitingPull.listenerInitialised shouldBe true
-        state.sleepTask shouldBe defined
-        //Level2's sleep is ending earlier than Level1's so task should be set for Level2's deadline.
-        state.sleepTask.get._2 shouldBe level2Sleep.sleepDeadline
-
-        //give it sometime and wakeUp call initialised by Level2 will be triggered.
-        sleep(level2Sleep.sleepDeadline.timeLeft + 1.second)
       }
     }
   }
 
   "doWakeUp" should {
 
-    val nextLevel = TestLevel()
-    val level = TestLevel(nextLevel = Some(nextLevel))
-
-    val testState =
-      ThrottleState(
-        levels = Slice(level, nextLevel),
-        child = None,
-        //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
-        executionContext = TestExecutionContext.executionContext,
-        compactionStates = mutable.Map.empty
-      )
 
     "run compaction and postCompaction" in {
-      implicit val compaction = mock[Compaction[ThrottleState]]
+      TestCaseSweeper {
+        implicit sweeper =>
+          val nextLevel = TestLevel()
+          val level = TestLevel(nextLevel = Some(nextLevel))
 
-      val parentCompactor = mock[Compactor[ThrottleState]]
-      val childCompactor = mock[Compactor[ThrottleState]]
+          val testState =
+            ThrottleState(
+              levels = Slice(level, nextLevel),
+              child = None,
+              //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
+              executionContext = TestExecutionContext.executionContext,
+              compactionStates = mutable.Map.empty
+            )
 
-      val copyForward = randomBoolean()
+          implicit val compaction = mock[Compaction[ThrottleState]]
 
-      val childActor =
-        Actor.wire[Compactor[ThrottleState], ThrottleState](
-          name = "test",
-          impl = childCompactor,
-          state = testState
-        )
+          val parentCompactor = mock[Compactor[ThrottleState]]
+          val childCompactor = mock[Compactor[ThrottleState]]
 
-      val state: ThrottleState =
-        testState.copy(compactionStates = mutable.Map.empty, child = Some(childActor))
+          val copyForward = randomBoolean()
 
-      val actor =
-        Actor.wire[Compactor[ThrottleState], ThrottleState](
-          name = "test",
-          impl = parentCompactor,
-          state = state
-        )
+          val childActor =
+            Actor.wire[Compactor[ThrottleState], ThrottleState](
+              name = "test",
+              impl = childCompactor,
+              state = testState
+            )
 
-      //parent gets a compaction call
-      compaction.run _ expects(*, *) onCall {
-        (throttle, copy) =>
-          throttle shouldBe state
-          copy shouldBe copyForward
-          ()
+          val state: ThrottleState =
+            testState.copy(compactionStates = mutable.Map.empty, child = Some(childActor))
+
+          val actor =
+            Actor.wire[Compactor[ThrottleState], ThrottleState](
+              name = "test",
+              impl = parentCompactor,
+              state = state
+            )
+
+          //parent gets a compaction call
+          compaction.run _ expects(*, *) onCall {
+            (throttle, copy) =>
+              throttle shouldBe state
+              copy shouldBe copyForward
+              ()
+          }
+
+          //child get a compaction call.
+          childCompactor.wakeUp _ expects(*, *, *) onCall {
+            (state, copy, actor) =>
+              copy shouldBe false
+              ()
+          }
+
+          ThrottleCompactor.doWakeUp(
+            state = state,
+            forwardCopyOnAllLevels = copyForward,
+            self = actor
+          )
+
+          sleep(5.seconds)
       }
-
-      //child get a compaction call.
-      childCompactor.wakeUp _ expects(*, *, *) onCall {
-        (state, copy, actor) =>
-          copy shouldBe false
-          ()
-      }
-
-      ThrottleCompactor.doWakeUp(
-        state = state,
-        forwardCopyOnAllLevels = copyForward,
-        self = actor
-      )
-
-      sleep(5.seconds)
     }
   }
 }

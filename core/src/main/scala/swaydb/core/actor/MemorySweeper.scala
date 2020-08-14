@@ -24,6 +24,7 @@
 
 package swaydb.core.actor
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.util.HashedMap
@@ -61,7 +62,7 @@ private[core] sealed trait MemorySweeper
  * Cleared all cached data. [[MemorySweeper]] is not required for Memory only databases
  * and zero databases.
  */
-private[core] object MemorySweeper {
+private[core] object MemorySweeper extends LazyLogging {
 
   def apply(memoryCache: MemoryCache): Option[MemorySweeper.Enabled] =
     memoryCache match {
@@ -98,6 +99,16 @@ private[core] object MemorySweeper {
             actorConfig = Some(block.actorConfig)
           )
         )
+    }
+
+  def close(keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): Unit =
+    keyValueMemorySweeper.foreach(close)
+
+  def close(sweeper: MemorySweeper.KeyValue): Unit =
+    sweeper.actor foreach {
+      actor =>
+        logger.info("Clearing cached key-values")
+        actor.terminateAndClear()
     }
 
   def weigher(entry: Command): Int =

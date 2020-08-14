@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.collection.mutable
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
 
 object SetMap {
   /**
@@ -271,11 +271,11 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
   def toBag[X[_]](implicit bag: Bag[X]): SetMap[K, V, F, X] =
     SetMap(set = set.toBag[X])
 
-  def close(): BAG[Unit] =
-    set.close()
+  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
+    set.close(retryInterval)
 
-  def delete(): BAG[Unit] =
-    set.delete()
+  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
+    set.delete(retryInterval)
 
   override def toString(): String =
     classOf[SetMap[_, _, _, BAG]].getSimpleName

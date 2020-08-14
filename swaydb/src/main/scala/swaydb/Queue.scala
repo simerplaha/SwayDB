@@ -35,7 +35,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
 
 object Queue {
   /**
@@ -211,9 +211,9 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
       .stream
       .map(_._2)
 
-  def close(): Unit =
-    set.close()
+  def close(retryInterval: FiniteDuration = 1.second): Unit =
+    set.close(retryInterval)
 
-  def delete(): Unit =
-    set.delete()
+  def delete(retryInterval: FiniteDuration = 1.second): Unit =
+    set.delete(retryInterval)
 }

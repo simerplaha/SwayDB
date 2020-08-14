@@ -756,9 +756,40 @@ object IO {
 
   }
 
-  def fromFuture[L: IO.ExceptionHandler, R](future: Future[R])(implicit ec: ExecutionContext): IO.Defer[L, R] = {
-    val reserve = Reserve.busy((), "Future reserve")
-    future onComplete {
+  /**
+   * There is a bug here. The Future should not be executed from within [[IO.Defer]].
+   *
+   * The following will lead to an infinite loop because future will get invoked each time
+   * the [[Reserve]] returns free but the future is incomplete which will result in the Defer
+   * being created again which will result in a new future.
+   *
+   * But using this as root defer is ok.
+   *
+   * {{{
+   *   def future = Future(println("Running future")
+   *
+   *     IO
+   *       .Defer
+   *       .unit
+   *       .and(IO.fromFuture(future, "My test"))
+   * }}}
+   *
+   *
+   * Use val instead where new future is not created every time [[IO.Defer]] is retried on failure/busy.
+   *
+   * {{{
+   *    val future = Future(println("Running future")
+   *
+   *    IO
+   *      .Defer
+   *      .and(IO.fromFuture(future, "My test"))
+   *      .unit
+   * }}}
+   */
+  private[swaydb] def fromFuture[R](executedFuture: Future[R], reserveName: String = "Future reserve")(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, R] = {
+    val reserve = Reserve.busy((), reserveName)
+
+    executedFuture onComplete {
       _ =>
         Reserve.setFree(reserve)
     }
@@ -769,33 +800,30 @@ object IO {
      *
      * This is necessary to avoid blocking Futures.
      */
-    def deferredValue =
-      future.value map {
-        case scala.util.Success(value) =>
-          //success
-          value
+    def deferredValue(): R =
+      executedFuture.value match {
+        case Some(result) =>
+          result match {
+            case scala.util.Success(value) =>
+              //success
+              value
 
-        case scala.util.Failure(exception) =>
-          //throw Future's failure so deferred can react to this.
-          //wrap it in another Exception incase the inner exception is recoverable because the future is complete
-          //and cannot be recovered.
-          throw new Exception(exception)
-      } getOrElse {
-        //Accessing Future when its incomplete.
-        throw swaydb.Exception.GetOnIncompleteDeferredFutureIO(reserve)
+            case scala.util.Failure(exception) =>
+              //throw Future's failure so deferred can react to this.
+              //wrap it in another Exception in-case the inner exception is recoverable because the future is complete
+              //and cannot be recovered.
+              throw new Exception(exception)
+          }
+
+        case None =>
+          //Accessing Future when its incomplete.
+          throw swaydb.Exception.GetOnIncompleteDeferredFutureIO(reserve)
       }
 
-    val error = swaydb.Error.ReservedResource(reserve)
 
-    //Deferred instance that will handle the outcome of the Future
-    val recoverableDeferred =
-      IO.Defer[swaydb.Error.Segment, R](
-        value = deferredValue,
-        error = error
-      )
-
+    import swaydb.Error.Level.ExceptionHandler
     //Deferred that returns the result of the above deferred when completed.
-    IO.Defer[L, R](recoverableDeferred.toIO.get)
+    IO.Defer[swaydb.Error.Level, R](deferredValue(), swaydb.Error.ReservedResource(reserve))
   }
 
   /** **********************************
@@ -804,7 +832,7 @@ object IO {
    * ************ DEFERRED ************
    * **********************************
    * **********************************
-   * **********************************/
+   * ********************************* */
 
   object Defer extends LazyLogging {
 
@@ -864,7 +892,7 @@ object IO {
     def isFailure: Boolean =
       isPending && toIO.isLeft
 
-    private[Defer] def getUnsafe: A = {
+    private[IO] def getUnsafe: A = {
       //Runs composed functions does not perform any recovery.
       def forceGet: A =
         getValue getOrElse {
@@ -876,10 +904,13 @@ object IO {
       if (_value.isDefined || !isBusy)
         forceGet
       else
-        error map {
-          error =>
+        error match {
+          case Some(error) =>
             throw IO.ExceptionHandler.toException[E](error)
-        } getOrElse forceGet
+
+          case None =>
+            forceGet
+        }
     }
 
     def toIO: IO[E, A] =
@@ -929,8 +960,8 @@ object IO {
               case IO.Left(error) =>
                 logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                doRun(recovery.get.asInstanceOf[E => IO.Defer[E, A]](error), 0)
-                  else
+                  doRun(recovery.get.asInstanceOf[E => IO.Defer[E, A]](error), 0)
+                else
                   io
             }
 
@@ -975,8 +1006,8 @@ object IO {
               case IO.Left(error) =>
                 logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                doRun(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
-                  else
+                  doRun(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
+                else
                   bag.fromIO(io)
             }
 
@@ -1043,8 +1074,8 @@ object IO {
 
                   case IO.Left(error) =>
                     if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                    runNow(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
-                      else
+                      runNow(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
+                    else
                       bag.fromIO(io)
                 }
 
@@ -1089,9 +1120,29 @@ object IO {
         error = error
       )
 
+    def and[F >: E : IO.ExceptionHandler, B](f: => IO.Defer[F, B]): IO.Defer[F, B] =
+      IO.Defer[F, B](
+        operation =
+          () => {
+            getUnsafe
+            f.getUnsafe
+          },
+        error = error
+      )
+
     def flatMapIO[F >: E : IO.ExceptionHandler, B](f: A => IO[F, B]): IO.Defer[F, B] =
       IO.Defer[F, B](
         operation = () => f(getUnsafe).get,
+        error = error
+      )
+
+    def andIO[F >: E : IO.ExceptionHandler, B](f: => IO[F, B]): IO.Defer[F, B] =
+      IO.Defer[F, B](
+        operation =
+          () => {
+            getUnsafe
+            f.get
+          },
         error = error
       )
 

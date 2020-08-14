@@ -38,9 +38,11 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.TupleOrNone
 import swaydb.{Bag, IO, OK, Prepare}
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 /**
@@ -147,7 +149,8 @@ private[swaydb] object Core {
 
 private[swaydb] class Core[BAG[_]](val zero: LevelZero,
                                    threadStateCache: ThreadStateCache,
-                                   onClose: => IO.Defer[swaydb.Error.Close, Unit])(implicit bag: Bag[BAG]) {
+                                   onClose: FiniteDuration => Future[Unit])(implicit bag: Bag[BAG],
+                                                                            shutdownExecutionContext: ExecutionContext) {
 
   private val serial = bag.createSerial()
 
@@ -308,11 +311,15 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     zero.meterFor(levelNumber)
 
-  def close(): BAG[Unit] =
-    onClose.run(0)
+  def close(retryInterval: FiniteDuration): BAG[Unit] =
+    IO.fromFuture(onClose(retryInterval)).run(0)
 
-  def delete(): BAG[Unit] =
-    onClose.flatMapIO(_ => zero.delete).run(0)
+  def deleteFuture(retryInterval: FiniteDuration): Future[Unit] =
+    onClose(retryInterval)
+      .and(zero.delete(retryInterval))
+
+  def delete(retryInterval: FiniteDuration): BAG[Unit] =
+    IO.fromFuture(deleteFuture(retryInterval)).run(0)
 
   def clear(readState: ThreadReadState): BAG[OK] =
     zero.run(_.clear(readState))
@@ -322,5 +329,5 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
       zero = zero,
       threadStateCache = threadStateCache,
       onClose = onClose
-    )(bag)
+    )(bag, shutdownExecutionContext)
 }

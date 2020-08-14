@@ -88,6 +88,5 @@ private[core] object ByteBufferCleaner extends LazyLogging {
         val errorMessage = s"ByteBuffer cleaner not initialised. Failed to clean MMAP file: ${bufferPath.toString}."
         val exception = error.exception
         logger.error(errorMessage, exception)
-        throw new Exception(errorMessage, exception) //also throw to output to stdout in-case logging is not enabled since this is critical.
     }
 }

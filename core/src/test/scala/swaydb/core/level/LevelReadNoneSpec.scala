@@ -24,7 +24,6 @@
 
 package swaydb.core.level
 
-import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -59,7 +58,7 @@ class LevelReadNoneSpec3 extends LevelReadNoneSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
+sealed trait LevelReadNoneSpec extends TestBase {
 
   //  override def deleteFiles = false
 

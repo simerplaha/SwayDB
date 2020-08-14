@@ -71,6 +71,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.{IO, Scheduler}
+import TestCaseSweeper._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -155,16 +156,14 @@ object TestData {
   }
 
   implicit class ReopenLevel(level: Level)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                           ec: ExecutionContext,
-                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax) {
+                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long) {
 
     import swaydb.Error.Level.ExceptionHandler
     import swaydb.IO._
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def putKeyValuesTest(keyValues: Slice[Memory]): IO[swaydb.Error.Level, Unit] = {
+    def putKeyValuesTest(keyValues: Slice[Memory])(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Unit] = {
 
       implicit val idGenerator = level.segmentIDGenerator
 
@@ -178,6 +177,7 @@ object TestData {
       implicit val fileSweeper = level.fileSweeper
       implicit val blockCache = level.blockCache
       implicit val bufferCleaner = level.bufferCleaner
+      implicit val keyValueSweeper = level.keyValueMemorySweeper
 
       if (keyValues.isEmpty)
         IO.unit
@@ -222,7 +222,7 @@ object TestData {
             hashIndexConfig = level.hashIndexConfig,
             bloomFilterConfig = level.bloomFilterConfig,
             segmentConfig = level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-          )
+          ).map(_.clean())
         } flatMap {
           segments =>
             segments should have size 1
@@ -240,16 +240,15 @@ object TestData {
         }
     }
 
-    def reopen: Level =
+    def reopen(implicit sweeper: TestCaseSweeper): Level =
       reopen()
 
-    def tryReopen: IO[swaydb.Error.Level, Level] =
+    def tryReopen(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Level] =
       tryReopen()
 
     def reopen(segmentSize: Int = level.minSegmentSize,
                throttle: LevelMeter => Throttle = level.throttle,
-               nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                               fileSweeper: FileSweeperActor = fileSweeper): Level =
+               nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestCaseSweeper): Level =
       tryReopen(
         segmentSize = segmentSize,
         throttle = throttle,
@@ -258,14 +257,16 @@ object TestData {
 
     def tryReopen(segmentSize: Int = level.minSegmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
-                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                                  fileSweeper: FileSweeperActor = fileSweeper,
-                                                                  bufferCleaner: ByteBufferSweeperActor = bufferCleaner,
-                                                                  blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): IO[swaydb.Error.Level, Level] =
+                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Level] =
       level.releaseLocks flatMap {
         _ =>
           level.closeSegments flatMap {
             _ =>
+              implicit val fileSweeper = level.fileSweeper
+              implicit val blockCache = level.blockCache
+              implicit val bufferCleaner = level.bufferCleaner
+              implicit val keyValueSweeper = level.keyValueMemorySweeper
+
               Level(
                 bloomFilterConfig = level.bloomFilterConfig,
                 hashIndexConfig = level.hashIndexConfig,
@@ -281,28 +282,27 @@ object TestData {
                 appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomForMap(), 4.mb),
                 nextLevel = nextLevel,
                 throttle = throttle
-              )
+              ).map(_.clean())
           }
       }
   }
 
-  implicit class ReopenLevelZero(level: LevelZero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                   ec: ExecutionContext) {
+  implicit class ReopenLevelZero(level: LevelZero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) {
 
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
-    def reopen: LevelZero =
+    def reopen(implicit sweeper: TestCaseSweeper): LevelZero =
       reopen()
 
-    def reopen(mapSize: Long = level.maps.map.size)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                    fileSweeper: FileSweeperActor = fileSweeper,
-                                                    bufferCleaner: ByteBufferSweeperActor = bufferCleaner): LevelZero = {
+    def reopen(mapSize: Long = level.maps.map.size)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                    sweeper: TestCaseSweeper): LevelZero = {
       val reopened =
         level.releaseLocks flatMap {
           _ =>
             level.closeSegments flatMap {
               _ =>
+                implicit val actor = sweeper.cleaner
+
                 LevelZero(
                   mapSize = mapSize,
                   enableTimer = true,
@@ -316,7 +316,7 @@ object TestData {
                   nextLevel = level.nextLevel,
                   acceleration = Accelerator.brake(),
                   throttle = level.throttle
-                )
+                ).map(_.clean())
             }
         }
       reopened.runRandomIO.right.value

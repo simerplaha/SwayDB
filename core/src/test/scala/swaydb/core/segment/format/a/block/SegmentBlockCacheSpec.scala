@@ -7,7 +7,6 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TestSweeper.level0PushDownPool
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Memory
 import swaydb.core.segment.PersistentSegmentOne
@@ -18,7 +17,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.{TestBase, TestTimer}
+import swaydb.core.{TestBase, TestExecutionContext, TestTimer}
 import swaydb.data.config.{ActorConfig, IOAction, MemoryCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -30,6 +29,7 @@ import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.collection.parallel.CollectionConverters._
+import scala.concurrent.ExecutionContext
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default
@@ -117,7 +117,7 @@ class SegmentBlockCacheSpec extends TestBase {
     "not add un-cached blocks and readers to memory sweeper" in {
       runThis(10.times) {
         implicit val sweeper: Option[MemorySweeper.Block] =
-          MemorySweeper(MemoryCache.ByteCacheOnly(4098, 50000.bytes, 600.mb, ActorConfig.random()(level0PushDownPool)))
+          MemorySweeper(MemoryCache.ByteCacheOnly(4098, 50000.bytes, 600.mb, ActorConfig.random()(TestExecutionContext.executionContext)))
             .map(_.asInstanceOf[MemorySweeper.Block])
 
         val actor = sweeper.value.actor.value
@@ -194,7 +194,7 @@ class SegmentBlockCacheSpec extends TestBase {
     "add cached blocks to memory sweeper" in {
       runThis(10.times) {
         implicit val sweeper: Option[MemorySweeper.Block] =
-          MemorySweeper(MemoryCache.ByteCacheOnly(4098, 50000.bytes, 600.mb, ActorConfig.random(10.seconds)(level0PushDownPool)))
+          MemorySweeper(MemoryCache.ByteCacheOnly(4098, 50000.bytes, 600.mb, ActorConfig.random(10.seconds)(TestExecutionContext.executionContext)))
             .map(_.asInstanceOf[MemorySweeper.Block])
 
         val actor = sweeper.value.actor.value

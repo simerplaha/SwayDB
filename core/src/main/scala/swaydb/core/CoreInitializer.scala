@@ -28,7 +28,7 @@ import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.CoreShutdown.shutdown
+import swaydb.core.CoreShutdown.close
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -50,7 +50,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.{ActorRef, ActorWire, Bag, Error, IO, Scheduler}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 /**
@@ -240,17 +240,17 @@ private[core] object CoreInitializer extends LazyLogging {
 
                       sys.addShutdownHook {
                         implicit val scheduler = Scheduler()
-                        Await.result(shutdown(zero, shutdownTimeout), shutdownTimeout)
+                        implicit val bag = Bag.future
+                        Await.result(IO.Defer(close(zero, shutdownTimeout)).run(0), shutdownTimeout)
                       }
 
                       //trigger initial wakeUp.
                       sendInitialWakeUp(compactor)
 
-                      def onClose =
-                        IO.fromFuture[swaydb.Error.Close, Unit] {
-                          implicit val scheduler = Scheduler()
-                          CoreShutdown.shutdown(zero, shutdownTimeout)
-                        }
+                      def onClose(retryInterval: FiniteDuration): Future[Unit] = {
+                        implicit val scheduler = Scheduler()
+                        CoreShutdown.close(zero, retryInterval)
+                      }
 
                       new Core[Bag.Less](
                         zero = zero,

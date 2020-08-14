@@ -262,7 +262,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
         Benchmark(s"Creating Segment for ${keyValues.size}") {
           getBlocks(
             keyValues = keyValues,
-            segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue)
+            segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
           ).get
         }
 

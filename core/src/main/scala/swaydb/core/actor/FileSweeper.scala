@@ -26,11 +26,11 @@ package swaydb.core.actor
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.data.config.{ActorConfig, FileCache}
-import swaydb.{Actor, ActorRef, IO}
+import swaydb.{Actor, ActorRef, Bag, IO, Scheduler}
 
+import scala.concurrent.duration.FiniteDuration
 import scala.ref.WeakReference
 
 private[core] trait FileSweeperItem {
@@ -101,6 +101,21 @@ private[swaydb] object FileSweeper extends LazyLogging {
           maxOpenSegments = maxOpenSegments,
           actorConfig = actorConfig
         )
+    }
+
+  def closeAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit fileSweeper: FileSweeperActor,
+                                                           bag: Bag.Async[BAG],
+                                                           scheduler: Scheduler): BAG[Unit] =
+    bag.transform(fileSweeper.terminateAndRecoverAsync(retryOnBusyDelay)) {
+      _ =>
+        logger.info(this.getClass.getSimpleName + " terminated!")
+    }
+
+  def closeSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit fileSweeper: FileSweeperActor,
+                                                          bag: Bag.Sync[BAG]): BAG[Unit] =
+    bag.transform(fileSweeper.terminateAndRecoverSync(retryOnBusyDelay)) {
+      _ =>
+        logger.info(this.getClass.getSimpleName + " terminated!")
     }
 
   private def processCommand(command: Command): Unit =

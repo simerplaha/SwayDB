@@ -29,18 +29,16 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data._
-import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.MemorySweeper
+import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -48,6 +46,7 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import TestCaseSweeper._
 
 class LevelMapSpec0 extends LevelMapSpec
 
@@ -89,68 +88,82 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
 
-    val map =
-      if (persistent)
-        Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-          nullKey = Slice.Null,
-          nullValue = Memory.Null,
-          folder = randomIntDirectory,
-          mmap = MMAP.Enabled(OperatingSystem.isWindows),
-          flushOnOverflow = true,
-          fileSize = 1.mb,
-          dropCorruptedTailEntries = false
-        ).runRandomIO.right.value.item
-      else
-        Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-          nullKey = Slice.Null,
-          nullValue = Memory.Null
-        )
+    def createTestMap()(implicit sweeper: TestCaseSweeper) = {
+      val map =
+        if (persistent)
+          Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            nullKey = Slice.Null,
+            nullValue = Memory.Null,
+            folder = randomIntDirectory,
+            mmap = MMAP.Enabled(OperatingSystem.isWindows),
+            flushOnOverflow = true,
+            fileSize = 1.mb,
+            dropCorruptedTailEntries = false
+          ).runRandomIO.right.value.item.clean()
+        else
+          Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            nullKey = Slice.Null,
+            nullValue = Memory.Null
+          )
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
-    keyValues foreach {
-      keyValue =>
-        map.writeSync(MapEntry.Put(keyValue.key, keyValue))
+      val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
+      keyValues foreach {
+        keyValue =>
+          map.writeSync(MapEntry.Put(keyValue.key, keyValue))
+      }
+
+      (map, keyValues)
     }
 
     "succeed" when {
       "writing to an empty Level" in {
-        val level = TestLevel()
-        level.put(map).right.right.value.right.value should contain only level.levelNumber
-        //since this is a new Segment and Level has no sub-level, all the deleted key-values will value removed.
-        val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
+        TestCaseSweeper {
+          implicit sweeper =>
+            val (map, keyValues) = createTestMap()
 
-        assertReads(otherKeyValues, level)
+            val level = TestLevel()
+            level.put(map).right.right.value.right.value should contain only level.levelNumber
+            //since this is a new Segment and Level has no sub-level, all the deleted key-values will value removed.
+            val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
-        //deleted key-values do not exist.
-        deletedKeyValues foreach {
-          deleted =>
-            level.get(deleted.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+            assertReads(otherKeyValues, level)
+
+            //deleted key-values do not exist.
+            deletedKeyValues foreach {
+              deleted =>
+                level.get(deleted.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+            }
         }
       }
 
       "writing to a non empty Level" in {
-        val level = TestLevel()
+        TestCaseSweeper {
+          implicit sweeper =>
+            val (map, keyValues) = createTestMap()
 
-        //creating a Segment with existing string key-values
-        val existingKeyValues = Array(Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"))
+            val level = TestLevel()
 
-        val sortedExistingKeyValues =
-          Slice(
-            Array(
-              //also randomly set expired deadline for Remove.
-              Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
-            ).sorted(keyOrder.on[KeyValue](_.key)))
+            //creating a Segment with existing string key-values
+            val existingKeyValues = Array(Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"))
 
-        level.putKeyValuesTest(sortedExistingKeyValues).runRandomIO.right.value
+            val sortedExistingKeyValues =
+              Slice(
+                Array(
+                  //also randomly set expired deadline for Remove.
+                  Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
+                ).sorted(keyOrder.on[KeyValue](_.key)))
 
-        //put a new map
-        level.put(map).right.right.value.right.value should contain only level.levelNumber
-        assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
+            level.putKeyValuesTest(sortedExistingKeyValues).runRandomIO.right.value
 
-        level.get("one", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(0)
-        level.get("two", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(1)
-        level.get("three", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(2)
-        level.get("four", ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+            //put a new map
+            level.put(map).right.right.value.right.value should contain only level.levelNumber
+            assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
+
+            level.get("one", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(0)
+            level.get("two", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(1)
+            level.get("three", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(2)
+            level.get("four", ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
+        }
       }
     }
   }
@@ -160,80 +173,102 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
 
-    val map =
-      if (persistent)
-        Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-          nullKey = Slice.Null,
-          nullValue = Memory.Null,
-          folder = randomIntDirectory,
-          mmap = MMAP.Enabled(OperatingSystem.isWindows),
-          flushOnOverflow = true,
-          fileSize = 1.mb,
-          dropCorruptedTailEntries = false).runRandomIO.right.value.item
-      else
-        Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-          nullKey = Slice.Null,
-          nullValue = Memory.Null
-        )
+    def createTestMap()(implicit sweeper: TestCaseSweeper) = {
+      val map =
+        if (persistent)
+          Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            nullKey = Slice.Null,
+            nullValue = Memory.Null,
+            folder = randomIntDirectory,
+            mmap = MMAP.Enabled(OperatingSystem.isWindows),
+            flushOnOverflow = true,
+            fileSize = 1.mb,
+            dropCorruptedTailEntries = false).runRandomIO.right.value.item.clean()
+        else
+          Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            nullKey = Slice.Null,
+            nullValue = Memory.Null
+          )
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
-    keyValues foreach {
-      keyValue =>
-        map.writeSync(MapEntry.Put(keyValue.key, keyValue))
+      val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
+      keyValues foreach {
+        keyValue =>
+          map.writeSync(MapEntry.Put(keyValue.key, keyValue))
+      }
+
+      (map, keyValues)
     }
 
     "succeed" when {
       "writing to an empty Level by copying to last Level" in {
-        val nextLevel = mock[NextLevel]
+        TestCaseSweeper {
+          implicit sweeper =>
+            val (map, keyValues) = createTestMap()
 
-        (nextLevel.isTrash _).expects() returning false
+            val nextLevel = mock[NextLevel]
 
-        (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-          putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
-            putMap.pathOption shouldBe map.pathOption
-            true
+            (nextLevel.isTrash _).expects() returning false
+
+            (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
+              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+                putMap.pathOption shouldBe map.pathOption
+                true
+            }
+
+            (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
+              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+                putMap.pathOption shouldBe map.pathOption
+                implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
+                IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
+            }
+
+            (nextLevel.closeNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.closeSegments _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
+            (nextLevel.deleteNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
+            level.put(map).right.right.value.right.value should contain only Int.MaxValue
+            assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
         }
-
-        (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-          putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
-            putMap.pathOption shouldBe map.pathOption
-            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
-            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
-        }
-
-        val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
-        level.put(map).right.right.value.right.value should contain only Int.MaxValue
-        assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
       }
 
       "writing to non empty Levels by copying to last Level if key-values do not overlap upper Level" in {
-        val nextLevel = mock[NextLevel]
+        TestCaseSweeper {
+          implicit sweeper =>
+            val nextLevel = mock[NextLevel]
 
-        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1))
-        val map = TestMap(lastLevelKeyValues)
+            val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1))
+            val map = TestMap(lastLevelKeyValues)
 
-        (nextLevel.isTrash _).expects() returning false
+            (nextLevel.isTrash _).expects() returning false
 
-        (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-          putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
-            putMap.pathOption shouldBe map.pathOption
-            true
+            (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
+              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+                putMap.pathOption shouldBe map.pathOption
+                true
+            }
+
+            (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
+              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+                putMap.pathOption shouldBe map.pathOption
+                implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
+                IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
+            }
+
+            (nextLevel.closeNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.closeSegments _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
+            (nextLevel.deleteNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
+            val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000))
+            level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value
+
+            level.put(map).right.right.value.right.value should contain only Int.MaxValue
+            assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.
+            assertGetFromThisLevelOnly(keyValues, level)
         }
-
-        (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-          putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
-            putMap.pathOption shouldBe map.pathOption
-            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
-            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
-        }
-
-        val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
-        val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000))
-        level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value
-
-        level.put(map).right.right.value.right.value should contain only Int.MaxValue
-        assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.
-        assertGetFromThisLevelOnly(keyValues, level)
       }
     }
   }

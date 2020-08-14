@@ -55,11 +55,12 @@ class AppendixMapEntrySpec extends TestBase {
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
   val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
-  val segment = TestSegment()
 
   "MapEntryWriterAppendix & MapEntryReaderAppendix" should {
 
     "write Add segment" in {
+      val segment = TestSegment()
+
       import AppendixMapEntryWriter.AppendixPutWriter
       val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
 

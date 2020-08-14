@@ -66,7 +66,9 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.{Futures, OperatingSystem}
 import swaydb.data.util.StorageUnits._
+import TestCaseSweeper._
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -216,7 +218,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                         fileSweeper: FileSweeperActor = TestSweeper.fileSweeper,
                                                                         cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
-                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                        sweeper: TestCaseSweeper = null): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerger
@@ -243,6 +246,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
         keyValue =>
           testMap.writeSync(MapEntry.Put(keyValue.key, keyValue))
       }
+
+      if(sweeper != null)
+        testMap.clean()
+
       testMap
     }
   }
@@ -261,7 +268,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
                                                                                                                                                     fileSweeper: FileSweeperActor = TestSweeper.fileSweeper,
                                                                                                                                                     cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
                                                                                                                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                                                                    blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Segment = {
+                                                                                                                                                    blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
+                                                                                                                                                    sweeper: TestCaseSweeper = null): Segment = {
 
       val segmentId = Effect.fileId(path)._1 - 1
 
@@ -300,7 +308,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                         pathsDistributor: PathsDistributor,
                                                                                                         idGenerator: IDGenerator,
-                                                                                                        blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Slice[Segment] = {
+                                                                                                        blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
+                                                                                                        sweeper: TestCaseSweeper = null): Slice[Segment] = {
 
       implicit val segmentIO: SegmentIO =
         SegmentIO(
@@ -312,26 +321,32 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
           segmentConfig = segmentConfig
         )
 
-      if (levelStorage.memory)
-        Segment.memory(
-          minSegmentSize = segmentConfig.minSize,
-          maxKeyValueCountPerSegment = segmentConfig.maxCount,
-          pathsDistributor = pathsDistributor,
-          createdInLevel = createdInLevel,
-          keyValues = MergeStats.memoryBuilder(keyValues).close
-        )
-      else
-        Segment.persistent(
-          pathsDistributor = pathsDistributor,
-          createdInLevel = createdInLevel,
-          bloomFilterConfig = bloomFilterConfig,
-          hashIndexConfig = hashIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          valuesConfig = valuesConfig,
-          segmentConfig = segmentConfig,
-          mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex)
-        )
+      val segment =
+        if (levelStorage.memory)
+          Segment.memory(
+            minSegmentSize = segmentConfig.minSize,
+            maxKeyValueCountPerSegment = segmentConfig.maxCount,
+            pathsDistributor = pathsDistributor,
+            createdInLevel = createdInLevel,
+            keyValues = MergeStats.memoryBuilder(keyValues).close
+          )
+        else
+          Segment.persistent(
+            pathsDistributor = pathsDistributor,
+            createdInLevel = createdInLevel,
+            bloomFilterConfig = bloomFilterConfig,
+            hashIndexConfig = hashIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            valuesConfig = valuesConfig,
+            segmentConfig = segmentConfig,
+            mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex)
+          )
+
+      if (sweeper != null)
+        segment.foreach(_.clean())
+
+      segment
     }
   }
 
@@ -361,11 +376,13 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random2(pushForward = false, deleteEventually = false, mmap = mmapSegments),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                      fileSweeper: FileSweeperActor = TestSweeper.fileSweeper,
-                                                      cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner,
-                                                      blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
-                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Level =
+                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                      levelSweeper: TestCaseSweeper): Level = {
+      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = levelSweeper.keyValueMemorySweeper
+      implicit val fileSweeper: FileSweeperActor = levelSweeper.fileSweeper
+      implicit val cleaner: ByteBufferSweeperActor = levelSweeper.cleaner
+      implicit val blockCache: Option[BlockCache.State] = levelSweeper.blockCache
+
       Level(
         levelStorage = levelStorage,
         appendixStorage = appendixStorage,
@@ -383,7 +400,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
             _ =>
               level
           }
-      }.right.value
+      }.right.value.clean()
+    }
   }
 
   object TestLevelZero {
@@ -392,10 +410,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
               mapSize: Long = randomIntMax(10.mb),
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                               fileSweeper: FileSweeperActor = TestSweeper.fileSweeper,
-                                                                               cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner): LevelZero =
+                                                                               sweeper: TestCaseSweeper): LevelZero = {
+      implicit val cleaner: ByteBufferSweeperActor = sweeper.cleaner
+
       LevelZero(
         mapSize = mapSize,
         storage = level0Storage,
@@ -404,7 +422,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
         cacheKeyValueIds = randomBoolean(),
         throttle = throttle,
         acceleration = brake
-      ).value
+      ).value.clean()
+    }
   }
 
   def createFile(bytes: Slice[Byte]): Path =
@@ -532,7 +551,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
                   level2KeyValues: TestTimer => Slice[Memory] = _ => Slice.empty,
                   assertLevel2: (Slice[Memory], LevelRef) => Unit = (_, _) => (),
                   assertAllLevels: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                  throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit = {
+                  throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                               ec: ExecutionContext = TestExecutionContext.executionContext): Unit = {
 
     def iterationMessage =
       s"Thread: ${Thread.currentThread().getId} - throttleOn: $throttleOn"
@@ -555,6 +575,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
     val levelZeroThrottle: LevelZeroMeter => FiniteDuration = if (throttleOn) _ => Duration.Zero else _ => 365.days
 
     println("Starting levels")
+
+    implicit val levelSweeper: TestCaseSweeper = TestCaseSweeper()
 
     val level4 = TestLevel(throttle = levelThrottle)
     val level3 = TestLevel(nextLevel = Some(level4), throttle = levelThrottle)
@@ -681,7 +703,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
 
     runAsserts(asserts)
 
-    level0.delete.runRandomIO.right.value
+    level0.deleteNoSweep.runRandomIO.right.value
 
     val terminate =
       compaction map {
@@ -721,7 +743,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
                               assertLevel3: LevelRef => Unit,
                               level3: Level,
                               assertAllLevels: LevelRef => Unit,
-                              assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit = {
+                              assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                 levelSweeper: TestCaseSweeper): Unit = {
     println("level3.putKeyValues")
     if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).runRandomIO.right.value
     println("level2.putKeyValues")
@@ -784,6 +807,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
                        hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                        bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
+                                                                                                    ec: ExecutionContext = TestExecutionContext.executionContext,
                                                                                                     segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
 

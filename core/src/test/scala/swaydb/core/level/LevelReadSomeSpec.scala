@@ -30,7 +30,7 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.config.MMAP
@@ -124,16 +124,19 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
                       //if test failed check merging all key-values result in the key returning none.
                       implicit val keyOrder = KeyOrder.default
                       implicit val timeOrder = TimeOrder.long
-                      val level: Level = TestLevel()
-                      level.putKeyValuesTest(level2KeyValues).runRandomIO.right.value
-                      level.putKeyValuesTest(level1KeyValues).runRandomIO.right.value
-                      level.putKeyValuesTest(level0KeyValues).runRandomIO.right.value
+                      TestCaseSweeper {
+                        implicit sweeper =>
+                          val level: Level = TestLevel()
+                          level.putKeyValuesTest(level2KeyValues).runRandomIO.right.value
+                          level.putKeyValuesTest(level1KeyValues).runRandomIO.right.value
+                          level.putKeyValuesTest(level0KeyValues).runRandomIO.right.value
 
-                      //if after merging into a single Level the result is not empty then print all the failed exceptions.
-                      Try(IO.Defer(level.get(update.key, ThreadReadState.random).toOptionPut).runIO.runRandomIO.right.value shouldBe empty).failed foreach {
-                        exception =>
-                          exception.printStackTrace()
-                          throw testException
+                          //if after merging into a single Level the result is not empty then print all the failed exceptions.
+                          Try(IO.Defer(level.get(update.key, ThreadReadState.random).toOptionPut).runIO.runRandomIO.right.value shouldBe empty).failed foreach {
+                            exception =>
+                              exception.printStackTrace()
+                              throw testException
+                          }
                       }
 
                     case Failure(exception) =>
