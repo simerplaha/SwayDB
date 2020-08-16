@@ -73,7 +73,7 @@ object TestCaseSweeper extends LazyLogging {
       maps = ListBuffer.empty,
       paths = ListBuffer.empty,
       actors = ListBuffer.empty,
-      actorWires = ListBuffer.empty
+      ListBuffer.empty
     )
   }
 
@@ -87,10 +87,6 @@ object TestCaseSweeper extends LazyLogging {
   private def terminate(sweeper: TestCaseSweeper): Unit = {
     implicit val bag = Bag.future(TestExecutionContext.executionContext)
 
-    def future = Future.sequence(sweeper.levels.map(_.delete(5.second)))
-
-    IO.fromFuture(future).run(0).await(10.seconds)
-
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 
     //calling this after since delete would've already invoked these.
@@ -98,6 +94,10 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.closeSync(1.second)(sweeper, Bag.less)))
     sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.closeSync(1.second, 10.seconds)(cleaner, Bag.less, TestExecutionContext.executionContext)))
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
+
+    def future = Future.sequence(sweeper.levels.map(_.delete(5.second)))
+
+    IO.fromFuture(future).run(0).await(10.seconds)
 
     sweeper.segments.foreach {
       segment =>

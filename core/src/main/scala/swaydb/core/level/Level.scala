@@ -1624,8 +1624,8 @@ private[core] case class Level(dirs: Seq[Dir],
     pathDistributor
       .dirs
       .foreachIO {
-        path =>
-          IO(Effect.walkDelete(path.path))
+        dir =>
+          IO(Effect.walkDelete(dir.path))
       }
       .getOrElse(IO.unit)
 
