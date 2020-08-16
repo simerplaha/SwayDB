@@ -47,7 +47,7 @@ object Scheduler {
     }
 }
 
-class Scheduler(timer: Timer)(implicit val ec: ExecutionContext) {
+class Scheduler private(timer: Timer)(implicit val ec: ExecutionContext) {
 
   def apply[T](delayFor: FiniteDuration)(block: => Future[T]): Future[T] = {
     val promise = Promise[T]()

@@ -27,251 +27,284 @@ package swaydb.core.actor
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.{Actor, ActorWire}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import TestCaseSweeper._
 
 class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
 
   "ActorWire" should {
 
     "process messages in order of arrival" in {
-      class MyImpl(message: ListBuffer[Int]) {
-        def message(int: Int): Unit =
-          message += int
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-        def get(): Iterable[Int] = message
+          class MyImpl(message: ListBuffer[Int]) {
+            def message(int: Int): Unit =
+              message += int
+
+            def get(): Iterable[Int] = message
+          }
+
+          val actor = Actor.wire("", new MyImpl(ListBuffer.empty)).sweep()
+
+          actor
+            .ask
+            .map {
+              (impl, state) =>
+                (1 to 100) foreach {
+                  i =>
+                    impl.message(i)
+                }
+            }.await(2.seconds)
+
+          actor
+            .ask
+            .map {
+              (impl, _) =>
+                impl.get()
+            }.await.toList should contain theSameElementsInOrderAs (1 to 100)
       }
 
-      val actor = Actor.wire("", new MyImpl(ListBuffer.empty))
-
-      actor
-        .ask
-        .map {
-          (impl, state) =>
-            (1 to 100) foreach {
-              i =>
-                impl.message(i)
-            }
-        }.await(2.seconds)
-
-      actor
-        .ask
-        .map {
-          (impl, _) =>
-            impl.get()
-        }.await.toList should contain theSameElementsInOrderAs (1 to 100)
     }
 
     "ask" in {
-      object MyImpl {
-        def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): String =
-          s"Hello $name"
-      }
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-      Actor.wire("", MyImpl)
-        .ask
-        .map {
-          (impl, state, self) =>
-            impl.hello("John", self)
-        }
-        .await shouldBe "Hello John"
+          object MyImpl {
+            def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): String =
+              s"Hello $name"
+          }
+
+          Actor.wire("", MyImpl).sweep()
+            .ask
+            .map {
+              (impl, state, self) =>
+                impl.hello("John", self)
+            }
+            .await shouldBe "Hello John"
+      }
     }
 
     "askFlatMap" in {
-      object MyImpl {
-        def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): Future[String] =
-          Future(s"Hello $name")
-      }
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-      Actor.wire("", MyImpl)
-        .ask
-        .flatMap {
-          (impl, _, self) =>
-            impl.hello("John", self)
-        }
-        .await shouldBe "Hello John"
+          object MyImpl {
+            def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): Future[String] =
+              Future(s"Hello $name")
+          }
+
+          Actor.wire("", MyImpl).sweep()
+            .ask
+            .flatMap {
+              (impl, _, self) =>
+                impl.hello("John", self)
+            }
+            .await shouldBe "Hello John"
+      }
     }
 
     "send" in {
-      class MyImpl(var name: String) {
-        def hello(name: String): Future[String] =
-          Future {
-            this.name = name
-            s"Hello $name"
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+
+          class MyImpl(var name: String) {
+            def hello(name: String): Future[String] =
+              Future {
+                this.name = name
+                s"Hello $name"
+              }
+
+            def getName(): Future[String] =
+              Future(name)
           }
 
-        def getName(): Future[String] =
-          Future(name)
-      }
+          val actor = Actor.wire("", new MyImpl("")).sweep()
 
-      val actor = Actor.wire("", new MyImpl(""))
-
-      actor.send {
-        (impl, state) =>
-          impl.hello("John")
-      }
-
-      eventually {
-        actor
-          .ask
-          .flatMap {
+          actor.send {
             (impl, state) =>
-              impl.getName()
+              impl.hello("John")
           }
-          .await shouldBe "John"
+
+          eventually {
+            actor
+              .ask
+              .flatMap {
+                (impl, state) =>
+                  impl.getName()
+              }
+              .await shouldBe "John"
+          }
       }
     }
 
     "scheduleAsk" in {
-      class MyImpl(var invoked: Boolean = false) {
-        def invoke(): Unit =
-          invoked = true
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          class MyImpl(var invoked: Boolean = false) {
+            def invoke(): Unit =
+              invoked = true
 
-        def getInvoked(): Boolean =
-          invoked
-      }
-
-      val actor = Actor.wire("", new MyImpl(invoked = false))
-
-      actor.send(2.second) {
-        (impl, _) =>
-          impl.invoke()
-      }
-
-      def assert(expected: Boolean) =
-        actor
-          .ask
-          .map {
-            (impl, _) =>
-              impl.getInvoked()
+            def getInvoked(): Boolean =
+              invoked
           }
-          .await shouldBe expected
 
-      assert(expected = false)
-      sleep(1.second)
-      assert(expected = false)
+          val actor = Actor.wire("", new MyImpl(invoked = false)).sweep()
 
-      sleep(1.second)
-      eventually {
-        actor
-          .ask
-          .map {
+          actor.send(2.second) {
             (impl, _) =>
-              impl.getInvoked()
+              impl.invoke()
           }
-          .await shouldBe true
+
+          def assert(expected: Boolean) =
+            actor
+              .ask
+              .map {
+                (impl, _) =>
+                  impl.getInvoked()
+              }
+              .await shouldBe expected
+
+          assert(expected = false)
+          sleep(1.second)
+          assert(expected = false)
+
+          sleep(1.second)
+          eventually {
+            actor
+              .ask
+              .map {
+                (impl, _) =>
+                  impl.getInvoked()
+              }
+              .await shouldBe true
+          }
       }
     }
 
     "scheduleAskFlatMap" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          class MyImpl(var invoked: Boolean = false) {
+            def invoke(): Future[Boolean] =
+              Future {
+                invoked = true
+                invoked
+              }
 
-      class MyImpl(var invoked: Boolean = false) {
-        def invoke(): Future[Boolean] =
-          Future {
-            invoked = true
-            invoked
+            def getInvoked(): Boolean =
+              invoked
           }
 
-        def getInvoked(): Boolean =
-          invoked
-      }
+          val actor = Actor.wire("", new MyImpl(invoked = false)).sweep()
 
-      val actor = Actor.wire("", new MyImpl(invoked = false))
+          val result =
+            actor
+              .ask
+              .flatMap(2.second) {
+                (impl, _, _) =>
+                  impl.invoke()
+              }
 
-      val result =
-        actor
-          .ask
-          .flatMap(2.second) {
-            (impl, _, _) =>
-              impl.invoke()
-          }
+          def assert(expected: Boolean) =
+            actor
+              .ask
+              .map {
+                (impl, _) =>
+                  impl.getInvoked()
+              }
+              .await shouldBe expected
 
-      def assert(expected: Boolean) =
-        actor
-          .ask
-          .map {
-            (impl, _) =>
-              impl.getInvoked()
-          }
-          .await shouldBe expected
+          assert(expected = false)
+          sleep(1.second)
+          assert(expected = false)
 
-      assert(expected = false)
-      sleep(1.second)
-      assert(expected = false)
+          sleep(1.second)
 
-      sleep(1.second)
-
-      actor
-        .ask
-        .map {
-          (impl, _) =>
-            impl.getInvoked()
-        }
-        .await shouldBe true
-
-      result.task.await shouldBe true
-    }
-
-    "scheduleAskWithSelf" in {
-      class MyImpl(var invoked: Boolean = false) {
-        def invoke(replyTo: ActorWire[MyImpl, Unit]): Future[Boolean] =
-          replyTo
+          actor
             .ask
             .map {
               (impl, _) =>
-                impl.setInvoked()
+                impl.getInvoked()
             }
-            .map {
-              _ =>
-                invoked
-            }
+            .await shouldBe true
 
-        private def setInvoked() =
-          invoked = true
-
-        def getInvoked() =
-          invoked
+          result.task.await shouldBe true
       }
+    }
 
-      val actor = Actor.wire("", new MyImpl())
+    "scheduleAskWithSelf" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          class MyImpl(var invoked: Boolean = false) {
+            def invoke(replyTo: ActorWire[MyImpl, Unit]): Future[Boolean] =
+              replyTo
+                .ask
+                .map {
+                  (impl, _) =>
+                    impl.setInvoked()
+                }
+                .map {
+                  _ =>
+                    invoked
+                }
 
-      val result =
-        actor
-          .ask
-          .flatMap(2.second) {
-            (impl, state, self) =>
-              impl.invoke(self)
+            private def setInvoked() =
+              invoked = true
+
+            def getInvoked() =
+              invoked
           }
 
-      def assert(expected: Boolean) =
-        actor
-          .ask
-          .map {
-            (impl, _) =>
-              impl.getInvoked()
-          }
-          .await shouldBe expected
+          val actor = Actor.wire("", new MyImpl()).sweep()
 
-      assert(expected = false)
-      sleep(1.second)
-      assert(expected = false)
+          val result =
+            actor
+              .ask
+              .flatMap(2.second) {
+                (impl, state, self) =>
+                  impl.invoke(self)
+              }
 
-      sleep(1.second)
-      eventually {
-        actor
-          .ask
-          .map {
-            (impl, _) =>
-              impl.getInvoked()
+          def assert(expected: Boolean) =
+            actor
+              .ask
+              .map {
+                (impl, _) =>
+                  impl.getInvoked()
+              }
+              .await shouldBe expected
+
+          assert(expected = false)
+          sleep(1.second)
+          assert(expected = false)
+
+          sleep(1.second)
+          eventually {
+            actor
+              .ask
+              .map {
+                (impl, _) =>
+                  impl.getInvoked()
+              }
+              .await shouldBe true
           }
-          .await shouldBe true
+          result.task.await shouldBe true
       }
-      result.task.await shouldBe true
     }
   }
 }

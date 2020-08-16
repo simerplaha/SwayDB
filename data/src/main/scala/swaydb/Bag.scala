@@ -48,6 +48,9 @@ sealed trait Bag[BAG[_]] {
   def map[A, B](a: BAG[A])(f: A => B): BAG[B]
   def transform[A, B](a: BAG[A])(f: A => B): BAG[B]
   def flatMap[A, B](fa: BAG[A])(f: A => BAG[B]): BAG[B]
+  @inline def and[A, B](fa: BAG[A])(f: => BAG[B]): BAG[B] =
+    flatMap(fa)(_ => f)
+
   def success[A](value: A): BAG[A]
   def failure[A](exception: Throwable): BAG[A]
   def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): BAG[A]

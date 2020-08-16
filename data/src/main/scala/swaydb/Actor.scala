@@ -24,7 +24,7 @@
 
 package swaydb
 
-import java.util.TimerTask
+import java.util.{TimerTask, UUID}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.function.IntUnaryOperator
@@ -74,17 +74,23 @@ sealed trait ActorRef[-T, S] { self =>
   def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
                                                                 bag: Bag.Async[BAG]): BAG[Unit]
 
-  def receiveAllBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit]
+  def receiveAllForceBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit]
 
-  def terminate(): Unit
+  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
+
+  def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S]
+
+  def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S]
 
   def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S]
 
   def isTerminated: Boolean
 
+  def hasRecovery: Boolean
+
   def clear(): Unit
 
-  def terminateAndClear(): Unit
+  def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
   def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
                                                                          bag: Bag.Async[BAG]): BAG[Unit]
@@ -116,14 +122,17 @@ object Actor {
       override def isEmpty: Boolean = throw new Exception("Dead Actor")
       override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Error], Actor[T, S]) => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
-      override def receiveAllBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] = throw new Exception("Dead Actor")
-      override def terminate(): Unit = throw new Exception("Dead Actor")
+      override def receiveAllForceBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] = throw new Exception("Dead Actor")
       override def isTerminated: Boolean = throw new Exception("Dead Actor")
       override def clear(): Unit = throw new Exception("Dead Actor")
-      override def terminateAndClear(): Unit = throw new Exception("Dead Actor")
       override def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def hasRecovery: Boolean = throw new Exception("Dead Actor")
+      override def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
+      override def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
+      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
     }
 
   def cacheFromConfig[T](config: ActorConfig,
@@ -206,6 +215,8 @@ object Actor {
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
       interval = None,
+      preTerminate = None,
+      postTerminate = None,
       recovery = None
     )
 
@@ -234,6 +245,8 @@ object Actor {
       weigher = Functions.safe((_: T) => 1, weigher),
       queue = ActorQueue(queueOrder),
       interval = None,
+      preTerminate = None,
+      postTerminate = None,
       recovery = None
     )
 
@@ -268,6 +281,8 @@ object Actor {
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
       interval = Some(new Interval(interval, scheduler, false)),
+      preTerminate = None,
+      postTerminate = None,
       recovery = None
     )(scheduler.ec)
 
@@ -299,6 +314,8 @@ object Actor {
       weigher = weigher,
       queue = ActorQueue(queueOrder),
       interval = Some(new Interval(interval, scheduler, false)),
+      preTerminate = None,
+      postTerminate = None,
       recovery = None
     )(scheduler.ec)
 
@@ -336,6 +353,8 @@ object Actor {
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
       interval = Some(new Interval(interval, scheduler, true)),
+      preTerminate = None,
+      postTerminate = None,
       recovery = None
     )(scheduler.ec)
 
@@ -367,6 +386,8 @@ object Actor {
       cached = true,
       execution = execution,
       interval = Some(new Interval(interval, scheduler, true)),
+      preTerminate = None,
+      postTerminate = None,
       recovery = None
     )(scheduler.ec)
 
@@ -440,8 +461,14 @@ class Actor[-T, S](val name: String,
                    cached: Boolean,
                    execution: (T, Actor[T, S]) => Unit,
                    interval: Option[Interval],
+                   preTerminate: Option[Actor[T, S] => Unit],
+                   postTerminate: Option[Actor[T, S] => Unit],
                    recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit val executionContext: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
 
+  //only a single thread can invoke preTerminate.
+  private val terminateBool = new AtomicBoolean(false)
+  //used to know which thread processes the postTermination function.
+  @volatile private var postTerminateToken = UUID.randomUUID().toString
   private val busy = new AtomicBoolean(false)
   private val weight = new AtomicInteger(0)
   private val isBasic = interval.isEmpty
@@ -618,7 +645,7 @@ class Actor[-T, S](val name: String,
                                                                 bag: Bag.Async[BAG]): BAG[Unit] =
     bag.suspend(bag.fromFuture(receiveAllInFuture(retryOnBusyDelay)))
 
-  override def receiveAllBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] =
+  override def receiveAllForceBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] =
     receiveAllBlocking(0, retryCounts, block)
 
   @tailrec
@@ -703,6 +730,8 @@ class Actor[-T, S](val name: String,
       cached = cached,
       execution = execution,
       interval = interval,
+      preTerminate = preTerminate,
+      postTerminate = postTerminate,
       recovery =
         Some {
           case (message: M@unchecked, error, actor) =>
@@ -725,6 +754,70 @@ class Actor[-T, S](val name: String,
         }
     )
 
+  override def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] =
+    new Actor[T, S](
+      name = name,
+      state = state,
+      queue = queue,
+      stashCapacity = stashCapacity,
+      weigher = weigher,
+      cached = cached,
+      execution = execution,
+      interval = interval,
+      preTerminate = Some(f),
+      postTerminate = postTerminate,
+      recovery = recovery
+    )
+
+  override def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] =
+    new Actor[T, S](
+      name = name,
+      state = state,
+      queue = queue,
+      stashCapacity = stashCapacity,
+      weigher = weigher,
+      cached = cached,
+      execution = execution,
+      interval = interval,
+      preTerminate = preTerminate,
+      postTerminate = Some(f),
+      recovery = recovery
+    )
+
+  private def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
+                                                                            bag: Bag[BAG]): BAG[Unit] =
+    bag.suspend {
+      setTerminated()
+      bag.flatMap(runPreTerminate()) {
+        token =>
+          if (recovery.isDefined) {
+            bag match {
+              case sync: Bag.Sync[BAG] =>
+                implicit val theBag: Bag.Sync[BAG] = sync
+
+                receiveAllForceBlocking(100, retryOnBusyDelay) match {
+                  case Success(_) =>
+                    runPostTerminate(token)
+
+                  case Failure(exception) =>
+                    bag.failure(exception)
+                }
+
+              case async: Bag.Async[BAG] =>
+                implicit val theBag: Bag.Async[BAG] = async
+
+                bag.flatMap(receiveAllForce(retryOnBusyDelay)) {
+                  _ =>
+                    runPostTerminate(token)
+                }
+            }
+          } else {
+            logger.error(s"""terminateAndRecover invoked on Actor("$name") with no recovery defined. Messages cleared.""")
+            bag.and(terminateAndClear())(runPostTerminate(token))
+          }
+      }
+    }
+
   /**
    * Terminates the Actor and applies [[recover]] function to all queued messages.
    *
@@ -732,54 +825,74 @@ class Actor[-T, S](val name: String,
    */
   def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
                                                                          bag: Bag.Async[BAG]): BAG[Unit] =
-    bag.suspend {
-      terminate()
-      if (recovery.isDefined) {
-        receiveAllForce(retryOnBusyDelay)
-      } else {
-        logger.error(s"""terminateAndRecover invoked on Actor("$name") with no recovery defined. Messages cleared.""")
-        clear()
-        bag.unit
-      }
-    }
+    terminateAndRecover(retryOnBusyDelay)
 
   override def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit] =
-    bag.suspend {
-      terminate()
-      if (recovery.isDefined) {
-        receiveAllBlocking(100, retryOnBusyDelay) match {
-          case Success(_) =>
-            bag.unit
+    terminateAndRecover(retryOnBusyDelay)(null, bag)
 
-          case Failure(exception) =>
-            bag.failure(exception)
-        }
-      } else {
-        logger.error(s"""terminateAndRecover invoked on Actor("$name") with no recovery defined. Messages cleared.""")
+  override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+    bag.transform(terminate()) {
+      _ =>
         clear()
-        bag.unit
-      }
     }
-
-  override def terminateAndClear(): Unit = {
-    terminate()
-    clear()
-  }
 
   override def clear(): Unit =
     queue.clear()
 
-  override def terminate(): Unit =
+  private def setTerminated(): Unit =
     terminated = true
 
-  def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): Actor[T, S] = {
-    scheduler.task(timeout)(this.terminate())
+  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+    bag.suspend {
+      setTerminated()
+      //invoke terminator function
+      bag.flatMap(runPreTerminate()) {
+        token =>
+          runPostTerminate(token)
+      }
+    }
+
+  def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S] = {
+    scheduler.task(timeout)(this.terminate[Future]())
     this
   }
+
+  private def runPreTerminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[String] =
+    if (terminateBool.compareAndSet(false, true)) {
+      postTerminateToken = UUID.randomUUID().toString
+      preTerminate match {
+        case Some(function) =>
+          bag {
+            function(this)
+            postTerminateToken
+          }
+
+        case None =>
+          bag.success(postTerminateToken)
+      }
+    } else {
+      bag.success("")
+    }
+
+  private def runPostTerminate[BAG[_]](token: String)(implicit bag: Bag[BAG]): BAG[Unit] =
+    if (postTerminateToken == token)
+      postTerminate match {
+        case Some(function) =>
+          bag(function(this))
+
+        case None =>
+          bag.unit
+      }
+    else
+      bag.unit
+
+  override def hasRecovery: Boolean =
+    recovery.isDefined
 
   def isTerminated: Boolean =
     terminated
 
   override def isEmpty: Boolean =
     queue.isEmpty
+
 }

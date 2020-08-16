@@ -163,7 +163,7 @@ final class ActorWire[I, S] private[swaydb](name: String,
           state
       }
 
-  def terminateAndClear(): Unit = {
+  def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = {
     scheduler.terminate()
     actor.terminateAndClear()
   }
@@ -171,7 +171,7 @@ final class ActorWire[I, S] private[swaydb](name: String,
   def clear(): Unit =
     actor.clear()
 
-  def terminate(): Unit =
+  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     actor.terminate()
 
   def isTerminated =

@@ -47,6 +47,8 @@ case class TestActor[T]()(implicit override val executionContext: ExecutionConte
                                                                                            cached = false,
                                                                                            execution = (_, _) => None,
                                                                                            interval = None,
+                                                                                           preTerminate = None,
+                                                                                           postTerminate = None,
                                                                                            recovery = None) {
 //@formatter:on
 
