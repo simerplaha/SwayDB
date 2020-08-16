@@ -32,7 +32,7 @@ import swaydb.core.util.skiplist.SkipList
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
-import swaydb.{Actor, ActorRef}
+import swaydb.{Actor, ActorRef, Bag}
 
 import scala.ref.WeakReference
 
@@ -101,14 +101,23 @@ private[core] object MemorySweeper extends LazyLogging {
         )
     }
 
-  def close(keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): Unit =
-    keyValueMemorySweeper.foreach(close)
+  def close(sweeper: Option[MemorySweeper]): Unit =
+    sweeper.foreach(close)
 
-  def close(sweeper: MemorySweeper.KeyValue): Unit =
+  def close(sweeper: MemorySweeper): Unit =
+    sweeper match {
+      case MemorySweeper.Disabled =>
+        ()
+
+      case enabled: MemorySweeper.Enabled =>
+        close(enabled)
+    }
+
+  def close(sweeper: MemorySweeper.Enabled): Unit =
     sweeper.actor foreach {
       actor =>
         logger.info("Clearing cached key-values")
-        actor.terminateAndClear()
+        actor.terminateAndClear[Bag.Less]()
     }
 
   def weigher(entry: Command): Int =
@@ -165,17 +174,18 @@ private[core] object MemorySweeper extends LazyLogging {
       }
 
     def terminateAndClear() =
-      actor.foreach(_.terminateAndClear())
+      actor.foreach(_.terminateAndClear[Bag.Less]())
   }
 
   case object Disabled extends MemorySweeper
 
   sealed trait Enabled extends MemorySweeper {
+    def actor: Option[ActorRef[Command, Unit]]
+
     def terminateAndClear(): Unit
   }
 
   sealed trait Cache extends Enabled {
-    def actor: Option[ActorRef[Command, Unit]]
 
     def add(weight: Int, cache: swaydb.core.cache.Cache[_, _, _]): Unit =
       actor foreach {
@@ -188,7 +198,6 @@ private[core] object MemorySweeper extends LazyLogging {
   }
 
   sealed trait Block extends Cache {
-    def actor: Option[ActorRef[Command, Unit]]
 
     def add(key: BlockCache.Key,
             value: Slice[Byte],
@@ -209,7 +218,6 @@ private[core] object MemorySweeper extends LazyLogging {
                           actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block
 
   sealed trait KeyValue extends Enabled {
-    def actor: Option[ActorRef[Command, Unit]]
 
     def sweepKeyValues: Boolean
 

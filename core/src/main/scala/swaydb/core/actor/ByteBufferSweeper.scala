@@ -26,6 +26,7 @@ package swaydb.core.actor
 
 import java.nio.file.{AccessDeniedException, Path}
 import java.nio.{ByteBuffer, MappedByteBuffer}
+import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
@@ -33,15 +34,13 @@ import swaydb._
 import swaydb.core.actor.ByteBufferCleaner.Cleaner
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.io.file.Effect
-import swaydb.core.util.Counter
 import swaydb.core.util.FiniteDurations._
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.data.util.Futures
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 
 
 private[core] object ByteBufferSweeper extends LazyLogging {
@@ -63,12 +62,32 @@ private[core] object ByteBufferSweeper extends LazyLogging {
       def filePath: Path
     }
 
+    object Clean {
+      private val idGenerator = new AtomicLong(0)
+
+      def apply(buffer: MappedByteBuffer,
+                filePath: Path): Clean =
+        new Clean(
+          buffer = buffer,
+          filePath = filePath,
+          isOverdue = false,
+          //this id is being used instead of HashCode because nio.FileChannel returns
+          //the same MappedByteBuffer even after the FileChannel is closed.
+          id = idGenerator.incrementAndGet()
+        )
+    }
+
     /**
      * Cleans memory-mapped byte buffer.
      */
-    case class Clean(buffer: MappedByteBuffer,
-                     filePath: Path,
-                     isOverdue: Boolean = false) extends FileCommand
+    case class Clean private(buffer: MappedByteBuffer,
+                             filePath: Path,
+                             isOverdue: Boolean,
+                             id: Long) extends FileCommand {
+      def hasTimeLeft() =
+        !isOverdue
+    }
+
 
     sealed trait DeleteCommand extends FileCommand {
       def deleteTries: Int
@@ -104,18 +123,26 @@ private[core] object ByteBufferSweeper extends LazyLogging {
     case class IsAllClean[T](replyTo: ActorRef[Boolean, T]) extends Command
 
 
-    object IsTerminatedAndCleaned {
-      def apply[T](replyTo: ActorRef[Boolean, T]): IsTerminatedAndCleaned[T] = new IsTerminatedAndCleaned(resubmitted = false)(replyTo)
+    object IsTerminated {
+      def apply[T](replyTo: ActorRef[Boolean, T]): IsTerminated[T] = new IsTerminated(resubmitted = false)(replyTo)
     }
 
     /**
-     * Checks if the actor is terminated and has executed all [[Command.Clean]] requests. This is does not check if the
-     * files are deleted because [[Command.DeleteCommand]]s are just executed and not monitored.
+     * Checks if the actor is terminated and has executed all [[Command.Clean]] requests.
      *
-     * @note The Actor should be terminated and [[Actor.receiveAllForce()]] or [[Actor.receiveAllBlocking()]] should be
+     * @note The Actor should be terminated and [[Actor.receiveAllForce()]] or [[Actor.receiveAllForceBlocking()]] should be
      *       invoked for this to return true otherwise the response is always false.
      */
-    case class IsTerminatedAndCleaned[T] private(resubmitted: Boolean)(val replyTo: ActorRef[Boolean, T]) extends Command
+    case class IsTerminated[T] private(resubmitted: Boolean)(val replyTo: ActorRef[Boolean, T]) extends Command
+  }
+
+  object State {
+    def init: State =
+      State(
+        cleaner = None,
+        pendingClean = mutable.HashMap.empty,
+        pendingDeletes = mutable.HashMap.empty
+      )
   }
 
   /**
@@ -125,7 +152,8 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    * @param pendingClean pending [[Command.Clean]] requests.
    */
   case class State(var cleaner: Option[Cleaner],
-                   pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]])
+                   pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, Command.Clean]],
+                   pendingDeletes: mutable.HashMap[Path, Command.DeleteCommand])
 
   def closeAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit sweeper: ByteBufferSweeperActor,
                                                            bag: Bag.Async[BAG],
@@ -134,7 +162,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
       case Some(actor) =>
         bag.flatMap(actor.terminateAndRecoverAsync(retryOnBusyDelay)) {
           _ =>
-            val ask = actor ask Command.IsTerminatedAndCleaned(resubmitted = false)
+            val ask = actor ask Command.IsTerminated(resubmitted = false)
             bag.transform(ask) {
               isCleaned =>
                 if (isCleaned)
@@ -150,25 +178,17 @@ private[core] object ByteBufferSweeper extends LazyLogging {
 
   /**
    * Closes the [[ByteBufferSweeperActor]] synchronously. This simply calls the Actor function [[Actor.terminateAndRecoverSync]]
-   * and dispatches [[Command.IsTerminatedAndCleaned]] to assert that all files are closed and flushed.
-   *
-   * @param retryBlock
-   * @param timeout
-   * @param sweeper
-   * @param bag
-   * @param ec
-   * @tparam BAG
-   * @return
+   * and dispatches [[Command.IsTerminated]] to assert that all files are closed and flushed.
    */
   def closeSync[BAG[_]](retryBlock: FiniteDuration,
                         timeout: FiniteDuration)(implicit sweeper: ByteBufferSweeperActor,
-                                             bag: Bag.Sync[BAG],
-                                             ec: ExecutionContext): BAG[Unit] =
+                                                 bag: Bag.Sync[BAG],
+                                                 ec: ExecutionContext): BAG[Unit] =
     sweeper.get() match {
       case Some(actor) =>
         bag.map(actor.terminateAndRecoverSync(retryBlock)) {
           _ =>
-            val future = actor ask Command.IsTerminatedAndCleaned(resubmitted = false)
+            val future = actor ask Command.IsTerminated(resubmitted = false)
             val isCleaned = Await.result(future, timeout)
             if (isCleaned)
               logger.info(s"${ByteBufferSweeper.getClass.getSimpleName.split("\\$").last} terminated!")
@@ -183,32 +203,25 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   /**
    * Maintains the count of all delete request for each memory-mapped file.
    */
-  def recordCleanRequest(command: Command.Clean, pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]]): Int =
+  def recordCleanRequest(command: Command.Clean, pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, Command.Clean]]): Unit =
     pendingClean.get(command.filePath) match {
-      case Some(request) =>
-        request.counter.incrementAndGet()
+      case Some(requests) =>
+        requests.put(command.id, command)
 
       case None =>
-        val request = Counter.Request(item = command, start = 1)
-        pendingClean.put(command.filePath, request)
-        request.counter.get()
+        pendingClean.put(command.filePath, mutable.HashMap(command.id -> command))
     }
 
   /**
    * Updates current clean count for the file.
    */
-  def recordCleanSuccessful(path: Path, pendingClean: mutable.HashMap[Path, Counter.Request[Command.Clean]]): Int =
-    pendingClean.get(path) match {
-      case Some(request) =>
-        if (request.counter.get() <= 1) {
-          pendingClean.remove(path)
-          0
-        } else {
-          request.counter.decrementAndGet()
-        }
-
-      case None =>
-        0
+  def recordCleanSuccessful(command: Command.Clean, pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, Command.Clean]]): Unit =
+    pendingClean.get(command.filePath) foreach {
+      requests =>
+        if (requests.size <= 1)
+          pendingClean.remove(command.filePath)
+        else
+          requests.remove(command.id)
     }
 
   /**
@@ -217,7 +230,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    * @return true only if there are no pending clean request for the file.
    */
   private def isReadyToDelete(path: Path, state: State): Boolean =
-    state.pendingClean.get(path).forall(_.counter.get() <= 0)
+    state.pendingClean.get(path).forall(_.isEmpty)
 
   /**
    * Sets the cleaner in state after it's successfully applied the clean
@@ -225,25 +238,25 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    */
   def initCleanerAndPerformClean(state: State,
                                  buffer: MappedByteBuffer,
-                                 path: Path): IO[swaydb.Error.IO, State] =
+                                 command: Command.Clean): IO[swaydb.Error.IO, State] =
     state.cleaner match {
       case Some(cleaner) =>
         IO {
           cleaner.clean(buffer)
-          ByteBufferSweeper.recordCleanSuccessful(path, state.pendingClean)
+          ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
           state
         } onLeftSideEffect {
           error =>
-            val errorMessage = s"Failed to clean MappedByteBuffer at path '${path.toString}'."
+            val errorMessage = s"Failed to clean MappedByteBuffer at path '${command.filePath.toString}'."
             val exception = error.exception
             logger.error(errorMessage, exception)
         }
 
       case None =>
-        ByteBufferCleaner.initialiseCleaner(buffer, path) transform {
+        ByteBufferCleaner.initialiseCleaner(buffer, command.filePath) transform {
           cleaner =>
             state.cleaner = Some(cleaner)
-            ByteBufferSweeper.recordCleanSuccessful(path, state.pendingClean)
+            ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
             state
         }
     }
@@ -251,20 +264,21 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   /**
    * Cleans or prepares for cleaning the [[ByteBuffer]].
    *
-   * @param isOverdue         overwrites isOverdue in [[Command.Clean]]. Used to perfrom clean immediately.
    * @param command           clean command
    * @param messageReschedule reschedule if clean is not overdue.
    */
-  private def performClean(isOverdue: Boolean,
-                           command: Command.Clean,
+  private def performClean(command: Command.Clean,
                            self: Actor[Command, State],
-                           messageReschedule: FiniteDuration)(implicit scheduler: Scheduler): Unit =
-    if (isOverdue || command.isOverdue || messageReschedule.fromNow.isOverdue()) {
-      ByteBufferSweeper.initCleanerAndPerformClean(self.state, command.buffer, command.filePath)
-    } else {
-      ByteBufferSweeper.recordCleanRequest(command, self.state.pendingClean)
-      self.send(command.copy(isOverdue = true), messageReschedule)
+                           messageReschedule: Option[FiniteDuration])(implicit scheduler: Scheduler): Unit =
+    messageReschedule match {
+      case Some(messageReschedule) if command.hasTimeLeft() && messageReschedule.fromNow.hasTimeLeft() =>
+        ByteBufferSweeper.recordCleanRequest(command, self.state.pendingClean)
+        self.send(command.copy(isOverdue = true), messageReschedule)
+
+      case Some(_) | None =>
+        ByteBufferSweeper.initCleanerAndPerformClean(self.state, command.buffer, command)
     }
+
 
   /**
    * Deletes or prepares to delete the [[ByteBuffer]] file.
@@ -275,45 +289,61 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   private def performDelete(command: Command.DeleteCommand,
                             self: Actor[Command, State],
                             maxDeleteRetries: Int,
-                            messageReschedule: FiniteDuration)(implicit scheduler: Scheduler): Unit =
+                            messageReschedule: Option[FiniteDuration])(implicit scheduler: Scheduler): Unit =
     if (isReadyToDelete(command.filePath, self.state))
       try
         command match {
           case command: Command.DeleteFile =>
             Effect.walkDelete(command.filePath) //try delete the file or folder.
+            self.state.pendingDeletes.remove(command.filePath)
 
           case command: Command.DeleteFolder =>
             Effect.walkDelete(command.folderPath) //try delete the file or folder.
+            self.state.pendingDeletes.remove(command.filePath)
         }
       catch {
         case exception: AccessDeniedException =>
           //For Windows - this exception handling is backup process for handling deleting memory-mapped files
           //for windows and is not really required because State's pendingClean should already
           //handle this and not allow deletes if there are pending clean requests.
-          logger.debug(s"Scheduling delete retry after ${messageReschedule.asString}. Unable to delete file ${command.filePath}. Retried ${command.deleteTries} times", exception)
+          logger.debug(s"Scheduling delete retry after ${messageReschedule.map(_.asString)}. Unable to delete file ${command.filePath}. Retried ${command.deleteTries} times", exception)
           //if it results in access denied then try schedule for another delete.
           //This can occur on windows if delete was performed before the mapped
           //byte buffer is cleaned.
           if (command.deleteTries >= maxDeleteRetries)
             logger.error(s"Unable to delete file ${command.filePath}. Retried ${command.deleteTries} times", exception)
           else
-            self.send(command.copyWithDeleteTries(deleteTries = command.deleteTries + 1), messageReschedule)
+            messageReschedule match {
+              case Some(messageReschedule) =>
+                val commandToReschedule = command.copyWithDeleteTries(deleteTries = command.deleteTries + 1)
+                self.send(commandToReschedule, messageReschedule)
+
+              case None =>
+                logger.error(s"Unable to delete file ${command.filePath}. messageReschedule not set. Retries ${command.deleteTries}", exception)
+            }
 
         case exception: Throwable =>
           logger.error(s"Unable to delete file ${command.filePath}. Retries ${command.deleteTries}", exception)
       }
-    else if (messageReschedule.fromNow.isOverdue())
-      performDelete(command, self, maxDeleteRetries, messageReschedule)
     else
-      self.send(command, messageReschedule)
+      messageReschedule match {
+        case Some(messageReschedule) =>
+          if (messageReschedule.fromNow.isOverdue())
+            performDelete(command, self, maxDeleteRetries, Some(messageReschedule))
+          else
+            self.send(command, messageReschedule)
+
+        case None =>
+          logger.debug(s"Unable to delete file ${command.filePath}. messageReschedule not set but the file will be delete in postTermination. Retries ${command.deleteTries}")
+      }
 
   /**
    * Checks if the actor is terminated and has executed all [[Command.Clean]] requests. This is does not check if the
    * files are deleted because [[Command.DeleteCommand]]s are just executed and not monitored.
    */
-  private def performIsTerminatedAndCleaned(command: Command.IsTerminatedAndCleaned[_],
+  private def performIsTerminatedAndCleaned(command: Command.IsTerminated[_],
                                             self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
-    if (self.isTerminated && self.state.pendingClean.isEmpty)
+    if (self.isTerminated && self.state.pendingClean.isEmpty && self.state.pendingDeletes.isEmpty)
       command.replyTo send true
     else if (command.resubmitted) //already double checked.
       command.replyTo send false
@@ -342,17 +372,18 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   private def process(command: Command,
                       self: Actor[Command, State],
                       maxDeleteRetries: Int,
-                      messageReschedule: FiniteDuration)(implicit scheduler: Scheduler) =
+                      messageReschedule: Option[FiniteDuration])(implicit scheduler: Scheduler): Unit =
     command match {
       case command: Command.Clean =>
         ByteBufferSweeper.performClean(
-          isOverdue = self.isTerminated,
           command = command,
           self = self,
           messageReschedule = messageReschedule
         )
 
       case command: Command.DeleteCommand =>
+        self.state.pendingDeletes.put(command.filePath, command)
+
         ByteBufferSweeper.performDelete(
           command = command,
           self = self,
@@ -366,7 +397,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
       case command: Command.IsAllClean[_] =>
         command.replyTo send self.state.pendingClean.isEmpty
 
-      case command: Command.IsTerminatedAndCleaned[_] =>
+      case command: Command.IsTerminated[_] =>
         ByteBufferSweeper.performIsTerminatedAndCleaned(command, self)
     }
 
@@ -390,7 +421,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                                                              actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ActorRef[Command, State] =
     Actor.timer[Command, State](
       name = this.getClass.getSimpleName + " Actor",
-      state = State(None, new mutable.HashMap[Path, Counter.Request[Command.Clean]]()),
+      state = State.init,
       stashCapacity = actorStashCapacity,
       interval = actorInterval
     ) {
@@ -399,7 +430,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           command = command,
           self = self,
           maxDeleteRetries = maxDeleteRetries,
-          messageReschedule = messageReschedule
+          messageReschedule = Some(messageReschedule)
         )
 
     } recoverException[Command] {
@@ -408,7 +439,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           command = command,
           self = self,
           maxDeleteRetries = maxDeleteRetries,
-          messageReschedule = messageReschedule
+          messageReschedule = None
         )
 
       case (message, IO.Left(exception), _) =>
@@ -422,5 +453,35 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           }
 
         logger.error(s"Failed to process message ${message.getClass.getSimpleName}. $pathInfo", exception)
+    } onPreTerminate {
+      _ =>
+        scheduler.terminate()
+
+    } onPostTerminate {
+      self =>
+
+        self.state.pendingClean foreach {
+          case (_, commands) =>
+            commands foreach {
+              case (_, command) =>
+                performClean(
+                  command = command,
+                  self = self,
+                  messageReschedule = None
+                )
+            }
+        }
+
+        assert(self.state.pendingClean.isEmpty, s"Pending clean is not empty: ${self.state.pendingClean.size}")
+
+        self.state.pendingDeletes foreach {
+          case (_, delete) =>
+            performDelete(
+              command = delete,
+              self = self,
+              maxDeleteRetries = maxDeleteRetries,
+              messageReschedule = None
+            )
+        }
     }
 }
