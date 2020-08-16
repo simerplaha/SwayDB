@@ -88,27 +88,31 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "create a lock file for only the root directory and not allow more locks" in {
       //memory databases do not perform locks
       if (persistent) {
-        val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir, 1))
-        val storage =
-          LevelStorage.Persistent(
-            dir = randomDir,
-            otherDirs = otherDirs
-          )
+        TestCaseSweeper {
+          implicit sweeper =>
+            import sweeper._
+            val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir, 1))
+            val storage =
+              LevelStorage.Persistent(
+                dir = randomDir,
+                otherDirs = otherDirs
+              )
 
-        val lock = Level.acquireLock(storage).runRandomIO.right.value
-        lock shouldBe defined
-        //other directories do not have locks.
-        storage.otherDirs foreach {
-          dir =>
-            Effect.exists(dir.path.resolve("LOCK")) shouldBe false
+            val lock = Level.acquireLock(storage).runRandomIO.right.value
+            lock shouldBe defined
+            //other directories do not have locks.
+            storage.otherDirs foreach {
+              dir =>
+                Effect.exists(dir.path.resolve("LOCK")) shouldBe false
+            }
+
+            //trying to lock again should fail
+            Level.acquireLock(storage).left.runRandomIO.right.value.exception shouldBe a[OverlappingFileLockException]
+
+            //closing the lock should allow re-locking
+            lock.get.close()
+            Level.acquireLock(storage).runRandomIO.right.value shouldBe defined
         }
-
-        //trying to lock again should fail
-        Level.acquireLock(storage).left.runRandomIO.right.value.exception shouldBe a[OverlappingFileLockException]
-
-        //closing the lock should allow re-locking
-        lock.get.close()
-        Level.acquireLock(storage).runRandomIO.right.value shouldBe defined
       }
     }
   }
@@ -117,7 +121,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "create level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel().clean()
+          val level = TestLevel()
 
           if (memory) {
             //memory level always have one folder
@@ -151,9 +155,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         TestCaseSweeper {
           implicit sweeper =>
             //create a non empty level
-            val level = TestLevel().clean()
+            val level = TestLevel()
 
-            val segment = TestSegment(randomKeyValues(keyValuesCount)).clean()
+            val segment = TestSegment(randomKeyValues(keyValuesCount))
 
             level.put(segment).right.right.value.right.value
 
@@ -178,7 +182,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       } else {
         TestCaseSweeper {
           implicit sweeper =>
-            val level = TestLevel().clean()
+            val level = TestLevel()
 
             level.putKeyValuesTest(randomPutKeyValues()).runRandomIO.right.value
             val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk
@@ -189,9 +193,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
             //create 3 invalid segments in all the paths of the Level
             level.dirs.foldLeft(currentSegmentId) {
               case (currentSegmentId, dir) =>
-                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId)).runRandomIO.right.value.clean()
-                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId)).runRandomIO.right.value.clean()
-                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).runRandomIO.right.value.clean()
+                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId)).runRandomIO.right.value
+                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId)).runRandomIO.right.value
+                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).runRandomIO.right.value
                 currentSegmentId + 3
             }
             //every level folder has 3 uncommitted Segments plus 1 valid Segment
@@ -211,7 +215,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "value the largest segment in the Level when the Level is not empty" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
           level.putKeyValuesTest(randomizedKeyValues(2000)).runRandomIO.right.value
 
           val largeSegmentId = Level.largestSegmentId(level.segmentsInLevel())
@@ -222,7 +226,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "return 0 when the Level is empty" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
 
           Level.largestSegmentId(level.segmentsInLevel()) shouldBe 0
       }
@@ -234,7 +238,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       TestCaseSweeper {
         implicit sweeper =>
           val nextLevel = TestLevel()
-          val level = TestLevel().clean()
+          val level = TestLevel()
           implicit val reserve = ReserveRange.create[Unit]()
 
           Level.optimalSegmentsToPushForward(
@@ -249,7 +253,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       TestCaseSweeper {
         implicit sweeper =>
           val nextLevel = TestLevel()
-          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
+          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
           //      level.segmentsCount() should be >= 2
 
           implicit val reserve = ReserveRange.create[Unit]()
@@ -270,7 +274,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       TestCaseSweeper {
         implicit sweeper =>
           val nextLevel = TestLevel()
-          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
+          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
 
           level.segmentsCount() should be >= 2
 
@@ -296,7 +300,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "return empty if there Levels are empty" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel().clean()
+          val level = TestLevel()
 
           implicit val reserve = ReserveRange.create[Unit]()
 
@@ -311,7 +315,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       TestCaseSweeper {
         implicit sweeper =>
           val keyValues = randomizedKeyValues(count = 10000, startId = Some(1))
-          val level = TestLevel(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb)).clean()
+          val level = TestLevel(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
 
           level.segmentsCount() should be >= 2
 
@@ -333,11 +337,11 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "reserve keys for compaction where Level is empty" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel().clean()
+          val level = TestLevel()
 
           val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2)
-          val segment1 = TestSegment(keyValues.head).runRandomIO.right.value.clean()
-          val segment2 = TestSegment(keyValues.last).runRandomIO.right.value.clean()
+          val segment1 = TestSegment(keyValues.head).runRandomIO.right.value
+          val segment2 = TestSegment(keyValues.last).runRandomIO.right.value
           level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Slice[Byte]](keyValues.head.head.key)(IO.ExceptionHandler.PromiseUnit)
 
           //cannot reserve again
@@ -350,7 +354,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "return completed Future for empty Segments" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel().clean()
+          val level = TestLevel()
 
           level.reserve(Seq.empty).get.left.get.isCompleted shouldBe true
       }
@@ -359,13 +363,13 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "reserve min and max keys" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel().clean()
+          val level = TestLevel()
 
           val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2)
           val segments =
             Seq(
-              TestSegment(keyValues.head).runRandomIO.right.value.clean(),
-              TestSegment(keyValues.last).runRandomIO.right.value.clean()
+              TestSegment(keyValues.head).runRandomIO.right.value,
+              TestSegment(keyValues.last).runRandomIO.right.value
             )
           level.put(segments).right.right.value.right.value
       }
@@ -378,9 +382,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "build MapEntry.Put map for the first created Segment" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel().clean()
+          val level = TestLevel()
 
-          val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.right.value.clean()
+          val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.right.value
           val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = Segment.Null, initialMapEntry = None).runRandomIO.right.value
           val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
 
@@ -393,12 +397,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       "for original Segment as it's minKey is replace by one of the new Segment" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel().clean()
+          val level = TestLevel()
 
-          val originalSegment = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value.clean()
-          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value.clean()
-          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value.clean()
-          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value.clean()
+          val originalSegment = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
+          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
+          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
+          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
 
           val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialMapEntry = None).runRandomIO.right.value
 
@@ -415,12 +419,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "build MapEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel().clean()
+          val level = TestLevel()
 
-          val originalSegment = TestSegment(Slice(Memory.put(0, "value"), Memory.put(5, "value"))).runRandomIO.right.value.clean()
-          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value.clean()
-          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value.clean()
-          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value.clean()
+          val originalSegment = TestSegment(Slice(Memory.put(0, "value"), Memory.put(5, "value"))).runRandomIO.right.value
+          val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
+          val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
+          val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
 
           val expectedMapEntry =
             MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++

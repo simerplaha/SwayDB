@@ -26,7 +26,7 @@ package swaydb.core.segment.format.a.block.reader
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.compression.CompressionInternal
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.Block
@@ -39,19 +39,22 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
 
   "apply" when {
     "File, bytes & reader" in {
-      val bytes = randomBytesSlice(100)
-      val fileReader = createRandomFileReader(bytes)
-      val file = fileReader.file
+      TestCaseSweeper {
+        implicit sweeper =>
+          val bytes = randomBytesSlice(100)
+          val fileReader = createRandomFileReader(bytes)
+          val file = fileReader.file
 
-      //DBFile
-      BlockRefReader(file).readRemaining() shouldBe bytes
-      //Slice[Byte]
-      BlockRefReader[SegmentBlock.Offset](bytes).readRemaining() shouldBe bytes
+          //DBFile
+          BlockRefReader(file).readRemaining() shouldBe bytes
+          //Slice[Byte]
+          BlockRefReader[SegmentBlock.Offset](bytes).readRemaining() shouldBe bytes
 
-      //Reader: FileReader
-      BlockRefReader[SegmentBlock.Offset](fileReader: Reader).readRemaining() shouldBe bytes
-      //Reader: SliceReader
-      BlockRefReader[SegmentBlock.Offset](Reader(bytes): Reader).readRemaining() shouldBe bytes
+          //Reader: FileReader
+          BlockRefReader[SegmentBlock.Offset](fileReader: Reader).readRemaining() shouldBe bytes
+          //Reader: SliceReader
+          BlockRefReader[SegmentBlock.Offset](Reader(bytes): Reader).readRemaining() shouldBe bytes
+      }
     }
   }
 

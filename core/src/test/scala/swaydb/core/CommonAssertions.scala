@@ -97,7 +97,6 @@ object CommonAssertions {
       }
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeperMax,
                                      segmentIO: SegmentIO = SegmentIO.random): Unit = {
       val actualMemory = actual.toMemory
       val expectedMemory = expected.toMemory
@@ -1774,8 +1773,8 @@ object CommonAssertions {
      */
     def ensureClose(): Unit = {
       maps.close.value
-      maps.bufferCleaner.actor.receiveAllBlocking(Int.MaxValue, 1.second).get
-      (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminatedAndCleaned[Unit]).await(10.seconds)
+      maps.bufferCleaner.actor.receiveAllForceBlocking(Int.MaxValue, 1.second).get
+      (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
     }
   }
 }

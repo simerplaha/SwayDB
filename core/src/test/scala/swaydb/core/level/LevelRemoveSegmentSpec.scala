@@ -70,14 +70,13 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "removeSegments" should {
     "remove segments from disk and remove them from appendix" in {
       TestCaseSweeper {
         implicit sweeper =>
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false))
           level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).runRandomIO.right.value
 

@@ -49,14 +49,8 @@ class MapCodecSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
-  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentIO = SegmentIO.random
-
-  val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
 
   "MemoryMapCodec" should {
     "write and read empty bytes" in {

@@ -29,14 +29,11 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TestCaseSweeper._
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -76,8 +73,6 @@ sealed trait LevelCollapseSpec extends TestBase {
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "collapse" should {

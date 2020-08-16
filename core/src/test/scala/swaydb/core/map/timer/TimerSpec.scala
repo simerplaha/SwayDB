@@ -27,7 +27,7 @@ package swaydb.core.map.timer
 import java.nio.file.Path
 
 import swaydb.core.RunThis._
-import swaydb.core.{TestBase, TestSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -80,7 +80,6 @@ sealed trait TimerSpec extends TestBase {
   implicit val functionStore = FunctionStore.memory()
   implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
   implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
-  implicit val cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner
 
   def newTimer(path: Path)(implicit keyOrder: KeyOrder[Slice[Byte]],
                            timeOrder: TimeOrder[Slice[Byte]],
@@ -93,42 +92,46 @@ sealed trait TimerSpec extends TestBase {
   "it" should {
 
     "write time sequentially" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-      def write(range: Range, timer: Timer) =
-        range foreach {
-          i =>
-            val nextTime = timer.next.time
-            val nextTimeLong = Bytez.readUnsignedLong(nextTime)
-            nextTimeLong shouldBe i
-        }
+          def write(range: Range, timer: Timer) =
+            range foreach {
+              i =>
+                val nextTime = timer.next.time
+                val nextTimeLong = Bytez.readUnsignedLong(nextTime)
+                nextTimeLong shouldBe i
+            }
 
-      val dir = randomDir
-      val timer: Timer = newTimer(dir)
-      write(1 to 1000, timer)
-      timer.close
+          val dir = randomDir
+          val timer: Timer = newTimer(dir)
+          write(1 to 1000, timer)
+          timer.close
 
-      if (persistent) {
-        val reopenedTimer =
-          Timer.persistent(
-            path = dir,
-            mmap = MMAP.Enabled(OperatingSystem.isWindows),
-            mod = 100,
-            flushCheckpointSize = 1000
-          ).get
+          if (persistent) {
+            val reopenedTimer =
+              Timer.persistent(
+                path = dir,
+                mmap = MMAP.Enabled(OperatingSystem.isWindows),
+                mod = 100,
+                flushCheckpointSize = 1000
+              ).get
 
-        write(1000 + 101 to 2000 + 201, reopenedTimer)
-        reopenedTimer.close
+            write(1000 + 101 to 2000 + 201, reopenedTimer)
+            reopenedTimer.close
 
-        val reopenedTimer2 =
-          Timer.persistent(
-            path = dir,
-            mmap = MMAP.Enabled(OperatingSystem.isWindows),
-            mod = 100,
-            flushCheckpointSize = 1000
-          ).get
+            val reopenedTimer2 =
+              Timer.persistent(
+                path = dir,
+                mmap = MMAP.Enabled(OperatingSystem.isWindows),
+                mod = 100,
+                flushCheckpointSize = 1000
+              ).get
 
-        write(2000 + 201 to 300 + 301, reopenedTimer2)
-        reopenedTimer2.close
+            write(2000 + 201 to 300 + 301, reopenedTimer2)
+            reopenedTimer2.close
+          }
       }
     }
   }

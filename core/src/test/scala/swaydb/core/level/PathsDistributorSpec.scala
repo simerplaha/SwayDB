@@ -29,11 +29,12 @@ import java.nio.file.{Path, Paths}
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.io.file.Effect
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
 import swaydb.data.order.KeyOrder
+import TestCaseSweeper._
 
 class PathsDistributorSpec extends TestBase with MockFactory {
 
@@ -51,36 +52,39 @@ class PathsDistributorSpec extends TestBase with MockFactory {
     }
 
     "return distributions and total Segments count when Segments are non-empty" in {
-      val path = createNextLevelPath
-      val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
-      val path2 = Effect.createDirectoriesIfAbsent(path.resolve("2"))
-      val path3 = Effect.createDirectoriesIfAbsent(path.resolve("3"))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val path = createNextLevelPath.sweep()
+          val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
+          val path2 = Effect.createDirectoriesIfAbsent(path.resolve("2"))
+          val path3 = Effect.createDirectoriesIfAbsent(path.resolve("3"))
 
-      val dirs =
-        Seq(
-          Dir(path1, 1),
-          Dir(path2, 2),
-          Dir(path3, 3)
-        )
-
-      val (distributions, segmentsCount) =
-        PathsDistributor.getDistributions(
-          dirs,
-          () =>
+          val dirs =
             Seq(
-              TestSegment(path = path1.resolve("11.seg")).runRandomIO.right.value,
-              TestSegment(path = path3.resolve("31.seg")).runRandomIO.right.value,
-              TestSegment(path = path3.resolve("32.seg")).runRandomIO.right.value
+              Dir(path1, 1),
+              Dir(path2, 2),
+              Dir(path3, 3)
             )
-        )
 
-      distributions shouldBe
-        Array(
-          Distribution(path = path1, distributionRatio = 1, actualSize = 1, expectedSize = 0),
-          Distribution(path = path2, distributionRatio = 2, actualSize = 0, expectedSize = 0),
-          Distribution(path = path3, distributionRatio = 3, actualSize = 2, expectedSize = 0)
-        )
-      segmentsCount shouldBe 3
+          val (distributions, segmentsCount) =
+            PathsDistributor.getDistributions(
+              dirs,
+              () =>
+                Seq(
+                  TestSegment(path = path1.resolve("11.seg")).runRandomIO.right.value,
+                  TestSegment(path = path3.resolve("31.seg")).runRandomIO.right.value,
+                  TestSegment(path = path3.resolve("32.seg")).runRandomIO.right.value
+                )
+            )
+
+          distributions shouldBe
+            Array(
+              Distribution(path = path1, distributionRatio = 1, actualSize = 1, expectedSize = 0),
+              Distribution(path = path2, distributionRatio = 2, actualSize = 0, expectedSize = 0),
+              Distribution(path = path3, distributionRatio = 3, actualSize = 2, expectedSize = 0)
+            )
+          segmentsCount shouldBe 3
+      }
     }
   }
 
@@ -205,85 +209,88 @@ class PathsDistributorSpec extends TestBase with MockFactory {
     }
 
     "return paths based on the distribution ratio and update distribution when Segments are distributed unevenly" in {
-      val path = createNextLevelPath
-      val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
-      val path2 = Effect.createDirectoriesIfAbsent(path.resolve("2"))
-      val path3 = Effect.createDirectoriesIfAbsent(path.resolve("3"))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val path = createNextLevelPath.sweep()
+          val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
+          val path2 = Effect.createDirectoriesIfAbsent(path.resolve("2"))
+          val path3 = Effect.createDirectoriesIfAbsent(path.resolve("3"))
 
-      val segments = mockFunction[Iterable[Segment]]
-      segments.expects() returning Seq()
+          val segments = mockFunction[Iterable[Segment]]
+          segments.expects() returning Seq()
 
-      val distributor =
-        PathsDistributor(
-          Seq(
-            Dir(path1, 1),
-            Dir(path2, 2),
-            Dir(path3, 3)
-          ),
-          segments
-        )
+          val distributor =
+            PathsDistributor(
+              Seq(
+                Dir(path1, 1),
+                Dir(path2, 2),
+                Dir(path3, 3)
+              ),
+              segments
+            )
 
-      distributor.queuedPaths.toList shouldBe List[Path](path1, path2, path2, path3, path3, path3)
+          distributor.queuedPaths.toList shouldBe List[Path](path1, path2, path2, path3, path3, path3)
 
-      //first batch
-      distributor.next shouldBe path1
-      distributor.next shouldBe path2
-      distributor.next shouldBe path2
-      distributor.next shouldBe path3
-      distributor.next shouldBe path3
-      distributor.next shouldBe path3
+          //first batch
+          distributor.next shouldBe path1
+          distributor.next shouldBe path2
+          distributor.next shouldBe path2
+          distributor.next shouldBe path3
+          distributor.next shouldBe path3
+          distributor.next shouldBe path3
 
-      //second batch, where each Path has 1 Segment = a total of 3 Segments. Distribution ratio for path2 is 2 and but it contains only 1 Segment.
-      segments.expects() returning
-        Seq(
-          TestSegment(path = path1.resolve("1.seg")).runRandomIO.right.value,
-          TestSegment(path = path2.resolve("2.seg")).runRandomIO.right.value,
-          TestSegment(path = path3.resolve("3.seg")).runRandomIO.right.value
-        )
-      //a total of 3 Segments but path2 was expected to have 2 Segments which it does not so the distribution returns path2 to be filled.
-      distributor.next shouldBe path2
+          //second batch, where each Path has 1 Segment = a total of 3 Segments. Distribution ratio for path2 is 2 and but it contains only 1 Segment.
+          segments.expects() returning
+            Seq(
+              TestSegment(path = path1.resolve("1.seg")).runRandomIO.right.value,
+              TestSegment(path = path2.resolve("2.seg")).runRandomIO.right.value,
+              TestSegment(path = path3.resolve("3.seg")).runRandomIO.right.value
+            )
+          //a total of 3 Segments but path2 was expected to have 2 Segments which it does not so the distribution returns path2 to be filled.
+          distributor.next shouldBe path2
 
-      //third batch. Distribution is fixed, goes back to returning normal paths based on the default distribution ratio.
-      segments.expects() returning Seq()
-      distributor.next shouldBe path1
-      distributor.next shouldBe path2
-      distributor.next shouldBe path2
-      distributor.next shouldBe path3
-      distributor.next shouldBe path3
-      distributor.next shouldBe path3
+          //third batch. Distribution is fixed, goes back to returning normal paths based on the default distribution ratio.
+          segments.expects() returning Seq()
+          distributor.next shouldBe path1
+          distributor.next shouldBe path2
+          distributor.next shouldBe path2
+          distributor.next shouldBe path3
+          distributor.next shouldBe path3
+          distributor.next shouldBe path3
 
-      //4ht batch, path3 contains none but path1 and path2 have one Segment.
-      segments.expects() returning
-        Seq(
-          TestSegment(path = path1.resolve("11.seg")).runRandomIO.right.value,
-          TestSegment(path = path2.resolve("22.seg")).runRandomIO.right.value,
-          TestSegment(path = path2.resolve("222.seg")).runRandomIO.right.value,
-          TestSegment(path = path2.resolve("2222.seg")).runRandomIO.right.value,
-          TestSegment(path = path2.resolve("22222.seg")).runRandomIO.right.value,
-          TestSegment(path = path2.resolve("222222.seg")).runRandomIO.right.value
-        )
-      //a total 6 Segments which path3 is empty, here the path3 gets filled before going back to normal
-      distributor.next shouldBe path3
-      distributor.next shouldBe path3
-      distributor.next shouldBe path3
+          //4ht batch, path3 contains none but path1 and path2 have one Segment.
+          segments.expects() returning
+            Seq(
+              TestSegment(path = path1.resolve("11.seg")).runRandomIO.right.value,
+              TestSegment(path = path2.resolve("22.seg")).runRandomIO.right.value,
+              TestSegment(path = path2.resolve("222.seg")).runRandomIO.right.value,
+              TestSegment(path = path2.resolve("2222.seg")).runRandomIO.right.value,
+              TestSegment(path = path2.resolve("22222.seg")).runRandomIO.right.value,
+              TestSegment(path = path2.resolve("222222.seg")).runRandomIO.right.value
+            )
+          //a total 6 Segments which path3 is empty, here the path3 gets filled before going back to normal
+          distributor.next shouldBe path3
+          distributor.next shouldBe path3
+          distributor.next shouldBe path3
 
-      //5th batch. Distribution is fixed all Paths contains equally distributed Segments based on distribution ration.
-      segments.expects() returning
-        Seq(
-          TestSegment(path = path1.resolve("111.seg")).runRandomIO.right.value,
-          TestSegment(path = path2.resolve("2222222.seg")).runRandomIO.right.value,
-          TestSegment(path = path2.resolve("22222222.seg")).runRandomIO.right.value,
-          TestSegment(path = path3.resolve("33.seg")).runRandomIO.right.value,
-          TestSegment(path = path3.resolve("333.seg")).runRandomIO.right.value,
-          TestSegment(path = path3.resolve("3333.seg")).runRandomIO.right.value
-        )
-      // goes back to returning normal paths based on the default distribution ratio.
-      distributor.next shouldBe path1
-      distributor.next shouldBe path2
-      distributor.next shouldBe path2
-      distributor.next shouldBe path3
-      distributor.next shouldBe path3
-      distributor.next shouldBe path3
+          //5th batch. Distribution is fixed all Paths contains equally distributed Segments based on distribution ration.
+          segments.expects() returning
+            Seq(
+              TestSegment(path = path1.resolve("111.seg")).runRandomIO.right.value,
+              TestSegment(path = path2.resolve("2222222.seg")).runRandomIO.right.value,
+              TestSegment(path = path2.resolve("22222222.seg")).runRandomIO.right.value,
+              TestSegment(path = path3.resolve("33.seg")).runRandomIO.right.value,
+              TestSegment(path = path3.resolve("333.seg")).runRandomIO.right.value,
+              TestSegment(path = path3.resolve("3333.seg")).runRandomIO.right.value
+            )
+          // goes back to returning normal paths based on the default distribution ratio.
+          distributor.next shouldBe path1
+          distributor.next shouldBe path2
+          distributor.next shouldBe path2
+          distributor.next shouldBe path3
+          distributor.next shouldBe path3
+          distributor.next shouldBe path3
+      }
     }
   }
 }

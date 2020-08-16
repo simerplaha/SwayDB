@@ -28,22 +28,19 @@ import java.nio.file.NoSuchFileException
 
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.compaction.Throttle
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
-import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.duration.Duration
 import scala.util.Random
 
 class AppendixRepairerSpec extends TestBase {
@@ -51,17 +48,19 @@ class AppendixRepairerSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeper10
-
   "AppendixRepair" should {
     "fail if the input path does not exist" in {
-      AppendixRepairer(nextLevelPath, AppendixRepairStrategy.ReportFailure).left.runRandomIO.right.value.exception shouldBe a[NoSuchFileException]
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          AppendixRepairer(nextLevelPath, AppendixRepairStrategy.ReportFailure).left.runRandomIO.right.value.exception shouldBe a[NoSuchFileException]
+      }
     }
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false))
           level.putKeyValuesTest(randomizedKeyValues(10000)).runRandomIO.right.value
 
@@ -82,6 +81,8 @@ class AppendixRepairerSpec extends TestBase {
     "create empty appendix file if the Level is empty" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           //create empty Level
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false))
 
@@ -103,6 +104,7 @@ class AppendixRepairerSpec extends TestBase {
     "report duplicate Segments" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
           //create a Level with a sub-level and disable throttling so that compaction does not delete expired key-values
           val level = TestLevel(
             segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false),
@@ -147,6 +149,7 @@ class AppendixRepairerSpec extends TestBase {
     "report overlapping min & max key Segments & delete newer overlapping Segment if KeepOld is selected" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
           //create empty Level
           val keyValues = randomizedKeyValues(1000)
 

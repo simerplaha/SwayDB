@@ -30,17 +30,11 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.io.file.BlockCache
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
-import TestCaseSweeper._
-import TestCaseSweeper._
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -72,20 +66,19 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "copy" should {
     "copy segments" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
           level.isEmpty shouldBe true
 
@@ -107,6 +100,8 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
     "fail copying Segments if it failed to copy one of the Segments" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
           level.isEmpty shouldBe true
 
@@ -126,6 +121,8 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
     "copy Map" in {
       TestCaseSweeper {
         implicit sweeper =>
+          import sweeper._
+
           val level = TestLevel()
           level.isEmpty shouldBe true
 
@@ -143,6 +140,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
   "copy map directly into lower level" in {
     TestCaseSweeper {
       implicit sweeper =>
+
         val level2 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
         val level1 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = true), nextLevel = Some(level2))
 

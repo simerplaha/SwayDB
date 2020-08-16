@@ -30,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
 import swaydb.core.segment.{SegmentIO, SegmentSearcher}
 import swaydb.core.util.Benchmark
-import swaydb.core.{SegmentBlocks, TestBase, TestSweeper}
+import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -44,7 +44,6 @@ import scala.util.Try
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(order))
-  implicit val limiter = TestSweeper.memorySweeperMax
   implicit def segmentIO = SegmentIO.random
 
   def randomlySelectHigher(index: Int, keyValues: Slice[Persistent]): PersistentOption =
@@ -253,26 +252,31 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
 
   "all searches" in {
     runThis(100.times, log = true) {
-      val keyValues =
-        Benchmark("Generating key-values", inlinePrint = true) {
-          randomizedKeyValues(startId = Some(100), count = randomIntMax(100) max 1)
-        }
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-      val segments: Slice[SegmentBlocks] =
-        Benchmark(s"Creating Segment for ${keyValues.size}") {
-          getBlocks(
-            keyValues = keyValues,
-            segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-          ).get
-        }
+          val keyValues =
+            Benchmark("Generating key-values", inlinePrint = true) {
+              randomizedKeyValues(startId = Some(100), count = randomIntMax(100) max 1)
+            }
 
-      segments should have size 1
-      val blocks = segments.head
+          val segments: Slice[SegmentBlocks] =
+            Benchmark(s"Creating Segment for ${keyValues.size}") {
+              getBlocks(
+                keyValues = keyValues,
+                segmentConfig = SegmentBlock.Config.random.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+              ).get
+            }
 
-      val persistentKeyValues = Benchmark("Searching key-values")(runSearchTest(keyValues, blocks))
-      persistentKeyValues should have size keyValues.size
-      Benchmark("Searching higher key-values")(runSearchHigherTest(persistentKeyValues, blocks))
-      Benchmark("Searching lower key-values ")(runSearchLowerTest(persistentKeyValues, blocks))
+          segments should have size 1
+          val blocks = segments.head
+
+          val persistentKeyValues = Benchmark("Searching key-values")(runSearchTest(keyValues, blocks))
+          persistentKeyValues should have size keyValues.size
+          Benchmark("Searching higher key-values")(runSearchHigherTest(persistentKeyValues, blocks))
+          Benchmark("Searching lower key-values ")(runSearchLowerTest(persistentKeyValues, blocks))
+      }
     }
   }
 }

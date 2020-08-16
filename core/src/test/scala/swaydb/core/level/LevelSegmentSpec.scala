@@ -81,8 +81,6 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "writing Segments to single level" should {
@@ -170,7 +168,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         if (persistent) {
           TestCaseSweeper {
             implicit sweeper =>
-              val dir = testDir.resolve("distributeSegmentsTest").clean()
+              val dir = testDir.resolve("distributeSegmentsTest").sweep()
 
               def assertDistribution() = {
                 dir.resolve(1.toString).files(Extension.Seg) should have size 7

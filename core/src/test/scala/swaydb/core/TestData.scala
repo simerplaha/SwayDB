@@ -33,7 +33,6 @@ import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestSweeper.{bufferCleaner, fileSweeper}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.Cache
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
@@ -84,8 +83,6 @@ object TestData {
    * Sequential time bytes generator.
    */
 
-  implicit val scheduler = Scheduler()(TestExecutionContext.executionContext)
-
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
   implicit val functionStore: FunctionStore = FunctionStore.memory()
@@ -99,13 +96,11 @@ object TestData {
     Random.nextBoolean()
 
   implicit class ReopenSegment(segment: PersistentSegment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                           ec: ExecutionContext,
-                                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                           fileSweeper: FileSweeperActor = fileSweeper,
-                                                           bufferCleaner: ByteBufferSweeperActor = bufferCleaner,
                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                           blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
+                                                           sweeper: TestCaseSweeper,
                                                            segmentIO: SegmentIO = SegmentIO.random) {
+
+    import sweeper._
 
     def tryReopen: PersistentSegment =
       tryReopen(segment.path)
@@ -124,7 +119,7 @@ object TestData {
           minMaxFunctionId = segment.minMaxFunctionId,
           nearestExpiryDeadline = segment.nearestPutDeadline,
           copiedFrom = orNone(Some(segment))
-        )
+        ).sweep()
 
       segment.close
       reopenedSegment
@@ -222,7 +217,7 @@ object TestData {
             hashIndexConfig = level.hashIndexConfig,
             bloomFilterConfig = level.bloomFilterConfig,
             segmentConfig = level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-          ).map(_.clean())
+          ).map(_.sweep())
         } flatMap {
           segments =>
             segments should have size 1
@@ -282,7 +277,7 @@ object TestData {
                 appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomForMap(), 4.mb),
                 nextLevel = nextLevel,
                 throttle = throttle
-              ).map(_.clean())
+              ).map(_.sweep())
           }
       }
   }
@@ -301,7 +296,7 @@ object TestData {
           _ =>
             level.closeSegments flatMap {
               _ =>
-                implicit val actor = sweeper.cleaner
+                import sweeper._
 
                 LevelZero(
                   mapSize = mapSize,
@@ -316,7 +311,7 @@ object TestData {
                   nextLevel = level.nextLevel,
                   acceleration = Accelerator.brake(),
                   throttle = level.throttle
-                ).map(_.clean())
+                ).map(_.sweep())
             }
         }
       reopened.runRandomIO.right.value
@@ -1184,9 +1179,7 @@ object TestData {
                                addRemoves: Boolean = false,
                                addRanges: Boolean = false,
                                addRemoveDeadlines: Boolean = false,
-                               addPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Memory] =
+                               addPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1210,9 +1203,7 @@ object TestData {
                           addRemoveDeadlines: Boolean = randomBoolean(),
                           addPutDeadlines: Boolean = randomBoolean(),
                           addExpiredPutDeadlines: Boolean = randomBoolean(),
-                          addUpdateDeadlines: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Memory] =
+                          addUpdateDeadlines: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1350,9 +1341,7 @@ object TestData {
                            addUpdateDeadlines: Boolean = true,
                            addPutDeadlines: Boolean = true,
                            addRemoves: Boolean = true,
-                           addRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                               keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Memory] =
+                           addRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,

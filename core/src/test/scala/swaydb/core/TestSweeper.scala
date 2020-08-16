@@ -41,31 +41,19 @@ private[swaydb] object TestSweeper {
     MemorySweeper(MemoryCache.All(4098, 1.mb / 2, 600.mb, None, false, ActorConfig.TimeLoop("TimeLoop test", 10.seconds, TestExecutionContext.executionContext)))
       .map(_.asInstanceOf[MemorySweeper.All])
 
-  lazy val memorySweeperMax: Option[MemorySweeper.All] = createMemorySweeperMax()
-
   def createMemorySweeper10(): Option[MemorySweeper.All] =
     MemorySweeper(MemoryCache.All(4098, 1.mb / 2, 600.mb, Some(1), false, ActorConfig.TimeLoop("TimeLoop test 2", 10.seconds, TestExecutionContext.executionContext)))
       .map(_.asInstanceOf[MemorySweeper.All])
-
-  lazy val memorySweeper10: Option[MemorySweeper.All] = createMemorySweeper10()
 
   def createMemoryBlockSweeper(): Option[MemorySweeper.BlockSweeper] =
     MemorySweeper(MemoryCache.ByteCacheOnly(4098, 1.mb / 2, 600.mb, ActorConfig.Basic("Basic Actor", TestExecutionContext.executionContext)))
       .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
 
-  lazy val memorySweeperBlock: Option[MemorySweeper.BlockSweeper] = createMemoryBlockSweeper()
-
   def createKeyValueSweeperBlock(): Option[MemorySweeper.KeyValueSweeper] =
     MemorySweeper(MemoryCache.KeyValueCacheOnly(600.mb, Some(100), Some(ActorConfig.Basic("Basic Actor 2", TestExecutionContext.executionContext))))
       .map(_.asInstanceOf[MemorySweeper.KeyValueSweeper])
 
-  lazy val keyValueSweeperBlock: Option[MemorySweeper.KeyValueSweeper] =
-    createKeyValueSweeperBlock()
-
-  lazy val someMemorySweeperMax = memorySweeperMax
-  lazy val someMemorySweeper10 = memorySweeper10
-
-  def createMemorySweeperRandom() =
+  def createMemorySweeperRandom(): Option[MemorySweeper.All] =
     eitherOne(
       createMemorySweeper10(),
       createMemorySweeperMax(),
@@ -75,7 +63,7 @@ private[swaydb] object TestSweeper {
   def createBlockCache(memorySweeper: Option[MemorySweeper.All]): Option[BlockCache.State] =
     memorySweeper.map(BlockCache.init)
 
-  def createBlockCacheBlockSweeper(blockSweeper: Option[MemorySweeper.BlockSweeper]): Option[BlockCache.State] =
+  def createBlockCacheBlockSweeper(blockSweeper: Option[MemorySweeper.BlockSweeper] = createMemoryBlockSweeper()): Option[BlockCache.State] =
     blockSweeper.map(BlockCache.init)
 
   def createBlockCacheRandom(): Option[BlockCache.State] =
@@ -84,19 +72,18 @@ private[swaydb] object TestSweeper {
       createBlockCacheBlockSweeper(orNone(createMemoryBlockSweeper()))
     )
 
-  lazy val blockCache: Option[BlockCache.State] = createBlockCache(memorySweeperMax)
-
   def randomBlockCache: Option[BlockCache.State] =
-    orNone(blockCache)
+    orNone(createBlockCache(createMemorySweeperRandom()))
 
   def createFileSweeper(): FileSweeperActor =
     FileSweeper(50, ActorConfig.Basic("Basic test 3", TestExecutionContext.executionContext)).value(())
 
-  lazy val fileSweeper: FileSweeperActor = createFileSweeper()
-
   def createBufferCleaner(): ByteBufferSweeperActor =
     ByteBufferSweeper()(Scheduler()(TestExecutionContext.executionContext))
 
-  lazy val bufferCleaner: ByteBufferSweeperActor =
-    createBufferCleaner()
+  def createRandomCacheSweeper(): Option[MemorySweeper.Cache] =
+    eitherOne(
+      createMemorySweeperMax(),
+      createMemoryBlockSweeper()
+    )
 }

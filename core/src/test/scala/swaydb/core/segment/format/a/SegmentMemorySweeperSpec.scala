@@ -32,12 +32,13 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration._
+import TestCaseSweeper._
 
 /**
  * These class has tests to assert the behavior of [[MemorySweeper]] on [[swaydb.core.segment.Segment]]s.
@@ -46,46 +47,43 @@ class SegmentMemorySweeperSpec extends TestBase {
 
   val keyValuesCount = 100
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val memorySweeper = TestSweeper.memorySweeper10
-  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
   //  override def deleteFiles = false
 
   "PersistentSegment" should {
     "drop Group key-value only after it's been decompressed" in {
-      //add key-values to the right of the group
-      val keyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(1))
+      TestCaseSweeper {
+        implicit sweeper =>
+          //add key-values to the right of the group
+          val keyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(1))
 
-      //set the limiter to drop key-values fast
-      implicit val memorySweeper: MemorySweeper.KeyValue =
-        MemorySweeper(MemoryCache.KeyValueCacheOnly(1, None, Some(ActorConfig.TimeLoop("", 2.seconds, ec))))
-          .value
-          .asInstanceOf[MemorySweeper.KeyValue]
+          //set the limiter to drop key-values fast
+          implicit val memorySweeper: MemorySweeper.KeyValue =
+            MemorySweeper(MemoryCache.KeyValueCacheOnly(1, None, Some(ActorConfig.TimeLoop("", 2.seconds, ec))))
+              .value
+              .asInstanceOf[MemorySweeper.KeyValue]
+              .sweep()
 
-      try {
+          //create persistent Segment
+          val segment =
+            TestSegment(
+              keyValues = keyValues,
+              segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false)
+            )
 
-        //create persistent Segment
-        val segment =
-          TestSegment(
-            keyValues = keyValues,
-            segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false)
-          )(KeyOrder.default, Some(memorySweeper), TestSweeper.fileSweeper, TestSweeper.bufferCleaner, timeOrder, blockCache)
+          //initially Segment's cache is empty
+          segment.areAllCachesEmpty shouldBe true
 
-        //initially Segment's cache is empty
-        segment.areAllCachesEmpty shouldBe true
+          //read all key-values and this should trigger dropping of key-values
+          //read sequentially so that groups are added to the queue in sequential and also dropped.
+          Benchmark("Reading all key-values sequentially.") {
+            assertGetSequential(keyValues, segment)
+          }
 
-        //read all key-values and this should trigger dropping of key-values
-        //read sequentially so that groups are added to the queue in sequential and also dropped.
-        Benchmark("Reading all key-values sequentially.") {
-          assertGetSequential(keyValues, segment)
-        }
+          //eventually all other key-values are dropped and the group remains.
+          eventual(4.seconds)(segment.cachedKeyValueSize shouldBe 0)
 
-        //eventually all other key-values are dropped and the group remains.
-        eventual(4.seconds)(segment.cachedKeyValueSize shouldBe 0)
-
-        segment.close
-      } finally {
-        memorySweeper.terminateAndClear()
+          segment.close
       }
     }
   }

@@ -37,7 +37,7 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -50,7 +50,6 @@ class SegmentBlockSpec extends TestBase {
   val keyValueCount = 100
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val memorySweeper = TestSweeper.memorySweeperMax
 
   implicit def testTimer: TestTimer = TestTimer.random
   implicit def segmentIO: SegmentIO = SegmentIO.random
@@ -75,89 +74,106 @@ class SegmentBlockSpec extends TestBase {
     }
 
     "converting KeyValues to bytes and execute readAll and find on the bytes" in {
-      def test(keyValues: Slice[Memory]) = {
-        val segmentBytes =
-          SegmentBlock
-            .writeClosedOne(keyValues = keyValues)
-            .flattenSegmentBytes
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-        val reader = Reader(segmentBytes)
-        assertReads(keyValues, reader)
+          def test(keyValues: Slice[Memory]) = {
+            val segmentBytes =
+              SegmentBlock
+                .writeClosedOne(keyValues = keyValues)
+                .flattenSegmentBytes
 
-        val persistentReader = createRandomFileReader(segmentBytes)
-        assertReads(keyValues, persistentReader)
-        persistentReader.file.close()
-      }
+            val reader = Reader(segmentBytes)
+            assertReads(keyValues, reader)
 
-      runThis(100.times, log = true) {
-        val count = eitherOne(randomIntMax(20) max 1, 50, 100)
-        val keyValues = randomizedKeyValues(count, startId = Some(1))
-        if (keyValues.nonEmpty) test(keyValues)
+            val persistentReader = createRandomFileReader(segmentBytes)
+            assertReads(keyValues, persistentReader)
+            persistentReader.file.close()
+          }
+
+          runThis(100.times, log = true) {
+            val count = eitherOne(randomIntMax(20) max 1, 50, 100)
+            val keyValues = randomizedKeyValues(count, startId = Some(1))
+            if (keyValues.nonEmpty) test(keyValues)
+          }
       }
     }
 
     "converting large KeyValues to bytes" in {
       runThis(10.times, log = true) {
-        //increase the size of value to test it on larger values.
-        val keyValues = randomPutKeyValues(count = 100, valueSize = 10000, startId = Some(0))
+        TestCaseSweeper {
+          implicit sweeper =>
+            import sweeper._
+            //increase the size of value to test it on larger values.
+            val keyValues = randomPutKeyValues(count = 100, valueSize = 10000, startId = Some(0))
 
-        val segmentBytes =
-          SegmentBlock
-            .writeClosedOne(keyValues = keyValues)
-            .flattenSegmentBytes
+            val segmentBytes =
+              SegmentBlock
+                .writeClosedOne(keyValues = keyValues)
+                .flattenSegmentBytes
 
-        //in memory
-        assertReads(keyValues.toSlice, Reader(segmentBytes.unslice()))
-        //on disk
-        assertReads(keyValues.toSlice, createRandomFileReader(segmentBytes))
+            //in memory
+            assertReads(keyValues.toSlice, Reader(segmentBytes.unslice()))
+            //on disk
+            assertReads(keyValues.toSlice, createRandomFileReader(segmentBytes))
+        }
       }
     }
 
     "write and read Int min max key values" in {
-      val keyValues = Slice(Memory.put(Int.MaxValue, Int.MinValue), Memory.put(Int.MinValue, Int.MaxValue))
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          val keyValues = Slice(Memory.put(Int.MaxValue, Int.MinValue), Memory.put(Int.MinValue, Int.MaxValue))
 
-      val (bytes, deadline) =
-        SegmentBlock
-          .writeClosedOne(keyValues = keyValues)
-          .flattenSegment
+          val (bytes, deadline) =
+            SegmentBlock
+              .writeClosedOne(keyValues = keyValues)
+              .flattenSegment
 
-      deadline shouldBe empty
+          deadline shouldBe empty
 
-      //in memory
-      assertReads(keyValues, Reader(bytes))
-      //on disk
-      assertReads(keyValues, createRandomFileReader(bytes))
+          //in memory
+          assertReads(keyValues, Reader(bytes))
+          //on disk
+          assertReads(keyValues, createRandomFileReader(bytes))
+      }
     }
 
     "write and read Keys with None value to a Slice[Byte]" in {
       runThis(10.times) {
-        val setDeadlines = randomBoolean()
+        TestCaseSweeper {
+          implicit sweeper =>
+            import sweeper._
+            val setDeadlines = randomBoolean()
 
-        val keyValues =
-          randomFixedNoneValue(
-            count = randomIntMax(1000) max 1,
-            startId = Some(1),
-            addPutDeadlines = setDeadlines,
-            addUpdateDeadlines = setDeadlines,
-            addRemoveDeadlines = setDeadlines
-          )
+            val keyValues =
+              randomFixedNoneValue(
+                count = randomIntMax(1000) max 1,
+                startId = Some(1),
+                addPutDeadlines = setDeadlines,
+                addUpdateDeadlines = setDeadlines,
+                addRemoveDeadlines = setDeadlines
+              )
 
-        keyValues foreach {
-          keyValue =>
-            keyValue.value.toOptionC shouldBe empty
+            keyValues foreach {
+              keyValue =>
+                keyValue.value.toOptionC shouldBe empty
+            }
+
+            val (bytes, deadline) =
+              SegmentBlock
+                .writeClosedOne(keyValues)
+                .flattenSegment
+
+            if (!setDeadlines) deadline shouldBe empty
+
+            //in memory
+            assertReads(keyValues, Reader(bytes))
+            //on disk
+            assertReads(keyValues, createRandomFileReader(bytes))
         }
-
-        val (bytes, deadline) =
-          SegmentBlock
-            .writeClosedOne(keyValues)
-            .flattenSegment
-
-        if (!setDeadlines) deadline shouldBe empty
-
-        //in memory
-        assertReads(keyValues, Reader(bytes))
-        //on disk
-        assertReads(keyValues, createRandomFileReader(bytes))
       }
     }
     //
@@ -196,224 +212,248 @@ class SegmentBlockSpec extends TestBase {
   "SegmentFooter.read" should {
     "set hasRange to false when Segment contains no Range key-value" in {
       runThis(100.times) {
-        val keyValues = randomizedKeyValues(keyValueCount, addRanges = false)
-        if (keyValues.nonEmpty) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            import sweeper._
+            val keyValues = randomizedKeyValues(keyValueCount, addRanges = false)
+            if (keyValues.nonEmpty) {
 
-          val blocks = getBlocksSingle(keyValues).get
+              val blocks = getBlocksSingle(keyValues).get
 
-          blocks.footer.keyValueCount shouldBe keyValues.size
-          blocks.footer.hasRange shouldBe false
+              blocks.footer.keyValueCount shouldBe keyValues.size
+              blocks.footer.hasRange shouldBe false
+            }
         }
       }
     }
 
     "set hasRange to true and hasRemoveRange to false when Segment does not contain Remove range or function or pendingApply with function or remove but has other ranges" in {
-      def doAssert(keyValues: Slice[Memory]) = {
-        val expectedHasRemoveRange = keyValues.exists(_.isRemoveRangeMayBe)
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          def doAssert(keyValues: Slice[Memory]) = {
+            val expectedHasRemoveRange = keyValues.exists(_.isRemoveRangeMayBe)
 
-        MergeStats.persistentBuilder(keyValues).hasRemoveRange shouldBe expectedHasRemoveRange
+            MergeStats.persistentBuilder(keyValues).hasRemoveRange shouldBe expectedHasRemoveRange
 
-        val blocks = getBlocksSingle(keyValues).get
+            val blocks = getBlocksSingle(keyValues).get
 
-        if (expectedHasRemoveRange) blocks.bloomFilterReader shouldBe empty
+            if (expectedHasRemoveRange) blocks.bloomFilterReader shouldBe empty
 
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.hasRange shouldBe true
-      }
+            blocks.footer.keyValueCount shouldBe keyValues.size
+            blocks.footer.keyValueCount shouldBe keyValues.size
+            blocks.footer.hasRange shouldBe true
+          }
 
-      runThis(100.times) {
-        doAssert(randomizedKeyValues(keyValueCount, addRangeRemoves = false, addRanges = true, startId = Some(1)))
+          runThis(100.times) {
+            doAssert(randomizedKeyValues(keyValueCount, addRangeRemoves = false, addRanges = true, startId = Some(1)))
+          }
       }
     }
 
     "set hasRange & hasRemoveRange to true and not create bloomFilter when Segment contains Remove range key-value" in {
-      def doAssert(keyValues: Slice[Memory]) = {
-        keyValues.exists(_.isRemoveRangeMayBe) shouldBe true
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          def doAssert(keyValues: Slice[Memory]) = {
+            keyValues.exists(_.isRemoveRangeMayBe) shouldBe true
 
-        val blocks =
-          getBlocksSingle(
-            keyValues = keyValues,
-            bloomFilterConfig =
-              BloomFilterBlock.Config(
-                falsePositiveRate = 0.001,
-                minimumNumberOfKeys = 1,
-                optimalMaxProbe = probe => probe,
-                ioStrategy = _ => randomIOStrategy(),
-                compressions = _ => randomCompressions()
-              )
-          ).get
+            val blocks =
+              getBlocksSingle(
+                keyValues = keyValues,
+                bloomFilterConfig =
+                  BloomFilterBlock.Config(
+                    falsePositiveRate = 0.001,
+                    minimumNumberOfKeys = 1,
+                    optimalMaxProbe = probe => probe,
+                    ioStrategy = _ => randomIOStrategy(),
+                    compressions = _ => randomCompressions()
+                  )
+              ).get
 
-        blocks.bloomFilterReader shouldBe empty
+            blocks.bloomFilterReader shouldBe empty
 
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.hasRange shouldBe true
-        //bloom filters do
-        blocks.footer.bloomFilterOffset shouldBe empty
-      }
+            blocks.footer.keyValueCount shouldBe keyValues.size
+            blocks.footer.keyValueCount shouldBe keyValues.size
+            blocks.footer.hasRange shouldBe true
+            //bloom filters do
+            blocks.footer.bloomFilterOffset shouldBe empty
+          }
 
-      runThis(100.times) {
-        val keyValues =
-          randomizedKeyValues(keyValueCount, startId = Some(1)) ++
-            Seq(
-              Memory.Range(
-                fromKey = 20,
-                toKey = 21,
-                fromValue = randomFromValueOption(),
-                rangeValue = Value.remove(randomDeadlineOption)
-              )
-            )
+          runThis(100.times) {
+            val keyValues =
+              randomizedKeyValues(keyValueCount, startId = Some(1)) ++
+                Seq(
+                  Memory.Range(
+                    fromKey = 20,
+                    toKey = 21,
+                    fromValue = randomFromValueOption(),
+                    rangeValue = Value.remove(randomDeadlineOption)
+                  )
+                )
 
-        doAssert(keyValues)
+            doAssert(keyValues)
+          }
       }
     }
 
     "set hasRange to false when there are no ranges" in {
-      def doAssert(keyValues: Slice[Memory]) = {
-        keyValues.exists(_.isRemoveRangeMayBe) shouldBe false
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          def doAssert(keyValues: Slice[Memory]) = {
+            keyValues.exists(_.isRemoveRangeMayBe) shouldBe false
 
-        val blocks =
-          getBlocksSingle(
-            keyValues = keyValues,
-            bloomFilterConfig =
-              BloomFilterBlock.Config.random.copy(
-                falsePositiveRate = 0.0001,
-                minimumNumberOfKeys = 0
-              )
-          ).get
+            val blocks =
+              getBlocksSingle(
+                keyValues = keyValues,
+                bloomFilterConfig =
+                  BloomFilterBlock.Config.random.copy(
+                    falsePositiveRate = 0.0001,
+                    minimumNumberOfKeys = 0
+                  )
+              ).get
 
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.numberOfRanges shouldBe keyValues.count(_.isRange)
-        blocks.bloomFilterReader shouldBe defined
-        blocks.footer.bloomFilterOffset shouldBe defined
-        blocks.bloomFilterReader shouldBe defined
-        assertBloom(keyValues, blocks.bloomFilterReader.get)
-      }
+            blocks.footer.keyValueCount shouldBe keyValues.size
+            blocks.footer.keyValueCount shouldBe keyValues.size
+            blocks.footer.numberOfRanges shouldBe keyValues.count(_.isRange)
+            blocks.bloomFilterReader shouldBe defined
+            blocks.footer.bloomFilterOffset shouldBe defined
+            blocks.bloomFilterReader shouldBe defined
+            assertBloom(keyValues, blocks.bloomFilterReader.get)
+          }
 
-      runThis(100.times) {
-        val keyValues = randomizedKeyValues(keyValueCount, addRanges = false, addRangeRemoves = false)
-        if (keyValues.nonEmpty) doAssert(keyValues)
+          runThis(100.times) {
+            val keyValues = randomizedKeyValues(keyValueCount, addRanges = false, addRangeRemoves = false)
+            if (keyValues.nonEmpty) doAssert(keyValues)
+          }
       }
     }
 
     "set hasRemoveRange to true, hasGroup to true & not create bloomFilter when only the group contains remove range" in {
-      def doAssert(keyValues: Slice[Memory]) = {
-        keyValues.exists(_.isRemoveRangeMayBe) shouldBe true
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          def doAssert(keyValues: Slice[Memory]) = {
+            keyValues.exists(_.isRemoveRangeMayBe) shouldBe true
 
-        val blocks =
-          getBlocksSingle(
-            keyValues = keyValues,
-            bloomFilterConfig =
-              BloomFilterBlock.Config.random.copy(
-                falsePositiveRate = 0.0001,
-                minimumNumberOfKeys = 0
+            val blocks =
+              getBlocksSingle(
+                keyValues = keyValues,
+                bloomFilterConfig =
+                  BloomFilterBlock.Config.random.copy(
+                    falsePositiveRate = 0.0001,
+                    minimumNumberOfKeys = 0
+                  )
+              ).get
+
+            blocks.footer.keyValueCount shouldBe keyValues.size
+            blocks.footer.hasRange shouldBe true
+            blocks.footer.bloomFilterOffset shouldBe empty
+            blocks.bloomFilterReader shouldBe empty
+          }
+
+          runThis(100.times) {
+            doAssert(
+              Slice(
+                randomFixedKeyValue(1),
+                randomFixedKeyValue(2),
+                randomPutKeyValue(10, "val"),
+                randomRangeKeyValue(12, 15, rangeValue = Value.remove(None))
               )
-          ).get
-
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.hasRange shouldBe true
-        blocks.footer.bloomFilterOffset shouldBe empty
-        blocks.bloomFilterReader shouldBe empty
-      }
-
-      runThis(100.times) {
-        doAssert(
-          Slice(
-            randomFixedKeyValue(1),
-            randomFixedKeyValue(2),
-            randomPutKeyValue(10, "val"),
-            randomRangeKeyValue(12, 15, rangeValue = Value.remove(None))
-          )
-        )
+            )
+          }
       }
     }
   }
 
   "writing key-values with duplicate values" should {
     "use the same valueOffset and not create duplicate values" in {
-      runThis(1000.times) {
-        //make sure the first byte in the value is not the same as the key (just for the this test).
-        val fixedValue: Slice[Byte] = Slice(11.toByte) ++ randomBytesSlice(randomIntMax(50)).drop(1)
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
+          runThis(1000.times) {
+            //make sure the first byte in the value is not the same as the key (just for the this test).
+            val fixedValue: Slice[Byte] = Slice(11.toByte) ++ randomBytesSlice(randomIntMax(50)).drop(1)
 
-        def fixed: Slice[Memory.Fixed] =
-          Slice(
-            Memory.put(1, fixedValue),
-            Memory.update(2, fixedValue),
-            Memory.put(3, fixedValue),
-            Memory.put(4, fixedValue),
-            Memory.update(5, fixedValue),
-            Memory.put(6, fixedValue),
-            Memory.update(7, fixedValue),
-            Memory.update(8, fixedValue),
-            Memory.put(9, fixedValue),
-            Memory.update(10, fixedValue)
-          )
-
-        val applies = randomApplies(deadline = None)
-
-        def pendingApply: Slice[Memory.PendingApply] =
-          Slice(
-            Memory.PendingApply(1, applies),
-            Memory.PendingApply(2, applies),
-            Memory.PendingApply(3, applies),
-            Memory.PendingApply(4, applies),
-            Memory.PendingApply(5, applies),
-            Memory.PendingApply(6, applies),
-            Memory.PendingApply(7, applies)
-          )
-
-        val keyValues =
-          eitherOne(
-            left = fixed,
-            right = pendingApply
-          )
-
-        //value the first value for either fixed or range.
-        //this value is only expected to be written ones.
-        keyValues.head.value.toOptionC shouldBe defined
-        val value = keyValues.head.value.getC
-
-        val blocks =
-          getBlocksSingle(
-            keyValues,
-            valuesConfig =
-              ValuesBlock.Config(
-                compressDuplicateValues = true,
-                compressDuplicateRangeValues = randomBoolean(),
-                ioStrategy = _ => randomIOAccess(),
-                compressions = _ => Seq.empty
+            def fixed: Slice[Memory.Fixed] =
+              Slice(
+                Memory.put(1, fixedValue),
+                Memory.update(2, fixedValue),
+                Memory.put(3, fixedValue),
+                Memory.put(4, fixedValue),
+                Memory.update(5, fixedValue),
+                Memory.put(6, fixedValue),
+                Memory.update(7, fixedValue),
+                Memory.update(8, fixedValue),
+                Memory.put(9, fixedValue),
+                Memory.update(10, fixedValue)
               )
-          ).get
 
-        val bytes = blocks.valuesReader.value.readAllAndGetReader().readRemaining()
+            val applies = randomApplies(deadline = None)
 
-        //only the bytes of the first value should be set and the next byte should be the start of index
-        //as values are not duplicated
-        bytes.take(value.size) shouldBe value
-        //drop the first value bytes that are value bytes and the next value bytes (value of the next key-value) should not be value bytes.
-        bytes.drop(value.size).take(value.size) should not be value
+            def pendingApply: Slice[Memory.PendingApply] =
+              Slice(
+                Memory.PendingApply(1, applies),
+                Memory.PendingApply(2, applies),
+                Memory.PendingApply(3, applies),
+                Memory.PendingApply(4, applies),
+                Memory.PendingApply(5, applies),
+                Memory.PendingApply(6, applies),
+                Memory.PendingApply(7, applies)
+              )
 
-        val readKeyValues = SortedIndexBlock.toSlice(blocks.footer.keyValueCount, blocks.sortedIndexReader, blocks.valuesReader.orNull)
-        readKeyValues should have size keyValues.size
+            val keyValues =
+              eitherOne(
+                left = fixed,
+                right = pendingApply
+              )
 
-        //assert that all valueOffsets of all key-values are the same
-        readKeyValues.foldLeft(Option.empty[Int]) {
-          case (previousOffsetOption, fixed: Persistent.Fixed) =>
-            previousOffsetOption match {
-              case Some(previousOffset) =>
-                fixed.valueOffset shouldBe previousOffset
-                fixed.valueLength shouldBe value.size
-                previousOffsetOption
+            //value the first value for either fixed or range.
+            //this value is only expected to be written ones.
+            keyValues.head.value.toOptionC shouldBe defined
+            val value = keyValues.head.value.getC
 
-              case None =>
-                Some(fixed.valueOffset)
+            val blocks =
+              getBlocksSingle(
+                keyValues,
+                valuesConfig =
+                  ValuesBlock.Config(
+                    compressDuplicateValues = true,
+                    compressDuplicateRangeValues = randomBoolean(),
+                    ioStrategy = _ => randomIOAccess(),
+                    compressions = _ => Seq.empty
+                  )
+              ).get
+
+            val bytes = blocks.valuesReader.value.readAllAndGetReader().readRemaining()
+
+            //only the bytes of the first value should be set and the next byte should be the start of index
+            //as values are not duplicated
+            bytes.take(value.size) shouldBe value
+            //drop the first value bytes that are value bytes and the next value bytes (value of the next key-value) should not be value bytes.
+            bytes.drop(value.size).take(value.size) should not be value
+
+            val readKeyValues = SortedIndexBlock.toSlice(blocks.footer.keyValueCount, blocks.sortedIndexReader, blocks.valuesReader.orNull)
+            readKeyValues should have size keyValues.size
+
+            //assert that all valueOffsets of all key-values are the same
+            readKeyValues.foldLeft(Option.empty[Int]) {
+              case (previousOffsetOption, fixed: Persistent.Fixed) =>
+                previousOffsetOption match {
+                  case Some(previousOffset) =>
+                    fixed.valueOffset shouldBe previousOffset
+                    fixed.valueLength shouldBe value.size
+                    previousOffsetOption
+
+                  case None =>
+                    Some(fixed.valueOffset)
+                }
+
+              case keyValue =>
+                fail(s"Got: ${keyValue.getClass.getSimpleName}. Didn't expect any other key-value other than Put")
             }
-
-          case keyValue =>
-            fail(s"Got: ${keyValue.getClass.getSimpleName}. Didn't expect any other key-value other than Put")
-        }
+          }
       }
     }
   }

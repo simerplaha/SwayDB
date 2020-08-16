@@ -29,7 +29,7 @@ import java.nio.file.Paths
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, PersistentOption, Time}
@@ -79,6 +79,8 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
 
   "GET - Behaviour" in {
     runThis(10.times, log = true) {
+      TestCaseSweeper {
+        implicit sweeper =>
       implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
 
       //test data
@@ -268,53 +270,54 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
       /**
        * and then perform sequential read to start with but fail because keyValue3 is not sequential to keyValue101 - keyValue3
        */
-      {
-        (segmentSearcher
-          .searchSequential(
-            _: Slice[Byte],
-            _: PersistentOption,
-            _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-            _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
-          )
-          .expects(*, *, *, *, *, *)
-          .onCall {
-            (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _) =>
-              key shouldBe keyValue3.key
-              //start from is None because cached keyValue10's key > keyValue3's key
-              startFrom.isNoneS shouldBe true
-              Persistent.Null
-          }
-
-        (segmentSearcher
-          .searchRandom(
-            _: Slice[Byte],
-            _: PersistentOption,
-            _: PersistentOption,
-            _: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-            _: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
-            _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-            _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
-            _: Boolean,
-            _: Int)(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial]))
-          .expects(*, *, *, *, *, *, *, *, *, *, *)
-          .onCall {
-            result =>
-              result match {
-                case (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _, _, hasRange: Boolean, keyValueCount: Function0[Int], _, _) =>
+          {
+            (segmentSearcher
+              .searchSequential(
+                _: Slice[Byte],
+                _: PersistentOption,
+                _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
+              )
+              .expects(*, *, *, *, *, *)
+              .onCall {
+                (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _) =>
                   key shouldBe keyValue3.key
                   //start from is None because cached keyValue10's key > keyValue3's key
                   startFrom.isNoneS shouldBe true
-                  hasRange shouldBe keyValues.exists(_.isRange)
-                  keyValueCount() shouldBe keyValues.size
-                  keyValue3
+                  Persistent.Null
               }
+
+            (segmentSearcher
+              .searchRandom(
+                _: Slice[Byte],
+                _: PersistentOption,
+                _: PersistentOption,
+                _: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                _: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                _: Boolean,
+                _: Int)(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial]))
+              .expects(*, *, *, *, *, *, *, *, *, *, *)
+              .onCall {
+                result =>
+                  result match {
+                    case (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _, _, hasRange: Boolean, keyValueCount: Function0[Int], _, _) =>
+                      key shouldBe keyValue3.key
+                      //start from is None because cached keyValue10's key > keyValue3's key
+                      startFrom.isNoneS shouldBe true
+                      hasRange shouldBe keyValues.exists(_.isRange)
+                      keyValueCount() shouldBe keyValues.size
+                      keyValue3
+                  }
+              }
+
+            SegmentRef.get(key = keyValue3.key, threadState = threadState) shouldBe keyValue3
+
+            val segmentState = threadState.getSegmentState(path).getS
+            segmentState.keyValue._2 shouldBe keyValue3
+            segmentState.isSequential shouldBe false
           }
-
-        SegmentRef.get(key = keyValue3.key, threadState = threadState) shouldBe keyValue3
-
-        val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue._2 shouldBe keyValue3
-        segmentState.isSequential shouldBe false
       }
     }
   }

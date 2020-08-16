@@ -28,11 +28,11 @@ import java.nio.file.Paths
 
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.core.TestBase
+import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.util.{Benchmark, Extension}
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.util.StorageUnits._
-import swaydb.core.RunThis._
 
 class EffectSpec extends TestBase {
 
@@ -253,22 +253,26 @@ class EffectSpec extends TestBase {
   }
 
   "benchmark" in {
-    val fileSize = 4.mb
-    val flattenBytes = randomBytesSlice(fileSize)
-    val groupBytes = flattenBytes.groupedSlice(8)
+    TestCaseSweeper {
+      implicit sweeper =>
 
-    //20.mb
-    //0.067924621 seconds
-    //4.mb
-    //0.057647201 seconds & 0.047565694 seconds
-    val groupedPath = Benchmark("groupBytes")(Effect.write(randomFilePath, groupBytes))
-    Effect.readAll(groupedPath) shouldBe flattenBytes
+        val fileSize = 4.mb
+        val flattenBytes = randomBytesSlice(fileSize)
+        val groupBytes = flattenBytes.groupedSlice(8)
 
-    //20.mb
-    //0.077162871 seconds
-    //4.mb
-    //0.05330862 seconds & 0.045989919 seconds
-    val flattenedPath = Benchmark("flattenBytes")(Effect.write(randomFilePath, flattenBytes))
-    Effect.readAll(flattenedPath) shouldBe flattenBytes
+        //20.mb
+        //0.067924621 seconds
+        //4.mb
+        //0.057647201 seconds & 0.047565694 seconds
+        val groupedPath = Benchmark("groupBytes")(Effect.write(randomFilePath, groupBytes))
+        Effect.readAll(groupedPath) shouldBe flattenBytes
+
+        //20.mb
+        //0.077162871 seconds
+        //4.mb
+        //0.05330862 seconds & 0.045989919 seconds
+        val flattenedPath = Benchmark("flattenBytes")(Effect.write(randomFilePath, flattenBytes))
+        Effect.readAll(flattenedPath) shouldBe flattenBytes
+    }
   }
 }

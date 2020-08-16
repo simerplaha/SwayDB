@@ -29,16 +29,14 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -46,7 +44,6 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import TestCaseSweeper._
 
 class LevelMapSpec0 extends LevelMapSpec
 
@@ -78,9 +75,6 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "putMap on a single Level" should {
@@ -89,6 +83,8 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
+      import sweeper._
+
       val map =
         if (persistent)
           Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -99,7 +95,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             flushOnOverflow = true,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false
-          ).runRandomIO.right.value.item.clean()
+          ).runRandomIO.right.value.item.sweep()
         else
           Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
             nullKey = Slice.Null,
@@ -174,6 +170,8 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
+      import sweeper._
+
       val map =
         if (persistent)
           Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -183,7 +181,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             mmap = MMAP.Enabled(OperatingSystem.isWindows),
             flushOnOverflow = true,
             fileSize = 1.mb,
-            dropCorruptedTailEntries = false).runRandomIO.right.value.item.clean()
+            dropCorruptedTailEntries = false).runRandomIO.right.value.item.sweep()
         else
           Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
             nullKey = Slice.Null,

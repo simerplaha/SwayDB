@@ -37,7 +37,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, SegmentIO}
-import swaydb.core.{TestBase, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
@@ -85,762 +85,775 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
   "belongsTo" should {
     "return true if the input key-value belong to the Segment else false when the Segment contains no Range key-value" in {
-      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
 
-      runThis(10.times) {
-        Segment.belongsTo(randomFixedKeyValue(0), segment) shouldBe false
+          runThis(10.times) {
+            Segment.belongsTo(randomFixedKeyValue(0), segment) shouldBe false
 
-        //inner
-        (1 to 5) foreach {
-          i =>
-            randomizedKeyValues(10, startId = Some(i)) foreach {
-              keyValue =>
-                if (keyValue.key.readInt() <= 5)
-                  Segment.belongsTo(keyValue, segment) shouldBe true
+            //inner
+            (1 to 5) foreach {
+              i =>
+                randomizedKeyValues(10, startId = Some(i)) foreach {
+                  keyValue =>
+                    if (keyValue.key.readInt() <= 5)
+                      Segment.belongsTo(keyValue, segment) shouldBe true
+                }
             }
-        }
 
-        //outer
-        (6 to 20) foreach {
-          i =>
-            randomizedKeyValues(10, startId = Some(i)) foreach {
-              keyValue =>
-                Segment.belongsTo(keyValue, segment) shouldBe false
+            //outer
+            (6 to 20) foreach {
+              i =>
+                randomizedKeyValues(10, startId = Some(i)) foreach {
+                  keyValue =>
+                    Segment.belongsTo(keyValue, segment) shouldBe false
+                }
             }
-        }
+          }
       }
-      segment.close
     }
 
     "return true if the input key-value belong to the Segment else false when the Segment's max key is a Range key-value" in {
-      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
 
-      runThis(10.times) {
-        Segment.belongsTo(randomFixedKeyValue(0), segment) shouldBe false
+          runThis(10.times) {
+            Segment.belongsTo(randomFixedKeyValue(0), segment) shouldBe false
 
-        //inner
-        (1 to 9) foreach {
-          i =>
-            randomizedKeyValues(10, startId = Some(i)) foreach {
-              keyValue =>
-                if (keyValue.key.readInt() < 10)
-                  Segment.belongsTo(keyValue, segment) shouldBe true
+            //inner
+            (1 to 9) foreach {
+              i =>
+                randomizedKeyValues(10, startId = Some(i)) foreach {
+                  keyValue =>
+                    if (keyValue.key.readInt() < 10)
+                      Segment.belongsTo(keyValue, segment) shouldBe true
+                }
             }
-        }
 
-        //outer
-        (10 to 20) foreach {
-          i =>
-            randomizedKeyValues(10, startId = Some(i)) foreach {
-              keyValue =>
-                Segment.belongsTo(keyValue, segment) shouldBe false
+            //outer
+            (10 to 20) foreach {
+              i =>
+                randomizedKeyValues(10, startId = Some(i)) foreach {
+                  keyValue =>
+                    Segment.belongsTo(keyValue, segment) shouldBe false
+                }
             }
-        }
+          }
       }
-      segment.close
     }
 
     "return true if the input key-value belong to the Segment else false when the Segment's min key is a Range key-value" in {
-      val segment = TestSegment(Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val segment = TestSegment(Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)))
 
-      runThis(10.times) {
-        Segment.belongsTo(randomFixedKeyValue(0), segment) shouldBe false
+          runThis(10.times) {
+            Segment.belongsTo(randomFixedKeyValue(0), segment) shouldBe false
 
-        //inner
-        (1 to 11) foreach {
-          i =>
-            randomizedKeyValues(10, startId = Some(i)) foreach {
-              keyValue =>
-                if (keyValue.key.readInt() < 10)
-                  Segment.belongsTo(keyValue, segment) shouldBe true
+            //inner
+            (1 to 11) foreach {
+              i =>
+                randomizedKeyValues(10, startId = Some(i)) foreach {
+                  keyValue =>
+                    if (keyValue.key.readInt() < 10)
+                      Segment.belongsTo(keyValue, segment) shouldBe true
+                }
             }
-        }
 
-        //outer
-        (12 to 20) foreach {
-          i =>
-            randomizedKeyValues(10, startId = Some(i)) foreach {
-              keyValue =>
-                Segment.belongsTo(keyValue, segment) shouldBe false
+            //outer
+            (12 to 20) foreach {
+              i =>
+                randomizedKeyValues(10, startId = Some(i)) foreach {
+                  keyValue =>
+                    Segment.belongsTo(keyValue, segment) shouldBe false
+                }
             }
-        }
+          }
       }
-
-      segment.close
     }
 
     "for randomizedKeyValues" in {
-      val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(keyValuesCount + 1000))
-      val segment = TestSegment(keyValues)
+      TestCaseSweeper {
+        implicit sweeper =>
+          val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(keyValuesCount + 1000))
+          val segment = TestSegment(keyValues)
 
-      val minKeyInt = keyValues.head.key.readInt()
-      val maxKey = getMaxKey(keyValues.last)
-      val maxKeyInt = maxKey.maxKey.readInt()
+          val minKeyInt = keyValues.head.key.readInt()
+          val maxKey = getMaxKey(keyValues.last)
+          val maxKeyInt = maxKey.maxKey.readInt()
 
-      val leftOutKeysRange = minKeyInt - keyValuesCount until minKeyInt
-      val innerKeyRange = if (maxKey.inclusive) minKeyInt to maxKeyInt else minKeyInt until maxKeyInt
-      val rightOutKeyRange = if (maxKey.inclusive) maxKeyInt + 1 to maxKeyInt + keyValuesCount else maxKeyInt to maxKeyInt + keyValuesCount
+          val leftOutKeysRange = minKeyInt - keyValuesCount until minKeyInt
+          val innerKeyRange = if (maxKey.inclusive) minKeyInt to maxKeyInt else minKeyInt until maxKeyInt
+          val rightOutKeyRange = if (maxKey.inclusive) maxKeyInt + 1 to maxKeyInt + keyValuesCount else maxKeyInt to maxKeyInt + keyValuesCount
 
-      runThis(10.times) {
-        leftOutKeysRange foreach {
-          key =>
-            Segment.belongsTo(randomFixedKeyValue(key), segment) shouldBe false
-        }
-
-        //inner
-        innerKeyRange foreach {
-          i =>
-            val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i))
-            keyValues foreach {
-              keyValue =>
-                if (keyValue.key.readInt() <= innerKeyRange.last)
-                  Segment.belongsTo(keyValue, segment) shouldBe true
+          runThis(10.times) {
+            leftOutKeysRange foreach {
+              key =>
+                Segment.belongsTo(randomFixedKeyValue(key), segment) shouldBe false
             }
-        }
 
-        //outer
-        rightOutKeyRange foreach {
-          i =>
-            val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i))
-            keyValues foreach {
-              keyValue =>
-                Segment.belongsTo(keyValue, segment) shouldBe false
+            //inner
+            innerKeyRange foreach {
+              i =>
+                val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i))
+                keyValues foreach {
+                  keyValue =>
+                    if (keyValue.key.readInt() <= innerKeyRange.last)
+                      Segment.belongsTo(keyValue, segment) shouldBe true
+                }
             }
-        }
+
+            //outer
+            rightOutKeyRange foreach {
+              i =>
+                val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i))
+                keyValues foreach {
+                  keyValue =>
+                    Segment.belongsTo(keyValue, segment) shouldBe false
+                }
+            }
+          }
       }
-      segment.close
     }
   }
 
   "rangeBelongsTo" should {
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is not a Range" in {
-      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
 
-      //0 - 0
-      //      1 - 5
-      Segment.overlaps(0, 0, true, segment) shouldBe false
-      Segment.overlaps(0, 0, false, segment) shouldBe false
-      //  0 - 1
-      //      1 - 5
-      Segment.overlaps(0, 1, true, segment) shouldBe true
-      Segment.overlaps(0, 1, false, segment) shouldBe false
-      //    0 - 2
-      //      1 - 5
-      Segment.overlaps(0, 2, true, segment) shouldBe true
-      Segment.overlaps(0, 2, false, segment) shouldBe true
-      //    0   - 5
-      //      1 - 5
-      Segment.overlaps(0, 5, true, segment) shouldBe true
-      Segment.overlaps(0, 5, false, segment) shouldBe true
-      //    0   -   6
-      //      1 - 5
-      Segment.overlaps(0, 6, true, segment) shouldBe true
-      Segment.overlaps(0, 6, false, segment) shouldBe true
-
-
-      //      1-2
-      //      1 - 5
-      Segment.overlaps(1, 2, true, segment) shouldBe true
-      Segment.overlaps(1, 2, false, segment) shouldBe true
-      //      1-4
-      //      1 - 5
-      Segment.overlaps(1, 4, true, segment) shouldBe true
-      Segment.overlaps(1, 4, false, segment) shouldBe true
-      //      1 - 5
-      //      1 - 5
-      Segment.overlaps(1, 5, true, segment) shouldBe true
-      Segment.overlaps(1, 5, false, segment) shouldBe true
-      //      1 -  6
-      //      1 - 5
-      Segment.overlaps(1, 6, true, segment) shouldBe true
-      Segment.overlaps(1, 6, false, segment) shouldBe true
+          //0 - 0
+          //      1 - 5
+          Segment.overlaps(0, 0, true, segment) shouldBe false
+          Segment.overlaps(0, 0, false, segment) shouldBe false
+          //  0 - 1
+          //      1 - 5
+          Segment.overlaps(0, 1, true, segment) shouldBe true
+          Segment.overlaps(0, 1, false, segment) shouldBe false
+          //    0 - 2
+          //      1 - 5
+          Segment.overlaps(0, 2, true, segment) shouldBe true
+          Segment.overlaps(0, 2, false, segment) shouldBe true
+          //    0   - 5
+          //      1 - 5
+          Segment.overlaps(0, 5, true, segment) shouldBe true
+          Segment.overlaps(0, 5, false, segment) shouldBe true
+          //    0   -   6
+          //      1 - 5
+          Segment.overlaps(0, 6, true, segment) shouldBe true
+          Segment.overlaps(0, 6, false, segment) shouldBe true
 
 
-      //       2-4
-      //      1 - 5
-      Segment.overlaps(2, 4, true, segment) shouldBe true
-      Segment.overlaps(2, 4, false, segment) shouldBe true
-      //       2- 5
-      //      1 - 5
-      Segment.overlaps(2, 5, true, segment) shouldBe true
-      Segment.overlaps(2, 5, false, segment) shouldBe true
-      //        2 - 6
-      //      1 - 5
-      Segment.overlaps(2, 6, true, segment) shouldBe true
-      Segment.overlaps(2, 6, false, segment) shouldBe true
-      //          5 - 6
-      //      1 - 5
-      Segment.overlaps(5, 6, true, segment) shouldBe true
-      Segment.overlaps(5, 6, false, segment) shouldBe true
-      //            6 - 7
-      //      1 - 5
-      Segment.overlaps(6, 7, true, segment) shouldBe false
-      Segment.overlaps(6, 7, false, segment) shouldBe false
+          //      1-2
+          //      1 - 5
+          Segment.overlaps(1, 2, true, segment) shouldBe true
+          Segment.overlaps(1, 2, false, segment) shouldBe true
+          //      1-4
+          //      1 - 5
+          Segment.overlaps(1, 4, true, segment) shouldBe true
+          Segment.overlaps(1, 4, false, segment) shouldBe true
+          //      1 - 5
+          //      1 - 5
+          Segment.overlaps(1, 5, true, segment) shouldBe true
+          Segment.overlaps(1, 5, false, segment) shouldBe true
+          //      1 -  6
+          //      1 - 5
+          Segment.overlaps(1, 6, true, segment) shouldBe true
+          Segment.overlaps(1, 6, false, segment) shouldBe true
 
-      //wide outer overlap
-      //    0   -   6
-      //      1 - 5
-      Segment.overlaps(0, 6, true, segment) shouldBe true
-      Segment.overlaps(0, 6, false, segment) shouldBe true
 
-      segment.close
+          //       2-4
+          //      1 - 5
+          Segment.overlaps(2, 4, true, segment) shouldBe true
+          Segment.overlaps(2, 4, false, segment) shouldBe true
+          //       2- 5
+          //      1 - 5
+          Segment.overlaps(2, 5, true, segment) shouldBe true
+          Segment.overlaps(2, 5, false, segment) shouldBe true
+          //        2 - 6
+          //      1 - 5
+          Segment.overlaps(2, 6, true, segment) shouldBe true
+          Segment.overlaps(2, 6, false, segment) shouldBe true
+          //          5 - 6
+          //      1 - 5
+          Segment.overlaps(5, 6, true, segment) shouldBe true
+          Segment.overlaps(5, 6, false, segment) shouldBe true
+          //            6 - 7
+          //      1 - 5
+          Segment.overlaps(6, 7, true, segment) shouldBe false
+          Segment.overlaps(6, 7, false, segment) shouldBe false
+
+          //wide outer overlap
+          //    0   -   6
+          //      1 - 5
+          Segment.overlaps(0, 6, true, segment) shouldBe true
+          Segment.overlaps(0, 6, false, segment) shouldBe true
+      }
     }
 
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is a Range" in {
-      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
+      TestCaseSweeper {
+        implicit sweeper =>
+          val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
 
 
-      //0 - 0
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 0, true, segment) shouldBe false
-      Segment.overlaps(0, 0, false, segment) shouldBe false
-      //  0 - 1
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 1, true, segment) shouldBe true
-      Segment.overlaps(0, 1, false, segment) shouldBe false
-      //    0 - 2
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 2, true, segment) shouldBe true
-      Segment.overlaps(0, 2, false, segment) shouldBe true
-      //    0 -    5
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 5, true, segment) shouldBe true
-      Segment.overlaps(0, 5, false, segment) shouldBe true
-      //    0   -    7
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 7, true, segment) shouldBe true
-      Segment.overlaps(0, 7, false, segment) shouldBe true
-      //    0     -    10
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 10, true, segment) shouldBe true
-      Segment.overlaps(0, 10, false, segment) shouldBe true
-      //    0      -      11
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 11, true, segment) shouldBe true
-      Segment.overlaps(0, 11, false, segment) shouldBe true
+          //0 - 0
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(0, 0, true, segment) shouldBe false
+          Segment.overlaps(0, 0, false, segment) shouldBe false
+          //  0 - 1
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(0, 1, true, segment) shouldBe true
+          Segment.overlaps(0, 1, false, segment) shouldBe false
+          //    0 - 2
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(0, 2, true, segment) shouldBe true
+          Segment.overlaps(0, 2, false, segment) shouldBe true
+          //    0 -    5
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(0, 5, true, segment) shouldBe true
+          Segment.overlaps(0, 5, false, segment) shouldBe true
+          //    0   -    7
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(0, 7, true, segment) shouldBe true
+          Segment.overlaps(0, 7, false, segment) shouldBe true
+          //    0     -    10
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(0, 10, true, segment) shouldBe true
+          Segment.overlaps(0, 10, false, segment) shouldBe true
+          //    0      -      11
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(0, 11, true, segment) shouldBe true
+          Segment.overlaps(0, 11, false, segment) shouldBe true
 
-      //      1 - 5
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(1, 5, true, segment) shouldBe true
-      Segment.overlaps(1, 5, false, segment) shouldBe true
-      //      1 -   6
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(1, 6, true, segment) shouldBe true
-      Segment.overlaps(1, 6, false, segment) shouldBe true
-      //      1 -      10
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(1, 10, true, segment) shouldBe true
-      Segment.overlaps(1, 10, false, segment) shouldBe true
-      //      1 -          11
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(1, 11, true, segment) shouldBe true
-      Segment.overlaps(1, 11, false, segment) shouldBe true
+          //      1 - 5
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(1, 5, true, segment) shouldBe true
+          Segment.overlaps(1, 5, false, segment) shouldBe true
+          //      1 -   6
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(1, 6, true, segment) shouldBe true
+          Segment.overlaps(1, 6, false, segment) shouldBe true
+          //      1 -      10
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(1, 10, true, segment) shouldBe true
+          Segment.overlaps(1, 10, false, segment) shouldBe true
+          //      1 -          11
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(1, 11, true, segment) shouldBe true
+          Segment.overlaps(1, 11, false, segment) shouldBe true
 
-      //       2-4
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 4, true, segment) shouldBe true
-      Segment.overlaps(2, 4, false, segment) shouldBe true
-      //       2 - 5
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 5, true, segment) shouldBe true
-      Segment.overlaps(2, 5, false, segment) shouldBe true
-      //       2 -   6
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 6, true, segment) shouldBe true
-      Segment.overlaps(2, 6, false, segment) shouldBe true
-      //       2   -    10
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 10, true, segment) shouldBe true
-      Segment.overlaps(2, 10, false, segment) shouldBe true
-      //       2     -    11
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 11, true, segment) shouldBe true
-      Segment.overlaps(2, 11, false, segment) shouldBe true
+          //       2-4
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(2, 4, true, segment) shouldBe true
+          Segment.overlaps(2, 4, false, segment) shouldBe true
+          //       2 - 5
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(2, 5, true, segment) shouldBe true
+          Segment.overlaps(2, 5, false, segment) shouldBe true
+          //       2 -   6
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(2, 6, true, segment) shouldBe true
+          Segment.overlaps(2, 6, false, segment) shouldBe true
+          //       2   -    10
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(2, 10, true, segment) shouldBe true
+          Segment.overlaps(2, 10, false, segment) shouldBe true
+          //       2     -    11
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(2, 11, true, segment) shouldBe true
+          Segment.overlaps(2, 11, false, segment) shouldBe true
 
 
-      //          5 - 6
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(5, 6, true, segment) shouldBe true
-      Segment.overlaps(5, 6, false, segment) shouldBe true
-      //          5 -  10
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(5, 10, true, segment) shouldBe true
-      Segment.overlaps(5, 10, false, segment) shouldBe true
-      //          5   -   11
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(5, 11, true, segment) shouldBe true
-      Segment.overlaps(5, 11, false, segment) shouldBe true
-      //            6 - 7
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(6, 7, true, segment) shouldBe true
-      Segment.overlaps(6, 7, false, segment) shouldBe true
-      //             8 - 9
-      //      1 - (5   -   10(EX))
-      Segment.overlaps(8, 9, true, segment) shouldBe true
-      Segment.overlaps(8, 9, false, segment) shouldBe true
-      //             8   - 10
-      //      1 - (5   -   10(EX))
-      Segment.overlaps(8, 10, true, segment) shouldBe true
-      Segment.overlaps(8, 10, false, segment) shouldBe true
-      //               9 - 10
-      //      1 - (5   -   10(EX))
-      Segment.overlaps(9, 10, true, segment) shouldBe true
-      Segment.overlaps(9, 10, false, segment) shouldBe true
-      //               9 -   11
-      //      1 - (5   -   10(EX))
-      Segment.overlaps(9, 11, true, segment) shouldBe true
-      Segment.overlaps(9, 11, false, segment) shouldBe true
-      //                   10  -   11
-      //      1 - (5   -   10(EX))
-      Segment.overlaps(10, 11, true, segment) shouldBe false
-      Segment.overlaps(10, 11, false, segment) shouldBe false
+          //          5 - 6
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(5, 6, true, segment) shouldBe true
+          Segment.overlaps(5, 6, false, segment) shouldBe true
+          //          5 -  10
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(5, 10, true, segment) shouldBe true
+          Segment.overlaps(5, 10, false, segment) shouldBe true
+          //          5   -   11
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(5, 11, true, segment) shouldBe true
+          Segment.overlaps(5, 11, false, segment) shouldBe true
+          //            6 - 7
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(6, 7, true, segment) shouldBe true
+          Segment.overlaps(6, 7, false, segment) shouldBe true
+          //             8 - 9
+          //      1 - (5   -   10(EX))
+          Segment.overlaps(8, 9, true, segment) shouldBe true
+          Segment.overlaps(8, 9, false, segment) shouldBe true
+          //             8   - 10
+          //      1 - (5   -   10(EX))
+          Segment.overlaps(8, 10, true, segment) shouldBe true
+          Segment.overlaps(8, 10, false, segment) shouldBe true
+          //               9 - 10
+          //      1 - (5   -   10(EX))
+          Segment.overlaps(9, 10, true, segment) shouldBe true
+          Segment.overlaps(9, 10, false, segment) shouldBe true
+          //               9 -   11
+          //      1 - (5   -   10(EX))
+          Segment.overlaps(9, 11, true, segment) shouldBe true
+          Segment.overlaps(9, 11, false, segment) shouldBe true
+          //                   10  -   11
+          //      1 - (5   -   10(EX))
+          Segment.overlaps(10, 11, true, segment) shouldBe false
+          Segment.overlaps(10, 11, false, segment) shouldBe false
 
-      //                      11  -   11
-      //      1 - (5   -   10(EX))
-      Segment.overlaps(11, 11, true, segment) shouldBe false
-      Segment.overlaps(11, 11, false, segment) shouldBe false
+          //                      11  -   11
+          //      1 - (5   -   10(EX))
+          Segment.overlaps(11, 11, true, segment) shouldBe false
+          Segment.overlaps(11, 11, false, segment) shouldBe false
 
-      //wide outer overlap
-      //    0   -   6
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 6, true, segment) shouldBe true
-
-      segment.close
+          //wide outer overlap
+          //    0   -   6
+          //      1 - (5 - 10(EX))
+          Segment.overlaps(0, 6, true, segment) shouldBe true
+      }
     }
   }
 
   "partitionOverlapping" should {
     "partition overlapping and non-overlapping Segments" in {
-      //0-1, 2-3
-      //         4-5, 6-7
-      var segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
-      var segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
+      TestCaseSweeper {
+        implicit sweeper =>
+          //0-1, 2-3
+          //         4-5, 6-7
+          var segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
+          var segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
 
-      //0-1,   3-4
-      //         4-5, 6-7
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))))
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
+          //0-1,   3-4
+          //         4-5, 6-7
+          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))))
+          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
 
-      //0-1,   3 - 5
-      //         4-5, 6-7
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(5))))
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
+          //0-1,   3 - 5
+          //         4-5, 6-7
+          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(5))))
+          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
 
 
-      //0-1,      6-8
-      //      4-5,    10-20
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(8))))
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
-      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
+          //0-1,      6-8
+          //      4-5,    10-20
+          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(8))))
+          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
+          Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
 
-      //0-1,             20 - 21
-      //      4-5,    10-20
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(20), randomFixedKeyValue(21))))
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
-      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
+          //0-1,             20 - 21
+          //      4-5,    10-20
+          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(20), randomFixedKeyValue(21))))
+          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
+          Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
 
-      //0-1,               21 - 22
-      //      4-5,    10-20
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(21), randomFixedKeyValue(22))))
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
-      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
+          //0-1,               21 - 22
+          //      4-5,    10-20
+          segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(21), randomFixedKeyValue(22))))
+          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
+          Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
 
-      //0          -          22
-      //      4-5,    10-20
-      segments1 = Seq(TestSegment(Slice(randomRangeKeyValue(0, 22))))
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
-      Segment.partitionOverlapping(segments1, segments2) shouldBe(segments1, Seq.empty)
+          //0          -          22
+          //      4-5,    10-20
+          segments1 = Seq(TestSegment(Slice(randomRangeKeyValue(0, 22))))
+          segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20))))
+          Segment.partitionOverlapping(segments1, segments2) shouldBe(segments1, Seq.empty)
+      }
     }
   }
 
   "overlaps" should {
     "return true for overlapping Segments else false for Segments without Ranges" in {
-      //0 1
-      //    2 3
-      var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
-      var segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      Segment.overlaps(segment1, segment2) shouldBe false
-      Segment.overlaps(segment2, segment1) shouldBe false
+      TestCaseSweeper {
+        implicit sweeper =>
+          //0 1
+          //    2 3
+          var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
+          var segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          Segment.overlaps(segment1, segment2) shouldBe false
+          Segment.overlaps(segment2, segment1) shouldBe false
 
-      //1 2
-      //  2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
+          //1 2
+          //  2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
+          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
 
-      //2 3
-      //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
+          //2 3
+          //2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
 
-      //  3 4
-      //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)))
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
+          //  3 4
+          //2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)))
+          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
 
-      //    4 5
-      //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      Segment.overlaps(segment1, segment2) shouldBe false
-      Segment.overlaps(segment2, segment1) shouldBe false
+          //    4 5
+          //2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
+          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          Segment.overlaps(segment1, segment2) shouldBe false
+          Segment.overlaps(segment2, segment1) shouldBe false
 
-      //0       10
-      //   2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
+          //0       10
+          //   2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
+          segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
 
-      //   2 3
-      //0       10
-      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      segment2 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
-
-      segment1.close
-      segment2.close
+          //   2 3
+          //0       10
+          segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment2 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
+      }
     }
 
     "return true for overlapping Segments if the target Segment's maxKey is a Range key" in {
-      //0 1
-      //    2 3
-      var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
-      var segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe false
-      Segment.overlaps(segment2, segment1) shouldBe false
-      //range over range
-      segment1 = TestSegment(Slice(randomRangeKeyValue(0, 1)))
-      Segment.overlaps(segment1, segment2) shouldBe false
-      Segment.overlaps(segment2, segment1) shouldBe false
+      TestCaseSweeper {
+        implicit sweeper =>
+          //0 1
+          //    2 3
+          var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
+          var segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe false
+          Segment.overlaps(segment2, segment1) shouldBe false
+          //range over range
+          segment1 = TestSegment(Slice(randomRangeKeyValue(0, 1)))
+          Segment.overlaps(segment1, segment2) shouldBe false
+          Segment.overlaps(segment2, segment1) shouldBe false
 
-      //1 2
-      //  2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(1, 2)))
-      Segment.overlaps(segment1, segment2) shouldBe false
-      Segment.overlaps(segment2, segment1) shouldBe false
+          //1 2
+          //  2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
+          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
+          segment1 = TestSegment(Slice(randomRangeKeyValue(1, 2)))
+          Segment.overlaps(segment1, segment2) shouldBe false
+          Segment.overlaps(segment2, segment1) shouldBe false
 
-      //1   3
-      //  2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(3)))
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(1, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
+          //1   3
+          //  2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(3)))
+          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
+          segment1 = TestSegment(Slice(randomRangeKeyValue(1, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
 
-      //2 3
-      //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
+          //2 3
+          //2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
+          segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
 
-      //  3 4
-      //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)))
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe false
-      Segment.overlaps(segment2, segment1) shouldBe false
-      segment1 = TestSegment(Slice(randomRangeKeyValue(3, 4)))
-      Segment.overlaps(segment1, segment2) shouldBe false
-      Segment.overlaps(segment2, segment1) shouldBe false
+          //  3 4
+          //2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)))
+          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe false
+          Segment.overlaps(segment2, segment1) shouldBe false
+          segment1 = TestSegment(Slice(randomRangeKeyValue(3, 4)))
+          Segment.overlaps(segment1, segment2) shouldBe false
+          Segment.overlaps(segment2, segment1) shouldBe false
 
-      //    4 5
-      //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe false
-      Segment.overlaps(segment2, segment1) shouldBe false
-      segment1 = TestSegment(Slice(randomRangeKeyValue(4, 5)))
-      Segment.overlaps(segment1, segment2) shouldBe false
-      Segment.overlaps(segment2, segment1) shouldBe false
+          //    4 5
+          //2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
+          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe false
+          Segment.overlaps(segment2, segment1) shouldBe false
+          segment1 = TestSegment(Slice(randomRangeKeyValue(4, 5)))
+          Segment.overlaps(segment1, segment2) shouldBe false
+          Segment.overlaps(segment2, segment1) shouldBe false
 
-      //0       10
-      //   2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(0, 10)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
+          //0       10
+          //   2 3
+          segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)))
+          segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
+          segment1 = TestSegment(Slice(randomRangeKeyValue(0, 10)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
 
-      //   2 3
-      //0       10
-      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
-      segment2 = TestSegment(Slice(randomRangeKeyValue(0, 10)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
-      Segment.overlaps(segment1, segment2) shouldBe true
-      Segment.overlaps(segment2, segment1) shouldBe true
-
-      segment1.close
-      segment2.close
+          //   2 3
+          //0       10
+          segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)))
+          segment2 = TestSegment(Slice(randomRangeKeyValue(0, 10)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
+          segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)))
+          Segment.overlaps(segment1, segment2) shouldBe true
+          Segment.overlaps(segment2, segment1) shouldBe true
+      }
     }
   }
 
   "nonOverlapping and overlapping" should {
     "return non overlapping Segments" in {
-      //0-1, 2-3
-      //         4-5, 6-7
-      var segments1 = List(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
-      var segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
-      Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe segments2.map(_.path)
-      Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
-      Segment.overlaps(segments2, segments1).map(_.path) shouldBe empty
+      TestCaseSweeper {
+        implicit sweeper =>
+          //0-1, 2-3
+          //         4-5, 6-7
+          var segments1 = List(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))), TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))))
+          var segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
+          Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe segments2.map(_.path)
+          Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
+          Segment.overlaps(segments2, segments1).map(_.path) shouldBe empty
 
 
-      //2-3, 4-5
-      //     4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))), TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))))
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.head.path
-      Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.last.path
-      Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.last.path
-      Segment.overlaps(segments2, segments1).map(_.path) should contain only segments2.head.path
+          //2-3, 4-5
+          //     4-5, 6-7
+          segments1 = List(TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3))), TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))))
+          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.head.path
+          Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.last.path
+          Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.last.path
+          Segment.overlaps(segments2, segments1).map(_.path) should contain only segments2.head.path
 
-      //4-5, 6-7
-      //4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe empty
-      Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe empty
-      Segment.overlaps(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
-      Segment.overlaps(segments2, segments1).map(_.path) shouldBe segments2.map(_.path)
+          //4-5, 6-7
+          //4-5, 6-7
+          segments1 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe empty
+          Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe empty
+          Segment.overlaps(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
+          Segment.overlaps(segments2, segments1).map(_.path) shouldBe segments2.map(_.path)
 
-      //     6-7, 8-9
-      //4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))), TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9))))
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.last.path
-      Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.head.path
-      Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.head.path
-      Segment.overlaps(segments2, segments1).map(_.path) should contain only segments2.last.path
+          //     6-7, 8-9
+          //4-5, 6-7
+          segments1 = List(TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))), TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9))))
+          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.last.path
+          Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.head.path
+          Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.head.path
+          Segment.overlaps(segments2, segments1).map(_.path) should contain only segments2.last.path
 
-      //         8-9, 10-11
-      //4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11))))
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
-      Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
-      Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
-      Segment.overlaps(segments2, segments1).map(_.path) shouldBe empty
+          //         8-9, 10-11
+          //4-5, 6-7
+          segments1 = List(TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11))))
+          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
+          Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
+          Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
+          Segment.overlaps(segments2, segments1).map(_.path) shouldBe empty
 
-      //1-2            10-11
-      //     4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11))))
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
-      Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
-      Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
-      Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
-      Segment.overlaps(segments2, segments1).map(_.path) shouldBe empty
+          //1-2            10-11
+          //     4-5, 6-7
+          segments1 = List(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11))))
+          segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5))), TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7))))
+          Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
+          Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
+          Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
+          Segment.overlaps(segments2, segments1).map(_.path) shouldBe empty
+      }
     }
   }
 
   "tempMinMaxKeyValues" should {
     "return key-values with Segments min and max keys only" in {
-      implicit def testTimer: TestTimer = TestTimer.Empty
+      TestCaseSweeper {
+        implicit sweeper =>
+          implicit def testTimer: TestTimer = TestTimer.Empty
 
-      val segment1 = TestSegment(randomizedKeyValues(keyValuesCount))
-      val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1)))
-      val segment3 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment2.maxKey.maxKey.read[Int] + 1)))
-      val segment4 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment3.maxKey.maxKey.read[Int] + 1)))
+          val segment1 = TestSegment(randomizedKeyValues(keyValuesCount))
+          val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1)))
+          val segment3 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment2.maxKey.maxKey.read[Int] + 1)))
+          val segment4 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment3.maxKey.maxKey.read[Int] + 1)))
 
-      val segments = Seq(segment1, segment2, segment3, segment4)
+          val segments = Seq(segment1, segment2, segment3, segment4)
 
-      val expectedTempKeyValues: Seq[Memory] =
-        segments flatMap {
-          segment =>
-            segment.maxKey match {
-              case MaxKey.Fixed(maxKey) =>
-                Seq(Memory.put(segment.minKey), Memory.put(maxKey))
-              case MaxKey.Range(fromKey, maxKey) =>
-                Seq(Memory.put(segment.minKey), Memory.Range(fromKey, maxKey, Value.FromValue.Null, Value.update(maxKey)))
+          val expectedTempKeyValues: Seq[Memory] =
+            segments flatMap {
+              segment =>
+                segment.maxKey match {
+                  case MaxKey.Fixed(maxKey) =>
+                    Seq(Memory.put(segment.minKey), Memory.put(maxKey))
+                  case MaxKey.Range(fromKey, maxKey) =>
+                    Seq(Memory.put(segment.minKey), Memory.Range(fromKey, maxKey, Value.FromValue.Null, Value.update(maxKey)))
+                }
             }
-        }
 
-      Segment.tempMinMaxKeyValues(segments) shouldBe expectedTempKeyValues
+          Segment.tempMinMaxKeyValues(segments) shouldBe expectedTempKeyValues
+      }
     }
   }
 
   "overlapsWithBusySegments" should {
     "return true or false if input Segments overlap or do not overlap with busy Segments respectively" in {
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val targetSegments =
-        TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
-          TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))) ::
-          TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
-          TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))) ::
-          Nil
+          val targetSegments =
+            TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
+              TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))) ::
+              TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
+              TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))) ::
+              Nil
 
-      //0-1
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      var inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))))
-      var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))))
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
+          //0-1
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          var inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1))))
+          var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))))
+          Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
 
-      //     1-2
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))))
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
+          //     1-2
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))))
+          Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
 
-      //          3-4
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2))))
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
+          //          3-4
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2))))
+          Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
 
-      //               5-6
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6))))
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
+          //               5-6
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6))))
+          Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
 
-      //                         9-10
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
+          //                         9-10
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
+          Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
 
-      //               5-6
-      //     1-2            7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6))))
-      busySegments = {
-        TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
-          TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
-          Nil
+          //               5-6
+          //     1-2            7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6))))
+          busySegments = {
+            TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
+              TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
+              Nil
+          }
+          Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
+
+          //               5-6
+          //     1-2                 9-10
+          //     1-2, 3-4, ---, 7-8, 9-10
+          busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
+          Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
       }
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
-
-      //               5-6
-      //     1-2                 9-10
-      //     1-2, 3-4, ---, 7-8, 9-10
-      busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
     }
 
     "return true or false if input map overlap or do not overlap with busy Segments respectively" in {
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val targetSegments = {
-        TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
-          TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))) ::
-          TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
-          TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))) ::
-          Nil
+          val targetSegments = {
+            TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
+              TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))) ::
+              TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
+              TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))) ::
+              Nil
+          }
+
+          //0-1
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          var inputMap = TestMap(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
+          var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))))
+          Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe false
+
+          //     1-2
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputMap = TestMap(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
+          Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe false
+
+          //          3-4
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputMap = TestMap(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2)))
+          Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe true
+
+          //               5-6
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputMap = TestMap(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
+          Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe true
+
+          //                         9-10
+          //          3-4       7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputMap = TestMap(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)))
+          Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe false
+
+          //               5-6
+          //     1-2            7-8
+          //     1-2, 3-4, ---, 7-8, 9-10
+          inputMap = TestMap(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
+          busySegments = {
+            TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
+              TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
+              Nil
+          }
+          Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe true
+
+          //               5-6
+          //     1-2                 9-10
+          //     1-2, 3-4, ---, 7-8, 9-10
+          busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
+          Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe false
       }
-
-      //0-1
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      var inputMap = TestMap(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
-      var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe false
-
-      //     1-2
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputMap = TestMap(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe false
-
-      //          3-4
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputMap = TestMap(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2)))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe true
-
-      //               5-6
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputMap = TestMap(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe true
-
-      //                         9-10
-      //          3-4       7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputMap = TestMap(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe false
-
-      //               5-6
-      //     1-2            7-8
-      //     1-2, 3-4, ---, 7-8, 9-10
-      inputMap = TestMap(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
-      busySegments = {
-        TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
-          TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
-          Nil
-      }
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe true
-
-      //               5-6
-      //     1-2                 9-10
-      //     1-2, 3-4, ---, 7-8, 9-10
-      busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe false
     }
   }
 
   "getAllKeyValues" should {
     "value KeyValues from multiple Segments" in {
       runThis(10.times) {
-        val keyValues1 = randomizedKeyValues(keyValuesCount)
-        val keyValues2 = randomizedKeyValues(keyValuesCount)
-        val keyValues3 = randomizedKeyValues(keyValuesCount)
+        TestCaseSweeper {
+          implicit sweeper =>
+            val keyValues1 = randomizedKeyValues(keyValuesCount)
+            val keyValues2 = randomizedKeyValues(keyValuesCount)
+            val keyValues3 = randomizedKeyValues(keyValuesCount)
 
-        val segment1 = TestSegment(keyValues1)
-        val segment2 = TestSegment(keyValues2)
-        val segment3 = TestSegment(keyValues3)
+            val segment1 = TestSegment(keyValues1)
+            val segment2 = TestSegment(keyValues2)
+            val segment3 = TestSegment(keyValues3)
 
-        val all = Slice((keyValues1 ++ keyValues2 ++ keyValues3).toArray)
+            val all = Slice((keyValues1 ++ keyValues2 ++ keyValues3).toArray)
 
-        val mergedSegment = TestSegment(all)
-        mergedSegment.nearestPutDeadline shouldBe nearestPutDeadline(all)
+            val mergedSegment = TestSegment(all)
+            mergedSegment.nearestPutDeadline shouldBe nearestPutDeadline(all)
 
-        val readKeyValues = Segment.getAllKeyValues(Seq(segment1, segment2, segment3))
+            val readKeyValues = Segment.getAllKeyValues(Seq(segment1, segment2, segment3))
 
-        readKeyValues shouldBe all
+            readKeyValues shouldBe all
+        }
       }
     }
 
     "fail read if reading any one Segment fails for persistent Segments" in {
-      val keyValues1 = randomizedKeyValues(keyValuesCount)
-      val keyValues2 = randomizedKeyValues(keyValuesCount)
-      val keyValues3 = randomizedKeyValues(keyValuesCount)
-
-      val segment1 = TestSegment(keyValues1)
-      val segment2 = TestSegment(keyValues2)
-      val segment3 = TestSegment(keyValues3)
-
-      segment3.delete //delete a segment so that there is a failure.
-
-      IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.value.exception shouldBe a[NoSuchFileException]
-    }
-
-    "fail read if reading any one Segment file is corrupted" in {
-      if (persistent) {
-        runThis(100.times, log = true) {
+      TestCaseSweeper {
+        implicit sweeper =>
           val keyValues1 = randomizedKeyValues(keyValuesCount)
           val keyValues2 = randomizedKeyValues(keyValuesCount)
           val keyValues3 = randomizedKeyValues(keyValuesCount)
@@ -849,31 +862,51 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           val segment2 = TestSegment(keyValues2)
           val segment3 = TestSegment(keyValues3)
 
-          def clearAll() = {
-            segment1.clearAllCaches()
-            segment2.clearAllCaches()
-            segment3.clearAllCaches()
-          }
+          segment3.delete //delete a segment so that there is a failure.
 
-          val bytes = Files.readAllBytes(segment2.path)
+          IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.value.exception shouldBe a[NoSuchFileException]
+      }
+    }
 
-          //FIXME this should result in DataAccess
+    "fail read if reading any one Segment file is corrupted" in {
+      if (persistent) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            runThis(100.times, log = true) {
+              val keyValues1 = randomizedKeyValues(keyValuesCount)
+              val keyValues2 = randomizedKeyValues(keyValuesCount)
+              val keyValues3 = randomizedKeyValues(keyValuesCount)
 
-          Files.write(segment2.path, bytes.drop(1))
-          clearAll()
-          IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+              val segment1 = TestSegment(keyValues1)
+              val segment2 = TestSegment(keyValues2)
+              val segment3 = TestSegment(keyValues3)
 
-          Files.write(segment2.path, bytes.dropRight(1))
-          clearAll()
-          IO(Segment.getAllKeyValues(Seq(segment2))).left.runRandomIO.get shouldBe a[swaydb.Error]
+              def clearAll() = {
+                segment1.clearAllCaches()
+                segment2.clearAllCaches()
+                segment3.clearAllCaches()
+              }
 
-          Files.write(segment2.path, bytes.drop(10))
-          clearAll()
-          IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+              val bytes = Files.readAllBytes(segment2.path)
 
-          Files.write(segment2.path, bytes.dropRight(1))
-          clearAll()
-          IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+              //FIXME this should result in DataAccess
+
+              Files.write(segment2.path, bytes.drop(1))
+              clearAll()
+              IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+
+              Files.write(segment2.path, bytes.dropRight(1))
+              clearAll()
+              IO(Segment.getAllKeyValues(Seq(segment2))).left.runRandomIO.get shouldBe a[swaydb.Error]
+
+              Files.write(segment2.path, bytes.drop(10))
+              clearAll()
+              IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+
+              Files.write(segment2.path, bytes.dropRight(1))
+              clearAll()
+              IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+            }
         }
       } else {
         //memory files do not require this test
@@ -884,42 +917,45 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
   "getAll" should {
     "read full index" in {
       if (persistent)
-        runThis(10.times) {
-          //ensure groups are not added because ones read their values are populated in memory
-          val keyValues = randomizedKeyValues(keyValuesCount)
-          val segment = TestSegment(keyValues)
+        TestCaseSweeper {
+          implicit sweeper =>
+            runThis(10.times) {
+              //ensure groups are not added because ones read their values are populated in memory
+              val keyValues = randomizedKeyValues(keyValuesCount)
+              val segment = TestSegment(keyValues)
 
-          if (persistent) segment.isKeyValueCacheEmpty shouldBe true
+              if (persistent) segment.isKeyValueCacheEmpty shouldBe true
 
-          val segmentKeyValues = segment.toSlice().toSlice
+              val segmentKeyValues = segment.toSlice().toSlice
 
-          (0 until keyValues.size).foreach {
-            index =>
-              val actualKeyValue = keyValues(index)
-              val segmentKeyValue = segmentKeyValues(index)
+              (0 until keyValues.size).foreach {
+                index =>
+                  val actualKeyValue = keyValues(index)
+                  val segmentKeyValue = segmentKeyValues(index)
 
-              if (persistent) {
-                //ensure that indexEntry's values are not already read as they are lazily fetched from the file.
-                //values with Length 0 and non Range key-values always have isValueDefined set to true as they do not required disk seek.
-                segmentKeyValue match {
-                  case persistent: Persistent.Remove =>
-                    persistent.isValueCached shouldBe true
+                  if (persistent) {
+                    //ensure that indexEntry's values are not already read as they are lazily fetched from the file.
+                    //values with Length 0 and non Range key-values always have isValueDefined set to true as they do not required disk seek.
+                    segmentKeyValue match {
+                      case persistent: Persistent.Remove =>
+                        persistent.isValueCached shouldBe true
 
-                  case persistent: Persistent =>
-                    persistent.isValueCached shouldBe false
-                }
+                      case persistent: Persistent =>
+                        persistent.isValueCached shouldBe false
+                    }
 
-                actualKeyValue shouldBe segmentKeyValue //after comparison values should be populated.
+                    actualKeyValue shouldBe segmentKeyValue //after comparison values should be populated.
 
-                segmentKeyValue match {
-                  case persistent: Persistent.Remove =>
-                    persistent.isValueCached shouldBe true
+                    segmentKeyValue match {
+                      case persistent: Persistent.Remove =>
+                        persistent.isValueCached shouldBe true
 
-                  case persistent: Persistent =>
-                    persistent.isValueCached shouldBe true
-                }
+                      case persistent: Persistent =>
+                        persistent.isValueCached shouldBe true
+                    }
+                  }
               }
-          }
+            }
         }
     }
   }
@@ -949,81 +985,90 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
   "getNearestDeadlineSegment" should {
     "return None deadline if non of the key-values in the Segments contains deadline" in {
-      def segmentConfig(keyValuesCount: Int) =
-        if (persistent)
-          SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValuesCount * 2))
-        else
-          SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
+      TestCaseSweeper {
+        implicit sweeper =>
+          def segmentConfig(keyValuesCount: Int) =
+            if (persistent)
+              SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValuesCount * 2))
+            else
+              SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
 
-      runThis(100.times) {
-        val keyValues1 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
-        val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig(keyValues1.size))
+          runThis(100.times) {
+            val keyValues1 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
+            val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig(keyValues1.size))
 
-        val keyValues2 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
-        val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig(keyValues2.size))
+            val keyValues2 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
+            val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig(keyValues2.size))
 
-        Segment.getNearestDeadlineSegment(segment1, segment2).toOptionS shouldBe empty
+            Segment.getNearestDeadlineSegment(segment1, segment2).toOptionS shouldBe empty
 
-        segment1.close
-        segment2.close
+            segment1.close
+            segment2.close
+          }
       }
     }
 
     "return deadline if one of the Segments contains deadline" in {
       runThisParallel(10.times) {
-        val keyValues = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
+        TestCaseSweeper {
+          implicit sweeper =>
+            val keyValues = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
 
-        //only a single key-value with a deadline.
-        val deadline = 100.seconds.fromNow
-        val keyValueWithDeadline =
-          eitherOne(
-            left = Memory.remove(keyValues.last.key.readInt() + 10000, deadline),
-            mid =
+            //only a single key-value with a deadline.
+            val deadline = 100.seconds.fromNow
+            val keyValueWithDeadline =
               eitherOne(
-                Memory.put(keyValues.last.key.readInt() + 10000, randomStringOption, deadline),
-                randomRangeKeyValueForDeadline(keyValues.last.key.readInt() + 10000, keyValues.last.key.readInt() + 20000, deadline = deadline)
-              ),
-            right =
-              eitherOne(
-                Memory.update(keyValues.last.key.readInt() + 10000, randomStringOption, deadline),
-                Memory.PendingApply(keyValues.last.key.readInt() + 10000, randomAppliesWithDeadline(deadline = deadline))
+                left = Memory.remove(keyValues.last.key.readInt() + 10000, deadline),
+                mid =
+                  eitherOne(
+                    Memory.put(keyValues.last.key.readInt() + 10000, randomStringOption, deadline),
+                    randomRangeKeyValueForDeadline(keyValues.last.key.readInt() + 10000, keyValues.last.key.readInt() + 20000, deadline = deadline)
+                  ),
+                right =
+                  eitherOne(
+                    Memory.update(keyValues.last.key.readInt() + 10000, randomStringOption, deadline),
+                    Memory.PendingApply(keyValues.last.key.readInt() + 10000, randomAppliesWithDeadline(deadline = deadline))
+                  )
               )
-          )
 
-        val keyValuesWithDeadline = keyValues ++ Seq(keyValueWithDeadline)
-        val keyValuesNoDeadline = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
+            val keyValuesWithDeadline = keyValues ++ Seq(keyValueWithDeadline)
+            val keyValuesNoDeadline = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
 
-        val deadlineToExpect = nearestPutDeadline(keyValuesWithDeadline)
+            val deadlineToExpect = nearestPutDeadline(keyValuesWithDeadline)
 
-        val segment1 = TestSegment(keyValuesWithDeadline)
-        val segment2 = TestSegment(keyValuesNoDeadline)
+            val segment1 = TestSegment(keyValuesWithDeadline)
+            val segment2 = TestSegment(keyValuesNoDeadline)
 
-        Segment.getNearestDeadlineSegment(segment1, segment2).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
-        Segment.getNearestDeadlineSegment(segment2, segment1).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
-        Segment.getNearestDeadlineSegment(Random.shuffle(Seq(segment2, segment1, segment2, segment2))).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
-        Segment.getNearestDeadlineSegment(Random.shuffle(Seq(segment1, segment2, segment2, segment2))).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
+            Segment.getNearestDeadlineSegment(segment1, segment2).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
+            Segment.getNearestDeadlineSegment(segment2, segment1).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
+            Segment.getNearestDeadlineSegment(Random.shuffle(Seq(segment2, segment1, segment2, segment2))).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
+            Segment.getNearestDeadlineSegment(Random.shuffle(Seq(segment1, segment2, segment2, segment2))).flatMapOptionS(_.nearestPutDeadline) shouldBe deadlineToExpect
+        }
       }
     }
 
     "return deadline" in {
       runThisParallel(10.times) {
-        val keyValues1 = randomizedKeyValues(1000)
-        val keyValues2 = randomizedKeyValues(1000)
+        TestCaseSweeper {
+          implicit sweeper =>
+            val keyValues1 = randomizedKeyValues(1000)
+            val keyValues2 = randomizedKeyValues(1000)
 
-        val segmentConfig =
-          if (persistent)
-            SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValues1.size * 2))
-          else
-            SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
+            val segmentConfig =
+              if (persistent)
+                SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValues1.size * 2))
+              else
+                SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
 
-        val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig)
-        val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig)
+            val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig)
+            val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig)
 
-        val deadline = nearestPutDeadline(keyValues1 ++ keyValues2)
+            val deadline = nearestPutDeadline(keyValues1 ++ keyValues2)
 
-        Segment.getNearestDeadlineSegment(segment1, segment2).flatMapOptionS(_.nearestPutDeadline) shouldBe deadline
-        Segment.getNearestDeadlineSegment(segment2, segment1).flatMapOptionS(_.nearestPutDeadline) shouldBe deadline
-        Segment.getNearestDeadlineSegment(segment1 :: segment2 :: Nil).flatMapOptionS(_.nearestPutDeadline) shouldBe deadline
+            Segment.getNearestDeadlineSegment(segment1, segment2).flatMapOptionS(_.nearestPutDeadline) shouldBe deadline
+            Segment.getNearestDeadlineSegment(segment2, segment1).flatMapOptionS(_.nearestPutDeadline) shouldBe deadline
+            Segment.getNearestDeadlineSegment(segment1 :: segment2 :: Nil).flatMapOptionS(_.nearestPutDeadline) shouldBe deadline
+        }
       }
     }
   }

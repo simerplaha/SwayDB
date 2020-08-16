@@ -47,7 +47,6 @@ import scala.collection.parallel.CollectionConverters._
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   implicit val order = KeyOrder.default
-  implicit def memorySweeper = TestSweeper.memorySweeperMax
   implicit def segmentIO = SegmentIO.random
 
   "Config" should {

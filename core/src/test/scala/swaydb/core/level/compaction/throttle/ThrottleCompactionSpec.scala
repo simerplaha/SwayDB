@@ -77,9 +77,6 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val timer = TestTimer.Empty
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeper10
-
   "putForward" should {
     "return zero" when {
       "input Segments are empty" in {

@@ -75,8 +75,8 @@ package object map {
      */
     def ensureClose(): Unit = {
       map.close()
-      map.bufferCleaner.actor.receiveAllBlocking(Int.MaxValue, 1.second).get
-      val isShut = (map.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminatedAndCleaned[Unit]).await(10.seconds)
+      map.bufferCleaner.actor.receiveAllForceBlocking(Int.MaxValue, 1.second).get
+      val isShut = (map.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
       assert(isShut, "Is not shut")
     }
   }

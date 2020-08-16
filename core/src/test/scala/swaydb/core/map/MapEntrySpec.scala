@@ -24,21 +24,15 @@
 
 package swaydb.core.map
 
-import swaydb.ActorRef
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.cache.CacheNoIO
 import swaydb.core.data.{Memory, MemoryOption, Value}
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
 import swaydb.core.util.skiplist.SkipList
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -53,14 +47,8 @@ class MapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
-  implicit val cleaner: ByteBufferSweeperActor = TestSweeper.bufferCleaner
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentIO = SegmentIO.random
-  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
-
-  val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
 
   val keyValues = randomKeyValues(count = 10)
 
@@ -192,70 +180,70 @@ class MapEntrySpec extends TestBase {
     }
 
     "add Appendix single Put entry to skipList" in {
-      import AppendixMapEntryWriter._
-      val segment = TestSegment(keyValues)
+      TestCaseSweeper {
+        implicit sweeper =>
+          import AppendixMapEntryWriter._
+          val segment = TestSegment(keyValues)
 
-      val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
 
-      val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
-      entry.hasRange shouldBe false
+          val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
+          entry.hasRange shouldBe false
 
-      entry applyTo skipList
-      skipList should have size 1
-      skipList.get(1: Slice[Byte]).getS shouldBe segment
-
-      segment.close.runRandomIO.right.value
+          entry applyTo skipList
+          skipList should have size 1
+          skipList.get(1: Slice[Byte]).getS shouldBe segment
+      }
     }
 
     "remove Appendix entry from skipList" in {
-      import AppendixMapEntryWriter._
-      val segment = TestSegment(keyValues)
+      TestCaseSweeper {
+        implicit sweeper =>
+          import AppendixMapEntryWriter._
+          val segment = TestSegment(keyValues)
 
-      val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
 
-      val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
-      entry.hasRange shouldBe false
+          val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
+          entry.hasRange shouldBe false
 
-      entry applyTo skipList
-      skipList should have size 1
-      skipList.get(1: Slice[Byte]).getS shouldBe segment
+          entry applyTo skipList
+          skipList should have size 1
+          skipList.get(1: Slice[Byte]).getS shouldBe segment
 
-      MapEntry.Remove[Slice[Byte]](1) applyTo skipList
-      skipList shouldBe empty
-
-      segment.close.runRandomIO.right.value
+          MapEntry.Remove[Slice[Byte]](1) applyTo skipList
+          skipList shouldBe empty
+      }
     }
 
     "batch multiple appendix entries to skipList" in {
-      import AppendixMapEntryWriter._
+      TestCaseSweeper {
+        implicit sweeper =>
+          import AppendixMapEntryWriter._
 
-      val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
-      val segment1 = TestSegment().runRandomIO.right.value
-      val segment2 = TestSegment().runRandomIO.right.value
-      val segment3 = TestSegment().runRandomIO.right.value
-      val segment4 = TestSegment().runRandomIO.right.value
+          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val segment1 = TestSegment().runRandomIO.right.value
+          val segment2 = TestSegment().runRandomIO.right.value
+          val segment3 = TestSegment().runRandomIO.right.value
+          val segment4 = TestSegment().runRandomIO.right.value
 
-      val entry =
-        (MapEntry.Put[Slice[Byte], Segment](1, segment1): MapEntry[Slice[Byte], Segment]) ++
-          MapEntry.Put[Slice[Byte], Segment](2, segment2) ++
-          MapEntry.Put[Slice[Byte], Segment](3, segment3) ++
-          MapEntry.Remove[Slice[Byte]](2) ++
-          MapEntry.Put[Slice[Byte], Segment](4, segment4)
+          val entry =
+            (MapEntry.Put[Slice[Byte], Segment](1, segment1): MapEntry[Slice[Byte], Segment]) ++
+              MapEntry.Put[Slice[Byte], Segment](2, segment2) ++
+              MapEntry.Put[Slice[Byte], Segment](3, segment3) ++
+              MapEntry.Remove[Slice[Byte]](2) ++
+              MapEntry.Put[Slice[Byte], Segment](4, segment4)
 
-      entry.hasRange shouldBe false
+          entry.hasRange shouldBe false
 
-      entry applyTo skipList
+          entry applyTo skipList
 
-      skipList should have size 3
-      skipList.get(1: Slice[Byte]).getS shouldBe segment1
-      skipList.get(2: Slice[Byte]).toOptionS shouldBe empty
-      skipList.get(3: Slice[Byte]).getS shouldBe segment3
-      skipList.get(4: Slice[Byte]).getS shouldBe segment4
-
-      segment1.close.runRandomIO.right.value
-      segment2.close.runRandomIO.right.value
-      segment3.close.runRandomIO.right.value
-      segment4.close.runRandomIO.right.value
+          skipList should have size 3
+          skipList.get(1: Slice[Byte]).getS shouldBe segment1
+          skipList.get(2: Slice[Byte]).toOptionS shouldBe empty
+          skipList.get(3: Slice[Byte]).getS shouldBe segment3
+          skipList.get(4: Slice[Byte]).getS shouldBe segment4
+      }
     }
   }
 
@@ -276,21 +264,26 @@ class MapEntrySpec extends TestBase {
     }
 
     "write and read bytes for a single Appendix" in {
-      import AppendixMapEntryWriter._
-      import appendixReader._
-      val segment = TestSegment(keyValues)
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-      val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
-      entry.hasRange shouldBe false
+          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
 
-      val bytes = Slice.create[Byte](entry.entryBytesSize)
-      entry writeTo bytes
-      bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
+          import AppendixMapEntryWriter._
+          import appendixReader._
+          val segment = TestSegment(keyValues)
 
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runRandomIO.right.value shouldBe entry
-      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value shouldBe entry
+          val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
+          entry.hasRange shouldBe false
 
-      segment.close.runRandomIO.right.value
+          val bytes = Slice.create[Byte](entry.entryBytesSize)
+          entry writeTo bytes
+          bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
+
+          MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runRandomIO.right.value shouldBe entry
+          MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value shouldBe entry
+      }
     }
   }
 
@@ -311,22 +304,28 @@ class MapEntrySpec extends TestBase {
     }
 
     "write and read bytes for single Appendix entry" in {
-      import AppendixMapEntryWriter._
-      import appendixReader._
-      val segment = TestSegment(keyValues)
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-      //do remove
-      val entry = MapEntry.Remove[Slice[Byte]](segment.minKey)
-      entry.hasRange shouldBe false
+          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
 
-      val bytes = Slice.create[Byte](entry.entryBytesSize)
-      entry writeTo bytes
-      bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
+          import AppendixMapEntryWriter._
+          import appendixReader._
 
-      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](bytes.drop(1)).runRandomIO.right.value.key shouldBe entry.key
-      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value shouldBe entry
+          val segment = TestSegment(keyValues)
 
-      segment.close.runRandomIO.right.value
+          //do remove
+          val entry = MapEntry.Remove[Slice[Byte]](segment.minKey)
+          entry.hasRange shouldBe false
+
+          val bytes = Slice.create[Byte](entry.entryBytesSize)
+          entry writeTo bytes
+          bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
+
+          MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](bytes.drop(1)).runRandomIO.right.value.key shouldBe entry.key
+          MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value shouldBe entry
+      }
     }
   }
 
@@ -388,54 +387,58 @@ class MapEntrySpec extends TestBase {
     }
 
     "be written and read for Appendix" in {
-      import AppendixMapEntryWriter._
-      import appendixReader._
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-      val keyValues = randomKeyValues(100, startId = Some(0))
+          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
+          import AppendixMapEntryWriter._
+          import appendixReader._
 
-      val segments: Slice[Segment] =
-        keyValues.groupedSlice(keyValues.size) map {
-          keyValues =>
-            TestSegment(keyValues)
-        }
+          val keyValues = randomKeyValues(100, startId = Some(0))
 
-      segments.zipWithIndex foreach {
-        case (segment, index) =>
-          segment.minKey.readInt() shouldBe index
-          segment.getKeyValueCount() shouldBe 1
+          val segments: Slice[Segment] =
+            keyValues.groupedSlice(keyValues.size) map {
+              keyValues =>
+                TestSegment(keyValues)
+            }
+
+          segments.zipWithIndex foreach {
+            case (segment, index) =>
+              segment.minKey.readInt() shouldBe index
+              segment.getKeyValueCount() shouldBe 1
+          }
+
+          val initialEntry: MapEntry[Slice[Byte], Segment] = MapEntry.Put[Slice[Byte], Segment](0, segments.head)
+
+          var entry =
+            (1 until 100).foldLeft(initialEntry) {
+              case (previousEntry, i) =>
+                val segment = segments(i)
+                previousEntry ++ MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
+            }
+
+          entry =
+            (50 until 100).foldLeft(entry) {
+              case (previousEntry, i) =>
+                val segment = segments(i)
+                previousEntry ++ MapEntry.Remove[Slice[Byte]](segment.minKey)
+            }
+
+          entry.hasRange shouldBe false
+
+          val bytes = Slice.create[Byte](entry.entryBytesSize)
+          entry writeTo bytes
+          bytes.isFull shouldBe true //fully written! No gaps!
+
+          val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(bytes))
+
+          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          readMapEntry applyTo skipList
+          skipList should have size 50
+          skipList.headKey.getC shouldBe (0: Slice[Byte])
+          skipList.lastKey.getC shouldBe (49: Slice[Byte])
       }
-
-      val initialEntry: MapEntry[Slice[Byte], Segment] = MapEntry.Put[Slice[Byte], Segment](0, segments.head)
-
-      var entry =
-        (1 until 100).foldLeft(initialEntry) {
-          case (previousEntry, i) =>
-            val segment = segments(i)
-            previousEntry ++ MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
-        }
-
-      entry =
-        (50 until 100).foldLeft(entry) {
-          case (previousEntry, i) =>
-            val segment = segments(i)
-            previousEntry ++ MapEntry.Remove[Slice[Byte]](segment.minKey)
-        }
-
-      entry.hasRange shouldBe false
-
-      val bytes = Slice.create[Byte](entry.entryBytesSize)
-      entry writeTo bytes
-      bytes.isFull shouldBe true //fully written! No gaps!
-
-      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(bytes))
-
-      val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
-      readMapEntry applyTo skipList
-      skipList should have size 50
-      skipList.headKey.getC shouldBe (0: Slice[Byte])
-      skipList.lastKey.getC shouldBe (49: Slice[Byte])
-
-      segments foreach (_.close)
     }
   }
 

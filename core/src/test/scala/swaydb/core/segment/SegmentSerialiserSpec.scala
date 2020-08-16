@@ -32,7 +32,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
-import swaydb.core.{TestBase, TestSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -41,37 +41,35 @@ class SegmentSerialiserSpec extends TestBase {
 
   "serialise segment" in {
     runThis(100.times, log = true, "Test - Serialise segment") {
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-      implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
-      implicit val fileSweeper: FileSweeperActor = TestSweeper.fileSweeper
-      implicit val bufferCleaner: ByteBufferSweeperActor  = TestSweeper.bufferCleaner
-      implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-      implicit val blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
-      implicit val segmentIO: SegmentIO = SegmentIO.random
+          implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+          implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+          implicit val segmentIO: SegmentIO = SegmentIO.random
 
-      val keyValues = randomizedKeyValues(randomIntMax(100) max 1)
-      val segment = TestSegment(keyValues)
+          val keyValues = randomizedKeyValues(randomIntMax(100) max 1)
+          val segment = TestSegment(keyValues)
 
-      val bytes = Slice.create[Byte](SegmentSerialiser.FormatA.bytesRequired(segment))
+          val bytes = Slice.create[Byte](SegmentSerialiser.FormatA.bytesRequired(segment))
 
-      SegmentSerialiser.FormatA.write(
-        segment = segment,
-        bytes = bytes
-      )
+          SegmentSerialiser.FormatA.write(
+            segment = segment,
+            bytes = bytes
+          )
 
-      bytes.isOriginalFullSlice shouldBe true
+          bytes.isOriginalFullSlice shouldBe true
 
-      val readSegment =
-        SegmentSerialiser.FormatA.read(
-          reader = Reader(bytes),
-          mmapSegment = MMAP.randomForSegment(),
-          checkExists = segment.persistent
-        )
+          val readSegment =
+            SegmentSerialiser.FormatA.read(
+              reader = Reader(bytes),
+              mmapSegment = MMAP.randomForSegment(),
+              checkExists = segment.persistent
+            )
 
-      readSegment shouldBe segment
-
-      segment.close
+          readSegment shouldBe segment
+      }
     }
   }
 }

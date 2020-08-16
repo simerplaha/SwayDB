@@ -37,7 +37,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
 import swaydb.data.config.{IOStrategy, MMAP}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -52,7 +52,6 @@ class SegmentBlockInitialisationSpec extends TestBase {
   val keyValueCount = 100
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val memorySweeper = TestSweeper.memorySweeperMax
 
   implicit def testTimer: TestTimer = TestTimer.random
 
@@ -60,59 +59,69 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "not be created" when {
       "disabled" in {
         runThis(10.times) {
-          val keyValues: Slice[Memory] =
-            randomizedKeyValues(
-              count = 100,
-              startId = Some(1)
-            )
+          TestCaseSweeper {
+            implicit sweeper =>
+              import sweeper._
 
-          val blocks =
-            getSegmentBlockCacheSingle(
-              keyValues = keyValues,
-              binarySearchIndexConfig =
-                BinarySearchIndexBlock.Config(
-                  enabled = false,
-                  format = randomBinarySearchFormat(),
-                  minimumNumberOfKeys = 0,
-                  fullIndex = randomBoolean(),
-                  searchSortedIndexDirectlyIfPossible = randomBoolean(),
-                  ioStrategy = _ => IOStrategy.ConcurrentIO(true),
-                  compressions = _ => randomCompressionsOrEmpty()
+              val keyValues: Slice[Memory] =
+                randomizedKeyValues(
+                  count = 100,
+                  startId = Some(1)
                 )
-            )
-          blocks.createBinarySearchIndexReaderOrNull() shouldBe null
-          blocks.binarySearchIndexReaderCacheOrNull.isCached shouldBe true
-          blocks.binarySearchIndexReaderCacheOrNull.getIO() shouldBe Some(IO(null))
-          blocks.createBinarySearchIndexReaderOrNull() shouldBe null
+
+              val blocks =
+                getSegmentBlockCacheSingle(
+                  keyValues = keyValues,
+                  binarySearchIndexConfig =
+                    BinarySearchIndexBlock.Config(
+                      enabled = false,
+                      format = randomBinarySearchFormat(),
+                      minimumNumberOfKeys = 0,
+                      fullIndex = randomBoolean(),
+                      searchSortedIndexDirectlyIfPossible = randomBoolean(),
+                      ioStrategy = _ => IOStrategy.ConcurrentIO(true),
+                      compressions = _ => randomCompressionsOrEmpty()
+                    )
+                )
+              blocks.createBinarySearchIndexReaderOrNull() shouldBe null
+              blocks.binarySearchIndexReaderCacheOrNull.isCached shouldBe true
+              blocks.binarySearchIndexReaderCacheOrNull.getIO() shouldBe Some(IO(null))
+              blocks.createBinarySearchIndexReaderOrNull() shouldBe null
+          }
         }
       }
 
       "minimumNumberOfKeys is not met" in {
         runThis(10.times) {
-          val generatedKeyValues =
-            randomizedKeyValues(
-              count = 100,
-              startId = Some(1)
-            )
+          TestCaseSweeper {
+            implicit sweeper =>
+              import sweeper._
 
-          val keyValues: Slice[Memory] = generatedKeyValues
-
-          val blocks =
-            getBlocksSingle(
-              keyValues = keyValues,
-              binarySearchIndexConfig =
-                BinarySearchIndexBlock.Config(
-                  enabled = true,
-                  format = randomBinarySearchFormat(),
-                  searchSortedIndexDirectlyIfPossible = randomBoolean(),
-                  minimumNumberOfKeys = generatedKeyValues.size + 1,
-                  fullIndex = randomBoolean(),
-                  ioStrategy = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
+              val generatedKeyValues =
+                randomizedKeyValues(
+                  count = 100,
+                  startId = Some(1)
                 )
-            ).get
 
-          blocks.binarySearchIndexReader shouldBe empty
+              val keyValues: Slice[Memory] = generatedKeyValues
+
+              val blocks =
+                getBlocksSingle(
+                  keyValues = keyValues,
+                  binarySearchIndexConfig =
+                    BinarySearchIndexBlock.Config(
+                      enabled = true,
+                      format = randomBinarySearchFormat(),
+                      searchSortedIndexDirectlyIfPossible = randomBoolean(),
+                      minimumNumberOfKeys = generatedKeyValues.size + 1,
+                      fullIndex = randomBoolean(),
+                      ioStrategy = _ => randomIOAccess(),
+                      compressions = _ => randomCompressionsOrEmpty()
+                    )
+                ).get
+
+              blocks.binarySearchIndexReader shouldBe empty
+          }
         }
       }
     }
@@ -120,58 +129,63 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "partially created" when {
       "hashIndex is not perfect" in {
         runThis(1.times) {
-          val compressions = randomCompressionsOrEmpty()
+          TestCaseSweeper {
+            implicit sweeper =>
+              import sweeper._
 
-          val keyValues: Slice[Memory] =
-            randomizedKeyValues(
-              count = 1000,
-              startId = Some(1)
-              //              addRanges = true,
-              //              addUpdates = false,
-              //              addRemoves = false,
-              //              addFunctions = false,
-              //              addPendingApply = false
-            )
+              val compressions = randomCompressionsOrEmpty()
 
-          keyValues should not be empty
-
-          val blocks =
-            getBlocksSingle(
-              keyValues = keyValues,
-              sortedIndexConfig =
-                SortedIndexBlock.Config.random.copy(
-                  shouldPrefixCompress = _ => randomBoolean(),
-                  enablePrefixCompression = false,
-                  normaliseIndex = false
-                ),
-              binarySearchIndexConfig =
-                BinarySearchIndexBlock.Config(
-                  enabled = true,
-                  format = randomBinarySearchFormat(),
-                  searchSortedIndexDirectlyIfPossible = randomBoolean(),
-                  minimumNumberOfKeys = 0,
-                  fullIndex = false,
-                  ioStrategy = _ => randomIOAccess(),
-                  compressions = _ => compressions
-                ),
-              hashIndexConfig =
-                HashIndexBlock.Config(
-                  maxProbe = 1,
-                  allocateSpace = _.requiredSpace,
-                  format = randomHashIndexSearchFormat(),
-                  minimumNumberOfKeys = 0,
-                  minimumNumberOfHits = 0,
-                  ioStrategy = _ => randomIOAccess(),
-                  compressions = _ => compressions
+              val keyValues: Slice[Memory] =
+                randomizedKeyValues(
+                  count = 1000,
+                  startId = Some(1)
+                  //              addRanges = true,
+                  //              addUpdates = false,
+                  //              addRemoves = false,
+                  //              addFunctions = false,
+                  //              addPendingApply = false
                 )
-            ).get
 
-          blocks.hashIndexReader.get.block.hit should be > 0
-          blocks.hashIndexReader.get.block.hit should be < keyValues.size
-          blocks.hashIndexReader.get.block.miss should be > 0
-          blocks.hashIndexReader.get.block.miss should be < keyValues.size
+              keyValues should not be empty
 
-          blocks.binarySearchIndexReader.get.block.valuesCount shouldBe blocks.hashIndexReader.get.block.miss
+              val blocks =
+                getBlocksSingle(
+                  keyValues = keyValues,
+                  sortedIndexConfig =
+                    SortedIndexBlock.Config.random.copy(
+                      shouldPrefixCompress = _ => randomBoolean(),
+                      enablePrefixCompression = false,
+                      normaliseIndex = false
+                    ),
+                  binarySearchIndexConfig =
+                    BinarySearchIndexBlock.Config(
+                      enabled = true,
+                      format = randomBinarySearchFormat(),
+                      searchSortedIndexDirectlyIfPossible = randomBoolean(),
+                      minimumNumberOfKeys = 0,
+                      fullIndex = false,
+                      ioStrategy = _ => randomIOAccess(),
+                      compressions = _ => compressions
+                    ),
+                  hashIndexConfig =
+                    HashIndexBlock.Config(
+                      maxProbe = 1,
+                      allocateSpace = _.requiredSpace,
+                      format = randomHashIndexSearchFormat(),
+                      minimumNumberOfKeys = 0,
+                      minimumNumberOfHits = 0,
+                      ioStrategy = _ => randomIOAccess(),
+                      compressions = _ => compressions
+                    )
+                ).get
+
+              blocks.hashIndexReader.get.block.hit should be > 0
+              blocks.hashIndexReader.get.block.hit should be < keyValues.size
+              blocks.hashIndexReader.get.block.miss should be > 0
+              blocks.hashIndexReader.get.block.miss should be < keyValues.size
+
+              blocks.binarySearchIndexReader.get.block.valuesCount shouldBe blocks.hashIndexReader.get.block.miss
+          }
         }
       }
     }
@@ -179,56 +193,61 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "fully be created" when {
       "perfect hashIndex" in {
         runThis(10.times) {
-          val compressions = randomCompressionsOrEmpty()
+          TestCaseSweeper {
+            implicit sweeper =>
+              import sweeper._
 
-          val keyValues: Slice[Memory] =
-            randomizedKeyValues(
-              count = 100,
-              startId = Some(1)
-              //              addPut = true,
-              //              addRanges = true,
-              //              addUpdates = false,
-              //              addRemoves = false,
-              //              addFunctions = false,
-              //              addPendingApply = false
-            )
+              val compressions = randomCompressionsOrEmpty()
 
-          val blocks =
-            getBlocksSingle(
-              keyValues,
-              binarySearchIndexConfig =
-                BinarySearchIndexBlock.Config(
-                  enabled = true,
-                  format = randomBinarySearchFormat(),
-                  searchSortedIndexDirectlyIfPossible = false,
-                  minimumNumberOfKeys = 0,
-                  fullIndex = true,
-                  ioStrategy = _ => randomIOAccess(),
-                  compressions = _ => compressions
-                ),
-              hashIndexConfig =
-                HashIndexBlock.Config(
-                  maxProbe = 100,
-                  minimumNumberOfKeys = 0,
-                  minimumNumberOfHits = 0,
-                  format = randomHashIndexSearchFormat(),
-                  allocateSpace = _.requiredSpace * 20,
-                  ioStrategy = _ => randomIOAccess(),
-                  compressions = _ => compressions
-                ),
-              sortedIndexConfig =
-                SortedIndexBlock.Config.random.copy(
-                  shouldPrefixCompress = _ => randomBoolean(),
-                  enablePrefixCompression = false,
-                  normaliseIndex = false
+              val keyValues: Slice[Memory] =
+                randomizedKeyValues(
+                  count = 100,
+                  startId = Some(1)
+                  //              addPut = true,
+                  //              addRanges = true,
+                  //              addUpdates = false,
+                  //              addRemoves = false,
+                  //              addFunctions = false,
+                  //              addPendingApply = false
                 )
-            ).get
 
-          blocks.hashIndexReader shouldBe defined
-          blocks.hashIndexReader.get.block.hit shouldBe keyValues.size
-          blocks.hashIndexReader.get.block.miss shouldBe 0
+              val blocks =
+                getBlocksSingle(
+                  keyValues,
+                  binarySearchIndexConfig =
+                    BinarySearchIndexBlock.Config(
+                      enabled = true,
+                      format = randomBinarySearchFormat(),
+                      searchSortedIndexDirectlyIfPossible = false,
+                      minimumNumberOfKeys = 0,
+                      fullIndex = true,
+                      ioStrategy = _ => randomIOAccess(),
+                      compressions = _ => compressions
+                    ),
+                  hashIndexConfig =
+                    HashIndexBlock.Config(
+                      maxProbe = 100,
+                      minimumNumberOfKeys = 0,
+                      minimumNumberOfHits = 0,
+                      format = randomHashIndexSearchFormat(),
+                      allocateSpace = _.requiredSpace * 20,
+                      ioStrategy = _ => randomIOAccess(),
+                      compressions = _ => compressions
+                    ),
+                  sortedIndexConfig =
+                    SortedIndexBlock.Config.random.copy(
+                      shouldPrefixCompress = _ => randomBoolean(),
+                      enablePrefixCompression = false,
+                      normaliseIndex = false
+                    )
+                ).get
 
-          blocks.binarySearchIndexReader.get.block.valuesCount shouldBe keyValues.size
+              blocks.hashIndexReader shouldBe defined
+              blocks.hashIndexReader.get.block.hit shouldBe keyValues.size
+              blocks.hashIndexReader.get.block.miss shouldBe 0
+
+              blocks.binarySearchIndexReader.get.block.valuesCount shouldBe keyValues.size
+          }
         }
       }
 
@@ -295,106 +314,121 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "not be created" when {
       "falsePositive is high" in {
         runThis(10.times) {
-          val keyValues: Slice[Memory] =
-            randomizedKeyValues(
-              count = 100,
-              addPut = true,
-              startId = Some(1)
-            )
+          TestCaseSweeper {
+            implicit sweeper =>
+              import sweeper._
 
-          val blocks =
-            getBlocksSingle(
-              keyValues = keyValues,
-              bloomFilterConfig =
-                BloomFilterBlock.Config(
-                  falsePositiveRate = 1,
-                  minimumNumberOfKeys = 0,
-                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                  ioStrategy = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
+              val keyValues: Slice[Memory] =
+                randomizedKeyValues(
+                  count = 100,
+                  addPut = true,
+                  startId = Some(1)
                 )
-            ).get
 
-          blocks.bloomFilterReader shouldBe empty
+              val blocks =
+                getBlocksSingle(
+                  keyValues = keyValues,
+                  bloomFilterConfig =
+                    BloomFilterBlock.Config(
+                      falsePositiveRate = 1,
+                      minimumNumberOfKeys = 0,
+                      optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
+                      ioStrategy = _ => randomIOAccess(),
+                      compressions = _ => randomCompressionsOrEmpty()
+                    )
+                ).get
+
+              blocks.bloomFilterReader shouldBe empty
+          }
         }
       }
 
       "minimum number of key is not met" in {
         runThis(10.times) {
-          val keyValues =
-          //do not use randomised because it will generate remove ranges
-            randomPutKeyValues(
-              count = 100,
-              startId = Some(1)
-            )
+          TestCaseSweeper {
+            implicit sweeper =>
+              import sweeper._
 
-          val blocks =
-            getBlocksSingle(
-              keyValues,
-              bloomFilterConfig =
-                BloomFilterBlock.Config(
-                  falsePositiveRate = 0.001,
-                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                  minimumNumberOfKeys = keyValues.size + 1,
-                  ioStrategy = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
+              val keyValues =
+              //do not use randomised because it will generate remove ranges
+                randomPutKeyValues(
+                  count = 100,
+                  startId = Some(1)
                 )
-            ).get
 
-          blocks.bloomFilterReader shouldBe empty
+              val blocks =
+                getBlocksSingle(
+                  keyValues,
+                  bloomFilterConfig =
+                    BloomFilterBlock.Config(
+                      falsePositiveRate = 0.001,
+                      optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
+                      minimumNumberOfKeys = keyValues.size + 1,
+                      ioStrategy = _ => randomIOAccess(),
+                      compressions = _ => randomCompressionsOrEmpty()
+                    )
+                ).get
+
+              blocks.bloomFilterReader shouldBe empty
+          }
         }
       }
 
       "key-values contain remove ranges" in {
         runThis(10.times) {
-          val keyValues: Slice[Memory] =
-            randomPutKeyValues(
-              count = 100,
-              startId = Some(100)
-            )
+          TestCaseSweeper {
+            implicit sweeper =>
+              import sweeper._
 
-          val range: Slice[Memory.Range] =
-            Slice(
-              Memory.Range(
-                fromKey = 0,
-                toKey = 1,
-                fromValue = randomFromValueOption(),
-                rangeValue =
-                  eitherOne(
-                    randomFunctionValue(),
-                    Value.Remove(randomDeadlineOption, Time.empty),
-                    Value.PendingApply(
+              val keyValues: Slice[Memory] =
+                randomPutKeyValues(
+                  count = 100,
+                  startId = Some(100)
+                )
+
+              val range: Slice[Memory.Range] =
+                Slice(
+                  Memory.Range(
+                    fromKey = 0,
+                    toKey = 1,
+                    fromValue = randomFromValueOption(),
+                    rangeValue =
                       eitherOne(
-                        Slice(randomFunctionValue()),
-                        Slice(Value.Remove(randomDeadlineOption, Time.empty)),
-                        Slice(
-                          randomFunctionValue(),
-                          Value.Remove(randomDeadlineOption, Time.empty)
+                        randomFunctionValue(),
+                        Value.Remove(randomDeadlineOption, Time.empty),
+                        Value.PendingApply(
+                          eitherOne(
+                            Slice(randomFunctionValue()),
+                            Slice(Value.Remove(randomDeadlineOption, Time.empty)),
+                            Slice(
+                              randomFunctionValue(),
+                              Value.Remove(randomDeadlineOption, Time.empty)
+                            )
+                          )
                         )
                       )
-                    )
                   )
-              )
-            )
-
-          val allKeyValues = range ++ keyValues
-
-          allKeyValues.exists(_.isRemoveRangeMayBe) shouldBe true
-
-          val blocks =
-            getBlocksSingle(
-              allKeyValues,
-              bloomFilterConfig =
-                BloomFilterBlock.Config(
-                  falsePositiveRate = 0.001,
-                  minimumNumberOfKeys = 0,
-                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                  ioStrategy = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
                 )
-            ).get
 
-          blocks.bloomFilterReader shouldBe empty
+              val allKeyValues = range ++ keyValues
+
+              allKeyValues.exists(_.isRemoveRangeMayBe) shouldBe true
+
+              val blocks =
+                getBlocksSingle(
+                  allKeyValues,
+                  bloomFilterConfig =
+                    BloomFilterBlock.Config(
+                      falsePositiveRate = 0.001,
+                      minimumNumberOfKeys = 0,
+                      optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
+                      ioStrategy = _ => randomIOAccess(),
+                      compressions = _ => randomCompressionsOrEmpty()
+                    )
+                ).get
+
+              blocks.bloomFilterReader shouldBe empty
+          }
         }
       }
     }
@@ -403,145 +437,155 @@ class SegmentBlockInitialisationSpec extends TestBase {
   "hashIndex" should {
     "not be created if minimum number is not met" in {
       runThis(10.times) {
-        val keyValues =
-          randomizedKeyValues(
-            count = 1000,
-            addPut = true,
-            startId = Some(1)
-          )
+        TestCaseSweeper {
+          implicit sweeper =>
+            import sweeper._
 
-        val blocks =
-          getBlocksSingle(
-            keyValues = keyValues,
-            hashIndexConfig =
-              HashIndexBlock.Config(
-                maxProbe = 5,
-                minimumNumberOfKeys = 0, //set miminimum to be 10 for hash to be created.
-                minimumNumberOfHits = 10,
-                format = randomHashIndexSearchFormat(),
-                allocateSpace = _ =>
-                  HashIndexBlock.optimalBytesRequired(
-                    keyCounts = 1, //allocate space enough for 1
-                    minimumNumberOfKeys = 0,
-                    writeAbleLargestValueSize = Int.MaxValue,
-                    allocateSpace = _.requiredSpace
-                  ),
-                ioStrategy = _ => randomIOAccess(),
-                compressions = _ => randomCompressionsOrEmpty()
+            val keyValues =
+              randomizedKeyValues(
+                count = 1000,
+                addPut = true,
+                startId = Some(1)
               )
-          ).get
 
-        blocks.hashIndexReader shouldBe empty
+            val blocks =
+              getBlocksSingle(
+                keyValues = keyValues,
+                hashIndexConfig =
+                  HashIndexBlock.Config(
+                    maxProbe = 5,
+                    minimumNumberOfKeys = 0, //set miminimum to be 10 for hash to be created.
+                    minimumNumberOfHits = 10,
+                    format = randomHashIndexSearchFormat(),
+                    allocateSpace = _ =>
+                      HashIndexBlock.optimalBytesRequired(
+                        keyCounts = 1, //allocate space enough for 1
+                        minimumNumberOfKeys = 0,
+                        writeAbleLargestValueSize = Int.MaxValue,
+                        allocateSpace = _.requiredSpace
+                      ),
+                    ioStrategy = _ => randomIOAccess(),
+                    compressions = _ => randomCompressionsOrEmpty()
+                  )
+              ).get
+
+            blocks.hashIndexReader shouldBe empty
+        }
       }
     }
 
     "cache everything" in {
       runThis(10.times, log = true) {
-        val compressions = Slice.fill(6)(randomCompressionsOrEmpty())
+        TestCaseSweeper {
+          implicit sweeper =>
+            import sweeper._
 
-        val keyValues =
-          Benchmark("Creating key-values", inlinePrint = true) {
-            randomizedKeyValues(
-              count = 10000,
-              startId = Some(1),
-              addPut = true
-            )
-          }
+            val compressions = Slice.fill(6)(randomCompressionsOrEmpty())
 
-        val cache =
-          Benchmark("Creating cache", inlinePrint = true) {
-            getSegmentBlockCacheSingle(
-              keyValues = keyValues,
-              valuesConfig =
-                ValuesBlock.Config(
-                  compressDuplicateValues = randomBoolean(),
-                  compressDuplicateRangeValues = randomBoolean(),
-                  ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
-                  compressions = _ => compressions.head
-                ),
-              sortedIndexConfig =
-                SortedIndexBlock.Config(
-                  ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
-                  shouldPrefixCompress = _ => randomBoolean(),
-                  enablePrefixCompression = randomBoolean(),
-                  prefixCompressKeysOnly = randomBoolean(),
-                  enableAccessPositionIndex = true,
-                  normaliseIndex = randomBoolean(),
-                  compressions = _ => compressions(1)
-                ),
-              binarySearchIndexConfig =
-                BinarySearchIndexBlock.Config(
-                  enabled = true,
-                  format = randomBinarySearchFormat(),
-                  searchSortedIndexDirectlyIfPossible = randomBoolean(),
-                  minimumNumberOfKeys = 1,
-                  fullIndex = true,
-                  ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
-                  compressions = _ => compressions(2)
-                ),
-              hashIndexConfig =
-                HashIndexBlock.Config(
-                  maxProbe = 5,
-                  minimumNumberOfKeys = 2,
-                  minimumNumberOfHits = 2,
-                  format = randomHashIndexSearchFormat(),
-                  allocateSpace = _.requiredSpace * 10,
-                  ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
-                  compressions = _ => compressions(3)
-                ),
-              bloomFilterConfig =
-                BloomFilterBlock.Config(
-                  falsePositiveRate = 0.001,
-                  minimumNumberOfKeys = 2,
-                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                  ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
-                  compressions = _ => compressions(4)
-                ),
-              segmentConfig =
-                SegmentBlock.Config.applyInternal(
-                  ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
-                  cacheBlocksOnCreate = false,
-                  compressions = _ => compressions(4),
-                  minSize = randomIntMax(2.mb),
-                  maxCount = randomIntMax(1000),
-                  pushForward = randomBoolean(),
-                  mmap = MMAP.randomForSegment(),
-                  deleteEventually = randomBoolean()
+            val keyValues =
+              Benchmark("Creating key-values", inlinePrint = true) {
+                randomizedKeyValues(
+                  count = 10000,
+                  startId = Some(1),
+                  addPut = true
                 )
-            )
-          }
+              }
 
-        cache.isCached shouldBe false
+            val cache =
+              Benchmark("Creating cache", inlinePrint = true) {
+                getSegmentBlockCacheSingle(
+                  keyValues = keyValues,
+                  valuesConfig =
+                    ValuesBlock.Config(
+                      compressDuplicateValues = randomBoolean(),
+                      compressDuplicateRangeValues = randomBoolean(),
+                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      compressions = _ => compressions.head
+                    ),
+                  sortedIndexConfig =
+                    SortedIndexBlock.Config(
+                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      shouldPrefixCompress = _ => randomBoolean(),
+                      enablePrefixCompression = randomBoolean(),
+                      prefixCompressKeysOnly = randomBoolean(),
+                      enableAccessPositionIndex = true,
+                      normaliseIndex = randomBoolean(),
+                      compressions = _ => compressions(1)
+                    ),
+                  binarySearchIndexConfig =
+                    BinarySearchIndexBlock.Config(
+                      enabled = true,
+                      format = randomBinarySearchFormat(),
+                      searchSortedIndexDirectlyIfPossible = randomBoolean(),
+                      minimumNumberOfKeys = 1,
+                      fullIndex = true,
+                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      compressions = _ => compressions(2)
+                    ),
+                  hashIndexConfig =
+                    HashIndexBlock.Config(
+                      maxProbe = 5,
+                      minimumNumberOfKeys = 2,
+                      minimumNumberOfHits = 2,
+                      format = randomHashIndexSearchFormat(),
+                      allocateSpace = _.requiredSpace * 10,
+                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      compressions = _ => compressions(3)
+                    ),
+                  bloomFilterConfig =
+                    BloomFilterBlock.Config(
+                      falsePositiveRate = 0.001,
+                      minimumNumberOfKeys = 2,
+                      optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
+                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      compressions = _ => compressions(4)
+                    ),
+                  segmentConfig =
+                    SegmentBlock.Config.applyInternal(
+                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      cacheBlocksOnCreate = false,
+                      compressions = _ => compressions(4),
+                      minSize = randomIntMax(2.mb),
+                      maxCount = randomIntMax(1000),
+                      pushForward = randomBoolean(),
+                      mmap = MMAP.randomForSegment(),
+                      deleteEventually = randomBoolean()
+                    )
+                )
+              }
 
-        cache.getFooter()
-        cache.isCached shouldBe true
-        cache.footerBlockCache.isCached shouldBe true
-        cache.clear()
-        cache.isCached shouldBe false
-        cache.footerBlockCache.isCached shouldBe false
+            cache.isCached shouldBe false
 
-        cache.getBinarySearchIndex()
-        cache.getSortedIndex()
-        cache.getBloomFilter()
-        cache.getHashIndex()
-        cache.getValues()
+            cache.getFooter()
+            cache.isCached shouldBe true
+            cache.footerBlockCache.isCached shouldBe true
+            cache.clear()
+            cache.isCached shouldBe false
+            cache.footerBlockCache.isCached shouldBe false
 
-        cache.binarySearchIndexBlockCache.isCached shouldBe true
-        cache.sortedIndexBlockCache.isCached shouldBe true
-        cache.bloomFilterBlockCache.isCached shouldBe true
-        cache.hashIndexBlockCache.isCached shouldBe true
-        cache.valuesBlockCache.isCached shouldBe true
+            cache.getBinarySearchIndex()
+            cache.getSortedIndex()
+            cache.getBloomFilter()
+            cache.getHashIndex()
+            cache.getValues()
 
-        cache.segmentReaderCache.isCached shouldBe true
+            cache.binarySearchIndexBlockCache.isCached shouldBe true
+            cache.sortedIndexBlockCache.isCached shouldBe true
+            cache.bloomFilterBlockCache.isCached shouldBe true
+            cache.hashIndexBlockCache.isCached shouldBe true
+            cache.valuesBlockCache.isCached shouldBe true
 
-        cache.binarySearchIndexReaderCacheOrNull.isCached shouldBe false
-        cache.sortedIndexReaderCache.isCached shouldBe false
-        cache.bloomFilterReaderCacheOrNull.isCached shouldBe false
-        cache.hashIndexReaderCacheOrNull.isCached shouldBe false
-        cache.valuesReaderCacheOrNull.isCached shouldBe false
+            cache.segmentReaderCache.isCached shouldBe true
 
-        cache.clear()
-        cache.isCached shouldBe false
+            cache.binarySearchIndexReaderCacheOrNull.isCached shouldBe false
+            cache.sortedIndexReaderCache.isCached shouldBe false
+            cache.bloomFilterReaderCacheOrNull.isCached shouldBe false
+            cache.hashIndexReaderCacheOrNull.isCached shouldBe false
+            cache.valuesReaderCacheOrNull.isCached shouldBe false
+
+            cache.clear()
+            cache.isCached shouldBe false
+        }
       }
     }
   }
@@ -549,48 +593,57 @@ class SegmentBlockInitialisationSpec extends TestBase {
   "cacheBlocksOnCreate" when {
     "false" should {
       "not cache bytes" in {
-        val keyValues = randomKeyValues(100)
+        TestCaseSweeper {
+          implicit sweeper =>
+            import sweeper._
 
-        val segmentBlockCache =
-          getSegmentBlockCacheSingle(
-            keyValues = keyValues,
-            segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = false)
-          )
+            val keyValues = randomKeyValues(100)
 
-        segmentBlockCache.isCached shouldBe false
+            val segmentBlockCache =
+              getSegmentBlockCacheSingle(
+                keyValues = keyValues,
+                segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = false)
+              )
+
+            segmentBlockCache.isCached shouldBe false
+        }
       }
     }
 
     "true" should {
       "cache blocks on initialisation and maintain reads on clear" in {
         runThis(100.times) {
-          val keyValues = randomKeyValues(100)
+          TestCaseSweeper {
+            implicit sweeper =>
 
-          val segment =
-            TestSegment(
-              keyValues = keyValues,
-              segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true, minSegmentSize = Int.MaxValue)
-            ).asInstanceOf[PersistentSegmentOne]
+              val keyValues = randomKeyValues(100)
 
-          val blockCache = segment.ref.segmentBlockCache
+              val segment =
+                TestSegment(
+                  keyValues = keyValues,
+                  segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true, minSegmentSize = Int.MaxValue)
+                ).asInstanceOf[PersistentSegmentOne]
 
-          blockCache.isCached shouldBe true
+              val blockCache = segment.ref.segmentBlockCache
 
-          assertReads(keyValues, segment)
+              blockCache.isCached shouldBe true
 
-          //randomly clear caches and reads for result in the same output
-          Random.shuffle(blockCache.allCaches) foreach {
-            cache =>
-              if (randomBoolean())
-                cache.clear()
+              assertReads(keyValues, segment)
+
+              //randomly clear caches and reads for result in the same output
+              Random.shuffle(blockCache.allCaches) foreach {
+                cache =>
+                  if (randomBoolean())
+                    cache.clear()
+              }
+
+              assertReads(keyValues, segment)
+
+              blockCache.clear()
+              blockCache.isCached shouldBe false
+
+              assertReads(keyValues, segment)
           }
-
-          assertReads(keyValues, segment)
-
-          blockCache.clear()
-          blockCache.isCached shouldBe false
-
-          assertReads(keyValues, segment)
         }
       }
     }

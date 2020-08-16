@@ -27,7 +27,6 @@ package swaydb.core
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Bag, IO, OK}
 import swaydb.core.RunThis._
 import swaydb.core.TestSweeper._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -37,6 +36,7 @@ import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.LevelRef
 import swaydb.core.segment.Segment
+import swaydb.{ActorRef, ActorWire, Bag, IO, Scheduler}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
@@ -60,14 +60,20 @@ object TestCaseSweeper extends LazyLogging {
 
   def apply(): TestCaseSweeper = {
     new TestCaseSweeper(
-      keyValueMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
       fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeperActor](true, true, None)((_, _) => createFileSweeper())),
       cleaners = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
       blockCaches = ListBuffer(Cache.noIO[Unit, Option[BlockCache.State]](true, true, None)((_, _) => createBlockCacheRandom())),
+      allMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
+      keyValueMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
+      blockMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Block]](true, true, None)((_, _) => createMemoryBlockSweeper())),
+      cacheMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Cache]](true, true, None)((_, _) => createRandomCacheSweeper())),
+      schedulers = ListBuffer(Cache.noIO[Unit, Scheduler](true, true, None)((_, _) => Scheduler()(TestExecutionContext.executionContext))),
       levels = ListBuffer.empty,
       segments = ListBuffer.empty,
       maps = ListBuffer.empty,
-      paths = ListBuffer.empty
+      paths = ListBuffer.empty,
+      actors = ListBuffer.empty,
+      actorWires = ListBuffer.empty
     )
   }
 
@@ -78,60 +84,111 @@ object TestCaseSweeper extends LazyLogging {
       Effect.walkDelete(parentPath)
   }
 
+  private def terminate(sweeper: TestCaseSweeper): Unit = {
+    implicit val bag = Bag.future(TestExecutionContext.executionContext)
+
+    def future = Future.sequence(sweeper.levels.map(_.delete(5.second)))
+
+    IO.fromFuture(future).run(0).await(10.seconds)
+
+    sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
+
+    //calling this after since delete would've already invoked these.
+    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
+    sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.closeSync(1.second)(sweeper, Bag.less)))
+    sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.closeSync(1.second, 10.seconds)(cleaner, Bag.less, TestExecutionContext.executionContext)))
+    sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
+
+    sweeper.segments.foreach {
+      segment =>
+        if (segment.existsOnDisk)
+          segment.delete
+        deleteParentPath(segment.path)
+    }
+
+    sweeper.maps.foreach {
+      map =>
+        if (map.pathOption.exists(Effect.exists))
+          map.pathOption.foreach(Effect.walkDelete)
+        map.pathOption.foreach(deleteParentPath)
+    }
+
+    sweeper.paths.foreach(Effect.walkDelete)
+
+  }
+
   def apply[T](code: TestCaseSweeper => T): T = {
     val sweeper = TestCaseSweeper()
     try
       code(sweeper)
-    finally {
-      implicit val bag = Bag.future(TestExecutionContext.executionContext)
-
-      def future = Future.sequence(sweeper.levels.map(_.delete(5.second)))
-
-      IO.fromFuture(future).run(0).await(10.seconds)
-
-      sweeper.segments.foreach {
-        segment =>
-          if (segment.existsOnDisk)
-            segment.delete
-          deleteParentPath(segment.path)
-      }
-
-      sweeper.maps.foreach {
-        map =>
-          if (map.pathOption.exists(Effect.exists))
-            map.delete
-          map.pathOption.foreach(deleteParentPath)
-      }
-
-      //calling this after since delete would've already invoked these.
-      sweeper.keyValueMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
-      sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.closeSync(1.second)(sweeper, Bag.less)))
-      sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.closeSync(1.second, 10.seconds)(cleaner, Bag.less, TestExecutionContext.executionContext)))
-      sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
-
-      sweeper.paths.foreach(Effect.deleteIfExists)
-    }
+    finally
+      terminate(sweeper)
   }
 
 
   implicit class TestLevelLevelSweeperImplicits[L <: LevelRef](level: L) {
-    def clean()(implicit sweeper: TestCaseSweeper): L =
-      sweeper cleanLevel level
+    def sweep()(implicit sweeper: TestCaseSweeper): L =
+      sweeper sweepLevel level
   }
 
   implicit class TestLevelSegmentSweeperImplicits[L <: Segment](segment: L) {
-    def clean()(implicit sweeper: TestCaseSweeper): L =
-      sweeper cleanSegment segment
+    def sweep()(implicit sweeper: TestCaseSweeper): L =
+      sweeper sweepSegment segment
   }
 
-  implicit class TestMapsSweeperImplicits[OK, OV, K <: OK, V <: OV](map: swaydb.core.map.Map[OK, OV, K, V]) {
-    def clean()(implicit sweeper: TestCaseSweeper): swaydb.core.map.Map[OK, OV, K, V] =
-      sweeper cleanMap map
+  implicit class TestMapsSweeperImplicits[M <: swaydb.core.map.Map[_, _, _, _]](map: M) {
+    def sweep()(implicit sweeper: TestCaseSweeper): M =
+      sweeper sweepMap map
   }
 
   implicit class TestLevelPathSweeperImplicits(path: Path) {
-    def clean()(implicit sweeper: TestCaseSweeper): Path =
-      sweeper cleanPath path
+    def sweep()(implicit sweeper: TestCaseSweeper): Path =
+      sweeper sweepPath path
+  }
+
+  implicit class KeyValueMemorySweeperImplicits(keyValue: MemorySweeper.KeyValue) {
+    def sweep()(implicit sweeper: TestCaseSweeper): MemorySweeper.KeyValue =
+      sweeper sweepMemorySweeper keyValue
+  }
+
+  implicit class BlockSweeperImplicits(keyValue: MemorySweeper.Block) {
+    def sweep()(implicit sweeper: TestCaseSweeper): MemorySweeper.Block =
+      sweeper sweepMemorySweeper keyValue
+  }
+
+  implicit class AllMemorySweeperImplicits(keyValue: MemorySweeper.All) {
+    def sweep()(implicit sweeper: TestCaseSweeper): MemorySweeper.All =
+      sweeper sweepMemorySweeper keyValue
+  }
+
+  implicit class BufferCleanerSweeperImplicits(keyValue: ByteBufferSweeperActor) {
+    def sweep()(implicit sweeper: TestCaseSweeper): ByteBufferSweeperActor =
+      sweeper sweepBufferCleaner keyValue
+  }
+
+  implicit class FileCleanerSweeperImplicits(keyValue: FileSweeperActor) {
+    def sweep()(implicit sweeper: TestCaseSweeper): FileSweeperActor =
+      sweeper sweepFileSweeper keyValue
+  }
+
+  implicit class FileCleanerCacheSweeperImplicits(cache: CacheNoIO[Unit, FileSweeperActor]) {
+    def sweep()(implicit sweeper: TestCaseSweeper): CacheNoIO[Unit, FileSweeperActor] =
+      sweeper sweepFileSweeper cache
+  }
+
+  implicit class SchedulerSweeperImplicits(scheduler: Scheduler) {
+    def sweep()(implicit sweeper: TestCaseSweeper): Scheduler =
+      sweeper sweepScheduler scheduler
+  }
+
+  implicit class ActorsSweeperImplicits[T, S](actor: ActorRef[T, S]) {
+    def sweep()(implicit sweeper: TestCaseSweeper): ActorRef[T, S] =
+      sweeper sweepActor actor
+  }
+
+  implicit class ActorWiresSweeperImplicits[T, S](actor: ActorWire[T, S]) {
+    def sweep()(implicit sweeper: TestCaseSweeper): ActorWire[T, S] =
+      sweeper sweepWireActor actor
   }
 }
 
@@ -149,38 +206,117 @@ object TestCaseSweeper extends LazyLogging {
  * }}}
  */
 
-class TestCaseSweeper private(private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]],
-                              private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeperActor]],
+class TestCaseSweeper private(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeperActor]],
                               private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]],
                               private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCache.State]]],
+                              private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]],
+                              private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]],
+                              private val blockMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Block]]],
+                              private val cacheMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Cache]]],
+                              private val schedulers: ListBuffer[CacheNoIO[Unit, Scheduler]],
                               private val levels: ListBuffer[LevelRef],
                               private val segments: ListBuffer[Segment],
                               private val maps: ListBuffer[map.Map[_, _, _, _]],
-                              private val paths: ListBuffer[Path]) {
+                              private val paths: ListBuffer[Path],
+                              private val actors: ListBuffer[ActorRef[_, _]],
+                              private val actorWires: ListBuffer[ActorWire[_, _]]) {
 
 
-  lazy val keyValueMemorySweeper = keyValueMemorySweepers.head.value(())
-  lazy val fileSweeper = fileSweepers.head.value(())
-  lazy val cleaner = cleaners.head.value(())
-  lazy val blockCache = blockCaches.head.value(())
+  implicit lazy val fileSweeper = fileSweepers.head.value(())
+  implicit lazy val cleaner = cleaners.head.value(())
+  implicit lazy val blockCache = blockCaches.head.value(())
 
-  def cleanLevel[T <: LevelRef](levelRef: T): T = {
+  //MemorySweeper.All can also be set which means other sweepers will search for dedicated sweepers first and
+  //if not found then the head from allMemorySweeper is fetched.
+  private def allMemorySweeper(): Option[MemorySweeper.All] = allMemorySweepers.head.value(())
+  //if dedicated sweepers are not supplied then fetch from sweepers of type All (which enables all sweeper types).
+  implicit lazy val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = keyValueMemorySweepers.head.value(()) orElse allMemorySweeper()
+  implicit lazy val blockSweeperCache: Option[MemorySweeper.Block] = blockMemorySweepers.head.value(()) orElse allMemorySweeper()
+  implicit lazy val cacheMemorySweeper: Option[MemorySweeper.Cache] = cacheMemorySweepers.head.value(()) orElse allMemorySweeper()
+
+  implicit lazy val scheduler = schedulers.head.value(())
+
+  def sweepLevel[T <: LevelRef](levelRef: T): T = {
     levels += levelRef
     levelRef
   }
 
-  def cleanSegment[S <: Segment](segment: S): S = {
+  def sweepSegment[S <: Segment](segment: S): S = {
     segments += segment
     segment
   }
 
-  def cleanMap[OK, OV, K <: OK, V <: OV](map: swaydb.core.map.Map[OK, OV, K, V]): swaydb.core.map.Map[OK, OV, K, V] = {
+  def sweepMap[M <: swaydb.core.map.Map[_, _, _, _]](map: M): M = {
     maps += map
     map
   }
 
-  def cleanPath(path: Path): Path = {
+  def sweepPath(path: Path): Path = {
     paths += path
     path
   }
+
+  private def removeReplaceOptionalCache[I, O](sweepers: ListBuffer[CacheNoIO[I, Option[O]]], replace: O): O = {
+    if (sweepers.lastOption.exists(_.get().isEmpty))
+      sweepers.remove(0)
+
+    val cache = Cache.noIO[I, Option[O]](true, true, Some(Some(replace)))((_, _) => Some(replace))
+    sweepers += cache
+    replace
+  }
+
+  private def removeReplaceCache[I, O](sweepers: ListBuffer[CacheNoIO[I, O]], replace: O): O = {
+    if (sweepers.lastOption.exists(_.get().isEmpty))
+      sweepers.remove(0)
+
+    val cache = Cache.noIO[I, O](true, true, Some(replace))((_, _) => replace)
+    sweepers += cache
+    replace
+  }
+
+  def sweepMemorySweeper(sweeper: MemorySweeper.Cache): MemorySweeper.Cache =
+    removeReplaceOptionalCache(cacheMemorySweepers, sweeper)
+
+  def sweepMemorySweeper(sweeper: MemorySweeper.KeyValue): MemorySweeper.KeyValue =
+    removeReplaceOptionalCache(keyValueMemorySweepers, sweeper)
+
+  def sweepMemorySweeper(sweeper: MemorySweeper.Block): MemorySweeper.Block =
+    removeReplaceOptionalCache(blockMemorySweepers, sweeper)
+
+  def sweepMemorySweeper(sweeper: MemorySweeper.All): MemorySweeper.All =
+    removeReplaceOptionalCache(allMemorySweepers, sweeper)
+
+  def sweepBufferCleaner(bufferCleaner: ByteBufferSweeperActor): ByteBufferSweeperActor =
+    removeReplaceCache(cleaners, bufferCleaner)
+
+  def sweepFileSweeper(actor: FileSweeperActor): FileSweeperActor =
+    removeReplaceCache(fileSweepers, actor)
+
+  def sweepFileSweeper(actor: CacheNoIO[Unit, FileSweeperActor]): CacheNoIO[Unit, FileSweeperActor] = {
+    //if previous cache is uninitialised overwrite it with this new one
+    if (fileSweepers.lastOption.exists(_.get().isEmpty))
+      fileSweepers.remove(0)
+
+    fileSweepers += actor
+    actor
+  }
+
+  def sweepScheduler(schedule: Scheduler): Scheduler =
+    removeReplaceCache(schedulers, schedule)
+
+  def sweepActor[T, S](actor: ActorRef[T, S]): ActorRef[T, S] = {
+    actors += actor
+    actor
+  }
+
+  def sweepWireActor[T, S](actor: ActorWire[T, S]): ActorWire[T, S] = {
+    actorWires += actor
+    actor
+  }
+
+  /**
+   * Terminates all sweepers immediately.
+   */
+  def terminateNow(): Unit =
+    TestCaseSweeper.terminate(this)
 }

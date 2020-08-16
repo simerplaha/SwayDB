@@ -27,14 +27,13 @@ package swaydb.core.segment.format.a
 import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
-import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.ThreadReadState
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -160,61 +159,73 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     }
 
     "value random key-values" in {
-      val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues)
-      assertGet(keyValues, segment)
+      TestCaseSweeper {
+        implicit sweeper =>
+          val keyValues = randomizedKeyValues(keyValuesCount)
+          val segment = TestSegment(keyValues)
+          assertGet(keyValues, segment)
+      }
     }
 
     "add unsliced key-values to Segment's caches" in {
-      assertSegment(
-        keyValues = randomizedKeyValues(keyValuesCount),
+      TestCaseSweeper {
+        implicit sweeper =>
+          TestSweeper.createMemorySweeperMax().value.sweep()
 
-        testAgainAfterAssert = false,
+          assertSegment(
+            keyValues = randomizedKeyValues(keyValuesCount),
 
-        assert =
-          (keyValues, segment) =>
-            (0 until keyValues.size) foreach {
-              index =>
-                val keyValue = keyValues(index)
-                if (persistent) segment.getFromCache(keyValue.key).toOptional shouldBe empty
-                segment.get(keyValue.key, ThreadReadState.random).getUnsafe shouldBe keyValue
+            testAgainAfterAssert = false,
 
-                val gotFromCache = eventually(segment.getFromCache(keyValue.key).getUnsafe)
-                //underlying array sizes should not be slices but copies of arrays.
-                gotFromCache.key.underlyingArraySize shouldBe keyValue.key.toArray.length
+            assert =
+              (keyValues, segment) =>
+                (0 until keyValues.size) foreach {
+                  index =>
+                    val keyValue = keyValues(index)
+                    if (persistent) segment.getFromCache(keyValue.key).toOptional shouldBe empty
+                    segment.get(keyValue.key, ThreadReadState.random).getUnsafe shouldBe keyValue
 
-                gotFromCache match {
-                  case range: KeyValue.Range =>
-                    //if it's a range, toKey should also be unsliced.
-                    range.toKey.underlyingArraySize shouldBe keyValues.find(_.key == range.fromKey).value.key.toArray.length
-                  case _ =>
-                    gotFromCache.getOrFetchValue.map(_.underlyingArraySize) shouldBe keyValue.getOrFetchValue.map(_.toArray.length)
+                    val gotFromCache = eventually(segment.getFromCache(keyValue.key).getUnsafe)
+                    //underlying array sizes should not be slices but copies of arrays.
+                    gotFromCache.key.underlyingArraySize shouldBe keyValue.key.toArray.length
+
+                    gotFromCache match {
+                      case range: KeyValue.Range =>
+                        //if it's a range, toKey should also be unsliced.
+                        range.toKey.underlyingArraySize shouldBe keyValues.find(_.key == range.fromKey).value.key.toArray.length
+                      case _ =>
+                        gotFromCache.getOrFetchValue.map(_.underlyingArraySize) shouldBe keyValue.getOrFetchValue.map(_.toArray.length)
+                    }
                 }
-            }
-      )
+          )
+      }
     }
 
     "add read key values to cache" in {
-      runThis(20.times, log = true) {
-        assertSegment(
-          keyValues =
-            randomizedKeyValues(keyValuesCount),
+      TestCaseSweeper {
+        implicit sweeper =>
 
-          testAgainAfterAssert =
-            false,
+          runThis(20.times, log = true) {
+            assertSegment(
+              keyValues =
+                randomizedKeyValues(keyValuesCount),
 
-          assert =
-            (keyValues, segment) => {
-              val readState = ThreadReadState.random
+              testAgainAfterAssert =
+                false,
 
-              keyValues foreach {
-                keyValue =>
-                  if (persistent) segment isInKeyValueCache keyValue.key shouldBe false
-                  segment.get(keyValue.key, readState).getUnsafe shouldBe keyValue
-                  segment isInKeyValueCache keyValue.key shouldBe true
-              }
-            }
-        )
+              assert =
+                (keyValues, segment) => {
+                  val readState = ThreadReadState.random
+
+                  keyValues foreach {
+                    keyValue =>
+                      if (persistent) segment isInKeyValueCache keyValue.key shouldBe false
+                      segment.get(keyValue.key, readState).getUnsafe shouldBe keyValue
+                      segment isInKeyValueCache keyValue.key shouldBe true
+                  }
+                }
+            )
+          }
       }
     }
 
