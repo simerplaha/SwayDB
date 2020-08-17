@@ -542,7 +542,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
                     ),
                   segmentConfig =
                     SegmentBlock.Config.applyInternal(
-                      ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                      fileIOStrategy = _ => randomThreadSafeIOStrategy(cacheOnAccess = true),
+                      blockIOStrategy = _ => randomIOAccess(cacheOnAccess = true),
                       cacheBlocksOnCreate = false,
                       compressions = _ => compressions(4),
                       minSize = randomIntMax(2.mb),

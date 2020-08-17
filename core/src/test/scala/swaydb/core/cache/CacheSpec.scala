@@ -28,13 +28,14 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 
+import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
@@ -545,6 +546,51 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 
       doTest(isSynchronised = true)
       doTest(isSynchronised = false)
+    }
+  }
+
+
+  "clear and apply" should {
+    "apply before clearing atomically" in {
+      runThis(10.times, log = true) {
+        @volatile var count = 0
+
+        val cache =
+          Cache.io[swaydb.Error.Segment, Error.ReservedResource, Unit, Int](
+            strategy = eitherOne(IOStrategy.SynchronisedIO(true), IOStrategy.AsyncIO(true)),
+            reserveError = swaydb.Error.ReservedResource(Reserve.free(name = "test")),
+            initial = None
+          ) {
+            case (input, cache) =>
+              IO.Right(1)
+          }
+
+        val maxIterations = 1000000
+
+        @tailrec
+        def doApply(tried: Int): Unit = {
+          if (tried > 1000000)
+            fail("Unable to apply update")
+          else
+            cache.clearApply(_ => count += 1) match {
+              case IO.Right(_) =>
+                ()
+
+              case IO.Left(_: Error.ReservedResource) =>
+                doApply(tried + 1)
+            }
+        }
+
+        (1 to maxIterations).par foreach {
+          i =>
+            doApply(0)
+        }
+
+        count shouldBe maxIterations
+
+        cache.isCached shouldBe false
+        cache.isStored shouldBe true
+      }
     }
   }
 }

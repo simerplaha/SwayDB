@@ -58,6 +58,8 @@ private[core] object Cache {
       override def getOrElse[F >: E : IO.ExceptionHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
         IO[F, BB](output)
 
+      override def clearApply[T](f: Option[B] => T): IO[E, T] =
+        IO.failed(new Exception("ValueIO cannot be cleared"))
     }
 
   def emptyValuesBlock[E: IO.ExceptionHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
@@ -175,6 +177,15 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
   def getIO(): Option[IO.Right[E, O]]
   def get(): Option[O] = getIO().map(_.get)
 
+  /**
+   * Atomically applies the function to the stored value
+   * before clearing.
+   *
+   * This currently is only implemented for [[IOStrategy.ThreadSafe]] io strategies
+   * and is being used when closing [[swaydb.core.io.file.DBFile]]s.
+   */
+  def clearApply[T](f: Option[O] => T): IO[E, T]
+
   def getOrElse[F >: E : IO.ExceptionHandler, B >: O](f: => IO[F, B]): IO[F, B]
 
   def getSomeOrElse[F >: E : IO.ExceptionHandler, B >: O](f: => IO[F, Option[B]]): IO[F, Option[B]] =
@@ -212,9 +223,12 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
                 None
             }
         }
+
       override def clear(): Unit =
         self.clear()
 
+      override def clearApply[T](function: Option[B] => T): IO[F, T] =
+        ??? //TODO - currently not used.
     }
 
   //  def mapConcurrentStored[F >: E : IO.ExceptionHandler, O2](f: (O, Cache[F, I, O2]) => IO[F, O2]): Cache[F, I, O2] =
@@ -257,6 +271,9 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
         next.clear()
         self.clear()
       }
+
+      override def clearApply[T](f: Option[B] => T): IO[F, T] =
+        ??? //TODO - currently not used.
     }
 }
 
@@ -294,6 +311,8 @@ private class DeferredIO[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cac
   override def getIO(): Option[IO.Right[E, B]] =
     cache.get().flatMap(_.getIO())
 
+  override def clearApply[T](f: Option[B] => T): IO[E, T] =
+    ??? //TODO - currently not used.
 }
 
 private class SynchronisedIO[E: IO.ExceptionHandler, -I, +B](fetch: (I, Cache[E, I, B]) => IO[E, B],
@@ -316,6 +335,18 @@ private class SynchronisedIO[E: IO.ExceptionHandler, -I, +B](fetch: (I, Cache[E,
 
   override def getIO(): Option[IO.Right[E, B]] =
     lazyIO.get()
+
+  override def clearApply[T](f: Option[B] => T): IO[E, T] =
+    if (!lazyIO.synchronised) //todo should use types to disable non threadsafe IOStrategies.
+      IO.Left(throw new Exception("Implemented for only IOStrategies.ThreadSafe."))
+    else
+      lazyIO.clearApply {
+        case Some(value) =>
+          value.map(value => f(Some(value)))
+
+        case None =>
+          IO.Right(f(None))
+      }
 }
 
 /**
@@ -351,6 +382,21 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
 
   override def getIO(): Option[IO.Right[E, O]] =
     lazyIO.get()
+
+  override def clearApply[T](f: Option[O] => T): IO[E, T] =
+    if (Reserve.setBusyOrGet((), error.reserve).isEmpty)
+      try
+        lazyIO.clearApply {
+          case Some(value) =>
+            value.map(result => f(Some(result)))
+
+          case None =>
+            IO.Right(f(None))
+        } //check if it's set again in the block.
+      finally
+        Reserve.setFree(error.reserve)
+    else
+      IO.Left[E, T](error)
 }
 
 /**

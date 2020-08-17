@@ -448,7 +448,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
 
     DBFile.mmapWriteAndRead(
       path = path,
-      ioStrategy = randomIOStrategy(),
+      ioStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
       deleteOnClean = OperatingSystem.isWindows,
       blockCacheFileId = BlockCacheFileIDGenerator.nextID,
@@ -464,7 +464,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
     val file =
       DBFile.channelWrite(
         path = path,
-        ioStrategy = randomIOStrategy(),
+        ioStrategy = randomThreadSafeIOStrategy(),
         blockCacheFileId = blockCacheFileId,
         autoClose = true
       )
@@ -474,7 +474,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
 
     DBFile.mmapRead(
       path = path,
-      ioStrategy = randomIOStrategy(),
+      ioStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
       deleteOnClean = OperatingSystem.isWindows,
       blockCacheFileId = blockCacheFileId
@@ -487,7 +487,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
     new FileReader(
       DBFile.mmapRead(
         path = path.sweep(),
-        ioStrategy = randomIOStrategy(),
+        ioStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
         deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = BlockCacheFileIDGenerator.nextID
@@ -501,9 +501,15 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
   def createFileChannelFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
     import sweeper._
 
-    new FileReader(
-      DBFile.channelRead(path.sweep(), randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID)
-    )
+    val file =
+      DBFile.channelRead(
+        path = path.sweep(),
+        ioStrategy = randomThreadSafeIOStrategy(),
+        autoClose = true,
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID
+      )
+
+    new FileReader(file)
   }
 
   def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =

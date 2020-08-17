@@ -458,7 +458,8 @@ object TestData {
                cacheBlocksOnCreate: Boolean = randomBoolean(),
                cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
-        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
+        fileIOStrategy = _ => randomThreadSafeIOStrategy(cacheOnAccess),
+        blockIOStrategy = _ => randomIOStrategy(cacheOnAccess),
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         maxCount = maxKeyValuesPerSegment,
         minSize = minSegmentSize,
@@ -468,7 +469,8 @@ object TestData {
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
 
-    def random2(ioStrategy: IOAction => IOStrategy = _ => randomIOStrategy(),
+    def random2(fileIOStrategy: IOAction.OpenResource => IOStrategy.ThreadSafe = _ => randomThreadSafeIOStrategy(),
+                blockIOStrategy: IOAction => IOStrategy = _ => randomIOStrategy(),
                 cacheBlocksOnCreate: Boolean = randomBoolean(),
                 compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = _ => randomCompressionsOrEmpty(),
                 maxKeyValuesPerSegment: Int = randomIntMax(1000000),
@@ -477,7 +479,8 @@ object TestData {
                 pushForward: Boolean = randomBoolean(),
                 minSegmentSize: Int = randomIntMax(30.mb)): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
-        ioStrategy = ioStrategy,
+        fileIOStrategy = fileIOStrategy,
+        blockIOStrategy = blockIOStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         maxCount = maxKeyValuesPerSegment,
         minSize = minSegmentSize,

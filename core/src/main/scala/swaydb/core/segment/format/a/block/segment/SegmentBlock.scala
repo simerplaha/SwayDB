@@ -61,7 +61,10 @@ private[core] object SegmentBlock extends LazyLogging {
 
     def default =
       new Config(
-        ioStrategy = {
+        fileOpenIOStrategy = {
+          case IOAction.OpenResource => IOStrategy.SynchronisedIO(true)
+        },
+        blockIOStrategy = {
           case IOAction.OpenResource =>
             //cache so that files are kept in-memory
             IOStrategy.ConcurrentIO(cacheOnAccess = true)
@@ -85,7 +88,8 @@ private[core] object SegmentBlock extends LazyLogging {
 
     def apply(config: SegmentConfig): SegmentBlock.Config =
       apply(
-        ioStrategy = config.ioStrategy,
+        fileIOStrategy = config.fileIOStrategy,
+        blockIOStrategy = config.blockIOStrategy,
         cacheBlocksOnCreate = config.cacheSegmentBlocksOnCreate,
         minSize = config.minSegmentSize,
         maxCount = config.maxKeyValuesPerSegment,
@@ -95,7 +99,8 @@ private[core] object SegmentBlock extends LazyLogging {
         compressions = config.compression
       )
 
-    def apply(ioStrategy: IOAction => IOStrategy,
+    def apply(fileIOStrategy: IOAction.OpenResource => IOStrategy.ThreadSafe,
+              blockIOStrategy: IOAction => IOStrategy,
               cacheBlocksOnCreate: Boolean,
               minSize: Int,
               maxCount: Int,
@@ -104,7 +109,8 @@ private[core] object SegmentBlock extends LazyLogging {
               deleteEventually: Boolean,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       applyInternal(
-        ioStrategy = ioStrategy,
+        fileIOStrategy = fileIOStrategy,
+        blockIOStrategy = blockIOStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSize,
         maxCount = maxCount,
@@ -119,7 +125,8 @@ private[core] object SegmentBlock extends LazyLogging {
               .toSeq
       )
 
-    private[core] def applyInternal(ioStrategy: IOAction => IOStrategy,
+    private[core] def applyInternal(fileIOStrategy: IOAction.OpenResource => IOStrategy.ThreadSafe,
+                                    blockIOStrategy: IOAction => IOStrategy,
                                     cacheBlocksOnCreate: Boolean,
                                     minSize: Int,
                                     maxCount: Int,
@@ -128,7 +135,8 @@ private[core] object SegmentBlock extends LazyLogging {
                                     deleteEventually: Boolean,
                                     compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
       new Config(
-        ioStrategy = ioStrategy,
+        fileOpenIOStrategy = fileIOStrategy,
+        blockIOStrategy = blockIOStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSize max 1,
         maxCount = maxCount max 1,
@@ -139,7 +147,8 @@ private[core] object SegmentBlock extends LazyLogging {
       )
   }
 
-  class Config private(val ioStrategy: IOAction => IOStrategy,
+  class Config private(val fileOpenIOStrategy: IOAction.OpenResource => IOStrategy.ThreadSafe,
+                       val blockIOStrategy: IOAction => IOStrategy,
                        val cacheBlocksOnCreate: Boolean,
                        val minSize: Int,
                        val maxCount: Int,
@@ -150,7 +159,8 @@ private[core] object SegmentBlock extends LazyLogging {
 
     def copy(minSize: Int = minSize, maxCount: Int = maxCount, mmap: MMAP.Segment = mmap): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
-        ioStrategy = ioStrategy,
+        fileIOStrategy = fileOpenIOStrategy,
+        blockIOStrategy = blockIOStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSize,
         maxCount = maxCount,

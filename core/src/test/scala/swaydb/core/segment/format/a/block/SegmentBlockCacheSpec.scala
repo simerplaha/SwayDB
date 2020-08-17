@@ -144,7 +144,12 @@ class SegmentBlockCacheSpec extends TestBase {
 
             //initialise block cache
             val keyValues = randomizedKeyValues(100, startId = Some(1))
-            val segmentConfig = SegmentBlock.Config.random2(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false), false, _ => randomCompressions())
+            val segmentConfig =
+              SegmentBlock.Config.random2(
+                blockIOStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false),
+                cacheBlocksOnCreate = false,
+                compressions = _ => randomCompressions()
+              )
 
             val blockCache =
               getSegmentBlockCacheSingle(
@@ -231,8 +236,9 @@ class SegmentBlockCacheSpec extends TestBase {
                 binarySearchIndexConfig = BinarySearchIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
                 hashIndexConfig = HashIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
                 bloomFilterConfig = BloomFilterBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-                segmentConfig = SegmentBlock.Config.random2(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true), cacheBlocksOnCreate = false, _ => randomCompressions())
+                segmentConfig = SegmentBlock.Config.random2(blockIOStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true), cacheBlocksOnCreate = false, compressions = _ => randomCompressions())
               )
+
             blockCache.isCached shouldBe false
 
             //number of messages expected sweeper's Actor.

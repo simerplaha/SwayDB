@@ -717,7 +717,7 @@ class MapSpec extends TestBase {
           val nextFile = PersistentMap.nextFile(currentFile, MMAP.Disabled, 4.mb, skipList)
 
           val nextFileSkipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
-          val nextFileBytes = DBFile.channelRead(nextFile.path, randomIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).readAll
+          val nextFileBytes = DBFile.channelRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).readAll
           val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
           mapEntries applyTo nextFileSkipList
 

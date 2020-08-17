@@ -304,7 +304,7 @@ private[core] object Segment extends LazyLogging {
           path = path,
           autoClose = true,
           deleteOnClean = deleteOnClean,
-          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          ioStrategy = segmentIO.fileOpenIO(IOAction.OpenResource),
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           bytes = segmentBytes
         )
@@ -312,7 +312,7 @@ private[core] object Segment extends LazyLogging {
       case MMAP.ReadOnly(deleteOnClean) =>
         DBFile.mmapRead(
           path = Effect.write(path, segmentBytes),
-          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          ioStrategy = segmentIO.fileOpenIO(IOAction.OpenResource),
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           autoClose = true,
           deleteOnClean = deleteOnClean
@@ -321,7 +321,7 @@ private[core] object Segment extends LazyLogging {
       case _: MMAP.Disabled =>
         DBFile.channelRead(
           path = Effect.write(path, segmentBytes),
-          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          ioStrategy = segmentIO.fileOpenIO(IOAction.OpenResource),
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           autoClose = true
         )
@@ -526,7 +526,7 @@ private[core] object Segment extends LazyLogging {
         case _: MMAP.Enabled | _: MMAP.ReadOnly =>
           DBFile.mmapRead(
             path = path,
-            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+            ioStrategy = segmentIO.fileOpenIO(IOAction.OpenResource),
             blockCacheFileId = blockCacheFileId,
             autoClose = true,
             deleteOnClean = mmap.deleteOnClean,
@@ -536,7 +536,7 @@ private[core] object Segment extends LazyLogging {
         case _: MMAP.Disabled =>
           DBFile.channelRead(
             path = path,
-            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+            ioStrategy = segmentIO.fileOpenIO(IOAction.OpenResource),
             blockCacheFileId = blockCacheFileId,
             autoClose = true,
             checkExists = checkExists
@@ -624,7 +624,7 @@ private[core] object Segment extends LazyLogging {
         case _: MMAP.Enabled | _: MMAP.ReadOnly =>
           DBFile.mmapRead(
             path = path,
-            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+            ioStrategy = segmentIO.fileOpenIO(IOAction.OpenResource),
             blockCacheFileId = BlockCacheFileIDGenerator.nextID,
             autoClose = false,
             deleteOnClean = mmap.deleteOnClean,
@@ -634,7 +634,7 @@ private[core] object Segment extends LazyLogging {
         case _: MMAP.Disabled =>
           DBFile.channelRead(
             path = path,
-            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+            ioStrategy = segmentIO.fileOpenIO(IOAction.OpenResource),
             blockCacheFileId = BlockCacheFileIDGenerator.nextID,
             autoClose = false,
             checkExists = checkExists

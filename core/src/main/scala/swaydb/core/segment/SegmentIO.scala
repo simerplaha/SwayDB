@@ -36,6 +36,7 @@ private[core] object SegmentIO {
 
   def defaultSynchronisedStoredIfCompressed =
     new SegmentIO(
+      fileOpenIO = IOStrategy.defaultSynchronised,
       segmentBlockIO = IOStrategy.defaultSynchronised,
       hashIndexBlockIO = IOStrategy.defaultSynchronised,
       bloomFilterBlockIO = IOStrategy.defaultSynchronised,
@@ -52,17 +53,19 @@ private[core] object SegmentIO {
             valuesConfig: ValuesBlock.Config,
             segmentConfig: SegmentBlock.Config): SegmentIO =
     new SegmentIO(
-      segmentBlockIO = segmentConfig.ioStrategy,
+      fileOpenIO = IOStrategy.defaultSynchronised,
+      segmentBlockIO = segmentConfig.blockIOStrategy,
       hashIndexBlockIO = hashIndexConfig.ioStrategy,
       bloomFilterBlockIO = bloomFilterConfig.ioStrategy,
       binarySearchIndexBlockIO = binarySearchIndexConfig.ioStrategy,
       sortedIndexBlockIO = sortedIndexConfig.ioStrategy,
       valuesBlockIO = valuesConfig.ioStrategy,
-      segmentFooterBlockIO = segmentConfig.ioStrategy
+      segmentFooterBlockIO = segmentConfig.blockIOStrategy
     )
 }
 
-private[core] case class SegmentIO(segmentBlockIO: IOAction => IOStrategy,
+private[core] case class SegmentIO(fileOpenIO: IOAction.OpenResource => IOStrategy.ThreadSafe,
+                                   segmentBlockIO: IOAction => IOStrategy,
                                    hashIndexBlockIO: IOAction => IOStrategy,
                                    bloomFilterBlockIO: IOAction => IOStrategy,
                                    binarySearchIndexBlockIO: IOAction => IOStrategy,

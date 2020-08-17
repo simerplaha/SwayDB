@@ -1518,6 +1518,13 @@ object CommonAssertions {
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
 
+  def randomThreadSafeIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
+                                 includeReserved: Boolean = true): IOStrategy.ThreadSafe =
+    if (cacheOnAccess && includeReserved && randomBoolean())
+      IOStrategy.AsyncIO(cacheOnAccess = true) //this not being stored will result in too many retries.
+    else
+      IOStrategy.SynchronisedIO(cacheOnAccess)
+
   def randomIOStrategyWithCacheOnAccess(cacheOnAccess: Boolean): IOStrategy =
     if (randomBoolean())
       IOStrategy.SynchronisedIO(cacheOnAccess)
@@ -1732,6 +1739,7 @@ object CommonAssertions {
     def random(cacheOnAccess: Boolean = randomBoolean(),
                includeReserved: Boolean = true): SegmentIO =
       SegmentIO(
+        fileOpenIO = _ => randomThreadSafeIOStrategy(cacheOnAccess, includeReserved),
         segmentBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
         hashIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
         bloomFilterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),

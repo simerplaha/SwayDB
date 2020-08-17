@@ -30,7 +30,7 @@ import java.nio.file.{NoSuchFileException, Path, Paths, StandardOpenOption}
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.core.CommonAssertions.randomIOStrategy
+import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.RunThis._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
@@ -63,7 +63,7 @@ class ByteBufferSweeperSpec extends TestBase {
           val file: DBFile =
             DBFile.mmapWriteAndRead(
               path = randomDir,
-              ioStrategy = randomIOStrategy(cacheOnAccess = true),
+              ioStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               deleteOnClean = OperatingSystem.isWindows,
               blockCacheFileId = BlockCacheFileIDGenerator.nextID,
@@ -96,7 +96,7 @@ class ByteBufferSweeperSpec extends TestBase {
                   IO {
                     DBFile.mmapWriteAndRead(
                       path = randomDir,
-                      ioStrategy = randomIOStrategy(cacheOnAccess = true),
+                      ioStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                       autoClose = true,
                       deleteOnClean = OperatingSystem.isWindows,
                       blockCacheFileId = BlockCacheFileIDGenerator.nextID,

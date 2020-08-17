@@ -37,7 +37,8 @@ class SegmentConfigBuilder {
   private var mmap: MMAP.Segment = _
   private var minSegmentSize: Int = _
   private var maxKeyValuesPerSegment: Int = _
-  private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
+  private var fileIOStrategy: JavaFunction[IOAction.OpenResource, IOStrategy.ThreadSafe] = _
+  private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
 
 object SegmentConfigBuilder {
@@ -85,13 +86,20 @@ object SegmentConfigBuilder {
   }
 
   class Step6(builder: SegmentConfigBuilder) {
-    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
-      builder.ioStrategy = ioStrategy
+    def blockIOStrategy(fileIOStrategy: JavaFunction[IOAction.OpenResource, IOStrategy.ThreadSafe]) = {
+      builder.fileIOStrategy = fileIOStrategy
       new Step7(builder)
     }
   }
 
   class Step7(builder: SegmentConfigBuilder) {
+    def blockIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
+      builder.blockIOStrategy = ioStrategy
+      new Step8(builder)
+    }
+  }
+
+  class Step8(builder: SegmentConfigBuilder) {
     def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       new SegmentConfig(
         cacheSegmentBlocksOnCreate = builder.cacheSegmentBlocksOnCreate,
@@ -100,7 +108,8 @@ object SegmentConfigBuilder {
         mmap = builder.mmap,
         minSegmentSize = builder.minSegmentSize,
         maxKeyValuesPerSegment = builder.maxKeyValuesPerSegment,
-        ioStrategy = builder.ioStrategy.apply,
+        fileIOStrategy = builder.fileIOStrategy.apply,
+        blockIOStrategy = builder.blockIOStrategy.apply,
         compression = compression.apply(_).asScala
       )
   }

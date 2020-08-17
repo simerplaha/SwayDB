@@ -109,7 +109,8 @@ object DefaultConfigs {
       mmap = MMAP.Disabled,
       minSegmentSize = 8.mb,
       maxKeyValuesPerSegment = Int.MaxValue,
-      ioStrategy = {
+      fileIOStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+      blockIOStrategy = {
         case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)

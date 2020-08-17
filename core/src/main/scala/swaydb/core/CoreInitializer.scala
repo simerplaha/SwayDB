@@ -167,7 +167,8 @@ private[core] object CoreInitializer extends LazyLogging {
             valuesConfig = ValuesBlock.Config.disabled,
             segmentConfig =
               SegmentBlock.Config(
-                ioStrategy = _ => IOStrategy.ConcurrentIO(false),
+                fileIOStrategy = _ => IOStrategy.AsyncIO(false),
+                blockIOStrategy = _ => IOStrategy.ConcurrentIO(false),
                 cacheBlocksOnCreate = false,
                 minSize = config.minSegmentSize,
                 maxCount = config.maxKeyValuesPerSegment,

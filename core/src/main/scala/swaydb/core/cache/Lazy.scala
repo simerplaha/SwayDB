@@ -60,10 +60,12 @@ protected sealed trait Lazy[A] {
   def isDefined: Boolean
   def isEmpty: Boolean
   def clear(): Unit
+  def clearApply[T](f: Option[A] => T): T
   def stored: Boolean
+  def synchronised: Boolean
 }
 
-private[swaydb] class LazyValue[A](synchronised: Boolean, val stored: Boolean) extends Lazy[A] {
+private[swaydb] class LazyValue[A](val synchronised: Boolean, val stored: Boolean) extends Lazy[A] {
 
   @volatile private var cache: Option[A] = None
 
@@ -103,6 +105,22 @@ private[swaydb] class LazyValue[A](synchronised: Boolean, val stored: Boolean) e
       }
     }
 
+  override def clearApply[T](f: Option[A] => T): T =
+    if (stored)
+      if (synchronised) {
+        this.synchronized {
+          val got = f(get())
+          clear()
+          got
+        }
+      } else {
+        val got = f(get())
+        clear()
+        got
+      }
+    else
+      f(None)
+
   def getOrElse[B >: A](f: => B): B =
     get() getOrElse f
 
@@ -127,6 +145,9 @@ private[swaydb] class LazyIO[E: IO.ExceptionHandler, A](lazyValue: LazyValue[IO.
   def stored =
     lazyValue.stored
 
+  def synchronised: Boolean =
+    lazyValue.synchronised
+
   def set(value: => IO[E, A]): IO[E, A] =
     try
       lazyValue set IO.Right(value.get)
@@ -145,6 +166,9 @@ private[swaydb] class LazyIO[E: IO.ExceptionHandler, A](lazyValue: LazyValue[IO.
       case exception: Exception =>
         IO.failed[E, A](exception)
     }
+
+  override def clearApply[T](f: Option[IO[E, A]] => T): T =
+    lazyValue clearApply f
 
   override def getOrElse[B >: IO[E, A]](f: => B): B =
     lazyValue getOrElse f
@@ -169,4 +193,5 @@ private[swaydb] class LazyIO[E: IO.ExceptionHandler, A](lazyValue: LazyValue[IO.
 
   override def clear(): Unit =
     lazyValue.clear()
+
 }

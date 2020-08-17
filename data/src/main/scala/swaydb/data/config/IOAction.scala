@@ -32,24 +32,25 @@ sealed trait IOAction {
 }
 
 object IOAction {
-  case object OpenResource extends IOAction {
+  sealed trait OpenResource extends IOAction {
     override def isCompressed: Boolean = false
     override def isOpenResource: Boolean = true
     override def isReadDataOverview: Boolean = false
     override def isReadCompressedData: Boolean = false
     override def isReadUncompressedData: Boolean = false
   }
+  case object OpenResource extends OpenResource
 
-  case object ReadDataOverview extends IOAction {
+  sealed trait ReadDataOverview extends IOAction {
     override def isCompressed: Boolean = false
     override def isOpenResource: Boolean = false
     override def isReadDataOverview: Boolean = true
     override def isReadCompressedData: Boolean = false
     override def isReadUncompressedData: Boolean = false
   }
+  case object ReadDataOverview extends ReadDataOverview
 
   sealed trait DataAction extends IOAction
-
   case class ReadCompressedData(compressedSize: Int, decompressedSize: Int) extends DataAction {
     override def isCompressed: Boolean = true
     override def isOpenResource: Boolean = false

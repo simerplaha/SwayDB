@@ -22,6 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 package swaydb.data.config
+
 import swaydb.data.util.Java.JavaFunction
 
 import scala.compat.java8.FunctionConverters._
@@ -30,7 +31,19 @@ sealed trait IOStrategy {
   def cacheOnAccess: Boolean
   def forceCacheOnAccess: IOStrategy
 }
+
 object IOStrategy {
+
+  /**
+   * Allows for only a single Thread to access a resource.
+   * This can be synchronous [[IOStrategy.SynchronisedIO]] or
+   * asynchronous [[IOStrategy.AsyncIO]].
+   *
+   * [[IOStrategy.ConcurrentIO]] is used for files that are already
+   * open and are being concurrently being read either via in-memory cached
+   * bytes or directly via disk IO.
+   */
+  sealed trait ThreadSafe extends IOStrategy
 
   /**
    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadCompressedData]]
@@ -69,11 +82,12 @@ object IOStrategy {
     def forceCacheOnAccess: ConcurrentIO =
       copy(cacheOnAccess = true)
   }
-  case class SynchronisedIO(cacheOnAccess: Boolean) extends IOStrategy {
+
+  case class SynchronisedIO(cacheOnAccess: Boolean) extends ThreadSafe {
     def forceCacheOnAccess: SynchronisedIO =
       copy(cacheOnAccess = true)
   }
-  case class AsyncIO(cacheOnAccess: Boolean) extends IOStrategy {
+  case class AsyncIO(cacheOnAccess: Boolean) extends ThreadSafe {
     def forceCacheOnAccess: AsyncIO =
       copy(cacheOnAccess = true)
   }

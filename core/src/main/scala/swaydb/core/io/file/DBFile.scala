@@ -44,7 +44,7 @@ object DBFile extends LazyLogging {
   def fileCache(filePath: Path,
                 memoryMapped: Boolean,
                 deleteOnClean: Boolean,
-                ioStrategy: IOStrategy,
+                ioStrategy: IOStrategy.ThreadSafe,
                 file: Option[DBFileType],
                 blockCacheFileId: Long,
                 autoClose: Boolean)(implicit fileSweeper: FileSweeperActor,
@@ -65,11 +65,7 @@ object DBFile extends LazyLogging {
         }
 
         override def close(): Unit =
-          self.get() foreach {
-            fileType =>
-              fileType.close()
-              self.clear()
-          }
+          self.clearApply(_.foreach(_.close()))
 
         override def isOpen: Boolean =
           self.getIO().exists(_.exists(_.isOpen))
@@ -77,6 +73,10 @@ object DBFile extends LazyLogging {
 
     val cache =
       Cache.io[swaydb.Error.IO, Error.OpeningFile, Unit, DBFileType](
+        //force the cache to be cacheOnAccess regardless of what's configured.
+        //This is also needed because only a single thread can close or delete a
+        //file using clearApply and stored cached is required otherwise this will lead
+        //to many open FileChannels without reference which results in "too many files open" exception.
         strategy = ioStrategy.forceCacheOnAccess,
         reserveError = Error.OpeningFile(filePath, Reserve.free(name = s"DBFile: $filePath. MemoryMapped: $memoryMapped")),
         initial = file
@@ -112,7 +112,7 @@ object DBFile extends LazyLogging {
   }
 
   def channelWrite(path: Path,
-                   ioStrategy: IOStrategy,
+                   ioStrategy: IOStrategy.ThreadSafe,
                    blockCacheFileId: Long,
                    autoClose: Boolean)(implicit fileSweeper: FileSweeperActor,
                                        blockCache: Option[BlockCache.State],
@@ -138,7 +138,7 @@ object DBFile extends LazyLogging {
   }
 
   def channelRead(path: Path,
-                  ioStrategy: IOStrategy,
+                  ioStrategy: IOStrategy.ThreadSafe,
                   autoClose: Boolean,
                   blockCacheFileId: Long,
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeperActor,
@@ -167,7 +167,7 @@ object DBFile extends LazyLogging {
     }
 
   def mmapWriteAndRead(path: Path,
-                       ioStrategy: IOStrategy,
+                       ioStrategy: IOStrategy.ThreadSafe,
                        autoClose: Boolean,
                        deleteOnClean: Boolean,
                        blockCacheFileId: Long,
@@ -198,7 +198,7 @@ object DBFile extends LazyLogging {
   }
 
   def mmapWriteAndRead(path: Path,
-                       ioStrategy: IOStrategy,
+                       ioStrategy: IOStrategy.ThreadSafe,
                        autoClose: Boolean,
                        deleteOnClean: Boolean,
                        blockCacheFileId: Long,
@@ -224,7 +224,7 @@ object DBFile extends LazyLogging {
     }
 
   def mmapRead(path: Path,
-               ioStrategy: IOStrategy,
+               ioStrategy: IOStrategy.ThreadSafe,
                autoClose: Boolean,
                deleteOnClean: Boolean,
                blockCacheFileId: Long,
@@ -254,7 +254,7 @@ object DBFile extends LazyLogging {
     }
 
   def mmapInit(path: Path,
-               ioStrategy: IOStrategy,
+               ioStrategy: IOStrategy.ThreadSafe,
                bufferSize: Long,
                blockCacheFileId: Long,
                autoClose: Boolean,
@@ -310,26 +310,27 @@ class DBFile(val path: Path,
   def file: DBFileType =
     fileCache.value(()).get
 
-  def delete(): Unit = {
-    //close the file
-    close()
-    //try delegating the delete to the file itself.
-    //If the file is already closed, then delete it from disk.
-    //memory files are never closed so the first statement will always be executed for memory files.
-    if (deleteOnClean)
-      bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
-    else
-      fileCache.get().map(_.delete()) getOrElse Effect.deleteIfExists(path)
+  def delete(): Unit =
+    fileCache.clearApply {
+      case Some(file) =>
+        file.close()
+        //try delegating the delete to the file itself.
+        //If the file is already closed, then delete it from disk.
+        //memory files are never closed so the first statement will always be executed for memory files.
+        if (deleteOnClean)
+          bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
+        else
+          file.delete()
 
-    fileCache.clear()
-  }
+      case None =>
+        if (deleteOnClean)
+          bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
+        else
+          Effect.deleteIfExists(path)
+    }
 
   def close(): Unit =
-    fileCache.get() foreach {
-      file =>
-        file.close()
-        fileCache.clear()
-    }
+    fileCache.clearApply(_.foreach(_.close()))
 
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): Path = {
