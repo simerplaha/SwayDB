@@ -257,10 +257,7 @@ object TestData {
         _ =>
           level.closeSegments flatMap {
             _ =>
-              implicit val fileSweeper = level.fileSweeper
-              implicit val blockCache = level.blockCache
-              implicit val bufferCleaner = level.bufferCleaner
-              implicit val keyValueSweeper = level.keyValueMemorySweeper
+              import sweeper._
 
               Level(
                 bloomFilterConfig = level.bloomFilterConfig,

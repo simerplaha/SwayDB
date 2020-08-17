@@ -90,15 +90,22 @@ object TestCaseSweeper extends LazyLogging {
 
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 
-    //calling this after since delete would've already invoked these.
+    //CLOSE - close everything first so that Actors sweepers get populated with Clean messages
+    sweeper.maps.foreach(_.close())
+    sweeper.segments.foreach(_.close)
+    sweeper.sweepables.foreach(_.close())
+    def closeLevels = Future.sequence(sweeper.levels.map(_.close(5.second)))
+    IO.fromFuture(closeLevels).run(0).await(10.seconds)
+
+    //TERMINATE - terminate all initialised actors
     sweeper.keyValueMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
     sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.closeSync(1.second)(sweeper, Bag.less)))
     sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.closeSync(1.second, 10.seconds)(cleaner, Bag.less, TestExecutionContext.executionContext)))
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
 
-    def future = Future.sequence(sweeper.levels.map(_.delete(5.second)))
-
-    IO.fromFuture(future).run(0).await(10.seconds)
+    //DELTE - delete after closing Levels.
+    def deleteLevels = Future.sequence(sweeper.levels.map(_.delete(5.second)))
+    IO.fromFuture(deleteLevels).run(0).await(10.seconds)
 
     sweeper.segments.foreach {
       segment =>
@@ -117,6 +124,14 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.sweepables.foreach(_.delete())
 
     sweeper.paths.foreach(Effect.walkDelete)
+  }
+
+  private def receiveAll(sweeper: TestCaseSweeper): Unit = {
+    //calling this after since delete would've already invoked these.
+    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForceBlocking(Int.MaxValue, 2.seconds)))))
+    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForceBlocking(Int.MaxValue, 2.seconds)))
+    sweeper.cleaners.foreach(_.get().foreach(_.get().foreach(_.receiveAllForceBlocking(Int.MaxValue, 2.seconds))))
+    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForceBlocking(Int.MaxValue, 2.seconds)))))
   }
 
   def apply[T](code: TestCaseSweeper => T): T = {
@@ -231,9 +246,9 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val sweepables: ListBuffer[Sweepable[Any]]) {
 
 
-  implicit lazy val fileSweeper = fileSweepers.head.value(())
-  implicit lazy val cleaner = cleaners.head.value(())
-  implicit lazy val blockCache = blockCaches.head.value(())
+  implicit lazy val fileSweeper: FileSweeperActor = fileSweepers.head.value(())
+  implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.value(())
+  implicit lazy val blockCache: Option[BlockCache.State] = blockCaches.head.value(())
 
   //MemorySweeper.All can also be set which means other sweepers will search for dedicated sweepers first and
   //if not found then the head from allMemorySweeper is fetched.
@@ -333,4 +348,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
    */
   def terminateNow(): Unit =
     TestCaseSweeper.terminate(this)
+
+  def receiveAll(): Unit =
+    TestCaseSweeper.receiveAll(this)
 }

@@ -97,6 +97,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
 
   def appendixStorageMMAP: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows)
 
+  def isWindowsAndMMAPSegments(): Boolean =
+    OperatingSystem.isWindows && mmapSegments.mmapReads && mmapSegments.mmapWrites
+
   def inMemoryStorage = false
 
   def nextTime(implicit testTimer: TestTimer): Time =
@@ -242,8 +245,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
       }
 
       testMap.sweep()
-
-      testMap
     }
   }
 
@@ -366,18 +367,21 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
                                                       sweeper: TestCaseSweeper): Level = {
       import sweeper._
 
-      Level(
-        levelStorage = levelStorage,
-        appendixStorage = appendixStorage,
-        nextLevel = nextLevel,
-        throttle = throttle,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      ).flatMap {
+      val level =
+        Level(
+          levelStorage = levelStorage,
+          appendixStorage = appendixStorage,
+          nextLevel = nextLevel,
+          throttle = throttle,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
+
+      level.flatMap {
         level =>
           level.putKeyValuesTest(keyValues) map {
             _ =>

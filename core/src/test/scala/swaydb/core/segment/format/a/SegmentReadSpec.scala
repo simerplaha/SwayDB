@@ -35,6 +35,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
+import swaydb.core.io.file.Effect
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, SegmentIO}
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
@@ -828,7 +829,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
   "getAllKeyValues" should {
     "value KeyValues from multiple Segments" in {
-      runThis(10.times) {
+      runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
             val keyValues1 = randomizedKeyValues(keyValuesCount)
@@ -864,53 +865,63 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
           segment3.delete //delete a segment so that there is a failure.
 
+          if (isWindowsAndMMAPSegments()) {
+            sweeper.receiveAll() //execute all messages so that delete occurs.
+            //ensure that file does not exist because reading otherwise on windows it will reopen the the ByteBuffer
+            //which leads to AccessDenied.
+            eventual(1.minute)(Effect.notExists(segment3.path) shouldBe true)
+          }
+
           IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.value.exception shouldBe a[NoSuchFileException]
       }
     }
 
     "fail read if reading any one Segment file is corrupted" in {
-      if (persistent) {
-        TestCaseSweeper {
-          implicit sweeper =>
-            runThis(100.times, log = true) {
-              val keyValues1 = randomizedKeyValues(keyValuesCount)
-              val keyValues2 = randomizedKeyValues(keyValuesCount)
-              val keyValues3 = randomizedKeyValues(keyValuesCount)
+      //Ignoring for windows MMAP because even after closing the files Windows not allow altering the unmapped file's Bytes.
+      //Exception - The requested operation cannot be performed on a file with a user-mapped section open.
+      if (persistent)
+        if (isWindowsAndMMAPSegments())
+          cancel("Test does not apply to Windows with MMAP files.")
+        else
+          TestCaseSweeper {
+            implicit sweeper =>
+              runThis(100.times, log = true) {
+                val keyValues1 = randomizedKeyValues(keyValuesCount)
+                val keyValues2 = randomizedKeyValues(keyValuesCount)
+                val keyValues3 = randomizedKeyValues(keyValuesCount)
 
-              val segment1 = TestSegment(keyValues1)
-              val segment2 = TestSegment(keyValues2)
-              val segment3 = TestSegment(keyValues3)
+                val segment1 = TestSegment(keyValues1)
+                val segment2 = TestSegment(keyValues2)
+                val segment3 = TestSegment(keyValues3)
 
-              def clearAll() = {
-                segment1.clearAllCaches()
-                segment2.clearAllCaches()
-                segment3.clearAllCaches()
+                def clearAll() = {
+                  segment1.clearAllCaches()
+                  segment2.clearAllCaches()
+                  segment3.clearAllCaches()
+                }
+
+                val bytes = Files.readAllBytes(segment2.path)
+
+                //FIXME this should result in DataAccess
+
+                Files.write(segment2.path, bytes.drop(1))
+                clearAll()
+                IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+
+                Files.write(segment2.path, bytes.dropRight(1))
+                clearAll()
+                IO(Segment.getAllKeyValues(Seq(segment2))).left.runRandomIO.get shouldBe a[swaydb.Error]
+
+                Files.write(segment2.path, bytes.drop(10))
+                clearAll()
+                IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+
+                Files.write(segment2.path, bytes.dropRight(1))
+                clearAll()
+                IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
               }
-
-              val bytes = Files.readAllBytes(segment2.path)
-
-              //FIXME this should result in DataAccess
-
-              Files.write(segment2.path, bytes.drop(1))
-              clearAll()
-              IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
-
-              Files.write(segment2.path, bytes.dropRight(1))
-              clearAll()
-              IO(Segment.getAllKeyValues(Seq(segment2))).left.runRandomIO.get shouldBe a[swaydb.Error]
-
-              Files.write(segment2.path, bytes.drop(10))
-              clearAll()
-              IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
-
-              Files.write(segment2.path, bytes.dropRight(1))
-              clearAll()
-              IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
-            }
-        }
-      } else {
-        //memory files do not require this test
-      }
+          }
+      //memory files do not require this test
     }
   }
 

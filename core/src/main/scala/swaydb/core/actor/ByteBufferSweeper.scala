@@ -252,6 +252,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
         IO {
           cleaner.clean(buffer)
           ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
+          logger.debug(s"${command.filePath} Cleaned!")
           state
         } onLeftSideEffect {
           error =>
@@ -265,6 +266,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           cleaner =>
             state.cleaner = Some(cleaner)
             ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
+            logger.debug(s"${command.filePath} Cleaned!")
             state
         }
     }
