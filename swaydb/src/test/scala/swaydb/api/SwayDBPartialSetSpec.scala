@@ -30,6 +30,9 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import org.scalatest.OptionValues._
 import swaydb.core.RunThis._
+import swaydb.core.TestCaseSweeper
+import TestCaseSweeper._
+
 import scala.concurrent.duration._
 
 object SwayDBPartialSetSpec {
@@ -58,51 +61,53 @@ class SwayDBPartialSet_Persistent_Spec extends SwayDBPartialSetSpec {
 
   import SwayDBPartialSetSpec._
 
-  override def newDB(): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less] =
-    swaydb.persistent.Set[(Int, Option[String]), Nothing, Bag.Less](randomDir, mapSize = 10.bytes)
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less] =
+    swaydb.persistent.Set[(Int, Option[String]), Nothing, Bag.Less](randomDir, mapSize = 10.bytes).sweep()
 }
 
 class SwayDBPartialSet_Memory_Spec extends SwayDBPartialSetSpec {
 
   import SwayDBPartialSetSpec._
 
-  override def newDB(): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less] =
-    swaydb.memory.Set[(Int, Option[String]), Nothing, Bag.Less](mapSize = 10.bytes)
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less] =
+    swaydb.memory.Set[(Int, Option[String]), Nothing, Bag.Less](mapSize = 10.bytes).sweep()
 }
 
 trait SwayDBPartialSetSpec extends TestBaseEmbedded {
 
   val keyValueCount = 1000
 
-  def newDB(): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less]
 
   "read partially ordered key-values" in {
     runThis(times = repeatTest, log = true) {
-      val set = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val keyValues =
-        (1 to 1000) map {
-          i =>
-            val keyValues = (i, Some(s"value $i"))
-            set.add(keyValues)
-            keyValues
-        }
+          val set = newDB()
 
-      def assertReads() = {
-        (1 to 1000) foreach {
-          i =>
-            set.get((i, None)).value shouldBe ((i, Some(s"value $i")))
-        }
+          val keyValues =
+            (1 to 1000) map {
+              i =>
+                val keyValues = (i, Some(s"value $i"))
+                set.add(keyValues)
+                keyValues
+            }
 
-        set.stream.materialize[Bag.Less].toList shouldBe keyValues
-        set.reverse.stream.materialize[Bag.Less].toList shouldBe keyValues.reverse
+          def assertReads() = {
+            (1 to 1000) foreach {
+              i =>
+                set.get((i, None)).value shouldBe ((i, Some(s"value $i")))
+            }
+
+            set.stream.materialize[Bag.Less].toList shouldBe keyValues
+            set.reverse.stream.materialize[Bag.Less].toList shouldBe keyValues.reverse
+          }
+
+          assertReads()
+          sleep(5.seconds)
+          assertReads()
       }
-
-      assertReads()
-      sleep(5.seconds)
-      assertReads()
-
-      set.close()
     }
   }
 }

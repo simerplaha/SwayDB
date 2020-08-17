@@ -21,6 +21,8 @@ package swaydb.multimap
 
 import org.scalatest.OptionValues._
 import swaydb.api.TestBaseEmbedded
+import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -30,30 +32,35 @@ import swaydb.{Apply, Bag, MultiMap, Prepare, PureFunction}
 import scala.concurrent.duration._
 
 class MultiMapFunctionsSpec0 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
-    swaydb.persistent.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir)
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+                       sweeper: TestCaseSweeper) =
+    swaydb.persistent.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir).sweep()
 }
 
 class MultiMapFunctionsSpec1 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
-    swaydb.persistent.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir, mapSize = 1.byte)
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+                       sweeper: TestCaseSweeper) =
+    swaydb.persistent.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir, mapSize = 1.byte).sweep()
 }
 
 class MultiMapFunctionsSpec2 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
-    swaydb.memory.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]()
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+                       sweeper: TestCaseSweeper) =
+    swaydb.memory.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]().sweep()
 }
 
 class MultiMapFunctionsSpec3 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
-    swaydb.memory.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](mapSize = 1.byte)
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+                       sweeper: TestCaseSweeper) =
+    swaydb.memory.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](mapSize = 1.byte).sweep()
 }
 
 sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int = 30
 
-  def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]): MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]
+  def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+              sweeper: TestCaseSweeper): MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]
 
   implicit val bag = Bag.less
 
@@ -85,48 +92,50 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
     implicit val functions = swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]](onKeyValueFunction, onValueFunction, onKeyFunction)
 
     "single" in {
-      val map = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      (1 to 30).foreach(i => map.put(i, i.toString))
-      (1 to 30).foreach(i => map.get(i).value shouldBe i.toString)
+          val map = newDB()
 
-      //apply functions individually
-      map.applyFunction(1, 10, onKeyValueFunction)
-      map.applyFunction(11, 19, onValueFunction)
-      map.applyFunction(20, onValueFunction)
-      map.applyFunction(21, 29, onKeyFunction)
-      map.applyFunction(30, onKeyFunction)
+          (1 to 30).foreach(i => map.put(i, i.toString))
+          (1 to 30).foreach(i => map.get(i).value shouldBe i.toString)
 
-      //assert
-      (1 to 10).foreach(i => map.get(i).value shouldBe "updated1")
-      (11 to 20).foreach(i => map.get(i).value shouldBe "updated2")
-      (21 to 30).foreach(i => map.get(i).value shouldBe "updated3")
+          //apply functions individually
+          map.applyFunction(1, 10, onKeyValueFunction)
+          map.applyFunction(11, 19, onValueFunction)
+          map.applyFunction(20, onValueFunction)
+          map.applyFunction(21, 29, onKeyFunction)
+          map.applyFunction(30, onKeyFunction)
 
-      map.close()
+          //assert
+          (1 to 10).foreach(i => map.get(i).value shouldBe "updated1")
+          (11 to 20).foreach(i => map.get(i).value shouldBe "updated2")
+          (21 to 30).foreach(i => map.get(i).value shouldBe "updated3")
+      }
     }
 
     "batch" in {
-      val map = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      (1 to 30).foreach(i => map.put(i, i.toString))
-      (1 to 30).foreach(i => map.get(i).value shouldBe i.toString)
+          val map = newDB()
 
-      //apply functions as batch
-      map.commit(
-        Prepare.ApplyFunction(1, 9, onKeyValueFunction),
-        Prepare.ApplyFunction(10, onKeyValueFunction), //non range commit
-        Prepare.ApplyFunction(11, 20, onValueFunction),
-        Prepare.ApplyFunction(21, 29, onKeyFunction),
-        Prepare.ApplyFunction(30, onKeyFunction) //non range
-      )
+          (1 to 30).foreach(i => map.put(i, i.toString))
+          (1 to 30).foreach(i => map.get(i).value shouldBe i.toString)
 
-      (1 to 10).foreach(i => map.get(i).value shouldBe "updated1")
-      (11 to 20).foreach(i => map.get(i).value shouldBe "updated2")
-      (21 to 30).foreach(i => map.get(i).value shouldBe "updated3")
+          //apply functions as batch
+          map.commit(
+            Prepare.ApplyFunction(1, 9, onKeyValueFunction),
+            Prepare.ApplyFunction(10, onKeyValueFunction), //non range commit
+            Prepare.ApplyFunction(11, 20, onValueFunction),
+            Prepare.ApplyFunction(21, 29, onKeyFunction),
+            Prepare.ApplyFunction(30, onKeyFunction) //non range
+          )
 
-      map.close()
+          (1 to 10).foreach(i => map.get(i).value shouldBe "updated1")
+          (11 to 20).foreach(i => map.get(i).value shouldBe "updated2")
+          (21 to 30).foreach(i => map.get(i).value shouldBe "updated3")
+      }
     }
-
   }
-
 }

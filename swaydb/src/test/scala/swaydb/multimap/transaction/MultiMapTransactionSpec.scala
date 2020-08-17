@@ -25,8 +25,10 @@
 package swaydb.multimap.transaction
 
 import org.scalatest.OptionValues._
-import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import swaydb.api.TestBaseEmbedded
+import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
 import swaydb.multimap.transaction.PrimaryKey._
 import swaydb.multimap.transaction.Row._
 import swaydb.multimap.transaction.Table._
@@ -38,77 +40,79 @@ class MultiMapTransactionSpec extends TestBaseEmbedded {
   override val keyValueCount: Int = 1000
 
   "transaction" when {
-    implicit val bag = Bag.less
+    TestCaseSweeper {
+      implicit sweeper =>
 
-    //Create a memory database
-    val root = swaydb.memory.MultiMap[Table, PrimaryKey, Row, Nothing, Bag.Less]()
+        implicit val bag = Bag.less
 
-    //create sibling1 UserMap and it's child UserActivity
-    val userMap = root.schema.init(Table.User: Table.UserTables, classOf[PrimaryKey.UserPrimaryKeys], classOf[Row.UserRows])
-    val userActivityMap = userMap.schema.init(Table.Activity, classOf[PrimaryKey.Activity], classOf[Row.Activity])
+        //Create a memory database
+        val root = swaydb.memory.MultiMap[Table, PrimaryKey, Row, Nothing, Bag.Less]().sweep()
 
-    //create sibling2 ProductMap and it's child ProductOrderMap
-    val productMap = root.schema.init(Table.Product: Table.ProductTables, classOf[PrimaryKey.ProductPrimaryKey], classOf[Row.ProductRows])
-    val productOrderMap = productMap.schema.init(Table.Order, classOf[PrimaryKey.Order], classOf[Row.Order])
+        //create sibling1 UserMap and it's child UserActivity
+        val userMap = root.schema.init(Table.User: Table.UserTables, classOf[PrimaryKey.UserPrimaryKeys], classOf[Row.UserRows])
+        val userActivityMap = userMap.schema.init(Table.Activity, classOf[PrimaryKey.Activity], classOf[Row.Activity])
 
-    "nested map hierarchy" in {
+        //create sibling2 ProductMap and it's child ProductOrderMap
+        val productMap = root.schema.init(Table.Product: Table.ProductTables, classOf[PrimaryKey.ProductPrimaryKey], classOf[Row.ProductRows])
+        val productOrderMap = productMap.schema.init(Table.Order, classOf[PrimaryKey.Order], classOf[Row.Order])
 
-      //create a transaction to write into userActivity and User
-      val transaction =
-        userActivityMap.toTransaction(Prepare.Put(PrimaryKey.Activity(1), Row.Activity("act1"))) ++
-          userMap.toTransaction(Prepare.Put(PrimaryKey.Email("email1"), Row.User("name1", "address1")))
+        "nested map hierarchy" in {
 
-      //commit under too UserMap
-      userMap.commit(transaction)
+          //create a transaction to write into userActivity and User
+          val transaction =
+            userActivityMap.toTransaction(Prepare.Put(PrimaryKey.Activity(1), Row.Activity("act1"))) ++
+              userMap.toTransaction(Prepare.Put(PrimaryKey.Email("email1"), Row.User("name1", "address1")))
 
-      //assert commit
-      def assertTransaction1() = {
-        userMap.get(PrimaryKey.Email("email1")).value shouldBe Row.User("name1", "address1")
-        userMap.get(PrimaryKey.Activity(1)) shouldBe empty
-        userActivityMap.get(PrimaryKey.Activity(1)).value shouldBe Row.Activity("act1")
-      }
+          //commit under too UserMap
+          userMap.commit(transaction)
 
-      assertTransaction1()
+          //assert commit
+          def assertTransaction1() = {
+            userMap.get(PrimaryKey.Email("email1")).value shouldBe Row.User("name1", "address1")
+            userMap.get(PrimaryKey.Activity(1)) shouldBe empty
+            userActivityMap.get(PrimaryKey.Activity(1)).value shouldBe Row.Activity("act1")
+          }
 
-      //product is still is empty
-      productMap.stream.materialize.toList shouldBe empty
-      productOrderMap.stream.materialize.toList shouldBe empty
+          assertTransaction1()
 
-      //crete transaction2 which uses all maps
-      val transaction2 =
-        userActivityMap.toTransaction(Prepare.Put(PrimaryKey.Activity(2), Row.Activity("act2"))) ++
-          userMap.toTransaction(Prepare.Put(PrimaryKey.Email("email2"), Row.User("name2", "address2"))) ++
-          productMap.toTransaction(Prepare.Put(PrimaryKey.SKU(1), Row.Product(1))) ++
-          productOrderMap.toTransaction(Prepare.Put(PrimaryKey.Order(1), Row.Order(1, 1))) ++
-          //expire order 2 in 2.seconds
-          productOrderMap.toTransaction(Prepare.Put(PrimaryKey.Order(2), Row.Order(2, 2), 2.seconds))
+          //product is still is empty
+          productMap.stream.materialize.toList shouldBe empty
+          productOrderMap.stream.materialize.toList shouldBe empty
 
-      //all map can only committed under root map
-      root.commit(transaction2)
+          //crete transaction2 which uses all maps
+          val transaction2 =
+            userActivityMap.toTransaction(Prepare.Put(PrimaryKey.Activity(2), Row.Activity("act2"))) ++
+              userMap.toTransaction(Prepare.Put(PrimaryKey.Email("email2"), Row.User("name2", "address2"))) ++
+              productMap.toTransaction(Prepare.Put(PrimaryKey.SKU(1), Row.Product(1))) ++
+              productOrderMap.toTransaction(Prepare.Put(PrimaryKey.Order(1), Row.Order(1, 1))) ++
+              //expire order 2 in 2.seconds
+              productOrderMap.toTransaction(Prepare.Put(PrimaryKey.Order(2), Row.Order(2, 2), 2.seconds))
 
-      def assertTransaction2() = {
-        userActivityMap.get(PrimaryKey.Activity(2)).value shouldBe Row.Activity("act2")
-        userMap.get(PrimaryKey.Email("email2")).value shouldBe Row.User("name2", "address2")
-        productMap.get(PrimaryKey.SKU(1)).value shouldBe Row.Product(1)
-        productOrderMap.get(PrimaryKey.Order(1)).value shouldBe Row.Order(1, 1)
-        productOrderMap.get(PrimaryKey.Order(2)).value shouldBe Row.Order(2, 2)
-        productOrderMap.expiration(PrimaryKey.Order(2)) shouldBe defined
-      }
+          //all map can only committed under root map
+          root.commit(transaction2)
 
-      //assert all maps
-      assertTransaction2()
-      assertTransaction1()
+          def assertTransaction2() = {
+            userActivityMap.get(PrimaryKey.Activity(2)).value shouldBe Row.Activity("act2")
+            userMap.get(PrimaryKey.Email("email2")).value shouldBe Row.User("name2", "address2")
+            productMap.get(PrimaryKey.SKU(1)).value shouldBe Row.Product(1)
+            productOrderMap.get(PrimaryKey.Order(1)).value shouldBe Row.Order(1, 1)
+            productOrderMap.get(PrimaryKey.Order(2)).value shouldBe Row.Order(2, 2)
+            productOrderMap.expiration(PrimaryKey.Order(2)) shouldBe defined
+          }
 
-      //products are non empty
-      productMap.stream.materialize.toList should not be empty
-      productOrderMap.stream.materialize.toList should not be empty
+          //assert all maps
+          assertTransaction2()
+          assertTransaction1()
 
-      //order2 expires after 2 seconds
-      eventually(Timeout(2.seconds)) {
-        productOrderMap.get(PrimaryKey.Order(2)) shouldBe empty
-      }
+          //products are non empty
+          productMap.stream.materialize.toList should not be empty
+          productOrderMap.stream.materialize.toList should not be empty
 
-      root.close()
+          //order2 expires after 2 seconds
+          eventually(Timeout(2.seconds)) {
+            productOrderMap.get(PrimaryKey.Order(2)) shouldBe empty
+          }
+        }
     }
   }
 }

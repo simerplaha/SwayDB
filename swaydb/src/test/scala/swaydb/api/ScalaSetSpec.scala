@@ -22,128 +22,123 @@ package swaydb.api
 import swaydb.IOValues._
 import swaydb._
 import swaydb.core.RunThis._
+import swaydb.core.TestCaseSweeper
 import swaydb.serializers.Default._
+import TestCaseSweeper._
 
 class ScalaSetSpec0 extends ScalaSetSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Set[Int, Nothing, IO.ApiIO] =
-    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir = randomDir).right.value
+  override def newDB()(implicit sweeper: TestCaseSweeper): Set[Int, Nothing, IO.ApiIO] =
+    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep()
 }
 
 class ScalaSetSpec1 extends ScalaSetSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Set[Int, Nothing, IO.ApiIO] =
-    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value
+  override def newDB()(implicit sweeper: TestCaseSweeper): Set[Int, Nothing, IO.ApiIO] =
+    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value.sweep()
 }
 
 class ScalaSetSpec2 extends ScalaSetSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, Nothing, IO.ApiIO] =
-    swaydb.memory.Set[Int, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
+  override def newDB()(implicit sweeper: TestCaseSweeper): Set[Int, Nothing, IO.ApiIO] =
+    swaydb.memory.Set[Int, Nothing, IO.ApiIO](mapSize = 1.byte).right.value.sweep()
 }
 
 class ScalaSetSpec3 extends ScalaSetSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, Nothing, IO.ApiIO] =
-    swaydb.memory.Set[Int, Nothing, IO.ApiIO]().right.value
+  override def newDB()(implicit sweeper: TestCaseSweeper): Set[Int, Nothing, IO.ApiIO] =
+    swaydb.memory.Set[Int, Nothing, IO.ApiIO]().right.value.sweep()
 }
-
-//class ScalaSetSpec4 extends ScalaSetSpec {
-//
-//  val keyValueCount: Int = 10000
-//
-//  override def newDB(): Set[Int, Nothing, IO.ApiIO] =
-//    swaydb.memory.zero.Set[Int, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
-//}
-//
-//class ScalaSetSpec5 extends ScalaSetSpec {
-//  val keyValueCount: Int = 10000
-//
-//  override def newDB(): Set[Int, Nothing, IO.ApiIO] =
-//    swaydb.memory.zero.Set[Int, Nothing, IO.ApiIO]().right.value
-//}
 
 sealed trait ScalaSetSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Set[Int, Nothing, IO.ApiIO]
+  def newDB()(implicit sweeper: TestCaseSweeper): Set[Int, Nothing, IO.ApiIO]
 
 
   "Expire" when {
     "put" in {
       runThis(times = repeatTest, log = true) {
-        val db = newDB()
-        db.asScala.add(1)
-        db.asScala.contains(1) shouldBe true
+        TestCaseSweeper {
+          implicit sweeper =>
 
-        db.close().get
+            val db = newDB()
+
+            db.asScala.add(1)
+            db.asScala.contains(1) shouldBe true
+        }
       }
     }
 
     "putAll" in {
       runThis(times = repeatTest, log = true) {
-        val db = newDB()
+        TestCaseSweeper {
+          implicit sweeper =>
 
-        db.asScala ++= Seq(1, 2)
+            val db = newDB()
 
-        db.asScala.contains(1) shouldBe true
-        db.asScala.contains(2) shouldBe true
+            db.asScala ++= Seq(1, 2)
 
-        db.close().get
+            db.asScala.contains(1) shouldBe true
+            db.asScala.contains(2) shouldBe true
+        }
       }
     }
 
     "remove" in {
       runThis(times = repeatTest, log = true) {
-        val db = newDB()
+        TestCaseSweeper {
+          implicit sweeper =>
+            val db = newDB()
 
-        db.asScala ++= Seq(1, 2)
+            db.asScala ++= Seq(1, 2)
 
-        db.asScala.remove(1)
+            db.asScala.remove(1)
 
-        db.asScala.contains(1) shouldBe false
-        db.asScala.contains(2) shouldBe true
-
-        db.close().get
+            db.asScala.contains(1) shouldBe false
+            db.asScala.contains(2) shouldBe true
+        }
       }
     }
 
     "removeAll" in {
       runThis(times = repeatTest, log = true) {
-        val db = newDB()
+        TestCaseSweeper {
+          implicit sweeper =>
+            val db = newDB()
 
-        db.asScala ++= Seq(1, 2)
+            db.asScala ++= Seq(1, 2)
 
-        db.asScala.clear()
+            db.asScala.clear()
 
-        db.asScala.contains(1) shouldBe false
-        db.asScala.contains(2) shouldBe false
-
-        db.close().get
+            db.asScala.contains(1) shouldBe false
+            db.asScala.contains(2) shouldBe false
+        }
       }
     }
 
     "head, last, contains" in {
       runThis(times = repeatTest, log = true) {
-        val db = newDB()
+        TestCaseSweeper {
+          implicit sweeper =>
+            val db = newDB()
 
-        db.asScala ++= Seq(1, 2)
+            db.asScala ++= Seq(1, 2)
 
-        db.asScala.head shouldBe 1
-        db.asScala.last shouldBe 2
+            db.asScala.head shouldBe 1
+            db.asScala.last shouldBe 2
 
-        db.asScala.contains(1) shouldBe true
-        db.asScala.contains(2) shouldBe true
-        db.asScala.contains(3) shouldBe false
-
-        db.close().get
+            db.asScala.contains(1) shouldBe true
+            db.asScala.contains(2) shouldBe true
+            db.asScala.contains(3) shouldBe false
+        }
       }
     }
   }

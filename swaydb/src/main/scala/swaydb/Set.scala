@@ -36,6 +36,7 @@ import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
 import swaydb.core.function.{FunctionStore => CoreFunctionStore}
+import swaydb.data.Sweepable
 
 object Set {
   def apply[A, F, BAG[_]](api: Core[BAG])(implicit serializer: Serializer[A],
@@ -90,7 +91,7 @@ object Set {
 case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
                                      private val from: Option[From[A]],
                                      private val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
-                                                                                    bag: Bag[BAG]) { self =>
+                                                                                    bag: Bag[BAG]) extends Sweepable[BAG] { self =>
 
   def path: Path =
     core.zero.path.getParent

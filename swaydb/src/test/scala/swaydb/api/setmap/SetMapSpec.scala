@@ -26,36 +26,39 @@ package swaydb.api.setmap
 
 import org.scalatest.OptionValues._
 import swaydb.Bag
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.serializers.Default._
+import TestCaseSweeper._
 
 class SetMapSpec0 extends SetMapSpec {
-  override def newDB(): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.SetMap[Int, String, Nothing, Bag.Less](randomDir)
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.SetMap[Int, String, Nothing, Bag.Less](randomDir).sweep()
 }
 
 class SetMapSpec3 extends SetMapSpec {
-  override def newDB(): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.SetMap[Int, String, Nothing, Bag.Less]()
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
+    swaydb.memory.SetMap[Int, String, Nothing, Bag.Less]().sweep()
 }
 
 sealed trait SetMapSpec extends TestBase {
 
-  def newDB(): swaydb.SetMap[Int, String, Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Nothing, Bag.Less]
 
   "put" in {
-    val map = newDB()
+    TestCaseSweeper {
+      implicit sweeper =>
 
-    (1 to 1000000) foreach {
-      i =>
-        map.put(i, i.toString)
+        val map = newDB()
+
+        (1 to 1000000) foreach {
+          i =>
+            map.put(i, i.toString)
+        }
+
+        (1 to 1000000) foreach {
+          i =>
+            map.get(i).value shouldBe i.toString
+        }
     }
-
-    (1 to 1000000) foreach {
-      i =>
-        map.get(i).value shouldBe i.toString
-    }
-
-    map.close()
   }
 }

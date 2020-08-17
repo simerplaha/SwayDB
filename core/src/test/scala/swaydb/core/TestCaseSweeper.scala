@@ -36,6 +36,7 @@ import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.LevelRef
 import swaydb.core.segment.Segment
+import swaydb.data.Sweepable
 import swaydb.{ActorRef, ActorWire, Bag, IO, Scheduler}
 
 import scala.collection.mutable.ListBuffer
@@ -58,7 +59,7 @@ import scala.util.Try
 
 object TestCaseSweeper extends LazyLogging {
 
-  def apply(): TestCaseSweeper = {
+  def apply(): TestCaseSweeper =
     new TestCaseSweeper(
       fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeperActor](true, true, None)((_, _) => createFileSweeper())),
       cleaners = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
@@ -73,9 +74,9 @@ object TestCaseSweeper extends LazyLogging {
       maps = ListBuffer.empty,
       paths = ListBuffer.empty,
       actors = ListBuffer.empty,
-      ListBuffer.empty
+      actorWires = ListBuffer.empty,
+      sweepables = ListBuffer.empty
     )
-  }
 
   def deleteParentPath(path: Path) = {
     val parentPath = path.getParent
@@ -113,8 +114,9 @@ object TestCaseSweeper extends LazyLogging {
         map.pathOption.foreach(deleteParentPath)
     }
 
-    sweeper.paths.foreach(Effect.walkDelete)
+    sweeper.sweepables.foreach(_.delete())
 
+    sweeper.paths.foreach(Effect.walkDelete)
   }
 
   def apply[T](code: TestCaseSweeper => T): T = {
@@ -190,6 +192,12 @@ object TestCaseSweeper extends LazyLogging {
     def sweep()(implicit sweeper: TestCaseSweeper): ActorWire[T, S] =
       sweeper sweepWireActor actor
   }
+
+  implicit class SweepableSweeperImplicits[BAG[_], T](sweepable: T) {
+    def sweep()(implicit sweeper: TestCaseSweeper,
+                evd: T <:< Sweepable[BAG]): T =
+      sweeper sweepSweepable sweepable
+  }
 }
 
 
@@ -206,20 +214,21 @@ object TestCaseSweeper extends LazyLogging {
  * }}}
  */
 
-class TestCaseSweeper private(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeperActor]],
-                              private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]],
-                              private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCache.State]]],
-                              private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]],
-                              private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]],
-                              private val blockMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Block]]],
-                              private val cacheMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Cache]]],
-                              private val schedulers: ListBuffer[CacheNoIO[Unit, Scheduler]],
-                              private val levels: ListBuffer[LevelRef],
-                              private val segments: ListBuffer[Segment],
-                              private val maps: ListBuffer[map.Map[_, _, _, _]],
-                              private val paths: ListBuffer[Path],
-                              private val actors: ListBuffer[ActorRef[_, _]],
-                              private val actorWires: ListBuffer[ActorWire[_, _]]) {
+class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeperActor]],
+                      private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]],
+                      private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCache.State]]],
+                      private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]],
+                      private val keyValueMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.KeyValue]]],
+                      private val blockMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Block]]],
+                      private val cacheMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.Cache]]],
+                      private val schedulers: ListBuffer[CacheNoIO[Unit, Scheduler]],
+                      private val levels: ListBuffer[LevelRef],
+                      private val segments: ListBuffer[Segment],
+                      private val maps: ListBuffer[map.Map[_, _, _, _]],
+                      private val paths: ListBuffer[Path],
+                      private val actors: ListBuffer[ActorRef[_, _]],
+                      private val actorWires: ListBuffer[ActorWire[_, _]],
+                      private val sweepables: ListBuffer[Sweepable[Any]]) {
 
 
   implicit lazy val fileSweeper = fileSweepers.head.value(())
@@ -312,6 +321,11 @@ class TestCaseSweeper private(private val fileSweepers: ListBuffer[CacheNoIO[Uni
   def sweepWireActor[T, S](actor: ActorWire[T, S]): ActorWire[T, S] = {
     actorWires += actor
     actor
+  }
+
+  def sweepSweepable[BAG[_], T](sweepable: T)(implicit ev: T <:< Sweepable[BAG]): T = {
+    sweepables += sweepable.asInstanceOf[Sweepable[Any]]
+    sweepable
   }
 
   /**

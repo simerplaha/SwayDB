@@ -22,6 +22,8 @@ package swaydb
 import swaydb.IOValues._
 import swaydb.api.{TestBaseEmbedded, repeatTest}
 import swaydb.core.RunThis._
+import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -31,8 +33,8 @@ class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
+  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep()
 }
 
 class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
@@ -40,37 +42,39 @@ class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
 
   val keyValueCount: Int = 100000
 
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
+  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep()
 }
 
 sealed trait SwayDBReverseSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, Nothing, IO.ApiIO]
+  def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO]
 
   implicit val bag = Bag.apiIO
 
   "Do reverse ordering" in {
     runThis(times = repeatTest, log = true) {
-      val db = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      (1 to keyValueCount) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+          val db = newDB()
+
+          (1 to keyValueCount) foreach {
+            i =>
+              db.put(i, i.toString).right.value
+          }
+
+          db
+            .keys
+            .stream
+            .foldLeft(keyValueCount + 1) {
+              case (expected, actual) =>
+                actual shouldBe expected - 1
+                actual
+            }
       }
-
-      db
-        .keys
-        .stream
-        .foldLeft(keyValueCount + 1) {
-          case (expected, actual) =>
-            actual shouldBe expected - 1
-            actual
-        }
-
-      db.close().get
     }
   }
 }

@@ -21,6 +21,8 @@ package swaydb.multimap
 
 import org.scalatest.OptionValues._
 import swaydb.api.TestBaseEmbedded
+import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.serializers.Default._
 import swaydb.{Bag, MultiMap}
@@ -28,130 +30,136 @@ import swaydb.{Bag, MultiMap}
 class MultiMapPutSpec0 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir)
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep()
 }
 
 class MultiMapPutSpec1 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]()
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]().sweep()
 }
 
 sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Less]
 
   "Root" should {
     "Initialise a RootMap & SubMap from Root" in {
-      val root = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      var child1 = root.schema.init(1)
-      var child2 = root.schema.init(2)
+          val root = newDB()
 
-      if (randomBoolean()) child1 = root.schema.get(1).value
-      if (randomBoolean()) child2 = root.schema.get(2).value
+          var child1 = root.schema.init(1)
+          var child2 = root.schema.init(2)
 
-      child1.put(3, "three")
-      child1.put(4, "four")
-      child2.put(5, "five")
-      child2.put(4, "four again")
+          if (randomBoolean()) child1 = root.schema.get(1).value
+          if (randomBoolean()) child2 = root.schema.get(2).value
 
-      child1
-        .stream
-        .materialize[Bag.Less]
-        .toList should contain inOrderOnly((3, "three"), (4, "four"))
+          child1.put(3, "three")
+          child1.put(4, "four")
+          child2.put(5, "five")
+          child2.put(4, "four again")
 
-      child2
-        .stream
-        .materialize[Bag.Less]
-        .toList should contain inOrderOnly((4, "four again"), (5, "five"))
+          child1
+            .stream
+            .materialize[Bag.Less]
+            .toList should contain inOrderOnly((3, "three"), (4, "four"))
 
-      root.delete()
+          child2
+            .stream
+            .materialize[Bag.Less]
+            .toList should contain inOrderOnly((4, "four again"), (5, "five"))
+      }
     }
 
     "Initialise a RootMap & 2 SubMaps from Root" in {
-      val root = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      def insert(firstMap: MultiMap[Int, Int, String, Nothing, Bag.Less]) = {
-        firstMap.put(3, "three")
-        firstMap.put(4, "four")
-        firstMap.put(5, "five")
-        firstMap.put(4, "four again")
+          val root = newDB()
+
+          def insert(firstMap: MultiMap[Int, Int, String, Nothing, Bag.Less]) = {
+            firstMap.put(3, "three")
+            firstMap.put(4, "four")
+            firstMap.put(5, "five")
+            firstMap.put(4, "four again")
+          }
+
+          val child1 = root.schema.init(1)
+
+          val child2 = child1.schema.init(2)
+          insert(child2)
+
+          val child3 = child1.schema.init(3)
+          insert(child3)
+
+          child1.isEmpty shouldBe true
+
+          child2
+            .stream
+            .materialize[Bag.Less]
+            .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+
+          child3
+            .stream
+            .materialize[Bag.Less]
+            .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
       }
-
-      val child1 = root.schema.init(1)
-
-      val child2 = child1.schema.init(2)
-      insert(child2)
-
-      val child3 = child1.schema.init(3)
-      insert(child3)
-
-      child1.isEmpty shouldBe true
-
-      child2
-        .stream
-        .materialize[Bag.Less]
-        .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-
-      child3
-        .stream
-        .materialize[Bag.Less]
-        .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-
-      root.close()
     }
 
     "Initialise 2 RootMaps & 2 SubMaps under each SubMap" in {
-      val root = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      var root1 = root.schema.init(1)
-      var root2 = root.schema.init(2)
-      if (randomBoolean()) root1 = root.schema.get(1).value
-      if (randomBoolean()) root2 = root.schema.get(2).value
+          val root = newDB()
 
-      var sub11 = root1.schema.init(1)
-      var sub12 = root1.schema.init(2)
-      if (randomBoolean()) sub11 = root1.schema.get(1).value
-      if (randomBoolean()) sub12 = root1.schema.get(2).value
-      sub11.put(1, "one")
-      sub12.put(2, "two")
-      if (randomBoolean()) sub11 = root1.schema.get(1).value
-      if (randomBoolean()) sub12 = root1.schema.get(2).value
+          var root1 = root.schema.init(1)
+          var root2 = root.schema.init(2)
+          if (randomBoolean()) root1 = root.schema.get(1).value
+          if (randomBoolean()) root2 = root.schema.get(2).value
 
-      var sub21 = root2.schema.init(1)
-      var sub22 = root2.schema.init(2)
-      if (randomBoolean()) sub21 = root2.schema.get(1).value
-      if (randomBoolean()) sub22 = root2.schema.get(2).value
-      sub21.put(1, "1")
-      sub22.put(2, "2")
-      if (randomBoolean()) sub21 = root2.schema.get(1).value
-      if (randomBoolean()) sub22 = root2.schema.get(2).value
+          var sub11 = root1.schema.init(1)
+          var sub12 = root1.schema.init(2)
+          if (randomBoolean()) sub11 = root1.schema.get(1).value
+          if (randomBoolean()) sub12 = root1.schema.get(2).value
+          sub11.put(1, "one")
+          sub12.put(2, "two")
+          if (randomBoolean()) sub11 = root1.schema.get(1).value
+          if (randomBoolean()) sub12 = root1.schema.get(2).value
 
-      sub11.get(1).value shouldBe "one"
-      sub12.get(2).value shouldBe "two"
+          var sub21 = root2.schema.init(1)
+          var sub22 = root2.schema.init(2)
+          if (randomBoolean()) sub21 = root2.schema.get(1).value
+          if (randomBoolean()) sub22 = root2.schema.get(2).value
+          sub21.put(1, "1")
+          sub22.put(2, "2")
+          if (randomBoolean()) sub21 = root2.schema.get(1).value
+          if (randomBoolean()) sub22 = root2.schema.get(2).value
 
-      sub21.get(1).value shouldBe "1"
-      sub22.get(2).value shouldBe "2"
+          sub11.get(1).value shouldBe "one"
+          sub12.get(2).value shouldBe "two"
 
-      root.schema.keys.materialize[Bag.Less].toList should have size 2
+          sub21.get(1).value shouldBe "1"
+          sub22.get(2).value shouldBe "2"
 
-      val rootSubMaps = root.schema.stream.materialize[Bag.Less].toList.flatten
-      rootSubMaps.foreach(_.isEmpty shouldBe true) //has no map entries
+          root.schema.keys.materialize[Bag.Less].toList should have size 2
 
-      val subMaps = rootSubMaps.flatMap(_.schema.stream.materialize[Bag.Less].toList.flatten)
-      subMaps should have size 4
+          val rootSubMaps = root.schema.stream.materialize[Bag.Less].toList.flatten
+          rootSubMaps.foreach(_.isEmpty shouldBe true) //has no map entries
 
-      subMaps(0).get(1).value shouldBe "one"
-      subMaps(1).get(2).value shouldBe "two"
-      subMaps(2).get(1).value shouldBe "1"
-      subMaps(3).get(2).value shouldBe "2"
+          val subMaps = rootSubMaps.flatMap(_.schema.stream.materialize[Bag.Less].toList.flatten)
+          subMaps should have size 4
 
-      root.close()
+          subMaps(0).get(1).value shouldBe "one"
+          subMaps(1).get(2).value shouldBe "two"
+          subMaps(2).get(1).value shouldBe "1"
+          subMaps(3).get(2).value shouldBe "2"
+      }
     }
   }
 }

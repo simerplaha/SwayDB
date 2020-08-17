@@ -49,7 +49,7 @@
 //class SwayDBStressSpec0 extends SwayDBStressSpec {
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(): Map[Int, String, IO] =
+//  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, IO] =
 //    swaydb.persistent.Map[Int, String](dir = randomDir).runIO
 //}
 //
@@ -57,7 +57,7 @@
 //
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(): Map[Int, String, IO] =
+//  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, IO] =
 //    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
 //}
 //
@@ -65,14 +65,14 @@
 //
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(): Map[Int, String, IO] =
+//  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, IO] =
 //    swaydb.memory.Map[Int, String](mapSize = 1.byte).runIO
 //}
 //
 //class SwayDBStressSpec3 extends SwayDBStressSpec {
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(): Map[Int, String, IO] =
+//  override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, IO] =
 //    swaydb.memory.Map[Int, String]().runIO
 //}
 //
@@ -80,7 +80,7 @@
 //
 //  val keyValueCount: Int
 //
-//  def newDB(): Map[Int, String, IO]
+//  def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, IO]
 //
 //  "Test case that eventually fails due to collapsing of small Segments" in {
 //    val db = newDB()

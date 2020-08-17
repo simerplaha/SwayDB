@@ -21,6 +21,8 @@ package swaydb.multimap
 
 import org.scalatest.OptionValues._
 import swaydb.api.TestBaseEmbedded
+import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{Bag, MultiMap}
@@ -28,249 +30,259 @@ import swaydb.{Bag, MultiMap}
 class MultiMapIterationSpec0 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir)
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep()
 }
 
 class MultiMapIterationSpec1 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte)
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte).sweep()
 }
 
 class MultiMapIterationSpec2 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]()
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]().sweep()
 }
 
 class MultiMapIterationSpec3 extends MultiMapIterationSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte)
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte).sweep()
 }
 
 sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less]
 
   implicit val bag = Bag.less
 
   "Iteration" should {
     "exclude & include subMap by default" in {
-      val db = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val firstMap = db.schema.init(1)
-      val secondMap = firstMap.schema.init(2)
-      val subMap1 = secondMap.schema.init(3)
-      val subMap2 = secondMap.schema.init(4)
+          val db = newDB()
 
-      firstMap.stream.materialize.toList shouldBe empty
-      firstMap.schema.keys.materialize.toList should contain only 2
+          val firstMap = db.schema.init(1)
+          val secondMap = firstMap.schema.init(2)
+          val subMap1 = secondMap.schema.init(3)
+          val subMap2 = secondMap.schema.init(4)
 
-      secondMap.stream.materialize.toList shouldBe empty
-      secondMap.schema.keys.materialize.toList should contain only(3, 4)
+          firstMap.stream.materialize.toList shouldBe empty
+          firstMap.schema.keys.materialize.toList should contain only 2
 
-      subMap1.stream.materialize.toList shouldBe empty
-      subMap2.stream.materialize.toList shouldBe empty
+          secondMap.stream.materialize.toList shouldBe empty
+          secondMap.schema.keys.materialize.toList should contain only(3, 4)
 
-      db.delete()
+          subMap1.stream.materialize.toList shouldBe empty
+          subMap2.stream.materialize.toList shouldBe empty
+      }
     }
   }
 
   "Iteration" when {
     "the map contains 1 element" in {
-      val db = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val firstMap = db.schema.init(1)
-      val secondMap = firstMap.schema.init(2)
+          val db = newDB()
 
-      firstMap.stream.materialize.toList shouldBe empty
-      firstMap.schema.keys.materialize.toList should contain only 2
+          val firstMap = db.schema.init(1)
+          val secondMap = firstMap.schema.init(2)
 
-      secondMap.put(1, "one")
-      secondMap.stream.size shouldBe 1
+          firstMap.stream.materialize.toList shouldBe empty
+          firstMap.schema.keys.materialize.toList should contain only 2
 
-      secondMap.headOption.value shouldBe ((1, "one"))
-      secondMap.lastOption.value shouldBe ((1, "one"))
+          secondMap.put(1, "one")
+          secondMap.stream.size shouldBe 1
 
-      secondMap.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList should contain only ((2, "one"))
-      secondMap.stream.foldLeft(List.empty[(Int, String)]) { case (_, keyValue) => List(keyValue) } shouldBe List((1, "one"))
-      secondMap.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (_, keyValue) => List(keyValue) } shouldBe List((1, "one"))
-      secondMap.reverse.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList should contain only ((2, "one"))
-      secondMap.reverse.stream.take(100).materialize.toList should contain only ((1, "one"))
-      secondMap.reverse.stream.take(1).materialize.toList should contain only ((1, "one"))
-      secondMap.stream.take(100).materialize.toList should contain only ((1, "one"))
-      secondMap.stream.take(1).materialize.toList should contain only ((1, "one"))
-      secondMap.reverse.stream.drop(1).materialize.toList shouldBe empty
-      secondMap.stream.drop(1).materialize.toList shouldBe empty
-      secondMap.reverse.stream.drop(0).materialize.toList should contain only ((1, "one"))
-      secondMap.stream.drop(0).materialize.toList should contain only ((1, "one"))
+          secondMap.headOption.value shouldBe ((1, "one"))
+          secondMap.lastOption.value shouldBe ((1, "one"))
 
-      db.delete()
+          secondMap.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList should contain only ((2, "one"))
+          secondMap.stream.foldLeft(List.empty[(Int, String)]) { case (_, keyValue) => List(keyValue) } shouldBe List((1, "one"))
+          secondMap.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (_, keyValue) => List(keyValue) } shouldBe List((1, "one"))
+          secondMap.reverse.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList should contain only ((2, "one"))
+          secondMap.reverse.stream.take(100).materialize.toList should contain only ((1, "one"))
+          secondMap.reverse.stream.take(1).materialize.toList should contain only ((1, "one"))
+          secondMap.stream.take(100).materialize.toList should contain only ((1, "one"))
+          secondMap.stream.take(1).materialize.toList should contain only ((1, "one"))
+          secondMap.reverse.stream.drop(1).materialize.toList shouldBe empty
+          secondMap.stream.drop(1).materialize.toList shouldBe empty
+          secondMap.reverse.stream.drop(0).materialize.toList should contain only ((1, "one"))
+          secondMap.stream.drop(0).materialize.toList should contain only ((1, "one"))
+      }
     }
 
     "the map contains 2 elements" in {
-      val db = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val rootMap = db.schema.init(1)
-      val firstMap = rootMap.schema.init(2)
+          val db = newDB()
 
-      firstMap.put(1, "one")
-      firstMap.put(2, "two")
+          val rootMap = db.schema.init(1)
+          val firstMap = rootMap.schema.init(2)
 
-      firstMap.stream.size shouldBe 2
-      firstMap.headOption.value shouldBe ((1, "one"))
-      firstMap.lastOption.value shouldBe ((2, "two"))
+          firstMap.put(1, "one")
+          firstMap.put(2, "two")
 
-      firstMap.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList shouldBe List((2, "one"), (3, "two"))
-      firstMap.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
-      firstMap.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((2, "two"), (1, "one"))
-      firstMap.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      firstMap.reverse.stream.take(100).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      firstMap.reverse.stream.take(2).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      firstMap.reverse.stream.take(1).materialize.toList should contain only ((2, "two"))
-      firstMap.stream.take(100).materialize.toList should contain only((1, "one"), (2, "two"))
-      firstMap.stream.take(2).materialize.toList should contain only((1, "one"), (2, "two"))
-      firstMap.stream.take(1).materialize.toList should contain only ((1, "one"))
-      firstMap.reverse.stream.drop(1).materialize.toList should contain only ((1, "one"))
-      firstMap.stream.drop(1).materialize.toList should contain only ((2, "two"))
-      firstMap.reverse.stream.drop(0).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      firstMap.stream.drop(0).materialize.toList shouldBe List((1, "one"), (2, "two"))
+          firstMap.stream.size shouldBe 2
+          firstMap.headOption.value shouldBe ((1, "one"))
+          firstMap.lastOption.value shouldBe ((2, "two"))
 
-      db.delete()
+          firstMap.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList shouldBe List((2, "one"), (3, "two"))
+          firstMap.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
+          firstMap.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((2, "two"), (1, "one"))
+          firstMap.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          firstMap.reverse.stream.take(100).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          firstMap.reverse.stream.take(2).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          firstMap.reverse.stream.take(1).materialize.toList should contain only ((2, "two"))
+          firstMap.stream.take(100).materialize.toList should contain only((1, "one"), (2, "two"))
+          firstMap.stream.take(2).materialize.toList should contain only((1, "one"), (2, "two"))
+          firstMap.stream.take(1).materialize.toList should contain only ((1, "one"))
+          firstMap.reverse.stream.drop(1).materialize.toList should contain only ((1, "one"))
+          firstMap.stream.drop(1).materialize.toList should contain only ((2, "two"))
+          firstMap.reverse.stream.drop(0).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          firstMap.stream.drop(0).materialize.toList shouldBe List((1, "one"), (2, "two"))
+      }
     }
 
     "Sibling maps" in {
-      val db = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val rootMap = db.schema.init(1)
+          val db = newDB()
 
-      val subMap1 = rootMap.schema.init(2)
-      subMap1.put(1, "one")
-      subMap1.put(2, "two")
+          val rootMap = db.schema.init(1)
 
-      val subMap2 = rootMap.schema.init(3)
-      subMap2.put(3, "three")
-      subMap2.put(4, "four")
+          val subMap1 = rootMap.schema.init(2)
+          subMap1.put(1, "one")
+          subMap1.put(2, "two")
 
-      rootMap.stream.materialize.toList shouldBe empty
-      rootMap.schema.keys.materialize.toList should contain only(2, 3)
+          val subMap2 = rootMap.schema.init(3)
+          subMap2.put(3, "three")
+          subMap2.put(4, "four")
 
-      //FIRST MAP ITERATIONS
-      subMap1.stream.size shouldBe 2
-      subMap1.headOption.value shouldBe ((1, "one"))
-      subMap1.lastOption.value shouldBe ((2, "two"))
-      subMap1.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList shouldBe List((2, "one"), (3, "two"))
-      subMap1.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
-      subMap1.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.stream.take(100).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.stream.take(2).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.stream.take(1).materialize.toList should contain only ((2, "two"))
-      subMap1.stream.take(100).materialize.toList should contain only((1, "one"), (2, "two"))
-      subMap1.stream.take(2).materialize.toList should contain only((1, "one"), (2, "two"))
-      subMap1.stream.take(1).materialize.toList should contain only ((1, "one"))
-      subMap1.reverse.stream.drop(1).materialize.toList should contain only ((1, "one"))
-      subMap1.stream.drop(1).materialize.toList should contain only ((2, "two"))
-      subMap1.reverse.stream.drop(0).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      subMap1.stream.drop(0).materialize.toList shouldBe List((1, "one"), (2, "two"))
+          rootMap.stream.materialize.toList shouldBe empty
+          rootMap.schema.keys.materialize.toList should contain only(2, 3)
 
-      //SECOND MAP ITERATIONS
-      subMap2.stream.size shouldBe 2
-      subMap2.headOption.value shouldBe ((3, "three"))
-      subMap2.lastOption.value shouldBe ((4, "four"))
-      subMap2.stream.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((3, "three"), (4, "four"))
-      subMap2.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((3, "three"), (4, "four"))
-      subMap2.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.stream.take(100).materialize.toList shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.stream.take(2).materialize.toList shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.stream.take(1).materialize.toList should contain only ((4, "four"))
-      subMap2.stream.take(100).materialize.toList should contain only((3, "three"), (4, "four"))
-      subMap2.stream.take(2).materialize.toList should contain only((3, "three"), (4, "four"))
-      subMap2.stream.take(1).materialize.toList should contain only ((3, "three"))
-      subMap2.reverse.stream.drop(1).materialize.toList should contain only ((3, "three"))
-      subMap2.stream.drop(1).materialize.toList should contain only ((4, "four"))
-      subMap2.reverse.stream.drop(0).materialize.toList shouldBe List((4, "four"), (3, "three"))
-      subMap2.stream.drop(0).materialize.toList shouldBe List((3, "three"), (4, "four"))
+          //FIRST MAP ITERATIONS
+          subMap1.stream.size shouldBe 2
+          subMap1.headOption.value shouldBe ((1, "one"))
+          subMap1.lastOption.value shouldBe ((2, "two"))
+          subMap1.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList shouldBe List((2, "one"), (3, "two"))
+          subMap1.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
+          subMap1.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((2, "two"), (1, "one"))
+          subMap1.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          subMap1.reverse.stream.take(100).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          subMap1.reverse.stream.take(2).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          subMap1.reverse.stream.take(1).materialize.toList should contain only ((2, "two"))
+          subMap1.stream.take(100).materialize.toList should contain only((1, "one"), (2, "two"))
+          subMap1.stream.take(2).materialize.toList should contain only((1, "one"), (2, "two"))
+          subMap1.stream.take(1).materialize.toList should contain only ((1, "one"))
+          subMap1.reverse.stream.drop(1).materialize.toList should contain only ((1, "one"))
+          subMap1.stream.drop(1).materialize.toList should contain only ((2, "two"))
+          subMap1.reverse.stream.drop(0).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          subMap1.stream.drop(0).materialize.toList shouldBe List((1, "one"), (2, "two"))
 
-      db.delete()
+          //SECOND MAP ITERATIONS
+          subMap2.stream.size shouldBe 2
+          subMap2.headOption.value shouldBe ((3, "three"))
+          subMap2.lastOption.value shouldBe ((4, "four"))
+          subMap2.stream.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((3, "three"), (4, "four"))
+          subMap2.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((3, "three"), (4, "four"))
+          subMap2.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((4, "four"), (3, "three"))
+          subMap2.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((4, "four"), (3, "three"))
+          subMap2.reverse.stream.take(100).materialize.toList shouldBe List((4, "four"), (3, "three"))
+          subMap2.reverse.stream.take(2).materialize.toList shouldBe List((4, "four"), (3, "three"))
+          subMap2.reverse.stream.take(1).materialize.toList should contain only ((4, "four"))
+          subMap2.stream.take(100).materialize.toList should contain only((3, "three"), (4, "four"))
+          subMap2.stream.take(2).materialize.toList should contain only((3, "three"), (4, "four"))
+          subMap2.stream.take(1).materialize.toList should contain only ((3, "three"))
+          subMap2.reverse.stream.drop(1).materialize.toList should contain only ((3, "three"))
+          subMap2.stream.drop(1).materialize.toList should contain only ((4, "four"))
+          subMap2.reverse.stream.drop(0).materialize.toList shouldBe List((4, "four"), (3, "three"))
+          subMap2.stream.drop(0).materialize.toList shouldBe List((3, "three"), (4, "four"))
+      }
     }
 
     "nested maps" in {
-      val db = newDB()
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val rootMap = db.schema.init(1)
+          val db = newDB()
 
-      val subMap1 = rootMap.schema.init(2)
-      subMap1.put(1, "one")
-      subMap1.put(2, "two")
+          val rootMap = db.schema.init(1)
 
-      val subMap2 = subMap1.schema.init(3)
-      subMap2.put(3, "three")
-      subMap2.put(4, "four")
+          val subMap1 = rootMap.schema.init(2)
+          subMap1.put(1, "one")
+          subMap1.put(2, "two")
 
-      rootMap.stream.materialize.toList shouldBe empty
-      rootMap.schema.keys.materialize.toList should contain only 2
+          val subMap2 = subMap1.schema.init(3)
+          subMap2.put(3, "three")
+          subMap2.put(4, "four")
 
-      //FIRST MAP ITERATIONS
-      subMap1.stream.size shouldBe 2
-      subMap1.headOption.value shouldBe ((1, "one"))
-      subMap1.lastOption.value shouldBe ((2, "two"))
-      subMap1.schema.keys.lastOption.value shouldBe 3
-      subMap1.stream.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((1, "one"), (2, "two"))
-      subMap1.schema.keys.materialize.toList shouldBe List(3)
-      subMap1.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
-      subMap1.schema.keys.foldLeft(List.empty[Int]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List(3)
-      subMap1.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.stream.take(100).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.stream.take(3).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.stream.take(1).materialize.toList should contain only ((2, "two"))
-      subMap1.stream.take(100).materialize.toList should contain only((1, "one"), (2, "two"))
-      subMap1.stream.take(2).materialize.toList should contain only((1, "one"), (2, "two"))
-      subMap1.stream.take(1).materialize.toList should contain only ((1, "one"))
-      subMap1.reverse.stream.drop(1).materialize.toList should contain only ((1, "one"))
-      subMap1.schema.keys.drop(1).materialize.toList shouldBe empty
-      subMap1.stream.drop(1).materialize.toList should contain only ((2, "two"))
-      subMap1.schema.stream.drop(1).materialize.toList shouldBe empty
-      subMap1.reverse.stream.drop(0).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      subMap1.schema.keys.drop(0).materialize.toList shouldBe List(3)
-      subMap1.stream.drop(0).materialize.toList shouldBe List((1, "one"), (2, "two"))
+          rootMap.stream.materialize.toList shouldBe empty
+          rootMap.schema.keys.materialize.toList should contain only 2
 
-      //KEYS ONLY ITERATIONS - TODO - Key iterations are currently not supported for MultiMap.
-      //      subMap1.keys.size shouldBe 2
-      //      subMap1.keys.headOption.value shouldBe 1
-      //      subMap1.keys.lastOption.value shouldBe 2
-      //      //      subMap1.maps.keys.lastOption.runIO shouldBe 3
-      //      //      subMap1.maps.keys.toSeq shouldBe List(3)
-      //
-      //SECOND MAP ITERATIONS
-      subMap2.stream.size shouldBe 2
-      subMap2.stream.headOption.value shouldBe ((3, "three"))
-      subMap2.stream.lastOption.value shouldBe ((4, "four"))
-      subMap2.stream.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((3, "three"), (4, "four"))
-      subMap2.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((3, "three"), (4, "four"))
-      subMap2.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.stream.take(100).materialize.toList shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.stream.take(2).materialize.toList shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.stream.take(1).materialize.toList should contain only ((4, "four"))
-      subMap2.stream.take(100).materialize.toList should contain only((3, "three"), (4, "four"))
-      subMap2.stream.take(2).materialize.toList should contain only((3, "three"), (4, "four"))
-      subMap2.stream.take(1).materialize.toList should contain only ((3, "three"))
-      subMap2.reverse.stream.drop(1).materialize.toList should contain only ((3, "three"))
-      subMap2.stream.drop(1).materialize.toList should contain only ((4, "four"))
-      subMap2.reverse.stream.drop(0).materialize.toList shouldBe List((4, "four"), (3, "three"))
-      subMap2.stream.drop(0).materialize.toList shouldBe List((3, "three"), (4, "four"))
+          //FIRST MAP ITERATIONS
+          subMap1.stream.size shouldBe 2
+          subMap1.headOption.value shouldBe ((1, "one"))
+          subMap1.lastOption.value shouldBe ((2, "two"))
+          subMap1.schema.keys.lastOption.value shouldBe 3
+          subMap1.stream.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((1, "one"), (2, "two"))
+          subMap1.schema.keys.materialize.toList shouldBe List(3)
+          subMap1.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
+          subMap1.schema.keys.foldLeft(List.empty[Int]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List(3)
+          subMap1.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((2, "two"), (1, "one"))
+          subMap1.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          subMap1.reverse.stream.take(100).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          subMap1.reverse.stream.take(3).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          subMap1.reverse.stream.take(1).materialize.toList should contain only ((2, "two"))
+          subMap1.stream.take(100).materialize.toList should contain only((1, "one"), (2, "two"))
+          subMap1.stream.take(2).materialize.toList should contain only((1, "one"), (2, "two"))
+          subMap1.stream.take(1).materialize.toList should contain only ((1, "one"))
+          subMap1.reverse.stream.drop(1).materialize.toList should contain only ((1, "one"))
+          subMap1.schema.keys.drop(1).materialize.toList shouldBe empty
+          subMap1.stream.drop(1).materialize.toList should contain only ((2, "two"))
+          subMap1.schema.stream.drop(1).materialize.toList shouldBe empty
+          subMap1.reverse.stream.drop(0).materialize.toList shouldBe List((2, "two"), (1, "one"))
+          subMap1.schema.keys.drop(0).materialize.toList shouldBe List(3)
+          subMap1.stream.drop(0).materialize.toList shouldBe List((1, "one"), (2, "two"))
 
-      db.delete()
+          //KEYS ONLY ITERATIONS - TODO - Key iterations are currently not supported for MultiMap.
+          //      subMap1.keys.size shouldBe 2
+          //      subMap1.keys.headOption.value shouldBe 1
+          //      subMap1.keys.lastOption.value shouldBe 2
+          //      //      subMap1.maps.keys.lastOption.runIO shouldBe 3
+          //      //      subMap1.maps.keys.toSeq shouldBe List(3)
+          //
+          //SECOND MAP ITERATIONS
+          subMap2.stream.size shouldBe 2
+          subMap2.stream.headOption.value shouldBe ((3, "three"))
+          subMap2.stream.lastOption.value shouldBe ((4, "four"))
+          subMap2.stream.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((3, "three"), (4, "four"))
+          subMap2.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((3, "three"), (4, "four"))
+          subMap2.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((4, "four"), (3, "three"))
+          subMap2.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((4, "four"), (3, "three"))
+          subMap2.reverse.stream.take(100).materialize.toList shouldBe List((4, "four"), (3, "three"))
+          subMap2.reverse.stream.take(2).materialize.toList shouldBe List((4, "four"), (3, "three"))
+          subMap2.reverse.stream.take(1).materialize.toList should contain only ((4, "four"))
+          subMap2.stream.take(100).materialize.toList should contain only((3, "three"), (4, "four"))
+          subMap2.stream.take(2).materialize.toList should contain only((3, "three"), (4, "four"))
+          subMap2.stream.take(1).materialize.toList should contain only ((3, "three"))
+          subMap2.reverse.stream.drop(1).materialize.toList should contain only ((3, "three"))
+          subMap2.stream.drop(1).materialize.toList should contain only ((4, "four"))
+          subMap2.reverse.stream.drop(0).materialize.toList shouldBe List((4, "four"), (3, "three"))
+          subMap2.stream.drop(0).materialize.toList shouldBe List((3, "three"), (4, "four"))
+      }
     }
   }
 }

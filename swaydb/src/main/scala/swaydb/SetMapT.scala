@@ -26,6 +26,7 @@ package swaydb
 
 import java.nio.file.Path
 
+import swaydb.data.Sweepable
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 
@@ -35,7 +36,7 @@ import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
 /**
  * Base trait for a basic SwayDB SetMap type.
  */
-trait SetMapT[K, V, F, BAG[_]] {
+trait SetMapT[K, V, F, BAG[_]] extends Sweepable[BAG] {
 
   def path: Path
 
