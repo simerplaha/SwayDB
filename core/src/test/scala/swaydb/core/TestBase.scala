@@ -786,7 +786,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
                        bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                     ec: ExecutionContext = TestExecutionContext.executionContext,
                                                                                                     sweeper: TestCaseSweeper,
-                                                                                                    segmentIO: SegmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed) = {
+                                                                                                    segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
 
     //ensure that only one segment gets created

@@ -85,7 +85,7 @@ object DBFile extends LazyLogging {
           logger.debug(s"{}: Opening closed file.", filePath)
 
           IO {
-            val openResult =
+            val file =
               if (memoryMapped)
                 MMAPFile.read(
                   path = filePath,
@@ -101,7 +101,7 @@ object DBFile extends LazyLogging {
             if (autoClose)
               fileSweeper send FileSweeper.Command.Close(closer)
 
-            openResult
+            file
           }
       }
 
