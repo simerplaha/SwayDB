@@ -28,7 +28,7 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.config.MMAP
@@ -70,138 +70,153 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
   "Segment.higher" should {
     "value the higher key from the segment that has only 1 Remove key" in {
       runThis(50.times) {
-        assertSegment(
-          keyValues = Slice(randomFixedKeyValue(1)),
+        TestCaseSweeper {
+          implicit sweeper =>
+            assertSegment(
+              keyValues = Slice(randomFixedKeyValue(1)),
 
-          assert =
-            (keyValue, segment) => {
-              val readState = ThreadReadState.random
+              assert =
+                (keyValue, segment) => {
+                  val readState = ThreadReadState.random
 
-              segment.higher(0, readState).getUnsafe shouldBe keyValue.head
-              segment.higher(1, readState).toOptional shouldBe empty
-              segment.higher(2, readState).toOptional shouldBe empty
-            }
-        )
+                  segment.higher(0, readState).getUnsafe shouldBe keyValue.head
+                  segment.higher(1, readState).toOptional shouldBe empty
+                  segment.higher(2, readState).toOptional shouldBe empty
+                }
+            )
+        }
       }
     }
 
     "value the higher key from the segment that has only 1 Range key" in {
       runThis(50.times) {
-        assertSegment(
-          keyValues = Slice(randomRangeKeyValue(1, 10)),
+        TestCaseSweeper {
+          implicit sweeper =>
+            assertSegment(
+              keyValues = Slice(randomRangeKeyValue(1, 10)),
 
-          assert =
-            (keyValue, segment) => {
-              val readState = ThreadReadState.random
+              assert =
+                (keyValue, segment) => {
+                  val readState = ThreadReadState.random
 
-              (0 to 9) foreach {
-                i =>
-                  segment.higher(i, readState).getUnsafe shouldBe keyValue.head
-              }
+                  (0 to 9) foreach {
+                    i =>
+                      segment.higher(i, readState).getUnsafe shouldBe keyValue.head
+                  }
 
-              (10 to 15) foreach {
-                i =>
-                  segment.higher(i, readState).toOptional shouldBe empty
-              }
-            }
-        )
+                  (10 to 15) foreach {
+                    i =>
+                      segment.higher(i, readState).toOptional shouldBe empty
+                  }
+                }
+            )
+        }
       }
     }
 
     "value the higher from the segment when there are no Range key-values" in {
-      //1, 2, 3
-      assertSegment(
-        keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
+      TestCaseSweeper {
+        implicit sweeper =>
+          //1, 2, 3
+          assertSegment(
+            keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
 
-        assert =
-          (keyValues, segment) => {
-            val readState = ThreadReadState.random
+            assert =
+              (keyValues, segment) => {
+                val readState = ThreadReadState.random
 
-            segment.higher(0, readState).getUnsafe shouldBe keyValues(0)
-            segment.higher(1, readState).getUnsafe shouldBe keyValues(1)
-            segment.higher(2, readState).getUnsafe shouldBe keyValues(2)
-            (3 to 10) foreach {
-              i =>
-                segment.higher(i, readState).toOptional shouldBe empty
-            }
-          }
-      )
+                segment.higher(0, readState).getUnsafe shouldBe keyValues(0)
+                segment.higher(1, readState).getUnsafe shouldBe keyValues(1)
+                segment.higher(2, readState).getUnsafe shouldBe keyValues(2)
+                (3 to 10) foreach {
+                  i =>
+                    segment.higher(i, readState).toOptional shouldBe empty
+                }
+              }
+          )
+      }
     }
 
     "value the higher from the segment when there are Range key-values" in {
       //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
       runThis(1.times) {
-        assertSegment(
-          keyValues = Slice(
-            randomFixedKeyValue(1),
-            randomRangeKeyValue(2, 5),
-            randomFixedKeyValue(10),
-            randomRangeKeyValue(11, 20),
-            randomRangeKeyValue(20, 30)
-            //            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50))).toMemory
-          ),
+        TestCaseSweeper {
+          implicit sweeper =>
+            assertSegment(
+              keyValues = Slice(
+                randomFixedKeyValue(1),
+                randomRangeKeyValue(2, 5),
+                randomFixedKeyValue(10),
+                randomRangeKeyValue(11, 20),
+                randomRangeKeyValue(20, 30)
+                //            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50))).toMemory
+              ),
 
-          assert =
-            (keyValues, segment) => {
-              val readState = ThreadReadState.random
-              //0
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(0, readState).getUnsafe shouldBe keyValues(0)
-              //1
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(1, readState).getUnsafe shouldBe keyValues(1)
-              //    2
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(2, readState).getUnsafe shouldBe keyValues(1)
-              //     3
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(3, readState).getUnsafe shouldBe keyValues(1)
-              //       4
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(4, readState).getUnsafe shouldBe keyValues(1)
-              //        5
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(5, readState).getUnsafe shouldBe keyValues(2)
-              //          6
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(6, readState).getUnsafe shouldBe keyValues(2)
-              //            10
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(10, readState).getUnsafe shouldBe keyValues(3)
-              //                 11
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(11, readState).getUnsafe shouldBe keyValues(3)
-              //                   12
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(12, readState).getUnsafe shouldBe keyValues(3)
-              //                    19
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(19, readState).getUnsafe shouldBe keyValues(3)
-              //                      20
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(20, readState).getUnsafe shouldBe keyValues(4)
-              //                              21
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(21, readState).getUnsafe shouldBe keyValues(4)
-              //                                29
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(29, readState).getUnsafe shouldBe keyValues(4)
-              //                                                 50
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(50, readState).toOptional shouldBe empty
-              //                                                     51
-              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(51, readState).toOptional shouldBe empty
-            }
-        )
+              assert =
+                (keyValues, segment) => {
+                  val readState = ThreadReadState.random
+                  //0
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(0, readState).getUnsafe shouldBe keyValues(0)
+                  //1
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(1, readState).getUnsafe shouldBe keyValues(1)
+                  //    2
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(2, readState).getUnsafe shouldBe keyValues(1)
+                  //     3
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(3, readState).getUnsafe shouldBe keyValues(1)
+                  //       4
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(4, readState).getUnsafe shouldBe keyValues(1)
+                  //        5
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(5, readState).getUnsafe shouldBe keyValues(2)
+                  //          6
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(6, readState).getUnsafe shouldBe keyValues(2)
+                  //            10
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(10, readState).getUnsafe shouldBe keyValues(3)
+                  //                 11
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(11, readState).getUnsafe shouldBe keyValues(3)
+                  //                   12
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(12, readState).getUnsafe shouldBe keyValues(3)
+                  //                    19
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(19, readState).getUnsafe shouldBe keyValues(3)
+                  //                      20
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(20, readState).getUnsafe shouldBe keyValues(4)
+                  //                              21
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(21, readState).getUnsafe shouldBe keyValues(4)
+                  //                                29
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(29, readState).getUnsafe shouldBe keyValues(4)
+                  //                                                 50
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(50, readState).toOptional shouldBe empty
+                  //                                                     51
+                  //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.higher(51, readState).toOptional shouldBe empty
+                }
+            )
+        }
       }
     }
 
     "random" in {
-      assertSegment(
-        keyValues = randomizedKeyValues(keyValuesCount),
-        assert = assertHigher(_, _)
-      )
+      TestCaseSweeper {
+        implicit sweeper =>
+          assertSegment(
+            keyValues = randomizedKeyValues(keyValuesCount),
+            assert = assertHigher(_, _)
+          )
+      }
     }
   }
 }

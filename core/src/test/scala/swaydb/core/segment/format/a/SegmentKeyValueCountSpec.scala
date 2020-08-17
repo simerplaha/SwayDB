@@ -28,7 +28,7 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.IOValues._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
@@ -56,6 +56,7 @@ class SegmentKeyValueCount2 extends SegmentKeyValueCount {
 
 class SegmentKeyValueCount3 extends SegmentKeyValueCount {
   val keyValuesCount = 10000
+
   override def inMemoryStorage = true
 }
 
@@ -69,28 +70,35 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
     "return 1 when the Segment contains only 1 key-value" in {
       runThis(10.times) {
-        assertSegment(
-          keyValues = randomizedKeyValues(1),
+        TestCaseSweeper {
+          implicit sweeper =>
 
-          assert =
-            (keyValues, segment) => {
-              keyValues should have size 1
-              segment.getKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
-            }
-        )
+            assertSegment(
+              keyValues = randomizedKeyValues(1),
+
+              assert =
+                (keyValues, segment) => {
+                  keyValues should have size 1
+                  segment.getKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
+                }
+            )
+        }
       }
     }
 
     "return the number of randomly generated key-values where there are no Groups" in {
       runThis(10.times) {
-        assertSegment(
-          keyValues = randomizedKeyValues(keyValuesCount),
+        TestCaseSweeper {
+          implicit sweeper =>
+            assertSegment(
+              keyValues = randomizedKeyValues(keyValuesCount),
 
-          assert =
-            (keyValues, segment) => {
-              segment.getKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
-            }
-        )
+              assert =
+                (keyValues, segment) => {
+                  segment.getKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
+                }
+            )
+        }
       }
     }
   }

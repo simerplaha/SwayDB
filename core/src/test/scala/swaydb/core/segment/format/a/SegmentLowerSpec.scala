@@ -29,7 +29,7 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.config.MMAP
@@ -73,114 +73,127 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
 
   "Segment.lower" should {
     "value the lower key from the segment that has only 1 fixed key-value" in {
-      assertSegment(
-        keyValues =
-          Slice(randomFixedKeyValue(1)),
+      TestCaseSweeper {
+        implicit sweeper =>
+          assertSegment(
+            keyValues =
+              Slice(randomFixedKeyValue(1)),
 
-        assert =
-          (keyValues, segment) => {
-            val readState = ThreadReadState.random
-            segment.lower(0, readState).toOptional shouldBe empty
-            segment.lower(1, readState).toOptional shouldBe empty
-            segment.lower(2, readState).toOptional.value shouldBe keyValues.head
-          }
-      )
+            assert =
+              (keyValues, segment) => {
+                val readState = ThreadReadState.random
+                segment.lower(0, readState).toOptional shouldBe empty
+                segment.lower(1, readState).toOptional shouldBe empty
+                segment.lower(2, readState).toOptional.value shouldBe keyValues.head
+              }
+          )
+      }
     }
 
     "value the lower from the segment when there are no Range key-values" in {
-      //1, 2, 3
-      assertSegment(
-        keyValues =
-          Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
+      TestCaseSweeper {
+        implicit sweeper =>
+          //1, 2, 3
+          assertSegment(
+            keyValues =
+              Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
 
-        assert =
-          (keyValues, segment) => {
-            val readState = ThreadReadState.random
+            assert =
+              (keyValues, segment) => {
+                val readState = ThreadReadState.random
 
-            segment.lower(0, readState).toOptional shouldBe empty //smallest key in this segment is 1
-            segment.lower(1, readState).toOptional shouldBe empty
+                segment.lower(0, readState).toOptional shouldBe empty //smallest key in this segment is 1
+                segment.lower(1, readState).toOptional shouldBe empty
 
-            segment.lower(2, readState).toOptional.value shouldBe keyValues.head
-            segment.lower(3, readState).toOptional.value shouldBe keyValues(1)
-            (4 to 10) foreach {
-              i =>
-                segment.lower(i, readState).toOptional.value shouldBe keyValues(2)
-            }
-          }
-      )
+                segment.lower(2, readState).toOptional.value shouldBe keyValues.head
+                segment.lower(3, readState).toOptional.value shouldBe keyValues(1)
+                (4 to 10) foreach {
+                  i =>
+                    segment.lower(i, readState).toOptional.value shouldBe keyValues(2)
+                }
+              }
+          )
+      }
     }
 
     "value the lower from the segment when there are Range key-values" in {
       //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
       runThis(100.times, log = true) {
-        assertSegment(
-          keyValues = Slice(
-            randomFixedKeyValue(1),
-            randomRangeKeyValue(2, 5),
-            randomFixedKeyValue(10),
-            randomRangeKeyValue(11, 20),
-            randomRangeKeyValue(20, 30)
-          ),
+        TestCaseSweeper {
+          implicit sweeper =>
 
-          assert =
-            (keyValues, segment) => {
-              val readState = ThreadReadState.random
+            assertSegment(
+              keyValues = Slice(
+                randomFixedKeyValue(1),
+                randomRangeKeyValue(2, 5),
+                randomFixedKeyValue(10),
+                randomRangeKeyValue(11, 20),
+                randomRangeKeyValue(20, 30)
+              ),
 
-              //0
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(0, readState).toOptional shouldBe empty
-              //1
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(1, readState).toOptional shouldBe empty
-              //    2
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(2, readState).getUnsafe shouldBe keyValues(0)
-              //     3
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(3, readState).getUnsafe shouldBe keyValues(1)
-              //       4
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(4, readState).getUnsafe shouldBe keyValues(1)
-              //        5
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(5, readState).getUnsafe shouldBe keyValues(1)
-              //          6
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(6, readState).getUnsafe shouldBe keyValues(1)
-              //            10
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(10, readState).getUnsafe shouldBe keyValues(1)
-              //                 11
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(11, readState).getUnsafe shouldBe keyValues(2)
-              //                   12
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(12, readState).getUnsafe shouldBe keyValues(3)
-              //                    19
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(19, readState).getUnsafe shouldBe keyValues(3)
-              //                      20
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(20, readState).getUnsafe shouldBe keyValues(3)
-              //                              21
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(21, readState).getUnsafe shouldBe keyValues(4)
-              //                                29
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(29, readState).getUnsafe shouldBe keyValues(4)
-              //                                 30
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(30, readState).getUnsafe shouldBe keyValues(4)
-            }
-        )
+              assert =
+                (keyValues, segment) => {
+                  val readState = ThreadReadState.random
+
+                  //0
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(0, readState).toOptional shouldBe empty
+                  //1
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(1, readState).toOptional shouldBe empty
+                  //    2
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(2, readState).getUnsafe shouldBe keyValues(0)
+                  //     3
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(3, readState).getUnsafe shouldBe keyValues(1)
+                  //       4
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(4, readState).getUnsafe shouldBe keyValues(1)
+                  //        5
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(5, readState).getUnsafe shouldBe keyValues(1)
+                  //          6
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(6, readState).getUnsafe shouldBe keyValues(1)
+                  //            10
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(10, readState).getUnsafe shouldBe keyValues(1)
+                  //                 11
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(11, readState).getUnsafe shouldBe keyValues(2)
+                  //                   12
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(12, readState).getUnsafe shouldBe keyValues(3)
+                  //                    19
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(19, readState).getUnsafe shouldBe keyValues(3)
+                  //                      20
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(20, readState).getUnsafe shouldBe keyValues(3)
+                  //                              21
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(21, readState).getUnsafe shouldBe keyValues(4)
+                  //                                29
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(29, readState).getUnsafe shouldBe keyValues(4)
+                  //                                 30
+                  //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+                  segment.lower(30, readState).getUnsafe shouldBe keyValues(4)
+                }
+            )
+        }
       }
     }
 
     "random" in {
-      assertSegment(
-        keyValues = randomizedKeyValues(keyValuesCount, addUpdates = true),
-        assert = assertLower(_, _)
-      )
+      TestCaseSweeper {
+        implicit sweeper =>
+          assertSegment(
+            keyValues = randomizedKeyValues(keyValuesCount, addUpdates = true),
+            assert = assertLower(_, _)
+          )
+      }
     }
   }
 }

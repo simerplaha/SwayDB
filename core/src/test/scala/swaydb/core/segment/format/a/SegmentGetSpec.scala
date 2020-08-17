@@ -78,83 +78,89 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "fixed key-value" in {
       runThis(100.times, log = true) {
-        assertSegment(
-          keyValues = Slice(randomFixedKeyValue(1)),
+        TestCaseSweeper {
+          implicit sweeper =>
+            assertSegment(
+              keyValues = Slice(randomFixedKeyValue(1)),
 
-          assert =
-            (keyValues, segment) =>
-              Random.shuffle(
-                Seq(
-                  () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
-                  () => segment.get(2, ThreadReadState.random).toOptional shouldBe empty,
-                  () => segment.get(keyValues.head.key, ThreadReadState.random).getUnsafe shouldBe keyValues.head
-                )
-              ).foreach(_ ())
-        )
+              assert =
+                (keyValues, segment) =>
+                  Random.shuffle(
+                    Seq(
+                      () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(2, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(keyValues.head.key, ThreadReadState.random).getUnsafe shouldBe keyValues.head
+                    )
+                  ).foreach(_ ())
+            )
 
-        assertSegment(
-          keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)),
+            assertSegment(
+              keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)),
 
-          assert =
-            (keyValues, segment) =>
-              Random.shuffle(
-                Seq(
-                  () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
-                  () => segment.get(3, ThreadReadState.random).toOptional shouldBe empty,
-                  () => segment.get(keyValues.head.key, ThreadReadState.random).getUnsafe shouldBe keyValues.head
-                )
-              ).foreach(_ ())
-        )
+              assert =
+                (keyValues, segment) =>
+                  Random.shuffle(
+                    Seq(
+                      () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(3, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(keyValues.head.key, ThreadReadState.random).getUnsafe shouldBe keyValues.head
+                    )
+                  ).foreach(_ ())
+            )
+        }
       }
     }
 
     "range-value" in {
       runThis(100.times) {
-        assertSegment(
-          keyValues = Slice(randomRangeKeyValue(1, 10)),
+        TestCaseSweeper {
+          implicit sweeper =>
+            assertSegment(
+              keyValues = Slice(randomRangeKeyValue(1, 10)),
 
-          assert =
-            (keyValues, segment) =>
-              Random.shuffle(
-                Seq(
-                  () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
-                  () => segment.get(10, ThreadReadState.random).toOptional shouldBe empty,
-                  () => segment.get(11, ThreadReadState.random).toOptional shouldBe empty,
-                  () =>
-                    (1 to 9) foreach {
-                      i =>
-                        segment.get(i, ThreadReadState.random).getUnsafe shouldBe keyValues.head
-                    }
-                )
-              ).foreach(_ ())
-        )
+              assert =
+                (keyValues, segment) =>
+                  Random.shuffle(
+                    Seq(
+                      () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(10, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(11, ThreadReadState.random).toOptional shouldBe empty,
+                      () =>
+                        (1 to 9) foreach {
+                          i =>
+                            segment.get(i, ThreadReadState.random).getUnsafe shouldBe keyValues.head
+                        }
+                    )
+                  ).foreach(_ ())
+            )
 
-        assertSegment(
-          keyValues =
-            Slice(randomRangeKeyValue(1, 10), randomRangeKeyValue(10, 20)),
+            assertSegment(
+              keyValues =
+                Slice(randomRangeKeyValue(1, 10), randomRangeKeyValue(10, 20)),
 
-          assert =
-            (keyValues, segment) =>
-              Random.shuffle(
-                Seq(
-                  () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
-                  () => segment.get(20, ThreadReadState.random).toOptional shouldBe empty,
-                  () => segment.get(21, ThreadReadState.random).toOptional shouldBe empty,
-                  () =>
-                    (1 to 9) foreach {
-                      i =>
-                        segment.get(i, ThreadReadState.random).getUnsafe shouldBe keyValues.head
-                    },
-                  () => {
-                    val readState = ThreadReadState.random
-                    (10 to 19) foreach {
-                      i =>
-                        segment.get(i, readState).getUnsafe shouldBe keyValues.last
-                    }
-                  }
-                )
-              ).foreach(_ ())
-        )
+              assert =
+                (keyValues, segment) =>
+                  Random.shuffle(
+                    Seq(
+                      () => segment.get(0, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(20, ThreadReadState.random).toOptional shouldBe empty,
+                      () => segment.get(21, ThreadReadState.random).toOptional shouldBe empty,
+                      () =>
+                        (1 to 9) foreach {
+                          i =>
+                            segment.get(i, ThreadReadState.random).getUnsafe shouldBe keyValues.head
+                        },
+                      () => {
+                        val readState = ThreadReadState.random
+                        (10 to 19) foreach {
+                          i =>
+                            segment.get(i, readState).getUnsafe shouldBe keyValues.last
+                        }
+                      }
+                    )
+                  ).foreach(_ ())
+            )
+        }
       }
     }
 
