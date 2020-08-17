@@ -470,7 +470,7 @@ object TestData {
       )
 
     def random2(fileIOStrategy: IOAction.OpenResource => IOStrategy.ThreadSafe = _ => randomThreadSafeIOStrategy(),
-                blockIOStrategy: IOAction => IOStrategy = _ => randomIOStrategy(),
+                blockIOStrategy: IOAction.DataAction => IOStrategy = _ => randomIOStrategy(),
                 cacheBlocksOnCreate: Boolean = randomBoolean(),
                 compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = _ => randomCompressionsOrEmpty(),
                 maxKeyValuesPerSegment: Int = randomIntMax(1000000),

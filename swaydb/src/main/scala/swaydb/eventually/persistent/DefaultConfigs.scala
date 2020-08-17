@@ -41,9 +41,8 @@ object DefaultConfigs {
       prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
       enablePositionIndex = true,
       ioStrategy = {
-        case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
+        case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compressions = _ => Seq.empty
     )
@@ -56,9 +55,8 @@ object DefaultConfigs {
       indexFormat = IndexFormat.Reference,
       allocateSpace = _.requiredSpace,
       ioStrategy = {
-        case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
+        case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )
@@ -69,9 +67,8 @@ object DefaultConfigs {
       indexFormat = IndexFormat.CopyKey,
       searchSortedIndexDirectly = true,
       ioStrategy = {
-        case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
+        case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )
@@ -82,9 +79,8 @@ object DefaultConfigs {
       minimumNumberOfKeys = 10,
       updateMaxProbe = optimalMaxProbe => 1,
       ioStrategy = {
-        case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
+        case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )
@@ -94,9 +90,8 @@ object DefaultConfigs {
       compressDuplicateValues = true,
       compressDuplicateRangeValues = true,
       ioStrategy = {
-        case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
+        case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )
@@ -111,9 +106,8 @@ object DefaultConfigs {
       maxKeyValuesPerSegment = Int.MaxValue,
       fileIOStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
-        case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
+        case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )

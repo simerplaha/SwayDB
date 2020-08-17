@@ -36,7 +36,7 @@ private[core] object SegmentIO {
 
   def defaultSynchronisedStoredIfCompressed =
     new SegmentIO(
-      fileOpenIO = IOStrategy.defaultSynchronised,
+      fileIO = IOStrategy.defaultSynchronised,
       segmentBlockIO = IOStrategy.defaultSynchronised,
       hashIndexBlockIO = IOStrategy.defaultSynchronised,
       bloomFilterBlockIO = IOStrategy.defaultSynchronised,
@@ -53,7 +53,7 @@ private[core] object SegmentIO {
             valuesConfig: ValuesBlock.Config,
             segmentConfig: SegmentBlock.Config): SegmentIO =
     new SegmentIO(
-      fileOpenIO = IOStrategy.defaultSynchronised,
+      fileIO = IOStrategy.defaultSynchronised,
       segmentBlockIO = segmentConfig.blockIOStrategy,
       hashIndexBlockIO = hashIndexConfig.ioStrategy,
       bloomFilterBlockIO = bloomFilterConfig.ioStrategy,
@@ -64,11 +64,11 @@ private[core] object SegmentIO {
     )
 }
 
-private[core] case class SegmentIO(fileOpenIO: IOAction.OpenResource => IOStrategy.ThreadSafe,
-                                   segmentBlockIO: IOAction => IOStrategy,
-                                   hashIndexBlockIO: IOAction => IOStrategy,
-                                   bloomFilterBlockIO: IOAction => IOStrategy,
-                                   binarySearchIndexBlockIO: IOAction => IOStrategy,
-                                   sortedIndexBlockIO: IOAction => IOStrategy,
-                                   valuesBlockIO: IOAction => IOStrategy,
-                                   segmentFooterBlockIO: IOAction => IOStrategy)
+private[core] case class SegmentIO(fileIO: IOAction.OpenResource => IOStrategy.ThreadSafe,
+                                   segmentBlockIO: IOAction.DataAction => IOStrategy,
+                                   hashIndexBlockIO: IOAction.DataAction => IOStrategy,
+                                   bloomFilterBlockIO: IOAction.DataAction => IOStrategy,
+                                   binarySearchIndexBlockIO: IOAction.DataAction => IOStrategy,
+                                   sortedIndexBlockIO: IOAction.DataAction => IOStrategy,
+                                   valuesBlockIO: IOAction.DataAction => IOStrategy,
+                                   segmentFooterBlockIO: IOAction.DataAction => IOStrategy)

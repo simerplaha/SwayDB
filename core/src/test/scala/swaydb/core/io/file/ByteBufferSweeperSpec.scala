@@ -400,8 +400,10 @@ class ByteBufferSweeperSpec extends TestBase {
 
             val paths = (1 to 100) map (i => sendRandomRequests(i))
 
-            eventual(1.minute) {
-              (cleaner.actor ask Command.IsAllClean[Unit]).await(1.seconds) shouldBe true
+            eventual(2.minutes) {
+              //ByteBufferCleaner is a timer Actor with 5.seconds interval so await enough
+              //seconds for the Actor to process stashed request/command.
+              (cleaner.actor ask Command.IsAllClean[Unit]).await(30.seconds) shouldBe true
             }
 
             //execute all pending Delete commands.

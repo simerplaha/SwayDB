@@ -107,7 +107,7 @@ private[core] object BinarySearchIndexBlock {
                     minimumNumberOfKeys: Int,
                     searchSortedIndexDirectlyIfPossible: Boolean,
                     fullIndex: Boolean,
-                    ioStrategy: IOAction => IOStrategy,
+                    ioStrategy: IOAction.DataAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset

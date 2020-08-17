@@ -114,11 +114,19 @@ private[core] object ByteBufferSweeper extends LazyLogging {
 
     /**
      * Checks if the file is cleaned.
+     *
+     * [[ByteBufferSweeperActor]] is a timer actor so [[IsClean]] will also get
+     * executed based on the [[Actor.interval]]. But terminating the Actor and then
+     * requesting this will return immediate response.
      */
     case class IsClean[T](filePath: Path)(val replyTo: ActorRef[Boolean, T]) extends Command
 
     /**
-     * Checks if all files are cleaned
+     * Checks if all files are cleaned.
+     *
+     * [[ByteBufferSweeperActor]] is a timer actor so [[IsAllClean]] will also get
+     * executed based on the [[Actor.interval]]. But terminating the Actor and then
+     * requesting this will return immediate response.
      */
     case class IsAllClean[T](replyTo: ActorRef[Boolean, T]) extends Command
 

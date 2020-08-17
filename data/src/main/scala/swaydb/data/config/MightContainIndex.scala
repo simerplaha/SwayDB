@@ -50,7 +50,7 @@ object MightContainIndex {
   case class Enable(falsePositiveRate: Double,
                     updateMaxProbe: Int => Int,
                     minimumNumberOfKeys: Int,
-                    ioStrategy: IOAction => IOStrategy,
+                    ioStrategy: IOAction.DataAction => IOStrategy,
                     compression: UncompressedBlockInfo => Iterable[Compression]) extends MightContainIndex {
     def copyWithFalsePositiveRate(falsePositiveRate: Double) =
       this.copy(falsePositiveRate = falsePositiveRate)

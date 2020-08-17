@@ -51,7 +51,7 @@ object RandomKeyIndex {
                     minimumNumberOfHits: Int,
                     indexFormat: IndexFormat,
                     allocateSpace: RequiredSpace => Int,
-                    ioStrategy: IOAction => IOStrategy,
+                    ioStrategy: IOAction.DataAction => IOStrategy,
                     compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomKeyIndex {
     def copyWithMaxProbe(maxProbe: Int) =
       this.copy(maxProbe = maxProbe)

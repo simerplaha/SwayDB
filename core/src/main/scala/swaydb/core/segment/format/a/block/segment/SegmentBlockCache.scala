@@ -107,7 +107,7 @@ private[core] class SegmentBlockCache(path: Path,
 
   @volatile var forceCacheSortedIndexAndValueReaders = false
 
-  def segmentBlockIO(action: IOAction) =
+  def segmentBlockIO(action: IOAction.DataAction): IOStrategy =
     segmentIOStrategyCache getOrSet segmentIO.segmentBlockIO(action)
 
   def hashIndexBlockIO = segmentIO.hashIndexBlockIO
@@ -129,7 +129,7 @@ private[core] class SegmentBlockCache(path: Path,
   /**
    * Builds a required cache for [[SortedIndexBlock]].
    */
-  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
+  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction.DataAction => IOStrategy,
                                                            resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, BlockRefReader[O], B] =
     Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockRefReader[O], B](
       strategy = blockIO(IOAction.ReadDataOverview),
@@ -151,7 +151,7 @@ private[core] class SegmentBlockCache(path: Path,
         }
     }
 
-  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
+  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction.DataAction => IOStrategy,
                                                                    resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, Option[BlockRefReader[O]], Option[B]] =
     Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockRefReader[O]], Option[B]](
       strategy = blockIO(IOAction.ReadDataOverview),
@@ -180,7 +180,7 @@ private[core] class SegmentBlockCache(path: Path,
     forceCacheSortedIndexAndValueReaders && (resourceName == sortedIndexReaderCacheName || resourceName == valuesReaderCacheName)
 
   def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](initial: Option[UnblockedReader[O, B]],
-                                                             blockIO: IOAction => IOStrategy,
+                                                             blockIO: IOAction.DataAction => IOStrategy,
                                                              resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockedReader[O, B], UnblockedReader[O, B]](
       initial = initial,
@@ -218,7 +218,7 @@ private[core] class SegmentBlockCache(path: Path,
    * TODO switch out null with [[swaydb.core.segment.format.a.block.reader.UnblockedReaderOption]] for type-safety.
    */
   def buildBlockReaderCacheOrNull[O <: BlockOffset, B <: Block[O]](initial: Option[UnblockedReader[O, B]],
-                                                                   blockIO: IOAction => IOStrategy,
+                                                                   blockIO: IOAction.DataAction => IOStrategy,
                                                                    resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], UnblockedReader[O, B]](
       /**

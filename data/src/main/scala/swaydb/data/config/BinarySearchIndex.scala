@@ -41,7 +41,7 @@ object BinarySearchIndex {
   sealed trait Enable extends BinarySearchIndex {
     def minimumNumberOfKeys: Int
 
-    def ioStrategy: IOAction => IOStrategy
+    def ioStrategy: IOAction.DataAction => IOStrategy
 
     def compression: UncompressedBlockInfo => Iterable[Compression]
 
@@ -52,7 +52,7 @@ object BinarySearchIndex {
     BinarySearchIndexFullIndexBuilder.builder()
 
   case class FullIndex(minimumNumberOfKeys: Int,
-                       ioStrategy: IOAction => IOStrategy,
+                       ioStrategy: IOAction.DataAction => IOStrategy,
                        indexFormat: IndexFormat,
                        searchSortedIndexDirectly: Boolean,
                        compression: UncompressedBlockInfo => Iterable[Compression]) extends Enable {
@@ -76,7 +76,7 @@ object BinarySearchIndex {
     BinarySearchIndexSecondaryIndexBuilder.builder()
 
   case class SecondaryIndex(minimumNumberOfKeys: Int,
-                            ioStrategy: IOAction => IOStrategy,
+                            ioStrategy: IOAction.DataAction => IOStrategy,
                             indexFormat: IndexFormat,
                             searchSortedIndexDirectlyIfPreNormalised: Boolean,
                             compression: UncompressedBlockInfo => Iterable[Compression]) extends Enable {

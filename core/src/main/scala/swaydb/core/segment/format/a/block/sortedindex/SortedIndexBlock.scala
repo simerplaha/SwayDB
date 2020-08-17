@@ -99,7 +99,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           )
       )
 
-    def apply(ioStrategy: IOAction => IOStrategy,
+    def apply(ioStrategy: IOAction.DataAction => IOStrategy,
               enablePrefixCompression: Boolean,
               shouldPrefixCompress: Int => Boolean,
               prefixCompressKeysOnly: Boolean,
@@ -120,7 +120,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   /**
    * Do not create [[Config]] directly. Use one of the apply functions.
    */
-  class Config private(val ioStrategy: IOAction => IOStrategy,
+  class Config private(val ioStrategy: IOAction.DataAction => IOStrategy,
                        val shouldPrefixCompress: Int => Boolean,
                        val prefixCompressKeysOnly: Boolean,
                        val enableAccessPositionIndex: Boolean,
@@ -128,7 +128,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                        val normaliseIndex: Boolean,
                        val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
-    def copy(ioStrategy: IOAction => IOStrategy = ioStrategy,
+    def copy(ioStrategy: IOAction.DataAction => IOStrategy = ioStrategy,
              shouldPrefixCompress: Int => Boolean = shouldPrefixCompress,
              enableAccessPositionIndex: Boolean = enableAccessPositionIndex,
              normaliseIndex: Boolean = normaliseIndex,

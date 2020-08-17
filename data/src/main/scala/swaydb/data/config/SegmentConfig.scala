@@ -42,7 +42,7 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          minSegmentSize: Int,
                          maxKeyValuesPerSegment: Int,
                          fileIOStrategy: IOAction.OpenResource => IOStrategy.ThreadSafe,
-                         blockIOStrategy: IOAction => IOStrategy,
+                         blockIOStrategy: IOAction.DataAction => IOStrategy,
                          compression: UncompressedBlockInfo => Iterable[Compression]) {
 
   def copyWithCacheSegmentBlocksOnCreate(cacheSegmentBlocksOnCreate: Boolean): SegmentConfig =

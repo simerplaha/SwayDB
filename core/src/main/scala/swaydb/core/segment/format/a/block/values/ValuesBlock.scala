@@ -74,7 +74,7 @@ private[core] object ValuesBlock {
 
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
-                    ioStrategy: IOAction => IOStrategy,
+                    ioStrategy: IOAction.DataAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
 
   def valuesBlockNotInitialised: IO.Left[swaydb.Error.Segment, Nothing] =

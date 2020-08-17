@@ -1739,7 +1739,7 @@ object CommonAssertions {
     def random(cacheOnAccess: Boolean = randomBoolean(),
                includeReserved: Boolean = true): SegmentIO =
       SegmentIO(
-        fileOpenIO = _ => randomThreadSafeIOStrategy(cacheOnAccess, includeReserved),
+        fileIO = _ => randomThreadSafeIOStrategy(cacheOnAccess, includeReserved),
         segmentBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
         hashIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
         bloomFilterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),

@@ -76,7 +76,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
   case class Config(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
                     optimalMaxProbe: Int => Int,
-                    ioStrategy: IOAction => IOStrategy,
+                    ioStrategy: IOAction.DataAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset

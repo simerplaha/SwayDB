@@ -57,7 +57,7 @@ object IOStrategy {
     case IOAction.ReadDataOverview =>
       IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
-    case action: IOAction.DataAction =>
+    case action: IOAction.DecompressAction =>
       IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
   }
 
@@ -71,7 +71,7 @@ object IOStrategy {
     case IOAction.ReadDataOverview =>
       IOStrategy.ConcurrentIO(cacheOnAccess = true)
 
-    case action: IOAction.DataAction =>
+    case action: IOAction.DecompressAction =>
       IOStrategy.ConcurrentIO(cacheOnAccess = action.isCompressed)
   }
 

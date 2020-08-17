@@ -58,7 +58,7 @@ object DBFile extends LazyLogging {
         override def path: Path = filePath
 
         override def delete(): Unit = {
-          val message = s"Delete invoked on only closeable ${classOf[FileSweeperItem].getSimpleName}. Path: $path. autoClose = $autoClose. deleteOnClean = $deleteOnClean. file.isDefined = ${file.isDefined}."
+          val message = s"Delete invoked on only closeable ${classOf[FileSweeperItem].getSimpleName}. Path: $path. autoClose = $autoClose. deleteOnClean = $deleteOnClean."
           val exception = new Exception(message)
           logger.error(message, exception)
           exception.printStackTrace()

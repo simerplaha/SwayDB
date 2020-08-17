@@ -95,7 +95,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                     minimumNumberOfHits: Int,
                     format: HashIndexEntryFormat,
                     allocateSpace: RandomKeyIndex.RequiredSpace => Int,
-                    ioStrategy: IOAction => IOStrategy,
+                    ioStrategy: IOAction.DataAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset

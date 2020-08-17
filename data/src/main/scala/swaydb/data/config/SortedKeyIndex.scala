@@ -38,7 +38,7 @@ object SortedKeyIndex {
 
   case class Enable(prefixCompression: PrefixCompression,
                     enablePositionIndex: Boolean,
-                    ioStrategy: IOAction => IOStrategy,
+                    ioStrategy: IOAction.DataAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedKeyIndex {
     def copyWithPrefixCompression(prefixCompression: PrefixCompression) =
       this.copy(prefixCompression = prefixCompression)

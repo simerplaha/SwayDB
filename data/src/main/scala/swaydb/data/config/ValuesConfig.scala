@@ -37,7 +37,7 @@ object ValuesConfig {
 
 case class ValuesConfig(compressDuplicateValues: Boolean,
                         compressDuplicateRangeValues: Boolean,
-                        ioStrategy: IOAction => IOStrategy,
+                        ioStrategy: IOAction.DataAction => IOStrategy,
                         compression: UncompressedBlockInfo => Iterable[Compression]) {
   def copyWithCompressDuplicateValues(compressDuplicateValues: Boolean) =
     this.copy(compressDuplicateValues = compressDuplicateValues)
