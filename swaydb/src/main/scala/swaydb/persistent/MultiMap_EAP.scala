@@ -35,12 +35,12 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Apply, KeyOrderConverter, MultiMap, MultiMapKey, PureFunction}
+import swaydb.{Apply, KeyOrderConverter, MultiMap_EAP, MultiMapKey, PureFunction}
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
-object MultiMap extends LazyLogging {
+object MultiMap_EAP extends LazyLogging {
 
   /**
    * MultiMap is not a new Core type but is just a wrapper implementation on [[swaydb.Map]] type
@@ -82,9 +82,9 @@ object MultiMap extends LazyLogging {
                                                                                                             valueSerializer: Serializer[V],
                                                                                                             functionClassTag: ClassTag[F],
                                                                                                             bag: swaydb.Bag[BAG],
-                                                                                                            functions: swaydb.MultiMap.Functions[M, K, V, F],
+                                                                                                            functions: swaydb.MultiMap_EAP.Functions[M, K, V, F],
                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                            typedKeyOrder: KeyOrder[K] = null): BAG[MultiMap[M, K, V, F, BAG]] =
+                                                                                                            typedKeyOrder: KeyOrder[K] = null): BAG[MultiMap_EAP[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val mapKeySerializer: Serializer[MultiMapKey[M, K]] = MultiMapKey.serializer(keySerializer, tableSerializer)
       implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toNestedOption(valueSerializer)
@@ -131,7 +131,7 @@ object MultiMap extends LazyLogging {
 
       bag.flatMap(map) {
         map =>
-          swaydb.MultiMap[M, K, V, F, BAG](map)
+          swaydb.MultiMap_EAP[M, K, V, F, BAG](map)
       }
     }
 }

@@ -24,16 +24,16 @@
 
 package swaydb.multimap
 
-import swaydb.{MultiMap, Prepare}
+import swaydb.{MultiMap_EAP, Prepare}
 
 import scala.concurrent.duration.Deadline
 
 /**
- * Holds [[Prepare]] statements which than get converted to [[MultiMap.innerMap]]'s [[Prepare]] type.
+ * Holds [[Prepare]] statements which than get converted to [[MultiMap_EAP.innerMap]]'s [[Prepare]] type.
  *
- * @param thisMapKey        [[MultiMap]] key's
- * @param defaultExpiration [[MultiMap]] default expiration
- * @param prepare           The [[Prepare]] statemented created for the [[MultiMap]]
+ * @param thisMapKey        [[MultiMap_EAP]] key's
+ * @param defaultExpiration [[MultiMap_EAP]] default expiration
+ * @param prepare           The [[Prepare]] statemented created for the [[MultiMap_EAP]]
  */
 class Transaction[+M, +K, +V, +F](val thisMapKey: Iterable[M],
                                   val defaultExpiration: Option[Deadline],

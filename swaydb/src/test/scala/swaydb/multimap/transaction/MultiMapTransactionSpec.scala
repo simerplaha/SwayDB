@@ -46,7 +46,7 @@ class MultiMapTransactionSpec extends TestBaseEmbedded {
         implicit val bag = Bag.less
 
         //Create a memory database
-        val root = swaydb.memory.MultiMap[Table, PrimaryKey, Row, Nothing, Bag.Less]().sweep()
+        val root = swaydb.memory.MultiMap_EAP[Table, PrimaryKey, Row, Nothing, Bag.Less]().sweep()
 
         //create sibling1 UserMap and it's child UserActivity
         val userMap = root.schema.init(Table.User: Table.UserTables, classOf[PrimaryKey.UserPrimaryKeys], classOf[Row.UserRows])
