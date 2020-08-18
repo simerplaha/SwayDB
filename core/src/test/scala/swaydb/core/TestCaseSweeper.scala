@@ -111,7 +111,11 @@ object TestCaseSweeper extends LazyLogging {
       segment =>
         if (segment.existsOnDisk)
           segment.delete
-        deleteParentPath(segment.path)
+        else
+          segment.close //the test itself might've delete this file so submit close just in-case.
+
+        //eventual because segment.delete goes to an actor which might eventually get resolved.
+        eventual(20.seconds)(deleteParentPath(segment.path))
     }
 
     sweeper.maps.foreach {

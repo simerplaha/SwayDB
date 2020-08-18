@@ -373,7 +373,6 @@ sealed trait SegmentWriteSpec extends TestBase {
           def doAssert(keyValues: Slice[KeyValue], segment: Segment): Unit = {
             segment.hasRange.runRandomIO.right.value shouldBe true
             segment.hasPut.runRandomIO.right.value shouldBe true
-            segment.close.runRandomIO.right.value
           }
 
           assertSegment(
@@ -949,6 +948,10 @@ sealed trait SegmentWriteSpec extends TestBase {
             )
           }
 
+          //windows
+          if (isWindowsAndMMAPSegments())
+            sweeper.receiveAll()
+
           Effect.size(conflictingPath) shouldBe 0
           if (persistent) segment.existsOnDisk shouldBe true //original Segment remains untouched
       }
@@ -958,6 +961,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
+
           val keyValues = randomizedKeyValues(keyValuesCount)
 
           val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
@@ -1009,7 +1013,15 @@ sealed trait SegmentWriteSpec extends TestBase {
             )
           }
 
-          pathDistributor.next.files(Extension.Seg) shouldBe filesBeforeCopy
+          //process all delete requests
+          if (OperatingSystem.isWindows)
+            eventual(1.minute) {
+              sweeper.receiveAll()
+              pathDistributor.next.files(Extension.Seg) shouldBe filesBeforeCopy
+            }
+          else
+            pathDistributor.next.files(Extension.Seg) shouldBe filesBeforeCopy
+
       }
     }
   }
@@ -1331,7 +1343,17 @@ sealed trait SegmentWriteSpec extends TestBase {
             }
 
             //the folder should contain only the original segment and the segmentToFailPut
-            segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
+            def assertFinalFiles() = segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
+
+            //if windows execute all stashed actor messages
+            if (OperatingSystem.isWindows) {
+              eventual(1.minute) {
+                sweeper.receiveAll()
+                assertFinalFiles()
+              }
+            } else {
+              assertFinalFiles()
+            }
         }
       }
     }

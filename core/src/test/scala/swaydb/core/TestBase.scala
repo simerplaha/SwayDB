@@ -257,7 +257,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = 100.mb, maxCount = Int.MaxValue))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                                                                     sweeper: TestCaseSweeper): Segment = {
 
@@ -276,7 +276,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig
+          segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
         )
 
       segments should have size 1
@@ -691,7 +691,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
 
     runAsserts(asserts)
 
-    level0.deleteNoSweep.runRandomIO.right.value
+    level0.delete(2.seconds).runRandomIO.right.value
 
     val terminate =
       compaction map {

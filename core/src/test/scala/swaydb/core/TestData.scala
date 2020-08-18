@@ -72,7 +72,7 @@ import swaydb.serializers._
 import swaydb.{IO, Scheduler}
 import TestCaseSweeper._
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.Random
@@ -252,31 +252,31 @@ object TestData {
 
     def tryReopen(segmentSize: Int = level.minSegmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
-                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Level] =
-      level.releaseLocks flatMap {
-        _ =>
-          level.closeSegments flatMap {
-            _ =>
-              import sweeper._
+                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Level] = {
+      implicit val ec = TestExecutionContext.executionContext
 
-              Level(
-                bloomFilterConfig = level.bloomFilterConfig,
-                hashIndexConfig = level.hashIndexConfig,
-                binarySearchIndexConfig = level.binarySearchIndexConfig,
-                sortedIndexConfig = level.sortedIndexConfig,
-                valuesConfig = level.valuesConfig,
-                segmentConfig = level.segmentConfig.copy(minSize = segmentSize),
-                levelStorage =
-                  LevelStorage.Persistent(
-                    dir = level.pathDistributor.headPath,
-                    otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
-                  ),
-                appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomForMap(), 4.mb),
-                nextLevel = nextLevel,
-                throttle = throttle
-              ).map(_.sweep())
-          }
-      }
+      Await.result(level.close(2.seconds), 20.seconds)
+      sweeper.receiveAll()
+
+      import sweeper._
+
+      Level(
+        bloomFilterConfig = level.bloomFilterConfig,
+        hashIndexConfig = level.hashIndexConfig,
+        binarySearchIndexConfig = level.binarySearchIndexConfig,
+        sortedIndexConfig = level.sortedIndexConfig,
+        valuesConfig = level.valuesConfig,
+        segmentConfig = level.segmentConfig.copy(minSize = segmentSize),
+        levelStorage =
+          LevelStorage.Persistent(
+            dir = level.pathDistributor.headPath,
+            otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
+          ),
+        appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomForMap(), 4.mb),
+        nextLevel = nextLevel,
+        throttle = throttle
+      ).map(_.sweep())
+    }
   }
 
   implicit class ReopenLevelZero(level: LevelZero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) {
