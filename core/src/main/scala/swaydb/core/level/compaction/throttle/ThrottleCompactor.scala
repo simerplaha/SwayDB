@@ -301,7 +301,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     )(ThrottleCompaction)
 
   override def terminate(state: ThrottleState, compactor: ActorWire[Compactor[ThrottleState], ThrottleState]): Future[Unit] = {
-    implicit val tag = Bag.future(state.executionContext)
+    implicit val bag = Bag.future(state.executionContext)
 
     val terminated =
       state.child match {

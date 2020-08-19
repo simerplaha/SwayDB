@@ -28,7 +28,7 @@ import scala.collection.mutable.ListBuffer
 class BagSpec extends AnyWordSpec with Matchers {
 
   "tryMap" in {
-    implicit val tag = Bag.tryBag
+    implicit val bag = Bag.tryBag
 
     val result: swaydb.Stream[Int] = swaydb.Stream(1 to 100)
 

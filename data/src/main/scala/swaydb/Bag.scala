@@ -75,7 +75,7 @@ sealed trait Bag[BAG[_]] {
 object Bag extends LazyLogging {
 
   implicit class BagImplicits[A, BAG[_]](first: BAG[A]) {
-    @inline def and[B](second: BAG[B])(implicit bag: Bag[BAG]): BAG[B] =
+    @inline def and[B](second: => BAG[B])(implicit bag: Bag[BAG]): BAG[B] =
       bag.and(first)(second)
   }
 
@@ -516,36 +516,36 @@ object Bag extends LazyLogging {
 
       override def getUnsafe[A](a: Less[A]): A = a
 
-      override def orElse[A, B >: A](a: Less[A])(b: Less[B]): Less[B] = a
+      override def orElse[A, B >: A](a: Less[A])(b: Less[B]): B = a
 
-      override def unit: Less[Unit] = ()
+      override def unit: Unit = ()
 
-      override def none[A]: Less[Option[A]] = Option.empty[A]
+      override def none[A]: Option[A] = Option.empty[A]
 
-      override def apply[A](a: => A): Less[A] = a
+      override def apply[A](a: => A): A = a
 
       override def createSerial(): Serial[Less] =
         new Serial[Less] {
-          override def execute[F](f: => F): Less[F] = f
+          override def execute[F](f: => F): F = f
         }
 
       override def foreach[A](a: Less[A])(f: A => Unit): Unit = f(a)
 
-      override def map[A, B](a: Less[A])(f: A => B): Less[B] = f(a)
+      override def map[A, B](a: Less[A])(f: A => B): B = f(a)
 
-      override def transform[A, B](a: Less[A])(f: A => B): Less[B] = f(a)
+      override def transform[A, B](a: Less[A])(f: A => B): B = f(a)
 
-      override def flatMap[A, B](fa: Less[A])(f: A => Less[B]): Less[B] = f(fa)
+      override def flatMap[A, B](fa: Less[A])(f: A => Less[B]): B = f(fa)
 
       override def success[A](value: A): Less[A] = value
 
-      override def failure[A](exception: Throwable): Less[A] = throw exception
+      override def failure[A](exception: Throwable): A = throw exception
 
-      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Less[A] = a.get
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): A = a.get
 
-      override def suspend[B](f: => Less[B]): Less[B] = f
+      override def suspend[B](f: => Less[B]): B = f
 
-      override def safe[B](f: => Less[B]): Less[B] = f
+      override def safe[B](f: => Less[B]): B = f
     }
 
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =

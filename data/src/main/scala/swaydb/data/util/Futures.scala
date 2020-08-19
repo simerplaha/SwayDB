@@ -36,10 +36,10 @@ object Futures {
   val `false` = Future.successful(false)
 
   implicit class FutureImplicits[T](future1: Future[T]) {
-    def and(future2: Future[T])(implicit executionContext: ExecutionContext) =
+    @inline def and(future2: => Future[T])(implicit executionContext: ExecutionContext): Future[T] =
       future1.flatMap(_ => future2)
 
-    def and[L, R](io: IO[L, T])(implicit executionContext: ExecutionContext) =
+    @inline def andIO[L, R](io: => IO[L, T])(implicit executionContext: ExecutionContext): Future[T] =
       future1.flatMap(_ => io.toFuture)
   }
 }

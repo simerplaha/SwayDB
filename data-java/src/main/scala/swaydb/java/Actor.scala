@@ -29,21 +29,20 @@ import java.util.function.{BiConsumer, Consumer}
 import java.util.{Comparator, TimerTask, UUID}
 
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.java.data.TriFunctionVoid
 import swaydb.data.util.Java.JavaFunction
+import swaydb.java.data.TriFunctionVoid
 import swaydb.{Bag, Scheduler}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext
-import scala.util.Random
 
 object Actor {
 
   final class TerminatedActor extends Throwable
 
   sealed trait ActorBase[T, S] {
-    implicit val tag = Bag.future(asScala.executionContext)
+    implicit val bag = Bag.future(asScala.executionContext)
 
     def asScala: swaydb.ActorRef[T, S]
 
@@ -70,7 +69,7 @@ object Actor {
               message.apply(new Actor.Ref[R, Void](actor.asInstanceOf[swaydb.ActorRef[R, Void]])),
           delay =
             delay.toScala
-        )(scheduler, tag)
+        )(scheduler, bag)
 
       new swaydb.Actor.Task(javaFuture.task.toJava, javaFuture.timer)
     }

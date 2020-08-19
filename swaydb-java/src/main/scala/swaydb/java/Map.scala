@@ -43,7 +43,7 @@ import scala.collection.compat._
 /**
  * IOMap database API.
  *
- * For documentation check - http://swaydb.io/tag/
+ * For documentation check - http://swaydb.io/bag/
  */
 case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
 

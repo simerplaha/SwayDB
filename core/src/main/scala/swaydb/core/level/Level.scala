@@ -1588,7 +1588,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
     closeSweepers(retryInterval)
-      .and(closeNoSweep())
+      .andIO(closeNoSweep())
 
   def closeNoSweep(): IO[swaydb.Error.Level, Unit] =
     nextLevel
@@ -1636,7 +1636,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   override def delete(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
     close(retryInterval)
-      .and(closeNoSweep())
-      .and(deleteNextLevelNoSweep())
-      .and(deleteFiles())
+      .andIO(closeNoSweep())
+      .andIO(deleteNextLevelNoSweep())
+      .andIO(deleteFiles())
 }

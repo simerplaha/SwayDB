@@ -112,7 +112,7 @@ private[core] object CoreInitializer extends LazyLogging {
       implicit val scheduler = Scheduler()
       implicit val bag = Bag.future
       try
-        Await.result(IO.Defer(close(zero, shutdownTimeout)).run(0), shutdownTimeout)
+        Await.result(IO.Defer(close(zero, 2.seconds)).run(0), shutdownTimeout)
       finally
         scheduler.terminate()
     }
@@ -310,9 +310,10 @@ private[core] object CoreInitializer extends LazyLogging {
             IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createError.exception)
 
           case IO.Left(closeError) =>
-            logger.error("Failed to create", createError.exception)
+            val createException = createError.exception
+            logger.error("Failed to create", createException)
             logger.error("Failed to close", closeError.exception)
-            IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createError.exception)
+            IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createException)
         }
     }
   }

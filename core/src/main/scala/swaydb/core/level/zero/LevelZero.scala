@@ -209,10 +209,8 @@ private[swaydb] case class LevelZero(path: Path,
     maps onNextMapCallback event
 
   def releaseLocks: IO[swaydb.Error.Close, Unit] =
-    IO[swaydb.Error.Close, Unit](Effect.release(lock)) flatMap {
-      _ =>
-        nextLevel.map(_.releaseLocks) getOrElse IO.unit
-    }
+    IO[swaydb.Error.Close, Unit](Effect.release(lock))
+      .and(nextLevel.map(_.releaseLocks) getOrElse IO.unit)
 
   def validateInput(key: Slice[Byte]): Unit =
     if (key.isEmpty) {
@@ -986,7 +984,7 @@ private[swaydb] case class LevelZero(path: Path,
     closeMaps
       .toFuture
       .and(closeNextLevel(retryInterval))
-      .and(releaseLocks)
+      .andIO(releaseLocks)
 
   def closeSegments: IO[swaydb.Error.Level, Unit] =
     nextLevel
@@ -1005,8 +1003,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   override def delete(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
     close(retryInterval)
-      .and(deleteNextLevelNoSweep)
-      .and(IO(Effect.walkDelete(path.getParent)))
+      .andIO(deleteNextLevelNoSweep)
+      .andIO(IO(Effect.walkDelete(path.getParent)))
 
   final def run[R, BAG[_]](apply: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
     bag.suspend {
