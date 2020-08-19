@@ -44,15 +44,15 @@ class ActorPerformanceSpec extends AnyWordSpec with Matchers {
 
   "performance test" in {
     //0.251675378 seconds.
-//    val actor =
-//      Actor.timerLoopCache[Int](100000, _ => 1, 5.second) {
-//        (_: Int, self: ActorRef[Int, Unit]) =>
-//      }
+    //    val actor =
+    //      Actor.timerLoopCache[Int](100000, _ => 1, 5.second) {
+    //        (_: Int, self: ActorRef[Int, Unit]) =>
+    //      }
 
-        val actor =
-          Actor.timerCache[Int]("", 100000, _ => 1, 5.second) {
-            (_: Int, self: ActorRef[Int, Unit]) =>
-          }
+    val actor =
+      Actor.timerCache[Int]("", 100000, _ => 1, 5.second) {
+        (_: Int, self: ActorRef[Int, Unit]) =>
+      }
 
 
     //0.111304334 seconds.

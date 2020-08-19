@@ -48,8 +48,8 @@ object BaseEntryReader {
     ) sortBy (_.minID)
 
   def findReaderOrNull(baseId: Int,
-                         mightBeCompressed: Boolean,
-                         keyCompressionOnly: Boolean): BaseEntryReader =
+                       mightBeCompressed: Boolean,
+                       keyCompressionOnly: Boolean): BaseEntryReader =
     if (mightBeCompressed && !keyCompressionOnly)
       NullOps.find[BaseEntryReader](readers, _.maxID >= baseId)
     else

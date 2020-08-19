@@ -35,7 +35,7 @@ import TestCaseSweeper._
 
 import scala.util.Random
 
-class PathsDistributorPerformanceSpec extends TestBase  {
+class PathsDistributorPerformanceSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
 

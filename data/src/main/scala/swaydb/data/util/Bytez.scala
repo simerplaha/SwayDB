@@ -103,7 +103,7 @@ private[swaydb] trait Bytez {
    * for slice and reader.
    *
    * Need to re-evaluate this code and see if abstract functions can be used.
-   * ************************************************/
+   * *********************************************** */
 
   def writeSignedInt(x: Int, slice: Slice[Byte]): Unit =
     writeUnsignedInt((x << 1) ^ (x >> 31), slice)

@@ -258,8 +258,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                                                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                                                                                    sweeper: TestCaseSweeper): Segment = {
+                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                         sweeper: TestCaseSweeper): Segment = {
 
       val segmentId = Effect.fileId(path)._1 - 1
 

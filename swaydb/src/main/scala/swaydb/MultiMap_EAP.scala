@@ -281,9 +281,9 @@ case class MultiMap_EAP[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap
                                                     private val from: Option[From[MultiMapKey.MapEntry[M, K]]] = None,
                                                     private val reverseIteration: Boolean = false,
                                                     defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
-                                                                                            tableSerializer: Serializer[M],
-                                                                                            valueSerializer: Serializer[V],
-                                                                                            val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
+                                                                                                tableSerializer: Serializer[M],
+                                                                                                valueSerializer: Serializer[V],
+                                                                                                val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   override def path: Path =
     innerMap.path
