@@ -49,7 +49,7 @@ object Queue {
           if (data._2 == null)
             Slice.emptyBytes //value can be null when
           else
-          bSerializer.write(data._2)
+            bSerializer.write(data._2)
 
         Slice
           .create[Byte](Bytes.sizeOfUnsignedLong(data._1) + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size)
@@ -189,7 +189,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
         if (retryId == null)
           popIds.getAndIncrement() //pick next job
         else
-        retryId
+          retryId
 
       //pop the next job from the map safely.
       val valueOrNull = popAndRecoverOrNull(nextId)

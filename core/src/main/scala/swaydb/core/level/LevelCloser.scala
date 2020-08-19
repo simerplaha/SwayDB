@@ -30,6 +30,7 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 import swaydb.{Bag, Scheduler}
+import Bag._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -41,15 +42,13 @@ object LevelCloser extends LazyLogging {
                                                            fileSweeper: FileSweeperActor,
                                                            bufferCleaner: ByteBufferSweeperActor,
                                                            bag: Bag.Async[BAG],
-                                                           scheduler: Scheduler) = {
+                                                           scheduler: Scheduler): BAG[Unit] = {
 
     MemorySweeper.close(keyValueMemorySweeper)
     BlockCache.close(blockCache)
 
-    bag.flatMap(FileSweeper.closeAsync(retryOnBusyDelay)) {
-      _ =>
-        ByteBufferSweeper.closeAsync(retryOnBusyDelay)
-    }
+    FileSweeper.closeAsync(retryOnBusyDelay)
+      .and(ByteBufferSweeper.closeAsync(retryOnBusyDelay))
   }
 
   def closeSync[BAG[_]](retryDelays: FiniteDuration,
@@ -58,15 +57,13 @@ object LevelCloser extends LazyLogging {
                                                  fileSweeper: FileSweeperActor,
                                                  bufferCleaner: ByteBufferSweeperActor,
                                                  ec: ExecutionContext,
-                                                 bag: Bag.Sync[BAG]) = {
+                                                 bag: Bag.Sync[BAG]): BAG[Unit] = {
 
     MemorySweeper.close(keyValueMemorySweeper)
     BlockCache.close(blockCache)
 
-    bag.flatMap(FileSweeper.closeSync(retryDelays)) {
-      _ =>
-        ByteBufferSweeper.closeSync(retryDelays, timeout)
-    }
+    FileSweeper.closeSync[BAG](retryDelays)
+      .and(ByteBufferSweeper.closeSync[BAG](retryDelays, timeout))
   }
 
 }

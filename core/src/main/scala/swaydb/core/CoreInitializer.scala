@@ -37,7 +37,7 @@ import swaydb.core.io.file.BlockCache
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{Level, NextLevel, TrashLevel}
+import swaydb.core.level.{Level, LevelCloser, NextLevel, TrashLevel}
 import swaydb.core.segment.format.a.block
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
@@ -50,8 +50,9 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.{ActorRef, ActorWire, Bag, Error, IO, Scheduler}
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.sys.ShutdownHookThread
 
 /**
  * Creates all configured Levels via [[ConfigWizard]] instances and starts compaction.
@@ -78,6 +79,12 @@ private[core] object CoreInitializer extends LazyLogging {
       executionContext(config.level1).toList ++
       config.otherLevels.flatMap(executionContext)
 
+  def shutdownExecutionContext(contexts: Seq[CompactionExecutionContext]): ExecutionContext =
+    contexts collectFirst {
+      case CompactionExecutionContext.Create(executionContext) =>
+        executionContext
+    } getOrElse scala.concurrent.ExecutionContext.Implicits.global
+
   /**
    * Boots up compaction Actor and start listening to changes in levels.
    */
@@ -97,6 +104,32 @@ private[core] object CoreInitializer extends LazyLogging {
           self = self
         )
     }
+
+  def addShutdownHook(zero: LevelZero,
+                      shutdownTimeout: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
+                                                       shutdownEC: ExecutionContext): ShutdownHookThread =
+    sys.addShutdownHook {
+      implicit val scheduler = Scheduler()
+      implicit val bag = Bag.future
+      try
+        Await.result(IO.Defer(close(zero, shutdownTimeout)).run(0), shutdownTimeout)
+      finally
+        scheduler.terminate()
+    }
+
+  def onClose(zero: LevelZero,
+              retryInterval: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
+                                             shutdownEC: ExecutionContext): Future[Unit] = {
+    implicit val scheduler = Scheduler()
+    val future = CoreShutdown.close(zero, retryInterval)
+
+    future onComplete {
+      _ =>
+        scheduler.terminate()
+    }
+
+    future
+  }
 
   /**
    * Initialises Core/Levels. To see full documentation for each input parameter see the website - http://swaydb.io/configurations/.
@@ -153,6 +186,10 @@ private[core] object CoreInitializer extends LazyLogging {
 
     implicit val bufferCleaner: ByteBufferSweeperActor =
       ByteBufferSweeper()(Scheduler()(fileSweeper.executionContext))
+
+    val contexts = executionContexts(config)
+
+    implicit val shutdownEC: ExecutionContext = shutdownExecutionContext(contexts)
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],
@@ -224,39 +261,22 @@ private[core] object CoreInitializer extends LazyLogging {
                 throttle = config.level0.throttle,
                 acceleration = config.level0.acceleration
               ) flatMap {
-                zero =>
-                  val contexts = executionContexts(config)
+                zero: LevelZero =>
                   initialiseCompaction(
                     zero = zero,
                     executionContexts = contexts
                   ) map {
                     implicit compactor =>
-                      implicit val shutdownEC =
-                        contexts collectFirst {
-                          case CompactionExecutionContext.Create(executionContext) =>
-                            executionContext
-                        } getOrElse scala.concurrent.ExecutionContext.Implicits.global
 
-                      implicit val optionalFileSweeper = Some(fileSweeper)
-
-                      sys.addShutdownHook {
-                        implicit val scheduler = Scheduler()
-                        implicit val bag = Bag.future
-                        Await.result(IO.Defer(close(zero, shutdownTimeout)).run(0), shutdownTimeout)
-                      }
+                      addShutdownHook(zero, shutdownTimeout)
 
                       //trigger initial wakeUp.
                       sendInitialWakeUp(compactor)
 
-                      def onClose(retryInterval: FiniteDuration): Future[Unit] = {
-                        implicit val scheduler = Scheduler()
-                        CoreShutdown.close(zero, retryInterval)
-                      }
-
                       new Core[Bag.Less](
                         zero = zero,
                         threadStateCache = threadStateCache,
-                        onClose = onClose
+                        onClose = onClose(zero, _)
                       )
                   }
               }
@@ -284,8 +304,16 @@ private[core] object CoreInitializer extends LazyLogging {
       case IO.Right(core) =>
         IO[swaydb.Error.Boot, Core[Bag.Less]](core)
 
-      case IO.Left(error) =>
-        IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
+      case IO.Left(createError) =>
+        IO(LevelCloser.closeSync[Bag.Less](1.second, 10.seconds)) match {
+          case IO.Right(_) =>
+            IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createError.exception)
+
+          case IO.Left(closeError) =>
+            logger.error("Failed to create", createError.exception)
+            logger.error("Failed to close", closeError.exception)
+            IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createError.exception)
+        }
     }
   }
 }

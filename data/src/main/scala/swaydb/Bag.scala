@@ -74,6 +74,11 @@ sealed trait Bag[BAG[_]] {
 
 object Bag extends LazyLogging {
 
+  implicit class BagImplicits[A, BAG[_]](first: BAG[A]) {
+    @inline def and[B](second: BAG[B])(implicit bag: Bag[BAG]): BAG[B] =
+      bag.and(first)(second)
+  }
+
   /**
    * Converts containers. More tags can be created from existing Bags with this trait using [[Bag.toBag]]
    */

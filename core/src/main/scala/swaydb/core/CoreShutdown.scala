@@ -45,7 +45,7 @@ private[core] object CoreShutdown extends LazyLogging {
 
   def close(zero: LevelZero,
             retryInterval: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
-                                           scheduler: Scheduler) = {
+                                           scheduler: Scheduler): Future[Unit] = {
     implicit val ec = scheduler.ec
     implicit val futureBag = Bag.future(scheduler.ec)
 
