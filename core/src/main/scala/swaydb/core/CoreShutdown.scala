@@ -29,10 +29,10 @@ import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.throttle.ThrottleState
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.util.Futures.FutureImplicits
-import swaydb.{ActorWire, Bag, Scheduler}
+import swaydb.{ActorWire, Bag}
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object CoreShutdown extends LazyLogging {
 
@@ -45,9 +45,8 @@ private[core] object CoreShutdown extends LazyLogging {
 
   def close(zero: LevelZero,
             retryInterval: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
-                                           scheduler: Scheduler): Future[Unit] = {
-    implicit val ec = scheduler.ec
-    implicit val futureBag = Bag.future(scheduler.ec)
+                                           ec: ExecutionContext): Future[Unit] = {
+    implicit val futureBag = Bag.future(ec)
 
     logger.info("****** Shutting down ******")
 

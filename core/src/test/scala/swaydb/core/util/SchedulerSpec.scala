@@ -28,10 +28,12 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.core.TestCaseSweeper
 import swaydb.{IO, Scheduler}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import TestCaseSweeper._
 
 class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
 
@@ -61,72 +63,77 @@ class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
 
   "Delay.task" should {
     "run tasks and cancel tasks" in {
-      @volatile var tasksExecuted = 0
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val scheduler = Scheduler()
+          @volatile var tasksExecuted = 0
 
-      scheduler.task(1.seconds)(tasksExecuted += 1)
-      scheduler.task(2.seconds)(tasksExecuted += 1)
-      scheduler.task(3.seconds)(tasksExecuted += 1)
-      scheduler.task(4.seconds)(tasksExecuted += 1)
-      scheduler.task(5.seconds)(tasksExecuted += 1)
+          val scheduler = Scheduler().sweep()
 
-      eventually(timeout(8.seconds)) {
-        tasksExecuted shouldBe 5
+          scheduler.task(1.seconds)(tasksExecuted += 1)
+          scheduler.task(2.seconds)(tasksExecuted += 1)
+          scheduler.task(3.seconds)(tasksExecuted += 1)
+          scheduler.task(4.seconds)(tasksExecuted += 1)
+          scheduler.task(5.seconds)(tasksExecuted += 1)
+
+          eventually(timeout(8.seconds)) {
+            tasksExecuted shouldBe 5
+          }
+
+          scheduler.task(1.seconds)(tasksExecuted += 1).cancel()
+          scheduler.task(1.seconds)(tasksExecuted += 1)
+
+          Thread.sleep(5.seconds.toMillis)
+
+          tasksExecuted shouldBe 6
       }
-
-      scheduler.task(1.seconds)(tasksExecuted += 1).cancel()
-      scheduler.task(1.seconds)(tasksExecuted += 1)
-
-      Thread.sleep(5.seconds.toMillis)
-
-      tasksExecuted shouldBe 6
-
-      scheduler.terminate()
     }
   }
 
   "futureFromIO" should {
     "run in future and return result" in {
-      @volatile var tryThread = ""
+      TestCaseSweeper {
+        implicit sweeper =>
+          @volatile var tryThread = ""
 
-      val scheduler = Scheduler()
+          val scheduler = Scheduler().sweep()
 
-      scheduler.futureFromIO(100.millisecond) {
-        IO {
-          tryThread = Thread.currentThread().getName
-        }
+          scheduler.futureFromIO(100.millisecond) {
+            IO {
+              tryThread = Thread.currentThread().getName
+            }
+          }
+
+          val currentThread = Thread.currentThread().getName
+
+          eventually(timeout(2.seconds)) {
+            tryThread should not be empty
+            tryThread should not be currentThread
+          }
+
       }
-
-      val currentThread = Thread.currentThread().getName
-
-      eventually(timeout(2.seconds)) {
-        tryThread should not be empty
-        tryThread should not be currentThread
-      }
-
-      scheduler.terminate()
     }
   }
 
   "future" should {
     "run in future" in {
-      @volatile var futureThread = ""
+      TestCaseSweeper {
+        implicit sweeper =>
+          @volatile var futureThread = ""
 
-      val scheduler = Scheduler()
+          val scheduler = Scheduler().sweep()
 
-      scheduler.future(100.millisecond) {
-        futureThread = Thread.currentThread().getName
+          scheduler.future(100.millisecond) {
+            futureThread = Thread.currentThread().getName
+          }
+
+          val currentThread = Thread.currentThread().getName
+
+          eventually(timeout(2.seconds)) {
+            futureThread should not be empty
+            futureThread should not be currentThread
+          }
       }
-
-      val currentThread = Thread.currentThread().getName
-
-      eventually(timeout(2.seconds)) {
-        futureThread should not be empty
-        futureThread should not be currentThread
-      }
-
-      scheduler.terminate()
     }
   }
 }

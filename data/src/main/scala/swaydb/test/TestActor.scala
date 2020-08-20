@@ -47,15 +47,13 @@ case class TestActor[T]()(implicit override val executionContext: ExecutionConte
                                                                                            cached = false,
                                                                                            execution = (_, _) => None,
                                                                                            interval = None,
+                                                                                           scheduler = null,
                                                                                            preTerminate = None,
                                                                                            postTerminate = None,
                                                                                            recovery = None) {
 //@formatter:on
 
   private val queue = new ConcurrentLinkedQueue[T]
-
-  override def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
-    scheduler.task(delay)(this send message)
 
   override def hasMessages: Boolean =
     !queue.isEmpty

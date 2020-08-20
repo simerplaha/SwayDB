@@ -25,12 +25,12 @@
 package swaydb.core.level
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Bag
+import swaydb.Bag._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
-import swaydb.{Bag, Scheduler}
-import Bag._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -41,8 +41,7 @@ object LevelCloser extends LazyLogging {
                                                            blockCache: Option[BlockCache.State],
                                                            fileSweeper: FileSweeperActor,
                                                            bufferCleaner: ByteBufferSweeperActor,
-                                                           bag: Bag.Async[BAG],
-                                                           scheduler: Scheduler): BAG[Unit] = {
+                                                           bag: Bag.Async[BAG]): BAG[Unit] = {
 
     MemorySweeper.close(keyValueMemorySweeper)
     BlockCache.close(blockCache)

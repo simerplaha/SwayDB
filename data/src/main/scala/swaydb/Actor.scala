@@ -53,9 +53,9 @@ sealed trait ActorRef[-T, S] { self =>
   /**
    * Sends a message to this actor with delay
    */
-  def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask
+  def send(message: T, delay: FiniteDuration): TimerTask
 
-  def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[X]): Actor.Task[R, X]
+  def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit bag: Bag.Async[X]): Actor.Task[R, X]
 
   def totalWeight: Int
 
@@ -71,8 +71,7 @@ sealed trait ActorRef[-T, S] { self =>
   def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
     recover[M, Throwable](f)
 
-  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
-                                                                bag: Bag.Async[BAG]): BAG[Unit]
+  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit]
 
   def receiveAllForceBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit]
 
@@ -82,7 +81,7 @@ sealed trait ActorRef[-T, S] { self =>
 
   def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S]
 
-  def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S]
+  def terminateAfter(timeout: FiniteDuration): ActorRef[T, S]
 
   def isTerminated: Boolean
 
@@ -92,8 +91,7 @@ sealed trait ActorRef[-T, S] { self =>
 
   def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
-  def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
-                                                                         bag: Bag.Async[BAG]): BAG[Unit]
+  def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit]
 
   def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit]
 }
@@ -115,18 +113,18 @@ object Actor {
       override def executionContext: ExecutionContext = throw new Exception("Dead Actor")
       override def send(message: T): Unit = throw new Exception("Dead Actor")
       override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit bag: Bag.Async[X]): X[R] = throw new Exception("Dead Actor")
-      override def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask = throw new Exception("Dead Actor")
-      override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[X]): Task[R, X] = throw new Exception("Dead Actor")
+      override def send(message: T, delay: FiniteDuration): TimerTask = throw new Exception("Dead Actor")
+      override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit bag: Bag.Async[X]): Task[R, X] = throw new Exception("Dead Actor")
       override def totalWeight: Int = throw new Exception("Dead Actor")
       override def messageCount: Int = throw new Exception("Dead Actor")
       override def isEmpty: Boolean = throw new Exception("Dead Actor")
       override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Error], Actor[T, S]) => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
-      override def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def receiveAllForceBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] = throw new Exception("Dead Actor")
       override def isTerminated: Boolean = throw new Exception("Dead Actor")
       override def clear(): Unit = throw new Exception("Dead Actor")
-      override def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
-      override def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S] = throw new Exception("Dead Actor")
+      override def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def hasRecovery: Boolean = throw new Exception("Dead Actor")
       override def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
@@ -152,7 +150,7 @@ object Actor {
           stashCapacity = stashCapacity,
           interval = config.delay,
           weigher = weigher
-        )(execution)(Scheduler()(config.ec), QueueOrder.FIFO)
+        )(execution)(config.ec, QueueOrder.FIFO)
 
       case config: ActorConfig.TimeLoop =>
         timerLoopCache(
@@ -160,7 +158,7 @@ object Actor {
           stashCapacity = stashCapacity,
           interval = config.delay,
           weigher = weigher
-        )(execution)(Scheduler()(config.ec), QueueOrder.FIFO)
+        )(execution)(config.ec, QueueOrder.FIFO)
     }
 
   def cacheFromConfig[T, S](config: ActorConfig,
@@ -183,7 +181,7 @@ object Actor {
           stashCapacity = stashCapacity,
           interval = config.delay,
           weigher = weigher
-        )(execution)(Scheduler()(config.ec), QueueOrder.FIFO)
+        )(execution)(config.ec, QueueOrder.FIFO)
 
       case config: ActorConfig.TimeLoop =>
         timerLoopCache[T, S](
@@ -192,7 +190,7 @@ object Actor {
           stashCapacity = stashCapacity,
           interval = config.delay,
           weigher = weigher
-        )(execution)(Scheduler()(config.ec), QueueOrder.FIFO)
+        )(execution)(config.ec, QueueOrder.FIFO)
     }
 
   /**
@@ -209,11 +207,12 @@ object Actor {
     new Actor[T, S](
       name = name,
       state = state,
-      stashCapacity = 0,
-      execution = execution,
-      cached = false,
-      weigher = _ => 1,
       queue = ActorQueue(queueOrder),
+      stashCapacity = 0,
+      weigher = _ => 1,
+      cached = false,
+      execution = execution,
+      scheduler = Scheduler(),
       interval = None,
       preTerminate = None,
       postTerminate = None,
@@ -239,11 +238,12 @@ object Actor {
     new Actor[T, S](
       name = name,
       state = state,
-      stashCapacity = stashCapacity,
-      execution = execution,
-      cached = true,
-      weigher = Functions.safe((_: T) => 1, weigher),
       queue = ActorQueue(queueOrder),
+      stashCapacity = stashCapacity,
+      weigher = Functions.safe((_: T) => 1, weigher),
+      cached = true,
+      execution = execution,
+      scheduler = Scheduler(),
       interval = None,
       preTerminate = None,
       postTerminate = None,
@@ -252,7 +252,7 @@ object Actor {
 
   def timer[T](name: String,
                stashCapacity: Int,
-               interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
+               interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
                                                                                  queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     timer(
       name = name,
@@ -270,26 +270,27 @@ object Actor {
   def timer[T, S](name: String,
                   state: S,
                   stashCapacity: Int,
-                  interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
+                  interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                                  queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
       name = name,
       state = state,
-      stashCapacity = stashCapacity,
-      execution = execution,
-      cached = false,
-      weigher = _ => 1,
       queue = ActorQueue(queueOrder),
-      interval = Some(new Interval(interval, scheduler, false)),
+      stashCapacity = stashCapacity,
+      weigher = _ => 1,
+      cached = false,
+      execution = execution,
+      scheduler = Scheduler(),
+      interval = Some(new Interval(interval, false)),
       preTerminate = None,
       postTerminate = None,
       recovery = None
-    )(scheduler.ec)
+    )
 
   def timerCache[T](name: String,
                     stashCapacity: Int,
                     weigher: T => Int,
-                    interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
+                    interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
                                                                                       queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     timerCache[T, Unit](
       name = name,
@@ -303,28 +304,29 @@ object Actor {
                        state: S,
                        stashCapacity: Int,
                        weigher: T => Int,
-                       interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
+                       interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                                       queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
       name = name,
       state = state,
-      stashCapacity = stashCapacity,
-      execution = execution,
-      cached = true,
-      weigher = weigher,
       queue = ActorQueue(queueOrder),
-      interval = Some(new Interval(interval, scheduler, false)),
+      stashCapacity = stashCapacity,
+      weigher = weigher,
+      cached = true,
+      execution = execution,
+      scheduler = Scheduler(),
+      interval = Some(new Interval(interval, false)),
       preTerminate = None,
       postTerminate = None,
       recovery = None
-    )(scheduler.ec)
+    )
 
   /**
    * Stateless [[timerLoop]]
    */
   def timerLoop[T](name: String,
                    stashCapacity: Int,
-                   interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
+                   interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
                                                                                      queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     timerLoop(
       name = name,
@@ -342,26 +344,27 @@ object Actor {
   def timerLoop[T, S](name: String,
                       state: S,
                       stashCapacity: Int,
-                      interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
+                      interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                                      queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
       name = name,
       state = state,
-      execution = execution,
-      stashCapacity = stashCapacity,
-      cached = false,
-      weigher = _ => 1,
       queue = ActorQueue(queueOrder),
-      interval = Some(new Interval(interval, scheduler, true)),
+      stashCapacity = stashCapacity,
+      weigher = _ => 1,
+      cached = false,
+      execution = execution,
+      scheduler = Scheduler(),
+      interval = Some(new Interval(interval, true)),
       preTerminate = None,
       postTerminate = None,
       recovery = None
-    )(scheduler.ec)
+    )
 
   def timerLoopCache[T](name: String,
                         stashCapacity: Int,
                         weigher: T => Int,
-                        interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
+                        interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
                                                                                           queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     timerLoopCache[T, Unit](
       name = name,
@@ -375,7 +378,7 @@ object Actor {
                            state: S,
                            stashCapacity: Int,
                            weigher: T => Int,
-                           interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
+                           interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                                           queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
       name = name,
@@ -385,13 +388,14 @@ object Actor {
       weigher = weigher,
       cached = true,
       execution = execution,
-      interval = Some(new Interval(interval, scheduler, true)),
+      scheduler = Scheduler(),
+      interval = Some(new Interval(interval, true)),
       preTerminate = None,
       postTerminate = None,
       recovery = None
-    )(scheduler.ec)
+    )
 
-  def wire[T](name: String, impl: T)(implicit scheduler: Scheduler): ActorWire[T, Unit] =
+  def wire[T](name: String, impl: T)(implicit ec: ExecutionContext): ActorWire[T, Unit] =
     new ActorWire(
       name = name,
       impl = impl,
@@ -399,7 +403,7 @@ object Actor {
       state = ()
     )
 
-  def wire[T, S](name: String, impl: T, state: S)(implicit scheduler: Scheduler): ActorWire[T, S] =
+  def wire[T, S](name: String, impl: T, state: S)(implicit ec: ExecutionContext): ActorWire[T, S] =
     new ActorWire(
       name = name,
       impl = impl,
@@ -410,7 +414,7 @@ object Actor {
   def wireTimer[T](name: String,
                    interval: FiniteDuration,
                    stashCapacity: Int,
-                   impl: T)(implicit scheduler: Scheduler): ActorWire[T, Unit] =
+                   impl: T)(implicit ec: ExecutionContext): ActorWire[T, Unit] =
     new ActorWire(
       name = name,
       impl = impl,
@@ -422,7 +426,7 @@ object Actor {
                       interval: FiniteDuration,
                       stashCapacity: Int,
                       impl: T,
-                      state: S)(implicit scheduler: Scheduler): ActorWire[T, S] =
+                      state: S)(implicit ec: ExecutionContext): ActorWire[T, S] =
     new ActorWire(
       name = name,
       impl = impl,
@@ -451,7 +455,7 @@ object Actor {
     }
 }
 
-private class Interval(val delay: FiniteDuration, val scheduler: Scheduler, val isLoop: Boolean)
+private class Interval(val delay: FiniteDuration, val isLoop: Boolean)
 
 class Actor[-T, S](val name: String,
                    val state: S,
@@ -460,6 +464,7 @@ class Actor[-T, S](val name: String,
                    weigher: T => Int,
                    cached: Boolean,
                    execution: (T, Actor[T, S]) => Unit,
+                   scheduler: Scheduler,
                    interval: Option[Interval],
                    preTerminate: Option[Actor[T, S] => Unit],
                    postTerminate: Option[Actor[T, S] => Unit],
@@ -491,7 +496,7 @@ class Actor[-T, S](val name: String,
   def messageCount: Int =
     queue.size
 
-  override def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
+  override def send(message: T, delay: FiniteDuration): TimerTask =
     scheduler.task(delay)(self send message)
 
   override def send(message: T): Unit =
@@ -531,8 +536,7 @@ class Actor[-T, S](val name: String,
       bag fromPromise promise
     }
 
-  override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler,
-                                                                                    bag: Bag.Async[X]): Actor.Task[R, X] = {
+  override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit bag: Bag.Async[X]): Actor.Task[R, X] = {
     val promise = Promise[R]()
 
     implicit val queueOrder = QueueOrder.FIFO
@@ -592,7 +596,7 @@ class Actor[-T, S](val name: String,
                 if (currentStashed > 0 || isTimerLoop) {
                   //reduce stash capacity to eventually processed stashed messages.
                   val nextTask =
-                    interval.scheduler.task(interval.delay) {
+                    scheduler.task(interval.delay) {
                       //clear the existing task so that next one gets scheduled/
                       this.task = None
                       //get the current weight during the schedule.
@@ -624,7 +628,7 @@ class Actor[-T, S](val name: String,
       }
     }
 
-  private def receiveAllInFuture(retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler): Future[Unit] =
+  private def receiveAllInFuture(retryOnBusyDelay: FiniteDuration): Future[Unit] =
     if (busy.compareAndSet(false, true))
       Future(receive(Int.MaxValue, wakeUpOnComplete = false)) flatMap {
         _ =>
@@ -641,8 +645,7 @@ class Actor[-T, S](val name: String,
    *
    * @param retryOnBusyDelay delay to use if the actor is currently busy processing messages in another thread.
    */
-  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
-                                                                bag: Bag.Async[BAG]): BAG[Unit] =
+  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit] =
     bag.suspend(bag.fromFuture(receiveAllInFuture(retryOnBusyDelay)))
 
   override def receiveAllForceBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] =
@@ -730,6 +733,7 @@ class Actor[-T, S](val name: String,
       cached = cached,
       execution = execution,
       interval = interval,
+      scheduler = scheduler,
       preTerminate = preTerminate,
       postTerminate = postTerminate,
       recovery =
@@ -763,6 +767,7 @@ class Actor[-T, S](val name: String,
       weigher = weigher,
       cached = cached,
       execution = execution,
+      scheduler = scheduler,
       interval = interval,
       preTerminate = Some(f),
       postTerminate = postTerminate,
@@ -778,14 +783,14 @@ class Actor[-T, S](val name: String,
       weigher = weigher,
       cached = cached,
       execution = execution,
+      scheduler = scheduler,
       interval = interval,
       preTerminate = preTerminate,
       postTerminate = Some(f),
       recovery = recovery
     )
 
-  private def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
-                                                                            bag: Bag[BAG]): BAG[Unit] =
+  private def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.suspend {
       setTerminated()
       bag.flatMap(runPreTerminate()) {
@@ -823,12 +828,11 @@ class Actor[-T, S](val name: String,
    *
    * If [[recover]] function  is not specified then all queues messages are cleared.
    */
-  def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit scheduler: Scheduler,
-                                                                         bag: Bag.Async[BAG]): BAG[Unit] =
+  def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit] =
     terminateAndRecover(retryOnBusyDelay)
 
   override def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit] =
-    terminateAndRecover(retryOnBusyDelay)(null, bag)
+    terminateAndRecover(retryOnBusyDelay)(bag)
 
   override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.transform(terminate()) {
@@ -852,7 +856,7 @@ class Actor[-T, S](val name: String,
       }
     }
 
-  def terminateAfter(timeout: FiniteDuration)(implicit scheduler: Scheduler): ActorRef[T, S] = {
+  def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = {
     scheduler.task(timeout)(this.terminate[Future]())
     this
   }
@@ -878,10 +882,10 @@ class Actor[-T, S](val name: String,
     if (postTerminateToken == token)
       postTerminate match {
         case Some(function) =>
-          bag(function(this))
+          bag.and(bag(function(this)))(bag.success(scheduler.terminate()))
 
         case None =>
-          bag.unit
+          bag.success(scheduler.terminate())
       }
     else
       bag.unit

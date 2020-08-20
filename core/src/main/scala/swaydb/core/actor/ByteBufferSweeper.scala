@@ -164,8 +164,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                    pendingDeletes: mutable.HashMap[Path, Command.DeleteCommand])
 
   def closeAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit sweeper: ByteBufferSweeperActor,
-                                                           bag: Bag.Async[BAG],
-                                                           scheduler: Scheduler): BAG[Unit] =
+                                                           bag: Bag.Async[BAG]): BAG[Unit] =
     sweeper.get() match {
       case Some(actor) =>
         bag.flatMap(actor.terminateAndRecoverAsync(retryOnBusyDelay)) {
@@ -279,7 +278,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    */
   private def performClean(command: Command.Clean,
                            self: Actor[Command, State],
-                           messageReschedule: Option[FiniteDuration])(implicit scheduler: Scheduler): Unit =
+                           messageReschedule: Option[FiniteDuration]): Unit =
     messageReschedule match {
       case Some(messageReschedule) if command.hasTimeLeft() && messageReschedule.fromNow.hasTimeLeft() =>
         ByteBufferSweeper.recordCleanRequest(command, self.state.pendingClean)
@@ -299,7 +298,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   private def performDelete(command: Command.DeleteCommand,
                             self: Actor[Command, State],
                             maxDeleteRetries: Int,
-                            messageReschedule: Option[FiniteDuration])(implicit scheduler: Scheduler): Unit =
+                            messageReschedule: Option[FiniteDuration]): Unit =
     if (isReadyToDelete(command.filePath, self.state))
       try
         command match {
@@ -352,7 +351,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    * files are deleted because [[Command.DeleteCommand]]s are just executed and not monitored.
    */
   private def performIsTerminatedAndCleaned(command: Command.IsTerminated[_],
-                                            self: Actor[Command, State])(implicit scheduler: Scheduler): Unit =
+                                            self: Actor[Command, State]): Unit =
     if (self.isTerminated && self.state.pendingClean.isEmpty && self.state.pendingDeletes.isEmpty)
       command.replyTo send true
     else if (command.resubmitted) //already double checked.
@@ -363,7 +362,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   def apply(actorInterval: FiniteDuration = 5.seconds,
             actorStashCapacity: Int = 20,
             maxDeleteRetries: Int = 5,
-            messageReschedule: FiniteDuration = 5.seconds)(implicit scheduler: Scheduler,
+            messageReschedule: FiniteDuration = 5.seconds)(implicit executionContext: ExecutionContext,
                                                            actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ByteBufferSweeperActor =
     Cache.noIO[Unit, ActorRef[Command, State]](synchronised = true, stored = true, initial = None) {
       (_, _) =>
@@ -382,7 +381,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   private def process(command: Command,
                       self: Actor[Command, State],
                       maxDeleteRetries: Int,
-                      messageReschedule: Option[FiniteDuration])(implicit scheduler: Scheduler): Unit =
+                      messageReschedule: Option[FiniteDuration]): Unit =
     command match {
       case command: Command.Clean =>
         ByteBufferSweeper.performClean(
@@ -422,12 +421,11 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    *                           yet [[maxDeleteRetries]] defines the max number of retries before the file
    *                           is un-deletable.
    * @param messageReschedule  reschedule delay for [[maxDeleteRetries]]
-   * @param scheduler          used for rescheduling messages.
    */
   private def createActor(actorInterval: FiniteDuration,
                           actorStashCapacity: Int,
                           maxDeleteRetries: Int,
-                          messageReschedule: FiniteDuration)(implicit scheduler: Scheduler,
+                          messageReschedule: FiniteDuration)(implicit ec: ExecutionContext,
                                                              actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ActorRef[Command, State] =
     Actor.timer[Command, State](
       name = this.getClass.getSimpleName + " Actor",
@@ -463,9 +461,6 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           }
 
         logger.error(s"Failed to process message ${message.getClass.getSimpleName}. $pathInfo", exception)
-    } onPreTerminate {
-      _ =>
-        scheduler.terminate()
 
     } onPostTerminate {
       self =>

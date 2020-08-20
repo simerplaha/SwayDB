@@ -1574,20 +1574,8 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.error("{}: Failed to close appendix", pathDistributor.head, failure)
       }
 
-  private def closeSweepers(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] = {
-    implicit val scheduler = Scheduler()
-    val result = LevelCloser.closeAsync[Future](retryInterval)
-
-    result.onComplete {
-      _ =>
-        scheduler.terminate()
-    }
-
-    result
-  }
-
   def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
-    closeSweepers(retryInterval)
+    LevelCloser.closeAsync[Future](retryInterval)
       .andIO(closeNoSweep())
 
   def closeNoSweep(): IO[swaydb.Error.Level, Unit] =

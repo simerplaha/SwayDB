@@ -29,16 +29,14 @@ import java.util.TimerTask
 import swaydb.Actor.Task
 import swaydb.data.config.ActorConfig.QueueOrder
 
-import scala.concurrent.Promise
+import scala.concurrent.{ExecutionContext, Promise}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 final class ActorWire[I, S] private[swaydb](name: String,
                                             impl: I,
                                             interval: Option[(FiniteDuration, Int)],
-                                            state: S)(implicit val scheduler: Scheduler) { wire =>
-
-  implicit def ec = scheduler.ec
+                                            state: S)(implicit val ec: ExecutionContext) { wire =>
 
   private val actor: ActorRef[(I, S) => Unit, S] =
     interval match {
@@ -163,10 +161,8 @@ final class ActorWire[I, S] private[swaydb](name: String,
           state
       }
 
-  def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = {
-    scheduler.terminate()
+  def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     actor.terminateAndClear()
-  }
 
   def clear(): Unit =
     actor.clear()

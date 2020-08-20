@@ -29,11 +29,11 @@ import java.nio.file.Paths
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.CoreShutdown.close
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.BlockCache
+import swaydb.core.io.file.Effect._
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
@@ -48,10 +48,10 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.{ActorRef, ActorWire, Bag, Error, IO, Scheduler}
+import swaydb.{ActorRef, ActorWire, Bag, Error, IO}
 
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.sys.ShutdownHookThread
 
 /**
@@ -109,27 +109,14 @@ private[core] object CoreInitializer extends LazyLogging {
                       shutdownTimeout: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
                                                        shutdownEC: ExecutionContext): ShutdownHookThread =
     sys.addShutdownHook {
-      implicit val scheduler = Scheduler()
       implicit val bag = Bag.future
-      try
-        Await.result(IO.Defer(close(zero, 2.seconds)).run(0), shutdownTimeout)
-      finally
-        scheduler.terminate()
+      Await.result(IO.Defer(close(zero, 2.seconds)).run(0), shutdownTimeout)
     }
 
   def onClose(zero: LevelZero,
               retryInterval: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
-                                             shutdownEC: ExecutionContext): Future[Unit] = {
-    implicit val scheduler = Scheduler()
-    val future = CoreShutdown.close(zero, retryInterval)
-
-    future onComplete {
-      _ =>
-        scheduler.terminate()
-    }
-
-    future
-  }
+                                             shutdownEC: ExecutionContext): Future[Unit] =
+    CoreShutdown.close(zero, retryInterval)
 
   /**
    * Initialises Core/Levels. To see full documentation for each input parameter see the website - http://swaydb.io/configurations/.
@@ -185,7 +172,7 @@ private[core] object CoreInitializer extends LazyLogging {
       ThrottleCompactor
 
     implicit val bufferCleaner: ByteBufferSweeperActor =
-      ByteBufferSweeper()(Scheduler()(fileSweeper.executionContext))
+      ByteBufferSweeper()(fileSweeper.executionContext)
 
     val contexts = executionContexts(config)
 

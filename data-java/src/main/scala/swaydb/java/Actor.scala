@@ -58,8 +58,8 @@ object Actor {
     /**
      * Sends a message to this actor with delay
      */
-    def send(message: T, delay: java.time.Duration, scheduler: Scheduler): TimerTask =
-      asScala.send(message, delay.toScala)(scheduler)
+    def send(message: T, delay: java.time.Duration): TimerTask =
+      asScala.send(message, delay.toScala)
 
     def ask[R](message: JavaFunction[Actor.Ref[R, Void], T], delay: java.time.Duration, scheduler: Scheduler): swaydb.Actor.Task[R, CompletionStage] = {
       val javaFuture =
@@ -69,7 +69,7 @@ object Actor {
               message.apply(new Actor.Ref[R, Void](actor.asInstanceOf[swaydb.ActorRef[R, Void]])),
           delay =
             delay.toScala
-        )(scheduler, bag)
+        )(bag)
 
       new swaydb.Actor.Task(javaFuture.task.toJava, javaFuture.timer)
     }

@@ -48,7 +48,6 @@ private[core] case class ThrottleState(levels: Slice[LevelRef],
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
   val hasLevelZero: Boolean = levels.exists(_.isZero)
   val levelsReversed = Slice(levels.reverse.toArray)
-  val scheduler = Scheduler(Some(s"Scheduler for Level: ${levels.map(_.levelNumber).mkString(", ")}."))(executionContext)
 
   val ordering: Ordering[LevelRef] =
     ThrottleLevelOrdering.ordering(

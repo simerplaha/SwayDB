@@ -31,7 +31,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestExecutionContext
 import swaydb.core.util.Benchmark
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, ActorRef, Scheduler}
+import swaydb.{Actor, ActorRef}
 
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
@@ -40,7 +40,6 @@ class ActorPerformanceSpec extends AnyWordSpec with Matchers {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val ordering = QueueOrder.FIFO
-  implicit val scheduler = Scheduler()
 
   "performance test" in {
     //0.251675378 seconds.

@@ -39,11 +39,12 @@ object Scheduler {
    */
   def apply(name: Option[String] = None,
             isDaemon: Boolean = true)(implicit ec: ExecutionContext): Scheduler =
-    name map {
-      name =>
+    name match {
+      case Some(name) =>
         new Scheduler(new Timer(name, isDaemon))
-    } getOrElse {
-      new Scheduler(new Timer(isDaemon))
+
+      case None =>
+        new Scheduler(new Timer(isDaemon))
     }
 }
 

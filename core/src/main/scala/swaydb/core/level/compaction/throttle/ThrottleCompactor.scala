@@ -105,7 +105,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                       name = "Compaction Wire Actor",
                       impl = ThrottleCompactor,
                       state = state
-                    )(state.scheduler)
+                    )(state.executionContext)
                   )
               }.head
         }

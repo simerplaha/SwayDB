@@ -61,7 +61,7 @@ object SwayDB extends LazyLogging {
    *
    * This can be overridden by provided an implicit parameter in the scope of where the database is initialized.
    */
-  def sweeperExecutionContext: ExecutionContext =
+  lazy val sweeperExecutionContext: ExecutionContext =
     new ExecutionContext {
       val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
 

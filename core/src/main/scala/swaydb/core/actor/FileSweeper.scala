@@ -104,8 +104,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
     }
 
   def closeAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit fileSweeper: FileSweeperActor,
-                                                           bag: Bag.Async[BAG],
-                                                           scheduler: Scheduler): BAG[Unit] =
+                                                           bag: Bag.Async[BAG]): BAG[Unit] =
     bag.transform(fileSweeper.terminateAndRecoverAsync(retryOnBusyDelay)) {
       _ =>
         logger.info(this.getClass.getSimpleName + " terminated!")

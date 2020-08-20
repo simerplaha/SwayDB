@@ -37,7 +37,7 @@ import scala.concurrent.duration._
 
 object DefaultPersistentConfig extends LazyLogging {
 
-  private def executionContext =
+  private lazy val executionContext =
     new ExecutionContext {
       val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
 
