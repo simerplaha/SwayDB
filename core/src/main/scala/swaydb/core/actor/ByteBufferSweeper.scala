@@ -245,7 +245,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    */
   def initCleanerAndPerformClean(state: State,
                                  buffer: MappedByteBuffer,
-                                 command: Command.Clean): IO[swaydb.Error.IO, State] =
+                                 command: Command.Clean): IO[swaydb.Error.IO, State] = {
     state.cleaner match {
       case Some(cleaner) =>
         IO {
@@ -253,11 +253,6 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
           logger.debug(s"${command.filePath} Cleaned!")
           state
-        } onLeftSideEffect {
-          error =>
-            val errorMessage = s"Failed to clean MappedByteBuffer at path '${command.filePath.toString}'."
-            val exception = error.exception
-            logger.error(errorMessage, exception)
         }
 
       case None =>
@@ -269,6 +264,18 @@ private[core] object ByteBufferSweeper extends LazyLogging {
             state
         }
     }
+  } onLeftSideEffect {
+    error =>
+      error.exception match {
+        case _: NullPointerException if buffer.position() == 0 =>
+        //ignore NullPointer exception which can occur when there are empty byte ByteBuffer which happens
+        //when an unwritten
+
+        case exception: Throwable =>
+          val errorMessage = s"Failed to clean MappedByteBuffer at path '${command.filePath.toString}'."
+          logger.error(errorMessage, exception)
+      }
+  }
 
   /**
    * Cleans or prepares for cleaning the [[ByteBuffer]].

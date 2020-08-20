@@ -466,7 +466,7 @@ class Actor[-T, S](val name: String,
                    recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit val executionContext: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
 
   //only a single thread can invoke preTerminate.
-  private val busyTerminating = new AtomicBoolean(false)
+  private val terminated = new AtomicBoolean(false)
   private val busy = new AtomicBoolean(false)
   private val weight = new AtomicInteger(0)
   private val isBasic = interval.isEmpty
@@ -480,7 +480,6 @@ class Actor[-T, S](val name: String,
     else
       0
 
-  @volatile private var terminated = false
   @volatile private var task = Option.empty[TimerTask]
 
   override def totalWeight: Int =
@@ -556,7 +555,7 @@ class Actor[-T, S](val name: String,
    *                      will result in the cached messages to be [[Actor.stashCapacity]] - 10.
    */
   private def timerWakeUp(currentStashed: Int, stashCapacity: Int): Unit =
-    if (!terminated) {
+    if (!terminated.get()) {
       val overflow = currentStashed - stashCapacity
       val isOverflown = overflow > 0
       val hasMessages = currentStashed > 0
@@ -709,7 +708,7 @@ class Actor[-T, S](val name: String,
         } else {
           val (message, messageWeight) = messageAndWeight
 
-          if (terminated)
+          if (terminated.get())
             try //apply recovery if actor is terminated.
               recovery foreach {
                 f =>
@@ -821,14 +820,16 @@ class Actor[-T, S](val name: String,
    */
   def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.suspend {
-      setTerminated()
-      bag.flatMap(runPreTerminate(retryOnBusyDelay)) {
-        executedPreTermination =>
-          if (recovery.isDefined)
-            bag.and(receiveAllForce(retryOnBusyDelay))(runPostTerminate(executedPreTermination, retryOnBusyDelay))
-          else
-            bag.and(terminateAndClear(retryOnBusyDelay))(runPostTerminate(executedPreTermination, retryOnBusyDelay))
-      }
+      if (terminated.compareAndSet(false, true))
+        bag.flatMap(runPreTerminate(retryOnBusyDelay)) {
+          executedPreTermination =>
+            if (recovery.isDefined)
+              bag.and(receiveAllForce(retryOnBusyDelay))(runPostTerminate(executedPreTermination, retryOnBusyDelay))
+            else
+              bag.and(terminateAndClear(retryOnBusyDelay))(runPostTerminate(executedPreTermination, retryOnBusyDelay))
+        }
+      else
+        bag.unit
     }
 
   override def terminateAndClear[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
@@ -840,8 +841,6 @@ class Actor[-T, S](val name: String,
   override def clear(): Unit =
     queue.clear()
 
-  private def setTerminated(): Unit =
-    terminated = true
 
   /**
    * We cannot invoke terminate from within the Actor itself via block because [[busy]] is already set to true
@@ -852,9 +851,8 @@ class Actor[-T, S](val name: String,
    */
   def terminate[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.suspend {
-      setTerminated()
+      if (terminated.compareAndSet(false, true))
       //invoke terminator function
-      if (preTerminate.isDefined || postTerminate.isDefined)
         bag.flatMap(runPreTerminate(retryOnBusyDelay)) {
           executed =>
             runPostTerminate(executed, retryOnBusyDelay)
@@ -874,21 +872,18 @@ class Actor[-T, S](val name: String,
    * @return returns the token which can be used to execute [[runPostTerminate(*)]].
    */
   private def runPreTerminate[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Boolean] =
-    if (busyTerminating.compareAndSet(false, true))
-      whileNotBusy(retryOnBusyDelay = retryOnBusyDelay, continueIfNonEmpty = false) {
-        try {
-          preTerminate.foreach(_ (this))
+    whileNotBusy(retryOnBusyDelay = retryOnBusyDelay, continueIfNonEmpty = false) {
+      try {
+        preTerminate.foreach(_ (this))
+        true
+      } catch {
+        case exception: Throwable =>
+          logger.error(s"""Exception in running Pre-termination - Actor("$name"). Post termination will continue.""", exception)
           true
-        } catch {
-          case exception: Throwable =>
-            logger.error(s"""Exception in running Pre-termination - Actor("$name"). Post termination will continue.""", exception)
-            true
-        } finally {
-          busy.set(false)
-        }
+      } finally {
+        busy.set(false)
       }
-    else
-      bag.success(false)
+    }
 
   private def runPostTerminate[BAG[_]](executedPreTerminate: Boolean, retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
     if (executedPreTerminate)
@@ -910,7 +905,7 @@ class Actor[-T, S](val name: String,
     recovery.isDefined
 
   def isTerminated: Boolean =
-    terminated
+    terminated.get()
 
   override def isEmpty: Boolean =
     queue.isEmpty

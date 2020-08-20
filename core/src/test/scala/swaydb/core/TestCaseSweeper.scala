@@ -95,8 +95,7 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.maps.foreach(_.close())
     sweeper.segments.foreach(_.close)
     sweeper.sweepables.foreach(_.close())
-    def closeLevels = Future.sequence(sweeper.levels.map(_.close(5.second)))
-    IO.fromFuture(closeLevels).run(0).await(10.seconds)
+    sweeper.levels.foreach(_.close(5.second).await(10.seconds))
 
     //TERMINATE - terminate all initialised actors
     sweeper.keyValueMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
@@ -104,9 +103,8 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.closeSync(1.second, 10.seconds)(cleaner, Bag.less, TestExecutionContext.executionContext)))
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
 
-    //DELTE - delete after closing Levels.
-    def deleteLevels = Future.sequence(sweeper.levels.map(_.delete(5.second)))
-    IO.fromFuture(deleteLevels).run(0).await(10.seconds)
+    //DELETE - delete after closing Levels.
+    sweeper.levels.foreach(_.delete(5.second).await(10.seconds))
 
     sweeper.segments.foreach {
       segment =>
