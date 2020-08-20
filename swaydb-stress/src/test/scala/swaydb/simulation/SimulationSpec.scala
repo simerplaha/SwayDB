@@ -603,7 +603,7 @@ sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
           Thread.sleep(runFor.toMillis)
 
-          actors.foreach(_.terminateAndClear[Bag.Less]())
+          actors.foreach(_.terminateAndClear[Bag.Less](1.second))
       }
     }
   }

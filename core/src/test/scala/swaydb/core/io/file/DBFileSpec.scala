@@ -31,12 +31,15 @@ import java.nio.file.FileAlreadyExistsException
 import org.scalamock.scalatest.MockFactory
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.core.CommonAssertions.{randomIOStrategy, randomThreadSafeIOStrategy}
+import swaydb.core.CommonAssertions.{eitherOne, randomThreadSafeIOStrategy}
 import swaydb.core.TestData._
 import swaydb.core.util.PipeOps._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
+import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
+
+import scala.concurrent.Future
 
 class DBFileSpec extends TestBase with MockFactory {
 
@@ -66,6 +69,11 @@ class DBFileSpec extends TestBase with MockFactory {
     "write empty bytes to a File" in {
       TestCaseSweeper {
         implicit sweeper =>
+          //This test might log NullPointerException because cleaner is being
+          //invoked a MappedByteBuffer which is empty. This is a valid test
+          //but does not occur in reality. If a file (Segment or Map) are empty
+          //then they are not created which would only occur if all key-values
+          //from that file were removed.
           val files = createDBFiles(Slice.emptyBytes, Slice.emptyBytes)
           files.foreach(_.existsOnDisk shouldBe true)
 

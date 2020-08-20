@@ -342,7 +342,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
             (cleaner.actor ask Command.IsClean(Paths.get("somePath"))).await(1.minute) shouldBe true
 
-            cleaner.actor.terminate()
+            cleaner.actor.terminate(1.second)
         }
       }
 
@@ -392,7 +392,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
               //also randomly terminate
               if (Random.nextDouble() < 0.0001)
-                cleaner.actor.terminate()
+                cleaner.actor.terminate(1.second)
 
               filePath
             }
@@ -426,7 +426,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
             implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(actorInterval = 2.second, messageReschedule = 2.seconds).sweep()
 
-            cleaner.actor.terminate()
+            cleaner.actor.terminate(1.second)
             cleaner.actor.isTerminated shouldBe true
 
             //its terminates and there are no clean commands so this returns true.

@@ -161,14 +161,14 @@ final class ActorWire[I, S] private[swaydb](name: String,
           state
       }
 
-  def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-    actor.terminateAndClear()
+  def terminateAndClear[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
+    actor.terminateAndClear(retryOnBusyDelay)
 
   def clear(): Unit =
     actor.clear()
 
-  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-    actor.terminate()
+  def terminate[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
+    actor.terminate(retryOnBusyDelay)
 
   def isTerminated =
     actor.isTerminated

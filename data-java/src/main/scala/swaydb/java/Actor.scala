@@ -83,8 +83,8 @@ object Actor {
     def hasMessages: Boolean =
       asScala.hasMessages
 
-    def terminate(): Unit =
-      asScala.terminate()
+    def terminate(retryOnBusyDelay: java.time.Duration): Unit =
+      asScala.terminate(retryOnBusyDelay.toScala)
 
     def isTerminated: Boolean =
       asScala.isTerminated
@@ -92,8 +92,8 @@ object Actor {
     def clear(): Unit =
       asScala.clear()
 
-    def terminateAndClear(): Unit =
-      asScala.terminateAndClear()
+    def terminateAndClear(retryOnBusyDelay: java.time.Duration): Unit =
+      asScala.terminateAndClear(retryOnBusyDelay.toScala)
   }
 
   final class Ref[T, S](override val asScala: swaydb.ActorRef[T, S]) extends ActorBase[T, S] {

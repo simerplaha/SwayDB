@@ -177,14 +177,14 @@ class ActorSpec extends AnyWordSpec with Matchers {
               case (int, self) =>
                 if (int == 2) throw IO.throwable(s"Oh no! Failed at $int")
                 self.state.processed += int
-            }.sweep() recoverException[Int] {
+            }.recoverException[Int] {
               case (message, error: IO[Throwable, Actor.Error], actor) =>
                 actor.state.errors += message
                 if (message == 2)
-                  actor.terminate[Bag.Less]()
+                  actor.terminate[Bag.Less](1.second)
                 else
                   error.right.value shouldBe Actor.Error.TerminatedActor
-            }
+            }.sweep()
 
           (1 to 4) foreach (actor send _)
           //
@@ -219,7 +219,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
                 while (state.processed.size() != 2) {
                   sleep(100.millisecond)
                 }
-                actor.terminate[Bag.Less]()
+                actor.terminate[Bag.Less](1.second)
               }
           }
           eventual(10.seconds) {
@@ -257,7 +257,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           state.processed.size should be >= 3
           state.processed.size should be <= 6
 
-          actor.terminate[Bag.Less]() //terminate the actor
+          actor.terminate[Bag.Less](1.second) //terminate the actor
           val countAfterTermination = state.processed.size //this is the current message count
           sleep(2.second) //sleep
           state.processed.size shouldBe countAfterTermination //no messages are processed after termination
@@ -291,7 +291,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           sleep(10.seconds)
           state.processed.size should be >= 1
           state.processed.size should be <= 10
-          actor.terminate[Bag.Less]()
+          actor.terminate[Bag.Less](1.second)
           val sizeAfterTerminate = state.processed.size
           sleep(1.second)
           //after termination the size does not change. i.e. no new messages are processed and looper is stopped.
@@ -393,7 +393,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             sleep(5.second)
             actor.messageCount shouldBe 10
 
-            actor.terminate[Bag.Less]()
+            actor.terminate[Bag.Less](1.second)
         }
       }
     }
@@ -428,7 +428,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             actor.messageCount shouldBe stash
           }
 
-          actor.terminate[Bag.Less]()
+          actor.terminate[Bag.Less](1.second)
       }
     }
   }
@@ -461,7 +461,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             actor.messageCount shouldBe stash
           }
 
-          actor.terminate[Bag.Less]()
+          actor.terminate[Bag.Less](1.second)
       }
     }
   }
@@ -500,7 +500,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
               response shouldBe request
           }
 
-          actor.terminate[Bag.Less]()
+          actor.terminate[Bag.Less](1.second)
       }
     }
   }
@@ -519,7 +519,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       actor.totalWeight shouldBe 0
       actor.messageCount shouldBe 0
 
-      actor.terminate[Bag.Less]()
+      actor.terminate[Bag.Less](1.second)
     }
 
     "process all messages" when {
@@ -554,7 +554,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
   "terminateAndRecover" should {
     "do not apply recovery if no recovery function is specified" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
             import sweeper._
@@ -579,14 +579,14 @@ class ActorSpec extends AnyWordSpec with Matchers {
             }
 
             //all messages are still cleared
-            eventual(2.seconds) {
+            eventual(10.seconds) {
               actor.messageCount shouldBe 0
             }
 
             //Future does not throw exception
-            result.await(2.seconds)
+            result.await(10.seconds)
 
-            actor.terminate[Bag.Less]()
+            actor.terminate[Bag.Less](1.second)
         }
       }
     }
@@ -630,7 +630,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           }
 
           //force termination so that recovery happens.
-          actor.terminate[Bag.Less]()
+          actor.terminate[Bag.Less](1.second)
 
           (101 to 200) foreach {
             i =>
@@ -650,12 +650,12 @@ class ActorSpec extends AnyWordSpec with Matchers {
           //does not throw exception
           future.await(20.seconds)
 
-          actor.terminate[Bag.Less]()
+          actor.terminate[Bag.Less](1.second)
       }
     }
 
     "apply recovery on concurrent message does not result in duplicate messages" in {
-      runThis(1000.times, log = true) {
+      runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
             import sweeper._

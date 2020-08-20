@@ -562,14 +562,14 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
             reserveError = swaydb.Error.ReservedResource(Reserve.free(name = "test")),
             initial = None
           ) {
-            case (input, cache) =>
+            case (_, _) =>
               IO.Right(1)
           }
 
         val maxIterations = 1000000
 
         @tailrec
-        def doApply(tried: Int): Unit = {
+        def doApply(tried: Int): Unit =
           if (tried > 1000000)
             fail("Unable to apply update")
           else
@@ -580,12 +580,8 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
               case IO.Left(_: Error.ReservedResource) =>
                 doApply(tried + 1)
             }
-        }
 
-        (1 to maxIterations).par foreach {
-          i =>
-            doApply(0)
-        }
+        runThisParallel(times = maxIterations)(doApply(0))
 
         count shouldBe maxIterations
 

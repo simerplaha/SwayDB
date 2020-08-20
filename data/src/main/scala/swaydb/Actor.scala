@@ -24,17 +24,17 @@
 
 package swaydb
 
-import java.util.{TimerTask, UUID}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import java.util.function.IntUnaryOperator
+import java.util.function.{IntUnaryOperator, Supplier}
+import java.util.{TimerTask, UUID}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.ExceptionHandler
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.data.util.{Functions, Futures}
+import swaydb.data.util.{AtomicThreadLocalBoolean, Functions, Futures}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -74,13 +74,13 @@ sealed trait ActorRef[-T, S] { self =>
 
   def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit]
 
-  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
+  def terminate[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit]
 
   def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S]
 
   def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S]
 
-  def terminateAfter(timeout: FiniteDuration): ActorRef[T, S]
+  def terminateAfter(timeout: FiniteDuration, retryOnBusyDelay: FiniteDuration): ActorRef[T, S]
 
   def isTerminated: Boolean
 
@@ -88,7 +88,7 @@ sealed trait ActorRef[-T, S] { self =>
 
   def clear(): Unit
 
-  def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
+  def terminateAndClear[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit]
 
   def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit]
 }
@@ -118,12 +118,12 @@ object Actor {
       override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Error], Actor[T, S]) => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def isTerminated: Boolean = throw new Exception("Dead Actor")
       override def clear(): Unit = throw new Exception("Dead Actor")
-      override def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = throw new Exception("Dead Actor")
+      override def terminateAfter(timeout: FiniteDuration, retryOnBusyDelay: FiniteDuration): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def hasRecovery: Boolean = throw new Exception("Dead Actor")
       override def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
-      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
-      override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def terminate[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def terminateAndClear[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
     }
@@ -466,9 +466,7 @@ class Actor[-T, S](val name: String,
                    recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit val executionContext: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
 
   //only a single thread can invoke preTerminate.
-  private val terminateBool = new AtomicBoolean(false)
-  //used to know which thread processes the postTermination function.
-  @volatile private var postTerminateToken = UUID.randomUUID().toString
+  private val busyTerminating = new AtomicBoolean(false)
   private val busy = new AtomicBoolean(false)
   private val weight = new AtomicInteger(0)
   private val isBasic = interval.isEmpty
@@ -494,30 +492,24 @@ class Actor[-T, S](val name: String,
   override def send(message: T, delay: FiniteDuration): TimerTask =
     scheduler.value(()).task(delay)(self send message)
 
-  override def send(message: T): Unit =
-    if (terminated) {
-      recovery foreach {
-        f =>
-          f(message, IO.Right(Actor.Error.TerminatedActor), self)
-      }
-    } else {
-      //message weight cannot be <= 0 as that could lead to messages in queue with empty weight.
-      val messageWeight = weigher(message) max 1
-      queue.add((message, messageWeight))
+  override def send(message: T): Unit = {
+    //message weight cannot be <= 0 as that could lead to messages in queue with empty weight.
+    val messageWeight = weigher(message) max 1
+    queue.add((message, messageWeight))
 
-      val currentStashed =
-        weight updateAndGet {
-          new IntUnaryOperator {
-            override def applyAsInt(currentWeight: Int): Int =
-              currentWeight + messageWeight
-          }
+    val currentStashed =
+      weight updateAndGet {
+        new IntUnaryOperator {
+          override def applyAsInt(currentWeight: Int): Int =
+            currentWeight + messageWeight
         }
+      }
 
-      //skip wakeUp if it's a timerLoop. Run only if no task is scheduled for the task.
-      //if eager wakeUp on overflow is required using timer instead of timerLoop.
-      if (!(isTimerLoop && task.nonEmpty))
-        wakeUp(currentStashed = currentStashed)
-    }
+    //skip wakeUp if it's a timerLoop. Run only if no task is scheduled for the task.
+    //if eager wakeUp on overflow is required using timer instead of timerLoop.
+    if (!(isTimerLoop && task.nonEmpty))
+      wakeUp(currentStashed = currentStashed)
+  }
 
   override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit bag: Bag.Async[X]): X[R] =
     bag.suspend {
@@ -543,7 +535,7 @@ class Actor[-T, S](val name: String,
   }
 
   @inline private def wakeUp(currentStashed: Int): Unit =
-    if (isBasic)
+    if (isBasic || isTerminated) //if it's terminated process the message as basicWakeUp which will execute recovery.
       basicWakeUp(currentStashed)
     else
       timerWakeUp(currentStashed, this.stashCapacity)
@@ -623,41 +615,78 @@ class Actor[-T, S](val name: String,
       }
     }
 
-  private def receiveAllInFuture(retryOnBusyDelay: FiniteDuration): Future[Unit] =
+  /**
+   * Executes the release function in a blocking manner. This is used in testing.
+   *
+   * @param retryOnBusyDelay   blocking time when busy
+   * @param continueIfNonEmpty if true will continue executing releaseFunction until the queue is empty
+   * @param releaseFunction    the function to execute
+   */
+  @inline private def whileNotBusyAsync[A](retryOnBusyDelay: FiniteDuration,
+                                           continueIfNonEmpty: Boolean)(releaseFunction: => A): Future[A] =
     if (busy.compareAndSet(false, true))
-      Future(receive(Int.MaxValue, wakeUpOnComplete = false)) flatMap {
-        _ =>
-          if (messageCount <= 0)
-            Futures.unit
+      Future(releaseFunction) flatMap {
+        result =>
+          if (!continueIfNonEmpty || messageCount <= 0)
+            Future.successful(result)
           else
-            receiveAllInFuture(retryOnBusyDelay)
+            whileNotBusyAsync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
       }
     else
-      scheduler.value(()).apply(retryOnBusyDelay)(receiveAllInFuture(retryOnBusyDelay))
+      scheduler.value(()).apply(retryOnBusyDelay)(whileNotBusyAsync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction))
 
-
+  /**
+   * Executes the release function in a blocking manner. This is used in testing.
+   *
+   * @param retryOnBusyDelay   blocking time when busy
+   * @param continueIfNonEmpty if true will continue executing releaseFunction until the queue is empty
+   * @param releaseFunction    the function to execute
+   */
   @tailrec
-  private def receiveAllBlocking(retires: Int, maxRetries: Int, block: FiniteDuration): Try[Unit] =
-    if (retires > maxRetries) {
-      Failure(new Exception(s"Retries timeout. Retries: $retires. maxRetries: $maxRetries"))
-    } else if (busy.compareAndSet(false, true)) {
-      Try(receive(Int.MaxValue, wakeUpOnComplete = false)) match {
+  @inline private def whileNotBusySync[A](retryOnBusyDelay: FiniteDuration,
+                                          continueIfNonEmpty: Boolean)(releaseFunction: => A): Try[A] =
+    if (busy.compareAndSet(false, true)) {
+      Try(releaseFunction) match {
         case success @ Success(_) =>
-          if (messageCount <= 0) {
+          if (!continueIfNonEmpty || messageCount <= 0) {
             success
           } else {
-            Thread.sleep(block.toMillis)
-            receiveAllBlocking(0, maxRetries, block)
+            Thread.sleep(retryOnBusyDelay.toMillis)
+            whileNotBusySync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
           }
 
         case failure @ Failure(_) =>
           failure
       }
     } else {
-      Thread.sleep(block.toMillis)
-      receiveAllBlocking(retires + 1, maxRetries, block)
+      Thread.sleep(retryOnBusyDelay.toMillis)
+      whileNotBusySync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
     }
 
+  /**
+   * Release function will get executed when the thread was able to set [[busy]] to true but
+   * busy.set(false) should be invoked by the input releaseFunction similar to [[receive(*, *)]] function
+   * under try & finally.
+   *
+   * @param continueIfNonEmpty will continue executing the function while the queue is non-empty.
+   */
+  @inline def whileNotBusy[BAG[_], A](retryOnBusyDelay: FiniteDuration,
+                                      continueIfNonEmpty: Boolean)(releaseFunction: => A)(implicit bag: Bag[BAG]): BAG[A] =
+    bag match {
+      case _: Bag.Sync[BAG] =>
+        bag.fromIO {
+          IO.fromTry {
+            whileNotBusySync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
+          }
+        }
+
+      case bag: Bag.Async[BAG] =>
+        bag.suspend {
+          bag.fromFuture {
+            whileNotBusyAsync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
+          }
+        }
+    }
 
   /**
    * Forces the Actor to process all queued messages.
@@ -665,12 +694,8 @@ class Actor[-T, S](val name: String,
    * @param retryOnBusyDelay delay to use if the actor is currently busy processing messages in another thread.
    */
   def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
-    bag match {
-      case _: Bag.Sync[BAG] =>
-        bag.fromIO(IO.fromTry(receiveAllBlocking(0, Int.MaxValue, retryOnBusyDelay)))
-
-      case bag: Bag.Async[BAG] =>
-        bag.suspend(bag.fromFuture(receiveAllInFuture(retryOnBusyDelay)))
+    whileNotBusy(retryOnBusyDelay = retryOnBusyDelay, continueIfNonEmpty = true) {
+      receive(Int.MaxValue, wakeUpOnComplete = false)
     }
 
   private def receive(overflow: Int, wakeUpOnComplete: Boolean): Unit = {
@@ -797,17 +822,17 @@ class Actor[-T, S](val name: String,
   def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.suspend {
       setTerminated()
-      bag.flatMap(runPreTerminate()) {
-        token =>
+      bag.flatMap(runPreTerminate(retryOnBusyDelay)) {
+        executedPreTermination =>
           if (recovery.isDefined)
-            bag.and(receiveAllForce(retryOnBusyDelay))(runPostTerminate(token))
+            bag.and(receiveAllForce(retryOnBusyDelay))(runPostTerminate(executedPreTermination, retryOnBusyDelay))
           else
-            bag.and(terminateAndClear())(runPostTerminate(token))
+            bag.and(terminateAndClear(retryOnBusyDelay))(runPostTerminate(executedPreTermination, retryOnBusyDelay))
       }
     }
 
-  override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-    bag.transform(terminate()) {
+  override def terminateAndClear[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
+    bag.transform(terminate(retryOnBusyDelay)) {
       _ =>
         clear()
     }
@@ -818,46 +843,65 @@ class Actor[-T, S](val name: String,
   private def setTerminated(): Unit =
     terminated = true
 
-  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+  /**
+   * We cannot invoke terminate from within the Actor itself via block because [[busy]] is already set to true
+   * within [[receive]]. [[AtomicThreadLocalBoolean]] can be used instead to allow calling terminating from
+   * within the Actor itself but this is currently not required anywhere.
+   *
+   * Currently there is no use to terminate from within the Actor itself.
+   */
+  def terminate[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.suspend {
       setTerminated()
       //invoke terminator function
-      bag.flatMap(runPreTerminate()) {
-        token =>
-          runPostTerminate(token)
-      }
+      if (preTerminate.isDefined || postTerminate.isDefined)
+        bag.flatMap(runPreTerminate(retryOnBusyDelay)) {
+          executed =>
+            runPostTerminate(executed, retryOnBusyDelay)
+        }
+      else
+        bag.unit
     }
 
-  def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = {
-    scheduler.value(()).task(timeout)(this.terminate[Future]())
+  def terminateAfter(timeout: FiniteDuration, retryOnBusyDelay: FiniteDuration): ActorRef[T, S] = {
+    scheduler.value(()).task(timeout)(this.terminate[Future](retryOnBusyDelay))
     this
   }
 
-  private def runPreTerminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[String] =
-    if (terminateBool.compareAndSet(false, true)) {
-      postTerminateToken = UUID.randomUUID().toString
-      preTerminate match {
-        case Some(function) =>
-          bag {
-            function(this)
-            postTerminateToken
-          }
-
-        case None =>
-          bag.success(postTerminateToken)
+  /**
+   * Executed after setting the Actor to be terminated and before exection [[recovery]] and [[postTerminate]].
+   *
+   * @return returns the token which can be used to execute [[runPostTerminate(*)]].
+   */
+  private def runPreTerminate[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Boolean] =
+    if (busyTerminating.compareAndSet(false, true))
+      whileNotBusy(retryOnBusyDelay = retryOnBusyDelay, continueIfNonEmpty = false) {
+        try {
+          preTerminate.foreach(_ (this))
+          true
+        } catch {
+          case exception: Throwable =>
+            logger.error(s"""Exception in running Pre-termination - Actor("$name"). Post termination will continue.""", exception)
+            true
+        } finally {
+          busy.set(false)
+        }
       }
-    } else {
-      bag.success("")
-    }
+    else
+      bag.success(false)
 
-  private def runPostTerminate[BAG[_]](token: String)(implicit bag: Bag[BAG]): BAG[Unit] =
-    if (postTerminateToken == token)
-      postTerminate match {
-        case Some(function) =>
-          bag.and(bag(function(this)))(bag.success(scheduler.get().foreach(_.terminate())))
-
-        case None =>
-          bag.success(scheduler.get().foreach(_.terminate()))
+  private def runPostTerminate[BAG[_]](executedPreTerminate: Boolean, retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
+    if (executedPreTerminate)
+      whileNotBusy(retryOnBusyDelay = retryOnBusyDelay, continueIfNonEmpty = false) {
+        try
+          postTerminate.foreach(_ (this))
+        catch {
+          case exception: Throwable =>
+            logger.error(s"""Exception in running Post-Termination - Actor("$name"). Termination will continue.""", exception)
+        } finally {
+          scheduler.get().foreach(_.terminate())
+          busy.set(false)
+        }
       }
     else
       bag.unit

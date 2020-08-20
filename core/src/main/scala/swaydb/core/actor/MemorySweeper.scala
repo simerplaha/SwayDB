@@ -34,6 +34,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
 import swaydb.{Actor, ActorRef, Bag}
 
+import scala.concurrent.duration.DurationInt
 import scala.ref.WeakReference
 
 private[core] sealed trait Command
@@ -117,7 +118,7 @@ private[core] object MemorySweeper extends LazyLogging {
     sweeper.actor foreach {
       actor =>
         logger.info("Clearing cached key-values")
-        actor.terminateAndClear[Bag.Less]()
+        actor.terminateAndClear[Bag.Less](1.second)
     }
 
   def weigher(entry: Command): Int =
@@ -174,7 +175,7 @@ private[core] object MemorySweeper extends LazyLogging {
       }
 
     def terminateAndClear() =
-      actor.foreach(_.terminateAndClear[Bag.Less]())
+      actor.foreach(_.terminateAndClear[Bag.Less](1.second))
   }
 
   case object Disabled extends MemorySweeper

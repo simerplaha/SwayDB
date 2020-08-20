@@ -60,11 +60,11 @@ private[swaydb] object Cache {
         IO.failed(new Exception("ValueIO cannot be cleared"))
     }
 
-//  def emptyValuesBlock[E: IO.ExceptionHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-//    Cache.concurrentIO[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, initial = None, stored = true) {
-//      case (_, _) =>
-//        IO(ValuesBlock.emptyUnblocked)
-//    }
+  //  def emptyValuesBlock[E: IO.ExceptionHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+  //    Cache.concurrentIO[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, initial = None, stored = true) {
+  //      case (_, _) =>
+  //        IO(ValuesBlock.emptyUnblocked)
+  //    }
 
   def concurrentIO[E: IO.ExceptionHandler, I, O](synchronised: Boolean,
                                                  stored: Boolean,
@@ -358,15 +358,18 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
   def isStored: Boolean =
     lazyIO.stored
 
+  @inline private def reserveAndExecute[T](thunk: => IO[E, T]): IO[E, T] =
+    if (Reserve.setBusyOrGet((), error.reserve).isEmpty)
+      try
+        thunk
+      finally
+        Reserve.setFree(error.reserve)
+    else
+      IO.Left[E, T](error)
+
   override def value(input: => I): IO[E, O] =
-    lazyIO getOrElse {
-      if (Reserve.setBusyOrGet((), error.reserve).isEmpty)
-        try
-          lazyIO getOrElse (lazyIO set fetch(input, this)) //check if it's set again in the block.
-        finally
-          Reserve.setFree(error.reserve)
-      else
-        IO.Left[E, O](error)
+    lazyIO getOrElse reserveAndExecute {
+      lazyIO getOrElse (lazyIO set fetch(input, this)) //check if it's set again in the block.
     }
 
   override def isCached: Boolean =
@@ -382,19 +385,15 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
     lazyIO.get()
 
   override def clearApply[T](f: Option[O] => T): IO[E, T] =
-    if (Reserve.setBusyOrGet((), error.reserve).isEmpty)
-      try
-        lazyIO.clearApply {
-          case Some(value) =>
-            value.map(result => f(Some(result)))
+    reserveAndExecute {
+      lazyIO.clearApply {
+        case Some(value) =>
+          value.map(result => f(Some(result)))
 
-          case None =>
-            IO.Right(f(None))
-        } //check if it's set again in the block.
-      finally
-        Reserve.setFree(error.reserve)
-    else
-      IO.Left[E, T](error)
+        case None =>
+          IO.Right(f(None))
+      } //check if it's set again in the block.
+    }
 }
 
 /**
