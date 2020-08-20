@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.io.file.Effect._

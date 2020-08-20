@@ -24,7 +24,7 @@ import java.nio.file.Files
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb._
-import swaydb.core.RunThis.runThis
+import swaydb.data.RunThis.runThis
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
 import swaydb.serializers.Default._
@@ -88,6 +88,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
   implicit val bag = Bag.apiIO
 
   "SwayDB" should {
+
     "remove all but first and last" in {
       runThis(times = repeatTest, log = true) {
         TestCaseSweeper {

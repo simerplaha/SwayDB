@@ -28,7 +28,7 @@ import java.nio.file.Paths
 
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.util.{Benchmark, Extension}
 import swaydb.core.{TestBase, TestCaseSweeper}

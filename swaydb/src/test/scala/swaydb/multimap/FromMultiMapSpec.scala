@@ -23,7 +23,7 @@ import org.scalatest.OptionValues._
 import swaydb.Bag.Less
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._

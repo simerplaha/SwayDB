@@ -29,7 +29,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.{KeyValue, Memory}

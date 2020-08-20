@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.util
+package swaydb.data.util
 
 import java.util.TimerTask
 import java.util.concurrent.TimeUnit

@@ -22,7 +22,7 @@ package swaydb.api
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.serializers.Default._

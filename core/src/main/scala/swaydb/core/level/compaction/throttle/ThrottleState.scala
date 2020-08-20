@@ -29,7 +29,7 @@ import java.util.TimerTask
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.Compactor
-import swaydb.core.util.FiniteDurations
+import swaydb.data.util.FiniteDurations
 import swaydb.data.slice.Slice
 import swaydb.{ActorWire, IO, Scheduler}
 

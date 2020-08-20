@@ -26,7 +26,7 @@ package swaydb.core.util
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.data.slice.Slice
 

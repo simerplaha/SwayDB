@@ -26,7 +26,7 @@ package swaydb.core.segment.merge
 
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.{KeyValue, Memory, Value}

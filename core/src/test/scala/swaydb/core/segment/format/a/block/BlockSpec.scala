@@ -2,7 +2,7 @@ package swaydb.core.segment.format.a.block
 
 import org.scalatest.OptionValues._
 import swaydb.compression.CompressionInternal
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.Block.CompressionInfo

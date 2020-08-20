@@ -24,7 +24,7 @@
 
 package swaydb.core.io.file
 
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper

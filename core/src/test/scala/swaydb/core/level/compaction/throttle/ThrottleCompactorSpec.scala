@@ -27,7 +27,7 @@ package swaydb.core.level.compaction.throttle
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
@@ -70,6 +70,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
   val keyValueCount = 1000
 
+  implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val timer = TestTimer.Empty

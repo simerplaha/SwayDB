@@ -44,7 +44,7 @@
 //import swaydb.serializers.Default._
 //import swaydb.core.IOAssert._
 //import swaydb.core.CommonAssertions._
-//import swaydb.core.RunThis._
+//import swaydb.data.RunThis._
 //
 //class SwayDBStressSpec0 extends SwayDBStressSpec {
 //  val keyValueCount: Int = 100000

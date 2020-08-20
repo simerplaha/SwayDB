@@ -54,4 +54,37 @@ object Base {
 
   def randomBusyError(busyBoolean: Reserve[Unit] = Reserve.free(name = "randomBusyError")): swaydb.Error.Recoverable =
     Random.shuffle(busyErrors(busyBoolean)).head
+
+  def eitherOne[T](left: => T, right: => T): T =
+    if (Random.nextBoolean())
+      left
+    else
+      right
+
+  def orNone[T](option: => Option[T]): Option[T] =
+    if (Random.nextBoolean())
+      None
+    else
+      option
+
+  def anyOrder[T](left: => T, right: => T): Unit =
+    if (Random.nextBoolean()) {
+      left
+      right
+    } else {
+      right
+      left
+    }
+
+  def eitherOne[T](left: => T, mid: => T, right: => T): T =
+    Random.shuffle(Seq(() => left, () => mid, () => right)).head()
+
+  def eitherOne[T](one: => T, two: => T, three: => T, four: => T): T =
+    Random.shuffle(Seq(() => one, () => two, () => three, () => four)).head()
+
+  def eitherOne[T](one: => T, two: => T, three: => T, four: => T, five: => T): T =
+    Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five)).head()
+
+  def eitherOne[T](one: => T, two: => T, three: => T, four: => T, five: => T, six: => T): T =
+    Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five, () => six)).head()
 }

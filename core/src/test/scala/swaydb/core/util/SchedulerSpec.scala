@@ -28,14 +28,15 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.TestCaseSweeper
+import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.{IO, Scheduler}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import TestCaseSweeper._
 
 class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
+
+  implicit val ec = TestExecutionContext.executionContext
 
   //  "Delay.cancelTimer" should {
   //    "cancel all existing scheduled tasks" in {
@@ -110,7 +111,6 @@ class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
             tryThread should not be empty
             tryThread should not be currentThread
           }
-
       }
     }
   }

@@ -26,7 +26,7 @@
 //
 //import swaydb.Error.Segment.ExceptionHandler
 //import swaydb.IO
-//import swaydb.core.RunThis._
+//import swaydb.data.RunThis._
 //import swaydb.core.TestBase
 //import swaydb.core.util.Benchmark
 //import swaydb.data.slice.Slice

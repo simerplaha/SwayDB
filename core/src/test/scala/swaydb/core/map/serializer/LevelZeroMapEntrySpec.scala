@@ -29,7 +29,7 @@ import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.io.reader.Reader

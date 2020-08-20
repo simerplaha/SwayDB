@@ -21,7 +21,7 @@ package swaydb
 
 import swaydb.IOValues._
 import swaydb.api.{TestBaseEmbedded, repeatTest}
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
 import swaydb.data.order.KeyOrder

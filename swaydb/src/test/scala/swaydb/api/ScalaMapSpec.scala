@@ -22,7 +22,7 @@ package swaydb.api
 import swaydb.IOValues._
 import swaydb._
 import swaydb.serializers.Default._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import TestCaseSweeper._
 

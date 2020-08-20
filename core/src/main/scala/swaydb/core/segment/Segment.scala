@@ -53,7 +53,7 @@ import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, IOAction, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.SomeOrNone
+import swaydb.data.util.{FiniteDurations, SomeOrNone}
 
 import scala.annotation.tailrec
 import scala.collection.compat._

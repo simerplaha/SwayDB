@@ -702,7 +702,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
           }
       } getOrElse Futures.unit
 
-    import RunThis._
+    import swaydb.data.RunThis._
     terminate.await
 
     if (!throttleOn)
@@ -741,7 +741,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
     if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).runRandomIO.right.value
     println("level0.putKeyValues")
     if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).runRandomIO.right.value
-    import RunThis._
+    import swaydb.data.RunThis._
 
     Seq(
       () => {

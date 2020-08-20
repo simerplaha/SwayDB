@@ -29,7 +29,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
-import swaydb.core.cache.Cache
+import swaydb.data.cache.Cache
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.data.Reserve

@@ -22,10 +22,10 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core
+package swaydb.data
 
 import org.scalatest.concurrent.Eventually
-import swaydb.core.util.FiniteDurations._
+import swaydb.data.util.FiniteDurations._
 
 import scala.concurrent.duration.{Deadline, FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -33,8 +33,6 @@ import scala.util.Random
 import scala.collection.parallel.CollectionConverters._
 
 object RunThis extends Eventually {
-
-  implicit val ec = TestExecutionContext.executionContext
 
   implicit class RunThisImplicits[R](f: => R) {
     def runThis(times: Int): Unit =

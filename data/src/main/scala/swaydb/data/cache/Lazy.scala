@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.cache
+package swaydb.data.cache
 
 import swaydb.IO
 

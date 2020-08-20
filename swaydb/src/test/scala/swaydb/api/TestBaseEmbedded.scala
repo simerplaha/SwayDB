@@ -23,8 +23,8 @@ import swaydb.IO.ApiIO
 import swaydb.IOValues._
 import swaydb.{MultiMapKey, _}
 import swaydb.core.CommonAssertions.eitherOne
-import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.data.RunThis._
+import swaydb.core.{TestBase, TestExecutionContext}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -139,6 +139,8 @@ trait TestBaseEmbedded extends TestBase {
           }
       }
     }
+
+    implicit val ec = TestExecutionContext.executionContext
     //this test might take a while depending on the Compaction speed but it should not run for too long hence the timeout.
     Future(checkEmpty(1, false)).await(10.minutes)
   }

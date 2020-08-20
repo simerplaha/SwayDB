@@ -24,13 +24,16 @@
 
 package swaydb.core.actor
 
-import swaydb.core.RunThis._
+import swaydb.core.TestExecutionContext
+import swaydb.data.RunThis._
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorRef}
 
 import scala.concurrent.duration._
 
 object PingPong extends App {
+
+  implicit val ec = TestExecutionContext.executionContext
 
   implicit val ordering = QueueOrder.FIFO
 

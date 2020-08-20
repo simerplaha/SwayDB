@@ -27,12 +27,12 @@ package swaydb.core
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestSweeper._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
-import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.LevelRef
 import swaydb.core.segment.Segment
@@ -86,7 +86,8 @@ object TestCaseSweeper extends LazyLogging {
   }
 
   private def terminate(sweeper: TestCaseSweeper): Unit = {
-    implicit val bag = Bag.future(TestExecutionContext.executionContext)
+    implicit val ec = TestExecutionContext.executionContext
+    implicit val bag = Bag.future(ec)
 
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 

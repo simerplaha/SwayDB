@@ -28,7 +28,7 @@ import java.nio.file.{Path, Paths}
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.io.file.Effect
 import swaydb.core.segment.Segment

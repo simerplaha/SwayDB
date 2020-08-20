@@ -22,19 +22,17 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.cache
+package swaydb.data.cache
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.util.Functions
 
 sealed trait CacheOrNull[+E, -I, +O]
 
-private[core] object Cache {
+private[swaydb] object Cache {
 
   final case class Null[-I]() extends CacheOrNull[Nothing, I, Nothing]
 
@@ -62,11 +60,11 @@ private[core] object Cache {
         IO.failed(new Exception("ValueIO cannot be cleared"))
     }
 
-  def emptyValuesBlock[E: IO.ExceptionHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    Cache.concurrentIO[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, initial = None, stored = true) {
-      case (_, _) =>
-        IO(ValuesBlock.emptyUnblocked)
-    }
+//  def emptyValuesBlock[E: IO.ExceptionHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+//    Cache.concurrentIO[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, initial = None, stored = true) {
+//      case (_, _) =>
+//        IO(ValuesBlock.emptyUnblocked)
+//    }
 
   def concurrentIO[E: IO.ExceptionHandler, I, O](synchronised: Boolean,
                                                  stored: Boolean,
@@ -169,7 +167,7 @@ private[core] object Cache {
  * Caches a value on read. Used for IO operations where the output does not change.
  * For example: A file's size.
  */
-private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] extends CacheOrNull[E, I, O] with LazyLogging { self =>
+private[swaydb] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] extends CacheOrNull[E, I, O] with LazyLogging { self =>
   def value(input: => I): IO[E, O]
   def isCached: Boolean
   def isStored: Boolean

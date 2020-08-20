@@ -22,14 +22,14 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.cache
+package swaydb.data.cache
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.util.Benchmark
 import swaydb.data.Reserve
 

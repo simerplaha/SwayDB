@@ -25,7 +25,7 @@
 package swaydb.core.data
 
 import swaydb.IO
-import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.core.map.serializer.RangeValueSerializer.OptionRangeValueSerializer
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.KeyMatcher

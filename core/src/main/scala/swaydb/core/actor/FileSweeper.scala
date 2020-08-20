@@ -26,9 +26,9 @@ package swaydb.core.actor
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.{ActorConfig, FileCache}
-import swaydb.{Actor, ActorRef, Bag, IO, Scheduler}
+import swaydb.{Actor, ActorRef, Bag, IO}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.ref.WeakReference

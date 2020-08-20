@@ -25,7 +25,7 @@
 package swaydb.core.segment.format.a
 
 import swaydb.core.TestBase
-import swaydb.core.cache.Cache
+import swaydb.data.cache.Cache
 import swaydb.core.data.Persistent._
 import swaydb.core.data.Value.FromValueOption
 import swaydb.core.data.{Persistent, Time, Value}

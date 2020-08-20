@@ -27,7 +27,7 @@ package swaydb.core.level.compaction.throttle
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
-import swaydb.core.util.FiniteDurations._
+import swaydb.data.util.FiniteDurations._
 
 private[throttle] object ThrottleLevelOrdering extends LazyLogging {
 

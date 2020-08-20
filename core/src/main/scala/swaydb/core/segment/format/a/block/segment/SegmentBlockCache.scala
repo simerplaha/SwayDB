@@ -28,7 +28,7 @@ import java.nio.file.Path
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.MemorySweeper
-import swaydb.core.cache.{Cache, Lazy}
+import swaydb.data.cache.{Cache, Lazy}
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentIO
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock

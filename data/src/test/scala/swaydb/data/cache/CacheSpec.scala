@@ -22,16 +22,14 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.cache
+package swaydb.data.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.{Error, IO}
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.TestData._
+import swaydb.data.RunThis._
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 
@@ -40,6 +38,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.collection.parallel.CollectionConverters._
+import swaydb.data.Base._
 
 class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 
@@ -167,7 +166,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         //        mapStoredCache.value(fail()) shouldBe IO.Right(128)
         //        mapStoredCache.isCached shouldBe cache.isCached
 
-        val flatMapStoredCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), stored = true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 2)))
+        val flatMapStoredCache = cache.flatMap(Cache.concurrentIO(Random.nextBoolean(), stored = true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 2)))
         flatMapStoredCache.value(()) shouldBe IO.Right(125)
         flatMapStoredCache.value(fail()) shouldBe IO.Right(125)
         flatMapStoredCache.getIO() shouldBe Some(IO.Right(125))
@@ -175,9 +174,9 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         val flatMapNotStoredCache =
           cache flatMap {
             Cache.concurrentIO(
-              synchronised = randomBoolean(),
+              synchronised = Random.nextBoolean(),
               stored = false,
-              initial = orNone(Some(randomInt()))) {
+              initial = orNone(Some(Random.nextInt()))) {
               (int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) =>
                 IO(int + 3)
             }
@@ -230,7 +229,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         mapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
         mapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
 
-        val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean(), None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 1)))
+        val flatMapCache = cache.flatMap(Cache.concurrentIO(Random.nextBoolean(), Random.nextBoolean(), None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 1)))
         flatMapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
         flatMapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
 
@@ -277,7 +276,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         val flatMapCache1 =
           cache.flatMap(
             Cache.concurrentIO(
-              synchronised = randomBoolean(),
+              synchronised = Random.nextBoolean(),
               stored = true,
               initial = None
             )((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 1))
@@ -295,7 +294,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         val flatMapCache2 =
           cache flatMap {
             Cache.concurrentIO(
-              synchronised = randomBoolean(),
+              synchronised = Random.nextBoolean(),
               stored = true,
               initial = None
             )((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 2))
@@ -358,7 +357,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         mock.expects() returning IO(222)
-        cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO.Right(int + 1))).value(()) shouldBe IO.Right(223)
+        cache.flatMap(Cache.concurrentIO(Random.nextBoolean(), true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO.Right(int + 1))).value(()) shouldBe IO.Right(223)
         cache.isCached shouldBe true
       }
 
@@ -366,11 +365,11 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
     }
 
     "clear all flatMapped caches" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](randomBoolean(), true, None)((_, self) => IO(1))
+      val cache = Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](Random.nextBoolean(), true, None)((_, self) => IO(1))
       cache.value(()) shouldBe IO.Right(1)
       cache.isCached shouldBe true
 
-      val nestedCache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](randomBoolean(), true, None)((int, self) => IO(int + 1))
+      val nestedCache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](Random.nextBoolean(), true, None)((int, self) => IO(int + 1))
 
       val flatMapCache = cache.flatMap(nestedCache)
       flatMapCache.value(()) shouldBe IO.Right(2)
@@ -446,6 +445,8 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 
     "concurrent access to reserved io" should {
       "not be allowed" in {
+        import scala.concurrent.ExecutionContext.Implicits.global
+
         def doTest(blockIO: Boolean) = {
 
           @volatile var invokeCount = 0
@@ -467,9 +468,9 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
               }
 
           val cache =
-            if (randomBoolean())
+            if (Random.nextBoolean())
               simpleCache.map(IO(_))
-            else if (randomBoolean())
+            else if (Random.nextBoolean())
               simpleCache.flatMap {
                 Cache.concurrentIO[swaydb.Error.Segment, Int, Int](synchronised = false, stored = false, None)((int: Int, _) => IO(int))
               }

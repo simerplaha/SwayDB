@@ -20,7 +20,7 @@
 //package swaydb.core.level
 //
 //import swaydb.IOValues._
-//import swaydb.core.RunThis._
+//import swaydb.data.RunThis._
 //import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.core.TestData._
 //import swaydb.core.actor.MemorySweeper

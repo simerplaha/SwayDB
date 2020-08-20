@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 
 import swaydb.IOValues._
 import swaydb.api.repeatTest
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.slice.Slice

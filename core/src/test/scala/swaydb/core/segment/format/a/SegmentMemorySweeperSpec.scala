@@ -26,13 +26,13 @@ package swaydb.core.segment.format.a
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -46,6 +46,8 @@ import TestCaseSweeper._
 class SegmentMemorySweeperSpec extends TestBase {
 
   val keyValuesCount = 100
+
+  implicit val ec = TestExecutionContext.executionContext
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   //  override def deleteFiles = false

@@ -19,7 +19,7 @@
 //
 //package swaydb.core.actor
 //
-//import swaydb.core.RunThis._
+//import swaydb.data.RunThis._
 //import swaydb.core.TestBase
 //
 //import scala.concurrent.Future

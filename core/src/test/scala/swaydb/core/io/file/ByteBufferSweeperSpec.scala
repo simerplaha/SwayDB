@@ -31,7 +31,7 @@ import java.nio.file.{NoSuchFileException, Path, Paths, StandardOpenOption}
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
@@ -50,6 +50,7 @@ import scala.util.Random
 
 class ByteBufferSweeperSpec extends TestBase {
 
+  implicit val ec = TestExecutionContext.executionContext
   implicit val futureBag = Bag.future
 
   "clear a MMAP file" in {

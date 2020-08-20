@@ -26,8 +26,8 @@ package swaydb.core.map.timer
 
 import java.nio.file.Path
 
-import swaydb.core.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
+import swaydb.data.RunThis._
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -75,6 +75,7 @@ class MemoryTimerSpec extends TimerSpec {
 
 sealed trait TimerSpec extends TestBase {
 
+  implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
   implicit val functionStore = FunctionStore.memory()

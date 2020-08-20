@@ -26,7 +26,7 @@ package swaydb.core.segment.format.a.block.values
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.block.Block

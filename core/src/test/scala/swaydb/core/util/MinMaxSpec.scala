@@ -27,7 +27,7 @@ package swaydb.core.util
 import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Time, Value}
 import swaydb.data.order.KeyOrder

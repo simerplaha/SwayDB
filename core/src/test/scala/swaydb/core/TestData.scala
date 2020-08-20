@@ -29,18 +29,15 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.cache.Cache
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.io.file.BlockCache
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
@@ -60,6 +57,7 @@ import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO, ThreadReadSta
 import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
+import swaydb.data.cache.Cache
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -69,11 +67,9 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{IO, Scheduler}
-import TestCaseSweeper._
 
-import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 import scala.reflect.ClassTag
 import scala.util.Random
 

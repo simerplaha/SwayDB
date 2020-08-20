@@ -31,6 +31,7 @@ import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.ExceptionHandler
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.util.{Functions, Futures}
@@ -212,7 +213,7 @@ object Actor {
       weigher = _ => 1,
       cached = false,
       execution = execution,
-      scheduler = Scheduler(),
+      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = None,
       preTerminate = None,
       postTerminate = None,
@@ -243,7 +244,7 @@ object Actor {
       weigher = Functions.safe((_: T) => 1, weigher),
       cached = true,
       execution = execution,
-      scheduler = Scheduler(),
+      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = None,
       preTerminate = None,
       postTerminate = None,
@@ -280,7 +281,7 @@ object Actor {
       weigher = _ => 1,
       cached = false,
       execution = execution,
-      scheduler = Scheduler(),
+      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = Some(new Interval(interval, false)),
       preTerminate = None,
       postTerminate = None,
@@ -314,7 +315,7 @@ object Actor {
       weigher = weigher,
       cached = true,
       execution = execution,
-      scheduler = Scheduler(),
+      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = Some(new Interval(interval, false)),
       preTerminate = None,
       postTerminate = None,
@@ -354,7 +355,7 @@ object Actor {
       weigher = _ => 1,
       cached = false,
       execution = execution,
-      scheduler = Scheduler(),
+      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = Some(new Interval(interval, true)),
       preTerminate = None,
       postTerminate = None,
@@ -388,7 +389,7 @@ object Actor {
       weigher = weigher,
       cached = true,
       execution = execution,
-      scheduler = Scheduler(),
+      scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),
       interval = Some(new Interval(interval, true)),
       preTerminate = None,
       postTerminate = None,
@@ -464,7 +465,7 @@ class Actor[-T, S](val name: String,
                    weigher: T => Int,
                    cached: Boolean,
                    execution: (T, Actor[T, S]) => Unit,
-                   scheduler: Scheduler,
+                   scheduler: CacheNoIO[Unit, Scheduler],
                    interval: Option[Interval],
                    preTerminate: Option[Actor[T, S] => Unit],
                    postTerminate: Option[Actor[T, S] => Unit],
@@ -497,7 +498,7 @@ class Actor[-T, S](val name: String,
     queue.size
 
   override def send(message: T, delay: FiniteDuration): TimerTask =
-    scheduler.task(delay)(self send message)
+    scheduler.value(()).task(delay)(self send message)
 
   override def send(message: T): Unit =
     if (terminated) {
@@ -596,7 +597,7 @@ class Actor[-T, S](val name: String,
                 if (currentStashed > 0 || isTimerLoop) {
                   //reduce stash capacity to eventually processed stashed messages.
                   val nextTask =
-                    scheduler.task(interval.delay) {
+                    scheduler.value(()).task(interval.delay) {
                       //clear the existing task so that next one gets scheduled/
                       this.task = None
                       //get the current weight during the schedule.
@@ -638,7 +639,7 @@ class Actor[-T, S](val name: String,
             receiveAllInFuture(retryOnBusyDelay)
       }
     else
-      scheduler(retryOnBusyDelay)(receiveAllInFuture(retryOnBusyDelay))
+      scheduler.value(()).apply(retryOnBusyDelay)(receiveAllInFuture(retryOnBusyDelay))
 
   /**
    * Forces the Actor to process all queued messages.
@@ -857,7 +858,7 @@ class Actor[-T, S](val name: String,
     }
 
   def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = {
-    scheduler.task(timeout)(this.terminate[Future]())
+    scheduler.value(()).task(timeout)(this.terminate[Future]())
     this
   }
 
@@ -882,10 +883,10 @@ class Actor[-T, S](val name: String,
     if (postTerminateToken == token)
       postTerminate match {
         case Some(function) =>
-          bag.and(bag(function(this)))(bag.success(scheduler.terminate()))
+          bag.and(bag(function(this)))(bag.success(scheduler.get().foreach(_.terminate())))
 
         case None =>
-          bag.success(scheduler.terminate())
+          bag.success(scheduler.get().foreach(_.terminate()))
       }
     else
       bag.unit

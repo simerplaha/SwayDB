@@ -22,15 +22,14 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.cache
+package swaydb.data.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IO
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.TestData._
+import swaydb.data.RunThis._
+import swaydb.data.Base._
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -58,8 +57,8 @@ class LazySpec extends AnyWordSpec with Matchers with MockFactory {
           lazyValue.isEmpty shouldBe true
 
           //map and flatMap should return empty since value is not set
-          lazyValue map (_ => randomInt()) shouldBe empty
-          lazyValue flatMap (_ => Some(randomInt())) shouldBe empty
+          lazyValue map (_ => Random.nextInt()) shouldBe empty
+          lazyValue flatMap (_ => Some(Random.nextInt())) shouldBe empty
           lazyValue.isDefined shouldBe false
           lazyValue.isEmpty shouldBe true
         }
@@ -150,7 +149,7 @@ class LazySpec extends AnyWordSpec with Matchers with MockFactory {
   "Lazy.io" when {
     "empty" in {
       def doTest(isSynchronised: Boolean, stored: Boolean) = {
-        val initialValue = eitherOne(None, Some(randomIntMax()))
+        val initialValue = eitherOne(None, Some(Random.nextInt()))
 
         val lazyValue = Lazy.io[Throwable, Int](isSynchronised, stored, initialValue)
 
@@ -184,7 +183,7 @@ class LazySpec extends AnyWordSpec with Matchers with MockFactory {
 
     "nonEmpty" in {
       def doTest(isSynchronised: Boolean) = {
-        val initialValue = eitherOne(None, Some(randomIntMax()))
+        val initialValue = eitherOne(None, Some(Random.nextInt()))
 
         val lazyValue = Lazy.io[Throwable, Int](isSynchronised, true, initialValue)
 
@@ -215,13 +214,13 @@ class LazySpec extends AnyWordSpec with Matchers with MockFactory {
 
     "synchronised and stored" should {
       "not allow concurrent modifications" in {
-        val value = randomInt()
+        val value = Random.nextInt()
         implicit val exception = swaydb.IO.ExceptionHandler.Throwable
 
         val mockValueFunction = mockFunction[Int]
         mockValueFunction.expects() returning value //this function is only invoked once.
 
-        val initialValue = eitherOne(None, Some(randomIntMax()))
+        val initialValue = eitherOne(None, Some(Random.nextInt()))
 
         val lazyValue = Lazy.io[Throwable, Int](synchronised = true, stored = true, initialValue)
 
@@ -258,7 +257,7 @@ class LazySpec extends AnyWordSpec with Matchers with MockFactory {
         val mockValueFunction = mockFunction[Int]
         mockValueFunction.expects() returning value repeat (2 to 100) //this function is invoked more than once.
 
-        val initialValue = eitherOne(None, Some(randomIntMax()))
+        val initialValue = eitherOne(None, Some(Random.nextInt()))
 
         val lazyValue = Lazy.io[Throwable, Int](synchronised = false, stored = true, initialValue)
 

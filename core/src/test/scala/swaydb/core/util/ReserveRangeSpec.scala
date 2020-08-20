@@ -24,8 +24,8 @@
 
 package swaydb.core.util
 
-import swaydb.core.RunThis._
-import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.RunThis._
+import swaydb.core.{TestBase, TestExecutionContext, TestTimer}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -35,6 +35,7 @@ import scala.util.Random
 
 class ReserveRangeSpec extends TestBase {
 
+  implicit val ec = TestExecutionContext.executionContext
   implicit val ordering = swaydb.data.order.KeyOrder.default
   implicit val timer = TestTimer.Empty
 

@@ -22,13 +22,13 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.util
+package swaydb.data.util
 
 import java.util.{Timer, TimerTask}
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import swaydb.core.util.FiniteDurations._
+import swaydb.data.util.FiniteDurations._
 
 import scala.concurrent.duration._
 

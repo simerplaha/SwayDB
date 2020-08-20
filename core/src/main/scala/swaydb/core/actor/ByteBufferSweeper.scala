@@ -32,9 +32,9 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
 import swaydb.core.actor.ByteBufferCleaner.Cleaner
-import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.core.io.file.Effect
-import swaydb.core.util.FiniteDurations._
+import swaydb.data.util.FiniteDurations._
 import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.annotation.tailrec

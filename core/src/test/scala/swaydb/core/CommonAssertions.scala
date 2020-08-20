@@ -27,24 +27,22 @@ package swaydb.core
 import java.nio.file.Paths
 
 import org.scalactic.Equality
-import org.scalatest.matchers.should.Matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
+import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
-import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.Effect
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
-import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
+import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.merge._
 import swaydb.core.segment.KeyMatcher.Result
 import swaydb.core.segment.format.a.block._
@@ -58,22 +56,21 @@ import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCac
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{KeyMatcher, Segment, SegmentIO, SegmentOption, SegmentSearcher, ThreadReadState}
+import swaydb.core.segment._
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
+import swaydb.data.RunThis._
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption}
-import swaydb.data.util.SomeOrNone
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{Error, IO}
+import swaydb.{Bag, Error, IO}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
-import swaydb.data.util.SomeOrNone._
 
 object CommonAssertions {
 
@@ -1775,11 +1772,14 @@ object CommonAssertions {
     }
 
   implicit class MapsImplicit[OK, OV, K <: OK, V <: OV](maps: Maps[OK, OV, K, V]) {
+
     /**
      * Manages closing of Map accouting for Windows where
      * Memory-mapped files require in-memory ByteBuffer be cleared.
      */
     def ensureClose(): Unit = {
+      implicit val ec = TestExecutionContext.executionContext
+      implicit val bag = Bag.future
       maps.close.value
       maps.bufferCleaner.actor.receiveAllForceBlocking(Int.MaxValue, 1.second).get
       (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)

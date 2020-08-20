@@ -26,8 +26,8 @@ package swaydb.core.actor
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.RunThis._
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
 import swaydb.core.TestData._
 import swaydb.{Actor, ActorWire}
 
@@ -37,6 +37,7 @@ import scala.concurrent.duration._
 import TestCaseSweeper._
 
 class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
+  implicit val ec = TestExecutionContext.executionContext
 
   "ActorWire" should {
 

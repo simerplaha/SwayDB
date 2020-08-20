@@ -34,12 +34,12 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.util.{Bytes, FiniteDurations, MinMax}
+import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.{ByteSizeOf, Functions}
+import swaydb.data.util.{ByteSizeOf, FiniteDurations, Functions}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer

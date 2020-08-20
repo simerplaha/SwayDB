@@ -26,7 +26,7 @@ package swaydb.core.segment.format.a.block.bloomfilter
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions.eitherOne
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.Block

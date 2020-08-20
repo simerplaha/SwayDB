@@ -24,8 +24,9 @@
 
 package swaydb.core
 
+import swaydb.Bag
 import swaydb.IOValues._
-import swaydb.core.RunThis._
+import swaydb.data.RunThis._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
@@ -76,6 +77,9 @@ package object map {
     def ensureClose(): Unit = {
       map.close()
       map.bufferCleaner.actor.receiveAllForceBlocking(Int.MaxValue, 1.second).get
+
+      implicit val ec = TestExecutionContext.executionContext
+      implicit val bag = Bag.future
       val isShut = (map.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
       assert(isShut, "Is not shut")
     }

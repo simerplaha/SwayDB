@@ -31,8 +31,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb._
 import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.TestCaseSweeper
+import swaydb.data.RunThis._
+import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.util.Futures
 
@@ -50,6 +50,8 @@ class ActorSpec extends AnyWordSpec with Matchers {
   import swaydb.core.TestData._
 
   implicit val ordering = QueueOrder.FIFO
+
+  implicit val ec = TestExecutionContext.executionContext
 
   "it" should {
 
