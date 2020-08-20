@@ -124,7 +124,7 @@ class ByteBufferSweeperSpec extends TestBase {
           //keep this test running for a few seconds.
           sleep(timeout)
 
-          fileSweeper.terminateAndRecoverAsync(1.second).await(10.seconds)
+          fileSweeper.terminateAndRecover(1.second).await(10.seconds)
           fileSweeper.messageCount shouldBe 0
       }
     }
@@ -408,7 +408,7 @@ class ByteBufferSweeperSpec extends TestBase {
             }
 
             //execute all pending Delete commands.
-            cleaner.actor.receiveAllForceBlocking(Int.MaxValue, 1.second).get
+            cleaner.actor.receiveAllForce[Bag.Less](1.second)
 
             //there might me some delete messages waiting to be scheduled.
             eventual(1.minute) {
@@ -461,7 +461,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
             //execute all pending Delete commands.
             eventual(1.minute) {
-              cleaner.actor.terminateAndRecoverAsync[Future](1.second).await(1.minute)
+              cleaner.actor.terminateAndRecover[Future](1.second).await(1.minute)
             }
 
             eventual(1.minute) {

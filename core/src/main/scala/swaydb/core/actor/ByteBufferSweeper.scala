@@ -167,7 +167,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                                                            bag: Bag.Async[BAG]): BAG[Unit] =
     sweeper.get() match {
       case Some(actor) =>
-        bag.flatMap(actor.terminateAndRecoverAsync(retryOnBusyDelay)) {
+        bag.flatMap(actor.terminateAndRecover(retryOnBusyDelay)) {
           _ =>
             val ask = actor ask Command.IsTerminated(resubmitted = false)
             bag.transform(ask) {
@@ -184,7 +184,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
     }
 
   /**
-   * Closes the [[ByteBufferSweeperActor]] synchronously. This simply calls the Actor function [[Actor.terminateAndRecoverSync]]
+   * Closes the [[ByteBufferSweeperActor]] synchronously. This simply calls the Actor function [[Actor.terminateAndRecover]]
    * and dispatches [[Command.IsTerminated]] to assert that all files are closed and flushed.
    */
   def closeSync[BAG[_]](retryBlock: FiniteDuration,
@@ -193,7 +193,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                                                  ec: ExecutionContext): BAG[Unit] =
     sweeper.get() match {
       case Some(actor) =>
-        bag.map(actor.terminateAndRecoverSync(retryBlock)) {
+        bag.map(actor.terminateAndRecover(retryBlock)) {
           _ =>
             val future = actor ask Command.IsTerminated(resubmitted = false)
             val isCleaned = Await.result(future, timeout)

@@ -1781,7 +1781,7 @@ object CommonAssertions {
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
       maps.close.value
-      maps.bufferCleaner.actor.receiveAllForceBlocking(Int.MaxValue, 1.second).get
+      maps.bufferCleaner.actor.receiveAllForce[Bag.Less](1.second)
       (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
     }
   }

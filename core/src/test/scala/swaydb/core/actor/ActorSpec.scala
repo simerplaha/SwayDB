@@ -24,6 +24,7 @@
 
 package swaydb.core.actor
 
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{ConcurrentLinkedDeque, ConcurrentSkipListSet}
 
 import org.scalatest.matchers.should.Matchers
@@ -570,7 +571,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
                 actor send i
             }
 
-            val result = actor.terminateAndRecoverAsync[Future](0.seconds)
+            val result = actor.terminateAndRecover[Future](0.seconds)
 
             (101 to 200) foreach {
               i =>
@@ -639,7 +640,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           //terminate here does not work because it's in the future
           //and the second send messages will get returned as success
           //so actor.terminate() is invoked before terminateAndRecover.
-          val future = actor.terminateAndRecoverAsync[Future](0.seconds)
+          val future = actor.terminateAndRecover[Future](0.seconds)
 
           eventual(20.seconds) {
             success.asScala.toList shouldBe (1 to 100).toList
@@ -736,7 +737,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
             println(s"Sending $maxMessages messages concurrently to ${actor.name}.")
 
-            @volatile var terminated = false
+            val terminated = new AtomicBoolean()
 
             //concurrently send messages and randomly invoke terminateAndRecover
             val futures: ListBuffer[Future[Unit]] =
@@ -745,26 +746,22 @@ class ActorSpec extends AnyWordSpec with Matchers {
                   actor send i
                   //random enough to randomly balance messages for both success and recovered queue.
                   //see logged output to see how messages are distributed.
-                  if (Random.nextDouble() < 0.001) {
-                    val future = actor.terminateAndRecoverAsync[Future](0.seconds)
-                    terminated = true
-                    future
-                  } else {
+                  if (Random.nextDouble() < 0.001 && terminated.compareAndSet(false, true))
+                    actor.terminateAndRecover[Future](0.seconds)
+                  else
                     Futures.unit
-                  }
               }.to(ListBuffer)
-
-            //if the actor was terminated in the loop then assert that it's marked terminated.
-            actor.isTerminated shouldBe terminated
 
             //if it's not already terminates then terminate it so that cache Actors also drop their
             //stashed messages.
-            if (!terminated)
-              futures += actor.terminateAndRecoverAsync[Future](0.seconds)
+            if (terminated.compareAndSet(false, true))
+              futures += actor.terminateAndRecover[Future](0.seconds)
 
             println(s"Messages sent. Success: ${success.size()}. Recovered messages: ${recovered.size()}")
             //does not throw exception
             Future.sequence(futures).await(2.minutes)
+
+            actor.isTerminated shouldBe true
 
             //there should be no duplicate messages either in success or recovered messages.
             val allMessages = (success.asScala ++ recovered.asScala).toList

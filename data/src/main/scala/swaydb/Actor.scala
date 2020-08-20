@@ -72,9 +72,7 @@ sealed trait ActorRef[-T, S] { self =>
   def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
     recover[M, Throwable](f)
 
-  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit]
-
-  def receiveAllForceBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit]
+  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit]
 
   def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
@@ -92,9 +90,7 @@ sealed trait ActorRef[-T, S] { self =>
 
   def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
-  def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit]
-
-  def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit]
+  def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit]
 }
 
 object Actor {
@@ -120,18 +116,16 @@ object Actor {
       override def messageCount: Int = throw new Exception("Dead Actor")
       override def isEmpty: Boolean = throw new Exception("Dead Actor")
       override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Error], Actor[T, S]) => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
-      override def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
-      override def receiveAllForceBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] = throw new Exception("Dead Actor")
       override def isTerminated: Boolean = throw new Exception("Dead Actor")
       override def clear(): Unit = throw new Exception("Dead Actor")
-      override def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = throw new Exception("Dead Actor")
-      override def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def hasRecovery: Boolean = throw new Exception("Dead Actor")
       override def onPreTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      override def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
     }
 
   def cacheFromConfig[T](config: ActorConfig,
@@ -641,16 +635,6 @@ class Actor[-T, S](val name: String,
     else
       scheduler.value(()).apply(retryOnBusyDelay)(receiveAllInFuture(retryOnBusyDelay))
 
-  /**
-   * Forces the Actor to process all queued messages.
-   *
-   * @param retryOnBusyDelay delay to use if the actor is currently busy processing messages in another thread.
-   */
-  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit] =
-    bag.suspend(bag.fromFuture(receiveAllInFuture(retryOnBusyDelay)))
-
-  override def receiveAllForceBlocking(retryCounts: Int, block: FiniteDuration): Try[Unit] =
-    receiveAllBlocking(0, retryCounts, block)
 
   @tailrec
   private def receiveAllBlocking(retires: Int, maxRetries: Int, block: FiniteDuration): Try[Unit] =
@@ -674,6 +658,20 @@ class Actor[-T, S](val name: String,
       receiveAllBlocking(retires + 1, maxRetries, block)
     }
 
+
+  /**
+   * Forces the Actor to process all queued messages.
+   *
+   * @param retryOnBusyDelay delay to use if the actor is currently busy processing messages in another thread.
+   */
+  def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
+    bag match {
+      case _: Bag.Sync[BAG] =>
+        bag.fromIO(IO.fromTry(receiveAllBlocking(0, Int.MaxValue, retryOnBusyDelay)))
+
+      case bag: Bag.Async[BAG] =>
+        bag.suspend(bag.fromFuture(receiveAllInFuture(retryOnBusyDelay)))
+    }
 
   private def receive(overflow: Int, wakeUpOnComplete: Boolean): Unit = {
     var processedWeight = 0
@@ -791,49 +789,22 @@ class Actor[-T, S](val name: String,
       recovery = recovery
     )
 
-  private def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
-    bag.suspend {
-      setTerminated()
-      bag.flatMap(runPreTerminate()) {
-        token =>
-          if (recovery.isDefined) {
-            bag match {
-              case sync: Bag.Sync[BAG] =>
-                implicit val theBag: Bag.Sync[BAG] = sync
-
-                receiveAllForceBlocking(100, retryOnBusyDelay) match {
-                  case Success(_) =>
-                    runPostTerminate(token)
-
-                  case Failure(exception) =>
-                    bag.failure(exception)
-                }
-
-              case async: Bag.Async[BAG] =>
-                implicit val theBag: Bag.Async[BAG] = async
-
-                bag.flatMap(receiveAllForce(retryOnBusyDelay)) {
-                  _ =>
-                    runPostTerminate(token)
-                }
-            }
-          } else {
-            logger.error(s"""terminateAndRecover invoked on Actor("$name") with no recovery defined. Messages cleared.""")
-            bag.and(terminateAndClear())(runPostTerminate(token))
-          }
-      }
-    }
-
   /**
    * Terminates the Actor and applies [[recover]] function to all queued messages.
    *
    * If [[recover]] function  is not specified then all queues messages are cleared.
    */
-  def terminateAndRecoverAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Async[BAG]): BAG[Unit] =
-    terminateAndRecover(retryOnBusyDelay)
-
-  override def terminateAndRecoverSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag.Sync[BAG]): BAG[Unit] =
-    terminateAndRecover(retryOnBusyDelay)(bag)
+  def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
+    bag.suspend {
+      setTerminated()
+      bag.flatMap(runPreTerminate()) {
+        token =>
+          if (recovery.isDefined)
+            bag.and(receiveAllForce(retryOnBusyDelay))(runPostTerminate(token))
+          else
+            bag.and(terminateAndClear())(runPostTerminate(token))
+      }
+    }
 
   override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.transform(terminate()) {

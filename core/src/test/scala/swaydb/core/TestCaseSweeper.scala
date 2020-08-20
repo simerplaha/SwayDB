@@ -133,10 +133,10 @@ object TestCaseSweeper extends LazyLogging {
 
   private def receiveAll(sweeper: TestCaseSweeper): Unit = {
     //calling this after since delete would've already invoked these.
-    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForceBlocking(Int.MaxValue, 2.seconds)))))
-    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForceBlocking(Int.MaxValue, 2.seconds)))
-    sweeper.cleaners.foreach(_.get().foreach(_.get().foreach(_.receiveAllForceBlocking(Int.MaxValue, 2.seconds))))
-    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForceBlocking(Int.MaxValue, 2.seconds)))))
+    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less](2.seconds)))))
+    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Less](2.seconds)))
+    sweeper.cleaners.foreach(_.get().foreach(_.get().foreach(_.receiveAllForce[Bag.Less](2.seconds))))
+    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Less](2.seconds)))))
   }
 
   def apply[T](code: TestCaseSweeper => T): T = {

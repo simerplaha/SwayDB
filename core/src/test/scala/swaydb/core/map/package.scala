@@ -26,14 +26,13 @@ package swaydb.core
 
 import swaydb.Bag
 import swaydb.IOValues._
-import swaydb.data.RunThis._
-import swaydb.core.actor.FileSweeper
-import swaydb.core.data.{Memory, MemoryOption}
-import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.data.{Memory, MemoryOption}
+import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -76,7 +75,7 @@ package object map {
      */
     def ensureClose(): Unit = {
       map.close()
-      map.bufferCleaner.actor.receiveAllForceBlocking(Int.MaxValue, 1.second).get
+      map.bufferCleaner.actor.receiveAllForce[Bag.Less](1.second)
 
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
@@ -84,5 +83,4 @@ package object map {
       assert(isShut, "Is not shut")
     }
   }
-
 }
