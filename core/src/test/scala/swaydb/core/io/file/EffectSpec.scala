@@ -212,7 +212,7 @@ class EffectSpec extends TestBase {
     (0 to 10) foreach {
       maxNestedDirectories =>
         //initialise the root test directory
-        val testDirectory = testDir
+        val testDirectory = testClassDir
 
         //but path for nested directory hierarchy.
         val testCaseDirectory =

@@ -168,7 +168,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         if (persistent) {
           TestCaseSweeper {
             implicit sweeper =>
-              val dir = testDir.resolve("distributeSegmentsTest").sweep()
+              val dir = testClassDir.resolve("distributeSegmentsTest").sweep()
 
               def assertDistribution() = {
                 dir.resolve(1.toString).files(Extension.Seg) should have size 7

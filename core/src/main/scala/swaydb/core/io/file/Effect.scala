@@ -152,7 +152,7 @@ private[core] object Effect extends LazyLogging {
     else
       Files.createDirectories(path)
 
-  def walkDelete(folder: Path): Unit = {
+  def walkDelete(folder: Path): Unit =
     if (exists(folder))
       Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
         @throws[IOException]
@@ -167,7 +167,6 @@ private[core] object Effect extends LazyLogging {
           FileVisitResult.CONTINUE
         }
       })
-  }
 
   def release(lock: FileLock): Unit = {
     lock.release()

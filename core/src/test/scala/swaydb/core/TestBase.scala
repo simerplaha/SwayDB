@@ -24,15 +24,13 @@
 
 package swaydb.core
 
-import java.io.IOException
 import java.nio.file._
-import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.atomic.AtomicInteger
 
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import swaydb.ActorWire
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -61,18 +59,18 @@ import swaydb.data.config.{Dir, MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
-import swaydb.data.util.{Futures, OperatingSystem}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eventually {
+trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach with Eventually {
 
   implicit val idGenerator = IDGenerator()
 
-  val currentLevelId = new AtomicInteger(100000000)
+  private val currentLevelId = new AtomicInteger(100000000)
 
   private def nextLevelId: Int =
     currentLevelId.decrementAndGet()
@@ -88,6 +86,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
   val testFileDirectory = projectDirectory.resolve("TEST_FILES")
 
   val testMemoryFileDirectory = projectDirectory.resolve("TEST_MEMORY_FILES")
+
+  val testClassDirPath = testFileDirectory.resolve(this.getClass.getSimpleName)
 
   def levelFoldersCount = 0
 
@@ -107,14 +107,14 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
 
   def levelStorage: LevelStorage =
     if (inMemoryStorage)
-      LevelStorage.Memory(dir = memoryTestDir.resolve(nextLevelId.toString))
+      LevelStorage.Memory(dir = memoryTestClassDir.resolve(nextLevelId.toString))
     else
       LevelStorage.Persistent(
-        dir = testDir.resolve(nextLevelId.toString),
+        dir = testClassDir.resolve(nextLevelId.toString),
         otherDirs =
           (0 until levelFoldersCount) map {
             _ =>
-              Dir(testDir.resolve(nextLevelId.toString), 1)
+              Dir(testClassDir.resolve(nextLevelId.toString), 1)
           }
       )
 
@@ -134,12 +134,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
 
   def memory = levelStorage.memory
 
-  def randomDir(implicit sweeper: TestCaseSweeper) = testDir.resolve(s"${randomCharacters()}").sweep()
+  def randomDir(implicit sweeper: TestCaseSweeper) = testClassDir.resolve(s"${randomCharacters()}").sweep()
 
   def createRandomDir(implicit sweeper: TestCaseSweeper) = Files.createDirectory(randomDir).sweep()
 
   def randomFilePath(implicit sweeper: TestCaseSweeper) =
-    testDir.resolve(s"${randomCharacters()}.test").sweep()
+    testClassDir.resolve(s"${randomCharacters()}.test").sweep()
 
   def nextSegmentId = idGenerator.nextSegmentID
 
@@ -148,7 +148,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
   def deleteFiles = true
 
   def randomIntDirectory: Path =
-    testDir.resolve(nextLevelId.toString)
+    testClassDir.resolve(nextLevelId.toString)
 
   def createRandomIntDirectory: Path =
     if (persistent)
@@ -163,7 +163,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
     PathsDistributor(Seq(Dir(createNextLevelPath, 1)), () => Seq.empty)
 
   def nextLevelPath: Path =
-    testDir.resolve(nextLevelId.toString)
+    testClassDir.resolve(nextLevelId.toString)
 
   def testSegmentFile: Path =
     if (memory)
@@ -179,35 +179,21 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
 
   def farOut = new Exception("Far out! Something went wrong")
 
-  def testDir = {
-    val testDirPath = testFileDirectory.resolve(this.getClass.getSimpleName)
+  def testClassDir: Path =
     if (inMemoryStorage)
-      testDirPath
+      testClassDirPath
     else
-      Effect.createDirectoriesIfAbsent(testDirPath)
-  }
+      Effect.createDirectoriesIfAbsent(testClassDirPath)
 
-  def memoryTestDir =
+  def memoryTestClassDir =
     testFileDirectory.resolve(this.getClass.getSimpleName + "_MEMORY_DIR")
 
-  def walkDeleteFolder(folder: Path): Unit =
-    if (deleteFiles && Effect.exists(folder))
-      Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
-        @throws[IOException]
-        override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-          Effect.deleteIfExists(file)
-          FileVisitResult.CONTINUE
-        }
-
-        override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-          if (exc != null) throw exc
-          Effect.deleteIfExists(dir)
-          FileVisitResult.CONTINUE
-        }
-      })
-
   override protected def beforeAll(): Unit =
-    walkDeleteFolder(testDir)
+    if(deleteFiles)
+      Effect.walkDelete(testClassDirPath)
+
+  override protected def afterEach(): Unit =
+    Effect.deleteIfExists(testClassDirPath)
 
   object TestMap {
     def apply(keyValues: Slice[Memory],
@@ -414,7 +400,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
   }
 
   def createFile(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): Path =
-    Effect.write(testDir.resolve(nextSegmentId).sweep(), bytes)
+    Effect.write(testClassDir.resolve(nextSegmentId).sweep(), bytes)
 
   def createRandomFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
     if (Random.nextBoolean())
@@ -691,19 +677,14 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Eve
 
     runAsserts(asserts)
 
-    level0.delete(2.seconds).runRandomIO.right.value
-
-    val terminate =
-      compaction map {
-        compaction =>
-          compaction.ask.flatMap {
-            (impl, state, actor) =>
-              impl.terminate(state, actor)
-          }
-      } getOrElse Futures.unit
-
     import swaydb.data.RunThis._
-    terminate.await
+
+    compaction foreach {
+      implicit compaction =>
+        CoreShutdown.close(level0, 2.seconds).await(10.seconds)
+    }
+
+    level0.delete(2.seconds).await(10.seconds)
 
     if (!throttleOn)
       assertLevel(

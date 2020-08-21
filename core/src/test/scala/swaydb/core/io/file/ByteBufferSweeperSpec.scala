@@ -379,7 +379,7 @@ class ByteBufferSweeperSpec extends TestBase {
             import sweeper._
 
             def sendRandomRequests(fileNumber: Int): Path = {
-              val filePath = testDir.resolve(s"$fileNumber.test").sweep()
+              val filePath = testClassDir.resolve(s"$fileNumber.test").sweep()
               val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
               val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 

@@ -65,7 +65,7 @@ class IODeferSpec extends AnyWordSpec with Matchers with Eventually with MockFac
       val defer = IO.fromFuture[A](future)
       future.isCompleted shouldBe false
       defer.isPending shouldBe true
-      defer.isReady shouldBe true
+      defer.isReady shouldBe false
 
       val timeAfterDeferred = System.currentTimeMillis()
 
@@ -174,9 +174,9 @@ class IODeferSpec extends AnyWordSpec with Matchers with Eventually with MockFac
                 1
               }
 
-            //this re-creates Future again and again on reboot.
             val createDefers =
-              IO.Defer.unit.and(IO.fromFuture[Int](future))
+            //              IO.Defer.unit.and(IO.fromFuture[Int](future)) //this re-creates Future again and again on reboot.
+              IO.fromFuture[Int](future)
 
             if (Random.nextBoolean()) {
               createDefers.runIO shouldBe IO.Right(1)

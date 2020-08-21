@@ -210,6 +210,30 @@ class MapSpec extends TestBase {
           import LevelZeroMapEntryWriter._
           import sweeper._
 
+          def assertReads(map: PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) = {
+            map.get(1) shouldBe Memory.put(1, 1)
+            map.get(2) shouldBe Memory.remove(2)
+            map.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+            map.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+            map.hasRange shouldBe true
+          }
+
+          def doRecover(path: Path): PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+            val recovered =
+              Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+                nullKey = Slice.Null,
+                nullValue = Memory.Null,
+                folder = path,
+                mmap = MMAP.randomForMap(),
+                flushOnOverflow = false,
+                fileSize = 1.mb,
+                dropCorruptedTailEntries = false
+              ).item.sweep()
+
+            assertReads(recovered)
+            recovered
+          }
+
           val map =
             Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
@@ -227,30 +251,7 @@ class MapSpec extends TestBase {
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
-          map.get(1) shouldBe Memory.put(1, 1)
-          map.get(2) shouldBe Memory.remove(2)
-          map.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          map.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
-
-          def doRecover(path: Path): PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
-            val recovered =
-              Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-                nullKey = Slice.Null,
-                nullValue = Memory.Null,
-                folder = map.path,
-                mmap = MMAP.randomForMap(),
-                flushOnOverflow = false,
-                fileSize = 1.mb,
-                dropCorruptedTailEntries = false
-              ).item.sweep()
-
-            recovered.get(1) shouldBe Memory.put(1, 1)
-            recovered.get(2) shouldBe Memory.remove(2)
-            recovered.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-            recovered.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
-            recovered.hasRange shouldBe true
-            recovered
-          }
+          assertReads(map)
 
           //recover maps 10 times
           (1 to 10).foldLeft(map) {

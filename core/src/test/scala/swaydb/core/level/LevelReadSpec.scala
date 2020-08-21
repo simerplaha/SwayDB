@@ -88,7 +88,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
             level.mightContainKey("THIS KEY DOES NOT EXISTS").runRandomIO.right.value shouldBe false
           }
 
-          val level = TestLevel()
+          val level = TestLevel(bloomFilterConfig = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.01))
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
           assert(level)
