@@ -110,7 +110,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
             Level.acquireLock(storage).left.runRandomIO.right.value.exception shouldBe a[OverlappingFileLockException]
 
             //closing the lock should allow re-locking
-            lock.get.close()
+            Effect.release(lock)
             Level.acquireLock(storage).runRandomIO.right.value shouldBe defined
         }
       }

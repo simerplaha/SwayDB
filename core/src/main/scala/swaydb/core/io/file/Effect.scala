@@ -25,7 +25,7 @@
 package swaydb.core.io.file
 
 import java.io.IOException
-import java.nio.channels.{FileLock, WritableByteChannel}
+import java.nio.channels.WritableByteChannel
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.function.BiPredicate
@@ -168,11 +168,6 @@ private[core] object Effect extends LazyLogging {
         }
       })
 
-  def release(lock: FileLock): Unit = {
-    lock.release()
-    lock.close()
-  }
-
   def stream[T](path: Path)(f: DirectoryStream[Path] => T): T = {
     val stream: DirectoryStream[Path] = Files.newDirectoryStream(path)
     try
@@ -181,8 +176,8 @@ private[core] object Effect extends LazyLogging {
       stream.close()
   }
 
-  def release(lock: Option[FileLock]): Unit =
-    lock foreach release
+  def release(lock: Option[FileLocker]): Unit =
+    lock.foreach(_.channel.close())
 
   implicit class FileIdImplicits(id: Long) {
     @inline final def toLogFileId =

@@ -24,19 +24,18 @@
 
 package swaydb.core.level.zero
 
-import java.nio.channels.{FileChannel, FileLock}
+import java.nio.channels.FileChannel
 import java.nio.file.{Path, Paths, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.actor.FileSweeper
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data.KeyValue.{Put, PutOption}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.io.file.Effect
+import swaydb.core.io.file.{Effect, FileLocker}
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
@@ -56,8 +55,8 @@ import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.StorageUnits._
 import swaydb.{Actor, Bag, Error, IO, OK}
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, _}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
 private[core] object LevelZero extends LazyLogging {
@@ -110,7 +109,17 @@ private[core] object LevelZero extends LazyLogging {
               val lockFile = path.resolve("LOCK")
               Effect createDirectoriesIfAbsent path
               Effect createFileIfAbsent lockFile
-              IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
+
+              val lockChannel = IO(FileChannel.open(lockFile, StandardOpenOption.WRITE))
+
+              val levelLock =
+                lockChannel map {
+                  channel =>
+                    val lock = channel.tryLock()
+                    FileLocker(lock, channel)
+                }
+
+              levelLock flatMap {
                 lock =>
                   //LevelZero does not required FileSweeper since they are all Map files.
                   implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
@@ -173,7 +182,7 @@ private[core] object LevelZero extends LazyLogging {
       }
 
     mapsAndPathAndLock map {
-      case (maps, path, lock: Option[FileLock]) =>
+      case (maps, path, lock: Option[FileLocker]) =>
         new LevelZero(
           path = path,
           mapSize = mapSize,
@@ -193,9 +202,9 @@ private[swaydb] case class LevelZero(path: Path,
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => FiniteDuration,
-                                     private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                                         functionStore: FunctionStore) extends LevelRef with LazyLogging {
+                                     private val lock: Option[FileLocker])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                                           functionStore: FunctionStore) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
 

@@ -27,20 +27,19 @@ package swaydb.core
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.RunThis._
 import swaydb.core.TestSweeper._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
-import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.LevelRef
 import swaydb.core.segment.Segment
+import swaydb.data.RunThis._
 import swaydb.data.Sweepable
-import swaydb.{ActorRef, ActorWire, Bag, IO, Scheduler}
+import swaydb.data.cache.{Cache, CacheNoIO}
+import swaydb.{ActorRef, ActorWire, Bag, Scheduler}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
 

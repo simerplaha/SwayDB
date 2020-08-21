@@ -36,7 +36,7 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.file.{BlockCache, Effect, FileLocker}
 import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
@@ -70,21 +70,22 @@ private[core] object Level extends LazyLogging {
 
   val emptySegmentsToPush = (Iterable.empty[Segment], Iterable.empty[Segment])
 
-  def acquireLock(storage: LevelStorage.Persistent): IO[swaydb.Error.Level, Option[FileLock]] =
+  def acquireLock(storage: LevelStorage.Persistent): IO[swaydb.Error.Level, Option[FileLocker]] =
     IO {
       Effect createDirectoriesIfAbsent storage.dir
       val lockFile = storage.dir.resolve("LOCK")
       logger.info("{}: Acquiring lock.", lockFile)
       Effect createFileIfAbsent lockFile
-      val lock = FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()
+      val channel = FileChannel.open(lockFile, StandardOpenOption.WRITE)
+      val lock = channel.tryLock()
       storage.dirs foreach {
         dir =>
           Effect createDirectoriesIfAbsent dir.path
       }
-      Some(lock)
+      Some(FileLocker(lock, channel))
     }
 
-  def acquireLock(levelStorage: LevelStorage): IO[swaydb.Error.Level, Option[FileLock]] =
+  def acquireLock(levelStorage: LevelStorage): IO[swaydb.Error.Level, Option[FileLocker]] =
     levelStorage match {
       case persistent: LevelStorage.Persistent =>
         acquireLock(persistent)
@@ -330,7 +331,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                throttle: LevelMeter => Throttle,
                                nextLevel: Option[NextLevel],
                                appendix: Map[SliceOption[Byte], SegmentOption, Slice[Byte], Segment],
-                               lock: Option[FileLock],
+                               lock: Option[FileLocker],
                                pathDistributor: PathsDistributor,
                                removeDeletedRecords: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               timeOrder: TimeOrder[Slice[Byte]],
@@ -1565,14 +1566,14 @@ private[core] case class Level(dirs: Seq[Dir],
       }
       .onLeftSideEffect {
         failure =>
-          logger.error("{}: Failed to release locks", pathDistributor.head, failure)
+          logger.error("{}: Failed to release locks", pathDistributor.head, failure.exception)
       }
 
   def closeAppendix(): IO[Error.Level, Unit] =
     IO(appendix.close())
       .onLeftSideEffect {
         failure =>
-          logger.error("{}: Failed to close appendix", pathDistributor.head, failure)
+          logger.error("{}: Failed to close appendix", pathDistributor.head, failure.exception)
       }
 
   def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
