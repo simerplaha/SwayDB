@@ -85,8 +85,12 @@ object TestCaseSweeper extends LazyLogging {
   }
 
   private def terminate(sweeper: TestCaseSweeper): Unit = {
+    logger.info(s"Terminating ${classOf[TestCaseSweeper].getSimpleName}")
+
     implicit val ec = TestExecutionContext.executionContext
-    implicit val bag = Bag.future(ec)
+
+    sweeper.actors.foreach(_.terminateAndClear[Bag.Less](1.second))
+    sweeper.actorWires.foreach(_.terminateAndClear[Bag.Less](1.second))
 
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 
@@ -98,6 +102,9 @@ object TestCaseSweeper extends LazyLogging {
 
     //TERMINATE - terminate all initialised actors
     sweeper.keyValueMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
+    sweeper.allMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
+    sweeper.blockMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
+    sweeper.cacheMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
     sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.closeSync(1.second)(sweeper, Bag.less)))
     sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.closeSync(1.second, 10.seconds)(cleaner, Bag.less, TestExecutionContext.executionContext)))
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))

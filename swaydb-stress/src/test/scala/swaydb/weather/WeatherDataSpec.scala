@@ -36,39 +36,40 @@ import swaydb.{Bag, IO}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import TestCaseSweeper._
 
 class Memory_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) = swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO]().get
+  override def newDB()(implicit sweeper: TestCaseSweeper) = swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO]().get.sweep()
 }
 
 class Memory_MultiMap_WeatherDataSpec extends WeatherDataSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper) = swaydb.memory.MultiMap_EAP[Int, Int, WeatherData, Nothing, IO.ApiIO]().get
+  override def newDB()(implicit sweeper: TestCaseSweeper) = swaydb.memory.MultiMap_EAP[Int, Int, WeatherData, Nothing, IO.ApiIO]().get.sweep()
 }
 
 class Persistent_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get
+    swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get.sweep()
 }
 
 class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.persistent.MultiMap_EAP[Int, Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get
+    swaydb.persistent.MultiMap_EAP[Int, Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get.sweep()
 }
 
 class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.persistent.SetMap[Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get
+    swaydb.persistent.SetMap[Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get.sweep()
 }
 
 class Memory_SetMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.SetMap[Int, WeatherData, Nothing, IO.ApiIO]().get
+    swaydb.memory.SetMap[Int, WeatherData, Nothing, IO.ApiIO]().get.sweep()
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
   //  override def newDB()(implicit sweeper: TestCaseSweeper) = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir).get
+    swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir).get.sweep()
 }
 
 sealed trait WeatherDataSpec extends TestBase with LazyLogging {

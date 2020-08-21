@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.accelerate.Accelerator
@@ -74,21 +75,21 @@ class Memory_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: swaydb.Map.Functions[Long, Domain, Functions],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Long, Domain, Functions, IO.ApiIO]().get
+    swaydb.memory.Map[Long, Domain, Functions, IO.ApiIO]().get.sweep()
 }
 
 class Persistent_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: swaydb.Map.Functions[Long, Domain, Functions],
                        sweeper: TestCaseSweeper) =
-    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, acceleration = Accelerator.brake()).get
+    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, acceleration = Accelerator.brake()).get.sweep()
 }
 
 class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: swaydb.Map.Functions[Long, Domain, Functions],
                        sweeper: TestCaseSweeper) =
-    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = MMAP.Disabled, mmapMaps = MMAP.Disabled, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(mmap = MMAP.Disabled)).get
+    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = MMAP.Disabled, mmapMaps = MMAP.Disabled, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(mmap = MMAP.Disabled)).get.sweep()
 }
 
 sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
@@ -571,39 +572,34 @@ sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
           implicit val db = newDB()
 
-          val actors =
-            (1 to maxUsers) map { //create Users in the database
-              id =>
-                val user = User(s"user-$id")
-                db.put(id, user).get
-                (id, user)
-            } map {
-              case (userId, user) =>
+          (1 to maxUsers) map { //create Users in the database
+            id =>
+              val user = User(s"user-$id")
+              db.put(id, user).get
+              (id, user)
+          } foreach {
+            case (userId, user) =>
+              val state =
+                UserState(
+                  userId = userId,
+                  nextProductId = s"${userId}0000000000000000".toLong,
+                  user = user,
+                  products = mutable.SortedMap(),
+                  removedProducts = mutable.Set(),
+                  productsCreatedCountBeforeAssertion = 0
+                )
 
-                val state =
-                  UserState(
-                    userId = userId,
-                    nextProductId = s"${userId}0000000000000000".toLong,
-                    user = user,
-                    products = mutable.SortedMap(),
-                    removedProducts = mutable.Set(),
-                    productsCreatedCountBeforeAssertion = 0
-                  )
+              val actor =
+                Actor[ProductCommand, UserState](s"User $userId", state) {
+                  (command, self) =>
+                    processCommand(self.state, command, self)
+                }.sweep()
 
-                val actor =
-                  Actor[ProductCommand, UserState](s"User $userId", state) {
-                    (command, self) =>
-                      processCommand(self.state, command, self)
-                  }
-
-                actor send ProductCommand.Create
-
-                actor
-            }
+              actor send ProductCommand.Create
+          }
 
           Thread.sleep(runFor.toMillis)
 
-          actors.foreach(_.terminateAndClear[Bag.Less](1.second))
       }
     }
   }
