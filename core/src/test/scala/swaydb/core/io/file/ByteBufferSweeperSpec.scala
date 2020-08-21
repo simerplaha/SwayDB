@@ -336,13 +336,12 @@ class ByteBufferSweeperSpec extends TestBase {
       "return true if ByteBufferCleaner is empty" in {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
 
-            implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(0.seconds, 0, 0, 1.seconds).sweep()
+            implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(1.seconds, 0, 0, 1.seconds).sweep()
 
             (cleaner.actor ask Command.IsClean(Paths.get("somePath"))).await(1.minute) shouldBe true
 
-            cleaner.actor.terminate(1.second)
+            cleaner.actor.terminate[Bag.Less](1.second)
         }
       }
 

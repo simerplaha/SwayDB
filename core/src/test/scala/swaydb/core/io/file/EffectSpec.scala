@@ -81,129 +81,143 @@ class EffectSpec extends TestBase {
 
   "files" should {
     "fetch all the files in sorted order" in {
-      val dir = createRandomIntDirectory
-      val actual =
-        Seq(
-          dir.resolve(s"1.${Extension.Log}"),
-          dir.resolve(s"4.${Extension.Log}"),
-          dir.resolve(s"99.${Extension.Log}"),
-          dir.resolve(s"2.${Extension.Log}"),
-          dir.resolve(s"299.${Extension.Log}"),
-          dir.resolve(s"3.${Extension.Log}"),
-          dir.resolve(s"10.${Extension.Log}"),
-          dir.resolve(s"33.${Extension.Log}")
-        )
-      actual.foreach {
-        path =>
-          Effect.createFile(path).runRandomIO.right.value
+      TestCaseSweeper {
+        implicit sweeper =>
+
+          val dir = createRandomIntDirectory
+          val actual =
+            Seq(
+              dir.resolve(s"1.${Extension.Log}"),
+              dir.resolve(s"4.${Extension.Log}"),
+              dir.resolve(s"99.${Extension.Log}"),
+              dir.resolve(s"2.${Extension.Log}"),
+              dir.resolve(s"299.${Extension.Log}"),
+              dir.resolve(s"3.${Extension.Log}"),
+              dir.resolve(s"10.${Extension.Log}"),
+              dir.resolve(s"33.${Extension.Log}")
+            )
+
+          actual.foreach {
+            path =>
+              Effect.createFile(path).runRandomIO.right.value
+          }
+
+          val expect =
+            Seq(
+              dir.resolve(s"1.${Extension.Log}"),
+              dir.resolve(s"2.${Extension.Log}"),
+              dir.resolve(s"3.${Extension.Log}"),
+              dir.resolve(s"4.${Extension.Log}"),
+              dir.resolve(s"10.${Extension.Log}"),
+              dir.resolve(s"33.${Extension.Log}"),
+              dir.resolve(s"99.${Extension.Log}"),
+              dir.resolve(s"299.${Extension.Log}")
+            )
+
+          Effect.files(dir, Extension.Log) shouldBe expect
       }
-
-      val expect =
-        Seq(
-          dir.resolve(s"1.${Extension.Log}"),
-          dir.resolve(s"2.${Extension.Log}"),
-          dir.resolve(s"3.${Extension.Log}"),
-          dir.resolve(s"4.${Extension.Log}"),
-          dir.resolve(s"10.${Extension.Log}"),
-          dir.resolve(s"33.${Extension.Log}"),
-          dir.resolve(s"99.${Extension.Log}"),
-          dir.resolve(s"299.${Extension.Log}")
-        )
-
-      Effect.files(dir, Extension.Log) shouldBe expect
     }
   }
 
   "folders" should {
     "fetch all the folders in sorted order" in {
-      val dir = createRandomIntDirectory
-      val actual =
-        Seq(
-          dir.resolve("1"),
-          dir.resolve("10"),
-          dir.resolve("7"),
-          dir.resolve("15"),
-          dir.resolve("7676"),
-          dir.resolve("123"),
-          dir.resolve("0"),
-          dir.resolve("5454")
-        )
-      actual.foreach {
-        path =>
-          Effect.createDirectoryIfAbsent(path)
+      TestCaseSweeper {
+        implicit sweeper =>
+
+          val dir = createRandomIntDirectory
+          val actual =
+            Seq(
+              dir.resolve("1"),
+              dir.resolve("10"),
+              dir.resolve("7"),
+              dir.resolve("15"),
+              dir.resolve("7676"),
+              dir.resolve("123"),
+              dir.resolve("0"),
+              dir.resolve("5454")
+            )
+
+          actual.foreach {
+            path =>
+              Effect.createDirectoryIfAbsent(path)
+          }
+
+          val expect =
+            Seq(
+              dir.resolve("0"),
+              dir.resolve("1"),
+              dir.resolve("7"),
+              dir.resolve("10"),
+              dir.resolve("15"),
+              dir.resolve("123"),
+              dir.resolve("5454"),
+              dir.resolve("7676")
+            )
+
+          Effect.folders(dir) shouldBe expect
       }
-
-      val expect =
-        Seq(
-          dir.resolve("0"),
-          dir.resolve("1"),
-          dir.resolve("7"),
-          dir.resolve("10"),
-          dir.resolve("15"),
-          dir.resolve("123"),
-          dir.resolve("5454"),
-          dir.resolve("7676")
-        )
-
-      Effect.folders(dir) shouldBe expect
     }
   }
 
   "segmentFilesOnDisk" should {
     "fetch all segment files in order" in {
-      val dir1 = createRandomIntDirectory
-      val dir2 = createRandomIntDirectory
-      val dir3 = createRandomIntDirectory
-      val dirs = Seq(dir1, dir2, dir3)
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      dirs foreach {
-        dir =>
-          val actual =
-            Seq(
-              dir.resolve("1.seg"),
-              dir.resolve("10.seg"),
-              dir.resolve("7.seg"),
-              dir.resolve("15.seg"),
-              dir.resolve("7676.seg"),
-              dir.resolve("123.seg"),
-              dir.resolve("0.seg"),
-              dir.resolve("5454.seg")
-            )
-          actual.foreach {
-            path =>
-              Effect.createFileIfAbsent(path)
+          val dir1 = createRandomIntDirectory
+          val dir2 = createRandomIntDirectory
+          val dir3 = createRandomIntDirectory
+          val dirs = Seq(dir1, dir2, dir3)
+
+          dirs foreach {
+            dir =>
+              val actual =
+                Seq(
+                  dir.resolve("1.seg"),
+                  dir.resolve("10.seg"),
+                  dir.resolve("7.seg"),
+                  dir.resolve("15.seg"),
+                  dir.resolve("7676.seg"),
+                  dir.resolve("123.seg"),
+                  dir.resolve("0.seg"),
+                  dir.resolve("5454.seg")
+                )
+              actual.foreach {
+                path =>
+                  Effect.createFileIfAbsent(path)
+              }
           }
+
+          val expect =
+            Seq(
+              dir1.resolve("0.seg"),
+              dir2.resolve("0.seg"),
+              dir3.resolve("0.seg"),
+              dir1.resolve("1.seg"),
+              dir2.resolve("1.seg"),
+              dir3.resolve("1.seg"),
+              dir1.resolve("7.seg"),
+              dir2.resolve("7.seg"),
+              dir3.resolve("7.seg"),
+              dir1.resolve("10.seg"),
+              dir2.resolve("10.seg"),
+              dir3.resolve("10.seg"),
+              dir1.resolve("15.seg"),
+              dir2.resolve("15.seg"),
+              dir3.resolve("15.seg"),
+              dir1.resolve("123.seg"),
+              dir2.resolve("123.seg"),
+              dir3.resolve("123.seg"),
+              dir1.resolve("5454.seg"),
+              dir2.resolve("5454.seg"),
+              dir3.resolve("5454.seg"),
+              dir1.resolve("7676.seg"),
+              dir2.resolve("7676.seg"),
+              dir3.resolve("7676.seg")
+            )
+
+          Effect.segmentFilesOnDisk(dirs) shouldBe expect
       }
-
-      val expect =
-        Seq(
-          dir1.resolve("0.seg"),
-          dir2.resolve("0.seg"),
-          dir3.resolve("0.seg"),
-          dir1.resolve("1.seg"),
-          dir2.resolve("1.seg"),
-          dir3.resolve("1.seg"),
-          dir1.resolve("7.seg"),
-          dir2.resolve("7.seg"),
-          dir3.resolve("7.seg"),
-          dir1.resolve("10.seg"),
-          dir2.resolve("10.seg"),
-          dir3.resolve("10.seg"),
-          dir1.resolve("15.seg"),
-          dir2.resolve("15.seg"),
-          dir3.resolve("15.seg"),
-          dir1.resolve("123.seg"),
-          dir2.resolve("123.seg"),
-          dir3.resolve("123.seg"),
-          dir1.resolve("5454.seg"),
-          dir2.resolve("5454.seg"),
-          dir3.resolve("5454.seg"),
-          dir1.resolve("7676.seg"),
-          dir2.resolve("7676.seg"),
-          dir3.resolve("7676.seg")
-        )
-
-      Effect.segmentFilesOnDisk(dirs) shouldBe expect
     }
   }
 

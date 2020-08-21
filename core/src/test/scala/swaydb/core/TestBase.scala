@@ -150,9 +150,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   def randomIntDirectory: Path =
     testClassDir.resolve(nextLevelId.toString)
 
-  def createRandomIntDirectory: Path =
+  def createRandomIntDirectory(implicit sweeper: TestCaseSweeper): Path =
     if (persistent)
-      Effect.createDirectoriesIfAbsent(randomIntDirectory)
+      Effect.createDirectoriesIfAbsent(randomIntDirectory).sweep()
     else
       randomIntDirectory
 

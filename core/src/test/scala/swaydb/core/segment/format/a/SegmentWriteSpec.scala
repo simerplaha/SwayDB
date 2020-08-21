@@ -1066,6 +1066,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         TestCaseSweeper {
           implicit sweeper =>
             import sweeper._
+
             val keyValues = randomizedKeyValues(keyValuesCount)
             val segment = TestSegment(keyValues)
 
@@ -1081,7 +1082,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 removeDeletes = true,
                 minSegmentSize = memorySize / 1000,
                 maxKeyValueCountPerSegment = randomIntMax(keyValues.size)
-              )
+              ).map(_.sweep())
 
             segments.foreach(_.existsOnDisk shouldBe false)
 
