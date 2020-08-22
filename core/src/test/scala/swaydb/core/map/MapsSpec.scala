@@ -32,6 +32,7 @@ import swaydb.IOValues._
 import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
+import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Extension
@@ -79,7 +80,7 @@ class MapsSpec extends TestBase {
               recovery = RecoveryMode.ReportFailure
             ).runRandomIO.right.value
 
-          maps.write(time => MapEntry.Put(1, Memory.put(1))).runRandomIO.right.value
+          maps.write(_ => MapEntry.Put(1, Memory.put(1))).runRandomIO.right.value
           maps.write(_ => MapEntry.Put(2, Memory.put(2))).runRandomIO.right.value
           maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))).runRandomIO.right.value
 
@@ -412,8 +413,8 @@ class MapsSpec extends TestBase {
           maps.write(_ => MapEntry.Put[Slice[Byte], Memory](3, Memory.remove(3))).runRandomIO.right.value
 
           val secondMapsPath = maps.maps.asScala.tail.head.pathOption.value.files(Extension.Log).head
-          val secondMapsBytes = Files.readAllBytes(secondMapsPath)
-          Files.write(secondMapsPath, secondMapsBytes.dropRight(1))
+          val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
+          Effect.write(secondMapsPath, secondMapsBytes.dropRight(1))
 
           Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
             nullKey = Slice.Null,
@@ -451,8 +452,8 @@ class MapsSpec extends TestBase {
           maps.write(_ => MapEntry.Put(6, Memory.put(6, 6))).runRandomIO.right.value
 
           val secondMapsPath = maps.maps.asScala.head.pathOption.value.files(Extension.Log).head
-          val secondMapsBytes = Files.readAllBytes(secondMapsPath)
-          Files.write(secondMapsPath, secondMapsBytes.dropRight(1))
+          val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
+          Effect.write(secondMapsPath, secondMapsBytes.dropRight(1))
 
           val recoveredMaps =
             Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -506,8 +507,8 @@ class MapsSpec extends TestBase {
           maps.write(_ => MapEntry.Put(6, Memory.put(6))).runRandomIO.right.value
 
           val secondMapsPath = maps.maps.asScala.head.pathOption.value.files(Extension.Log).head
-          val secondMapsBytes = Files.readAllBytes(secondMapsPath)
-          Files.write(secondMapsPath, secondMapsBytes.dropRight(1))
+          val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
+          Effect.write(secondMapsPath, secondMapsBytes.dropRight(1))
 
           val recoveredMaps =
             Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](

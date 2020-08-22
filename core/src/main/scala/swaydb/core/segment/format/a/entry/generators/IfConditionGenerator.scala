@@ -25,8 +25,9 @@
 package swaydb.core.segment.format.a.entry.generators
 
 import java.io.PrintWriter
-import java.nio.file.{Files, Paths}
+import java.nio.file.Paths
 
+import swaydb.core.io.file.Effect
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 
@@ -96,7 +97,7 @@ object IfConditionGenerator extends App {
         Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/base/${baseEntryReaderClass}Uncompressed.scala")
       else
         Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/base/$baseEntryReaderClass$fileNumber.scala")
-    val allLines = Files.readAllLines(targetIdClass).asScala
+    val allLines = Effect.readAllLines(targetIdClass).asScala
     val writer = new PrintWriter(targetIdClass.toFile)
 
     val conditionStartIndex = allLines.zipWithIndex.find { case (line, index) => line.contains("//GENERATED") }.get._2

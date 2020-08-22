@@ -64,5 +64,4 @@ object LevelCloser extends LazyLogging {
     FileSweeper.closeSync[BAG](retryDelays)
       .and(ByteBufferSweeper.closeSync[BAG](retryDelays, timeout))
   }
-
 }

@@ -136,7 +136,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
   def randomDir(implicit sweeper: TestCaseSweeper) = testClassDir.resolve(s"${randomCharacters()}").sweep()
 
-  def createRandomDir(implicit sweeper: TestCaseSweeper) = Files.createDirectory(randomDir).sweep()
+  def createRandomDir(implicit sweeper: TestCaseSweeper) = Effect.createDirectory(randomDir).sweep()
 
   def randomFilePath(implicit sweeper: TestCaseSweeper) =
     testClassDir.resolve(s"${randomCharacters()}.test").sweep()

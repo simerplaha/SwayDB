@@ -900,23 +900,23 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
                   segment3.clearAllCaches()
                 }
 
-                val bytes = Files.readAllBytes(segment2.path)
+                val bytes = Effect.readAllBytes(segment2.path)
 
                 //FIXME this should result in DataAccess
 
-                Files.write(segment2.path, bytes.drop(1))
+                Effect.write(segment2.path, bytes.drop(1))
                 clearAll()
                 IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
 
-                Files.write(segment2.path, bytes.dropRight(1))
+                Effect.write(segment2.path, bytes.dropRight(1))
                 clearAll()
                 IO(Segment.getAllKeyValues(Seq(segment2))).left.runRandomIO.get shouldBe a[swaydb.Error]
 
-                Files.write(segment2.path, bytes.drop(10))
+                Effect.write(segment2.path, bytes.drop(10))
                 clearAll()
                 IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
 
-                Files.write(segment2.path, bytes.dropRight(1))
+                Effect.write(segment2.path, bytes.dropRight(1))
                 clearAll()
                 IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
               }

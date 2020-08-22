@@ -35,6 +35,7 @@ import swaydb.core.TestCaseSweeper.TestLevelPathSweeperImplicits
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data._
+import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.segment.Segment
@@ -305,7 +306,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)
               level.pathDistributor.queuedPaths foreach { //create this file in all paths.
                 _ =>
-                  Files.createFile(level.pathDistributor.next.resolve(id))
+                  Effect.createFile(level.pathDistributor.next.resolve(id))
               }
 
               val appendixBeforePut = level.segmentsInLevel()
@@ -330,7 +331,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 4)
               level.pathDistributor.queuedPaths foreach { //create this file in all paths.
                 _ =>
-                  Files.createFile(level.pathDistributor.next.resolve(id))
+                  Effect.createFile(level.pathDistributor.next.resolve(id))
               }
               val levelFilesBeforePut = level.segmentFilesOnDisk
 

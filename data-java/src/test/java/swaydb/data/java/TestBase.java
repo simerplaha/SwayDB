@@ -68,8 +68,5 @@ public abstract class TestBase {
           return FileVisitResult.CONTINUE;
         }
       });
-
   }
-
-
 }

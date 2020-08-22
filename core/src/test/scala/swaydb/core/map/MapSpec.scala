@@ -33,7 +33,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
@@ -357,7 +357,7 @@ class MapSpec extends TestBase {
 
           //move map2's log file into map1's log file folder named as 1.log and reboot to test recovery.
           val map2sLogFile = map2.path.resolve(0.toLogFileId)
-          Files.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
+          Effect.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
 
           //recover map 1 and it should contain all entries of map1 and map2
           val map1Recovered =
@@ -433,7 +433,7 @@ class MapSpec extends TestBase {
 
           //move map2's log file into map1's log file folder named as 1.log and reboot to test recovery.
           val map2sLogFile = map2.path.resolve(0.toLogFileId)
-          Files.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
+          Effect.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
 
           //recover map 1 and it should contain all entries of map1 and map2
           val map1Recovered =
@@ -759,7 +759,7 @@ class MapSpec extends TestBase {
               map.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
           }
           map.size shouldBe 100
-          val allBytes = Files.readAllBytes(map.currentFilePath)
+          val allBytes = Effect.readAllBytes(map.currentFilePath)
 
           def assertRecover =
             assertThrows[IllegalStateException] {
@@ -775,11 +775,11 @@ class MapSpec extends TestBase {
             }
 
           //drop last byte
-          Files.write(map.currentFilePath, allBytes.dropRight(1))
+          Effect.write(map.currentFilePath, allBytes.dropRight(1))
           assertRecover
 
           //drop first byte
-          Files.write(map.currentFilePath, allBytes.drop(1))
+          Effect.write(map.currentFilePath, allBytes.drop(1))
           assertRecover
       }
     }
@@ -804,10 +804,10 @@ class MapSpec extends TestBase {
               map.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
           }
           map.size shouldBe 100
-          val allBytes = Files.readAllBytes(map.currentFilePath)
+          val allBytes = Effect.readAllBytes(map.currentFilePath)
 
           //recover again with SkipLogOnCorruption, since the last entry is corrupted, the first two entries will still value read
-          Files.write(map.currentFilePath, allBytes.dropRight(1))
+          Effect.write(map.currentFilePath, allBytes.dropRight(1))
 
           val recoveredMap =
             Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -827,7 +827,7 @@ class MapSpec extends TestBase {
           recoveredMap.contains(100) shouldBe false
 
           //if the top entry is corrupted.
-          Files.write(recoveredMap.currentFilePath, allBytes.drop(1))
+          Effect.write(recoveredMap.currentFilePath, allBytes.drop(1))
 
           val recoveredMap2 =
             Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -886,17 +886,17 @@ class MapSpec extends TestBase {
           val map2sLogFile = map2.path.resolve(0.toLogFileId)
           val copiedLogFileId = map1.path.resolve(1.toLogFileId)
           //move map2's log file into map1's log file folder named as 1.log.
-          Files.copy(map2sLogFile, copiedLogFileId)
+          Effect.copy(map2sLogFile, copiedLogFileId)
 
           val log0 = map1.path.resolve(0.toLogFileId)
-          val log0Bytes = Files.readAllBytes(log0)
+          val log0Bytes = Effect.readAllBytes(log0)
 
           val log1 = map1.path.resolve(1.toLogFileId)
-          val log1Bytes = Files.readAllBytes(log1)
+          val log1Bytes = Effect.readAllBytes(log1)
 
           //fail recovery if first map is corrupted
           //corrupt 0.log bytes
-          Files.write(log0, log0Bytes.drop(1))
+          Effect.write(log0, log0Bytes.drop(1))
           assertThrows[IllegalStateException] {
             Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
@@ -908,11 +908,11 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             )
           }
-          Files.write(log0, log0Bytes) //fix log0 bytes
+          Effect.write(log0, log0Bytes) //fix log0 bytes
 
           //successfully recover Map by reading both WAL files if the first WAL file is corrupted
           //corrupt 0.log bytes
-          Files.write(log0, log0Bytes.dropRight(1))
+          Effect.write(log0, log0Bytes.dropRight(1))
           val recoveredMapWith0LogCorrupted =
             Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
@@ -980,17 +980,17 @@ class MapSpec extends TestBase {
 
           val map2sLogFile = map2.path.resolve(0.toLogFileId)
           val copiedLogFileId = map1.path.resolve(1.toLogFileId)
-          Files.copy(map2sLogFile, copiedLogFileId)
+          Effect.copy(map2sLogFile, copiedLogFileId)
 
           val log0 = map1.path.resolve(0.toLogFileId)
-          val log0Bytes = Files.readAllBytes(log0)
+          val log0Bytes = Effect.readAllBytes(log0)
 
           val log1 = map1.path.resolve(1.toLogFileId)
-          val log1Bytes = Files.readAllBytes(log1)
+          val log1Bytes = Effect.readAllBytes(log1)
 
           //fail recovery if one of two WAL files of the map is corrupted
           //corrupt 1.log bytes
-          Files.write(log1, log1Bytes.drop(1))
+          Effect.write(log1, log1Bytes.drop(1))
           assertThrows[IllegalStateException] {
             Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
@@ -1002,11 +1002,11 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             )
           }
-          Files.write(log1, log1Bytes) //fix log1 bytes
+          Effect.write(log1, log1Bytes) //fix log1 bytes
 
           //successfully recover Map by reading both WAL files if the second WAL file is corrupted
           //corrupt 1.log bytes
-          Files.write(log1, log1Bytes.dropRight(1))
+          Effect.write(log1, log1Bytes.dropRight(1))
           val recoveredMapWith0LogCorrupted =
             Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,

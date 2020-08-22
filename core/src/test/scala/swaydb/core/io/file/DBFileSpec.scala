@@ -107,7 +107,7 @@ class DBFileSpec extends TestBase with MockFactory {
           files should have size 2
           files foreach {
             file =>
-              Effect.readAll(file.path) shouldBe bytes
+              Effect.readAllBytes(file.path) shouldBe bytes
               file.readAll shouldBe bytes
           }
       }

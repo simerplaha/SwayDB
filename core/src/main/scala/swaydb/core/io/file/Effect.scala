@@ -28,6 +28,7 @@ import java.io.IOException
 import java.nio.channels.WritableByteChannel
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
+import java.util
 import java.util.function.BiPredicate
 
 import com.typesafe.scalalogging.LazyLogging
@@ -144,7 +145,10 @@ private[core] object Effect extends LazyLogging {
     if (exists(path))
       path
     else
-      Files.createDirectory(path)
+      createDirectory(path)
+
+  def createDirectory(path: Path): Path =
+    Files.createDirectory(path)
 
   def createDirectoriesIfAbsent(path: Path): Path =
     if (exists(path))
@@ -258,8 +262,11 @@ private[core] object Effect extends LazyLogging {
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId._1)
 
-  def readAll(path: Path): Slice[Byte] =
+  def readAllBytes(path: Path): Slice[Byte] =
     Slice(Files.readAllBytes(path))
+
+  def readAllLines(path: Path): util.List[String] =
+    Files.readAllLines(path)
 
   def size(path: Path): Long =
     Files.size(path)
