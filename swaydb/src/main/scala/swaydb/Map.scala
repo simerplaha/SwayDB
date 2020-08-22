@@ -215,10 +215,10 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
     bag.suspend(core.clear(core.readStates.get()))
 
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.suspend(core.function(key, Slice.writeString(function.id)))
+    bag.suspend(core.applyFunction(key, Slice.writeString(function.id)))
 
   def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.suspend(core.function(from, to, Slice.writeString(function.id)))
+    bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.suspend(core.put(preparesToUntyped(prepare).iterator))

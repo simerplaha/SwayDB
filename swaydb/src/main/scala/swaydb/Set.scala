@@ -186,10 +186,10 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
     bag.suspend(core.clear(core.readStates.get()))
 
   def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    bag.suspend(core.function(from, to, Slice.writeString(function.id)))
+    bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
   def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    bag.suspend(core.function(elem, Slice.writeString(function.id)))
+    bag.suspend(core.applyFunction(elem, Slice.writeString(function.id)))
 
   def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
     bag.suspend(core.put(preparesToUntyped(prepare).iterator))

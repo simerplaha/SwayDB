@@ -481,7 +481,7 @@ case class MultiMap_EAP[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] = {
     val innerKey = innerMap.keySerializer.write(MapEntry(thisMapKey, key))
     val functionId = Slice.writeString(function.id)
-    innerMap.core.function(innerKey, functionId)
+    innerMap.core.applyFunction(innerKey, functionId)
   }
 
   /**
@@ -493,7 +493,7 @@ case class MultiMap_EAP[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap
     val fromKey = innerMap.keySerializer.write(MapEntry(thisMapKey, from))
     val toKey = innerMap.keySerializer.write(MapEntry(thisMapKey, to))
     val functionId = Slice.writeString(function.id)
-    innerMap.core.function(fromKey, toKey, functionId)
+    innerMap.core.applyFunction(fromKey, toKey, functionId)
   }
 
   /**

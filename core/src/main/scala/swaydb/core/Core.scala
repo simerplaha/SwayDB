@@ -228,10 +228,10 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
     serial.execute(zero.update(fromKey, to, value))
 
-  def function(key: Slice[Byte], function: Slice[Byte]): BAG[OK] =
+  def applyFunction(key: Slice[Byte], function: Slice[Byte]): BAG[OK] =
     serial.execute(zero.applyFunction(key, function))
 
-  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): BAG[OK] =
+  def applyFunction(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): BAG[OK] =
     serial.execute(zero.applyFunction(from, to, function))
 
   def registerFunction(functionId: Slice[Byte], function: SwayFunction): BAG[OK] =
