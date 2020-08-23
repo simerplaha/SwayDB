@@ -256,7 +256,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
         }
 
       case None =>
-        ByteBufferCleaner.initialiseCleaner(buffer, command.filePath) transform {
+        ByteBufferCleaner.initialiseCleaner(buffer) transform {
           cleaner =>
             state.cleaner = Some(cleaner)
             ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)

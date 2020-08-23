@@ -534,10 +534,16 @@ class Actor[-T, S](val name: String,
   }
 
   @inline private def wakeUp(currentStashed: Int): Unit =
-    if (isBasic || isTerminated) //if it's terminated process the message as basicWakeUp which will execute recovery.
-      basicWakeUp(currentStashed)
+    if (isTerminated) //if it's terminated ignore fixedStashSize and process messages immediately.
+      terminatedWakeUp()
+    else if (isBasic) //if it's not a timed actor.
+      basicWakeUp(currentStashed = currentStashed)
     else
-      timerWakeUp(currentStashed, this.stashCapacity)
+      timerWakeUp(currentStashed = currentStashed, stashCapacity = this.stashCapacity)
+
+  @inline private def terminatedWakeUp(): Unit =
+    if (busy.compareAndSet(false, true))
+      Future(receive(overflow = Int.MaxValue, wakeUpOnComplete = true))
 
   @inline private def basicWakeUp(currentStashed: Int): Unit = {
     val overflow = currentStashed - fixedStashSize
@@ -626,7 +632,7 @@ class Actor[-T, S](val name: String,
     if (busy.compareAndSet(false, true))
       Future(releaseFunction) flatMap {
         result =>
-          if (!continueIfNonEmpty || messageCount <= 0)
+          if (!continueIfNonEmpty || isEmpty)
             Future.successful(result)
           else
             whileNotBusyAsync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
@@ -647,7 +653,7 @@ class Actor[-T, S](val name: String,
     if (busy.compareAndSet(false, true)) {
       Try(releaseFunction) match {
         case success @ Success(_) =>
-          if (!continueIfNonEmpty || messageCount <= 0) {
+          if (!continueIfNonEmpty || isEmpty) {
             success
           } else {
             Thread.sleep(retryOnBusyDelay.toMillis)
@@ -694,7 +700,7 @@ class Actor[-T, S](val name: String,
    */
   def receiveAllForce[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
     whileNotBusy(retryOnBusyDelay = retryOnBusyDelay, continueIfNonEmpty = true) {
-      receive(Int.MaxValue, wakeUpOnComplete = false)
+      receive(overflow = Int.MaxValue, wakeUpOnComplete = false)
     }
 
   private def receive(overflow: Int, wakeUpOnComplete: Boolean): Unit = {
@@ -813,6 +819,12 @@ class Actor[-T, S](val name: String,
       recovery = recovery
     )
 
+  private def compareSetTerminated(): Boolean = {
+    val canTerminate = terminated.compareAndSet(false, true)
+    if (canTerminate) task.foreach(_.cancel())
+    canTerminate
+  }
+
   /**
    * Terminates the Actor and applies [[recover]] function to all queued messages.
    *
@@ -820,7 +832,7 @@ class Actor[-T, S](val name: String,
    */
   def terminateAndRecover[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.suspend {
-      if (terminated.compareAndSet(false, true))
+      if (compareSetTerminated())
         bag.flatMap(runPreTerminate(retryOnBusyDelay)) {
           executedPreTermination =>
             if (recovery.isDefined)
@@ -838,10 +850,6 @@ class Actor[-T, S](val name: String,
         clear()
     }
 
-  override def clear(): Unit =
-    queue.clear()
-
-
   /**
    * We cannot invoke terminate from within the Actor itself via block because [[busy]] is already set to true
    * within [[receive]]. [[AtomicThreadLocalBoolean]] can be used instead to allow calling terminating from
@@ -851,7 +859,7 @@ class Actor[-T, S](val name: String,
    */
   def terminate[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.suspend {
-      if (terminated.compareAndSet(false, true))
+      if (compareSetTerminated())
       //invoke terminator function
         bag.flatMap(runPreTerminate(retryOnBusyDelay)) {
           executed =>
@@ -910,4 +918,6 @@ class Actor[-T, S](val name: String,
   override def isEmpty: Boolean =
     queue.isEmpty
 
+  override def clear(): Unit =
+    queue.clear()
 }

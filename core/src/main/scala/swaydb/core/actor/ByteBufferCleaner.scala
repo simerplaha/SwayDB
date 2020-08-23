@@ -25,7 +25,6 @@
 package swaydb.core.actor
 
 import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
-import java.nio.file.Path
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
@@ -70,7 +69,7 @@ private[core] object ByteBufferCleaner extends LazyLogging {
     MethodHandles.foldArguments(cleanDroppedArgument, cleaner)
   }
 
-  def initialiseCleaner[E](buffer: MappedByteBuffer, bufferPath: Path)(implicit exceptionHandler: ExceptionHandler[E]): IO[E, Cleaner] =
+  def initialiseCleaner[E](buffer: MappedByteBuffer)(implicit exceptionHandler: ExceptionHandler[E]): IO[E, Cleaner] =
     IO {
       val method = java9Cleaner()
       method.invoke(buffer)
