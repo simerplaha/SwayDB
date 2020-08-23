@@ -17,15 +17,15 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.api
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.api.{TestBaseEmbedded, repeatTest}
+import swaydb._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
+import swaydb.data.RunThis._
 import swaydb.serializers.Default._
 
 import scala.concurrent.duration._
@@ -61,14 +61,14 @@ class SwayDBUpdateSpec3 extends SwayDBUpdateSpec {
 }
 
 
-class MultiMapSwayDBSpec4 extends SwayDBUpdateSpec {
+class SwayDBUpdateSpec4 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestCaseSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
     generateRandomNestedMaps(swaydb.persistent.MultiMap_EAP[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep()
 }
 
-class MultiMapSwayDBSpec5 extends SwayDBUpdateSpec {
+class SwayDBUpdateSpec5 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestCaseSweeper): MapT[Int, String, Nothing, IO.ApiIO] =

@@ -36,7 +36,7 @@
 // * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
 // */
 //
-//package swaydb
+//package swaydb.api
 //
 //import scala.concurrent.Future
 //import scala.concurrent.duration._

@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.api
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
@@ -27,6 +27,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
 import swaydb.serializers.Default._
+import swaydb._
 
 import scala.concurrent.duration._
 

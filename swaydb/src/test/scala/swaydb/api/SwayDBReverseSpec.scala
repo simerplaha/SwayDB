@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.api
 
 import swaydb.IOValues._
 import swaydb.api.{TestBaseEmbedded, repeatTest}
@@ -27,6 +27,7 @@ import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
+import swaydb._
 
 class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
   implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverse

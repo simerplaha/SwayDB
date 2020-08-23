@@ -17,20 +17,20 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.api
 
 import java.util.concurrent.TimeUnit
 
 import swaydb.IOValues._
-import swaydb.api.repeatTest
-import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
+import swaydb.{Apply, IO, Map, Prepare, StorageIntImplicits}
 
-import scala.concurrent.duration.Deadline
 import scala.collection.parallel.CollectionConverters._
+import scala.concurrent.duration.Deadline
 
 protected sealed trait Key
 protected object Key {
@@ -107,13 +107,14 @@ class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
 
 sealed trait SwayDBFunctionSpec extends TestBase {
 
-  def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function],
-              sweeper: TestCaseSweeper): Map[Key, Int, Key.Function, IO.ApiIO]
+  def newDB()(implicit functionStore: swaydb.Map.Functions[Key, Int, Key.Function],
+              sweeper: TestCaseSweeper): swaydb.Map[Key, Int, Key.Function, IO.ApiIO]
 
-  implicit val functionsMap = swaydb.Map.Functions[Key, Int, Key.Function]()
-  functionsMap.register(Key.IncrementValue, Key.DoNothing)
 
   "SwayDB" should {
+    implicit val functionsMap = swaydb.Map.Functions[Key, Int, Key.Function]()
+    functionsMap.register(Key.IncrementValue, Key.DoNothing)
+
     "perform concurrent atomic updates to a single key" in {
       runThis(times = repeatTest, log = true) {
         TestCaseSweeper {
@@ -209,7 +210,6 @@ sealed trait SwayDBFunctionSpec extends TestBase {
               i =>
                 db.get(Key.Id(i)).get should contain(0)
             }
-
         }
       }
     }

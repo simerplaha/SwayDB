@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.api
 
 import swaydb.IOValues._
 import swaydb.api.{TestBaseEmbedded, repeatTest}
@@ -25,6 +25,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
 import swaydb.serializers.Default._
+import swaydb._
 
 class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000
