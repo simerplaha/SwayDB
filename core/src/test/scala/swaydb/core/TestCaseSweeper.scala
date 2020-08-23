@@ -136,11 +136,13 @@ object TestCaseSweeper extends LazyLogging {
   }
 
   private def receiveAll(sweeper: TestCaseSweeper): Unit = {
-    //calling this after since delete would've already invoked these.
     sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less]()))))
-    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Less]()))
-    sweeper.cleaners.foreach(_.get().foreach(_.get().foreach(_.receiveAllForce[Bag.Less]())))
-    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Less]()))))
+    sweeper.allMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less]))))
+    sweeper.blockMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less]))))
+    sweeper.cacheMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less]))))
+    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Less]))
+    sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Bag.Less]))
+    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Less]))))
   }
 
   def apply[T](code: TestCaseSweeper => T): T = {
