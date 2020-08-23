@@ -62,7 +62,10 @@ sealed trait ActorRef[-T, S] { self =>
 
   def messageCount: Int
 
-  def isEmpty: Boolean
+  @inline def isEmpty: Boolean
+
+  @inline def isNotEmpty: Boolean =
+    !isEmpty
 
   def hasMessages: Boolean =
     totalWeight > 0
@@ -535,14 +538,14 @@ class Actor[-T, S](val name: String,
 
   @inline private def wakeUp(currentStashed: Int): Unit =
     if (isTerminated) //if it's terminated ignore fixedStashSize and process messages immediately.
-      terminatedWakeUp()
+      terminatedWakeUp() //not using currentStashed here because terminated should always check for current latest count to be more accurate.
     else if (isBasic) //if it's not a timed actor.
       basicWakeUp(currentStashed = currentStashed)
     else
       timerWakeUp(currentStashed = currentStashed, stashCapacity = this.stashCapacity)
 
   @inline private def terminatedWakeUp(): Unit =
-    if (busy.compareAndSet(false, true))
+    if (isNotEmpty && busy.compareAndSet(false, true))
       Future(receive(overflow = Int.MaxValue, wakeUpOnComplete = true))
 
   @inline private def basicWakeUp(currentStashed: Int): Unit = {
@@ -664,6 +667,8 @@ class Actor[-T, S](val name: String,
           failure
       }
     } else {
+      import swaydb.data.util.FiniteDurations._
+      logger.warn(s"Sleeping: ${retryOnBusyDelay.asString}")
       Thread.sleep(retryOnBusyDelay.toMillis)
       whileNotBusySync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
     }

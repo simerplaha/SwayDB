@@ -151,7 +151,6 @@ object TestCaseSweeper extends LazyLogging {
       terminate(sweeper)
   }
 
-
   implicit class TestLevelLevelSweeperImplicits[L <: LevelRef](level: L) {
     def sweep()(implicit sweeper: TestCaseSweeper): L =
       sweeper sweepLevel level
