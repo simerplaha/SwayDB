@@ -64,6 +64,10 @@ private[core] object Effect extends LazyLogging {
       Effect.exists(path)
   }
 
+  def overwrite(to: Path,
+                bytes: Slice[Byte]): Path =
+    Files.write(to, bytes.toArray)
+
   def write(to: Path,
             bytes: Slice[Byte]): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)

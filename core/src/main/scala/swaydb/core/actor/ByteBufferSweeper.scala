@@ -45,6 +45,8 @@ import scala.concurrent.{Await, ExecutionContext}
 
 private[core] object ByteBufferSweeper extends LazyLogging {
 
+  val className = ByteBufferSweeper.getClass.getSimpleName.split("\\$").last
+
   type ByteBufferSweeperActor = CacheNoIO[Unit, ActorRef[Command, State]]
 
   implicit class ByteBufferSweeperActorImplicits(cache: ByteBufferSweeperActor) {
@@ -173,9 +175,9 @@ private[core] object ByteBufferSweeper extends LazyLogging {
             bag.transform(ask) {
               isCleaned =>
                 if (isCleaned)
-                  logger.info(s"${ByteBufferSweeper.getClass.getSimpleName.split("\\$").last} terminated!")
+                  logger.info(s"${ByteBufferSweeper.className} terminated!")
                 else
-                  logger.error(s"Failed to terminate ${ByteBufferSweeper.getClass.getSimpleName.split("\\$").last}")
+                  logger.error(s"Failed to terminate ${ByteBufferSweeper.className}")
             }
         }
 
@@ -198,9 +200,9 @@ private[core] object ByteBufferSweeper extends LazyLogging {
             val future = actor ask Command.IsTerminated(resubmitted = false)
             val isCleaned = Await.result(future, timeout)
             if (isCleaned)
-              logger.info(s"${ByteBufferSweeper.getClass.getSimpleName.split("\\$").last} terminated!")
+              logger.info(s"${ByteBufferSweeper.className} terminated!")
             else
-              logger.error(s"Failed to terminate ${ByteBufferSweeper.getClass.getSimpleName.split("\\$").last}")
+              logger.error(s"Failed to terminate ${ByteBufferSweeper.className}")
         }
 
       case None =>
@@ -435,7 +437,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                           messageReschedule: FiniteDuration)(implicit ec: ExecutionContext,
                                                              actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ActorRef[Command, State] =
     Actor.timer[Command, State](
-      name = this.getClass.getSimpleName + " Actor",
+      name = ByteBufferSweeper.className,
       state = State.init,
       stashCapacity = actorStashCapacity,
       interval = actorInterval

@@ -431,21 +431,19 @@ sealed trait SegmentWriteSpec extends TestBase {
                 randomPutKeyValues(keyValuesCount),
 
               assert =
-                (keyValues, segment) =>
-                  TestCaseSweeper {
-                    implicit sweeper =>
-                      val failedKV = randomKeyValues(keyValuesCount, addRemoves = true)
-                      val reopenedSegment = IO(TestSegment(failedKV, path = segment.path))
-                      reopenedSegment.left.right.value.exception shouldBe a[FileAlreadyExistsException]
-                      //data remained unchanged
-                      assertReads(keyValues, segment)
-                      val readState = ThreadReadState.random
-                      failedKV foreach {
-                        keyValue =>
-                          segment.get(keyValue.key, readState).runRandomIO.right.value.toOptional shouldBe empty
-                      }
-                      assertBloom(keyValues, segment)
+                (keyValues, segment) => {
+                  val failedKV = randomKeyValues(keyValuesCount, addRemoves = true)
+                  val reopenedSegment = IO(TestSegment(failedKV, path = segment.path))
+                  reopenedSegment.left.right.value.exception shouldBe a[FileAlreadyExistsException]
+                  //data remained unchanged
+                  assertReads(keyValues, segment)
+                  val readState = ThreadReadState.random
+                  failedKV foreach {
+                    keyValue =>
+                      segment.get(keyValue.key, readState).runRandomIO.right.value.toOptional shouldBe empty
                   }
+                  assertBloom(keyValues, segment)
+                }
             )
         }
       }
@@ -505,22 +503,21 @@ sealed trait SegmentWriteSpec extends TestBase {
         runThis(100.times, log = true) {
           TestCaseSweeper {
             implicit sweeper =>
+              import sweeper._
+
               assertSegment(
                 keyValues = randomizedKeyValues(keyValuesCount, startId = Some(0)),
 
                 assert =
                   (keyValues, segment) => {
-                    TestCaseSweeper {
-                      implicit sweeper =>
-                        import sweeper._
+                    val readSegment =
+                      Segment(
+                        path = segment.path,
+                        mmap = MMAP.randomForSegment(),
+                        checkExists = randomBoolean()
+                      ).sweep()
 
-                        val readSegment =
-                          Segment(
-                            path = segment.path,
-                            mmap = MMAP.randomForSegment(),
-                            checkExists = randomBoolean()
-                          )
-                    }
+                    readSegment shouldBe segment
                   }
               )
           }
@@ -921,7 +918,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val segmentId = idGenerator.nextID
           val conflictingPath = pathDistributor.next.resolve(IDGenerator.segmentId(segmentId))
-          Effect.createFile(conflictingPath) //path already taken.
+          Effect.createFile(conflictingPath).sweep() //path already taken.
 
           implicit val segmentIDGenerator: IDGenerator = IDGenerator(segmentId - 1)
 
@@ -988,12 +985,12 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val segmentId = idGenerator.nextID
 
-          Effect.createFile(pathDistributor.next.resolve(IDGenerator.segmentId(segmentId + 4))) //path already taken.
+          Effect.createFile(pathDistributor.next.resolve(IDGenerator.segmentId(segmentId + 4))).sweep() //path already taken.
 
           levelStorage.dirs foreach {
             dir =>
-              Effect.createDirectoriesIfAbsent(dir.path)
-              IO(Effect.createFile(dir.path.resolve(IDGenerator.segmentId(segmentId + 4)))) //path already taken.
+              Effect.createDirectoriesIfAbsent(dir.path).sweep()
+              IO(Effect.createFile(dir.path.resolve(IDGenerator.segmentId(segmentId + 4))).sweep()) //path already taken.
           }
 
           val filesBeforeCopy = pathDistributor.next.files(Extension.Seg)
@@ -1102,10 +1099,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   "put" should {
     "return None for empty byte arrays for values" in {
-      TestCaseSweeper {
-        implicit sweeper =>
+      runThis(10.times) {
+        TestCaseSweeper {
+          implicit sweeper =>
 
-          runThis(10.times) {
             val keyValuesWithEmptyValues = ListBuffer.empty[Memory]
 
             (1 to 100).foldLeft(0) {
@@ -1161,7 +1158,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               case _: KeyValue.Remove =>
               //nothing to assert
             }
-          }
+        }
       }
     }
 

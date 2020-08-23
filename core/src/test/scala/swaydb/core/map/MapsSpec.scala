@@ -414,7 +414,7 @@ class MapsSpec extends TestBase {
 
           val secondMapsPath = maps.maps.asScala.tail.head.pathOption.value.files(Extension.Log).head
           val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
-          Effect.write(secondMapsPath, secondMapsBytes.dropRight(1))
+          Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
           Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
             nullKey = Slice.Null,
@@ -453,7 +453,7 @@ class MapsSpec extends TestBase {
 
           val secondMapsPath = maps.maps.asScala.head.pathOption.value.files(Extension.Log).head
           val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
-          Effect.write(secondMapsPath, secondMapsBytes.dropRight(1))
+          Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
           val recoveredMaps =
             Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -508,7 +508,7 @@ class MapsSpec extends TestBase {
 
           val secondMapsPath = maps.maps.asScala.head.pathOption.value.files(Extension.Log).head
           val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
-          Effect.write(secondMapsPath, secondMapsBytes.dropRight(1))
+          Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
           val recoveredMaps =
             Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](

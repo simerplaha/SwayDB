@@ -24,17 +24,18 @@
 
 package swaydb
 
+import java.util.TimerTask
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import java.util.function.{IntUnaryOperator, Supplier}
-import java.util.{TimerTask, UUID}
+import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.ExceptionHandler
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.data.util.{AtomicThreadLocalBoolean, Functions, Futures}
+import swaydb.data.util.FiniteDurations._
+import swaydb.data.util.{AtomicThreadLocalBoolean, Functions}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -632,7 +633,7 @@ class Actor[-T, S](val name: String,
    */
   @inline private def whileNotBusyAsync[A](retryOnBusyDelay: FiniteDuration,
                                            continueIfNonEmpty: Boolean)(releaseFunction: => A): Future[A] =
-    if (busy.compareAndSet(false, true))
+    if (busy.compareAndSet(false, true)) {
       Future(releaseFunction) flatMap {
         result =>
           if (!continueIfNonEmpty || isEmpty)
@@ -640,8 +641,13 @@ class Actor[-T, S](val name: String,
           else
             whileNotBusyAsync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
       }
-    else
-      scheduler.value(()).apply(retryOnBusyDelay)(whileNotBusyAsync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction))
+    } else {
+      logger.info(s"""Actor("$name") is busy. Re-scheduling after ${retryOnBusyDelay.asString}. isTerminated = $isTerminated.""")
+      scheduler.value(()).apply(retryOnBusyDelay) {
+        logger.info(s"""Actor("$name") up.""")
+        whileNotBusyAsync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
+      }
+    }
 
   /**
    * Executes the release function in a blocking manner. This is used in testing.
@@ -656,20 +662,18 @@ class Actor[-T, S](val name: String,
     if (busy.compareAndSet(false, true)) {
       Try(releaseFunction) match {
         case success @ Success(_) =>
-          if (!continueIfNonEmpty || isEmpty) {
+          if (!continueIfNonEmpty || isEmpty)
             success
-          } else {
-            Thread.sleep(retryOnBusyDelay.toMillis)
+          else
             whileNotBusySync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
-          }
 
         case failure @ Failure(_) =>
           failure
       }
     } else {
-      import swaydb.data.util.FiniteDurations._
-      logger.warn(s"Sleeping: ${retryOnBusyDelay.asString}")
+      logger.info(s"""Actor("$name") is busy. Retrying after sleeping for ${retryOnBusyDelay.asString}. isTerminated = $isTerminated.""")
       Thread.sleep(retryOnBusyDelay.toMillis)
+      logger.info(s"""Actor("$name") up.""")
       whileNotBusySync(retryOnBusyDelay, continueIfNonEmpty)(releaseFunction)
     }
 
@@ -784,10 +788,10 @@ class Actor[-T, S](val name: String,
           case (_, error, _) =>
             error match {
               case IO.Right(Actor.Error.TerminatedActor) =>
-                logger.error(s"""Failed to recover failed message. Actor("$name").""", new Exception("Cause: Terminated Actor"))
+                logger.error(s"""Actor("$name") - Failed to recover failed message.""", new Exception("Cause: Terminated Actor"))
 
               case IO.Left(exception: Throwable) =>
-                logger.error(s"""Failed to recover failed message. Actor("$name").""", exception)
+                logger.error(s"""Actor("$name") - Failed to recover failed message.""", exception)
             }
         }
     )
@@ -891,7 +895,7 @@ class Actor[-T, S](val name: String,
         true
       } catch {
         case exception: Throwable =>
-          logger.error(s"""Exception in running Pre-termination - Actor("$name"). Post termination will continue.""", exception)
+          logger.error(s"""Actor("$name") - Exception in running Pre-termination. Post termination will continue.""", exception)
           true
       } finally {
         busy.set(false)
@@ -905,7 +909,7 @@ class Actor[-T, S](val name: String,
           postTerminate.foreach(_ (this))
         catch {
           case exception: Throwable =>
-            logger.error(s"""Exception in running Post-Termination - Actor("$name"). Termination will continue.""", exception)
+            logger.error(s"""Actor("$name") - Exception in running Post-Termination. Termination will continue.""", exception)
         } finally {
           scheduler.get().foreach(_.terminate())
           busy.set(false)
