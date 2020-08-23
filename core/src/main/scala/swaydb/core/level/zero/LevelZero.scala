@@ -53,7 +53,7 @@ import swaydb.data.storage.Level0Storage
 import swaydb.data.util.Futures
 import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.StorageUnits._
-import swaydb.{Actor, Bag, Error, IO, OK}
+import swaydb.{Actor, Error, IO, OK}
 
 import scala.concurrent.duration.{Deadline, _}
 import scala.concurrent.{ExecutionContext, Future}
@@ -1014,15 +1014,4 @@ private[swaydb] case class LevelZero(path: Path,
     close(retryInterval)
       .andIO(deleteNextLevelNoSweep)
       .andIO(IO(Effect.walkDelete(path.getParent)))
-
-  final def run[R, BAG[_]](apply: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
-    bag.suspend {
-      try
-        bag.success(apply(this))
-      catch {
-        case throwable: Throwable =>
-          val error = IO.ExceptionHandler.toError(throwable)
-          IO.Defer(apply(this), error).run(1)
-      }
-    }
 }

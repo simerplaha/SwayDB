@@ -51,6 +51,8 @@ import scala.concurrent.duration._
  */
 private[swaydb] object Core {
 
+  val closedMessage = "This SwayDB instance was closed."
+
   def apply(config: SwayDBPersistentConfig,
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
@@ -152,6 +154,8 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
                                    onClose: FiniteDuration => Future[Unit])(implicit bag: Bag[BAG],
                                                                             shutdownExecutionContext: ExecutionContext) {
 
+  @volatile private var closed: Boolean = false
+
   private val serial = bag.createSerial()
 
   protected[swaydb] val readStates =
@@ -177,17 +181,36 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
       }
     }
 
+  @inline private def assertTerminated[T, BAG2[_]](f: => BAG2[T])(implicit bag: Bag[BAG2]): BAG2[T] =
+    bag.suspend {
+      if (closed)
+        bag.failure(new IllegalStateException(Core.closedMessage))
+      else
+        f
+    }
+
+  @inline private def execute[R, BAG[_]](thunk: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
+    assertTerminated {
+      try
+        bag.success(thunk(zero))
+      catch {
+        case throwable: Throwable =>
+          val error = IO.ExceptionHandler.toError(throwable)
+          IO.Defer(thunk(zero), error).run(1)
+      }
+    }
+
   def put(key: Slice[Byte]): BAG[OK] =
-    serial.execute(zero.put(key))
+    assertTerminated(serial.execute(zero.put(key)))
 
   def put(key: Slice[Byte], value: Slice[Byte]): BAG[OK] =
-    serial.execute(zero.put(key, value))
+    assertTerminated(serial.execute(zero.put(key, value)))
 
   def put(key: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
-    serial.execute(zero.put(key, value))
+    assertTerminated(serial.execute(zero.put(key, value)))
 
   def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): BAG[OK] =
-    serial.execute(zero.put(key, value, removeAt))
+    assertTerminated(serial.execute(zero.put(key, value, removeAt)))
 
   /**
    * Each [[Prepare]] requires a new next [[swaydb.core.data.Time]] for cases where a batch contains overriding keys.
@@ -199,111 +222,113 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
    *       Times should always be unique and in incremental order for *ALL* key values.
    */
   def put(entries: Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]]): BAG[OK] =
-    if (entries.isEmpty)
-      bag.failure(new IllegalArgumentException("Cannot write empty batch"))
-    else
-      serial.execute(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get!
+    assertTerminated {
+      if (entries.isEmpty)
+        bag.failure(new IllegalArgumentException("Cannot write empty batch"))
+      else
+        serial.execute(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get!
+    }
 
   def remove(key: Slice[Byte]): BAG[OK] =
-    serial.execute(zero.remove(key))
+    assertTerminated(serial.execute(zero.remove(key)))
 
   def remove(key: Slice[Byte], at: Deadline): BAG[OK] =
-    serial.execute(zero.remove(key, at))
+    assertTerminated(serial.execute(zero.remove(key, at)))
 
   def remove(from: Slice[Byte], to: Slice[Byte]): BAG[OK] =
-    serial.execute(zero.remove(from, to))
+    assertTerminated(serial.execute(zero.remove(from, to)))
 
   def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): BAG[OK] =
-    serial.execute(zero.remove(from, to, at))
+    assertTerminated(serial.execute(zero.remove(from, to, at)))
 
   def update(key: Slice[Byte], value: Slice[Byte]): BAG[OK] =
-    serial.execute(zero.update(key, value))
+    assertTerminated(serial.execute(zero.update(key, value)))
 
   def update(key: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
-    serial.execute(zero.update(key, value))
+    assertTerminated(serial.execute(zero.update(key, value)))
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): BAG[OK] =
-    serial.execute(zero.update(fromKey, to, value))
+    assertTerminated(serial.execute(zero.update(fromKey, to, value)))
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
-    serial.execute(zero.update(fromKey, to, value))
+    assertTerminated(serial.execute(zero.update(fromKey, to, value)))
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): BAG[OK] =
-    serial.execute(zero.applyFunction(key, function))
+    assertTerminated(serial.execute(zero.applyFunction(key, function)))
 
   def applyFunction(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): BAG[OK] =
-    serial.execute(zero.applyFunction(from, to, function))
+    assertTerminated(serial.execute(zero.applyFunction(from, to, function)))
 
   def registerFunction(functionId: Slice[Byte], function: SwayFunction): BAG[OK] =
-    zero.run(_.registerFunction(functionId, function))
+    execute(_.registerFunction(functionId, function))
 
   def head[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
-    zero.run(_.head(readState).toTupleOrNone)
+    execute(_.head(readState).toTupleOrNone)
 
   def headKey[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
-    zero.run(_.headKey(readState))
+    execute(_.headKey(readState))
 
   def last[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
-    zero.run(_.last(readState).toTupleOrNone)
+    execute(_.last(readState).toTupleOrNone)
 
   def lastKey[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
-    zero.run(_.lastKey(readState))
+    execute(_.lastKey(readState))
 
   def bloomFilterKeyValueCount: BAG[Int] =
-    zero.run(_.keyValueCount)
+    execute(_.keyValueCount)
 
   def deadline(key: Slice[Byte],
                readState: ThreadReadState): BAG[Option[Deadline]] =
-    zero.run(_.deadline(key, readState))
+    execute(_.deadline(key, readState))
 
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
   def contains(key: Slice[Byte],
                readState: ThreadReadState): BAG[Boolean] =
-    zero.run(_.contains(key, readState))
+    execute(_.contains(key, readState))
 
   def mightContainKey(key: Slice[Byte]): BAG[Boolean] =
-    zero.run(_.mightContainKey(key))
+    execute(_.mightContainKey(key))
 
   def mightContainFunction(functionId: Slice[Byte]): BAG[Boolean] =
-    zero.run(_.mightContainFunction(functionId))
+    execute(_.mightContainFunction(functionId))
 
   def get(key: Slice[Byte],
           readState: ThreadReadState): BAG[Option[SliceOption[Byte]]] =
-    zero.run(_.get(key, readState).getValue)
+    execute(_.get(key, readState).getValue)
 
   def getKey[BAG[_]](key: Slice[Byte],
                      readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
-    zero.run(_.getKey(key, readState))
+    execute(_.getKey(key, readState))
 
   def getKeyValue[BAG[_]](key: Slice[Byte],
                           readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
-    zero.run(_.get(key, readState).toTupleOrNone)
+    execute(_.get(key, readState).toTupleOrNone)
 
   def getKeyDeadline[BAG[_]](key: Slice[Byte],
                              readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], Option[Deadline]]] =
-    zero.run(_.get(key, readState).toDeadlineOrNone)
+    execute(_.get(key, readState).toDeadlineOrNone)
 
   def before[BAG[_]](key: Slice[Byte],
                      readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
-    zero.run(_.lower(key, readState).toTupleOrNone)
+    execute(_.lower(key, readState).toTupleOrNone)
 
   def beforeKey[BAG[_]](key: Slice[Byte],
                         readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
-    zero.run(_.lower(key, readState).getKey)
+    execute(_.lower(key, readState).getKey)
 
   def after[BAG[_]](key: Slice[Byte],
                     readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
-    zero.run(_.higher(key, readState).toTupleOrNone)
+    execute(_.higher(key, readState).toTupleOrNone)
 
   def afterKey[BAG[_]](key: Slice[Byte],
                        readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
-    zero.run(_.higher(key, readState).getKey)
+    execute(_.higher(key, readState).getKey)
 
   def valueSize(key: Slice[Byte],
                 readState: ThreadReadState): BAG[Option[Int]] =
-    zero.run(_.valueSize(key, readState))
+    execute(_.valueSize(key, readState))
 
   def levelZeroMeter: LevelZeroMeter =
     zero.levelZeroMeter
@@ -311,18 +336,24 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     zero.meterFor(levelNumber)
 
-  def close(retryInterval: FiniteDuration): BAG[Unit] =
-    IO.fromFuture(onClose(retryInterval)).run(0)
+  def clear(readState: ThreadReadState): BAG[OK] =
+    execute(_.clear(readState))
 
-  def deleteFuture(retryInterval: FiniteDuration): Future[Unit] =
-    onClose(retryInterval)
-      .and(zero.delete(retryInterval))
+  def close(retryInterval: FiniteDuration): BAG[Unit] =
+    bag.suspend {
+      IO.fromFuture {
+        closed = true
+        onClose(retryInterval)
+      }.run(0)
+    }
 
   def delete(retryInterval: FiniteDuration): BAG[Unit] =
-    IO.fromFuture(deleteFuture(retryInterval)).run(0)
-
-  def clear(readState: ThreadReadState): BAG[OK] =
-    zero.run(_.clear(readState))
+    bag.suspend {
+      IO.fromFuture {
+        closed = true
+        onClose(retryInterval).and(zero.delete(retryInterval))
+      }.run(0)
+    }
 
   def toBag[BAG[_]](implicit bag: Bag[BAG]): Core[BAG] =
     new Core[BAG](

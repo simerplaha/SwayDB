@@ -25,7 +25,7 @@ import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb._
 import swaydb.data.RunThis.runThis
-import swaydb.core.TestCaseSweeper
+import swaydb.core.{Core, TestCaseSweeper}
 import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
 import swaydb.serializers.Default._
 
@@ -410,6 +410,46 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       //        i =>
       //          db.valueSize(i.toString).runIO shouldBe i.toString.getBytes(StandardCharsets.UTF_8).length
       //      }
+    }
+
+    "not allow api calls" when {
+      "closed" in {
+        runThis(times = repeatTest, log = true) {
+          TestCaseSweeper {
+            implicit sweeper =>
+
+              val db = newDB()
+
+              (1 to 100000) foreach {
+                i =>
+                  db.put(i, i.toString).right.value
+              }
+
+              db.close().value
+
+              db.get(1).left.value.exception.getMessage shouldBe Core.closedMessage
+          }
+        }
+      }
+
+      "deleted" in {
+        runThis(times = repeatTest, log = true) {
+          TestCaseSweeper {
+            implicit sweeper =>
+
+              val db = newDB()
+
+              (1 to 100000) foreach {
+                i =>
+                  db.put(i, i.toString).right.value
+              }
+
+              db.delete().value
+
+              db.get(1).left.value.exception.getMessage shouldBe Core.closedMessage
+          }
+        }
+      }
     }
 
     //    "eventually remove all Segments from the database when remove range is submitted" in {
