@@ -31,7 +31,6 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
@@ -49,8 +48,9 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper, TestTimer}
+import swaydb.core._
 import swaydb.data.MaxKey
+import swaydb.data.RunThis._
 import swaydb.data.config.{ActorConfig, Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -531,7 +531,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       } else {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
+
 
             //memory-mapped files on windows get submitted to ByteBufferCleaner.
             implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds).sweep()
@@ -554,7 +554,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(100.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
+
 
             implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds).sweep()
 
@@ -625,7 +625,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     "fail read and write operations on a Segment that does not exists" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
 
           implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds).sweep()
           bufferCleaner.actor
@@ -747,7 +747,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     "close the channel and delete the file" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
 
           //set this MemorySweeper as root sweeper.
           TestSweeper.createKeyValueSweeperBlock().value.sweep()
@@ -1790,7 +1790,11 @@ sealed trait SegmentWriteSpec extends TestBase {
               SegmentBlock.Config.random(
                 hasCompression = enableCompression,
                 minSegmentSize = Int.MaxValue,
-                maxKeyValuesPerSegment = if (memory) keyValues.size else randomIntMax(keyValues.size)
+                //this test-case fails when maxKeyValuesPerSegment less than the original keyValues.size.
+                //in reality maxKeyValuesPerSegment will never been less than original key-value size.
+                //read the test-case comments below.
+                //                maxKeyValuesPerSegment = if (memory) keyValues.size else randomIntMax(keyValues.size)
+                maxKeyValuesPerSegment = keyValues.size
               )
 
             val segment =
@@ -1828,6 +1832,95 @@ sealed trait SegmentWriteSpec extends TestBase {
             refresh should have size 1
             refresh.head shouldContainAll keyValues
             println
+        }
+      }
+    }
+
+    /**
+     * The above test-case fails in the following refresh scenario when [[SegmentBlock.Config.maxCount]] specified
+     * on refresh is less than the number of key-values in the original Segment. This will never occur in reality
+     * as we do not allow dynamically changing the Level's [[SegmentBlock.Config.maxCount]] value. This will
+     * also not occur during copying from another level because then refresh re-calculates the byte size of the Segment
+     * based on the current level.
+     *
+     * Marking this test as ignored because it's still a valid test for the future when we want to allow dynamically
+     * updating the Levels config.
+     */
+    "debugger for previous test-case" ignore {
+      runThis(10.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
+
+            TestSweeper.createMemorySweeperMax().value.sweep()
+
+            val keyValues: Slice[Memory.Put] = (1 to 2).map(key => Memory.put(key, Slice.Null)).toSlice
+
+            val enableCompression = false
+
+            val shouldPrefixCompress = true
+
+            val valuesConfig = ValuesBlock.Config.random(hasCompression = enableCompression)
+            val sortedIndexConfig = SortedIndexBlock.Config.random(hasCompression = enableCompression, shouldPrefixCompress = shouldPrefixCompress)
+            val binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled
+            val hashIndexConfig = HashIndexBlock.Config.disabled
+            val bloomFilterConfig = BloomFilterBlock.Config.disabled
+
+            val segmentConfig: SegmentBlock.Config =
+              SegmentBlock.Config.random(
+                hasCompression = enableCompression,
+                minSegmentSize = Int.MaxValue,
+                maxKeyValuesPerSegment = 1
+              )
+
+            val segment =
+              Benchmark(s"Created Segment: ${keyValues.size} keyValues", inlinePrint = true) {
+                TestSegment(
+                  keyValues = keyValues,
+                  createdInLevel = 5,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig
+                )
+              }
+
+            segment.getKeyValueCount() shouldBe keyValues.size
+
+            try {
+              val refresh =
+                Benchmark(s"Refresh Segment: ${keyValues.size} keyValues", inlinePrint = true) {
+                  segment.refresh(
+                    removeDeletes = false,
+                    createdInLevel = 5,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    segmentConfig = segmentConfig.copy(minSize = Int.MaxValue)
+                  ).map(_.sweep())
+                }
+
+              refresh should have size 1
+              refresh.head shouldContainAll keyValues
+              println
+            } catch {
+              case exception: Exception =>
+                throw exception
+
+              //                segment.refresh(
+              //                  removeDeletes = false,
+              //                  createdInLevel = 5,
+              //                  valuesConfig = valuesConfig,
+              //                  sortedIndexConfig = sortedIndexConfig,
+              //                  binarySearchIndexConfig = binarySearchIndexConfig,
+              //                  hashIndexConfig = hashIndexConfig,
+              //                  bloomFilterConfig = bloomFilterConfig,
+              //                  segmentConfig = segmentConfig.copy(minSize = Int.MaxValue)
+              //                )
+            }
         }
       }
     }

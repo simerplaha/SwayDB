@@ -139,7 +139,7 @@ def commonDependencies(scalaVersion: String) =
 
 lazy val SwayDB =
   (project in file("."))
-    .settings(name := "SwayDB.source")
+    .settings(name := "SwayDB-source")
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(swaydb)
