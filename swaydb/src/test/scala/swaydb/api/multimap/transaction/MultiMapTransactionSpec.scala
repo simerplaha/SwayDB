@@ -22,16 +22,16 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.multimap.transaction
+package swaydb.api.multimap.transaction
 
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.multimap.transaction.PrimaryKey._
-import swaydb.multimap.transaction.Row._
-import swaydb.multimap.transaction.Table._
+import PrimaryKey._
+import Row._
+import Table._
 import swaydb.{Bag, Prepare}
 
 import scala.concurrent.duration._
