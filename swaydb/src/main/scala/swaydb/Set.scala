@@ -330,11 +330,11 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
   def asScala: scala.collection.mutable.Set[A] =
     ScalaSet[A, F](toBag[Bag.Less](Bag.less))
 
-  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
-    bag.suspend(core.close(retryInterval))
+  def close(): BAG[Unit] =
+    bag.suspend(core.close())
 
-  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
-    bag.suspend(core.delete(retryInterval))
+  def delete(): BAG[Unit] =
+    bag.suspend(core.delete())
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getSimpleName

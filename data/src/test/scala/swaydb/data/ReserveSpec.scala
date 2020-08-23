@@ -27,6 +27,7 @@ package swaydb.data
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import swaydb.data.Base._
+import swaydb.data.util.Options
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -44,6 +45,7 @@ class ReserveSpec extends AnyFlatSpec with Matchers {
       }
 
     Future.sequence(futures).await should contain theSameElementsInOrderAs (1 to 100)
+    busy.promises shouldBe empty
   }
 
   it should "complete futures when freed" in {
@@ -60,10 +62,11 @@ class ReserveSpec extends AnyFlatSpec with Matchers {
           if (i == 10000 || Random.nextBoolean())
             Reserve.setFree(busy)
           else
-            Reserve.setBusyOrGet((), busy)
+            Reserve.compareAndSet(Options.unit, busy)
       }
     }
 
     Future.sequence(futures).await should contain theSameElementsInOrderAs (1 to 10000)
+    busy.promises shouldBe empty
   }
 }

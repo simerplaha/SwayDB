@@ -133,9 +133,9 @@ trait SetMapT[K, V, F, BAG[_]] extends Sweepable[BAG] {
 
   def asScala: scala.collection.mutable.Map[K, V]
 
-  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit]
+  def close(): BAG[Unit]
 
-  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit]
+  def delete(): BAG[Unit]
 
   override def toString(): String =
     classOf[SetMapT[_, _, _, BAG]].getSimpleName

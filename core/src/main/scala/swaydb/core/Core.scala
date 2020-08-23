@@ -151,8 +151,8 @@ private[swaydb] object Core {
 
 private[swaydb] class Core[BAG[_]](val zero: LevelZero,
                                    threadStateCache: ThreadStateCache,
-                                   onClose: FiniteDuration => Future[Unit])(implicit bag: Bag[BAG],
-                                                                            shutdownExecutionContext: ExecutionContext) {
+                                   onClose: => Future[Unit])(implicit bag: Bag[BAG],
+                                                             shutdownExecutionContext: ExecutionContext) {
 
   @volatile private var closed: Boolean = false
 
@@ -339,19 +339,19 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def clear(readState: ThreadReadState): BAG[OK] =
     execute(_.clear(readState))
 
-  def close(retryInterval: FiniteDuration): BAG[Unit] =
+  def close(): BAG[Unit] =
     bag.suspend {
       IO.fromFuture {
         closed = true
-        onClose(retryInterval)
+        onClose
       }.run(0)
     }
 
-  def delete(retryInterval: FiniteDuration): BAG[Unit] =
+  def delete(): BAG[Unit] =
     bag.suspend {
       IO.fromFuture {
         closed = true
-        onClose(retryInterval).and(zero.delete(retryInterval))
+        onClose.and(zero.delete())
       }.run(0)
     }
 

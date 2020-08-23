@@ -37,21 +37,20 @@ import scala.concurrent.duration.FiniteDuration
 
 object LevelCloser extends LazyLogging {
 
-  def closeAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                           blockCache: Option[BlockCache.State],
-                                                           fileSweeper: FileSweeperActor,
-                                                           bufferCleaner: ByteBufferSweeperActor,
-                                                           bag: Bag.Async[BAG]): BAG[Unit] = {
+  def closeAsync[BAG[_]]()(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                           blockCache: Option[BlockCache.State],
+                           fileSweeper: FileSweeperActor,
+                           bufferCleaner: ByteBufferSweeperActor,
+                           bag: Bag.Async[BAG]): BAG[Unit] = {
 
     MemorySweeper.close(keyValueMemorySweeper)
     BlockCache.close(blockCache)
 
-    FileSweeper.closeAsync(retryOnBusyDelay)
-      .and(ByteBufferSweeper.closeAsync(retryOnBusyDelay))
+    FileSweeper.closeAsync()
+      .and(ByteBufferSweeper.closeAsync())
   }
 
-  def closeSync[BAG[_]](retryDelays: FiniteDuration,
-                        timeout: FiniteDuration)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+  def closeSync[BAG[_]](timeout: FiniteDuration)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                  blockCache: Option[BlockCache.State],
                                                  fileSweeper: FileSweeperActor,
                                                  bufferCleaner: ByteBufferSweeperActor,
@@ -61,7 +60,7 @@ object LevelCloser extends LazyLogging {
     MemorySweeper.close(keyValueMemorySweeper)
     BlockCache.close(blockCache)
 
-    FileSweeper.closeSync[BAG](retryDelays)
-      .and(ByteBufferSweeper.closeSync[BAG](retryDelays, timeout))
+    FileSweeper.closeSync[BAG]()
+      .and(ByteBufferSweeper.closeSync[BAG](timeout))
   }
 }

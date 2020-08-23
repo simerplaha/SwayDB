@@ -124,7 +124,7 @@ class ByteBufferSweeperSpec extends TestBase {
           //keep this test running for a few seconds.
           sleep(timeout)
 
-          fileSweeper.terminateAndRecover(1.second).await(10.seconds)
+          fileSweeper.terminateAndRecover().await(10.seconds)
           fileSweeper.messageCount shouldBe 0
       }
     }
@@ -341,7 +341,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
             (cleaner.actor ask Command.IsClean(Paths.get("somePath"))).await(1.minute) shouldBe true
 
-            cleaner.actor.terminate[Bag.Less](1.second)
+            cleaner.actor.terminate[Bag.Less]()
         }
       }
 
@@ -391,7 +391,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
               //also randomly terminate
               if (Random.nextDouble() < 0.0001)
-                cleaner.actor.terminate(1.second)
+                cleaner.actor.terminate()
 
               filePath
             }
@@ -407,7 +407,7 @@ class ByteBufferSweeperSpec extends TestBase {
             }
 
             //execute all pending Delete commands.
-            cleaner.actor.receiveAllForce[Bag.Less](1.second)
+            cleaner.actor.receiveAllForce[Bag.Less]()
 
             //there might me some delete messages waiting to be scheduled.
             eventual(1.minute) {
@@ -425,7 +425,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
             implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(actorInterval = 2.second, messageReschedule = 2.seconds).sweep()
 
-            cleaner.actor.terminate(1.second)
+            cleaner.actor.terminate()
             cleaner.actor.isTerminated shouldBe true
 
             //its terminates and there are no clean commands so this returns true.
@@ -460,7 +460,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
             //execute all pending Delete commands.
             eventual(1.minute) {
-              cleaner.actor.terminateAndRecover[Future](1.second).await(1.minute)
+              cleaner.actor.terminateAndRecover[Future]().await(1.minute)
             }
 
             eventual(1.minute) {

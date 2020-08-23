@@ -24,27 +24,23 @@
 
 package swaydb.core.actor
 
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{ConcurrentLinkedDeque, ConcurrentSkipListSet}
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.IOValues._
 import swaydb._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
+import swaydb.data.RunThis._
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.data.util.Futures
 
-import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, Promise}
 import scala.jdk.CollectionConverters._
-import scala.util.{Random, Try}
-import TestCaseSweeper._
+import scala.util.Try
 
 class ActorSpec extends AnyWordSpec with Matchers {
 
@@ -59,8 +55,8 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "process messages in order of arrival" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
-          val messageCount = 10000
+
+          val messageCount = 100000
 
           case class State(processed: ListBuffer[Int])
           val state = State(ListBuffer.empty)
@@ -69,14 +65,16 @@ class ActorSpec extends AnyWordSpec with Matchers {
             Actor[Int, State]("", state) {
               case (int, self) =>
                 self.state.processed += int
-            }.sweep()
+            }
 
           (1 to messageCount) foreach (actor send _)
+
+          val expected = 1 to messageCount
 
           //same thread, messages should arrive in order
           eventual {
             state.processed.size shouldBe messageCount
-            state.processed should contain inOrderElementsOf (1 to messageCount)
+            state.processed shouldBe expected
             state.processed.distinct should have size messageCount
           }
         //      sleep(10.seconds)
@@ -86,7 +84,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "process all messages in any order when submitted concurrently" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           val messageCount = 10000
 
           case class State(processed: ListBuffer[String])
@@ -116,7 +114,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "continue processing messages if execution of one message fails and has no recovery" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           case class State(processed: ListBuffer[Int])
           val state = State(ListBuffer.empty)
 
@@ -140,7 +138,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "continue processing messages if execution of one message fails and has recovery" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           case class State(processed: ListBuffer[Int], recovered: ListBuffer[Int])
           val state = State(ListBuffer.empty, ListBuffer.empty)
 
@@ -183,7 +181,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     //              case (message, error: IO[Throwable, Actor.Error], actor) =>
     //                actor.state.errors += message
     //                if (message == 2)
-    //                  actor.terminate[Bag.Less](1.second)
+    //                  actor.terminate[Bag.Less]()
     //                else
     //                  error.right.value shouldBe Actor.Error.TerminatedActor
     //            }.sweep()
@@ -201,7 +199,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "stop processing messages on termination" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           case class State(processed: ConcurrentSkipListSet[Int], failed: ConcurrentSkipListSet[Int])
           val state = State(new ConcurrentSkipListSet[Int](), new ConcurrentSkipListSet[Int]())
 
@@ -221,7 +219,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
                 while (state.processed.size() != 2) {
                   sleep(100.millisecond)
                 }
-                actor.terminate[Bag.Less](1.second)
+                actor.terminate[Bag.Less]()
               }
           }
           eventual(10.seconds) {
@@ -239,7 +237,6 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "process all messages after a fixed interval and terminate" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
 
           case class State(processed: ListBuffer[Int])
           val state = State(ListBuffer.empty)
@@ -259,7 +256,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           state.processed.size should be >= 3
           state.processed.size should be <= 6
 
-          actor.terminate[Bag.Less](1.second) //terminate the actor
+          actor.terminate[Bag.Less]() //terminate the actor
           val countAfterTermination = state.processed.size //this is the current message count
           sleep(2.second) //sleep
           state.processed.size shouldBe countAfterTermination //no messages are processed after termination
@@ -272,7 +269,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "continue processing incoming messages at the next specified interval" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           case class State(processed: ListBuffer[Int])
           val state = State(ListBuffer.empty)
 
@@ -293,7 +290,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           sleep(10.seconds)
           state.processed.size should be >= 1
           state.processed.size should be <= 10
-          actor.terminate[Bag.Less](1.second)
+          actor.terminate[Bag.Less]()
           val sizeAfterTerminate = state.processed.size
           sleep(1.second)
           //after termination the size does not change. i.e. no new messages are processed and looper is stopped.
@@ -370,7 +367,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       "basic actor is used" in {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
+
             val state = State(new ConcurrentSkipListSet[Int](), new ConcurrentSkipListSet[Int]())
 
             val actor =
@@ -395,7 +392,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             sleep(5.second)
             actor.messageCount shouldBe 10
 
-            actor.terminate[Bag.Less](1.second)
+            actor.terminate[Bag.Less]()
         }
       }
     }
@@ -405,7 +402,6 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "not drop stash" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
 
           @volatile var runs = 0
 
@@ -430,7 +426,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             actor.messageCount shouldBe stash
           }
 
-          actor.terminate[Bag.Less](1.second)
+          actor.terminate[Bag.Less]()
       }
     }
   }
@@ -439,7 +435,6 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "not drop stash" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
 
           @volatile var checks = 0
 
@@ -463,7 +458,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             actor.messageCount shouldBe stash
           }
 
-          actor.terminate[Bag.Less](1.second)
+          actor.terminate[Bag.Less]()
       }
     }
   }
@@ -475,7 +470,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "ask" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           val actor =
             Actor[ToInt]("") {
               (message, _) =>
@@ -502,7 +497,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
               response shouldBe request
           }
 
-          actor.terminate[Bag.Less](1.second)
+          actor.terminate[Bag.Less]()
       }
     }
   }
@@ -521,14 +516,13 @@ class ActorSpec extends AnyWordSpec with Matchers {
       actor.totalWeight shouldBe 0
       actor.messageCount shouldBe 0
 
-      actor.terminate[Bag.Less](1.second)
+      actor.terminate[Bag.Less]()
     }
 
     "process all messages" when {
       "basic" in {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
 
             val actor = Actor[() => Any]("") {
               (run, _) =>
@@ -542,7 +536,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       "timer" in {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
+
             val actor = Actor.timer[() => Any]("", 0, 1.second) {
               (run, _) =>
                 run()
@@ -559,7 +553,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       runThis(100.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
+
             val queue = new ConcurrentLinkedDeque[Int]()
 
             val actor =
@@ -573,7 +567,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
                 actor send i
             }
 
-            val result = actor.terminateAndRecover[Future](0.seconds)
+            val result = actor.terminateAndRecover[Future]()
 
             (101 to 200) foreach {
               i =>
@@ -588,7 +582,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             //Future does not throw exception
             result.await(10.seconds)
 
-            actor.terminate[Bag.Less](1.second)
+            actor.terminate[Bag.Less]()
         }
       }
     }
@@ -596,7 +590,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
     "apply recovery if recovery function is specified" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           //Stores successful messages
           val success = new ConcurrentLinkedDeque[Int]()
           //Stores failure messages
@@ -632,7 +626,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           }
 
           //force termination so that recovery happens.
-          actor.terminate[Bag.Less](1.second)
+          actor.terminate[Bag.Less]()
 
           (101 to 200) foreach {
             i =>
@@ -642,7 +636,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           //terminate here does not work because it's in the future
           //and the second send messages will get returned as success
           //so actor.terminate() is invoked before terminateAndRecover.
-          val future = actor.terminateAndRecover[Future](0.seconds)
+          val future = actor.terminateAndRecover[Future]()
 
           eventual(20.seconds) {
             success.asScala.toList shouldBe (1 to 100).toList
@@ -652,7 +646,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           //does not throw exception
           future.await(20.seconds)
 
-          actor.terminate[Bag.Less](1.second)
+          actor.terminate[Bag.Less]()
       }
     }
 
@@ -660,7 +654,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       runThis(100.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
+
             // number of messages to send
             val maxMessages = 1000
 
@@ -753,7 +747,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
             //if it's not already terminates then terminate it so that cache Actors also drop their
             //stashed messages.
-            actor.terminateAndRecover[Future](0.seconds).await(1.minute)
+            actor.terminateAndRecover[Future]().await(1.minute)
 
             println(s"Messages sent. Success: ${success.size()}. Recovered messages: ${recovered.size()}")
 

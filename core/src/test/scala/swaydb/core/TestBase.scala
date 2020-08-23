@@ -681,10 +681,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     compaction foreach {
       implicit compaction =>
-        CoreShutdown.close(level0, 2.seconds).await(10.seconds)
+        CoreShutdown.close(level0).await(10.seconds)
     }
 
-    level0.delete(2.seconds).await(10.seconds)
+    level0.delete().await(10.seconds)
 
     if (!throttleOn)
       assertLevel(

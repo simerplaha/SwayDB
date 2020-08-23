@@ -66,7 +66,7 @@ private[core] object ReserveRange extends LazyLogging {
       state
         .ranges
         .find(range => ordering.equiv(from, range.from) && ordering.equiv(to, range.to))
-        .flatMap(_.reserve.info)
+        .flatMap(_.reserve.info.get())
     }
 
   def reserveOrGet[T](from: Slice[Byte],
@@ -82,7 +82,7 @@ private[core] object ReserveRange extends LazyLogging {
         info = info
       ) match {
         case IO.Left(range) =>
-          range.reserve.info
+          range.reserve.info.get()
 
         case IO.Right(_) =>
           None

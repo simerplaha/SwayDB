@@ -24,17 +24,19 @@
 
 package swaydb.data
 
-import scala.collection.mutable.ListBuffer
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicReference
+
 import scala.concurrent.Promise
 
-class Reserve[T](@volatile var info: Option[T],
-                 private[data] val promises: ListBuffer[Promise[Unit]],
+class Reserve[T](val info: AtomicReference[Option[T]],
+                 private[data] val promises: ConcurrentLinkedQueue[Promise[Unit]],
                  val name: String) {
   def savePromise(promise: Promise[Unit]): Unit =
-    promises += promise
+    promises add promise
 
   def isBusy: Boolean =
-    info.isDefined
+    info.get().isDefined
 
   def isFree: Boolean =
     !isBusy
@@ -43,24 +45,34 @@ class Reserve[T](@volatile var info: Option[T],
 object Reserve {
 
   def free[T](name: String): Reserve[T] =
-    new Reserve(None, ListBuffer.empty, name)
+    new Reserve(new AtomicReference[Option[T]](None), new ConcurrentLinkedQueue[Promise[Unit]](), name)
 
   def busy[T](info: T, name: String): Reserve[T] =
-    new Reserve(Some(info), ListBuffer.empty, name)
+    new Reserve(new AtomicReference[Option[T]](Some(info)), new ConcurrentLinkedQueue[Promise[Unit]](), name)
 
   def blockUntilFree[T](reserve: Reserve[T]): Unit =
     reserve.synchronized {
-      while (reserve.isBusy) reserve.wait()
+      while (reserve.isBusy)
+        reserve.wait()
     }
 
-  private def notifyBlocking[T](reserve: Reserve[T]): Unit = {
-    reserve.notifyAll()
-    reserve.promises.foreach(_.trySuccess(()))
-  }
+  private def notifyBlocking[T](reserve: Reserve[T]): Unit =
+    reserve.synchronized {
+      reserve.notifyAll()
+
+      var continue = true
+      while (continue) {
+        val next = reserve.promises.poll()
+        if (next == null)
+          continue = false
+        else
+          next.trySuccess(())
+      }
+    }
 
   def promise[T](reserve: Reserve[T]): Promise[Unit] =
     reserve.synchronized {
-      if (reserve.isBusy) {
+      if (reserve.info.get().isDefined) {
         val promise = Promise[Unit]()
         reserve.savePromise(promise)
         promise
@@ -69,19 +81,16 @@ object Reserve {
       }
     }
 
-  def setBusyOrGet[T](info: T, reserve: Reserve[T]): Option[T] =
-    reserve.synchronized {
-      if (reserve.isFree) {
-        reserve.info = Some(info)
-        None
-      } else {
-        reserve.info
-      }
+  def compareAndSet[T](info: Some[T], reserve: Reserve[T]): Boolean =
+    if (reserve.info.compareAndSet(None, info)) {
+      reserve.info set info
+      true
+    } else {
+      false
     }
 
-  def setFree[T](reserve: Reserve[T]): Unit =
-    reserve.synchronized {
-      reserve.info = None
-      notifyBlocking(reserve)
-    }
+  def setFree[T](reserve: Reserve[T]): Unit = {
+    reserve.info.set(None)
+    notifyBlocking(reserve)
+  }
 }

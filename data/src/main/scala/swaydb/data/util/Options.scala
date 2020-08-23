@@ -22,15 +22,15 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.util
+package swaydb.data.util
 
 private[swaydb] object Options {
 
   val `false`: Option[Boolean] = Some(false)
   val `true`: Option[Boolean] = Some(true)
-  val unit: Option[Unit] = Some(())
-  val zero: Option[Int] = Option(0)
-  val one: Option[Int] = Option(1)
+  val unit: Some[Unit] = Some(())
+  val zero: Some[Int] = Some(0)
+  val one: Some[Int] = Some(1)
 
   @inline final def when[T](condition: Boolean)(success: => Option[T]): Option[T] =
     if (condition)

@@ -271,13 +271,12 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
   def toBag[X[_]](implicit bag: Bag[X]): SetMap[K, V, F, X] =
     SetMap(set = set.toBag[X])
 
-  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
-    set.close(retryInterval)
+  def close(): BAG[Unit] =
+    set.close()
 
-  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
-    set.delete(retryInterval)
+  def delete(): BAG[Unit] =
+    set.delete()
 
   override def toString(): String =
     classOf[SetMap[_, _, _, BAG]].getSimpleName
-
 }

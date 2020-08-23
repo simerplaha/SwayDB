@@ -30,7 +30,6 @@ import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.{ActorConfig, FileCache}
 import swaydb.{Actor, ActorRef, Bag, IO}
 
-import scala.concurrent.duration.FiniteDuration
 import scala.ref.WeakReference
 
 private[core] trait FileSweeperItem {
@@ -103,16 +102,16 @@ private[swaydb] object FileSweeper extends LazyLogging {
         )
     }
 
-  def closeAsync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit fileSweeper: FileSweeperActor,
-                                                           bag: Bag.Async[BAG]): BAG[Unit] =
-    bag.transform(fileSweeper.terminateAndRecover(retryOnBusyDelay)) {
+  def closeAsync[BAG[_]]()(implicit fileSweeper: FileSweeperActor,
+                           bag: Bag.Async[BAG]): BAG[Unit] =
+    bag.transform(fileSweeper.terminateAndRecover()) {
       _ =>
         logger.info(this.getClass.getSimpleName + " terminated!")
     }
 
-  def closeSync[BAG[_]](retryOnBusyDelay: FiniteDuration)(implicit fileSweeper: FileSweeperActor,
-                                                          bag: Bag.Sync[BAG]): BAG[Unit] =
-    bag.transform(fileSweeper.terminateAndRecover(retryOnBusyDelay)) {
+  def closeSync[BAG[_]]()(implicit fileSweeper: FileSweeperActor,
+                          bag: Bag.Sync[BAG]): BAG[Unit] =
+    bag.transform(fileSweeper.terminateAndRecover()) {
       _ =>
         logger.info(this.getClass.getSimpleName + " terminated!")
     }

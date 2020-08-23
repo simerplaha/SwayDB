@@ -755,11 +755,11 @@ case class MultiMap_EAP[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap
   def asScala: scala.collection.mutable.Map[K, V] =
     ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
 
-  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
-    innerMap.close(retryInterval)
+  def close(): BAG[Unit] =
+    innerMap.close()
 
-  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit] =
-    innerMap.delete(retryInterval)
+  def delete(): BAG[Unit] =
+    innerMap.delete()
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getSimpleName

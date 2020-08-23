@@ -28,7 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
-import swaydb.data.util.Functions
+import swaydb.data.util.{Functions, Options}
 
 sealed trait CacheOrNull[+E, -I, +O]
 
@@ -359,7 +359,7 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
     lazyIO.stored
 
   @inline private def reserveAndExecute[T](thunk: => IO[E, T]): IO[E, T] =
-    if (Reserve.setBusyOrGet((), error.reserve).isEmpty)
+    if (Reserve.compareAndSet(Options.unit, error.reserve))
       try
         thunk
       finally

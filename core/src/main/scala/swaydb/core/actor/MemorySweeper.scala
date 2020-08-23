@@ -118,7 +118,7 @@ private[core] object MemorySweeper extends LazyLogging {
     sweeper.actor foreach {
       actor =>
         logger.info("Clearing cached key-values")
-        actor.terminateAndClear[Bag.Less](1.second)
+        actor.terminateAndClear[Bag.Less]()
     }
 
   def weigher(entry: Command): Int =
@@ -175,7 +175,7 @@ private[core] object MemorySweeper extends LazyLogging {
       }
 
     def terminateAndClear() =
-      actor.foreach(_.terminateAndClear[Bag.Less](1.second))
+      actor.foreach(_.terminateAndClear[Bag.Less]())
   }
 
   case object Disabled extends MemorySweeper

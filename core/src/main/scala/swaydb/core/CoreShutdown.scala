@@ -31,7 +31,6 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.data.util.Futures.FutureImplicits
 import swaydb.{ActorWire, Bag}
 
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object CoreShutdown extends LazyLogging {
@@ -43,8 +42,7 @@ private[core] object CoreShutdown extends LazyLogging {
    * - Flushes all files and persists them to disk for persistent databases.
    */
 
-  def close(zero: LevelZero,
-            retryInterval: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
+  def close(zero: LevelZero)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
                                            ec: ExecutionContext): Future[Unit] = {
     implicit val futureBag = Bag.future(ec)
 
@@ -62,6 +60,6 @@ private[core] object CoreShutdown extends LazyLogging {
           logger.error("Failed compaction shutdown.", exception)
           Future.failed(exception)
       }
-      .and(zero.close(retryInterval))
+      .and(zero.close())
   }
 }

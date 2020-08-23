@@ -44,13 +44,13 @@ import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
-import swaydb.core.util.{MinMax, Options}
+import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
-import swaydb.data.util.Futures
+import swaydb.data.util.{Futures, Options}
 import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.StorageUnits._
 import swaydb.{Actor, Error, IO, OK}
@@ -984,15 +984,15 @@ private[swaydb] case class LevelZero(path: Path,
       .and(closeNextLevelNoSweep)
       .and(releaseLocks)
 
-  private def closeNextLevel(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
+  private def closeNextLevel()(implicit executionContext: ExecutionContext): Future[Unit] =
     nextLevel
-      .map(_.close(retryInterval))
+      .map(_.close())
       .getOrElse(Futures.unit)
 
-  override def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
+  override def close()(implicit executionContext: ExecutionContext): Future[Unit] =
     closeMaps
       .toFuture
-      .and(closeNextLevel(retryInterval))
+      .and(closeNextLevel())
       .andIO(releaseLocks)
 
   def closeSegments: IO[swaydb.Error.Level, Unit] =
@@ -1010,8 +1010,8 @@ private[swaydb] case class LevelZero(path: Path,
       .and(deleteNextLevelNoSweep)
       .and(IO(Effect.walkDelete(path.getParent)))
 
-  override def delete(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
-    close(retryInterval)
+  override def delete()(implicit executionContext: ExecutionContext): Future[Unit] =
+    close()
       .andIO(deleteNextLevelNoSweep)
       .andIO(IO(Effect.walkDelete(path.getParent)))
 }

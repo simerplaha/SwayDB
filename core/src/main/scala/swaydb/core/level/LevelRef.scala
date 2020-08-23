@@ -248,7 +248,7 @@ private[core] trait LevelRef {
 
   def sizeOfSegments: Long
 
-  def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit]
+  def close()(implicit executionContext: ExecutionContext): Future[Unit]
 
   def closeNoSweep: IO[swaydb.Error.Level, Unit]
 
@@ -266,7 +266,7 @@ private[core] trait LevelRef {
 
   def nextCompactionDelay: FiniteDuration
 
-  def delete(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit]
+  def delete()(implicit executionContext: ExecutionContext): Future[Unit]
 
   def deleteNoSweep: IO[swaydb.Error.Level, Unit]
 }

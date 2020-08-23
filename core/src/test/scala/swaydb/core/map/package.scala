@@ -75,7 +75,7 @@ package object map {
      */
     def ensureClose(): Unit = {
       map.close()
-      map.bufferCleaner.actor.receiveAllForce[Bag.Less](1.second)
+      map.bufferCleaner.actor.receiveAllForce[Bag.Less]()
 
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future

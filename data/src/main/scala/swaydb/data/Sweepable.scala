@@ -26,12 +26,10 @@ package swaydb.data
 
 import swaydb.Bag
 
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
-
 abstract class Sweepable[BAG[_]](implicit bag: Bag[BAG]) {
 
-  def close(retryInterval: FiniteDuration = 1.second): BAG[Unit]
+  def close(): BAG[Unit]
 
-  def delete(retryInterval: FiniteDuration = 1.second): BAG[Unit]
+  def delete(): BAG[Unit]
 
 }

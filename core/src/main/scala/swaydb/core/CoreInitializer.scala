@@ -110,13 +110,12 @@ private[core] object CoreInitializer extends LazyLogging {
                                                        shutdownEC: ExecutionContext): ShutdownHookThread =
     sys.addShutdownHook {
       implicit val bag = Bag.future
-      Await.result(IO.Defer(close(zero, 2.seconds)).run(0), shutdownTimeout)
+      Await.result(IO.Defer(close(zero)).run(0), shutdownTimeout)
     }
 
-  def onClose(zero: LevelZero,
-              retryInterval: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
-                                             shutdownEC: ExecutionContext): Future[Unit] =
-    CoreShutdown.close(zero, retryInterval)
+  def onClose(zero: LevelZero)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
+                               shutdownEC: ExecutionContext): Future[Unit] =
+    CoreShutdown.close(zero)
 
   /**
    * Initialises Core/Levels. To see full documentation for each input parameter see the website - http://swaydb.io/configurations/.
@@ -263,7 +262,7 @@ private[core] object CoreInitializer extends LazyLogging {
                       new Core[Bag.Less](
                         zero = zero,
                         threadStateCache = threadStateCache,
-                        onClose = onClose(zero, _)
+                        onClose = onClose(zero)
                       )
                   }
               }
@@ -292,7 +291,7 @@ private[core] object CoreInitializer extends LazyLogging {
         IO[swaydb.Error.Boot, Core[Bag.Less]](core)
 
       case IO.Left(createError) =>
-        IO(LevelCloser.closeSync[Bag.Less](1.second, 10.seconds)) match {
+        IO(LevelCloser.closeSync[Bag.Less](10.seconds)) match {
           case IO.Right(_) =>
             IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createError.exception)
 

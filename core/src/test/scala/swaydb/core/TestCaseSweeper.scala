@@ -89,8 +89,8 @@ object TestCaseSweeper extends LazyLogging {
 
     implicit val ec = TestExecutionContext.executionContext
 
-    sweeper.actors.foreach(_.terminateAndClear[Bag.Less](1.second))
-    sweeper.actorWires.foreach(_.terminateAndClear[Bag.Less](1.second))
+    sweeper.actors.foreach(_.terminateAndClear[Bag.Less]())
+    sweeper.actorWires.foreach(_.terminateAndClear[Bag.Less]())
 
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 
@@ -98,19 +98,19 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.maps.foreach(_.close())
     sweeper.segments.foreach(_.close)
     sweeper.sweepables.foreach(_.close())
-    sweeper.levels.foreach(_.close(5.second).await(30.seconds))
+    sweeper.levels.foreach(_.close().await(30.seconds))
 
     //TERMINATE - terminate all initialised actors
     sweeper.keyValueMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
     sweeper.allMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
     sweeper.blockMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
     sweeper.cacheMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
-    sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.closeSync(1.second)(sweeper, Bag.less)))
-    sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.closeSync(1.second, 10.seconds)(cleaner, Bag.less, TestExecutionContext.executionContext)))
+    sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.closeSync()(sweeper, Bag.less)))
+    sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.closeSync(10.seconds)(cleaner, Bag.less, TestExecutionContext.executionContext)))
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
 
     //DELETE - delete after closing Levels.
-    sweeper.levels.foreach(_.delete(5.second).await(30.seconds))
+    sweeper.levels.foreach(_.delete().await(30.seconds))
 
     sweeper.segments.foreach {
       segment =>
@@ -137,10 +137,10 @@ object TestCaseSweeper extends LazyLogging {
 
   private def receiveAll(sweeper: TestCaseSweeper): Unit = {
     //calling this after since delete would've already invoked these.
-    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less](2.seconds)))))
-    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Less](2.seconds)))
-    sweeper.cleaners.foreach(_.get().foreach(_.get().foreach(_.receiveAllForce[Bag.Less](2.seconds))))
-    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Less](2.seconds)))))
+    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less]()))))
+    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Less]()))
+    sweeper.cleaners.foreach(_.get().foreach(_.get().foreach(_.receiveAllForce[Bag.Less]())))
+    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Less]()))))
   }
 
   def apply[T](code: TestCaseSweeper => T): T = {

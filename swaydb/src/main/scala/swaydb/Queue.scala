@@ -212,9 +212,9 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
       .stream
       .map(_._2)
 
-  def close(retryInterval: FiniteDuration = 1.second): Unit =
-    set.close(retryInterval)
+  def close(): Unit =
+    set.close()
 
-  def delete(retryInterval: FiniteDuration = 1.second): Unit =
-    set.delete(retryInterval)
+  def delete(): Unit =
+    set.delete()
 }

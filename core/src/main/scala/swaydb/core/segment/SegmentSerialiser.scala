@@ -33,7 +33,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.{BlockCache, Effect}
-import swaydb.core.util.Options._
+import swaydb.data.util.Options._
 import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP

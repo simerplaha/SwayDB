@@ -1576,8 +1576,8 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.error("{}: Failed to close appendix", pathDistributor.head, failure.exception)
       }
 
-  def close(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
-    LevelCloser.closeAsync[Future](retryInterval)
+  def close()(implicit executionContext: ExecutionContext): Future[Unit] =
+    LevelCloser.closeAsync[Future]()
       .andIO(closeNoSweep())
 
   def closeNoSweep(): IO[swaydb.Error.Level, Unit] =
@@ -1624,8 +1624,8 @@ private[core] case class Level(dirs: Seq[Dir],
       .and(deleteNextLevelNoSweep())
       .and(deleteFiles())
 
-  override def delete(retryInterval: FiniteDuration)(implicit executionContext: ExecutionContext): Future[Unit] =
-    close(retryInterval)
+  override def delete()(implicit executionContext: ExecutionContext): Future[Unit] =
+    close()
       .andIO(closeNoSweep())
       .andIO(deleteNextLevelNoSweep())
       .andIO(deleteFiles())
