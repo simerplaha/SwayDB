@@ -572,34 +572,37 @@ sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
           implicit val db = newDB()
 
-          (1 to maxUsers) map { //create Users in the database
-            id =>
-              val user = User(s"user-$id")
-              db.put(id, user).get
-              (id, user)
-          } foreach {
-            case (userId, user) =>
-              val state =
-                UserState(
-                  userId = userId,
-                  nextProductId = s"${userId}0000000000000000".toLong,
-                  user = user,
-                  products = mutable.SortedMap(),
-                  removedProducts = mutable.Set(),
-                  productsCreatedCountBeforeAssertion = 0
-                )
+          val actors =
+            (1 to maxUsers) map { //create Users in the database
+              id =>
+                val user = User(s"user-$id")
+                db.put(id, user).get
+                (id, user)
+            } map {
+              case (userId, user) =>
+                val state =
+                  UserState(
+                    userId = userId,
+                    nextProductId = s"${userId}0000000000000000".toLong,
+                    user = user,
+                    products = mutable.SortedMap(),
+                    removedProducts = mutable.Set(),
+                    productsCreatedCountBeforeAssertion = 0
+                  )
 
-              val actor =
-                Actor[ProductCommand, UserState](s"User $userId", state) {
-                  (command, self) =>
-                    processCommand(self.state, command, self)
-                }.sweep()
+                val actor =
+                  Actor[ProductCommand, UserState](s"User $userId", state) {
+                    (command, self) =>
+                      processCommand(self.state, command, self)
+                  }
 
-              actor send ProductCommand.Create
-          }
+                actor send ProductCommand.Create
+                actor
+            }
 
           Thread.sleep(runFor.toMillis)
 
+          actors.map(_.terminateAndClear[Bag.Less]())
       }
     }
   }

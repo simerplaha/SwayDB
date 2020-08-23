@@ -321,7 +321,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging {
         //      }
         //    }
 
-        readRequests runThis 10.times await 10.minutes
+        readRequests runThis 10.times await 1.hour
         println("************************* DONE *************************")
     }
   }

@@ -40,23 +40,22 @@ class MultiMapTransactionSpec extends TestBaseEmbedded {
   override val keyValueCount: Int = 1000
 
   "transaction" when {
-    TestCaseSweeper {
-      implicit sweeper =>
+    "nested map hierarchy" in {
+      TestCaseSweeper {
+        implicit sweeper =>
 
-        implicit val bag = Bag.less
+          implicit val bag = Bag.less
 
-        //Create a memory database
-        val root = swaydb.memory.MultiMap_EAP[Table, PrimaryKey, Row, Nothing, Bag.Less]().sweep()
+          //Create a memory database
+          val root = swaydb.memory.MultiMap_EAP[Table, PrimaryKey, Row, Nothing, Bag.Less]().sweep()
 
-        //create sibling1 UserMap and it's child UserActivity
-        val userMap = root.schema.init(Table.User: Table.UserTables, classOf[PrimaryKey.UserPrimaryKeys], classOf[Row.UserRows])
-        val userActivityMap = userMap.schema.init(Table.Activity, classOf[PrimaryKey.Activity], classOf[Row.Activity])
+          //create sibling1 UserMap and it's child UserActivity
+          val userMap = root.schema.init(Table.User: Table.UserTables, classOf[PrimaryKey.UserPrimaryKeys], classOf[Row.UserRows])
+          val userActivityMap = userMap.schema.init(Table.Activity, classOf[PrimaryKey.Activity], classOf[Row.Activity])
 
-        //create sibling2 ProductMap and it's child ProductOrderMap
-        val productMap = root.schema.init(Table.Product: Table.ProductTables, classOf[PrimaryKey.ProductPrimaryKey], classOf[Row.ProductRows])
-        val productOrderMap = productMap.schema.init(Table.Order, classOf[PrimaryKey.Order], classOf[Row.Order])
-
-        "nested map hierarchy" in {
+          //create sibling2 ProductMap and it's child ProductOrderMap
+          val productMap = root.schema.init(Table.Product: Table.ProductTables, classOf[PrimaryKey.ProductPrimaryKey], classOf[Row.ProductRows])
+          val productOrderMap = productMap.schema.init(Table.Order, classOf[PrimaryKey.Order], classOf[Row.Order])
 
           //create a transaction to write into userActivity and User
           val transaction =
@@ -112,7 +111,7 @@ class MultiMapTransactionSpec extends TestBaseEmbedded {
           eventually(Timeout(2.seconds)) {
             productOrderMap.get(PrimaryKey.Order(2)) shouldBe empty
           }
-        }
+      }
     }
   }
 }

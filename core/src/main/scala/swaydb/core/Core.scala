@@ -182,12 +182,10 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
     }
 
   @inline private def assertTerminated[T, BAG2[_]](f: => BAG2[T])(implicit bag: Bag[BAG2]): BAG2[T] =
-    bag.suspend {
-      if (closed)
-        bag.failure(new IllegalStateException(Core.closedMessage))
-      else
-        f
-    }
+    if (closed)
+      bag.failure(new IllegalStateException(Core.closedMessage))
+    else
+      f
 
   @inline private def execute[R, BAG[_]](thunk: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
     assertTerminated {
@@ -340,20 +338,16 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
     execute(_.clear(readState))
 
   def close(): BAG[Unit] =
-    bag.suspend {
-      IO.fromFuture {
-        closed = true
-        onClose
-      }.run(0)
-    }
+    IO.fromFuture {
+      closed = true
+      onClose
+    }.run(0)
 
   def delete(): BAG[Unit] =
-    bag.suspend {
-      IO.fromFuture {
-        closed = true
-        onClose.and(zero.delete())
-      }.run(0)
-    }
+    IO.fromFuture {
+      closed = true
+      onClose.and(zero.delete())
+    }.run(0)
 
   def toBag[BAG[_]](implicit bag: Bag[BAG]): Core[BAG] =
     new Core[BAG](
