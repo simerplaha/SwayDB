@@ -36,6 +36,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
@@ -60,7 +61,8 @@ class ByteBufferSweeperSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          implicit val fileSweeper = FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep().actor
+          implicit val fileSweeper: FileSweeperActor =
+            FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep().actor
 
           val file: DBFile =
             DBFile.mmapWriteAndRead(
@@ -74,7 +76,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
           val innerFile = file.file.asInstanceOf[MMAPFile]
 
-          sweeper.terminateNow()
+          fileSweeper.terminateAndRecover[Bag.Less]()
 
           eventual(2.seconds) {
             innerFile.isBufferEmpty shouldBe true

@@ -516,19 +516,27 @@ private[core] object ByteBufferSweeper extends LazyLogging {
             }
         }
 
-        if (self.state.pendingClean.nonEmpty) {
-          val message = s"Could not clean all files. Pending ${self.state.pendingClean.size} files. Ignoring delete."
-          logger.error(message, new Exception(message))
-        } else {
-          self.state.pendingDeletes foreach {
-            case (_, delete) =>
-              performDelete(
-                command = delete,
-                self = self,
-                maxDeleteRetries = maxDeleteRetries,
-                messageReschedule = None
-              )
+        val filesToDelete =
+          if (self.state.pendingClean.nonEmpty) {
+            val message = s"Could not clean all files. Pending ${self.state.pendingClean.size} files."
+            logger.error(message, new Exception(message))
+
+            self.state.pendingDeletes.filterNot {
+              case (path, _) =>
+                self.state.pendingClean.contains(path)
+            }
+          } else {
+            self.state.pendingDeletes
           }
+
+        filesToDelete foreach {
+          case (_, delete) =>
+            performDelete(
+              command = delete,
+              self = self,
+              maxDeleteRetries = maxDeleteRetries,
+              messageReschedule = None
+            )
         }
     }
 }
