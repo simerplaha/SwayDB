@@ -143,7 +143,7 @@ private[core] object Level extends LazyLogging {
               val appendixFolder = levelStorage.dir.resolve("appendix")
               //check if appendix folder/file was deleted.
               if ((!Effect.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && Effect.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
-                logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
+                logger.error("{}: Failed to start Level. Appendix file is missing", appendixFolder)
                 IO.failed(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
                 IO {
