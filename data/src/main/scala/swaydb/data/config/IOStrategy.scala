@@ -81,6 +81,7 @@ object IOStrategy {
     def forceCacheOnAccess: SynchronisedIO =
       copy(cacheOnAccess = true)
   }
+
   case class AsyncIO(cacheOnAccess: Boolean) extends ThreadSafe {
     def forceCacheOnAccess: AsyncIO =
       copy(cacheOnAccess = true)

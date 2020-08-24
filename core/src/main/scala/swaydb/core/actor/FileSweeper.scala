@@ -146,6 +146,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
     ) {
       case (command, _) =>
         processCommand(command)
+
     } recoverException[Command] {
       case (command, io, _) =>
         io match {

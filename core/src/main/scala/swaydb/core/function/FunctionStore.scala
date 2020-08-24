@@ -92,12 +92,11 @@ private[swaydb] object FunctionStore {
     override def get(functionId: Slice[Byte]): Option[SwayFunction] =
       Option(hashMap.get(functionId))
 
-    override def put(functionId: Slice[Byte], function: SwayFunction): OK = {
+    override def put(functionId: Slice[Byte], function: SwayFunction): OK =
       if (hashMap.putIfAbsent(functionId, function) == null)
         OK.instance
       else
         throw new Exception("Another with the same functionId exists.")
-    }
 
     override def exists(functionId: Slice[Byte]): Boolean =
       get(functionId).isDefined
@@ -106,4 +105,3 @@ private[swaydb] object FunctionStore {
       hashMap.remove(functionId)
   }
 }
-

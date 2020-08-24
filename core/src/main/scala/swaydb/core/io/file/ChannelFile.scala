@@ -61,7 +61,6 @@ private[file] class ChannelFile(val path: Path,
                                 val blockCacheFileId: Long) extends LazyLogging with DBFileType {
 
   def close: Unit =
-  //      logger.info(s"$path: Closing channel")
     channel.close()
 
   def append(slice: Slice[Byte]): Unit =

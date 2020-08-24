@@ -43,7 +43,7 @@ private[core] object CoreShutdown extends LazyLogging {
    */
 
   def close(zero: LevelZero)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
-                                           ec: ExecutionContext): Future[Unit] = {
+                             ec: ExecutionContext): Future[Unit] = {
     implicit val futureBag = Bag.future(ec)
 
     logger.info("****** Shutting down ******")
