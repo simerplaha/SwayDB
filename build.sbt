@@ -45,11 +45,11 @@ def publishScalaOptions(scalaVersion: String): Seq[String] =
   CrossVersion.partialVersion(scalaVersion) match {
     case Some((2, major)) if major >= 12 =>
       Seq(
-        "-opt:l:inline",
-        "-opt-warnings",
-        "-opt-inline-from:swaydb.**",
-        "-Yopt-log-inline",
-        "_"
+        //        "-opt:l:inline",
+        //        "-opt-warnings",
+        //        "-opt-inline-from:swaydb.**",
+        //        "-Yopt-log-inline",
+        //        "_"
       )
 
     case Some((2, 11)) =>
