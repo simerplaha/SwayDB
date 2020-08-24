@@ -68,11 +68,13 @@ private[core] object ByteBufferSweeper extends LazyLogging {
       private val idGenerator = new AtomicLong(0)
 
       def apply(buffer: MappedByteBuffer,
+                hasReference: () => Boolean,
                 filePath: Path): Clean =
         new Clean(
           buffer = buffer,
           filePath = filePath,
-          isOverdue = false,
+          isRecorded = false,
+          hasReference = hasReference,
           //this id is being used instead of HashCode because nio.FileChannel returns
           //the same MappedByteBuffer even after the FileChannel is closed.
           id = idGenerator.incrementAndGet()
@@ -81,15 +83,18 @@ private[core] object ByteBufferSweeper extends LazyLogging {
 
     /**
      * Cleans memory-mapped byte buffer.
+     *
+     * @param buffer       The memory-mapped ByteBuffer to clean.
+     * @param filePath     ByteBuffer's file path
+     * @param isRecorded   Indicates if the [[State]] has recorded this request.
+     * @param hasReference Indicates if the ByteBuffer is currently being read by another thread.
+     * @param id           Unique ID of this command.
      */
     case class Clean private(buffer: MappedByteBuffer,
                              filePath: Path,
-                             isOverdue: Boolean,
-                             id: Long) extends FileCommand {
-      def hasTimeLeft() =
-        !isOverdue
-    }
-
+                             isRecorded: Boolean,
+                             hasReference: () => Boolean,
+                             id: Long) extends FileCommand
 
     sealed trait DeleteCommand extends FileCommand {
       def deleteTries: Int
@@ -140,7 +145,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
     /**
      * Checks if the actor is terminated and has executed all [[Command.Clean]] requests.
      *
-     * @note The Actor should be terminated and [[Actor.receiveAllForce()]] or [[Actor.receiveAllForceBlocking()]] should be
+     * @note The Actor should be terminated and [[Actor.receiveAllForce()]] should be
      *       invoked for this to return true otherwise the response is always false.
      */
     case class IsTerminated[T] private(resubmitted: Boolean)(val replyTo: ActorRef[Boolean, T]) extends Command
@@ -284,18 +289,54 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    * @param command           clean command
    * @param messageReschedule reschedule if clean is not overdue.
    */
+  @tailrec
   private def performClean(command: Command.Clean,
                            self: Actor[Command, State],
                            messageReschedule: Option[FiniteDuration]): Unit =
-    messageReschedule match {
-      case Some(messageReschedule) if command.hasTimeLeft() && messageReschedule.fromNow.hasTimeLeft() =>
-        ByteBufferSweeper.recordCleanRequest(command, self.state.pendingClean)
-        self.send(command.copy(isOverdue = true), messageReschedule)
+    if (command.hasReference()) {
+      val rescheduleCommand =
+        if (command.isRecorded) {
+          command
+        } else {
+          ByteBufferSweeper.recordCleanRequest(command, self.state.pendingClean)
+          command.copy(isRecorded = true)
+        }
 
-      case Some(_) | None =>
-        ByteBufferSweeper.initCleanerAndPerformClean(self.state, command.buffer, command)
+      messageReschedule match {
+        case Some(messageReschedule) =>
+          self.send(message = rescheduleCommand, delay = messageReschedule)
+
+        case None =>
+          //AVOIDS FATAL JVM CRASH FOR RARE CIRCUMSTANCES DURING - db.close or db.delete function calls.
+
+          //We do not expect this to occur in reality. But blocking here is necessary to avoid fatal JVM crash.
+
+          //None indicates that Actor is terminated which happens when db is closed or deleted. We do not expect
+          //a Clean request to occur on TERMINATION while the file is already being read/hasReference. Core should
+          //disallow these requests. But if this does occur we want to avoid fatal JVM crash and block for a maximum of
+          //10.seconds or-else ignore cleaning the file.
+
+          val blockTime = 1.second
+          val maxCount = 10
+          var count = 1
+
+          while (command.hasReference() && count <= maxCount) {
+            logger.warn(s"No. $count: Clean submitted for path '${command.filePath}' on terminated Actor. Retry after blocking for ${blockTime.asString}.")
+            count += 1
+            Thread.sleep(blockTime.toMillis)
+          }
+
+          //If the file still has reference this ignore cleaning the file because clearing it even without a reference could lead to fatal JVM errors.
+          if (count > maxCount) {
+            val errorMessage = s"Could not clean file ${command.filePath} on terminated Actor after blocking for ${(blockTime * maxCount).asString}."
+            logger.error(errorMessage, new Exception(errorMessage))
+          } else {
+            performClean(command = command, self = self, messageReschedule = messageReschedule)
+          }
+      }
+    } else {
+      ByteBufferSweeper.initCleanerAndPerformClean(self.state, command.buffer, command)
     }
-
 
   /**
    * Deletes or prepares to delete the [[ByteBuffer]] file.
@@ -367,17 +408,13 @@ private[core] object ByteBufferSweeper extends LazyLogging {
     else
       self send command.copy(resubmitted = true)(command.replyTo) //resubmit so that if Actor's receiveAll is in progress then this message goes last.
 
-  def apply(actorInterval: FiniteDuration = 5.seconds,
-            actorStashCapacity: Int = 20,
-            maxDeleteRetries: Int = 5,
+  def apply(maxDeleteRetries: Int = 5,
             messageReschedule: FiniteDuration = 5.seconds)(implicit executionContext: ExecutionContext,
                                                            actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ByteBufferSweeperActor =
     Cache.noIO[Unit, ActorRef[Command, State]](synchronised = true, stored = true, initial = None) {
       (_, _) =>
         logger.info("Starting ByteBuffer cleaner for memory-mapped files.")
         createActor(
-          actorInterval = actorInterval,
-          actorStashCapacity = actorStashCapacity,
           maxDeleteRetries = maxDeleteRetries,
           messageReschedule = messageReschedule
         )
@@ -423,23 +460,17 @@ private[core] object ByteBufferSweeper extends LazyLogging {
    *
    * This [[Actor]] is optionally started if the database instances is booted with memory-mapped enabled.
    *
-   * @param actorInterval      Interval for the timer Actor.
-   * @param actorStashCapacity Max number of [[ByteBuffer]] to keep permanently in-memory.
-   * @param maxDeleteRetries   If a [[Command.DeleteFile]] command is submitting but the file is not cleaned
-   *                           yet [[maxDeleteRetries]] defines the max number of retries before the file
-   *                           is un-deletable.
-   * @param messageReschedule  reschedule delay for [[maxDeleteRetries]]
+   * @param maxDeleteRetries  If a [[Command.DeleteFile]] command is submitting but the file is not cleaned
+   *                          yet [[maxDeleteRetries]] defines the max number of retries before the file
+   *                          is un-deletable.
+   * @param messageReschedule reschedule delay for [[maxDeleteRetries]]
    */
-  private def createActor(actorInterval: FiniteDuration,
-                          actorStashCapacity: Int,
-                          maxDeleteRetries: Int,
+  private def createActor(maxDeleteRetries: Int,
                           messageReschedule: FiniteDuration)(implicit ec: ExecutionContext,
                                                              actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ActorRef[Command, State] =
-    Actor.timer[Command, State](
+    Actor[Command, State](
       name = ByteBufferSweeper.className,
-      state = State.init,
-      stashCapacity = actorStashCapacity,
-      interval = actorInterval
+      state = State.init
     ) {
       (command, self) =>
         process(
@@ -485,16 +516,19 @@ private[core] object ByteBufferSweeper extends LazyLogging {
             }
         }
 
-        assert(self.state.pendingClean.isEmpty, s"Pending clean is not empty: ${self.state.pendingClean.size}")
-
-        self.state.pendingDeletes foreach {
-          case (_, delete) =>
-            performDelete(
-              command = delete,
-              self = self,
-              maxDeleteRetries = maxDeleteRetries,
-              messageReschedule = None
-            )
+        if (self.state.pendingClean.nonEmpty) {
+          val message = s"Could not clean all files. Pending ${self.state.pendingClean.size} files. Ignoring delete."
+          logger.error(message, new Exception(message))
+        } else {
+          self.state.pendingDeletes foreach {
+            case (_, delete) =>
+              performDelete(
+                command = delete,
+                self = self,
+                maxDeleteRetries = maxDeleteRetries,
+                messageReschedule = None
+              )
+          }
         }
     }
 }

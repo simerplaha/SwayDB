@@ -82,6 +82,4 @@ protected class MemoryMap[OK, OV, K <: OK, V <: OV](_skipList: SkipListConcurren
 
   override def close(): Unit =
     ()
-
-
 }

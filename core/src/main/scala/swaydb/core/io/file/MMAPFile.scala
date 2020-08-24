@@ -28,7 +28,7 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{Path, StandardOpenOption}
 import java.nio.{BufferOverflowException, MappedByteBuffer}
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
@@ -97,6 +97,7 @@ private[file] class MMAPFile(val path: Path,
                              @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor) extends LazyLogging with DBFileType {
 
   private val open = new AtomicBoolean(true)
+  private val referenceCount = new AtomicLong(0)
 
   /**
    * [[buffer]] is set to null for safely clearing it from the RAM. Setting it to null
@@ -109,24 +110,25 @@ private[file] class MMAPFile(val path: Path,
    */
 
   @inline private final def watchNullPointer[T](f: => T): T =
-    try
+    try {
+      referenceCount.incrementAndGet()
       f
-    catch {
+    } catch {
       case ex: NullPointerException =>
         throw swaydb.Exception.NullMappedByteBuffer(ex, Reserve.free(name = s"${this.getClass.getSimpleName}: $path"))
+    } finally {
+      referenceCount.decrementAndGet()
     }
 
   def close(): Unit =
-  //    logger.info(s"$path: Closing channel")
-    if (open.compareAndSet(true, false)) {
+    if (open.compareAndSet(true, false))
       watchNullPointer {
         forceSave()
         clearBuffer()
         channel.close()
       }
-    } else {
+    else
       logger.trace("{}: Already closed.", path)
-    }
 
   //forceSave and clearBuffer are never called concurrently other than when the database is being shut down.
   //so there is no blocking cost for using synchronized here on than when this file is already submitted for cleaning on shutdown.
@@ -145,7 +147,7 @@ private[file] class MMAPFile(val path: Path,
       //the resulting NullPointerException will re-route request to the new Segment.
       //TO-DO: Use Option here instead. Test using Option does not have read performance impact.
       buffer = null
-      cleaner.actor send ByteBufferSweeper.Command.Clean(swapBuffer, path)
+      cleaner.actor send ByteBufferSweeper.Command.Clean(swapBuffer, hasReference, path)
     }
 
   override def append(slice: Iterable[Slice[Byte]]): Unit =
@@ -215,6 +217,9 @@ private[file] class MMAPFile(val path: Path,
       else
         Effect.delete(path)
     }
+
+  def hasReference(): Boolean =
+    referenceCount.get() > 0
 
   def isBufferEmpty: Boolean =
     buffer == null

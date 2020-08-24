@@ -532,9 +532,8 @@ sealed trait SegmentWriteSpec extends TestBase {
         TestCaseSweeper {
           implicit sweeper =>
 
-
             //memory-mapped files on windows get submitted to ByteBufferCleaner.
-            implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds).sweep()
+            implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds).sweep()
             bufferCleaner.actor
 
             //create a segment and delete it
@@ -555,8 +554,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         TestCaseSweeper {
           implicit sweeper =>
 
-
-            implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds).sweep()
+            implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds).sweep()
 
             val segment1 = TestSegment(randomizedKeyValues(keyValuesCount))
             val segment2 = TestSegment(randomizedKeyValues(keyValuesCount))
@@ -626,8 +624,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
 
-
-          implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds).sweep()
+          implicit val bufferCleaner = ByteBufferSweeper(messageReschedule = 0.seconds).sweep()
           bufferCleaner.actor
 
           val keyValues = randomizedKeyValues(keyValuesCount)
@@ -748,11 +745,10 @@ sealed trait SegmentWriteSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
 
-
           //set this MemorySweeper as root sweeper.
           TestSweeper.createKeyValueSweeperBlock().value.sweep()
 
-          ByteBufferSweeper(messageReschedule = 0.seconds, actorStashCapacity = 0, actorInterval = 0.seconds).sweep()
+          ByteBufferSweeper(messageReschedule = 0.seconds).sweep()
 
           val keyValues = randomizedKeyValues(keyValuesCount)
           val segment = TestSegment(keyValues)
