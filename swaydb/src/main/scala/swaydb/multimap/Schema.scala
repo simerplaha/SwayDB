@@ -22,12 +22,12 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.api.multimap
+package swaydb.multimap
 
 import swaydb.MultiMapKey.MapStart
 import swaydb.core.util.Times._
 import swaydb.serializers._
-import swaydb.{Apply, Bag, IO, Map, MultiMap_EAP, MultiMapKey, Prepare, PureFunction, Stream}
+import swaydb.{Apply, Bag, IO, Map, MultiMapKey, MultiMap_EAP, Prepare, PureFunction, Stream}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}

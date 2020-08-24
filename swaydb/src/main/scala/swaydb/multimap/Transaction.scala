@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.api.multimap
+package swaydb.multimap
 
 import swaydb.{MultiMap_EAP, Prepare}
 

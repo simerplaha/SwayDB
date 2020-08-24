@@ -27,11 +27,12 @@ package swaydb
 import java.nio.file.Path
 
 import swaydb.MultiMapKey.{MapEntriesEnd, MapEntriesStart, MapEntry}
-import swaydb.api.multimap.{Schema, Transaction}
+import swaydb.multimap.Transaction
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
+import swaydb.multimap.{Schema, Transaction}
 import swaydb.serializers.{Serializer, _}
 
 import scala.collection.compat._
