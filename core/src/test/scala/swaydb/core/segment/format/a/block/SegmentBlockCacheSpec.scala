@@ -130,7 +130,7 @@ class SegmentBlockCacheSpec extends TestBase {
           implicit sweeper =>
             import sweeper._
 
-            val memorySweeper = MemorySweeper(MemoryCache.ByteCacheOnly(4098, 50000.bytes, 600.mb, ActorConfig.random()(TestExecutionContext.executionContext)))
+            val memorySweeper = MemorySweeper(MemoryCache.ByteCacheOnly(4096, 50000.bytes, 600.mb, ActorConfig.random()(TestExecutionContext.executionContext)))
               .map(_.asInstanceOf[MemorySweeper.Block].sweep())
 
             val actor = memorySweeper.value.actor.value
@@ -213,7 +213,7 @@ class SegmentBlockCacheSpec extends TestBase {
         TestCaseSweeper {
           implicit sweeper =>
             implicit val blockSweeper: Option[MemorySweeper.Block] =
-              MemorySweeper(MemoryCache.ByteCacheOnly(4098, 50000.bytes, 600.mb, ActorConfig.random(10.seconds)(TestExecutionContext.executionContext)))
+              MemorySweeper(MemoryCache.ByteCacheOnly(4096, 50000.bytes, 600.mb, ActorConfig.random(10.seconds)(TestExecutionContext.executionContext)))
                 .map(_.asInstanceOf[MemorySweeper.Block].sweep())
 
             val actor = blockSweeper.value.actor.value

@@ -39,5 +39,11 @@ object FileCache {
   case class Enable(maxOpen: Int,
                     actorConfig: ActorConfig) extends FileCache {
     override def get: Option[Enable] = Some(this)
+
+    def copyWithMaxOpen(maxOpen: Int): Enable =
+      this.copy(maxOpen = maxOpen)
+
+    def copyWithActorConfig(actorConfig: ActorConfig): Enable =
+      this.copy(actorConfig = actorConfig)
   }
 }

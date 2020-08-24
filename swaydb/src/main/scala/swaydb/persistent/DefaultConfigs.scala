@@ -117,7 +117,7 @@ object DefaultConfigs {
 
   def fileCache(implicit ec: ExecutionContext = sweeperEC): FileCache.Enable =
     FileCache.Enable(
-      maxOpen = 500,
+      maxOpen = 1000,
       actorConfig =
         ActorConfig.TimeLoop(
           name = s"${this.getClass.getName} - FileCache TimeLoop Actor",
@@ -128,8 +128,8 @@ object DefaultConfigs {
 
   def memoryCache(implicit ec: ExecutionContext = sweeperEC): MemoryCache.ByteCacheOnly =
     ByteCacheOnly(
-      minIOSeekSize = 4098,
-      skipBlockCacheSeekSize = 4098 * 10,
+      minIOSeekSize = 4096,
+      skipBlockCacheSeekSize = 4096 * 10,
       cacheCapacity = 1.gb,
       actorConfig =
         ActorConfig.TimeLoop(

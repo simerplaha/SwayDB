@@ -1504,7 +1504,7 @@ object CommonAssertions {
   }
 
   def randomBlockSize(): Option[Int] =
-    orNone(Some(4098))
+    orNone(Some(4096))
 
   def randomIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
                        includeReserved: Boolean = true): IOStrategy =
