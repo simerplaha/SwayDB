@@ -37,6 +37,7 @@ sealed trait RandomKeyIndex {
       case enable: RandomKeyIndex.Enable => Some(enable)
     }
 }
+
 object RandomKeyIndex {
   def disable: RandomKeyIndex.Disable = Disable
 
@@ -51,7 +52,7 @@ object RandomKeyIndex {
                     minimumNumberOfHits: Int,
                     indexFormat: IndexFormat,
                     allocateSpace: RequiredSpace => Int,
-                    ioStrategy: IOAction.DataAction => IOStrategy,
+                    blockIOStrategy: IOAction.DataAction => IOStrategy,
                     compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomKeyIndex {
     def copyWithMaxProbe(maxProbe: Int) =
       this.copy(maxProbe = maxProbe)
@@ -68,8 +69,8 @@ object RandomKeyIndex {
     def copyWithAllocateSpace(allocateSpace: JavaFunction[RequiredSpace, Int]) =
       this.copy(allocateSpace = allocateSpace.apply)
 
-    def copyWithIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) =
-      this.copy(ioStrategy = ioStrategy.apply)
+    def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) =
+      this.copy(blockIOStrategy = blockIOStrategy.apply)
 
     def copyWithCompressions(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       this.copy(compression = compression.apply(_).asScala)

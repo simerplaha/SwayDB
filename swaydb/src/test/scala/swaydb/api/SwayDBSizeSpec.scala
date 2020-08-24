@@ -20,22 +20,21 @@
 package swaydb.api
 
 import swaydb.IOValues._
-import swaydb.api.{TestBaseEmbedded, repeatTest}
-import swaydb.data.RunThis._
+import swaydb._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
+import swaydb.data.RunThis._
 import swaydb.serializers.Default._
-import swaydb._
 
 class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
-  val keyValueCount: Int = 10000000
+  val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep()
 }
 
 class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
-  val keyValueCount: Int = 10000000
+  val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep()

@@ -63,11 +63,11 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
   def copyWithMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int): SegmentConfig =
     this.copy(maxKeyValuesPerSegment = maxKeyValuesPerSegment)
 
-  def copyWithBlockIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]): SegmentConfig =
-    this.copy(blockIOStrategy = ioStrategy.apply)
+  def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]): SegmentConfig =
+    this.copy(blockIOStrategy = blockIOStrategy.apply)
 
-  def copyWithFileIOStrategy(ioStrategy: JavaFunction[IOAction.OpenResource, IOStrategy.ThreadSafe]): SegmentConfig =
-    this.copy(fileIOStrategy = ioStrategy.apply)
+  def copyWithFileIOStrategy(fileIOStrategy: JavaFunction[IOAction.OpenResource, IOStrategy.ThreadSafe]): SegmentConfig =
+    this.copy(fileIOStrategy = fileIOStrategy.apply)
 
   def copyWithCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): SegmentConfig =
     this.copy(compression = info => compression.apply(info).asScala)

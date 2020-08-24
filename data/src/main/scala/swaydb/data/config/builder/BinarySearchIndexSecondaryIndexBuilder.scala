@@ -32,9 +32,9 @@ import scala.jdk.CollectionConverters._
 
 class BinarySearchIndexSecondaryIndexBuilder {
   private var minimumNumberOfKeys: Int = _
-  private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
   private var indexFormat: IndexFormat = _
   private var searchSortedIndexDirectlyIfPreNormalised: Boolean = _
+  private var blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy] = _
 }
 
 object BinarySearchIndexSecondaryIndexBuilder {
@@ -47,8 +47,8 @@ object BinarySearchIndexSecondaryIndexBuilder {
   }
 
   class Step1(builder: BinarySearchIndexSecondaryIndexBuilder) {
-    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
-      builder.ioStrategy = ioStrategy
+    def searchSortedIndexDirectlyIfPreNormalised(searchSortedIndexDirectlyIfPreNormalised: Boolean) = {
+      builder.searchSortedIndexDirectlyIfPreNormalised = searchSortedIndexDirectlyIfPreNormalised
       new Step2(builder)
     }
   }
@@ -61,8 +61,8 @@ object BinarySearchIndexSecondaryIndexBuilder {
   }
 
   class Step3(builder: BinarySearchIndexSecondaryIndexBuilder) {
-    def searchSortedIndexDirectlyIfPreNormalised(searchSortedIndexDirectlyIfPreNormalised: Boolean) = {
-      builder.searchSortedIndexDirectlyIfPreNormalised = searchSortedIndexDirectlyIfPreNormalised
+    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) = {
+      builder.blockIOStrategy = blockIOStrategy
       new Step4(builder)
     }
   }
@@ -71,7 +71,7 @@ object BinarySearchIndexSecondaryIndexBuilder {
     def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       BinarySearchIndex.SecondaryIndex(
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
-        ioStrategy = builder.ioStrategy.apply,
+        blockIOStrategy = builder.blockIOStrategy.apply,
         indexFormat = builder.indexFormat,
         searchSortedIndexDirectlyIfPreNormalised = builder.searchSortedIndexDirectlyIfPreNormalised,
         compression = compression.apply(_).asScala

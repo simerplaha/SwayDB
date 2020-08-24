@@ -36,9 +36,6 @@ sealed trait MMAP {
 
 object MMAP {
 
-  /**
-   * This type is only for [[swaydb.core.map.Map]] type.
-   */
   sealed trait Segment extends MMAP
   sealed trait Map extends MMAP {
     def isMMAP: Boolean
@@ -74,15 +71,15 @@ object MMAP {
 
   def randomForSegment(): MMAP.Segment =
     if (Random.nextBoolean())
-      MMAP.Enabled(OperatingSystem.get().isWindows)
+      MMAP.Enabled(OperatingSystem.isWindows)
     else if (Random.nextBoolean())
-      MMAP.ReadOnly(OperatingSystem.get().isWindows)
+      MMAP.ReadOnly(OperatingSystem.isWindows)
     else
       MMAP.Disabled
 
   def randomForMap(): MMAP.Map =
     if (Random.nextBoolean())
-      MMAP.Enabled(OperatingSystem.get().isWindows)
+      MMAP.Enabled(OperatingSystem.isWindows)
     else
       MMAP.Disabled
 }

@@ -38,7 +38,7 @@ class SegmentConfigBuilder {
   private var minSegmentSize: Int = _
   private var maxKeyValuesPerSegment: Int = _
   private var fileIOStrategy: JavaFunction[IOAction.OpenResource, IOStrategy.ThreadSafe] = _
-  private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
+  private var blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy] = _
 }
 
 object SegmentConfigBuilder {
@@ -86,14 +86,14 @@ object SegmentConfigBuilder {
   }
 
   class Step6(builder: SegmentConfigBuilder) {
-    def blockIOStrategy(fileIOStrategy: JavaFunction[IOAction.OpenResource, IOStrategy.ThreadSafe]) = {
+    def fileIOStrategy(fileIOStrategy: JavaFunction[IOAction.OpenResource, IOStrategy.ThreadSafe]) = {
       builder.fileIOStrategy = fileIOStrategy
       new Step7(builder)
     }
   }
 
   class Step7(builder: SegmentConfigBuilder) {
-    def blockIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
+    def blockIOStrategy(ioStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) = {
       builder.blockIOStrategy = ioStrategy
       new Step8(builder)
     }

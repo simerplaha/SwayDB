@@ -41,7 +41,7 @@ object BinarySearchIndex {
   sealed trait Enable extends BinarySearchIndex {
     def minimumNumberOfKeys: Int
 
-    def ioStrategy: IOAction.DataAction => IOStrategy
+    def blockIOStrategy: IOAction.DataAction => IOStrategy
 
     def compression: UncompressedBlockInfo => Iterable[Compression]
 
@@ -52,9 +52,9 @@ object BinarySearchIndex {
     BinarySearchIndexFullIndexBuilder.builder()
 
   case class FullIndex(minimumNumberOfKeys: Int,
-                       ioStrategy: IOAction.DataAction => IOStrategy,
                        indexFormat: IndexFormat,
                        searchSortedIndexDirectly: Boolean,
+                       blockIOStrategy: IOAction.DataAction => IOStrategy,
                        compression: UncompressedBlockInfo => Iterable[Compression]) extends Enable {
     def copyWithMinimumNumberOfKeys(minimumNumberOfKeys: Int) =
       this.copy(minimumNumberOfKeys = minimumNumberOfKeys)
@@ -65,8 +65,8 @@ object BinarySearchIndex {
     def copyWithSearchSortedIndexDirectly(searchSortedIndexDirectly: Boolean) =
       this.copy(searchSortedIndexDirectly = searchSortedIndexDirectly)
 
-    def copyWithIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) =
-      this.copy(ioStrategy = ioStrategy.apply)
+    def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) =
+      this.copy(blockIOStrategy = blockIOStrategy.apply)
 
     def copyWithCompressions(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       this.copy(compression = info => compression.apply(info).asScala)
@@ -76,9 +76,9 @@ object BinarySearchIndex {
     BinarySearchIndexSecondaryIndexBuilder.builder()
 
   case class SecondaryIndex(minimumNumberOfKeys: Int,
-                            ioStrategy: IOAction.DataAction => IOStrategy,
                             indexFormat: IndexFormat,
                             searchSortedIndexDirectlyIfPreNormalised: Boolean,
+                            blockIOStrategy: IOAction.DataAction => IOStrategy,
                             compression: UncompressedBlockInfo => Iterable[Compression]) extends Enable {
     def copyWithMinimumNumberOfKeys(minimumNumberOfKeys: Int) =
       this.copy(minimumNumberOfKeys = minimumNumberOfKeys)
@@ -89,8 +89,8 @@ object BinarySearchIndex {
     def copyWithSearchSortedIndexDirectlyIfPreNormalised(searchSortedIndexDirectlyIfPreNormalised: Boolean) =
       this.copy(searchSortedIndexDirectlyIfPreNormalised = searchSortedIndexDirectlyIfPreNormalised)
 
-    def copyWithIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) =
-      this.copy(ioStrategy = ioStrategy.apply)
+    def copyWithBlockIOStrategy(ioStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) =
+      this.copy(blockIOStrategy = ioStrategy.apply)
 
     def copyWithCompressions(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       this.copy(compression = compression.apply(_).asScala)

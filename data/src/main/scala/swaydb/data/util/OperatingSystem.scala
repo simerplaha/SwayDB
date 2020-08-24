@@ -24,41 +24,33 @@
 
 package swaydb.data.util
 
-sealed trait OperatingSystem {
-  def isWindows: Boolean
-
-  def isMac: Boolean
-
-  def isOther: Boolean
-}
+sealed trait OperatingSystem
 
 object OperatingSystem {
 
   @volatile private var operatingSystem: Option[OperatingSystem] = None
 
-  case object Windows extends OperatingSystem {
-    override val isWindows: Boolean = true
-    override val isMac: Boolean = false
-    override val isOther: Boolean = false
-  }
-
-  case object Mac extends OperatingSystem {
-    override val isWindows: Boolean = false
-    override val isMac: Boolean = true
-    override val isOther: Boolean = false
-  }
-
-  case object Other extends OperatingSystem {
-    override val isWindows: Boolean = false
-    override val isMac: Boolean = false
-    override val isOther: Boolean = true
-  }
+  case object Windows extends OperatingSystem
+  case object Mac extends OperatingSystem
+  case object Other extends OperatingSystem
 
   def isWindows: Boolean =
-    get().isWindows
+    get() == OperatingSystem.Windows
 
   def isNotWindows: Boolean =
     !isWindows
+
+  def isMac: Boolean =
+    get() == OperatingSystem.Mac
+
+  def isNotMac: Boolean =
+    !isMac
+
+  def isOther: Boolean =
+    get() == OperatingSystem.Other
+
+  def isNotOther: Boolean =
+    !isOther
 
   def get(): OperatingSystem =
     operatingSystem getOrElse getFromProperty()

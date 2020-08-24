@@ -37,7 +37,7 @@ object ValuesConfig {
 
 case class ValuesConfig(compressDuplicateValues: Boolean,
                         compressDuplicateRangeValues: Boolean,
-                        ioStrategy: IOAction.DataAction => IOStrategy,
+                        blockIOStrategy: IOAction.DataAction => IOStrategy,
                         compression: UncompressedBlockInfo => Iterable[Compression]) {
   def copyWithCompressDuplicateValues(compressDuplicateValues: Boolean) =
     this.copy(compressDuplicateValues = compressDuplicateValues)
@@ -45,8 +45,8 @@ case class ValuesConfig(compressDuplicateValues: Boolean,
   def copyWithCompressDuplicateRangeValues(compressDuplicateRangeValues: Boolean) =
     this.copy(compressDuplicateRangeValues = compressDuplicateRangeValues)
 
-  def copyWithIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) =
-    this.copy(ioStrategy = ioStrategy.apply)
+  def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) =
+    this.copy(blockIOStrategy = blockIOStrategy.apply)
 
   def copyWithCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
     this.copy(compression = info => compression.apply(info).asScala)

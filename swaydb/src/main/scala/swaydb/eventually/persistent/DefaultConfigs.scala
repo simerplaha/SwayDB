@@ -40,7 +40,7 @@ object DefaultConfigs {
     SortedKeyIndex.Enable(
       prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
       enablePositionIndex = true,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
@@ -54,7 +54,7 @@ object DefaultConfigs {
       minimumNumberOfHits = 2,
       indexFormat = IndexFormat.Reference,
       allocateSpace = _.requiredSpace,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
@@ -66,7 +66,7 @@ object DefaultConfigs {
       minimumNumberOfKeys = 5,
       indexFormat = IndexFormat.CopyKey,
       searchSortedIndexDirectly = true,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
@@ -78,7 +78,7 @@ object DefaultConfigs {
       falsePositiveRate = 0.001,
       minimumNumberOfKeys = 10,
       updateMaxProbe = optimalMaxProbe => 1,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
@@ -89,7 +89,7 @@ object DefaultConfigs {
     ValuesConfig(
       compressDuplicateValues = true,
       compressDuplicateRangeValues = true,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },

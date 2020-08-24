@@ -38,7 +38,7 @@ object SortedKeyIndex {
 
   case class Enable(prefixCompression: PrefixCompression,
                     enablePositionIndex: Boolean,
-                    ioStrategy: IOAction.DataAction => IOStrategy,
+                    blockIOStrategy: IOAction.DataAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedKeyIndex {
     def copyWithPrefixCompression(prefixCompression: PrefixCompression) =
       this.copy(prefixCompression = prefixCompression)
@@ -46,8 +46,8 @@ object SortedKeyIndex {
     def copyWithEnablePositionIndex(enablePositionIndex: Boolean) =
       this.copy(enablePositionIndex = enablePositionIndex)
 
-    def copyWithIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) =
-      this.copy(ioStrategy = ioStrategy.apply)
+    def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) =
+      this.copy(blockIOStrategy = blockIOStrategy.apply)
 
     def copyWithCompressions(compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       this.copy(compressions = info => compressions.apply(info).asScala)

@@ -30,6 +30,7 @@ sealed trait PrefixCompression {
   def keysOnly: Boolean
   def normaliseIndexForBinarySearch: Boolean
 }
+
 object PrefixCompression {
   case class Disable(normaliseIndexForBinarySearch: Boolean) extends PrefixCompression {
     override def keysOnly = false

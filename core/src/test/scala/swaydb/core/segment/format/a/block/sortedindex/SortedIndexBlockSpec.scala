@@ -64,7 +64,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             swaydb.data.config.SortedKeyIndex.Enable(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
-              ioStrategy = _ => randomIOStrategy(),
+              blockIOStrategy = _ => randomIOStrategy(),
               compressions = _ => eitherOne(Seq.empty, Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(Int.MinValue)), (LZ4Instance.Fastest, LZ4Decompressor.Fast))))
             )
           )
@@ -105,7 +105,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             swaydb.data.config.SortedKeyIndex.Enable(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
-              ioStrategy = _ => randomIOStrategy(),
+              blockIOStrategy = _ => randomIOStrategy(),
               compressions = _ => eitherOne(Seq.empty, Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(Int.MinValue)), (LZ4Instance.Fastest, LZ4Decompressor.Fast))))
             )
           )

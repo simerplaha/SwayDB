@@ -77,7 +77,7 @@ private[core] object BinarySearchIndexBlock {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectly,
             fullIndex = true,
-            ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.ioStrategy),
+            ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
             compressions =
               Functions.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -92,7 +92,7 @@ private[core] object BinarySearchIndexBlock {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectlyIfPreNormalised,
             fullIndex = false,
-            ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.ioStrategy),
+            ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
             compressions =
               Functions.safe(
                 default = _ => Seq.empty[CompressionInternal],

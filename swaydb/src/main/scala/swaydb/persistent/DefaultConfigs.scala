@@ -43,7 +43,7 @@ object DefaultConfigs {
     SortedKeyIndex.Enable(
       prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
       enablePositionIndex = true,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
@@ -57,7 +57,7 @@ object DefaultConfigs {
       minimumNumberOfHits = 2,
       indexFormat = IndexFormat.Reference,
       allocateSpace = _.requiredSpace,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
@@ -69,7 +69,7 @@ object DefaultConfigs {
       minimumNumberOfKeys = 10,
       searchSortedIndexDirectly = true,
       indexFormat = IndexFormat.CopyKey,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
@@ -81,7 +81,7 @@ object DefaultConfigs {
       falsePositiveRate = 0.01,
       minimumNumberOfKeys = 10,
       updateMaxProbe = optimalMaxProbe => 1,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
@@ -92,7 +92,7 @@ object DefaultConfigs {
     ValuesConfig(
       compressDuplicateValues = true,
       compressDuplicateRangeValues = true,
-      ioStrategy = {
+      blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
@@ -104,7 +104,7 @@ object DefaultConfigs {
       cacheSegmentBlocksOnCreate = true,
       deleteSegmentsEventually = true,
       pushForward = true,
-      mmap = MMAP.Enabled(deleteOnClean = OperatingSystem.get().isWindows),
+      mmap = MMAP.Enabled(deleteOnClean = OperatingSystem.isWindows),
       minSegmentSize = 2.mb,
       maxKeyValuesPerSegment = Int.MaxValue,
       fileIOStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),

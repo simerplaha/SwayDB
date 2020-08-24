@@ -33,7 +33,7 @@ import scala.jdk.CollectionConverters._
 class SortedKeyIndexBuilder {
   private var prefixCompression: PrefixCompression = _
   private var enablePositionIndex: Boolean = _
-  private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
+  private var blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy] = _
 }
 
 object SortedKeyIndexBuilder {
@@ -53,8 +53,8 @@ object SortedKeyIndexBuilder {
   }
 
   class Step2(builder: SortedKeyIndexBuilder) {
-    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
-      builder.ioStrategy = ioStrategy
+    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) = {
+      builder.blockIOStrategy = blockIOStrategy
       new Step3(builder)
     }
   }
@@ -64,7 +64,7 @@ object SortedKeyIndexBuilder {
       SortedKeyIndex.Enable(
         prefixCompression = builder.prefixCompression,
         enablePositionIndex = builder.enablePositionIndex,
-        ioStrategy = builder.ioStrategy.apply,
+        blockIOStrategy = builder.blockIOStrategy.apply,
         compressions = compressions.apply(_).asScala
       )
   }

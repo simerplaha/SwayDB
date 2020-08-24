@@ -71,7 +71,6 @@ object MemoryCache {
 
     def copyWithActorConfig(actorConfig: ActorConfig) =
       this.copy(actorConfig = actorConfig)
-
   }
 
   case class KeyValueCacheOnly(cacheCapacity: Int,

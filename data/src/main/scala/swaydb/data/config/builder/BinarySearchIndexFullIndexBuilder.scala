@@ -32,9 +32,9 @@ import scala.jdk.CollectionConverters._
 
 class BinarySearchIndexFullIndexBuilder {
   private var minimumNumberOfKeys: Int = _
-  private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
   private var indexFormat: IndexFormat = _
   private var searchSortedIndexDirectly: Boolean = _
+  private var blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy] = _
 }
 
 object BinarySearchIndexFullIndexBuilder {
@@ -47,8 +47,8 @@ object BinarySearchIndexFullIndexBuilder {
   }
 
   class Step1(builder: BinarySearchIndexFullIndexBuilder) {
-    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
-      builder.ioStrategy = ioStrategy
+    def searchSortedIndexDirectly(searchSortedIndexDirectly: Boolean) = {
+      builder.searchSortedIndexDirectly = searchSortedIndexDirectly
       new Step2(builder)
     }
   }
@@ -61,8 +61,8 @@ object BinarySearchIndexFullIndexBuilder {
   }
 
   class Step3(builder: BinarySearchIndexFullIndexBuilder) {
-    def searchSortedIndexDirectly(searchSortedIndexDirectly: Boolean) = {
-      builder.searchSortedIndexDirectly = searchSortedIndexDirectly
+    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) = {
+      builder.blockIOStrategy = blockIOStrategy
       new Step4(builder)
     }
   }
@@ -71,7 +71,7 @@ object BinarySearchIndexFullIndexBuilder {
     def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       BinarySearchIndex.FullIndex(
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
-        ioStrategy = builder.ioStrategy.apply,
+        blockIOStrategy = builder.blockIOStrategy.apply,
         indexFormat = builder.indexFormat,
         searchSortedIndexDirectly = builder.searchSortedIndexDirectly,
         compression = compression.apply(_).asScala
