@@ -74,7 +74,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
   }
 
   def weigher(command: Command): Int =
-    if (command.isDelete) 10 else 1
+    if (command.isDelete) 5 else 1
 
   def apply(fileCache: FileCache): Option[FileSweeperActor] =
     fileCache match {

@@ -212,9 +212,8 @@ protected object MultiMapKey {
           MultiMapKey.SubMapsEnd(keys)
         else if (dataType == MultiMapKey.mapEnd)
           MultiMapKey.MapEnd(keys)
-        else {
+        else
           throw IO.throwable(s"Invalid dataType: $dataType")
-        }
       }
     }
 
