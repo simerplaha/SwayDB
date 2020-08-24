@@ -50,7 +50,7 @@ object MightContainIndex {
   case class Enable(falsePositiveRate: Double,
                     updateMaxProbe: Int => Int,
                     minimumNumberOfKeys: Int,
-                    blockIOStrategy: IOAction.DataAction => IOStrategy,
+                    blockIOStrategy: IOAction => IOStrategy,
                     compression: UncompressedBlockInfo => Iterable[Compression]) extends MightContainIndex {
     def copyWithFalsePositiveRate(falsePositiveRate: Double) =
       this.copy(falsePositiveRate = falsePositiveRate)
@@ -61,7 +61,7 @@ object MightContainIndex {
     def copyWithMinimumNumberOfKeys(minimumNumberOfKeys: Int) =
       this.copy(minimumNumberOfKeys = minimumNumberOfKeys)
 
-    def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) =
+    def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) =
       this.copy(blockIOStrategy = blockIOStrategy.apply)
 
     def copyWithCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =

@@ -41,8 +41,8 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          mmap: MMAP.Segment,
                          minSegmentSize: Int,
                          maxKeyValuesPerSegment: Int,
-                         fileIOStrategy: IOAction.OpenResource => IOStrategy.ThreadSafe,
-                         blockIOStrategy: IOAction.DataAction => IOStrategy,
+                         fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                         blockIOStrategy: IOAction => IOStrategy,
                          compression: UncompressedBlockInfo => Iterable[Compression]) {
 
   def copyWithCacheSegmentBlocksOnCreate(cacheSegmentBlocksOnCreate: Boolean): SegmentConfig =
@@ -63,11 +63,11 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
   def copyWithMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int): SegmentConfig =
     this.copy(maxKeyValuesPerSegment = maxKeyValuesPerSegment)
 
-  def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]): SegmentConfig =
+  def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]): SegmentConfig =
     this.copy(blockIOStrategy = blockIOStrategy.apply)
 
-  def copyWithFileIOStrategy(fileIOStrategy: JavaFunction[IOAction.OpenResource, IOStrategy.ThreadSafe]): SegmentConfig =
-    this.copy(fileIOStrategy = fileIOStrategy.apply)
+  def copyWithFileOpenIOStrategy(fileOpenIOStrategy: IOStrategy.ThreadSafe): SegmentConfig =
+    this.copy(fileOpenIOStrategy = fileOpenIOStrategy)
 
   def copyWithCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): SegmentConfig =
     this.copy(compression = info => compression.apply(info).asScala)

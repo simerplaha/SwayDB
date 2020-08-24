@@ -438,7 +438,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     DBFile.mmapWriteAndRead(
       path = path,
-      ioStrategy = randomThreadSafeIOStrategy(),
+      fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
       deleteOnClean = OperatingSystem.isWindows,
       blockCacheFileId = BlockCacheFileIDGenerator.nextID,
@@ -454,7 +454,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val file =
       DBFile.channelWrite(
         path = path,
-        ioStrategy = randomThreadSafeIOStrategy(),
+        fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         blockCacheFileId = blockCacheFileId,
         autoClose = true
       )
@@ -464,7 +464,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     DBFile.mmapRead(
       path = path,
-      ioStrategy = randomThreadSafeIOStrategy(),
+      fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
       deleteOnClean = OperatingSystem.isWindows,
       blockCacheFileId = blockCacheFileId
@@ -477,7 +477,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     new FileReader(
       DBFile.mmapRead(
         path = path.sweep(),
-        ioStrategy = randomThreadSafeIOStrategy(),
+        fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
         deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = BlockCacheFileIDGenerator.nextID
@@ -494,7 +494,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val file =
       DBFile.channelRead(
         path = path.sweep(),
-        ioStrategy = randomThreadSafeIOStrategy(),
+        fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
         blockCacheFileId = BlockCacheFileIDGenerator.nextID
       )

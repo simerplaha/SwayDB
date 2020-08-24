@@ -41,7 +41,7 @@ object BinarySearchIndex {
   sealed trait Enable extends BinarySearchIndex {
     def minimumNumberOfKeys: Int
 
-    def blockIOStrategy: IOAction.DataAction => IOStrategy
+    def blockIOStrategy: IOAction => IOStrategy
 
     def compression: UncompressedBlockInfo => Iterable[Compression]
 
@@ -54,7 +54,7 @@ object BinarySearchIndex {
   case class FullIndex(minimumNumberOfKeys: Int,
                        indexFormat: IndexFormat,
                        searchSortedIndexDirectly: Boolean,
-                       blockIOStrategy: IOAction.DataAction => IOStrategy,
+                       blockIOStrategy: IOAction => IOStrategy,
                        compression: UncompressedBlockInfo => Iterable[Compression]) extends Enable {
     def copyWithMinimumNumberOfKeys(minimumNumberOfKeys: Int) =
       this.copy(minimumNumberOfKeys = minimumNumberOfKeys)
@@ -65,7 +65,7 @@ object BinarySearchIndex {
     def copyWithSearchSortedIndexDirectly(searchSortedIndexDirectly: Boolean) =
       this.copy(searchSortedIndexDirectly = searchSortedIndexDirectly)
 
-    def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) =
+    def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) =
       this.copy(blockIOStrategy = blockIOStrategy.apply)
 
     def copyWithCompressions(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
@@ -78,7 +78,7 @@ object BinarySearchIndex {
   case class SecondaryIndex(minimumNumberOfKeys: Int,
                             indexFormat: IndexFormat,
                             searchSortedIndexDirectlyIfPreNormalised: Boolean,
-                            blockIOStrategy: IOAction.DataAction => IOStrategy,
+                            blockIOStrategy: IOAction => IOStrategy,
                             compression: UncompressedBlockInfo => Iterable[Compression]) extends Enable {
     def copyWithMinimumNumberOfKeys(minimumNumberOfKeys: Int) =
       this.copy(minimumNumberOfKeys = minimumNumberOfKeys)
@@ -89,7 +89,7 @@ object BinarySearchIndex {
     def copyWithSearchSortedIndexDirectlyIfPreNormalised(searchSortedIndexDirectlyIfPreNormalised: Boolean) =
       this.copy(searchSortedIndexDirectlyIfPreNormalised = searchSortedIndexDirectlyIfPreNormalised)
 
-    def copyWithBlockIOStrategy(ioStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) =
+    def copyWithBlockIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) =
       this.copy(blockIOStrategy = ioStrategy.apply)
 
     def copyWithCompressions(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =

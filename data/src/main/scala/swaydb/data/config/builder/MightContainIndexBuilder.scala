@@ -34,7 +34,7 @@ class MightContainIndexBuilder {
   private var falsePositiveRate: Double = _
   private var updateMaxProbe: JavaFunction[Int, Int] = _
   private var minimumNumberOfKeys: Int = _
-  private var blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy] = _
+  private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
 
 object MightContainIndexBuilder {
@@ -61,7 +61,7 @@ object MightContainIndexBuilder {
   }
 
   class Step3(builder: MightContainIndexBuilder) {
-    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) = {
+    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.blockIOStrategy = blockIOStrategy
       new Step4(builder)
     }

@@ -158,7 +158,7 @@
 //                  IOStrategy.ConcurrentIO(cacheOnAccess = true)
 //                case IOAction.ReadDataOverview =>
 //                  IOStrategy.ConcurrentIO(cacheOnAccess = true)
-//                case action: IOAction.DataAction =>
+//                case action: IOAction =>
 //                  IOStrategy.ConcurrentIO(cacheOnAccess = action.isCompressed)
 //              },
 //              cacheBlocksOnCreate = false,

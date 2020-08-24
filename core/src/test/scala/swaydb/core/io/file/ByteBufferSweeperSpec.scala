@@ -64,7 +64,7 @@ class ByteBufferSweeperSpec extends TestBase {
           val file: DBFile =
             DBFile.mmapWriteAndRead(
               path = randomDir,
-              ioStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               deleteOnClean = OperatingSystem.isWindows,
               blockCacheFileId = BlockCacheFileIDGenerator.nextID,
@@ -97,7 +97,7 @@ class ByteBufferSweeperSpec extends TestBase {
                   IO {
                     DBFile.mmapWriteAndRead(
                       path = randomDir,
-                      ioStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                      fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                       autoClose = true,
                       deleteOnClean = OperatingSystem.isWindows,
                       blockCacheFileId = BlockCacheFileIDGenerator.nextID,

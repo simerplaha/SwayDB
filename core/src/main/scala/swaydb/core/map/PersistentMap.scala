@@ -280,7 +280,7 @@ private[map] object PersistentMap extends LazyLogging {
         case _: MMAP.Disabled =>
           DBFile.channelWrite(
             path = nextPath,
-            ioStrategy = IOStrategy.SynchronisedIO(true),
+            fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             blockCacheFileId = 0,
             autoClose = false
           )(fileSweeper, None, bufferCleaner)

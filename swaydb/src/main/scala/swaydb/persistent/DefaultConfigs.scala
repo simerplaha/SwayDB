@@ -107,7 +107,7 @@ object DefaultConfigs {
       mmap = MMAP.Enabled(deleteOnClean = OperatingSystem.isWindows),
       minSegmentSize = 2.mb,
       maxKeyValuesPerSegment = Int.MaxValue,
-      fileIOStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+      fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)

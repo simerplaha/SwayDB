@@ -44,7 +44,7 @@ object DBFile extends LazyLogging {
   def fileCache(filePath: Path,
                 memoryMapped: Boolean,
                 deleteOnClean: Boolean,
-                ioStrategy: IOStrategy.ThreadSafe,
+                fileOpenIOStrategy: IOStrategy.ThreadSafe,
                 file: Option[DBFileType],
                 blockCacheFileId: Long,
                 autoClose: Boolean)(implicit fileSweeper: FileSweeperActor,
@@ -77,7 +77,7 @@ object DBFile extends LazyLogging {
         //This is also needed because only a single thread can close or delete a
         //file using clearApply and stored cached is required otherwise this will lead
         //to many open FileChannels without reference which results in "too many files open" exception.
-        strategy = ioStrategy.forceCacheOnAccess,
+        strategy = fileOpenIOStrategy.forceCacheOnAccess,
         reserveError = Error.OpeningFile(filePath, Reserve.free(name = s"DBFile: $filePath. MemoryMapped: $memoryMapped")),
         initial = file
       ) {
@@ -112,7 +112,7 @@ object DBFile extends LazyLogging {
   }
 
   def channelWrite(path: Path,
-                   ioStrategy: IOStrategy.ThreadSafe,
+                   fileOpenIOStrategy: IOStrategy.ThreadSafe,
                    blockCacheFileId: Long,
                    autoClose: Boolean)(implicit fileSweeper: FileSweeperActor,
                                        blockCache: Option[BlockCache.State],
@@ -130,7 +130,7 @@ object DBFile extends LazyLogging {
           memoryMapped = false,
           deleteOnClean = false,
           file = Some(file),
-          ioStrategy = ioStrategy,
+          fileOpenIOStrategy = fileOpenIOStrategy,
           autoClose = autoClose,
           blockCacheFileId = blockCacheFileId
         )
@@ -138,7 +138,7 @@ object DBFile extends LazyLogging {
   }
 
   def channelRead(path: Path,
-                  ioStrategy: IOStrategy.ThreadSafe,
+                  fileOpenIOStrategy: IOStrategy.ThreadSafe,
                   autoClose: Boolean,
                   blockCacheFileId: Long,
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeperActor,
@@ -158,7 +158,7 @@ object DBFile extends LazyLogging {
             filePath = path,
             memoryMapped = false,
             deleteOnClean = false,
-            ioStrategy = ioStrategy,
+            fileOpenIOStrategy = fileOpenIOStrategy,
             file = None,
             blockCacheFileId = blockCacheFileId,
             autoClose = autoClose
@@ -167,7 +167,7 @@ object DBFile extends LazyLogging {
     }
 
   def mmapWriteAndRead(path: Path,
-                       ioStrategy: IOStrategy.ThreadSafe,
+                       fileOpenIOStrategy: IOStrategy.ThreadSafe,
                        autoClose: Boolean,
                        deleteOnClean: Boolean,
                        blockCacheFileId: Long,
@@ -186,7 +186,7 @@ object DBFile extends LazyLogging {
     val file =
       mmapInit(
         path = path,
-        ioStrategy = ioStrategy,
+        fileOpenIOStrategy = fileOpenIOStrategy,
         bufferSize = totalWritten,
         blockCacheFileId = blockCacheFileId,
         autoClose = autoClose,
@@ -198,7 +198,7 @@ object DBFile extends LazyLogging {
   }
 
   def mmapWriteAndRead(path: Path,
-                       ioStrategy: IOStrategy.ThreadSafe,
+                       fileOpenIOStrategy: IOStrategy.ThreadSafe,
                        autoClose: Boolean,
                        deleteOnClean: Boolean,
                        blockCacheFileId: Long,
@@ -212,7 +212,7 @@ object DBFile extends LazyLogging {
       val file =
         mmapInit(
           path = path,
-          ioStrategy = ioStrategy,
+          fileOpenIOStrategy = fileOpenIOStrategy,
           bufferSize = bytes.size,
           blockCacheFileId = blockCacheFileId,
           autoClose = autoClose,
@@ -224,7 +224,7 @@ object DBFile extends LazyLogging {
     }
 
   def mmapRead(path: Path,
-               ioStrategy: IOStrategy.ThreadSafe,
+               fileOpenIOStrategy: IOStrategy.ThreadSafe,
                autoClose: Boolean,
                deleteOnClean: Boolean,
                blockCacheFileId: Long,
@@ -245,7 +245,7 @@ object DBFile extends LazyLogging {
             filePath = path,
             memoryMapped = true,
             deleteOnClean = deleteOnClean,
-            ioStrategy = ioStrategy,
+            fileOpenIOStrategy = fileOpenIOStrategy,
             file = None,
             blockCacheFileId = blockCacheFileId,
             autoClose = autoClose
@@ -254,7 +254,7 @@ object DBFile extends LazyLogging {
     }
 
   def mmapInit(path: Path,
-               ioStrategy: IOStrategy.ThreadSafe,
+               fileOpenIOStrategy: IOStrategy.ThreadSafe,
                bufferSize: Long,
                blockCacheFileId: Long,
                autoClose: Boolean,
@@ -280,7 +280,7 @@ object DBFile extends LazyLogging {
           filePath = path,
           memoryMapped = true,
           deleteOnClean = deleteOnClean,
-          ioStrategy = ioStrategy,
+          fileOpenIOStrategy = fileOpenIOStrategy,
           file = Some(file),
           blockCacheFileId = blockCacheFileId,
           autoClose = autoClose

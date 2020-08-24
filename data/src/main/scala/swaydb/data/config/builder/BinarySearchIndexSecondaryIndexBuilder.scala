@@ -34,7 +34,7 @@ class BinarySearchIndexSecondaryIndexBuilder {
   private var minimumNumberOfKeys: Int = _
   private var indexFormat: IndexFormat = _
   private var searchSortedIndexDirectlyIfPreNormalised: Boolean = _
-  private var blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy] = _
+  private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
 
 object BinarySearchIndexSecondaryIndexBuilder {
@@ -61,7 +61,7 @@ object BinarySearchIndexSecondaryIndexBuilder {
   }
 
   class Step3(builder: BinarySearchIndexSecondaryIndexBuilder) {
-    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) = {
+    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.blockIOStrategy = blockIOStrategy
       new Step4(builder)
     }

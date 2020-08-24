@@ -37,7 +37,7 @@ class RandomKeyIndexBuilder {
   private var minimumNumberOfHits: Int = _
   private var indexFormat: IndexFormat = _
   private var allocateSpace: JavaFunction[RequiredSpace, Int] = _
-  private var blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy] = _
+  private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
 
 object RandomKeyIndexBuilder {
@@ -83,7 +83,7 @@ object RandomKeyIndexBuilder {
   }
 
   class Step5(builder: RandomKeyIndexBuilder) {
-    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) = {
+    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.blockIOStrategy = blockIOStrategy
       new Step6(builder)
     }

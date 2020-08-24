@@ -51,9 +51,6 @@ object IOStrategy {
    */
 
   def defaultSynchronised: IOAction => IOStrategy.SynchronisedIO = {
-    case IOAction.OpenResource =>
-      IOStrategy.SynchronisedIO(cacheOnAccess = true)
-
     case IOAction.ReadDataOverview =>
       IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
@@ -65,9 +62,6 @@ object IOStrategy {
     defaultSynchronised.asJava
 
   def defaultConcurrent: IOAction => IOStrategy.ConcurrentIO = {
-    case IOAction.OpenResource =>
-      IOStrategy.ConcurrentIO(cacheOnAccess = true)
-
     case IOAction.ReadDataOverview =>
       IOStrategy.ConcurrentIO(cacheOnAccess = true)
 

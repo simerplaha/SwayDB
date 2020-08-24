@@ -33,7 +33,7 @@ import scala.jdk.CollectionConverters._
 class ValuesConfigBuilder {
   private var compressDuplicateValues: Boolean = _
   private var compressDuplicateRangeValues: Boolean = _
-  private var blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy] = _
+  private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
 
 object ValuesConfigBuilder {
@@ -53,7 +53,7 @@ object ValuesConfigBuilder {
   }
 
   class Step2(builder: ValuesConfigBuilder) {
-    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) = {
+    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.blockIOStrategy = blockIOStrategy
       new Step3(builder)
     }

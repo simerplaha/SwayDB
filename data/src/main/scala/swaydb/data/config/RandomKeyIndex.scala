@@ -52,7 +52,7 @@ object RandomKeyIndex {
                     minimumNumberOfHits: Int,
                     indexFormat: IndexFormat,
                     allocateSpace: RequiredSpace => Int,
-                    blockIOStrategy: IOAction.DataAction => IOStrategy,
+                    blockIOStrategy: IOAction => IOStrategy,
                     compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomKeyIndex {
     def copyWithMaxProbe(maxProbe: Int) =
       this.copy(maxProbe = maxProbe)
@@ -69,7 +69,7 @@ object RandomKeyIndex {
     def copyWithAllocateSpace(allocateSpace: JavaFunction[RequiredSpace, Int]) =
       this.copy(allocateSpace = allocateSpace.apply)
 
-    def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction.DataAction, IOStrategy]) =
+    def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) =
       this.copy(blockIOStrategy = blockIOStrategy.apply)
 
     def copyWithCompressions(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
