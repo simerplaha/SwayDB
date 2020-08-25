@@ -49,6 +49,7 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import TestCaseSweeper._
 
 import scala.jdk.CollectionConverters._
 
@@ -64,36 +65,39 @@ class MapSpec extends TestBase {
 
   "Map" should {
     "initialise a memory level0" in {
-      import LevelZeroMapEntryWriter._
+      TestCaseSweeper {
+        implicit sweeper =>
+          import LevelZeroMapEntryWriter._
 
-      val map =
-        Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-          nullKey = Slice.Null,
-          nullValue = Memory.Null,
-          fileSize = 1.mb,
-          flushOnOverflow = false
-        )
+          val map =
+            Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+              nullKey = Slice.Null,
+              nullValue = Memory.Null,
+              fileSize = 1.mb,
+              flushOnOverflow = false
+            ).sweep()
 
-      map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
-      map.writeSync(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
-      map.get(1) shouldBe Memory.put(1, 1)
-      map.get(2) shouldBe Memory.put(2, 2)
+          map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
+          map.writeSync(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
+          map.get(1) shouldBe Memory.put(1, 1)
+          map.get(2) shouldBe Memory.put(2, 2)
 
-      map.hasRange shouldBe false
+          map.hasRange shouldBe false
 
-      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
-      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
-      map.get(1) shouldBe Memory.remove(1)
-      map.get(2) shouldBe Memory.remove(2)
+          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
+          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
+          map.get(1) shouldBe Memory.remove(1)
+          map.get(2) shouldBe Memory.remove(2)
 
-      map.hasRange shouldBe false
+          map.hasRange shouldBe false
 
-      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
-      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
-      map.get(1) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
-      map.get(11) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
+          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
+          map.get(1) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
+          map.get(11) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
 
-      map.hasRange shouldBe true
+          map.hasRange shouldBe true
+      }
     }
 
     "initialise a memory Appendix map" in {
@@ -144,7 +148,7 @@ class MapSpec extends TestBase {
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
-            ).item
+            ).item.sweep()
 
           map.isEmpty shouldBe true
           map.close()
@@ -158,7 +162,7 @@ class MapSpec extends TestBase {
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
-            ).item
+            ).item.sweep()
 
           recovered.isEmpty shouldBe true
           recovered.close()
@@ -182,7 +186,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled,
               flushOnOverflow = false, fileSize = 1.mb,
               dropCorruptedTailEntries = false
-            ).item
+            ).item.sweep()
 
           map.isEmpty shouldBe true
           map.close()
@@ -196,7 +200,7 @@ class MapSpec extends TestBase {
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
-            ).item
+            ).item.sweep()
 
           recovered.isEmpty shouldBe true
           recovered.close()
@@ -549,7 +553,7 @@ class MapSpec extends TestBase {
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
-            ).item
+            ).item.sweep()
 
           map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true

@@ -27,7 +27,9 @@ package swaydb.data.util
 import java.util.TimerTask
 import java.util.concurrent.TimeUnit
 
+import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
 
 private[swaydb] object FiniteDurations {
 
@@ -71,4 +73,27 @@ private[swaydb] object FiniteDurations {
       case (None, None) =>
         None
     }
+
+  def eventually[T](timeoutDuration: FiniteDuration = 1.seconds,
+                    interval: FiniteDuration = 100.millisecond)(f: => T): Try[T] = {
+    val deadline = timeoutDuration.fromNow
+    var keepTrying: Boolean = true
+    var result: Try[T] = Failure(new TimeoutException("Timeout!"))
+
+    while (keepTrying)
+      Try(f) match {
+        case Failure(exception) =>
+          if (deadline.isOverdue()) {
+            result = Failure(exception)
+            keepTrying = false
+          } else {
+            Thread.sleep(interval.toMillis)
+          }
+        case Success(value) =>
+          result = Success(value)
+          keepTrying = false
+      }
+
+    result
+  }
 }

@@ -192,8 +192,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     if(deleteFiles)
       Effect.walkDelete(testClassDirPath)
 
-//  override protected def afterEach(): Unit =
-//    Effect.deleteIfExists(testClassDirPath)
+  override protected def afterEach(): Unit =
+    Effect.deleteIfExists(testClassDirPath)
 
   object TestMap {
     def apply(keyValues: Slice[Memory],

@@ -218,7 +218,7 @@ private[file] class MMAPFile(val path: Path,
         Effect.delete(path)
     }
 
-  def hasReference(): Boolean =
+  private def hasReference(): Boolean =
     referenceCount.get() > 0
 
   def isBufferEmpty: Boolean =

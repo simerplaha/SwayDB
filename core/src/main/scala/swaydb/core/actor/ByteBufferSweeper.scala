@@ -24,7 +24,8 @@
 
 package swaydb.core.actor
 
-import java.nio.file.{AccessDeniedException, Path}
+import java.io.FileNotFoundException
+import java.nio.file.{AccessDeniedException, NoSuchFileException, Path}
 import java.nio.{ByteBuffer, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicLong
 
@@ -32,16 +33,16 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
 import swaydb.core.actor.ByteBufferCleaner.Cleaner
-import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.core.io.file.Effect
-import swaydb.data.util.FiniteDurations._
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.data.util.FiniteDurations
+import swaydb.data.util.FiniteDurations._
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
-
 
 private[core] object ByteBufferSweeper extends LazyLogging {
 
@@ -57,7 +58,9 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   /**
    * Actor commands.
    */
-  sealed trait Command
+  sealed trait Command {
+    def name: String
+  }
 
   object Command {
     sealed trait FileCommand extends Command {
@@ -94,7 +97,9 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                              filePath: Path,
                              isRecorded: Boolean,
                              hasReference: () => Boolean,
-                             id: Long) extends FileCommand
+                             id: Long) extends FileCommand {
+      override def name: String = s"Clean: $filePath"
+    }
 
     sealed trait DeleteCommand extends FileCommand {
       def deleteTries: Int
@@ -107,6 +112,8 @@ private[core] object ByteBufferSweeper extends LazyLogging {
      */
     case class DeleteFile(filePath: Path,
                           deleteTries: Int = 0) extends DeleteCommand {
+      override def name: String = s"DeleteFile: $filePath"
+
       override def copyWithDeleteTries(deleteTries: Int): Command =
         copy(deleteTries = deleteTries)
     }
@@ -115,6 +122,8 @@ private[core] object ByteBufferSweeper extends LazyLogging {
      * Deletes the folder ensuring that file is cleaned first.
      */
     case class DeleteFolder(folderPath: Path, filePath: Path, deleteTries: Int = 0) extends DeleteCommand {
+      override def name: String = s"DeleteFolder. Folder: $folderPath. File: $filePath"
+
       override def copyWithDeleteTries(deleteTries: Int): Command =
         copy(deleteTries = deleteTries)
     }
@@ -126,7 +135,9 @@ private[core] object ByteBufferSweeper extends LazyLogging {
      * executed based on the [[Actor.interval]]. But terminating the Actor and then
      * requesting this will return immediate response.
      */
-    case class IsClean[T](filePath: Path)(val replyTo: ActorRef[Boolean, T]) extends Command
+    case class IsClean[T](filePath: Path)(val replyTo: ActorRef[Boolean, T]) extends Command {
+      override def name: String = s"IsClean: $filePath"
+    }
 
     /**
      * Checks if all files are cleaned.
@@ -135,7 +146,9 @@ private[core] object ByteBufferSweeper extends LazyLogging {
      * executed based on the [[Actor.interval]]. But terminating the Actor and then
      * requesting this will return immediate response.
      */
-    case class IsAllClean[T](replyTo: ActorRef[Boolean, T]) extends Command
+    case class IsAllClean[T](replyTo: ActorRef[Boolean, T]) extends Command {
+      override def name: String = s"IsAllClean"
+    }
 
 
     object IsTerminated {
@@ -148,7 +161,9 @@ private[core] object ByteBufferSweeper extends LazyLogging {
      * @note The Actor should be terminated and [[Actor.receiveAllForce()]] should be
      *       invoked for this to return true otherwise the response is always false.
      */
-    case class IsTerminated[T] private(resubmitted: Boolean)(val replyTo: ActorRef[Boolean, T]) extends Command
+    case class IsTerminated[T] private(resubmitted: Boolean)(val replyTo: ActorRef[Boolean, T]) extends Command {
+      override def name: String = s"IsTerminated. resubmitted = $resubmitted"
+    }
   }
 
   object State {
@@ -231,10 +246,10 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   def recordCleanSuccessful(command: Command.Clean, pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, Command.Clean]]): Unit =
     pendingClean.get(command.filePath) foreach {
       requests =>
-        if (requests.size <= 1)
+        requests.remove(command.id)
+
+        if (requests.isEmpty)
           pendingClean.remove(command.filePath)
-        else
-          requests.remove(command.id)
     }
 
   /**
@@ -257,7 +272,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
         IO {
           cleaner.clean(buffer)
           ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
-          logger.debug(s"${command.filePath} Cleaned!")
+          logger.debug(s"${command.filePath} Cleaned ${command.id}!")
           state
         }
 
@@ -266,7 +281,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           cleaner =>
             state.cleaner = Some(cleaner)
             ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
-            logger.debug(s"${command.filePath} Cleaned!")
+            logger.debug(s"${command.filePath} Cleaned! ${command.id}")
             state
         }
     }
@@ -274,8 +289,9 @@ private[core] object ByteBufferSweeper extends LazyLogging {
     error =>
       error.exception match {
         case _: NullPointerException if buffer.position() == 0 =>
-        //ignore NullPointer exception which can occur when there are empty byte ByteBuffer which happens
-        //when an unwritten
+          //ignore NullPointer exception which can occur when there are empty byte ByteBuffer which happens
+          //when an unwritten
+          ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
 
         case exception: Throwable =>
           val errorMessage = s"Failed to clean MappedByteBuffer at path '${command.filePath.toString}'."
@@ -360,6 +376,10 @@ private[core] object ByteBufferSweeper extends LazyLogging {
             self.state.pendingDeletes.remove(command.filePath)
         }
       catch {
+        case _: NoSuchFileException | _: FileNotFoundException =>
+          //ignore as it might have been delete elsewhere. Occurs for test-cases.
+          self.state.pendingDeletes.remove(command.filePath)
+
         case exception: AccessDeniedException =>
           //For Windows - this exception handling is backup process for handling deleting memory-mapped files
           //for windows and is not really required because State's pendingClean should already
@@ -377,7 +397,19 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                 self.send(commandToReschedule, messageReschedule)
 
               case None =>
-                logger.error(s"Unable to delete file ${command.filePath}. messageReschedule not set. Retries ${command.deleteTries}", exception)
+                //None indicates that this Actor is terminated which can only occur when the database is closed or terminated.
+                //Handles Windows case where FileSweeper actor is terminated and submit clean and delete messages to this Actor
+                //but it's too quick to perform delete straight after delete and Windows has not yet fully registered that it's
+                //cleared the memory-mapped bytes so here we just retry in blocking manner.
+                FiniteDurations.eventually(5.seconds, 1.second) {
+                  logger.info(s"Retrying delete: ${command.filePath}")
+                  Effect.walkDelete(command.filePath) //try delete the file or folder.
+                  self.state.pendingDeletes.remove(command.filePath)
+                  logger.info(s"Delete successful: ${command.filePath}")
+                }.failed.foreach {
+                  exception =>
+                    logger.error(s"Unable to delete file ${command.filePath}. messageReschedule not set. Retries ${command.deleteTries}", exception)
+                }
             }
 
         case exception: Throwable =>
@@ -499,7 +531,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
               ""
           }
 
-        logger.error(s"Failed to process message ${message.getClass.getSimpleName}. $pathInfo", exception)
+        logger.error(s"Failed to process message ${message.name}. $pathInfo", exception)
 
     } onPostTerminate {
       self =>

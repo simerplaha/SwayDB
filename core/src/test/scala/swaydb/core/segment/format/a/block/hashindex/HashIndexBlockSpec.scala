@@ -78,7 +78,7 @@ class HashIndexBlockSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
                   format = randomHashIndexSearchFormat(),
-                  allocateSpace = _.requiredSpace * 6,
+                  allocateSpace = _.requiredSpace * 10,
                   ioStrategy = _ => randomIOStrategy(),
                   compressions = _ => compressions
                 ),

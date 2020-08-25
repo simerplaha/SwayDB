@@ -25,14 +25,11 @@
 package swaydb.core.segment
 
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -66,7 +63,7 @@ class SegmentSerialiserSpec extends TestBase {
               reader = Reader(bytes),
               mmapSegment = MMAP.randomForSegment(),
               checkExists = segment.persistent
-            )
+            ).sweep()
 
           readSegment shouldBe segment
       }

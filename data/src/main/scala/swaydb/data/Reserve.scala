@@ -82,12 +82,7 @@ object Reserve {
     }
 
   def compareAndSet[T](info: Some[T], reserve: Reserve[T]): Boolean =
-    if (reserve.info.compareAndSet(None, info)) {
-      reserve.info set info
-      true
-    } else {
-      false
-    }
+    reserve.info.compareAndSet(None, info)
 
   def setFree[T](reserve: Reserve[T]): Unit = {
     reserve.info.set(None)

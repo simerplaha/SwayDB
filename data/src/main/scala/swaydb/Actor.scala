@@ -648,7 +648,7 @@ class Actor[-T, S](val name: String,
       logger.info(s"""Actor("$name") is busy. Listening to be free. isTerminated = $isTerminated.""")
       Reserve.promise(busy).future flatMap {
         _ =>
-          logger.info(s"""Actor("$name") up.""")
+          logger.debug(s"""Actor("$name") up.""")
           whileNotBusyAsync(continueIfNonEmpty)(releaseFunction)
       }
     }
@@ -890,7 +890,7 @@ class Actor[-T, S](val name: String,
   private def runPreTerminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Boolean] =
     whileNotBusy(continueIfNonEmpty = false) {
       try {
-        preTerminate.foreach(_ (this))
+        preTerminate.foreach(_ (self))
         true
       } catch {
         case exception: Throwable =>
@@ -905,7 +905,7 @@ class Actor[-T, S](val name: String,
     if (executedPreTerminate)
       whileNotBusy(continueIfNonEmpty = false) {
         try
-          postTerminate.foreach(_ (this))
+          postTerminate.foreach(_ (self))
         catch {
           case exception: Throwable =>
             logger.error(s"""Actor("$name") - Exception in running Post-Termination. Termination will continue.""", exception)

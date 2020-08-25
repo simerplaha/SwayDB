@@ -48,6 +48,7 @@ import swaydb.serializers._
 
 import scala.jdk.CollectionConverters._
 import scala.util.Random
+import TestCaseSweeper._
 
 class MapsSpec extends TestBase {
 
@@ -114,8 +115,8 @@ class MapsSpec extends TestBase {
           //so a new folder 1 is initialised.
           path.folders.map(_.folderId) shouldBe List(0, 1)
 
-          maps.close.runRandomIO.right.value
-          reopen.close.runRandomIO.right.value
+          maps.snapshot().foreach(_.sweep())
+          reopen.snapshot().foreach(_.sweep())
       }
     }
 
@@ -154,6 +155,9 @@ class MapsSpec extends TestBase {
           reopen.queuedMapsCountWithCurrent shouldBe 1
           //since the old map is empty, it should value deleted
           currentMapsPath.exists shouldBe false
+
+          maps.snapshot().foreach(_.sweep())
+          reopen.snapshot().foreach(_.sweep())
       }
     }
   }
@@ -253,6 +257,8 @@ class MapsSpec extends TestBase {
             maps.write(_ => MapEntry.Put[Slice[Byte], Memory](4, Memory.remove(4))).runRandomIO.right.value
             maps.queuedMapsCount shouldBe 3
             maps.queuedMapsCountWithCurrent shouldBe 4
+
+            maps.snapshot().foreach(_.sweep())
           }
 
           val path = createRandomDir
@@ -289,6 +295,8 @@ class MapsSpec extends TestBase {
           maps.get(2) shouldBe Memory.put(2, 2)
           maps.get(3) shouldBe Memory.remove(3)
           maps.get(4) shouldBe Memory.remove(4)
+
+          maps.snapshot().foreach(_.sweep())
       }
     }
 
@@ -296,6 +304,7 @@ class MapsSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
+
           val path = createRandomDir
           val maps =
             Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -306,7 +315,7 @@ class MapsSpec extends TestBase {
               fileSize = 1.byte,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
-            ).runRandomIO.right.value
+            ).value
 
           maps.write(_ => MapEntry.Put(1, Memory.put(1)))
           maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2)))
@@ -346,9 +355,14 @@ class MapsSpec extends TestBase {
               recovery = RecoveryMode.ReportFailure
             ).runRandomIO.right.value
 
+
           recovered2.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
           recovered2.map.pathOption.value.folderId shouldBe 6
           recovered2.lastOption().value.pathOption.value.folderId shouldBe 0
+
+          maps.snapshot().foreach(_.sweep())
+          recovered1.snapshot().foreach(_.sweep())
+          recovered2.snapshot().foreach(_.sweep())
       }
     }
 
@@ -356,6 +370,7 @@ class MapsSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
+
           val path = createRandomDir
           val maps =
             Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -381,14 +396,18 @@ class MapsSpec extends TestBase {
               fileSize = 1.byte,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
-            ).runRandomIO.right.value.maps.asScala
+            ).runRandomIO.right.value
 
-          recoveredMaps should have size 3
-          recoveredMaps.map(_.pathOption.value.folderId) shouldBe List(2, 1, 0)
+          val recoveredMapsMaps = recoveredMaps.maps.asScala
+          recoveredMapsMaps should have size 3
+          recoveredMapsMaps.map(_.pathOption.value.folderId) shouldBe List(2, 1, 0)
 
-          recoveredMaps.head.get(1) shouldBe Memory.remove(1)
-          recoveredMaps.tail.head.get(2) shouldBe Memory.put(2)
-          recoveredMaps.last.get(1) shouldBe Memory.put(1)
+          recoveredMapsMaps.head.get(1) shouldBe Memory.remove(1)
+          recoveredMapsMaps.tail.head.get(2) shouldBe Memory.put(2)
+          recoveredMapsMaps.last.get(1) shouldBe Memory.put(1)
+
+          maps.snapshot().foreach(_.sweep())
+          recoveredMaps.snapshot().foreach(_.sweep())
       }
     }
 
@@ -425,6 +444,8 @@ class MapsSpec extends TestBase {
             acceleration = Accelerator.brake(),
             recovery = RecoveryMode.ReportFailure
           ).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
+
+          maps.snapshot().foreach(_.sweep())
       }
     }
 
@@ -455,7 +476,7 @@ class MapsSpec extends TestBase {
           val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
           Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
-          val recoveredMaps =
+          val recovered =
             Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
@@ -464,7 +485,9 @@ class MapsSpec extends TestBase {
               fileSize = 50.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.DropCorruptedTailEntries
-            ).runRandomIO.right.value.maps.asScala
+            ).runRandomIO.right.value
+
+          val recoveredMaps = recovered.maps.asScala
 
           //recovered maps will still be 3 but since second maps second entry is corrupted, the first entry will still exists.
           recoveredMaps should have size 3
@@ -480,6 +503,9 @@ class MapsSpec extends TestBase {
           //oldest map contains all key-values
           recoveredMaps.last.get(1) shouldBe Memory.put(1)
           recoveredMaps.last.get(2) shouldBe Memory.put(2)
+
+          maps.snapshot().foreach(_.sweep())
+          recovered.snapshot().foreach(_.sweep())
       }
     }
 
@@ -534,6 +560,9 @@ class MapsSpec extends TestBase {
           recoveredMaps.get(4).toOptional shouldBe empty
           recoveredMaps.get(5).toOptional shouldBe empty
           recoveredMaps.get(6).toOptional shouldBe empty
+
+          maps.snapshot().foreach(_.sweep())
+          recoveredMaps.snapshot().foreach(_.sweep())
       }
     }
 
@@ -566,6 +595,8 @@ class MapsSpec extends TestBase {
 
           //new Map file is created. Now this write will succeed.
           maps.write(_ => MapEntry.Put(2, Memory.put(2)))
+
+          maps.snapshot().foreach(_.sweep())
       }
     }
   }

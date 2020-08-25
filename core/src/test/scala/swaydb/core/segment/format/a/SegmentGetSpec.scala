@@ -112,7 +112,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     }
 
     "range-value" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
             assertSegment(
