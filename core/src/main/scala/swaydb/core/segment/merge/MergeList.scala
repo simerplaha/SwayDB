@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.util
+package swaydb.core.segment.merge
 
 import swaydb.data.slice.Slice
 
@@ -33,15 +33,15 @@ import swaydb.data.slice.Slice
  * This cannot be immutable as it will add a lot to GC workload.
  *
  * A Segment can easily have over 100,000 key-values to merge and an immutable
- * version of this class would create the same number of of [[DropIterator]] instances in-memory.
+ * version of this class would create the same number of of MergeList instances in-memory.
  */
-private[core] sealed trait DropIterator[H >: Null <: T, T >: Null] {
+private[core] sealed trait MergeList[H >: Null <: T, T >: Null] {
 
   def headOrNull: T
 
-  def dropHead(): DropIterator[H, T]
+  def dropHead(): MergeList[H, T]
 
-  def dropPrepend(head: H): DropIterator[H, T]
+  def dropPrepend(head: H): MergeList[H, T]
 
   def depth: Int
 
@@ -52,19 +52,19 @@ private[core] sealed trait DropIterator[H >: Null <: T, T >: Null] {
   def iterator: Iterator[T]
 }
 
-private[core] object DropIterator {
+private[core] object MergeList {
 
   @inline final def empty[H >: Null <: T, T >: Null] =
     new Single[H, T](0, null, null, Iterator.empty)
 
-  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): MergeList[H, T] =
     new Single[H, T](keyValues.size, null, null, keyValues.iterator)
 
-  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): MergeList[H, T] =
     new Single[H, T](size, null, null, keyValues)
 
-  implicit class DropListImplicit[H >: Null <: T, T >: Null](left: DropIterator[H, T]) {
-    @inline final def append(right: DropIterator[H, T]): DropIterator[H, T] =
+  implicit class MergeListImplicit[H >: Null <: T, T >: Null](left: MergeList[H, T]) {
+    @inline final def append(right: MergeList[H, T]): MergeList[H, T] =
       if (left.isEmpty)
         right
       else if (right.isEmpty)
@@ -73,10 +73,11 @@ private[core] object DropIterator {
         new Multiple(left, right)
   }
 
+
   class Single[H >: Null <: T, T >: Null](var size: Int,
                                           private var headRangeOrNull: H,
                                           private var tailHead: T,
-                                          private var tailKeyValues: Iterator[T]) extends DropIterator[H, T] {
+                                          private var tailKeyValues: Iterator[T]) extends MergeList[H, T] {
 
     override val depth: Int = 1
 
@@ -92,7 +93,7 @@ private[core] object DropIterator {
       else
         headRangeOrNull
 
-    def dropHead(): DropIterator.Single[H, T] = {
+    def dropHead(): MergeList[H, T] = {
       if (headRangeOrNull != null) {
         headRangeOrNull = null
         size -= 1
@@ -107,7 +108,7 @@ private[core] object DropIterator {
       this
     }
 
-    def dropPrepend(head: H): DropIterator.Single[H, T] =
+    def dropPrepend(head: H): MergeList[H, T] =
       if (headRangeOrNull != null) {
         headRangeOrNull = head
         this
@@ -144,13 +145,13 @@ private[core] object DropIterator {
       }
   }
 
-  private[core] class Multiple[H >: Null <: T, T >: Null](private var left: DropIterator[H, T],
-                                                          right: DropIterator[H, T]) extends DropIterator[H, T] {
+  class Multiple[H >: Null <: T, T >: Null](private var left: MergeList[H, T],
+                                            right: MergeList[H, T]) extends MergeList[H, T] {
 
-    override def dropHead(): DropIterator[H, T] =
+    override def dropHead(): MergeList[H, T] =
       (left.isEmpty, right.isEmpty) match {
         case (true, true) =>
-          DropIterator.empty
+          MergeList.empty
         case (true, false) =>
           right.dropHead()
         case (false, true) =>
@@ -160,7 +161,7 @@ private[core] object DropIterator {
           this
       }
 
-    override def dropPrepend(head: H): DropIterator[H, T] =
+    override def dropPrepend(head: H): MergeList[H, T] =
       (left.isEmpty, right.isEmpty) match {
         case (true, true) =>
           new Single[H, T](1, head, null, Iterator.empty)
@@ -202,5 +203,7 @@ private[core] object DropIterator {
 
     override def size =
       left.size + right.size
+
   }
+
 }
