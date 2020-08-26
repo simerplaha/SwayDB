@@ -37,6 +37,7 @@ private[file] object ChannelFile {
     val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     new ChannelFile(
       path = path,
+      mode = StandardOpenOption.WRITE,
       channel = channel,
       blockCacheFileId = blockCacheFileId
     )
@@ -48,6 +49,7 @@ private[file] object ChannelFile {
       val channel = FileChannel.open(path, StandardOpenOption.READ)
       new ChannelFile(
         path = path,
+        mode = StandardOpenOption.READ,
         channel = channel,
         blockCacheFileId = blockCacheFileId
       )
@@ -57,11 +59,14 @@ private[file] object ChannelFile {
 }
 
 private[file] class ChannelFile(val path: Path,
+                                mode: StandardOpenOption,
                                 channel: FileChannel,
                                 val blockCacheFileId: Long) extends LazyLogging with DBFileType {
 
-  def close: Unit =
+  def close: Unit = {
+    forceSave()
     channel.close()
+  }
 
   def append(slice: Slice[Byte]): Unit =
     Effect.writeUnclosed(channel, slice)
@@ -105,5 +110,6 @@ private[file] class ChannelFile(val path: Path,
   }
 
   override def forceSave(): Unit =
-    ()
+    if (mode == StandardOpenOption.WRITE && channel.isOpen)
+      channel.force(false)
 }
