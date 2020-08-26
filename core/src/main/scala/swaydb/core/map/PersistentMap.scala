@@ -313,7 +313,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
   private var actualFileSize: Long = fileSize
   // does not account of flushed entries.
   private var bytesWritten: Long = 0
-  var skipListKeyValuesMaxCount: Int = 0
+  var skipListKeyValuesMaxCount: Int = _skipList.size
 
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
   @volatile private var _hasRange: Boolean = hasRangeInitial

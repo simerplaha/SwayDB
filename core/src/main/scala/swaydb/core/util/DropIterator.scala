@@ -63,7 +63,7 @@ private[core] object DropIterator {
   @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator[H, T] =
     new Single[H, T](size, null, null, keyValues)
 
-  implicit class DropListImplicit[H >: Null <: T, T >: Null](left: DropIterator[H, T]) {
+  implicit class DropIteratorImplicit[H >: Null <: T, T >: Null](left: DropIterator[H, T]) {
     @inline final def append(right: DropIterator[H, T]): DropIterator[H, T] =
       if (left.isEmpty)
         right
