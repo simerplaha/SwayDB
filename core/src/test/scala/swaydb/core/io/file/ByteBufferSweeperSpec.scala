@@ -481,7 +481,7 @@ class ByteBufferSweeperSpec extends TestBase {
               (cleaner.actor ask Command.IsTerminated[Unit]).await(2.seconds) shouldBe true
             }
 
-            //there might me some delete messages waiting to be scheduled.
+            //there might be some delete messages waiting to be scheduled.
             eventual(1.minute) {
               paths.forall(Effect.notExists) shouldBe true
             }

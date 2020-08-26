@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.function.FunctionStore
 import swaydb.core.util.skiplist.SkipListConcurrent
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -79,6 +80,9 @@ protected class MemoryMap[OK, OV, K <: OK, V <: OV](_skipList: SkipListConcurren
       false
     }
   }
+
+  override def mmap: MMAP =
+    MMAP.Disabled
 
   override def close(): Unit =
     ()

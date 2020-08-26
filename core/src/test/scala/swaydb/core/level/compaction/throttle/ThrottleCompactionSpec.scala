@@ -174,62 +174,73 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
     "copy all Segments to last level" when {
       "no Segments overlap" in {
-        TestCaseSweeper {
-          implicit sweeper =>
-            val allKeyValues = randomPutKeyValues(keyValueCount, startId = Some(1))
-            val keyValues = allKeyValues.groupedSlice(5)
+        /**
+         * @note Copying memory-mapped files on Windows is slow.
+         */
+        if (OperatingSystem.isWindows && mmapSegments.hasMMAP)
+          cancel()
+        else
+          runThis(1.times, log = true) {
+            TestCaseSweeper {
+              implicit sweeper =>
+                val allKeyValues = randomPutKeyValues(keyValueCount, startId = Some(1))
+                val keyValues = allKeyValues.groupedSlice(5)
 
-            val level5 = TestLevel(keyValues = keyValues(4), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = true))
-            val level4 = TestLevel(nextLevel = Some(level5), keyValues = keyValues(3), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = true))
-            val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = true))
-            val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = true))
-            val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = true))
+                val level5 = TestLevel(keyValues = keyValues(4), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = true, mmap = mmapSegments))
+                val level4 = TestLevel(nextLevel = Some(level5), keyValues = keyValues(3), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = true, mmap = mmapSegments))
+                val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = true, mmap = mmapSegments))
+                val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = true, mmap = mmapSegments))
+                val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.bytes, pushForward = true, mmap = mmapSegments))
 
-            //        level1.foreachLevel(_.segmentsCount() should be > 1)
+                //        level1.foreachLevel(_.segmentsCount() should be > 1)
 
-            val expectedCopiedSegments = level1.foldLeftLevels(0)(_ + _.segmentsCount()) - level5.segmentsCount()
-            val actualCopied = ThrottleCompaction.copyForwardForEach(level1.reverseLevels.toSlice)
-            actualCopied shouldBe expectedCopiedSegments
-            //all top levels shouldBe empty
-            level1.mapLevels(level => level).dropRight(1).foreach(_.isEmpty shouldBe true)
+                val expectedCopiedSegments = level1.foldLeftLevels(0)(_ + _.segmentsCount()) - level5.segmentsCount()
+                val actualCopied = ThrottleCompaction.copyForwardForEach(level1.reverseLevels.toSlice)
+                actualCopied shouldBe expectedCopiedSegments
+                //all top levels shouldBe empty
+                level1.mapLevels(level => level).dropRight(1).foreach(_.isEmpty shouldBe true)
 
-            assertReads(allKeyValues, level1)
-            assertReads(allKeyValues, level2)
-            assertReads(allKeyValues, level3)
-            assertReads(allKeyValues, level4)
-            assertReads(allKeyValues, level5)
+                assertReads(allKeyValues, level1)
+                assertReads(allKeyValues, level2)
+                assertReads(allKeyValues, level3)
+                assertReads(allKeyValues, level4)
+                assertReads(allKeyValues, level5)
 
-            assertGet(allKeyValues, level1.reopen)
-        }
+                assertGet(allKeyValues, level1.reopen)
+            }
+          }
       }
     }
 
     "copy Segments to last level" when {
       "some Segments overlap" in {
-        TestCaseSweeper {
-          implicit sweeper =>
-            val allKeyValues = randomPutKeyValues(keyValueCount, addPutDeadlines = false, startId = Some(1))
+        if (OperatingSystem.isWindows && mmapSegments.hasMMAP)
+          cancel()
+        else
+          TestCaseSweeper {
+            implicit sweeper =>
+              val allKeyValues = randomPutKeyValues(keyValueCount, addPutDeadlines = false, startId = Some(1))
 
-            val keyValues = allKeyValues.groupedSlice(5)
+              val keyValues = allKeyValues.groupedSlice(5)
 
-            val level5 = TestLevel(keyValues = Slice(keyValues(3).last) ++ keyValues(4), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true))
-            val level4 = TestLevel(nextLevel = Some(level5), keyValues = Slice(keyValues(2).last) ++ keyValues(3), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true))
-            val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true))
-            val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true))
-            val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true))
+              val level5 = TestLevel(keyValues = Slice(keyValues(3).last) ++ keyValues(4), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true, mmap = mmapSegments))
+              val level4 = TestLevel(nextLevel = Some(level5), keyValues = Slice(keyValues(2).last) ++ keyValues(3), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true, mmap = mmapSegments))
+              val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true, mmap = mmapSegments))
+              val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true, mmap = mmapSegments))
+              val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 2.kb, pushForward = true, mmap = mmapSegments))
 
-            ThrottleCompaction.copyForwardForEach(level1.reverseLevels.toSlice)
+              ThrottleCompaction.copyForwardForEach(level1.reverseLevels.toSlice)
 
-            //top levels are level, second last level value all overlapping Segments, last Level gets the rest.
-            level1.isEmpty shouldBe true
-            level2.isEmpty shouldBe true
-            level3.isEmpty shouldBe true
-            level4.isEmpty shouldBe false
-            level5.isEmpty shouldBe false
+              //top levels are level, second last level value all overlapping Segments, last Level gets the rest.
+              level1.isEmpty shouldBe true
+              level2.isEmpty shouldBe true
+              level3.isEmpty shouldBe true
+              level4.isEmpty shouldBe false
+              level5.isEmpty shouldBe false
 
-            assertReads(allKeyValues, level1)
-            assertGet(allKeyValues, level1.reopen)
-        }
+              assertReads(allKeyValues, level1)
+              assertGet(allKeyValues, level1.reopen)
+          }
       }
     }
   }

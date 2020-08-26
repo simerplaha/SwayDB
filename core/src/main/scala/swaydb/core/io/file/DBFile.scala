@@ -65,7 +65,13 @@ object DBFile extends LazyLogging {
         }
 
         override def close(): Unit =
-          self.clearApply(_.foreach(_.close()))
+          self.clearApply {
+            case Some(file) =>
+              IO(file.close())
+
+            case None =>
+              IO.unit
+          }
 
         override def isOpen: Boolean =
           self.getIO().exists(_.exists(_.isOpen))
@@ -313,24 +319,34 @@ class DBFile(val path: Path,
   def delete(): Unit =
     fileCache.clearApply {
       case Some(file) =>
-        file.close()
-        //try delegating the delete to the file itself.
-        //If the file is already closed, then delete it from disk.
-        //memory files are never closed so the first statement will always be executed for memory files.
-        if (deleteOnClean)
-          bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
-        else
-          file.delete()
+        IO {
+          file.close()
+          //try delegating the delete to the file itself.
+          //If the file is already closed, then delete it from disk.
+          //memory files are never closed so the first statement will always be executed for memory files.
+          if (deleteOnClean)
+            bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
+          else
+            file.delete()
+        }
 
       case None =>
-        if (deleteOnClean)
-          bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
-        else
-          Effect.deleteIfExists(path)
-    }
+        IO {
+          if (deleteOnClean)
+            bufferCleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
+          else
+            Effect.deleteIfExists(path)
+        }
+    } get
 
   def close(): Unit =
-    fileCache.clearApply(_.foreach(_.close()))
+    fileCache.clearApply {
+      case Some(file) =>
+        IO(file.close())
+
+      case None =>
+        IO.unit
+    } get
 
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): Path = {
@@ -405,7 +421,7 @@ class DBFile(val path: Path,
     fileCache.getIO().isDefined
 
   def isMemoryMapped: Boolean =
-    fileCache.value(()).get.isMemoryMapped
+    memoryMapped
 
   def isLoaded: Boolean =
     fileCache.value(()).get.isLoaded

@@ -1071,6 +1071,8 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption { self =>
 
   def path: Path
 
+  def isMMAP: Boolean
+
   def segmentId: Long =
     Effect.fileId(path)._1
 

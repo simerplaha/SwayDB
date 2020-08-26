@@ -85,6 +85,9 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
           level.isEmpty shouldBe true
 
           if (persistent) {
+            if(isWindowsAndMMAPSegments())
+              sweeper.receiveAll()
+
             level.segmentFilesOnDisk shouldBe empty
             level.reopen.isEmpty shouldBe true
           }

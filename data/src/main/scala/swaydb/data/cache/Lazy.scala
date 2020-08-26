@@ -60,7 +60,7 @@ protected sealed trait Lazy[A] {
   def isDefined: Boolean
   def isEmpty: Boolean
   def clear(): Unit
-  def clearApply[T](f: Option[A] => T): T
+  def clearApply[E, T](f: Option[A] => IO[E, T]): IO[E, T]
   def stored: Boolean
   def synchronised: Boolean
 }
@@ -105,19 +105,20 @@ private[swaydb] class LazyValue[A](val synchronised: Boolean, val stored: Boolea
       }
     }
 
-  override def clearApply[T](f: Option[A] => T): T =
+  override def clearApply[E, T](f: Option[A] => IO[E, T]): IO[E, T] =
     if (stored)
-      if (synchronised) {
+      if (synchronised)
         this.synchronized {
-          val got = f(get())
-          clear()
-          got
+          f(get()) onRightSideEffect {
+            _ =>
+              clear()
+          }
         }
-      } else {
-        val got = f(get())
-        clear()
-        got
-      }
+      else
+        f(get()) onRightSideEffect {
+          _ =>
+            clear()
+        }
     else
       f(None)
 
@@ -167,7 +168,7 @@ private[swaydb] class LazyIO[E: IO.ExceptionHandler, A](lazyValue: LazyValue[IO.
         IO.failed[E, A](exception)
     }
 
-  override def clearApply[T](f: Option[IO[E, A]] => T): T =
+  override def clearApply[E2, T](f: Option[IO[E, A]] => IO[E2, T]): IO[E2, T] =
     lazyValue clearApply f
 
   override def getOrElse[B >: IO[E, A]](f: => B): B =

@@ -24,15 +24,16 @@
 
 package swaydb.core
 
-import java.nio.file.Path
+import java.nio.file.{NoSuchFileException, Path}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.TestSweeper._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
-import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.level.LevelRef
+import swaydb.core.map.Maps
 import swaydb.core.segment.Segment
 import swaydb.data.RunThis._
 import swaydb.data.Sweepable
@@ -70,7 +71,9 @@ object TestCaseSweeper extends LazyLogging {
       schedulers = ListBuffer(Cache.noIO[Unit, Scheduler](true, true, None)((_, _) => Scheduler()(TestExecutionContext.executionContext))),
       levels = ListBuffer.empty,
       segments = ListBuffer.empty,
+      mapFiles = ListBuffer.empty,
       maps = ListBuffer.empty,
+      dbFiles = ListBuffer.empty,
       paths = ListBuffer.empty,
       actors = ListBuffer.empty,
       actorWires = ListBuffer.empty,
@@ -95,7 +98,9 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 
     //CLOSE - close everything first so that Actors sweepers get populated with Clean messages
-    sweeper.maps.foreach(_.close())
+    sweeper.dbFiles.foreach(_.close())
+    sweeper.mapFiles.foreach(_.close())
+    sweeper.maps.foreach(_.delete().get)
     sweeper.segments.foreach(_.close)
     sweeper.sweepables.foreach(_.close())
     sweeper.levels.foreach(_.close().await(30.seconds))
@@ -123,7 +128,7 @@ object TestCaseSweeper extends LazyLogging {
         eventual(20.seconds)(deleteParentPath(segment.path))
     }
 
-    sweeper.maps.foreach {
+    sweeper.mapFiles.foreach {
       map =>
         if (map.pathOption.exists(Effect.exists))
           map.pathOption.foreach(Effect.walkDelete)
@@ -131,8 +136,12 @@ object TestCaseSweeper extends LazyLogging {
     }
 
     sweeper.sweepables.foreach(_.delete())
+    sweeper.dbFiles.foreach(_.delete())
 
-    sweeper.paths.foreach(Effect.walkDelete)
+    sweeper.paths.foreach {
+      path =>
+        eventual(10.seconds)(Effect.walkDelete(path))
+    }
   }
 
   private def receiveAll(sweeper: TestCaseSweeper): Unit = {
@@ -147,10 +156,9 @@ object TestCaseSweeper extends LazyLogging {
 
   def apply[T](code: TestCaseSweeper => T): T = {
     val sweeper = TestCaseSweeper()
-    try
-      code(sweeper)
-    finally
-      terminate(sweeper)
+    val result = code(sweeper)
+    terminate(sweeper)
+    result
   }
 
   implicit class TestLevelLevelSweeperImplicits[L <: LevelRef](level: L) {
@@ -163,14 +171,24 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepSegment segment
   }
 
-  implicit class TestMapsSweeperImplicits[M <: swaydb.core.map.Map[_, _, _, _]](map: M) {
+  implicit class TestMapFilesSweeperImplicits[M <: swaydb.core.map.Map[_, _, _, _]](map: M) {
     def sweep()(implicit sweeper: TestCaseSweeper): M =
       sweeper sweepMap map
+  }
+
+  implicit class TestMapsSweeperImplicits[M <: swaydb.core.map.Maps[_, _, _, _]](map: M) {
+    def sweep()(implicit sweeper: TestCaseSweeper): M =
+      sweeper sweepMaps map
   }
 
   implicit class TestLevelPathSweeperImplicits(path: Path) {
     def sweep()(implicit sweeper: TestCaseSweeper): Path =
       sweeper sweepPath path
+  }
+
+  implicit class DBFileSweeperImplicits(dbFile: DBFile) {
+    def sweep()(implicit sweeper: TestCaseSweeper): DBFile =
+      sweeper sweepDBFiles dbFile
   }
 
   implicit class KeyValueMemorySweeperImplicits(keyValue: MemorySweeper.KeyValue) {
@@ -249,7 +267,9 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val schedulers: ListBuffer[CacheNoIO[Unit, Scheduler]],
                       private val levels: ListBuffer[LevelRef],
                       private val segments: ListBuffer[Segment],
-                      private val maps: ListBuffer[map.Map[_, _, _, _]],
+                      private val mapFiles: ListBuffer[map.Map[_, _, _, _]],
+                      private val maps: ListBuffer[Maps[_, _, _, _]],
+                      private val dbFiles: ListBuffer[DBFile],
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
                       private val actorWires: ListBuffer[ActorWire[_, _]],
@@ -281,14 +301,25 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   }
 
   def sweepMap[M <: swaydb.core.map.Map[_, _, _, _]](map: M): M = {
-    maps += map
+    mapFiles += map
     map
+  }
+
+  def sweepMaps[M <: Maps[_, _, _, _]](maps: M): M = {
+    this.maps += maps
+    maps
   }
 
   def sweepPath(path: Path): Path = {
     paths += path
     path
   }
+
+  def sweepDBFiles(file: DBFile): DBFile = {
+    dbFiles += file
+    file
+  }
+
 
   private def removeReplaceOptionalCache[I, O](sweepers: ListBuffer[CacheNoIO[I, Option[O]]], replace: O): O = {
     if (sweepers.lastOption.exists(_.get().isEmpty))

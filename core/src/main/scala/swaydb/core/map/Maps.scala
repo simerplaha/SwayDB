@@ -30,13 +30,11 @@ import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
-import swaydb.IO
 import swaydb.IO._
-import swaydb.core.actor.FileSweeper
-import swaydb.core.brake.BrakePedal
-import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.brake.BrakePedal
+import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
@@ -45,6 +43,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -579,8 +578,14 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
       .getOrElse(IO.unit)
   }
 
+  def delete(): IO[Error.Map, Unit] =
+    close.flatMap(_ => IO(snapshot().foreach(_.delete)))
+
   def queuedMapsIterator =
     maps.iterator()
+
+  def mmap: MMAP =
+    currentMap.mmap
 
   def stateId: Long =
     totalMapsCount

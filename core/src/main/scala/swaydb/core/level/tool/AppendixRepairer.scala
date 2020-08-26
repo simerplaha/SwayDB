@@ -149,7 +149,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
           targetSegment =>
             val overlaps = Segment.overlaps(segment, targetSegment)
             if (overlaps)
-              logger.error(s"Is overlapping with {} = {}", targetSegment.path, overlaps)
+              logger.info(s"Is overlapping with {} = {}", targetSegment.path, overlaps)
             else
               logger.trace(s"Is overlapping with {} = {}", targetSegment.path, overlaps)
             overlaps

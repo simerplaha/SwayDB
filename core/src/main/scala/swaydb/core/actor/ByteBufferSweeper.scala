@@ -397,19 +397,20 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                 self.send(commandToReschedule, messageReschedule)
 
               case None =>
-                //None indicates that this Actor is terminated which can only occur when the database is closed or terminated.
-                //Handles Windows case where FileSweeper actor is terminated and submit clean and delete messages to this Actor
-                //but it's too quick to perform delete straight after delete and Windows has not yet fully registered that it's
-                //cleared the memory-mapped bytes so here we just retry in blocking manner.
-                FiniteDurations.eventually(5.seconds, 1.second) {
-                  logger.info(s"Retrying delete: ${command.filePath}")
-                  Effect.walkDelete(command.filePath) //try delete the file or folder.
-                  self.state.pendingDeletes.remove(command.filePath)
-                  logger.info(s"Delete successful: ${command.filePath}")
-                }.failed.foreach {
-                  exception =>
-                    logger.error(s"Unable to delete file ${command.filePath}. messageReschedule not set. Retries ${command.deleteTries}", exception)
-                }
+              //None indicates that this Actor is terminated which can only occur when the database is closed or terminated.
+              //Handles Windows case where FileSweeper actor is terminated and submit clean and delete messages to this Actor
+              //but it's too quick to perform delete straight after delete and Windows has not yet fully registered that it's
+              //cleared the memory-mapped bytes so here we just retry in blocking manner.
+              //                FiniteDurations.eventually(5.seconds, 1.second) {
+              //                  logger.info(s"Retrying delete: ${command.filePath}")
+              //                  Effect.walkDelete(command.filePath) //try delete the file or folder.
+              //                  self.state.pendingDeletes.remove(command.filePath)
+              //                  logger.info(s"Delete successful: ${command.filePath}")
+              //                }.failed.foreach {
+              //                  exception =>
+              //                    logger.error(s"Unable to delete file ${command.filePath}. messageReschedule not set. Retries ${command.deleteTries}", exception)
+              //                }
+              //                logger.error(s"Unable to delete file ${command.filePath}. messageReschedule not set. Retries ${command.deleteTries}", exception)
             }
 
         case exception: Throwable =>

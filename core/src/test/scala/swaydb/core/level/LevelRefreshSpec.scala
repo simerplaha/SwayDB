@@ -93,7 +93,14 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
               level.refresh(segment).right.right.value
           }
 
-          level.segmentFilesInAppendix shouldBe 0
+          if (isWindowsAndMMAPSegments()) {
+            eventual(10.seconds) {
+              sweeper.receiveAll()
+              level.segmentFilesInAppendix shouldBe 0
+            }
+          } else {
+            level.segmentFilesInAppendix shouldBe 0
+          }
       }
     }
 

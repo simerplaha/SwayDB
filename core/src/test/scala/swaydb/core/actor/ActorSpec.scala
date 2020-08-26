@@ -505,9 +505,9 @@ class ActorSpec extends AnyWordSpec with Matchers {
   "it" should {
 
     def assertActor(actor: ActorRef[() => Any, Unit]) = {
-      (1 to 1000000) foreach {
+      (1 to 100000) foreach {
         i =>
-          if (i % 100000 == 0) println(s"Message number: $i")
+          if (i % 10000 == 0) println(s"Message number: $i")
           val promise = Promise[Unit]()
           actor.send(() => promise.tryComplete(Try(i)))
           promise.future.await(2.seconds)

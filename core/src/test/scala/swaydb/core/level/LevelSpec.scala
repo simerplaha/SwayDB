@@ -40,7 +40,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.{Extension, ReserveRange}
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -49,8 +49,10 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.data.RunThis._
 
 import scala.concurrent.Promise
+import scala.concurrent.duration.DurationInt
 
 class LevelSpec0 extends LevelSpec
 
@@ -77,6 +79,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val ec = TestExecutionContext.executionContext
   val keyValuesCount = 100
 
   //    override def deleteFiles: Boolean =
@@ -159,7 +162,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
 
             val segment = TestSegment(randomKeyValues(keyValuesCount))
 
-            level.put(segment).right.right.value.right.value
+            level.put(segment).value.value should not be empty
+
+            if (segment.isMMAP && OperatingSystem.isWindows) {
+              level.close().await(10.seconds)
+              sweeper.receiveAll()
+            }
 
             //delete the appendix file
             level.pathDistributor.headPath.resolve("appendix").files(Extension.Log) map Effect.delete
@@ -184,7 +192,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
           implicit sweeper =>
             val level = TestLevel()
 
-            level.putKeyValuesTest(randomPutKeyValues()).runRandomIO.right.value
+            val keyValues = randomPutKeyValues()
+            level.putKeyValuesTest(keyValues).value
+
+            if (isWindowsAndMMAPSegments())
+              sweeper.receiveAll()
+
             val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk
             segmentsIdsBeforeInvalidSegments should have size 1
 
@@ -193,9 +206,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
             //create 3 invalid segments in all the paths of the Level
             level.dirs.foldLeft(currentSegmentId) {
               case (currentSegmentId, dir) =>
-                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId)).runRandomIO.right.value
-                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId)).runRandomIO.right.value
-                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).runRandomIO.right.value
+                //deleteUncommittedSegments will also be invoked on Levels with cleared and closed Segments there will never be
+                //memory-mapped. So disable mmap in this test specially for windows which does not allow deleting memory-mapped files without
+                //clearing the MappedByteBuffer.
+                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled))
                 currentSegmentId + 3
             }
             //every level folder has 3 uncommitted Segments plus 1 valid Segment

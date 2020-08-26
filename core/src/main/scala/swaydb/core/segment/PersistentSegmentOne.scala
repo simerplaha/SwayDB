@@ -256,7 +256,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     logger.trace(s"{}: DELETING FILE", path)
     IO(file.delete()) onLeftSideEffect {
       failure =>
-        logger.error(s"{}: Failed to delete Segment file.", path, failure)
+        logger.error(s"{}: Failed to delete Segment file.", path, failure.value.exception)
     } map {
       _ =>
         ref.clearBlockCache()

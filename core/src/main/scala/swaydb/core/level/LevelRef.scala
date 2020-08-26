@@ -41,29 +41,28 @@ import scala.concurrent.duration.FiniteDuration
 
 object LevelRef {
 
-  @tailrec
   def firstPersistentLevel(level: Option[LevelRef]): Option[LevelRef] =
-    level match {
-      case Some(level) =>
-        if (level.inMemory)
-          firstPersistentLevel(level.nextLevel)
-        else
-          Some(level)
-      case None =>
-        None
-    }
+    level.flatMap(firstPersistentLevel)
+
+  def firstPersistentLevel(level: LevelRef): Option[LevelRef] =
+    if (level.inMemory)
+      firstPersistentLevel(level.nextLevel)
+    else
+      Some(level)
 
   def firstPersistentPath(level: Option[LevelRef]): Option[Path] =
     firstPersistentLevel(level).map(_.rootPath)
 
   def hasMMAP(level: Option[LevelRef]): Boolean =
+    level.exists(hasMMAP)
+
+  def hasMMAP(level: LevelRef): Boolean =
     firstPersistentLevel(level) exists {
       case level: Level =>
-        level.segmentConfig.mmap.mmapReads || level.segmentConfig.mmap.mmapWrites
+        level.segmentConfig.mmap.mmapReads || level.segmentConfig.mmap.mmapWrites || level.appendix.mmap.hasMMAP
 
-      case _: LevelZero =>
-        //not true. LevelZero can also be mmap.
-        false
+      case zero: LevelZero =>
+        zero.mmap.hasMMAP
     }
 
   def hasDeleteOnClean(level: Option[LevelRef]): Boolean =
@@ -71,9 +70,8 @@ object LevelRef {
       case level: Level =>
         level.segmentConfig.mmap.deleteOnClean
 
-      case _: LevelZero =>
-        //not true. LevelZero can also be mmap.
-        false
+      case zero: LevelZero =>
+        zero.mmap.hasMMAP
     }
 
   /**
@@ -269,4 +267,7 @@ private[core] trait LevelRef {
   def delete()(implicit executionContext: ExecutionContext): Future[Unit]
 
   def deleteNoSweep: IO[swaydb.Error.Level, Unit]
+
+  def hasMMAP: Boolean =
+    LevelRef.hasMMAP(this)
 }

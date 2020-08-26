@@ -443,7 +443,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       deleteOnClean = OperatingSystem.isWindows,
       blockCacheFileId = BlockCacheFileIDGenerator.nextID,
       bytes = bytes
-    )
+    ).sweep()
   }
 
   def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
@@ -457,7 +457,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         blockCacheFileId = blockCacheFileId,
         autoClose = true
-      )
+      ).sweep()
 
     file.append(bytes)
     file.close()
@@ -468,7 +468,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       autoClose = true,
       deleteOnClean = OperatingSystem.isWindows,
       blockCacheFileId = blockCacheFileId
-    )
+    ).sweep()
   }
 
   def createMMAPFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
@@ -476,12 +476,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     new FileReader(
       DBFile.mmapRead(
-        path = path.sweep(),
+        path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
         deleteOnClean = OperatingSystem.isWindows,
         blockCacheFileId = BlockCacheFileIDGenerator.nextID
-      )
+      ).sweep()
     )
   }
 
@@ -493,11 +493,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     val file =
       DBFile.channelRead(
-        path = path.sweep(),
+        path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
         blockCacheFileId = BlockCacheFileIDGenerator.nextID
-      )
+      ).sweep()
 
     new FileReader(file)
   }

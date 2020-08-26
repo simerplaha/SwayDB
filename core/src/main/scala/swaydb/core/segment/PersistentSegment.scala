@@ -44,6 +44,9 @@ trait PersistentSegment extends Segment {
 
   def copyTo(toPath: Path): Path
 
+  def isMMAP =
+    file.isMemoryMapped
+
   def put(newKeyValues: Slice[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,

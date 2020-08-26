@@ -31,15 +31,13 @@ import java.nio.file.FileAlreadyExistsException
 import org.scalamock.scalatest.MockFactory
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.core.CommonAssertions.{eitherOne, randomThreadSafeIOStrategy}
+import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.util.PipeOps._
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
-import swaydb.data.RunThis._
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
-
-import scala.concurrent.Future
 
 class DBFileSpec extends TestBase with MockFactory {
 
@@ -971,6 +969,7 @@ class DBFileSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
+
           val file =
             DBFile.mmapWriteAndRead(
               path = randomFilePath,
@@ -979,11 +978,15 @@ class DBFileSpec extends TestBase with MockFactory {
               deleteOnClean = OperatingSystem.isWindows,
               blockCacheFileId = idGenerator.nextID,
               bytes = randomBytesSlice()
-            )
+            ).sweep()
 
           file.close()
 
           file.delete()
+
+          if (OperatingSystem.isWindows)
+            sweeper.receiveAll()
+
           file.existsOnDisk shouldBe false
           file.isOpen shouldBe false
           file.isFileDefined shouldBe false
@@ -1062,6 +1065,33 @@ class DBFileSpec extends TestBase with MockFactory {
       }
     }
   }
+
+  //  "copying large number of memory-mapped files" in {
+  //    TestCaseSweeper {
+  //      implicit sweeper =>
+  //        import swaydb.data.RunThis._
+  //
+  //        runThis(1000.times, log = true) {
+  //          import sweeper._
+  //          val testFile = randomFilePath
+  //          import swaydb.data.util.StorageUnits._
+  //          val bytes = randomBytesSlice(1.kb)
+  //          val file =
+  //            DBFile.mmapWriteAndRead(
+  //              path = testFile,
+  //              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+  //              autoClose = true,
+  //              deleteOnClean = OperatingSystem.isWindows,
+  //              blockCacheFileId = idGenerator.nextID,
+  //              bytes = bytes
+  //            )
+  //
+  //          file.readAll
+  //
+  //          Effect.copy(testFile, randomFilePath)
+  //        }
+  //    }
+  //  }
 
   //  "Concurrently opening files" should {
   //    "result in Busy exception" in {

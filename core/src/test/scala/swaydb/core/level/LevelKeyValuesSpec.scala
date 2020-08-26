@@ -105,7 +105,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "return an empty level if all the key values in the Level were REMOVED and if Level is the only Level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
@@ -160,7 +160,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "return an empty level if all the key values in the Level were REMOVED by RANGE and if Level is the only Level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
@@ -199,7 +199,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "return an empty level if all the key values in the Level were EXPIRED and if Level is the only Level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
@@ -248,7 +248,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "not return an empty level if all the key values in the Level were EXPIRED and if Level has a lower Level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb), nextLevel = Some(TestLevel()))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
@@ -289,7 +289,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level is the only Level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
@@ -323,7 +323,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "not return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level has a last Level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb), nextLevel = Some(TestLevel()))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()) )
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
@@ -354,7 +354,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "write key values to target segments and update appendix" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.mb, deleteEventually = false))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.mb, deleteEventually = false, mmap = mmapSegments))
 
           val targetSegmentKeyValues = randomIntKeyStringValues()
           val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).runRandomIO.right.value
@@ -362,6 +362,9 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           val keyValues = randomPutKeyValues()
           val function = PrivateMethod[IO[swaydb.Error.Segment, Unit]]('putKeyValues)
           (level invokePrivate function(keyValues.size, keyValues, Seq(targetSegment), None)).runRandomIO.right.value
+
+          if(isWindowsAndMMAPSegments())
+            sweeper.receiveAll()
 
           targetSegment.existsOnDisk shouldBe false //target Segment should be deleted
 
@@ -380,7 +383,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "fail put if writing one KeyValue fails" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.mb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.mb, mmap = mmapSegments))
 
           val targetSegmentKeyValues = randomIntKeyStringValues()
           val targetSegment = TestSegment(keyValues = targetSegmentKeyValues).runRandomIO.right.value

@@ -47,6 +47,7 @@ import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
@@ -1014,4 +1015,7 @@ private[swaydb] case class LevelZero(path: Path,
     close()
       .andIO(deleteNextLevelNoSweep)
       .andIO(IO(Effect.walkDelete(path.getParent)))
+
+  def mmap: MMAP =
+    maps.mmap
 }

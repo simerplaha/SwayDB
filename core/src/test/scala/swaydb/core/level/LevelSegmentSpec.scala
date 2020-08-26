@@ -24,16 +24,14 @@
 
 package swaydb.core.level
 
-import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
+import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
 import swaydb.core.TestCaseSweeper.TestLevelPathSweeperImplicits
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.actor.MemorySweeper
+import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
@@ -42,7 +40,8 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.PipeOps._
 import swaydb.core.util.{Extension, IDGenerator}
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.data.RunThis._
 import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -50,6 +49,7 @@ import swaydb.data.storage.LevelStorage
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
+import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
 class LevelSegmentSpec0 extends LevelSegmentSpec
@@ -172,11 +172,21 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val dir = testClassDir.resolve("distributeSegmentsTest").sweep()
 
               def assertDistribution() = {
-                dir.resolve(1.toString).files(Extension.Seg) should have size 7
-                dir.resolve(2.toString).files(Extension.Seg) should have size 14
-                dir.resolve(3.toString).files(Extension.Seg) should have size 21
-                dir.resolve(4.toString).files(Extension.Seg) should have size 28
-                dir.resolve(5.toString).files(Extension.Seg) should have size 30
+                def assert() = {
+                  dir.resolve(1.toString).files(Extension.Seg) should have size 7
+                  dir.resolve(2.toString).files(Extension.Seg) should have size 14
+                  dir.resolve(3.toString).files(Extension.Seg) should have size 21
+                  dir.resolve(4.toString).files(Extension.Seg) should have size 28
+                  dir.resolve(5.toString).files(Extension.Seg) should have size 30
+                }
+
+                if (OperatingSystem.isWindows)
+                  eventual(10.seconds) {
+                    sweeper.receiveAll()
+                    assert()
+                  }
+                else
+                  assert()
               }
 
               val storage =
@@ -267,6 +277,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val segment = TestSegment(keyValues)
             segment.delete
 
+            if (isWindowsAndMMAPSegments())
+              sweeper.receiveAll()
+
             val result = level.put(segment).right.right.value.left.get
             if (persistent)
               result.exception shouldBe a[NoSuchFileException]
@@ -312,6 +325,10 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val appendixBeforePut = level.segmentsInLevel()
               val levelFilesBeforePut = level.segmentFilesOnDisk
               level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).left.get.exception shouldBe a[FileAlreadyExistsException]
+
+              if (isWindowsAndMMAPSegments())
+                sweeper.receiveAll()
+
               level.segmentFilesOnDisk shouldBe levelFilesBeforePut
               level.segmentsInLevel().map(_.path) shouldBe appendixBeforePut.map(_.path)
           }
@@ -336,6 +353,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val levelFilesBeforePut = level.segmentFilesOnDisk
 
               level.put(Seq.empty, segmentToCopy, Seq.empty).left.get.exception shouldBe a[FileAlreadyExistsException]
+
+              if (isWindowsAndMMAPSegments())
+                sweeper.receiveAll()
 
               level.isEmpty shouldBe true
               level.segmentFilesOnDisk shouldBe levelFilesBeforePut

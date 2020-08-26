@@ -104,10 +104,10 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           def assert(zero: LevelZero): Unit = {
-            zero.put(1, "one").runRandomIO
+            zero.put(1, "one").runRandomIO.value
             zero.get(1, ThreadReadState.random).getPut.getOrFetchValue shouldBe ("one": Slice[Byte])
 
-            zero.put("2", "two").runRandomIO
+            zero.put("2", "two").runRandomIO.value
             zero.get("2", ThreadReadState.random).getPut.getOrFetchValue shouldBe ("two": Slice[Byte])
           }
 

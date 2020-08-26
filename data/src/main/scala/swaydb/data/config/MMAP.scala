@@ -32,6 +32,9 @@ sealed trait MMAP {
   val mmapReads: Boolean
   val mmapWrites: Boolean
   val deleteOnClean: Boolean
+
+  def hasMMAP: Boolean =
+    mmapReads || mmapWrites
 }
 
 object MMAP {

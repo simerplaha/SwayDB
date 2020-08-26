@@ -68,8 +68,8 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
 import scala.reflect.ClassTag
 import scala.util.Random
 
@@ -250,29 +250,35 @@ object TestData {
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Level] = {
       implicit val ec = TestExecutionContext.executionContext
-      //      Await.result(level.close(), 20.seconds)
-      //      sweeper.receiveAll()
 
-      level.closeNoSweep() flatMap {
-        _ =>
-          import sweeper._
+      val closeResult =
+        if (OperatingSystem.isWindows && level.hasMMAP)
+          IO {
+            import swaydb.data.RunThis._
+            level.close().await(10.seconds)
+          }
+        else
+          level.closeNoSweep()
 
-          Level(
-            bloomFilterConfig = level.bloomFilterConfig,
-            hashIndexConfig = level.hashIndexConfig,
-            binarySearchIndexConfig = level.binarySearchIndexConfig,
-            sortedIndexConfig = level.sortedIndexConfig,
-            valuesConfig = level.valuesConfig,
-            segmentConfig = level.segmentConfig.copy(minSize = segmentSize),
-            levelStorage =
-              LevelStorage.Persistent(
-                dir = level.pathDistributor.headPath,
-                otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
-              ),
-            appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomForMap(), 4.mb),
-            nextLevel = nextLevel,
-            throttle = throttle
-          ).map(_.sweep())
+      closeResult and {
+        import sweeper._
+
+        Level(
+          bloomFilterConfig = level.bloomFilterConfig,
+          hashIndexConfig = level.hashIndexConfig,
+          binarySearchIndexConfig = level.binarySearchIndexConfig,
+          sortedIndexConfig = level.sortedIndexConfig,
+          valuesConfig = level.valuesConfig,
+          segmentConfig = level.segmentConfig.copy(minSize = segmentSize),
+          levelStorage =
+            LevelStorage.Persistent(
+              dir = level.pathDistributor.headPath,
+              otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
+            ),
+          appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomForMap(), 4.mb),
+          nextLevel = nextLevel,
+          throttle = throttle
+        ).map(_.sweep())
       }
     }
   }
@@ -286,6 +292,12 @@ object TestData {
 
     def reopen(mapSize: Long = level.maps.map.size)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                     sweeper: TestCaseSweeper): LevelZero = {
+
+      if (OperatingSystem.isWindows && level.hasMMAP) {
+        import swaydb.data.RunThis._
+        level.close()(TestExecutionContext.executionContext).await(10.seconds)
+      }
+
       val reopened =
         level.releaseLocks flatMap {
           _ =>
@@ -309,7 +321,7 @@ object TestData {
                 ).map(_.sweep())
             }
         }
-      reopened.runRandomIO.right.value
+      reopened.value
     }
 
     def putKeyValues(keyValues: Iterable[KeyValue]): IO[swaydb.Error.Level, Unit] =

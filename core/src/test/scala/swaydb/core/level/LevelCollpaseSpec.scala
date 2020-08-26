@@ -31,7 +31,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.segment.ThreadReadState
+import swaydb.core.segment.{PersistentSegment, Segment, ThreadReadState}
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.config.MMAP
@@ -117,6 +117,8 @@ sealed trait LevelCollapseSpec extends TestBase {
         runThis(1.times) {
           TestCaseSweeper {
             implicit sweeper =>
+              import sweeper._
+
               //          implicit val compressionType: Option[KeyValueCompressionType] = randomCompressionTypeOption(keyValuesCount)
               //disable throttling so that it does not automatically collapse small Segments
               val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = false, deleteEventually = false))
@@ -131,9 +133,24 @@ sealed trait LevelCollapseSpec extends TestBase {
               level.segmentsCount() > 1 shouldBe true
               level.closeNoSweep().runRandomIO.right.value
 
+              //reopening the Level will make the Segments unreadable.
+              //reopen the Segments
+              val segments =
+                level.segmentsInLevel().map {
+                  case segment: PersistentSegment =>
+                    Segment(
+                      path = segment.path,
+                      mmap = MMAP.Disabled,
+                      checkExists = true
+                    )
+
+                  case _ =>
+                    fail("Expected PersistentSegment")
+                }
+
               //reopen the Level with larger min segment size
               val reopenLevel = level.reopen(segmentSize = 20.mb)
-              reopenLevel.collapse(level.segmentsInLevel()).right.right.value.right.value
+              reopenLevel.collapse(segments).right.right.value.right.value
 
               //resulting segments is 1
               eventually {

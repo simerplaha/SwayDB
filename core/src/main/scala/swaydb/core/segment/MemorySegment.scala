@@ -299,4 +299,7 @@ protected case class MemorySegment(path: Path,
 
   override def hasBloomFilter: Boolean =
     false
+
+  override def isMMAP: Boolean =
+    false
 }

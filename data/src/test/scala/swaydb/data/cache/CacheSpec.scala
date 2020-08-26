@@ -552,19 +552,21 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 
 
   "clear and apply" should {
+    def createCache(): Cache[Error.Segment, Unit, Int] =
+      Cache.io[swaydb.Error.Segment, Error.ReservedResource, Unit, Int](
+        strategy = eitherOne(IOStrategy.SynchronisedIO(true), IOStrategy.AsyncIO(true)),
+        reserveError = swaydb.Error.ReservedResource(Reserve.free(name = "test")),
+        initial = None
+      ) {
+        case (_, _) =>
+          IO.Right(1)
+      }
+
     "apply before clearing atomically" in {
       runThis(10.times, log = true) {
         @volatile var count = 0
 
-        val cache =
-          Cache.io[swaydb.Error.Segment, Error.ReservedResource, Unit, Int](
-            strategy = eitherOne(IOStrategy.SynchronisedIO(true), IOStrategy.AsyncIO(true)),
-            reserveError = swaydb.Error.ReservedResource(Reserve.free(name = "test")),
-            initial = None
-          ) {
-            case (_, _) =>
-              IO.Right(1)
-          }
+        val cache = createCache()
 
         val maxIterations = 1000000
 
@@ -573,7 +575,7 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
           if (tried > 1000000)
             fail("Unable to apply update")
           else
-            cache.clearApply(_ => count += 1) match {
+            cache.clearApply(_ => IO(count += 1)) match {
               case IO.Right(_) =>
                 ()
 
@@ -587,6 +589,35 @@ class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 
         cache.isCached shouldBe false
         cache.isStored shouldBe true
+      }
+    }
+
+    "return failure on clean" when {
+      "cache is populated" in {
+        runThis(10.times, log = true) {
+          val cache = createCache()
+          cache.value(()) shouldBe IO.Right(1)
+
+          //fails and does not clear the cache
+          cache.clearApply(_ => IO(throw new Exception("kaboom!"))).left.get.exception.getMessage shouldBe "kaboom!"
+
+          cache.isCached shouldBe true
+          cache.isStored shouldBe true
+        }
+      }
+
+      "cache is not populated" in {
+        runThis(10.times, log = true) {
+          val cache = createCache()
+          //fails and does not clear the cache
+          cache.clearApply(_ => IO(throw new Exception("kaboom!"))).left.get.exception.getMessage shouldBe "kaboom!"
+
+          cache.isCached shouldBe false
+          cache.isStored shouldBe true
+
+          cache.value(()) shouldBe IO.Right(1)
+          cache.isCached shouldBe true
+        }
       }
     }
   }
