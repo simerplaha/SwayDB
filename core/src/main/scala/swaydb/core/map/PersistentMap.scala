@@ -128,22 +128,24 @@ private[map] object PersistentMap extends LazyLogging {
                              fileSize: Long)(implicit fileSweeper: FileSweeperActor,
                                              bufferCleaner: ByteBufferSweeperActor): DBFile =
     memoryMapped match {
-      case MMAP.Enabled(deleteAfterClean) =>
+      case MMAP.Enabled(deleteAfterClean, forceSave) =>
         DBFile.mmapInit(
-          folder.resolve(0.toLogFileId),
-          IOStrategy.SynchronisedIO(true),
-          fileSize,
+          path = folder.resolve(0.toLogFileId),
+          fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
+          bufferSize = fileSize,
+          blockCacheFileId = 0,
           autoClose = false,
           deleteAfterClean = deleteAfterClean,
-          blockCacheFileId = 0
+          forceSave = forceSave
         )(fileSweeper, None, bufferCleaner)
 
-      case _: MMAP.Disabled =>
+      case MMAP.Disabled(forceSave) =>
         DBFile.channelWrite(
-          folder.resolve(0.toLogFileId),
-          IOStrategy.SynchronisedIO(true),
+          path = folder.resolve(0.toLogFileId),
+          fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
+          blockCacheFileId = 0,
           autoClose = false,
-          blockCacheFileId = 0
+          forceSave = forceSave
         )(fileSweeper, None, bufferCleaner)
     }
 
@@ -267,22 +269,24 @@ private[map] object PersistentMap extends LazyLogging {
     val newFile =
 
       mmap match {
-        case MMAP.Enabled(deleteAfterClean) =>
+        case MMAP.Enabled(deleteAfterClean, forceSave) =>
           DBFile.mmapInit(
             path = nextPath,
             IOStrategy.SynchronisedIO(true),
             bufferSize = bytes.size + size,
             blockCacheFileId = 0,
             autoClose = false,
-            deleteAfterClean = deleteAfterClean
+            deleteAfterClean = deleteAfterClean,
+            forceSave = forceSave
           )(fileSweeper, None, bufferCleaner)
 
-        case _: MMAP.Disabled =>
+        case MMAP.Disabled(forceSave) =>
           DBFile.channelWrite(
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             blockCacheFileId = 0,
-            autoClose = false
+            autoClose = false,
+            forceSave = forceSave
           )(fileSweeper, None, bufferCleaner)
       }
 

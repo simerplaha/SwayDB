@@ -28,13 +28,13 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
 import swaydb.data.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, ThreadReadState}
 import swaydb.data.compaction.Throttle
-import swaydb.data.config.MMAP
+import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -45,16 +45,16 @@ class TrashLevelSpec0 extends TrashLevelSpec
 
 class TrashLevelSpec1 extends TrashLevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class TrashLevelSpec2 extends TrashLevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class TrashLevelSpec3 extends TrashLevelSpec {

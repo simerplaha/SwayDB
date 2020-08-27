@@ -28,12 +28,12 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
-import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
-import swaydb.data.cache.Cache
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
 import swaydb.data.Reserve
-import swaydb.data.config.IOStrategy
+import swaydb.data.cache.Cache
+import swaydb.data.config.{ForceSave, IOStrategy}
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
@@ -120,15 +120,17 @@ object DBFile extends LazyLogging {
   def channelWrite(path: Path,
                    fileOpenIOStrategy: IOStrategy.ThreadSafe,
                    blockCacheFileId: Long,
-                   autoClose: Boolean)(implicit fileSweeper: FileSweeperActor,
-                                       blockCache: Option[BlockCache.State],
-                                       bufferCleaner: ByteBufferSweeperActor): DBFile = {
-    val file = ChannelFile.write(path, blockCacheFileId)
+                   autoClose: Boolean,
+                   forceSave: ForceSave.ChannelFiles)(implicit fileSweeper: FileSweeperActor,
+                                                      blockCache: Option[BlockCache.State],
+                                                      bufferCleaner: ByteBufferSweeperActor): DBFile = {
+    val file = ChannelFile.write(path, blockCacheFileId, forceSave)
     new DBFile(
       path = path,
       memoryMapped = false,
       autoClose = autoClose,
       deleteAfterClean = false,
+      forceSaveConfig = forceSave,
       blockCacheFileId = blockCacheFileId,
       fileCache =
         fileCache(
@@ -158,6 +160,7 @@ object DBFile extends LazyLogging {
         memoryMapped = false,
         autoClose = autoClose,
         deleteAfterClean = false,
+        forceSaveConfig = ForceSave.Disabled,
         blockCacheFileId = blockCacheFileId,
         fileCache =
           fileCache(
@@ -176,6 +179,7 @@ object DBFile extends LazyLogging {
                        fileOpenIOStrategy: IOStrategy.ThreadSafe,
                        autoClose: Boolean,
                        deleteAfterClean: Boolean,
+                       forceSave: ForceSave.MMAPFiles,
                        blockCacheFileId: Long,
                        bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeperActor,
                                                      blockCache: Option[BlockCache.State],
@@ -196,6 +200,7 @@ object DBFile extends LazyLogging {
         bufferSize = totalWritten,
         blockCacheFileId = blockCacheFileId,
         autoClose = autoClose,
+        forceSave = forceSave,
         deleteAfterClean = deleteAfterClean
       )
 
@@ -207,6 +212,7 @@ object DBFile extends LazyLogging {
                        fileOpenIOStrategy: IOStrategy.ThreadSafe,
                        autoClose: Boolean,
                        deleteAfterClean: Boolean,
+                       forceSave: ForceSave.MMAPFiles,
                        blockCacheFileId: Long,
                        bytes: Slice[Byte])(implicit fileSweeper: FileSweeperActor,
                                            blockCache: Option[BlockCache.State],
@@ -222,6 +228,7 @@ object DBFile extends LazyLogging {
           bufferSize = bytes.size,
           blockCacheFileId = blockCacheFileId,
           autoClose = autoClose,
+          forceSave = forceSave,
           deleteAfterClean = deleteAfterClean
         )
 
@@ -245,6 +252,7 @@ object DBFile extends LazyLogging {
         memoryMapped = true,
         autoClose = autoClose,
         deleteAfterClean = deleteAfterClean,
+        forceSaveConfig = ForceSave.Disabled,
         blockCacheFileId = blockCacheFileId,
         fileCache =
           fileCache(
@@ -264,15 +272,17 @@ object DBFile extends LazyLogging {
                bufferSize: Long,
                blockCacheFileId: Long,
                autoClose: Boolean,
-               deleteAfterClean: Boolean)(implicit fileSweeper: FileSweeperActor,
-                                          blockCache: Option[BlockCache.State],
-                                          bufferCleaner: ByteBufferSweeperActor): DBFile = {
+               deleteAfterClean: Boolean,
+               forceSave: ForceSave.MMAPFiles)(implicit fileSweeper: FileSweeperActor,
+                                               blockCache: Option[BlockCache.State],
+                                               bufferCleaner: ByteBufferSweeperActor): DBFile = {
     val file =
       MMAPFile.write(
         path = path,
         bufferSize = bufferSize,
         blockCacheFileId = blockCacheFileId,
-        deleteAfterClean = deleteAfterClean
+        deleteAfterClean = deleteAfterClean,
+        forceSave = forceSave
       )
 
     new DBFile(
@@ -280,6 +290,7 @@ object DBFile extends LazyLogging {
       memoryMapped = true,
       autoClose = autoClose,
       deleteAfterClean = deleteAfterClean,
+      forceSaveConfig = forceSave,
       blockCacheFileId = blockCacheFileId,
       fileCache =
         fileCache(
@@ -303,6 +314,7 @@ class DBFile(val path: Path,
              val memoryMapped: Boolean,
              val autoClose: Boolean,
              val deleteAfterClean: Boolean,
+             val forceSaveConfig: ForceSave,
              val blockCacheFileId: Long,
              fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit blockCache: Option[BlockCache.State],
                                                                   bufferCleaner: ByteBufferSweeperActor) extends LazyLogging {
@@ -350,7 +362,8 @@ class DBFile(val path: Path,
 
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): Path = {
-    forceSave()
+    ForceSaveApplier.beforeCopy(this, toPath, forceSaveConfig)
+
     val copiedPath = Effect.copy(path, toPath)
     logger.trace("{}: Copied: to {}", copiedPath, toPath)
     copiedPath

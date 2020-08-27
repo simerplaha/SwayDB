@@ -27,13 +27,13 @@ package swaydb.core.level
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.segment.{PersistentSegment, Segment, ThreadReadState}
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.segment.{PersistentSegment, Segment, ThreadReadState}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -47,16 +47,16 @@ class LevelCollapseSpec0 extends LevelCollapseSpec
 
 class LevelCollapseSpec1 extends LevelCollapseSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class LevelCollapseSpec2 extends LevelCollapseSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class LevelCollapseSpec3 extends LevelCollapseSpec {
@@ -140,7 +140,7 @@ sealed trait LevelCollapseSpec extends TestBase {
                   case segment: PersistentSegment =>
                     Segment(
                       path = segment.path,
-                      mmap = MMAP.Disabled,
+                      mmap = MMAP.Disabled(forceSave = TestForceSave.channel()),
                       checkExists = true
                     )
 

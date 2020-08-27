@@ -38,7 +38,7 @@ import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, SegmentIO}
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
@@ -57,17 +57,17 @@ class SegmentReadSpec0 extends SegmentReadSpec {
 class SegmentReadSpec1 extends SegmentReadSpec {
   val keyValuesCount = 100
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class SegmentReadSpec2 extends SegmentReadSpec {
   val keyValuesCount = 100
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class SegmentReadSpec3 extends SegmentReadSpec {

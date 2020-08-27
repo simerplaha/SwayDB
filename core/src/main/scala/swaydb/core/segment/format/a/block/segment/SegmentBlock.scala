@@ -40,11 +40,10 @@ import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.merge.MergeStats.Persistent
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections}
-import swaydb.data.config.{IOAction, IOStrategy, MMAP, SegmentConfig, UncompressedBlockInfo}
+import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.util.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
@@ -58,27 +57,6 @@ private[core] object SegmentBlock extends LazyLogging {
   val crcBytes: Int = 13
 
   object Config {
-
-    def default =
-      new Config(
-        fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
-        blockIOStrategy = {
-          case IOAction.ReadDataOverview =>
-            //cache so that block overview like footer and blockInfos are kept in memory.
-            IOStrategy.ConcurrentIO(cacheOnAccess = true)
-
-          case data: IOAction.DecompressAction =>
-            //cache only if the data is compressed.
-            IOStrategy.ConcurrentIO(cacheOnAccess = data.isCompressed)
-        },
-        cacheBlocksOnCreate = true,
-        minSize = 2.mb,
-        maxCount = 200000,
-        pushForward = true,
-        mmap = MMAP.disabled(),
-        deleteEventually = true,
-        compressions = _ => Seq.empty
-      )
 
     def apply(config: SegmentConfig): SegmentBlock.Config =
       apply(

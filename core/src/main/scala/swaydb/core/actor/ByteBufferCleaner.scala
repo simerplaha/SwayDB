@@ -25,11 +25,14 @@
 package swaydb.core.actor
 
 import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
+import java.nio.file.Path
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.IO.ExceptionHandler
+import swaydb.core.io.file.ForceSaveApplier
+import swaydb.data.config.ForceSave
 
 private[core] object ByteBufferCleaner extends LazyLogging {
 
@@ -39,8 +42,15 @@ private[core] object ByteBufferCleaner extends LazyLogging {
   }
 
   class Cleaner(handle: MethodHandle) {
-    def clean(byteBuffer: ByteBuffer): Unit =
-      handle.invoke(byteBuffer)
+    def clean(buffer: MappedByteBuffer, path: Path, forceSave: ForceSave.MMAPFiles): Unit = {
+      ForceSaveApplier.beforeClean(
+        path = path,
+        buffer = buffer,
+        forceSave = forceSave
+      )
+
+      handle.invoke(buffer)
+    }
   }
 
   private def java9Cleaner(): MethodHandle = {
@@ -69,8 +79,16 @@ private[core] object ByteBufferCleaner extends LazyLogging {
     MethodHandles.foldArguments(cleanDroppedArgument, cleaner)
   }
 
-  def initialiseCleaner[E](buffer: MappedByteBuffer)(implicit exceptionHandler: ExceptionHandler[E]): IO[E, Cleaner] =
+  def initialiseCleaner[E](buffer: MappedByteBuffer,
+                           path: Path,
+                           forceSave: ForceSave.MMAPFiles)(implicit exceptionHandler: ExceptionHandler[E]): IO[E, Cleaner] =
     IO {
+      ForceSaveApplier.beforeClean(
+        path = path,
+        buffer = buffer,
+        forceSave = forceSave
+      )
+
       val method = java9Cleaner()
       method.invoke(buffer)
       logger.info("Initialised Java 9 ByteBuffer cleaner.")

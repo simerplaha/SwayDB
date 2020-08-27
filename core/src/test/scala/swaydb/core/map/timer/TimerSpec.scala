@@ -26,13 +26,11 @@ package swaydb.core.map.timer
 
 import java.nio.file.Path
 
-import swaydb.data.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
-import swaydb.core.function.FunctionStore
-import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.function.FunctionStore
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, TimerMapEntryReader, TimerMapEntryWriter}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -53,7 +51,7 @@ class PersistentTimerSpec extends TimerSpec {
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
     Timer.persistent(
       path = path,
-      mmap = MMAP.Enabled(OperatingSystem.isWindows),
+      mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
       mod = 100,
       flushCheckpointSize = 1000
     ).get
@@ -114,7 +112,7 @@ sealed trait TimerSpec extends TestBase {
             val reopenedTimer =
               Timer.persistent(
                 path = dir,
-                mmap = MMAP.Enabled(OperatingSystem.isWindows),
+                mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
                 mod = 100,
                 flushCheckpointSize = 1000
               ).get
@@ -125,7 +123,7 @@ sealed trait TimerSpec extends TestBase {
             val reopenedTimer2 =
               Timer.persistent(
                 path = dir,
-                mmap = MMAP.Enabled(OperatingSystem.isWindows),
+                mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
                 mod = 100,
                 flushCheckpointSize = 1000
               ).get

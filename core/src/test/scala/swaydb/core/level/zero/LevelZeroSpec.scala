@@ -33,7 +33,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.file.Effect
 import swaydb.core.segment.ThreadReadState
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import TestCaseSweeper._
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
@@ -51,16 +51,16 @@ class LevelZeroSpec0 extends LevelZeroSpec
 
 class LevelZeroSpec1 extends LevelZeroSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class LevelZeroSpec2 extends LevelZeroSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class LevelZeroSpec3 extends LevelZeroSpec {

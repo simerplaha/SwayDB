@@ -114,7 +114,7 @@ private[core] trait Map[OK, OV, K <: OK, V <: OV] extends SkipListBase[OK, OV, K
 
   def skipListKeyValuesMaxCount: Int
 
-  def mmap: MMAP
+  def mmap: MMAP.Map
 
   val fileSize: Long
 

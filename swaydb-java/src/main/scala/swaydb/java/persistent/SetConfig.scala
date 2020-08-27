@@ -52,9 +52,9 @@ object SetConfig {
 
   final class Config[A, F](dir: Path,
                            private var mapSize: Int = 4.mb,
-                           private var mmapMaps: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
+                           private var mmapMaps: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
                            private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                           private var mmapAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
+                           private var mmapAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
                            private var appendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,

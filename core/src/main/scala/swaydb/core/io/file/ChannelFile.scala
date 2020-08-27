@@ -29,16 +29,19 @@ import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.data.config.ForceSave
 import swaydb.data.slice.Slice
 
 private[file] object ChannelFile {
   def write(path: Path,
-            blockCacheFileId: Long): ChannelFile = {
+            blockCacheFileId: Long,
+            forceSave: ForceSave.ChannelFiles): ChannelFile = {
     val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     new ChannelFile(
       path = path,
       mode = StandardOpenOption.WRITE,
       channel = channel,
+      forceSave = forceSave,
       blockCacheFileId = blockCacheFileId
     )
   }
@@ -51,6 +54,7 @@ private[file] object ChannelFile {
         path = path,
         mode = StandardOpenOption.READ,
         channel = channel,
+        forceSave = ForceSave.Disabled,
         blockCacheFileId = blockCacheFileId
       )
     }
@@ -61,10 +65,11 @@ private[file] object ChannelFile {
 private[file] class ChannelFile(val path: Path,
                                 mode: StandardOpenOption,
                                 channel: FileChannel,
+                                forceSave: ForceSave.ChannelFiles,
                                 val blockCacheFileId: Long) extends LazyLogging with DBFileType {
 
-  def close: Unit = {
-    forceSave()
+  def close(): Unit = {
+    ForceSaveApplier.beforeClose(this, forceSave)
     channel.close()
   }
 
@@ -105,7 +110,7 @@ private[file] class ChannelFile(val path: Path,
     false
 
   override def delete(): Unit = {
-    close
+    close()
     Effect.delete(path)
   }
 

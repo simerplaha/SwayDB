@@ -31,7 +31,7 @@ import java.nio.file.StandardOpenOption
 import swaydb.data.util.StorageUnits._
 import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferCleaner
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.IOValues._
 import swaydb.data.RunThis._
 import swaydb.core.CommonAssertions._
@@ -73,7 +73,7 @@ class MMAPFileSpec extends TestBase {
               )
 
               //do not forceSave and clear the in-memory bytes.
-              ByteBufferCleaner.initialiseCleaner(readWriteBuff).value
+              ByteBufferCleaner.initialiseCleaner(readWriteBuff, path, TestForceSave.mmap()).value
 
               //copy the file and read and aldo read the bytes form path in any order should succeed.
               Seq(
@@ -96,7 +96,7 @@ class MMAPFileSpec extends TestBase {
               array shouldBe bytes.toArray
 
               //clear the buffer again
-              ByteBufferCleaner.initialiseCleaner(readOnlyBuff).value
+              ByteBufferCleaner.initialiseCleaner(readOnlyBuff, path, TestForceSave.mmap()).value
 
               //read bytes from disk and they should exist.
               Effect.readAllBytes(path) shouldBe bytes

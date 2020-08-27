@@ -40,8 +40,8 @@ import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.{Extension, ReserveRange}
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
-import swaydb.data.config.{Dir, MMAP}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
+import swaydb.data.config.{Dir, ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
@@ -58,16 +58,16 @@ class LevelSpec0 extends LevelSpec
 
 class LevelSpec1 extends LevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class LevelSpec2 extends LevelSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class LevelSpec3 extends LevelSpec {
@@ -209,9 +209,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
                 //deleteUncommittedSegments will also be invoked on Levels with cleared and closed Segments there will never be
                 //memory-mapped. So disable mmap in this test specially for windows which does not allow deleting memory-mapped files without
                 //clearing the MappedByteBuffer.
-                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled))
-                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled))
-                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled(TestForceSave.channel())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled(TestForceSave.channel())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled(TestForceSave.channel())))
                 currentSegmentId + 3
             }
             //every level folder has 3 uncommitted Segments plus 1 valid Segment

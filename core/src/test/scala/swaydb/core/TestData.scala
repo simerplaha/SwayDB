@@ -55,7 +55,7 @@ import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO, ThreadReadState}
 import swaydb.core.util.BlockCacheFileIDGenerator
-import swaydb.data.MaxKey
+import swaydb.data.{MaxKey, config}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -310,7 +310,7 @@ object TestData {
                   enableTimer = true,
                   storage =
                     Level0Storage.Persistent(
-                      mmap = MMAP.enabled(OperatingSystem.isWindows),
+                      mmap = MMAP.enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap()),
                       dir = level.path.getParent,
                       recovery = RecoveryMode.ReportFailure
                     ),
@@ -1831,4 +1831,20 @@ object TestData {
       PrefixCompression.Interval.CompressAt(randomIntMax(100)),
       PrefixCompression.Interval.CompressAt(randomIntMax())
     )
+
+  implicit class MMAPImplicits(mmap: MMAP.type) {
+    def randomForSegment(): MMAP.Segment =
+      if (Random.nextBoolean())
+        MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
+      else if (Random.nextBoolean())
+        MMAP.ReadOnly(OperatingSystem.isWindows)
+      else
+        MMAP.Disabled(TestForceSave.channel())
+
+    def randomForMap(): MMAP.Map =
+      if (Random.nextBoolean())
+        MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
+      else
+        MMAP.Disabled(TestForceSave.channel())
+  }
 }

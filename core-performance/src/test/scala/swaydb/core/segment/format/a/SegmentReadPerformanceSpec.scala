@@ -47,21 +47,21 @@
 //import scala.util.Random
 //
 //class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-//  override def mmapSegments = MMAP.Disabled
+//  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
 //}
 //
 //class SegmentReadPerformanceSpec1 extends SegmentReadPerformanceSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-//  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-//  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+//  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+//  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+//  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 //}
 //
 //class SegmentReadPerformanceSpec2 extends SegmentReadPerformanceSpec {
 //  override def levelFoldersCount = 10
-//  override def mmapSegments = MMAP.Disabled
-//  override def level0MMAP = MMAP.Disabled
-//  override def appendixStorageMMAP = MMAP.Disabled
+//  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+//  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+//  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 //}
 //
 //class SegmentReadPerformanceSpec3 extends SegmentReadPerformanceSpec {

@@ -143,7 +143,7 @@ private[core] object LevelZero extends LazyLogging {
         case Level0Storage.Memory =>
           val timer =
             if (enableTimer)
-              LevelRef.firstPersistentPath(nextLevel) match {
+              LevelRef.firstPersistentLevel(nextLevel).map(_.rootPath) match {
                 case Some(persistentPath) =>
                   val timerDir = persistentPath.getParent.resolve("0").resolve("timer")
                   Effect createDirectoriesIfAbsent timerDir

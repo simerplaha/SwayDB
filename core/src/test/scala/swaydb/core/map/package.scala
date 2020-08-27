@@ -26,6 +26,7 @@ package swaydb.core
 
 import swaydb.Bag
 import swaydb.IOValues._
+import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor

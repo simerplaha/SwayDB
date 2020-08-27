@@ -36,8 +36,8 @@ import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
-import swaydb.data.config.MMAP
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.OperatingSystem
@@ -49,16 +49,16 @@ class LevelMapSpec0 extends LevelMapSpec
 
 class LevelMapSpec1 extends LevelMapSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class LevelMapSpec2 extends LevelMapSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class LevelMapSpec3 extends LevelMapSpec {
@@ -91,7 +91,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             nullKey = Slice.Null,
             nullValue = Memory.Null,
             folder = randomIntDirectory,
-            mmap = MMAP.Enabled(OperatingSystem.isWindows),
+            mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
             flushOnOverflow = true,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false
@@ -178,7 +178,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             nullKey = Slice.Null,
             nullValue = Memory.Null,
             folder = randomIntDirectory,
-            mmap = MMAP.Enabled(OperatingSystem.isWindows),
+            mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
             flushOnOverflow = true,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false).runRandomIO.right.value.item.sweep()

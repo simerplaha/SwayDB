@@ -195,7 +195,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 minSize = config.minSegmentSize,
                 maxCount = config.maxKeyValuesPerSegment,
                 pushForward = config.copyForward,
-                mmap = MMAP.Disabled,
+                mmap = MMAP.Disabled(ForceSave.Disabled),
                 deleteEventually = config.deleteSegmentsEventually,
                 compressions = _ => Seq.empty
               ),

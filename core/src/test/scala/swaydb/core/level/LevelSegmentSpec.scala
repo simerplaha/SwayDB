@@ -40,9 +40,9 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.PipeOps._
 import swaydb.core.util.{Extension, IDGenerator}
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
-import swaydb.data.config.{Dir, MMAP}
+import swaydb.data.config.{Dir, ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
@@ -56,16 +56,16 @@ class LevelSegmentSpec0 extends LevelSegmentSpec
 
 class LevelSegmentSpec1 extends LevelSegmentSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class LevelSegmentSpec2 extends LevelSegmentSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class LevelSegmentSpec3 extends LevelSegmentSpec {

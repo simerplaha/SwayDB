@@ -50,9 +50,9 @@ object Set extends LazyLogging {
    */
   def apply[A, F, BAG[_]](dir: Path,
                           mapSize: Int = 4.mb,
-                          mmapMaps: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
+                          mmapMaps: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
                           recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                          mmapAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
+                          mmapAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
                           appendixFlushCheckpointSize: Int = 2.mb,
                           otherDirs: Seq[Dir] = Seq.empty,
                           cacheKeyValueIds: Boolean = true,

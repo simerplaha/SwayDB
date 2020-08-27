@@ -36,7 +36,7 @@ import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Extension
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -496,7 +496,7 @@ class MapsSpec extends TestBase {
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
-                mmap = MMAP.Disabled,
+                mmap = MMAP.Disabled(TestForceSave.channel()),
                 fileSize = 50.bytes,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
@@ -554,7 +554,7 @@ class MapsSpec extends TestBase {
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               path = path,
-              mmap = MMAP.Disabled,
+              mmap = MMAP.Disabled(TestForceSave.channel()),
               fileSize = 50.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
@@ -608,7 +608,7 @@ class MapsSpec extends TestBase {
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               path = path,
-              mmap = MMAP.Disabled,
+              mmap = MMAP.Disabled(TestForceSave.channel()),
               fileSize = 100.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure

@@ -37,7 +37,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level.NextLevel
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestSweeper, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -53,16 +53,16 @@ class CompactionSpec0 extends CompactionSpec
 
 class CompactionSpec1 extends CompactionSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class CompactionSpec2 extends CompactionSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class CompactionSpec3 extends CompactionSpec {

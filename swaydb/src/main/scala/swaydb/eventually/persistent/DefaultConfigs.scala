@@ -101,7 +101,8 @@ object DefaultConfigs {
       cacheSegmentBlocksOnCreate = true,
       deleteSegmentsEventually = true,
       pushForward = false,
-      mmap = MMAP.Disabled,
+      //mmap is disabled for eventually persistent databases to give in-memory levels more memory-space.
+      mmap = MMAP.Disabled(ForceSave.Disabled),
       minSegmentSize = 8.mb,
       maxKeyValuesPerSegment = Int.MaxValue,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),

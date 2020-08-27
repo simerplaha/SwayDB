@@ -30,17 +30,17 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.MemorySweeper
+import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.Extension
-import swaydb.data.config.MMAP
+import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
@@ -69,7 +69,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
               IO {
                 Segment(
                   path = segmentPath,
-                  mmap = MMAP.Disabled,
+                  mmap = MMAP.Disabled(ForceSave.Disabled),
                   checkExists = true
                 )(keyOrder = keyOrder,
                   timeOrder = timeOrder,
@@ -182,7 +182,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         nullKey = Slice.Null,
         nullValue = Segment.Null,
         folder = appendixDir,
-        mmap = MMAP.Disabled,
+        mmap = MMAP.Disabled(ForceSave.Disabled),
         flushOnOverflow = true,
         fileSize = 1.gb
       )

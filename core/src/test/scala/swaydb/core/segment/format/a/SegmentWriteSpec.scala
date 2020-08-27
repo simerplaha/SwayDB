@@ -67,16 +67,16 @@ class SegmentWriteSpec0 extends SegmentWriteSpec
 
 class SegmentWriteSpec1 extends SegmentWriteSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class SegmentWriteSpec2 extends SegmentWriteSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class SegmentWriteSpec3 extends SegmentWriteSpec {
@@ -698,7 +698,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
               val keyValues = randomizedKeyValues(keyValuesCount)
 
-              val segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = true, mmap = MMAP.Disabled, cacheOnAccess = true)
+              val segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = true, mmap = MMAP.Disabled(TestForceSave.channel()), cacheOnAccess = true)
 
               val segment1 =
                 TestSegment(

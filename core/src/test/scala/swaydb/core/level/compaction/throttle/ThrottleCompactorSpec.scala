@@ -33,7 +33,7 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.{Compaction, Compactor}
-import swaydb.core.{TestBase, TestExecutionContext, TestCaseSweeper, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestSweeper, TestTimer}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -50,16 +50,16 @@ class ThrottleCompactorSpec0 extends ThrottleCompactorSpec
 
 class ThrottleCompactorSpec1 extends ThrottleCompactorSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class ThrottleCompactorSpec2 extends ThrottleCompactorSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class ThrottleCompactorSpec3 extends ThrottleCompactorSpec {

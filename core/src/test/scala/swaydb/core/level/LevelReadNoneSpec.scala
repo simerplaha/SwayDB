@@ -27,11 +27,11 @@ package swaydb.core.level
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.data.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestForceSave}
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.segment.ThreadReadState
-import swaydb.data.config.MMAP
+import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -42,16 +42,16 @@ class LevelReadNoneSpec0 extends LevelReadNoneSpec
 
 class LevelReadNoneSpec1 extends LevelReadNoneSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class LevelReadNoneSpec2 extends LevelReadNoneSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class LevelReadNoneSpec3 extends LevelReadNoneSpec {

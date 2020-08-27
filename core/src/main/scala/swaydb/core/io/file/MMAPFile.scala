@@ -35,6 +35,7 @@ import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.Reserve
+import swaydb.data.config.ForceSave
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -44,14 +45,16 @@ private[file] object MMAPFile {
   def write(path: Path,
             bufferSize: Long,
             blockCacheFileId: Long,
-            deleteAfterClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile =
+            deleteAfterClean: Boolean,
+            forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor): MMAPFile =
     MMAPFile(
       path = path,
       channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
       mode = MapMode.READ_WRITE,
       bufferSize = bufferSize,
       blockCacheFileId = blockCacheFileId,
-      deleteAfterClean = deleteAfterClean
+      deleteAfterClean = deleteAfterClean,
+      forceSave = forceSave
     )
 
   def read(path: Path,
@@ -65,7 +68,8 @@ private[file] object MMAPFile {
       mode = MapMode.READ_ONLY,
       bufferSize = channel.size(),
       blockCacheFileId = blockCacheFileId,
-      deleteAfterClean = deleteAfterClean
+      deleteAfterClean = deleteAfterClean,
+      forceSave = ForceSave.Disabled
     )
   }
 
@@ -74,7 +78,8 @@ private[file] object MMAPFile {
                     mode: MapMode,
                     bufferSize: Long,
                     blockCacheFileId: Long,
-                    deleteAfterClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
+                    deleteAfterClean: Boolean,
+                    forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
     val buff = channel.map(mode, 0, bufferSize)
     new MMAPFile(
       path = path,
@@ -83,6 +88,7 @@ private[file] object MMAPFile {
       bufferSize = bufferSize,
       blockCacheFileId = blockCacheFileId,
       deleteAfterClean = deleteAfterClean,
+      forceSaveConfig = forceSave,
       buffer = buff
     )
   }
@@ -94,6 +100,7 @@ private[file] class MMAPFile(val path: Path,
                              bufferSize: Long,
                              val blockCacheFileId: Long,
                              val deleteAfterClean: Boolean,
+                             val forceSaveConfig: ForceSave.MMAPFiles,
                              @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor) extends LazyLogging with DBFileType {
 
   private val open = new AtomicBoolean(true)
@@ -123,7 +130,7 @@ private[file] class MMAPFile(val path: Path,
   def close(): Unit =
     if (open.compareAndSet(true, false))
       watchNullPointer {
-        forceSave()
+        ForceSaveApplier.beforeClose(this, forceSaveConfig)
         clearBuffer()
         channel.close()
       }
@@ -147,7 +154,7 @@ private[file] class MMAPFile(val path: Path,
       //the resulting NullPointerException will re-route request to the new Segment.
       //TO-DO: Use Option here instead. Test using Option does not have read performance impact.
       buffer = null
-      cleaner.actor send ByteBufferSweeper.Command.Clean(swapBuffer, hasReference, path)
+      cleaner.actor send ByteBufferSweeper.Command.Clean(swapBuffer, hasReference, path, forceSaveConfig)
     }
 
   override def append(slice: Iterable[Slice[Byte]]): Unit =

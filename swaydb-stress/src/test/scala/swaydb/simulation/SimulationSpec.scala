@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.MMAP
@@ -89,7 +89,12 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: swaydb.Map.Functions[Long, Domain, Functions],
                        sweeper: TestCaseSweeper) =
-    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = MMAP.Disabled, mmapMaps = MMAP.Disabled, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(mmap = MMAP.Disabled)).get.sweep()
+    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](
+      randomDir,
+      mmapAppendix = MMAP.Disabled(TestForceSave.channel()),
+      mmapMaps = MMAP.Disabled(TestForceSave.channel()),
+      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(mmap = MMAP.Disabled(TestForceSave.channel()))
+    ).get.sweep()
 }
 
 sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {

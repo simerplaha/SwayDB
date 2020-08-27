@@ -59,7 +59,7 @@ object Map extends LazyLogging {
                              otherDirs: Seq[Dir] = Seq.empty,
                              shutdownTimeout: FiniteDuration = 30.seconds,
                              cacheKeyValueIds: Boolean = true,
-                             mmapPersistentLevelAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
+                             mmapPersistentLevelAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
                              deleteMemorySegmentsEventually: Boolean = true,
                              acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                              persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),

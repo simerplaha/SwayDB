@@ -24,28 +24,48 @@
 
 package swaydb.core.util
 
+import com.typesafe.scalalogging.LazyLogging
 
-object Benchmark {
-  private def run[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): (R, Double) = {
-    if (inlinePrint)
-      print(s"Benchmarking: $message: ")
+
+object Benchmark extends LazyLogging {
+  def doPrint(message: String,
+              useLazyLogging: Boolean) =
+    if (useLazyLogging)
+      logger.info(message)
     else
-      println(s"Benchmarking: $message")
+      print(message)
+
+  private def run[R](message: String, inlinePrint: Boolean, useLazyLogging: Boolean)(benchmarkThis: => R): (R, Double) = {
+    if (inlinePrint)
+      doPrint(s"Benchmarking: $message: ", useLazyLogging)
+    else
+      doPrint(s"Benchmarking: $message\n", useLazyLogging)
     val startTime = System.nanoTime()
     val result = benchmarkThis
     val endTime = System.nanoTime()
-    val timeTaken = ((endTime - startTime) / 1000000000.0: Double)
+    val timeTaken = (endTime - startTime) / 1000000000.0: Double
     if (inlinePrint)
-      print(timeTaken + s" seconds - $message.")
+      doPrint(timeTaken + s" seconds - $message.", useLazyLogging)
     else
-      println(timeTaken + s" seconds - $message.")
-    println
+      doPrint(timeTaken + s" seconds - $message.\n", useLazyLogging)
+
+    if (!useLazyLogging)
+      println
+
     (result, timeTaken)
   }
 
-  def apply[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): R =
-    run(message, inlinePrint)(benchmarkThis)._1
+  def apply[R](message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => R): R =
+    run(
+      message = message,
+      inlinePrint = inlinePrint,
+      useLazyLogging = useLazyLogging
+    )(benchmarkThis)._1
 
-  def time(message: String, inlinePrint: Boolean = false)(benchmarkThis: => Unit): Double =
-    run(message, inlinePrint)(benchmarkThis)._2
+  def time(message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => Unit): Double =
+    run(
+      message = message,
+      inlinePrint = inlinePrint,
+      useLazyLogging = useLazyLogging
+    )(benchmarkThis)._2
 }

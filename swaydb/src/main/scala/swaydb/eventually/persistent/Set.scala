@@ -58,7 +58,7 @@ object Set extends LazyLogging {
                           persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                           otherDirs: Seq[Dir] = Seq.empty,
                           cacheKeyValueIds: Boolean = true,
-                          mmapPersistentLevelAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows),
+                          mmapPersistentLevelAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
                           deleteMemorySegmentsEventually: Boolean = true,
                           shutdownTimeout: FiniteDuration = 30.seconds,
                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),

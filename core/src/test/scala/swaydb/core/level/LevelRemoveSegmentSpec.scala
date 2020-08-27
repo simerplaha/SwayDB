@@ -33,8 +33,8 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
-import swaydb.data.config.MMAP
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper, TestTimer}
+import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -44,16 +44,16 @@ class LevelRemoveSegmentSpec0 extends LevelRemoveSegmentSpec
 
 class LevelRemoveSegmentSpec1 extends LevelRemoveSegmentSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class LevelRemoveSegmentSpec2 extends LevelRemoveSegmentSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class LevelRemoveSegmentSpec3 extends LevelRemoveSegmentSpec {

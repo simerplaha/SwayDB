@@ -299,12 +299,13 @@ private[core] object Segment extends LazyLogging {
                                                             bufferCleaner: ByteBufferSweeperActor,
                                                             blockCache: Option[BlockCache.State]): DBFile =
     mmap match {
-      case MMAP.Enabled(deleteAfterClean) => //if both read and writes are mmaped. Keep the file open.
+      case MMAP.Enabled(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
         DBFile.mmapWriteAndRead(
           path = path,
+          fileOpenIOStrategy = segmentIO.fileOpenIO,
           autoClose = true,
           deleteAfterClean = deleteAfterClean,
-          fileOpenIOStrategy = segmentIO.fileOpenIO,
+          forceSave = forceSave,
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           bytes = segmentBytes
         )

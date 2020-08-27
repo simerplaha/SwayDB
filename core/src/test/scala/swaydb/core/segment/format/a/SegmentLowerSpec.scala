@@ -29,7 +29,7 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.CommonAssertions._
 import swaydb.data.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.core.TestData._
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.config.MMAP
@@ -46,17 +46,17 @@ class SegmentLowerSpec0 extends SegmentLowerSpec {
 class SegmentLowerSpec1 extends SegmentLowerSpec {
   val keyValuesCount = 100
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows)
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows)
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows)
+  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class SegmentLowerSpec2 extends SegmentLowerSpec {
   val keyValuesCount = 100
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled
-  override def level0MMAP = MMAP.Disabled
-  override def appendixStorageMMAP = MMAP.Disabled
+  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
 }
 
 class SegmentLowerSpec3 extends SegmentLowerSpec {

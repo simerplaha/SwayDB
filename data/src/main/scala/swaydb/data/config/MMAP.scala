@@ -24,10 +24,9 @@
 
 package swaydb.data.config
 
-import swaydb.data.util.OperatingSystem
-
-import scala.util.Random
-
+/**
+ * Configurations to enable or disable memory-mapping of all files.
+ */
 sealed trait MMAP {
   val mmapReads: Boolean
   val mmapWrites: Boolean
@@ -39,50 +38,66 @@ sealed trait MMAP {
 
 object MMAP {
 
+  /**
+   * Configurations that can be applied to .seg files.
+   */
   sealed trait Segment extends MMAP
+
+  /**
+   * Configurations that can be applied to .log files
+   */
   sealed trait Map extends MMAP {
     def isMMAP: Boolean
   }
 
-  def enabled(deleteAfterClean: Boolean): MMAP.Enabled =
-    Enabled(deleteAfterClean)
+  def disabled(forceSave: ForceSave.ChannelFiles): MMAP.Disabled =
+    Disabled(forceSave)
 
-  case class Enabled(deleteAfterClean: Boolean) extends MMAP.Segment with MMAP.Map {
-    override val mmapReads: Boolean = true
-    override val mmapWrites: Boolean = true
-    override val isMMAP: Boolean = true
-  }
+  def enabled(deleteAfterClean: Boolean, forceSave: ForceSave.MMAPFiles): MMAP.Enabled =
+    Enabled(deleteAfterClean, forceSave)
 
   def readOnly(deleteAfterClean: Boolean): MMAP.ReadOnly =
     ReadOnly(deleteAfterClean)
 
+  /**
+   * Enables memory-mapped files for both reads and writes.
+   *
+   * @param deleteAfterClean If true deletes memory-mapped files only after they in-memory buffer is cleared.
+   *                         This configurations is required for windows. Use [[swaydb.data.util.OperatingSystem.isWindows]]
+   *                         to set this.
+   * @param forceSave        Sets the configurations for force saving memory-mapped files.
+   *                         See - https://github.com/simerplaha/SwayDB/issues/251.
+   *
+   */
+  case class Enabled(deleteAfterClean: Boolean, forceSave: ForceSave.MMAPFiles) extends MMAP.Segment with MMAP.Map {
+    override val mmapReads: Boolean = true
+    override val mmapWrites: Boolean = true
+    override val isMMAP: Boolean = true
+
+    def copyWithDeleteAfterClean(deleteAfterClean: Boolean): Enabled =
+      copy(deleteAfterClean = deleteAfterClean)
+
+    def copyWithForceSave(forceSave: ForceSave.MMAPFiles): Enabled =
+      copy(forceSave = forceSave)
+  }
+
+
+  /**
+   * Enables memory-mapped files for read only. This does not require force safe as
+   *
+   * @param deleteAfterClean If true deletes memory-mapped files only after they in-memory buffer is cleared.
+   *                         This configurations is required for windows. Use [[swaydb.data.util.OperatingSystem.isWindows]]
+   *                         to set this.
+   */
   case class ReadOnly(deleteAfterClean: Boolean) extends MMAP.Segment {
     override val mmapReads: Boolean = true
     override val mmapWrites: Boolean = false
   }
 
-  def disabled(): MMAP.Disabled =
-    Disabled
-
-  sealed trait Disabled extends MMAP.Segment with MMAP.Map
-  case object Disabled extends Disabled {
+  case class Disabled(forceSave: ForceSave.ChannelFiles) extends MMAP.Segment with MMAP.Map {
     override val mmapReads: Boolean = false
     override val mmapWrites: Boolean = false
     override val isMMAP: Boolean = false
     override val deleteAfterClean: Boolean = false
   }
-
-  def randomForSegment(): MMAP.Segment =
-    if (Random.nextBoolean())
-      MMAP.Enabled(OperatingSystem.isWindows)
-    else if (Random.nextBoolean())
-      MMAP.ReadOnly(OperatingSystem.isWindows)
-    else
-      MMAP.Disabled
-
-  def randomForMap(): MMAP.Map =
-    if (Random.nextBoolean())
-      MMAP.Enabled(OperatingSystem.isWindows)
-    else
-      MMAP.Disabled
 }

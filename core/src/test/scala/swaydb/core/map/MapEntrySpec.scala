@@ -32,7 +32,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
 import swaydb.core.util.skiplist.SkipList
-import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -268,7 +268,7 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
+          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
 
           import AppendixMapEntryWriter._
           import appendixReader._
@@ -308,7 +308,7 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
+          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
 
           import AppendixMapEntryWriter._
           import appendixReader._
@@ -391,7 +391,7 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows))
+          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
           import AppendixMapEntryWriter._
           import appendixReader._
 

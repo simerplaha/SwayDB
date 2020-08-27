@@ -32,14 +32,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
-import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.util.BlockCacheFileIDGenerator
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
+import swaydb.data.RunThis._
 import swaydb.data.config.ActorConfig
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -70,6 +70,7 @@ class ByteBufferSweeperSpec extends TestBase {
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows,
+              forceSave = TestForceSave.mmap(),
               blockCacheFileId = BlockCacheFileIDGenerator.nextID,
               bytes = Slice(randomBytesSlice())
             )
@@ -104,6 +105,7 @@ class ByteBufferSweeperSpec extends TestBase {
                   fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                   autoClose = true,
                   deleteAfterClean = OperatingSystem.isWindows,
+                  forceSave = TestForceSave.mmap(),
                   blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                   bytes = bytes
                 )
@@ -148,7 +150,7 @@ class ByteBufferSweeperSpec extends TestBase {
       val path = Paths.get("test")
       val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, ByteBufferSweeper.Command.Clean]]
 
-      val command = Command.Clean(null, () => false, path)
+      val command = Command.Clean(null, () => false, path, TestForceSave.mmap())
 
       ByteBufferSweeper.recordCleanRequest(command, map)
       map should have size 1
@@ -170,7 +172,7 @@ class ByteBufferSweeperSpec extends TestBase {
           val path = Paths.get("test")
           val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, Command.Clean]]
 
-          val command = Command.Clean(null, () => false, path)
+          val command = Command.Clean(null, () => false, path, TestForceSave.mmap())
 
           ByteBufferSweeper.recordCleanRequest(command, map)
           map should have size 1
@@ -181,7 +183,7 @@ class ByteBufferSweeperSpec extends TestBase {
           val commands =
             (1 to 100) map {
               i =>
-                val command = Command.Clean(null, () => false, path)
+                val command = Command.Clean(null, () => false, path, TestForceSave.mmap())
                 ByteBufferSweeper.recordCleanRequest(command, map)
                 map.get(path).value.size shouldBe i
                 command
@@ -218,7 +220,7 @@ class ByteBufferSweeperSpec extends TestBase {
           val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
           val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
-          val command = Command.Clean(buffer, () => false, path)
+          val command = Command.Clean(buffer, () => false, path, TestForceSave.mmap())
 
           val cleanResult = ByteBufferSweeper.initCleanerAndPerformClean(ByteBufferSweeper.State.init, buffer, command)
           cleanResult shouldBe a[IO.Right[_, _]]
@@ -250,7 +252,7 @@ class ByteBufferSweeperSpec extends TestBase {
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
             //clean first
-            cleaner.actor send Command.Clean(buffer, () => false, filePath)
+            cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())
             //and then delete
             cleaner.actor send Command.DeleteFile(filePath)
 
@@ -278,7 +280,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFile(filePath)
-            cleaner.actor send Command.Clean(buffer, () => false, filePath)
+            cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())
 
             //file is eventually deleted but the folder is not deleted
             eventual(2.minutes) {
@@ -305,7 +307,7 @@ class ByteBufferSweeperSpec extends TestBase {
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
             //clean first
-            cleaner.actor send Command.Clean(buffer, () => false, filePath)
+            cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())
             //and then delete
             cleaner.actor send Command.DeleteFolder(folderPath, filePath)
 
@@ -332,7 +334,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFolder(folderPath, filePath)
-            cleaner.actor send Command.Clean(buffer, () => false, filePath)
+            cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())
 
             eventual(2.minutes) {
               Effect.exists(folderPath) shouldBe false
@@ -372,7 +374,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
             val hasReference = new AtomicBoolean(true)
             //clean will get rescheduled first.
-            cleaner.actor send Command.Clean(buffer, hasReference.get, filePath)
+            cleaner.actor send Command.Clean(buffer, hasReference.get, filePath, TestForceSave.mmap())
             //since this is the second message and clean is rescheduled this will get processed.
             (cleaner.actor ask Command.IsClean(filePath)).await(10.seconds) shouldBe false
 
@@ -398,7 +400,7 @@ class ByteBufferSweeperSpec extends TestBase {
 
               runThis(randomIntMax(10) max 1) {
                 Seq(
-                  () => cleaner.actor send Command.Clean(buffer, () => false, filePath),
+                  () => cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap()),
                   () => cleaner.actor send Command.DeleteFolder(filePath, filePath)
                 ).runThisRandomly
               }
@@ -435,7 +437,6 @@ class ByteBufferSweeperSpec extends TestBase {
       "ByteBufferCleaner is empty" in {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
 
             implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(messageReschedule = 2.seconds).sweep()
 
@@ -460,7 +461,7 @@ class ByteBufferSweeperSpec extends TestBase {
               //randomly submit clean and delete in any order and random number of times.
               runThis(randomIntMax(100) max 1) {
                 Seq(
-                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.Clean(buffer, () => false, filePath)),
+                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())),
                   () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.DeleteFolder(filePath, filePath))
                 ).runThisRandomly
               }

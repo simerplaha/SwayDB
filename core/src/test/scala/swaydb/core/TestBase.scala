@@ -55,7 +55,7 @@ import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
-import swaydb.data.config.{Dir, MMAP, RecoveryMode}
+import swaydb.data.config.{Dir, ForceSave, MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
@@ -91,11 +91,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
   def levelFoldersCount = 0
 
-  def mmapSegments: MMAP.Segment = MMAP.Enabled(OperatingSystem.isWindows)
+  def mmapSegments: MMAP.Segment = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
 
-  def level0MMAP: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows)
+  def level0MMAP: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
 
-  def appendixStorageMMAP: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows)
+  def appendixStorageMMAP: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
 
   def isWindowsAndMMAPSegments(): Boolean =
     OperatingSystem.isWindows && mmapSegments.mmapReads && mmapSegments.mmapWrites
@@ -200,9 +200,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               fileSize: Int = 4.mb,
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
-              mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                        sweeper: TestCaseSweeper): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+              mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                            sweeper: TestCaseSweeper): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerger
       import sweeper._
@@ -441,6 +441,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
       deleteAfterClean = OperatingSystem.isWindows,
+      forceSave = TestForceSave.mmap(),
       blockCacheFileId = BlockCacheFileIDGenerator.nextID,
       bytes = bytes
     ).sweep()
@@ -456,7 +457,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         blockCacheFileId = blockCacheFileId,
-        autoClose = true
+        autoClose = true,
+        forceSave = TestForceSave.channel()
       ).sweep()
 
     file.append(bytes)
