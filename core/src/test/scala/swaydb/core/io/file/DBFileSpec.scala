@@ -36,6 +36,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 
@@ -473,35 +474,43 @@ class DBFileSpec extends TestBase with MockFactory {
 
   "mmapInit" should {
     "open a file for writing" in {
-      TestCaseSweeper {
-        implicit sweeper =>
-          import sweeper._
-          val testFile = randomFilePath
-          val bytes1 = Slice("bytes one".getBytes())
-          val bytes2 = Slice("bytes two".getBytes())
-          val bytes3 = Slice("bytes three".getBytes())
-          val bytes4 = Slice("bytes four".getBytes())
+      runThis(10.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            import sweeper._
+            val testFile = randomFilePath
+            val bytes1 = Slice("bytes one".getBytes())
+            val bytes2 = Slice("bytes two".getBytes())
+            val bytes3 = Slice("bytes three".getBytes())
+            val bytes4 = Slice("bytes four".getBytes())
 
-          val file =
-            DBFile.mmapInit(
-              path = testFile,
-              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
-              bufferSize = bytes1.size + bytes2.size + bytes3.size,
-              blockCacheFileId = idGenerator.nextID,
-              autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows
-            )
+            val bufferSize = {
+              //also randomly add partial or full byte size of byte4 to assert BufferOverflow is extended
+              //even only partially written buffer.
+              bytes1.size + bytes2.size + bytes3.size + (bytes4.size / (randomIntMax(3) max 1))
+            }
 
-          file.append(bytes1)
-          file.isFull shouldBe false
-          file.append(bytes2)
-          file.isFull shouldBe false
-          file.append(bytes3)
-          file.isFull shouldBe true
-          file.append(bytes4) //overflow write, buffer gets extended
-          file.isFull shouldBe true
+            val file =
+              DBFile.mmapInit(
+                path = testFile,
+                fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
+                bufferSize = bufferSize,
+                blockCacheFileId = idGenerator.nextID,
+                autoClose = true,
+                deleteOnClean = OperatingSystem.isWindows
+              )
 
-          file.readAll shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
+            file.append(bytes1)
+            file.isFull shouldBe false
+            file.append(bytes2)
+            file.isFull shouldBe false
+            file.append(bytes3)
+            //          file.isFull shouldBe true
+            file.append(bytes4) //overflow write, buffer gets extended
+            file.isFull shouldBe true
+
+            file.readAll shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
+        }
       }
     }
 
