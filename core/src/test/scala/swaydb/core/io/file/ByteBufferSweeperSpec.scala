@@ -150,7 +150,7 @@ class ByteBufferSweeperSpec extends TestBase {
       val path = Paths.get("test")
       val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, ByteBufferSweeper.Command.Clean]]
 
-      val command = Command.Clean(null, () => false, path, TestForceSave.mmap())
+      val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
 
       ByteBufferSweeper.recordCleanRequest(command, map)
       map should have size 1
@@ -172,7 +172,7 @@ class ByteBufferSweeperSpec extends TestBase {
           val path = Paths.get("test")
           val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, Command.Clean]]
 
-          val command = Command.Clean(null, () => false, path, TestForceSave.mmap())
+          val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
 
           ByteBufferSweeper.recordCleanRequest(command, map)
           map should have size 1
@@ -183,7 +183,7 @@ class ByteBufferSweeperSpec extends TestBase {
           val commands =
             (1 to 100) map {
               i =>
-                val command = Command.Clean(null, () => false, path, TestForceSave.mmap())
+                val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
                 ByteBufferSweeper.recordCleanRequest(command, map)
                 map.get(path).value.size shouldBe i
                 command
@@ -220,7 +220,7 @@ class ByteBufferSweeperSpec extends TestBase {
           val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
           val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
-          val command = Command.Clean(buffer, () => false, path, TestForceSave.mmap())
+          val command = Command.Clean(buffer, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
 
           val cleanResult = ByteBufferSweeper.initCleanerAndPerformClean(ByteBufferSweeper.State.init, buffer, command)
           cleanResult shouldBe a[IO.Right[_, _]]
@@ -251,8 +251,11 @@ class ByteBufferSweeperSpec extends TestBase {
             val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
+            val forceSave = TestForceSave.mmap()
+            val forced = new AtomicBoolean(false)
+
             //clean first
-            cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())
+            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)
             //and then delete
             cleaner.actor send Command.DeleteFile(filePath)
 
@@ -261,6 +264,11 @@ class ByteBufferSweeperSpec extends TestBase {
               Effect.exists(filePath) shouldBe false
               Effect.exists(folderPath) shouldBe true
             }
+
+            if (forceSave.enabledBeforeClean)
+              forced.get() shouldBe true
+            else
+              forced.get() shouldBe false
 
             //state should be cleared
             cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
@@ -278,15 +286,23 @@ class ByteBufferSweeperSpec extends TestBase {
             val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
+            val forceSave = TestForceSave.mmap()
+            val forced = new AtomicBoolean(false)
+
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFile(filePath)
-            cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())
+            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)
 
             //file is eventually deleted but the folder is not deleted
             eventual(2.minutes) {
               Effect.exists(filePath) shouldBe false
               Effect.exists(folderPath) shouldBe true
             }
+
+            if (forceSave.enabledBeforeClean)
+              forced.get() shouldBe true
+            else
+              forced.get() shouldBe false
 
             //state should be cleared
             cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
@@ -306,8 +322,11 @@ class ByteBufferSweeperSpec extends TestBase {
             val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
+            val forceSave = TestForceSave.mmap()
+            val forced = new AtomicBoolean(false)
+
             //clean first
-            cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())
+            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)
             //and then delete
             cleaner.actor send Command.DeleteFolder(folderPath, filePath)
 
@@ -315,6 +334,11 @@ class ByteBufferSweeperSpec extends TestBase {
               Effect.exists(folderPath) shouldBe false
               Effect.exists(filePath) shouldBe false
             }
+
+            if (forceSave.enabledBeforeClean)
+              forced.get() shouldBe true
+            else
+              forced.get() shouldBe false
 
             //state should be cleared
             cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
@@ -332,14 +356,22 @@ class ByteBufferSweeperSpec extends TestBase {
             val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
+            val forceSave = TestForceSave.mmap()
+            val forced = new AtomicBoolean(false)
+
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFolder(folderPath, filePath)
-            cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())
+            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)
 
             eventual(2.minutes) {
               Effect.exists(folderPath) shouldBe false
               Effect.exists(filePath) shouldBe false
             }
+
+            if (forceSave.enabledBeforeClean)
+              forced.get() shouldBe true
+            else
+              forced.get() shouldBe false
 
             //state should be cleared
             cleaner.actor.ask(Command.IsAllClean[Unit]).await(1.minute)
@@ -372,9 +404,12 @@ class ByteBufferSweeperSpec extends TestBase {
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
             Effect.exists(filePath) shouldBe true
 
+            val forceSave = TestForceSave.mmap()
+            val forced = new AtomicBoolean(false)
+
             val hasReference = new AtomicBoolean(true)
             //clean will get rescheduled first.
-            cleaner.actor send Command.Clean(buffer, hasReference.get, filePath, TestForceSave.mmap())
+            cleaner.actor send Command.Clean(buffer, hasReference.get, forced, filePath, forceSave)
             //since this is the second message and clean is rescheduled this will get processed.
             (cleaner.actor ask Command.IsClean(filePath)).await(10.seconds) shouldBe false
 
@@ -383,6 +418,11 @@ class ByteBufferSweeperSpec extends TestBase {
             eventual(5.seconds) {
               (cleaner.actor ask Command.IsClean(filePath)).await(10.seconds) shouldBe true
             }
+
+            if (forceSave.enabledBeforeClean)
+              forced.get() shouldBe true
+            else
+              forced.get() shouldBe false
 
             cleaner.actor.isEmpty shouldBe true
         }
@@ -398,11 +438,21 @@ class ByteBufferSweeperSpec extends TestBase {
               val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
               val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
+              val forceSave = TestForceSave.mmap()
+              val forced = new AtomicBoolean(false)
+
               runThis(randomIntMax(10) max 1) {
                 Seq(
-                  () => cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap()),
+                  () => cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave),
                   () => cleaner.actor send Command.DeleteFolder(filePath, filePath)
                 ).runThisRandomly
+              }
+
+              eventual(10.seconds) {
+                if (forceSave.enabledBeforeClean)
+                  forced.get() shouldBe true
+                else
+                  forced.get() shouldBe false
               }
 
               //also randomly terminate
@@ -458,12 +508,22 @@ class ByteBufferSweeperSpec extends TestBase {
               val file = FileChannel.open(filePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
               val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
+              val forceSave = TestForceSave.mmap()
+              val forced = new AtomicBoolean(false)
+
               //randomly submit clean and delete in any order and random number of times.
               runThis(randomIntMax(100) max 1) {
                 Seq(
-                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.Clean(buffer, () => false, filePath, TestForceSave.mmap())),
+                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)),
                   () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.DeleteFolder(filePath, filePath))
                 ).runThisRandomly
+              }
+
+              eventual(10.seconds) {
+                if (forceSave.enabledBeforeClean)
+                  forced.get() shouldBe true
+                else
+                  forced.get() shouldBe false
               }
 
               filePath

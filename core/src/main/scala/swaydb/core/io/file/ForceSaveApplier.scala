@@ -26,38 +26,85 @@ package swaydb.core.io.file
 
 import java.nio.MappedByteBuffer
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Benchmark
 import swaydb.data.config.ForceSave
 
 /**
- * Applies force save before
+ * Applies [[ForceSave]] configuration for applied forceSave to files.
  */
+trait ForceSaveApplier {
+  def beforeClean(path: Path,
+                  buffer: MappedByteBuffer,
+                  forced: AtomicBoolean,
+                  forceSave: ForceSave.MMAPFiles): Unit
+
+  def beforeCopy(file: DBFile,
+                 toPath: Path,
+                 forceSave: ForceSave): Unit
+
+  def beforeClose[F <: DBFileType](file: F,
+                                   forceSave: ForceSave): Unit
+}
+
 object ForceSaveApplier extends LazyLogging {
 
-  @inline def beforeClean(path: Path,
-                          buffer: MappedByteBuffer,
-                          forceSave: ForceSave.MMAPFiles): Unit =
-    if (forceSave.enabledBeforeClean)
-      if (forceSave.logBenchmark)
-        Benchmark(s"ForceSave: $path", useLazyLogging = true)(buffer.force())
-      else
-        buffer.force()
+  implicit object DefaultApplier extends ForceSaveApplier {
 
-  @inline def beforeCopy(file: DBFile,
-                         toPath: Path,
-                         forceSave: ForceSave): Unit =
-    if (forceSave.enableBeforeCopy)
+    /**
+     * Applies forceSave condition for before cleaning the file.
+     *
+     * @param path      Path to the file.
+     * @param buffer    Buffer to clean
+     * @param forced    AtomicBoolean indicates if force is already applied for this MappedByteBuffer.
+     * @param forceSave [[ForceSave]] configuration
+     */
+    def beforeClean(path: Path,
+                    buffer: MappedByteBuffer,
+                    forced: AtomicBoolean,
+                    forceSave: ForceSave.MMAPFiles): Unit =
+      if (forceSave.enabledBeforeClean && forced.compareAndSet(false, true))
+        try
+          if (forceSave.logBenchmark)
+            Benchmark(s"ForceSave: $path", useLazyLogging = true)(buffer.force())
+          else
+            buffer.force()
+        catch {
+          case throwable: Throwable =>
+            forced.set(false)
+            logger.error("Unable to ForceSave before clean", throwable)
+            throw throwable
+        }
+
+    /**
+     * Applies forceSave condition for before copying the file.
+     *
+     * @param file      Path to the file.
+     * @param toPath    Path of copy-to location.
+     * @param forceSave [[ForceSave]] configuration.
+     */
+    def beforeCopy(file: DBFile,
+                   toPath: Path,
+                   forceSave: ForceSave): Unit =
+      if (forceSave.enableBeforeCopy)
+        if (forceSave.logBenchmark)
+          Benchmark(s"ForceSave before copy from: '${file.path}' to: '$toPath'", useLazyLogging = true)(file.forceSave())
+        else
+          file.forceSave()
+
+    /**
+     * Applies forceSave condition for before closing the file.
+     *
+     * @param file      File to close
+     * @param forceSave [[ForceSave]] configuration.
+     */
+    def beforeClose[F <: DBFileType](file: F,
+                                     forceSave: ForceSave): Unit =
       if (forceSave.logBenchmark)
-        Benchmark(s"ForceSave before copy from: '${file.path}' to: '$toPath'", useLazyLogging = true)(file.forceSave())
+        Benchmark(s"ForceSave before close: '${file.path}", useLazyLogging = true)(file.forceSave())
       else
         file.forceSave()
-
-  @inline def beforeClose[F <: DBFileType](file: F,
-                                           forceSave: ForceSave): Unit =
-    if (forceSave.logBenchmark)
-      Benchmark(s"ForceSave before close: '${file.path}", useLazyLogging = true)(file.forceSave())
-    else
-      file.forceSave()
+  }
 }

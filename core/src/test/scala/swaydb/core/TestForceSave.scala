@@ -72,9 +72,17 @@ object TestForceSave {
     if (OperatingSystem.isWindows && Random.nextDouble() >= double)
       forceSaveMMAP
     else if (Random.nextBoolean())
-      ForceSave.BeforeClean(enableBeforeCopy = Random.nextBoolean(), logBenchmark = true)
+      ForceSave.BeforeClean(
+        enableBeforeCopy = Random.nextBoolean(),
+        enableForReadOnly = Random.nextBoolean(),
+        logBenchmark = true
+      )
     else if (Random.nextBoolean())
-      ForceSave.BeforeClose(enableBeforeCopy = Random.nextBoolean(), logBenchmark = true)
+      ForceSave.BeforeClose(
+        enableBeforeCopy = Random.nextBoolean(),
+        enableForReadOnly = Random.nextBoolean(),
+        logBenchmark = true
+      )
     else
       ForceSave.Disabled
 
@@ -85,7 +93,11 @@ object TestForceSave {
     if (OperatingSystem.isWindows && Random.nextDouble() >= double)
       forceSaveChannel
     else if (Random.nextBoolean())
-      ForceSave.BeforeClose(enableBeforeCopy = Random.nextBoolean(), logBenchmark = true)
+      ForceSave.BeforeClose(
+        enableBeforeCopy = Random.nextBoolean(),
+        enableForReadOnly = Random.nextBoolean(),
+        logBenchmark = true
+      )
     else
       ForceSave.Disabled
 }

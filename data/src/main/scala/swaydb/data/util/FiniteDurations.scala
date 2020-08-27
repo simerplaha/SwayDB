@@ -34,9 +34,11 @@ import scala.util.{Failure, Success, Try}
 private[swaydb] object FiniteDurations {
 
   implicit class FiniteDurationImplicits(duration: Duration) {
+
     @inline final def asString: String = {
       val seconds: Double = duration.toMillis / 1000D
-      s"$seconds seconds"
+      val scaledSeconds = Maths.round(seconds)
+      s"$scaledSeconds seconds"
     }
   }
 

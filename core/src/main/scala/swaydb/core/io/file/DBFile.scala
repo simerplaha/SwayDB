@@ -50,7 +50,10 @@ object DBFile extends LazyLogging {
                 autoClose: Boolean)(implicit fileSweeper: FileSweeperActor,
                                     bufferCleaner: ByteBufferSweeperActor) = {
 
-    //FIX-ME: need a better solution.
+    //We need to create a single FileSweeperItem that can be
+    //re-submitted to fileSweeper every time this file requires a close Actor request.
+    //Creating new FileSweeper item for each close request would result in cleaner
+    //code without null but would be expensive considering the number of objects created.
     var self: Cache[Error.IO, Unit, DBFileType] = null
 
     val closer: FileSweeperItem =
@@ -317,7 +320,8 @@ class DBFile(val path: Path,
              val forceSaveConfig: ForceSave,
              val blockCacheFileId: Long,
              fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit blockCache: Option[BlockCache.State],
-                                                                  bufferCleaner: ByteBufferSweeperActor) extends LazyLogging {
+                                                                  bufferCleaner: ByteBufferSweeperActor,
+                                                                  forceSaveApplied: ForceSaveApplier) extends LazyLogging {
 
   def existsOnDisk =
     Effect.exists(path)
@@ -362,7 +366,7 @@ class DBFile(val path: Path,
 
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): Path = {
-    ForceSaveApplier.beforeCopy(this, toPath, forceSaveConfig)
+    forceSaveApplied.beforeCopy(this, toPath, forceSaveConfig)
 
     val copiedPath = Effect.copy(path, toPath)
     logger.trace("{}: Copied: to {}", copiedPath, toPath)

@@ -101,9 +101,20 @@ private[file] class MMAPFile(val path: Path,
                              val blockCacheFileId: Long,
                              val deleteAfterClean: Boolean,
                              val forceSaveConfig: ForceSave.MMAPFiles,
-                             @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor) extends LazyLogging with DBFileType {
+                             @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor,
+                                                                             forceSaveApplier: ForceSaveApplier) extends LazyLogging with DBFileType {
+
+  //Force is applied on files after they are marked immutable so it only needs
+  //to be invoked once.
+  private val forced = {
+    if (forceSaveConfig.enableForReadOnly)
+      new AtomicBoolean(false)
+    else
+      new AtomicBoolean(mode == MapMode.READ_ONLY)
+  }
 
   private val open = new AtomicBoolean(true)
+  //Increments on each request made to this object and decrements on request's end.
   private val referenceCount = new AtomicLong(0)
 
   /**
@@ -111,7 +122,7 @@ private[file] class MMAPFile(val path: Path,
    * will throw [[NullPointerException]] which should be recovered into typed busy error
    * [[swaydb.Error.NullMappedByteBuffer]] so this request will get retried.
    *
-   * [[NullPointerException]] should not leak outside.
+   * [[NullPointerException]] should not leak outside since it's not a known error.
    *
    * FIXME - Switch to using Option.
    */
@@ -130,7 +141,7 @@ private[file] class MMAPFile(val path: Path,
   def close(): Unit =
     if (open.compareAndSet(true, false))
       watchNullPointer {
-        ForceSaveApplier.beforeClose(this, forceSaveConfig)
+        forceSaveApplier.beforeClose(this, forceSaveConfig)
         clearBuffer()
         channel.close()
       }
@@ -140,12 +151,17 @@ private[file] class MMAPFile(val path: Path,
   //forceSave and clearBuffer are never called concurrently other than when the database is being shut down.
   //so there is no blocking cost for using synchronized here on than when this file is already submitted for cleaning on shutdown.
   def forceSave(): Unit =
-    synchronized {
-      if (mode == MapMode.READ_ONLY || isBufferEmpty)
-        IO.unit
-      else
+    if (mode == MapMode.READ_WRITE && !isBufferEmpty && forced.compareAndSet(false, true))
+      try
         watchNullPointer(buffer.force())
-    }
+      catch {
+        case failure: Throwable =>
+          forced.set(false)
+          logger.error("Unable to ForceSave", failure)
+          throw failure
+      }
+    else
+      logger.debug(s"ForceSave ignored MMAPFile - $path. Mode = ${mode.toString}. isBufferEmpty = $isBufferEmpty. isOpen = ${channel.isOpen}. forced = ${forced.get()}")
 
   private def clearBuffer(): Unit =
     synchronized {
@@ -154,7 +170,15 @@ private[file] class MMAPFile(val path: Path,
       //the resulting NullPointerException will re-route request to the new Segment.
       //TO-DO: Use Option here instead. Test using Option does not have read performance impact.
       buffer = null
-      cleaner.actor send ByteBufferSweeper.Command.Clean(swapBuffer, hasReference, path, forceSaveConfig)
+
+      cleaner.actor send
+        ByteBufferSweeper.Command.Clean(
+          buffer = swapBuffer,
+          hasReference = hasReference,
+          forced = forced,
+          filePath = path,
+          forceSave = forceSaveConfig
+        )
     }
 
   override def append(slice: Iterable[Slice[Byte]]): Unit =

@@ -27,6 +27,7 @@ package swaydb.core.actor
 import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
 import java.nio.file.Path
 import java.nio.{ByteBuffer, MappedByteBuffer}
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
@@ -42,10 +43,14 @@ private[core] object ByteBufferCleaner extends LazyLogging {
   }
 
   class Cleaner(handle: MethodHandle) {
-    def clean(buffer: MappedByteBuffer, path: Path, forceSave: ForceSave.MMAPFiles): Unit = {
-      ForceSaveApplier.beforeClean(
+    def clean(buffer: MappedByteBuffer,
+              path: Path,
+              forced: AtomicBoolean,
+              forceSave: ForceSave.MMAPFiles)(implicit forceSaveApplier: ForceSaveApplier): Unit = {
+      forceSaveApplier.beforeClean(
         path = path,
         buffer = buffer,
+        forced = forced,
         forceSave = forceSave
       )
 
@@ -81,11 +86,14 @@ private[core] object ByteBufferCleaner extends LazyLogging {
 
   def initialiseCleaner[E](buffer: MappedByteBuffer,
                            path: Path,
-                           forceSave: ForceSave.MMAPFiles)(implicit exceptionHandler: ExceptionHandler[E]): IO[E, Cleaner] =
+                           forced: AtomicBoolean,
+                           forceSave: ForceSave.MMAPFiles)(implicit exceptionHandler: ExceptionHandler[E],
+                                                           forceSaveApplier: ForceSaveApplier): IO[E, Cleaner] =
     IO {
-      ForceSaveApplier.beforeClean(
+      forceSaveApplier.beforeClean(
         path = path,
         buffer = buffer,
+        forced = forced,
         forceSave = forceSave
       )
 

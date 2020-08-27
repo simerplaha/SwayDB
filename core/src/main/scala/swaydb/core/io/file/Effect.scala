@@ -35,6 +35,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Extension
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
+import swaydb.data.util.Maths
 
 import scala.jdk.CollectionConverters._
 import scala.util.Try
@@ -292,7 +293,7 @@ private[core] object Effect extends LazyLogging {
         .foldLeft(0L)(_ + _.toFile.length())
 
     //    val gb = BigDecimal(size / 1000000000.0).setScale(2, BigDecimal.RoundingMode.HALF_UP)
-    val mb = BigDecimal(size / 1000000.0).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+    val mb = Maths.round(size / 1000000.0, 2)
 
     //    println(s"${fileExtension.toUpperCase} files size: $gb gb - $mb mb - $size bytes")
     println(s"${fileExtension.toUpperCase} files size: $mb mb - $size bytes\n")

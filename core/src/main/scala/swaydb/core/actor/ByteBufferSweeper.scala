@@ -27,7 +27,7 @@ package swaydb.core.actor
 import java.io.FileNotFoundException
 import java.nio.file.{AccessDeniedException, NoSuchFileException, Path}
 import java.nio.{ByteBuffer, MappedByteBuffer}
-import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
@@ -72,6 +72,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
 
       def apply(buffer: MappedByteBuffer,
                 hasReference: () => Boolean,
+                forced: AtomicBoolean,
                 filePath: Path,
                 forceSave: ForceSave.MMAPFiles): Clean =
         new Clean(
@@ -79,6 +80,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           filePath = filePath,
           isRecorded = false,
           hasReference = hasReference,
+          forced = forced,
           forceSave = forceSave,
           //this id is being used instead of HashCode because nio.FileChannel returns
           //the same MappedByteBuffer even after the FileChannel is closed.
@@ -99,6 +101,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                              filePath: Path,
                              isRecorded: Boolean,
                              hasReference: () => Boolean,
+                             forced: AtomicBoolean,
                              forceSave: ForceSave.MMAPFiles,
                              id: Long) extends FileCommand {
       override def name: String = s"Clean: $filePath"
@@ -273,14 +276,25 @@ private[core] object ByteBufferSweeper extends LazyLogging {
     state.cleaner match {
       case Some(cleaner) =>
         IO {
-          cleaner.clean(buffer, command.filePath, command.forceSave)
+          cleaner.clean(
+            buffer = buffer,
+            path = command.filePath,
+            forced = command.forced,
+            forceSave = command.forceSave
+          )
+
           ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
           logger.debug(s"${command.filePath} Cleaned ${command.id}!")
           state
         }
 
       case None =>
-        ByteBufferCleaner.initialiseCleaner(buffer, command.filePath, command.forceSave) transform {
+        ByteBufferCleaner.initialiseCleaner(
+          buffer = buffer,
+          path = command.filePath,
+          forced = command.forced,
+          forceSave = command.forceSave
+        ) transform {
           cleaner =>
             state.cleaner = Some(cleaner)
             ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
@@ -354,7 +368,10 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           }
       }
     } else {
-      ByteBufferSweeper.initCleanerAndPerformClean(self.state, command.buffer, command)
+      ByteBufferSweeper.initCleanerAndPerformClean(self.state, command.buffer, command) onLeftSideEffect {
+        error =>
+          logger.error(s"Failed to clean file: ${command.filePath}", error.exception)
+      }
     }
 
   /**

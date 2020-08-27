@@ -25,34 +25,43 @@
 package swaydb.core.util
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.data.util.Maths
 
 
 object Benchmark extends LazyLogging {
+
   def doPrint(message: String,
-              useLazyLogging: Boolean) =
+              useLazyLogging: Boolean,
+              newLine: Boolean) =
     if (useLazyLogging)
       logger.info(message)
+    else if (newLine)
+      println(message)
     else
       print(message)
 
-  private def run[R](message: String, inlinePrint: Boolean, useLazyLogging: Boolean)(benchmarkThis: => R): (R, Double) = {
-    if (inlinePrint)
-      doPrint(s"Benchmarking: $message: ", useLazyLogging)
-    else
-      doPrint(s"Benchmarking: $message\n", useLazyLogging)
+  private def run[R](message: String, inlinePrint: Boolean, useLazyLogging: Boolean)(benchmarkThis: => R): (R, BigDecimal) = {
+    if (!useLazyLogging) //don't need header Benchmarking log when using lazyLogging. LazyLogging is generally for user's viewing only.
+      if (inlinePrint)
+        doPrint(message = s"Benchmarking: $message: ", useLazyLogging = useLazyLogging, newLine = false)
+      else
+        doPrint(message = s"Benchmarking: $message", useLazyLogging = useLazyLogging, newLine = true)
+
     val startTime = System.nanoTime()
     val result = benchmarkThis
     val endTime = System.nanoTime()
     val timeTaken = (endTime - startTime) / 1000000000.0: Double
+    val timeTakenRounded = Maths.round(timeTaken)
+
     if (inlinePrint)
-      doPrint(timeTaken + s" seconds - $message.", useLazyLogging)
+      doPrint(message = timeTakenRounded + s" seconds - $message.", useLazyLogging = useLazyLogging, newLine = false)
     else
-      doPrint(timeTaken + s" seconds - $message.\n", useLazyLogging)
+      doPrint(message = timeTakenRounded + s" seconds - $message.", useLazyLogging = useLazyLogging, newLine = true)
 
     if (!useLazyLogging)
       println
 
-    (result, timeTaken)
+    (result, timeTakenRounded)
   }
 
   def apply[R](message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => R): R =
@@ -62,7 +71,7 @@ object Benchmark extends LazyLogging {
       useLazyLogging = useLazyLogging
     )(benchmarkThis)._1
 
-  def time(message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => Unit): Double =
+  def time(message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => Unit): BigDecimal =
     run(
       message = message,
       inlinePrint = inlinePrint,

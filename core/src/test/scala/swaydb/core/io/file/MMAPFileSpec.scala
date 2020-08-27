@@ -27,79 +27,126 @@ package swaydb.core.io.file
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.StandardOpenOption
+import java.util.concurrent.atomic.AtomicBoolean
 
-import swaydb.data.util.StorageUnits._
+import org.scalamock.scalatest.MockFactory
+import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferCleaner
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
-import swaydb.IOValues._
 import swaydb.data.RunThis._
-import swaydb.core.CommonAssertions._
+import swaydb.data.util.StorageUnits._
 
-class MMAPFileSpec extends TestBase {
+class MMAPFileSpec extends TestBase with MockFactory {
 
-  "cleared MappedByteBuffer without forceSave" should {
-    "not fatal terminate" when {
+  "BEHAVIOUR TEST - cleared MappedByteBuffer without forceSave" should {
+    "not fatal JVM terminate" when {
       "writing, reading & copying" in {
         TestCaseSweeper {
           implicit sweeper =>
-            runThis(10.times, log = true) {
+            runThis(50.times, log = true) {
               //create random path and byte slice
               val path = randomFilePath
               val bytes = randomBytesSlice(10.mb)
 
-              //create a readWriteChannel
-              val readWriteChannel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
-              val readWriteBuff = readWriteChannel.map(MapMode.READ_WRITE, 0, bytes.size)
-              //save bytes to the channel randomly in groups of small slices or one large slice
-              eitherOne(
-                readWriteBuff.put(bytes.toByteBufferWrap),
-                bytes.groupedSlice(randomIntMax(10000) max 1).foreach {
-                  slice =>
-                    readWriteBuff.put(slice.toByteBufferWrap)
-                },
-                bytes.groupedSlice(randomIntMax(1000) max 1).foreach {
-                  slice =>
-                    readWriteBuff.put(slice.toByteBufferWrap)
-                },
-                bytes.groupedSlice(randomIntMax(100) max 1).foreach {
-                  slice =>
-                    readWriteBuff.put(slice.toByteBufferWrap)
-                },
-                bytes.groupedSlice(randomIntMax(10) max 1).foreach {
-                  slice =>
-                    readWriteBuff.put(slice.toByteBufferWrap)
-                }
-              )
+              /**
+               * BEHAVIOR 1 - Open a memory-mapped file in read & write mode.
+               */
+              {
+                //create a readWriteChannel
+                val readWriteChannel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+                val readWriteBuff = readWriteChannel.map(MapMode.READ_WRITE, 0, bytes.size)
+                //save bytes to the channel randomly in groups of small slices or one large slice
+                eitherOne(
+                  readWriteBuff.put(bytes.toByteBufferWrap),
+                  bytes.groupedSlice(randomIntMax(10000) max 1).foreach {
+                    slice =>
+                      readWriteBuff.put(slice.toByteBufferWrap)
+                  },
+                  bytes.groupedSlice(randomIntMax(1000) max 1).foreach {
+                    slice =>
+                      readWriteBuff.put(slice.toByteBufferWrap)
+                  },
+                  bytes.groupedSlice(randomIntMax(100) max 1).foreach {
+                    slice =>
+                      readWriteBuff.put(slice.toByteBufferWrap)
+                  },
+                  bytes.groupedSlice(randomIntMax(10) max 1).foreach {
+                    slice =>
+                      readWriteBuff.put(slice.toByteBufferWrap)
+                  }
+                )
 
-              //do not forceSave and clear the in-memory bytes.
-              ByteBufferCleaner.initialiseCleaner(readWriteBuff, path, TestForceSave.mmap()).value
+                //forceSave configurations
+                val forceSave = TestForceSave.mmap()
+                val alreadyForced = randomBoolean()
+                val forced = new AtomicBoolean(alreadyForced)
 
-              //copy the file and read and aldo read the bytes form path in any order should succeed.
-              Seq(
-                () => {
-                  //copy file to another path
-                  val path2 = Effect.copy(path, randomFilePath)
-                  Effect.readAllBytes(path2) shouldBe bytes
-                },
-                () =>
-                  //read all the bytes from disk and they exist
-                  Effect.readAllBytes(path) shouldBe bytes
-              ).runThisRandomly
+                implicit val applier: ForceSaveApplier =
+                  if (alreadyForced)
+                    mock[ForceSaveApplier] //mock it so it not get invoked
+                  else
+                    ForceSaveApplier.DefaultApplier
 
-              //open the file as another memory-mapped file in readonly mode
-              val readOnlyChannel = FileChannel.open(path, StandardOpenOption.READ)
-              val readOnlyBuff = readOnlyChannel.map(MapMode.READ_ONLY, 0, bytes.size)
-              //read all bytes from the readOnly buffer
-              val array = new Array[Byte](bytes.size)
-              readOnlyBuff.get(array)
-              array shouldBe bytes.toArray
+                //do not forceSave and clear the in-memory bytes.
+                ByteBufferCleaner.initialiseCleaner(readWriteBuff, path, forced, forceSave).value
 
-              //clear the buffer again
-              ByteBufferCleaner.initialiseCleaner(readOnlyBuff, path, TestForceSave.mmap()).value
+                if (alreadyForced)
+                  forced.get() shouldBe true
+                else if (forceSave.enabledBeforeClean)
+                  forced.get() shouldBe true
+                else
+                  forced.get() shouldBe false
 
-              //read bytes from disk and they should exist.
-              Effect.readAllBytes(path) shouldBe bytes
+                //copy the file and read and aldo read the bytes form path in any order should succeed.
+                Seq(
+                  () => {
+                    //copy file to another path
+                    val path2 = Effect.copy(path, randomFilePath)
+                    Effect.readAllBytes(path2) shouldBe bytes
+                  },
+                  () =>
+                    //read all the bytes from disk and they exist
+                    Effect.readAllBytes(path) shouldBe bytes
+                ).runThisRandomly
+              }
+
+              /**
+               * BEHAVIOR 2 - REOPEN the above memory-mapped file in read mode.
+               */
+              {
+                //open the file as another memory-mapped file in readonly mode
+                val readOnlyChannel = FileChannel.open(path, StandardOpenOption.READ)
+                val readOnlyBuff = readOnlyChannel.map(MapMode.READ_ONLY, 0, bytes.size)
+                //read all bytes from the readOnly buffer
+                val array = new Array[Byte](bytes.size)
+                readOnlyBuff.get(array)
+                array shouldBe bytes.toArray
+
+                val forceSaveAgain = TestForceSave.mmap()
+                val alreadyForced2 = randomBoolean()
+                val forcedAgain = new AtomicBoolean(alreadyForced2)
+
+                implicit val applier: ForceSaveApplier =
+                  if (alreadyForced2)
+                    mock[ForceSaveApplier] //mock it so it not get invoked
+                  else
+                    ForceSaveApplier.DefaultApplier
+
+                //clear the buffer again
+                ByteBufferCleaner.initialiseCleaner(readOnlyBuff, path, forcedAgain, forceSaveAgain).value
+
+                if (alreadyForced2)
+                  forcedAgain.get() shouldBe true
+                else if (forceSaveAgain.enabledBeforeClean)
+                  forcedAgain.get() shouldBe true
+                else
+                  forcedAgain.get() shouldBe false
+
+                //read bytes from disk and they should exist.
+                Effect.readAllBytes(path) shouldBe bytes
+              }
             }
         }
       }

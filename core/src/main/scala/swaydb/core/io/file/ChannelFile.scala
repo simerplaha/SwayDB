@@ -27,6 +27,7 @@ package swaydb.core.io.file
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.config.ForceSave
@@ -66,10 +67,19 @@ private[file] class ChannelFile(val path: Path,
                                 mode: StandardOpenOption,
                                 channel: FileChannel,
                                 forceSave: ForceSave.ChannelFiles,
-                                val blockCacheFileId: Long) extends LazyLogging with DBFileType {
+                                val blockCacheFileId: Long)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
+
+  //Force is applied on files after they are marked immutable so it only needs
+  //to be invoked once.
+  private val forced = {
+    if (forceSave.enableForReadOnly)
+      new AtomicBoolean(false)
+    else
+      new AtomicBoolean(mode == StandardOpenOption.READ)
+  }
 
   def close(): Unit = {
-    ForceSaveApplier.beforeClose(this, forceSave)
+    forceSaveApplied.beforeClose(this, forceSave)
     channel.close()
   }
 
@@ -115,6 +125,15 @@ private[file] class ChannelFile(val path: Path,
   }
 
   override def forceSave(): Unit =
-    if (mode == StandardOpenOption.WRITE && channel.isOpen)
-      channel.force(false)
+    if (mode == StandardOpenOption.WRITE && channel.isOpen && forced.compareAndSet(false, true))
+      try
+        channel.force(false)
+      catch {
+        case failure: Throwable =>
+          forced.set(false)
+          logger.error("Unable to ForceSave", failure)
+          throw failure
+      }
+    else
+      logger.debug(s"ForceSave ignored FileChannel - $path. Mode = ${mode.toString}. isOpen = ${channel.isOpen}. forced = ${forced.get()}")
 }

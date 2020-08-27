@@ -47,7 +47,7 @@ class CachePerformanceSpec extends AnyWordSpec with Matchers {
             IO.Right(int)
         }
       }
-    } should be < 0.13
+    }.toDouble should be < 0.13
   }
 
   "reading concurrentIO" when {
