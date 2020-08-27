@@ -56,7 +56,7 @@
 //        bufferSize = bytes.size,
 //        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
 //        autoClose = true,
-//        deleteOnClean = OperatingSystem.isWindows
+//        deleteAfterClean = OperatingSystem.isWindows
 //      ).runRandomIO.right.value
 //
 //    file.append(bytes).runRandomIO.right.value
@@ -69,7 +69,7 @@
 //        path = file.path,
 //        ioStrategy = ioStrategy,
 //        autoClose = true,
-//        deleteOnClean = OperatingSystem.isWindows,
+//        deleteAfterClean = OperatingSystem.isWindows,
 //        blockCacheFileId = BlockCacheFileIDGenerator.nextID
 //      )
 //

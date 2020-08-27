@@ -189,7 +189,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     testFileDirectory.resolve(this.getClass.getSimpleName + "_MEMORY_DIR")
 
   override protected def beforeAll(): Unit =
-    if(deleteFiles)
+    if (deleteFiles)
       Effect.walkDelete(testClassDirPath)
 
   override protected def afterEach(): Unit =
@@ -440,7 +440,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
-      deleteOnClean = OperatingSystem.isWindows,
+      deleteAfterClean = OperatingSystem.isWindows,
       blockCacheFileId = BlockCacheFileIDGenerator.nextID,
       bytes = bytes
     ).sweep()
@@ -466,7 +466,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
-      deleteOnClean = OperatingSystem.isWindows,
+      deleteAfterClean = OperatingSystem.isWindows,
       blockCacheFileId = blockCacheFileId
     ).sweep()
   }
@@ -479,7 +479,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
-        deleteOnClean = OperatingSystem.isWindows,
+        deleteAfterClean = OperatingSystem.isWindows,
         blockCacheFileId = BlockCacheFileIDGenerator.nextID
       ).sweep()
     )

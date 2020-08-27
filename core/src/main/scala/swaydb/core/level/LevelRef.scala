@@ -68,7 +68,7 @@ object LevelRef {
   def hasDeleteOnClean(level: Option[LevelRef]): Boolean =
     firstPersistentLevel(level) exists {
       case level: Level =>
-        level.segmentConfig.mmap.deleteOnClean
+        level.segmentConfig.mmap.deleteAfterClean
 
       case zero: LevelZero =>
         zero.mmap.hasMMAP
@@ -80,7 +80,7 @@ object LevelRef {
   def getMMAPLog(level: Option[LevelRef]): MMAP.Map =
     firstPersistentLevel(level) collectFirst {
       case level: Level if level.segmentConfig.mmap.mmapReads || level.segmentConfig.mmap.mmapWrites =>
-        MMAP.enabled(level.segmentConfig.mmap.deleteOnClean)
+        MMAP.enabled(level.segmentConfig.mmap.deleteAfterClean)
     } getOrElse MMAP.Disabled
 
   def getLevels(level: LevelRef): List[LevelRef] = {

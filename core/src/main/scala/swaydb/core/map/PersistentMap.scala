@@ -128,13 +128,13 @@ private[map] object PersistentMap extends LazyLogging {
                              fileSize: Long)(implicit fileSweeper: FileSweeperActor,
                                              bufferCleaner: ByteBufferSweeperActor): DBFile =
     memoryMapped match {
-      case MMAP.Enabled(deleteOnClean) =>
+      case MMAP.Enabled(deleteAfterClean) =>
         DBFile.mmapInit(
           folder.resolve(0.toLogFileId),
           IOStrategy.SynchronisedIO(true),
           fileSize,
           autoClose = false,
-          deleteOnClean = deleteOnClean,
+          deleteAfterClean = deleteAfterClean,
           blockCacheFileId = 0
         )(fileSweeper, None, bufferCleaner)
 
@@ -267,14 +267,14 @@ private[map] object PersistentMap extends LazyLogging {
     val newFile =
 
       mmap match {
-        case MMAP.Enabled(deleteOnClean) =>
+        case MMAP.Enabled(deleteAfterClean) =>
           DBFile.mmapInit(
             path = nextPath,
             IOStrategy.SynchronisedIO(true),
             bufferSize = bytes.size + size,
             blockCacheFileId = 0,
             autoClose = false,
-            deleteOnClean = deleteOnClean
+            deleteAfterClean = deleteAfterClean
           )(fileSweeper, None, bufferCleaner)
 
         case _: MMAP.Disabled =>
@@ -401,8 +401,8 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
     currentFile.existsOnDisk
 
   override def delete: Unit =
-    if (mmap.deleteOnClean) {
-      //if it's require deleteOnClean then do not invoke delete directly
+    if (mmap.deleteAfterClean) {
+      //if it's require deleteAfterClean then do not invoke delete directly
       //instead invoke close (which will also call ByteBufferCleaner for closing)
       // and then submit delete to ByteBufferCleaner actor.
       currentFile.close()

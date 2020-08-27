@@ -31,7 +31,7 @@ import scala.util.Random
 sealed trait MMAP {
   val mmapReads: Boolean
   val mmapWrites: Boolean
-  val deleteOnClean: Boolean
+  val deleteAfterClean: Boolean
 
   def hasMMAP: Boolean =
     mmapReads || mmapWrites
@@ -44,19 +44,19 @@ object MMAP {
     def isMMAP: Boolean
   }
 
-  def enabled(deleteOnClean: Boolean): MMAP.Enabled =
-    Enabled(deleteOnClean)
+  def enabled(deleteAfterClean: Boolean): MMAP.Enabled =
+    Enabled(deleteAfterClean)
 
-  case class Enabled(deleteOnClean: Boolean) extends MMAP.Segment with MMAP.Map {
+  case class Enabled(deleteAfterClean: Boolean) extends MMAP.Segment with MMAP.Map {
     override val mmapReads: Boolean = true
     override val mmapWrites: Boolean = true
     override val isMMAP: Boolean = true
   }
 
-  def readOnly(deleteOnClean: Boolean): MMAP.ReadOnly =
-    ReadOnly(deleteOnClean)
+  def readOnly(deleteAfterClean: Boolean): MMAP.ReadOnly =
+    ReadOnly(deleteAfterClean)
 
-  case class ReadOnly(deleteOnClean: Boolean) extends MMAP.Segment {
+  case class ReadOnly(deleteAfterClean: Boolean) extends MMAP.Segment {
     override val mmapReads: Boolean = true
     override val mmapWrites: Boolean = false
   }
@@ -69,7 +69,7 @@ object MMAP {
     override val mmapReads: Boolean = false
     override val mmapWrites: Boolean = false
     override val isMMAP: Boolean = false
-    override val deleteOnClean: Boolean = false
+    override val deleteAfterClean: Boolean = false
   }
 
   def randomForSegment(): MMAP.Segment =

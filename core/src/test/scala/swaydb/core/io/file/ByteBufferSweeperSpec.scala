@@ -69,7 +69,7 @@ class ByteBufferSweeperSpec extends TestBase {
               path = randomDir,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows,
               blockCacheFileId = BlockCacheFileIDGenerator.nextID,
               bytes = Slice(randomBytesSlice())
             )
@@ -103,7 +103,7 @@ class ByteBufferSweeperSpec extends TestBase {
                   path = randomDir,
                   fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                   autoClose = true,
-                  deleteOnClean = OperatingSystem.isWindows,
+                  deleteAfterClean = OperatingSystem.isWindows,
                   blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                   bytes = bytes
                 )

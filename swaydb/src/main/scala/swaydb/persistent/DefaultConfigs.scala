@@ -104,7 +104,7 @@ object DefaultConfigs {
       cacheSegmentBlocksOnCreate = true,
       deleteSegmentsEventually = true,
       pushForward = true,
-      mmap = MMAP.Enabled(deleteOnClean = OperatingSystem.isWindows),
+      mmap = MMAP.Enabled(deleteAfterClean = OperatingSystem.isWindows),
       minSegmentSize = 2.mb,
       maxKeyValuesPerSegment = Int.MaxValue,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),

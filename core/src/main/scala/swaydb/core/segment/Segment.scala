@@ -299,23 +299,23 @@ private[core] object Segment extends LazyLogging {
                                                             bufferCleaner: ByteBufferSweeperActor,
                                                             blockCache: Option[BlockCache.State]): DBFile =
     mmap match {
-      case MMAP.Enabled(deleteOnClean) => //if both read and writes are mmaped. Keep the file open.
+      case MMAP.Enabled(deleteAfterClean) => //if both read and writes are mmaped. Keep the file open.
         DBFile.mmapWriteAndRead(
           path = path,
           autoClose = true,
-          deleteOnClean = deleteOnClean,
+          deleteAfterClean = deleteAfterClean,
           fileOpenIOStrategy = segmentIO.fileOpenIO,
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           bytes = segmentBytes
         )
 
-      case MMAP.ReadOnly(deleteOnClean) =>
+      case MMAP.ReadOnly(deleteAfterClean) =>
         DBFile.mmapRead(
           path = Effect.write(path, segmentBytes),
           fileOpenIOStrategy = segmentIO.fileOpenIO,
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           autoClose = true,
-          deleteOnClean = deleteOnClean
+          deleteAfterClean = deleteAfterClean
         )
 
       case _: MMAP.Disabled =>
@@ -529,7 +529,7 @@ private[core] object Segment extends LazyLogging {
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             blockCacheFileId = blockCacheFileId,
             autoClose = true,
-            deleteOnClean = mmap.deleteOnClean,
+            deleteAfterClean = mmap.deleteAfterClean,
             checkExists = checkExists
           )
 
@@ -627,7 +627,7 @@ private[core] object Segment extends LazyLogging {
             fileOpenIOStrategy = segmentIO.fileOpenIO,
             blockCacheFileId = BlockCacheFileIDGenerator.nextID,
             autoClose = false,
-            deleteOnClean = mmap.deleteOnClean,
+            deleteAfterClean = mmap.deleteAfterClean,
             checkExists = checkExists
           )
 

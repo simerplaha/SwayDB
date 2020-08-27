@@ -300,7 +300,7 @@ class DBFileSpec extends TestBase with MockFactory {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows,
               blockCacheFileId = idGenerator.nextID,
               bytes = bytes
             )
@@ -339,7 +339,7 @@ class DBFileSpec extends TestBase with MockFactory {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteOnClean = OperatingSystem.isWindows,
+            deleteAfterClean = OperatingSystem.isWindows,
             blockCacheFileId = idGenerator.nextID
           ) ==> {
             file =>
@@ -365,7 +365,7 @@ class DBFileSpec extends TestBase with MockFactory {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows,
               blockCacheFileId = idGenerator.nextID,
               bytes = bytes
             )
@@ -384,7 +384,7 @@ class DBFileSpec extends TestBase with MockFactory {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteOnClean = OperatingSystem.isWindows,
+            deleteAfterClean = OperatingSystem.isWindows,
             blockCacheFileId = idGenerator.nextID,
             bytes = bytes
           ).close()
@@ -394,7 +394,7 @@ class DBFileSpec extends TestBase with MockFactory {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows,
               blockCacheFileId = idGenerator.nextID,
               bytes = bytes
             )
@@ -405,7 +405,7 @@ class DBFileSpec extends TestBase with MockFactory {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteOnClean = OperatingSystem.isWindows,
+            deleteAfterClean = OperatingSystem.isWindows,
             blockCacheFileId = idGenerator.nextID
           ) ==> {
             file =>
@@ -431,7 +431,7 @@ class DBFileSpec extends TestBase with MockFactory {
               path = testFile,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows,
               blockCacheFileId = idGenerator.nextID
             )
 
@@ -464,7 +464,7 @@ class DBFileSpec extends TestBase with MockFactory {
               path = randomFilePath,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows,
               blockCacheFileId = idGenerator.nextID
             )
           }.left.value shouldBe a[swaydb.Exception.NoSuchFile]
@@ -497,7 +497,7 @@ class DBFileSpec extends TestBase with MockFactory {
                 bufferSize = bufferSize,
                 blockCacheFileId = idGenerator.nextID,
                 autoClose = true,
-                deleteOnClean = OperatingSystem.isWindows
+                deleteAfterClean = OperatingSystem.isWindows
               )
 
             file.append(bytes1)
@@ -528,7 +528,7 @@ class DBFileSpec extends TestBase with MockFactory {
               bufferSize = 10,
               blockCacheFileId = idGenerator.nextID,
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows
+              deleteAfterClean = OperatingSystem.isWindows
             )
           }.left.value shouldBe a[FileAlreadyExistsException]
       }
@@ -600,7 +600,7 @@ class DBFileSpec extends TestBase with MockFactory {
               bufferSize = bytes.size,
               blockCacheFileId = idGenerator.nextID,
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows
+              deleteAfterClean = OperatingSystem.isWindows
             )
 
           file.append(bytes)
@@ -674,7 +674,7 @@ class DBFileSpec extends TestBase with MockFactory {
               bufferSize = bytes.size,
               blockCacheFileId = idGenerator.nextID,
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows
+              deleteAfterClean = OperatingSystem.isWindows
             )
 
           file.append(bytes)
@@ -727,7 +727,7 @@ class DBFileSpec extends TestBase with MockFactory {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteOnClean = OperatingSystem.isWindows,
+            deleteAfterClean = OperatingSystem.isWindows,
             blockCacheFileId = idGenerator.nextID
           ) ==> {
             file =>
@@ -754,7 +754,7 @@ class DBFileSpec extends TestBase with MockFactory {
               bufferSize = allBytesSize,
               blockCacheFileId = idGenerator.nextID,
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows
+              deleteAfterClean = OperatingSystem.isWindows
             )
 
           file.append(bytes(0))
@@ -773,7 +773,7 @@ class DBFileSpec extends TestBase with MockFactory {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteOnClean = OperatingSystem.isWindows,
+            deleteAfterClean = OperatingSystem.isWindows,
             blockCacheFileId = idGenerator.nextID
           ) ==> {
             file =>
@@ -809,7 +809,7 @@ class DBFileSpec extends TestBase with MockFactory {
               bufferSize = bytes.head.size,
               blockCacheFileId = idGenerator.nextID,
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows
+              deleteAfterClean = OperatingSystem.isWindows
             )
 
           file.append(bytes(0))
@@ -830,7 +830,7 @@ class DBFileSpec extends TestBase with MockFactory {
             path = testFile,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteOnClean = OperatingSystem.isWindows,
+            deleteAfterClean = OperatingSystem.isWindows,
             blockCacheFileId = idGenerator.nextID
           ) ==> {
             file =>
@@ -888,7 +888,7 @@ class DBFileSpec extends TestBase with MockFactory {
             bufferSize = 100,
             blockCacheFileId = idGenerator.nextID,
             autoClose = true,
-            deleteOnClean = OperatingSystem.isWindows
+            deleteAfterClean = OperatingSystem.isWindows
           )
 
           file.append(Slice.emptyBytes)
@@ -899,7 +899,7 @@ class DBFileSpec extends TestBase with MockFactory {
             path = file.path,
             fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
             autoClose = true,
-            deleteOnClean = OperatingSystem.isWindows,
+            deleteAfterClean = OperatingSystem.isWindows,
             blockCacheFileId = idGenerator.nextID
           ) ==> {
             file2 =>
@@ -984,7 +984,7 @@ class DBFileSpec extends TestBase with MockFactory {
               path = randomFilePath,
               fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows,
+              deleteAfterClean = OperatingSystem.isWindows,
               blockCacheFileId = idGenerator.nextID,
               bytes = randomBytesSlice()
             ).sweep()
@@ -1051,7 +1051,7 @@ class DBFileSpec extends TestBase with MockFactory {
               bufferSize = bytes.size,
               blockCacheFileId = idGenerator.nextID,
               autoClose = true,
-              deleteOnClean = OperatingSystem.isWindows
+              deleteAfterClean = OperatingSystem.isWindows
             )
 
           file.append(bytes)
@@ -1090,7 +1090,7 @@ class DBFileSpec extends TestBase with MockFactory {
   //              path = testFile,
   //              fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
   //              autoClose = true,
-  //              deleteOnClean = OperatingSystem.isWindows,
+  //              deleteAfterClean = OperatingSystem.isWindows,
   //              blockCacheFileId = idGenerator.nextID,
   //              bytes = bytes
   //            )

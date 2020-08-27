@@ -64,7 +64,7 @@
 //        bufferSize = bytes.size,
 //        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
 //        autoClose = true,
-//        deleteOnClean = OperatingSystem.isWindows
+//        deleteAfterClean = OperatingSystem.isWindows
 //      ).runRandomIO.right.value
 //
 //    mmapFile.append(bytes).runRandomIO.right.value
@@ -195,7 +195,7 @@
 //       * Round 3: 0.542235514 seconds
 //       */
 //
-//      val mmapFile = DBFile.mmapInit(randomFilePath, IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true, deleteOnClean = OperatingSystem.isWindows, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//      val mmapFile = DBFile.mmapInit(randomFilePath, IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
 //      Benchmark("mmap write Benchmark") {
 //        bytes foreach mmapFile.append
 //      }
@@ -233,7 +233,7 @@
 //       * Round 2: 0.965750206 seconds
 //       * Round 3: 1.044735106 seconds
 //       */
-//      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, deleteOnClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
 //      Benchmark("mmap value Benchmark") {
 //        bytes.indices foreach {
 //          index =>
@@ -281,7 +281,7 @@
 //       * Round 2: 0.54580672 seconds
 //       * Round 3: 0.463990916 seconds
 //       */
-//      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, deleteOnClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+//      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, deleteAfterClean = OperatingSystem.isWindows, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
 //
 //      Benchmark("mmap read Benchmark") {
 //        bytes.foldLeft(0) {

@@ -44,19 +44,19 @@ private[file] object MMAPFile {
   def write(path: Path,
             bufferSize: Long,
             blockCacheFileId: Long,
-            deleteOnClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile =
+            deleteAfterClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile =
     MMAPFile(
       path = path,
       channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
       mode = MapMode.READ_WRITE,
       bufferSize = bufferSize,
       blockCacheFileId = blockCacheFileId,
-      deleteOnClean = deleteOnClean
+      deleteAfterClean = deleteAfterClean
     )
 
   def read(path: Path,
            blockCacheFileId: Long,
-           deleteOnClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
+           deleteAfterClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
     val channel = FileChannel.open(path, StandardOpenOption.READ)
 
     MMAPFile(
@@ -65,7 +65,7 @@ private[file] object MMAPFile {
       mode = MapMode.READ_ONLY,
       bufferSize = channel.size(),
       blockCacheFileId = blockCacheFileId,
-      deleteOnClean = deleteOnClean
+      deleteAfterClean = deleteAfterClean
     )
   }
 
@@ -74,7 +74,7 @@ private[file] object MMAPFile {
                     mode: MapMode,
                     bufferSize: Long,
                     blockCacheFileId: Long,
-                    deleteOnClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
+                    deleteAfterClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
     val buff = channel.map(mode, 0, bufferSize)
     new MMAPFile(
       path = path,
@@ -82,7 +82,7 @@ private[file] object MMAPFile {
       mode = mode,
       bufferSize = bufferSize,
       blockCacheFileId = blockCacheFileId,
-      deleteOnClean = deleteOnClean,
+      deleteAfterClean = deleteAfterClean,
       buffer = buff
     )
   }
@@ -93,7 +93,7 @@ private[file] class MMAPFile(val path: Path,
                              mode: MapMode,
                              bufferSize: Long,
                              val blockCacheFileId: Long,
-                             val deleteOnClean: Boolean,
+                             val deleteAfterClean: Boolean,
                              @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor) extends LazyLogging with DBFileType {
 
   private val open = new AtomicBoolean(true)
@@ -212,7 +212,7 @@ private[file] class MMAPFile(val path: Path,
   override def delete(): Unit =
     watchNullPointer {
       close()
-      if (deleteOnClean)
+      if (deleteAfterClean)
         cleaner.actor send ByteBufferSweeper.Command.DeleteFile(path)
       else
         Effect.delete(path)
