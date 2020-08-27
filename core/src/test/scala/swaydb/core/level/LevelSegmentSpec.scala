@@ -327,9 +327,13 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).left.get.exception shouldBe a[FileAlreadyExistsException]
 
               if (isWindowsAndMMAPSegments())
-                sweeper.receiveAll()
+                eventual(10.seconds) {
+                  sweeper.receiveAll()
+                  level.segmentFilesOnDisk shouldBe levelFilesBeforePut
+                }
+              else
+                level.segmentFilesOnDisk shouldBe levelFilesBeforePut
 
-              level.segmentFilesOnDisk shouldBe levelFilesBeforePut
               level.segmentsInLevel().map(_.path) shouldBe appendixBeforePut.map(_.path)
           }
         }
@@ -355,9 +359,13 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               level.put(Seq.empty, segmentToCopy, Seq.empty).left.get.exception shouldBe a[FileAlreadyExistsException]
 
               if (isWindowsAndMMAPSegments())
-                sweeper.receiveAll()
+                eventual(10.seconds) {
+                  sweeper.receiveAll()
+                  level.isEmpty shouldBe true
+                }
+              else
+                level.isEmpty shouldBe true
 
-              level.isEmpty shouldBe true
               level.segmentFilesOnDisk shouldBe levelFilesBeforePut
           }
         }
