@@ -36,33 +36,21 @@ import scala.util.Random
  *
  * @see Issue - https://github.com/simerplaha/SwayDB/issues/251
  *      MappedByteBuffer.force is slow on windows and since test-cases are
- *      closing all files on each run slows down test run.
+ *      closing all files on each run Force save on all tests slows down test run.
  */
 object TestForceSave {
 
-  //sets ForceSave setting for MMAP files on windows
-  @volatile private var forceSaveMMAP: ForceSave.MMAPFiles = ForceSave.Disabled
-  //sets ForceSave setting for Channel files on windows
-  @volatile private var forceSaveChannel: ForceSave.ChannelFiles = ForceSave.Disabled
-  //sets ForceSave setting to be random for windows
-  @volatile private var double: Double = 0.0
-
-  /**
-   * Sets the [[ForceSave]] setting for windows.
-   */
-  def setForWindows(forceSaveMMAP: ForceSave.MMAPFiles,
-                    forceSaveChannel: ForceSave.ChannelFiles): Unit = {
-    this.forceSaveMMAP = forceSaveMMAP
-    this.forceSaveChannel = forceSaveChannel
-  }
+  @volatile private var double: Double = 1.1 //defaults to allow random.
 
   /**
    * Enables [[ForceSave]] to be random.
    *
-   * @param 0.0 disables randomness. 0.5 would give 50% chance to be random.
+   * @param 0.0 disables randomness - [[ForceSave.Disabled]].
+   *        0.5 would give 50% chance to be random and 50% to be [[ForceSave.Disabled]].
+   *        1.1 will always apply randomness.
    *
    */
-  def setRandomForWindows(double: Double = 0.0): Unit =
+  def setRandomForWindows(double: Double = 1.1): Unit =
     this.double = double
 
   /**
@@ -70,7 +58,7 @@ object TestForceSave {
    */
   def mmap(): ForceSave.MMAPFiles =
     if (OperatingSystem.isWindows && Random.nextDouble() >= double)
-      forceSaveMMAP
+      ForceSave.Disabled
     else if (Random.nextBoolean())
       ForceSave.BeforeClean(
         enableBeforeCopy = Random.nextBoolean(),
@@ -91,7 +79,7 @@ object TestForceSave {
    */
   def channel(): ForceSave.ChannelFiles =
     if (OperatingSystem.isWindows && Random.nextDouble() >= double)
-      forceSaveChannel
+      ForceSave.Disabled
     else if (Random.nextBoolean())
       ForceSave.BeforeClose(
         enableBeforeCopy = Random.nextBoolean(),

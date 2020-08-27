@@ -125,7 +125,7 @@ private[file] class ChannelFile(val path: Path,
   }
 
   override def forceSave(): Unit =
-    if (mode == StandardOpenOption.WRITE && channel.isOpen && forced.compareAndSet(false, true))
+    if (channel.isOpen && forced.compareAndSet(false, true))
       try
         channel.force(false)
       catch {

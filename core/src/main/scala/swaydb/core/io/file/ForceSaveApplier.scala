@@ -79,7 +79,7 @@ object ForceSaveApplier extends LazyLogging {
       if (forceSave.enabledBeforeClean && forced.compareAndSet(false, true))
         try
           if (forceSave.logBenchmark)
-            Benchmark(s"ForceSave: $path", useLazyLogging = true)(buffer.force())
+            Benchmark(s"ForceSave before clean: '$path''", useLazyLogging = true)(buffer.force())
           else
             buffer.force()
         catch {

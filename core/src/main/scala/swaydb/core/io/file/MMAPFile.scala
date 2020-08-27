@@ -153,7 +153,7 @@ private[file] class MMAPFile(val path: Path,
   //forceSave and clearBuffer are never called concurrently other than when the database is being shut down.
   //so there is no blocking cost for using synchronized here on than when this file is already submitted for cleaning on shutdown.
   def forceSave(): Unit =
-    if (mode == MapMode.READ_WRITE && !isBufferEmpty && forced.compareAndSet(false, true))
+    if (!isBufferEmpty && forced.compareAndSet(false, true))
       try
         watchNullPointer(buffer.force())
       catch {
