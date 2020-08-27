@@ -48,7 +48,8 @@ object DBFile extends LazyLogging {
                 file: Option[DBFileType],
                 blockCacheFileId: Long,
                 autoClose: Boolean)(implicit fileSweeper: FileSweeperActor,
-                                    bufferCleaner: ByteBufferSweeperActor) = {
+                                    bufferCleaner: ByteBufferSweeperActor,
+                                    forceSaveApplier: ForceSaveApplier) = {
 
     //We need to create a single FileSweeperItem that can be
     //re-submitted to fileSweeper every time this file requires a close Actor request.
@@ -126,7 +127,8 @@ object DBFile extends LazyLogging {
                    autoClose: Boolean,
                    forceSave: ForceSave.ChannelFiles)(implicit fileSweeper: FileSweeperActor,
                                                       blockCache: Option[BlockCache.State],
-                                                      bufferCleaner: ByteBufferSweeperActor): DBFile = {
+                                                      bufferCleaner: ByteBufferSweeperActor,
+                                                      forceSaveApplier: ForceSaveApplier): DBFile = {
     val file = ChannelFile.write(path, blockCacheFileId, forceSave)
     new DBFile(
       path = path,
@@ -154,7 +156,8 @@ object DBFile extends LazyLogging {
                   blockCacheFileId: Long,
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeperActor,
                                                blockCache: Option[BlockCache.State],
-                                               bufferCleaner: ByteBufferSweeperActor): DBFile =
+                                               bufferCleaner: ByteBufferSweeperActor,
+                                               forceSaveApplier: ForceSaveApplier): DBFile =
     if (checkExists && Effect.notExists(path))
       throw swaydb.Exception.NoSuchFile(path)
     else {
@@ -186,7 +189,8 @@ object DBFile extends LazyLogging {
                        blockCacheFileId: Long,
                        bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeperActor,
                                                      blockCache: Option[BlockCache.State],
-                                                     bufferCleaner: ByteBufferSweeperActor): DBFile = {
+                                                     bufferCleaner: ByteBufferSweeperActor,
+                                                     forceSaveApplier: ForceSaveApplier): DBFile = {
     val totalWritten =
       bytes.foldLeft(0) { //do not write bytes if the Slice has empty bytes.
         case (written, bytes) =>
@@ -219,7 +223,8 @@ object DBFile extends LazyLogging {
                        blockCacheFileId: Long,
                        bytes: Slice[Byte])(implicit fileSweeper: FileSweeperActor,
                                            blockCache: Option[BlockCache.State],
-                                           bufferCleaner: ByteBufferSweeperActor): DBFile =
+                                           bufferCleaner: ByteBufferSweeperActor,
+                                           forceSaveApplier: ForceSaveApplier): DBFile =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull) {
       throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size)
@@ -246,7 +251,8 @@ object DBFile extends LazyLogging {
                blockCacheFileId: Long,
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeperActor,
                                             blockCache: Option[BlockCache.State],
-                                            bufferCleaner: ByteBufferSweeperActor): DBFile =
+                                            bufferCleaner: ByteBufferSweeperActor,
+                                            forceSaveApplier: ForceSaveApplier): DBFile =
     if (checkExists && Effect.notExists(path)) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -278,7 +284,8 @@ object DBFile extends LazyLogging {
                deleteAfterClean: Boolean,
                forceSave: ForceSave.MMAPFiles)(implicit fileSweeper: FileSweeperActor,
                                                blockCache: Option[BlockCache.State],
-                                               bufferCleaner: ByteBufferSweeperActor): DBFile = {
+                                               bufferCleaner: ByteBufferSweeperActor,
+                                               forceSaveApplier: ForceSaveApplier): DBFile = {
     val file =
       MMAPFile.write(
         path = path,

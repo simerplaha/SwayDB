@@ -31,7 +31,7 @@ import swaydb.core.TestSweeper._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
-import swaydb.core.io.file.{BlockCache, DBFile, Effect}
+import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.map.Maps
 import swaydb.core.segment.Segment
@@ -276,6 +276,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val sweepables: ListBuffer[Sweepable[Any]]) {
 
 
+  implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.DefaultApplier
   implicit lazy val fileSweeper: FileSweeperActor = fileSweepers.head.value(())
   implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.value(())
   implicit lazy val blockCache: Option[BlockCache.State] = blockCaches.head.value(())

@@ -32,6 +32,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
@@ -52,6 +53,7 @@ package object map {
                functionStore: FunctionStore,
                fileSweeper: FileSweeperActor,
                bufferCleaner: ByteBufferSweeperActor,
+               forceSaveApplier: ForceSaveApplier,
                ec: ExecutionContext,
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory]],

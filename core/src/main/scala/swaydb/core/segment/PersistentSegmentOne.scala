@@ -34,7 +34,7 @@ import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.io.file.{BlockCache, DBFile}
+import swaydb.core.io.file.{BlockCache, DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -68,6 +68,7 @@ protected object PersistentSegmentOne {
                                            blockCache: Option[BlockCache.State],
                                            fileSweeper: FileSweeperActor,
                                            bufferCleaner: ByteBufferSweeperActor,
+                                           forceSaveApplier: ForceSaveApplier,
                                            segmentIO: SegmentIO): PersistentSegmentOne =
     PersistentSegmentOne(
       file = file,
@@ -104,6 +105,7 @@ protected object PersistentSegmentOne {
                                                          blockCache: Option[BlockCache.State],
                                                          fileSweeper: FileSweeperActor,
                                                          bufferCleaner: ByteBufferSweeperActor,
+                                                         forceSaveApplier: ForceSaveApplier,
                                                          segmentIO: SegmentIO): PersistentSegmentOne = {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
@@ -149,6 +151,7 @@ protected object PersistentSegmentOne {
                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                           fileSweeper: FileSweeperActor,
                           bufferCleaner: ByteBufferSweeperActor,
+                          forceSaveApplier: ForceSaveApplier,
                           segmentIO: SegmentIO): PersistentSegment = {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
@@ -227,6 +230,7 @@ protected case class PersistentSegmentOne(file: DBFile,
                                                                                 fileSweeper: FileSweeperActor,
                                                                                 bufferCleaner: ByteBufferSweeperActor,
                                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                forceSaveApplier: ForceSaveApplier,
                                                                                 segmentIO: SegmentIO) extends PersistentSegment with LazyLogging {
 
   implicit val segmentCacheImplicit: SegmentRef = ref

@@ -28,18 +28,18 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
-import swaydb.{Actor, ActorRef, IO}
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
-import swaydb.core.actor.ByteBufferSweeper
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.{Actor, ActorRef, IO}
 
 private[core] object PersistentTimer extends LazyLogging {
 
@@ -65,6 +65,7 @@ private[core] object PersistentTimer extends LazyLogging {
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        bufferCleaner: ByteBufferSweeperActor,
                                        functionStore: FunctionStore,
+                                       forceSaveApplier: ForceSaveApplier,
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                                        reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] = {
     //Disabled because autoClose is not required here.

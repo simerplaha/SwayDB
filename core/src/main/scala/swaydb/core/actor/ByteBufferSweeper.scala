@@ -33,7 +33,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
 import swaydb.core.actor.ByteBufferCleaner.Cleaner
-import swaydb.core.io.file.Effect
+import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.ForceSave
@@ -74,7 +74,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                 hasReference: () => Boolean,
                 forced: AtomicBoolean,
                 filePath: Path,
-                forceSave: ForceSave.MMAPFiles): Clean =
+                forceSave: ForceSave.MMAPFiles)(implicit forceSaveApplier: ForceSaveApplier): Clean =
         new Clean(
           buffer = buffer,
           filePath = filePath,
@@ -82,6 +82,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
           hasReference = hasReference,
           forced = forced,
           forceSave = forceSave,
+          forceSaveApplier = forceSaveApplier,
           //this id is being used instead of HashCode because nio.FileChannel returns
           //the same MappedByteBuffer even after the FileChannel is closed.
           id = idGenerator.incrementAndGet()
@@ -103,6 +104,7 @@ private[core] object ByteBufferSweeper extends LazyLogging {
                              hasReference: () => Boolean,
                              forced: AtomicBoolean,
                              forceSave: ForceSave.MMAPFiles,
+                             forceSaveApplier: ForceSaveApplier,
                              id: Long) extends FileCommand {
       override def name: String = s"Clean: $filePath"
     }
@@ -273,6 +275,8 @@ private[core] object ByteBufferSweeper extends LazyLogging {
   def initCleanerAndPerformClean(state: State,
                                  buffer: MappedByteBuffer,
                                  command: Command.Clean): IO[swaydb.Error.IO, State] = {
+    implicit val applier = command.forceSaveApplier
+
     state.cleaner match {
       case Some(cleaner) =>
         IO {

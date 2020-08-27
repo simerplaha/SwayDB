@@ -34,7 +34,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.io.file.{BlockCache, DBFile, Effect}
+import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -70,7 +70,8 @@ protected object PersistentSegmentMany {
                                             blockCache: Option[BlockCache.State],
                                             fileSweeper: FileSweeperActor,
                                             bufferCleaner: ByteBufferSweeperActor,
-                                            segmentIO: SegmentIO): PersistentSegmentMany = {
+                                            segmentIO: SegmentIO,
+                                            forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
     val initial =
       if (segment.segments.isEmpty) {
         None
@@ -146,7 +147,8 @@ protected object PersistentSegmentMany {
                                                                                                         blockCache: Option[BlockCache.State],
                                                                                                         fileSweeper: FileSweeperActor,
                                                                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                                                                        segmentIO: SegmentIO): PersistentSegmentMany = {
+                                                                                                        segmentIO: SegmentIO,
+                                                                                                        forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
@@ -199,7 +201,8 @@ protected object PersistentSegmentMany {
                           blockCache: Option[BlockCache.State],
                           fileSweeper: FileSweeperActor,
                           bufferCleaner: ByteBufferSweeperActor,
-                          segmentIO: SegmentIO): PersistentSegmentMany = {
+                          segmentIO: SegmentIO,
+                          forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
     val fileExtension = Effect.fileExtension(file.path)
 
@@ -423,7 +426,8 @@ protected case class PersistentSegmentMany(file: DBFile,
                                                                                                                                                                                       fileSweeper: FileSweeperActor,
                                                                                                                                                                                       bufferCleaner: ByteBufferSweeperActor,
                                                                                                                                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                                                                                      segmentIO: SegmentIO) extends PersistentSegment with LazyLogging {
+                                                                                                                                                                                      segmentIO: SegmentIO,
+                                                                                                                                                                                      forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
 
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
   implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))

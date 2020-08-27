@@ -35,7 +35,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.brake.BrakePedal
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.Effect
+import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.io.file.Effect._
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
@@ -61,7 +61,8 @@ private[core] object Maps extends LazyLogging {
                                                                                     functionStore: FunctionStore,
                                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                     skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                                    timer: Timer): Maps[OK, OV, K, V] =
+                                                                                    timer: Timer,
+                                                                                    forceSaveApplier: ForceSaveApplier): Maps[OK, OV, K, V] =
     new Maps[OK, OV, K, V](
       maps = new ConcurrentLinkedDeque[Map[OK, OV, K, V]](),
       fileSize = fileSize,
@@ -89,7 +90,8 @@ private[core] object Maps extends LazyLogging {
                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                    reader: MapEntryReader[MapEntry[K, V]],
                                                                    skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                   timer: Timer): IO[swaydb.Error.Map, Maps[OK, OV, K, V]] = {
+                                                                   timer: Timer,
+                                                                   forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, Maps[OK, OV, K, V]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
     recover[OK, OV, K, V](
@@ -156,7 +158,8 @@ private[core] object Maps extends LazyLogging {
                                                                         functionStore: FunctionStore,
                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                         mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                        skipListMerger: SkipListMerger[OK, OV, K, V]): IO[swaydb.Error.Map, ListBuffer[Map[OK, OV, K, V]]] = {
+                                                                        skipListMerger: SkipListMerger[OK, OV, K, V],
+                                                                        forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, ListBuffer[Map[OK, OV, K, V]]] = {
     /**
      * Performs corruption handling based on the the value set for [[RecoveryMode]].
      */
@@ -281,7 +284,8 @@ private[core] object Maps extends LazyLogging {
                                                                              bufferCleaner: ByteBufferSweeperActor,
                                                                              functionStore: FunctionStore,
                                                                              writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                             skipListMerger: SkipListMerger[OK, OV, K, V]): Map[OK, OV, K, V] =
+                                                                             skipListMerger: SkipListMerger[OK, OV, K, V],
+                                                                             forceSaveApplier: ForceSaveApplier): Map[OK, OV, K, V] =
     currentMap match {
       case currentMap @ PersistentMap(_, _, _, _, _, _, _) =>
         currentMap.close()
@@ -366,7 +370,8 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
                                                                                                         functionStore: FunctionStore,
                                                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                         skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                                                        timer: Timer) extends LazyLogging { self =>
+                                                                                                        timer: Timer,
+                                                                                                        forceSaveApplier: ForceSaveApplier) extends LazyLogging { self =>
 
   //this listener is invoked when currentMap is full.
   private var onNextMapListener: () => Unit = () => ()

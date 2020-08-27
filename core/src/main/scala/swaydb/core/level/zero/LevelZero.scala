@@ -35,7 +35,7 @@ import swaydb.core.data.KeyValue.{Put, PutOption}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{Effect, FileLocker}
+import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
@@ -71,7 +71,8 @@ private[core] object LevelZero extends LazyLogging {
             throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                        functionStore: FunctionStore): IO[swaydb.Error.Level, LevelZero] = {
+                                                        functionStore: FunctionStore,
+                                                        forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
@@ -97,6 +98,7 @@ private[core] object LevelZero extends LazyLogging {
                 timeOrder = timeOrder,
                 functionStore = functionStore,
                 bufferCleaner = bufferCleaner,
+                forceSaveApplier = forceSaveApplier,
                 writer = TimerMapEntryWriter.TimerPutMapEntryWriter,
                 reader = TimerMapEntryReader.TimerPutMapEntryReader)
             } else {
@@ -156,6 +158,7 @@ private[core] object LevelZero extends LazyLogging {
                     timeOrder = timeOrder,
                     functionStore = functionStore,
                     bufferCleaner = bufferCleaner,
+                    forceSaveApplier = forceSaveApplier,
                     writer = TimerMapEntryWriter.TimerPutMapEntryWriter,
                     reader = TimerMapEntryReader.TimerPutMapEntryReader)
 

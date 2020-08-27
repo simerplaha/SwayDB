@@ -37,7 +37,7 @@ import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -936,6 +936,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               fileSweeper = fileSweeper,
               bufferCleaner = cleaner,
               blockCache = blockCache,
+              forceSaveApplier = forceSaveApplier,
               segmentIO = segmentIO,
               idGenerator = segmentIDGenerator
             ).map(_.sweep())

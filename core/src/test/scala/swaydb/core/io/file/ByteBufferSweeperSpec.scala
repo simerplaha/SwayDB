@@ -29,6 +29,7 @@ import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util.concurrent.atomic.AtomicBoolean
 
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
@@ -50,7 +51,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 
-class ByteBufferSweeperSpec extends TestBase {
+class ByteBufferSweeperSpec extends TestBase with MockFactory {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val futureBag = Bag.future
@@ -150,6 +151,8 @@ class ByteBufferSweeperSpec extends TestBase {
       val path = Paths.get("test")
       val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, ByteBufferSweeper.Command.Clean]]
 
+      implicit val forceSaveApplier = ForceSaveApplier.Disabled
+
       val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
 
       ByteBufferSweeper.recordCleanRequest(command, map)
@@ -171,6 +174,8 @@ class ByteBufferSweeperSpec extends TestBase {
 
           val path = Paths.get("test")
           val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, Command.Clean]]
+
+          implicit val forceSaveApplier = ForceSaveApplier.Disabled
 
           val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
 
@@ -220,11 +225,28 @@ class ByteBufferSweeperSpec extends TestBase {
           val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
           val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
-          val command = Command.Clean(buffer, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
+          val forceSave = TestForceSave.mmap()
+          val alreadyForced = randomBoolean()
+          val forced = new AtomicBoolean(alreadyForced)
+
+          implicit val applier: ForceSaveApplier =
+            if (alreadyForced)
+              mock[ForceSaveApplier] //mock it so it not get invoked
+            else
+              ForceSaveApplier.DefaultApplier
+
+          val command = Command.Clean(buffer, () => false, forced, path, forceSave)
 
           val cleanResult = ByteBufferSweeper.initCleanerAndPerformClean(ByteBufferSweeper.State.init, buffer, command)
           cleanResult shouldBe a[IO.Right[_, _]]
           cleanResult.value.cleaner shouldBe defined
+
+          if (alreadyForced)
+            forced.get() shouldBe true
+          else if (forceSave.enabledBeforeClean)
+            forced.get() shouldBe true
+          else
+            forced.get() shouldBe false
 
           Effect.exists(path) shouldBe true
           Effect.delete(path)
@@ -252,10 +274,17 @@ class ByteBufferSweeperSpec extends TestBase {
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
             val forceSave = TestForceSave.mmap()
-            val forced = new AtomicBoolean(false)
+            val alreadyForced = randomBoolean()
+            val forced = new AtomicBoolean(alreadyForced)
+
+            implicit val applier: ForceSaveApplier =
+              if (alreadyForced)
+                mock[ForceSaveApplier] //mock it so it not get invoked
+              else
+                ForceSaveApplier.DefaultApplier
 
             //clean first
-            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)
+            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
             //and then delete
             cleaner.actor send Command.DeleteFile(filePath)
 
@@ -265,7 +294,9 @@ class ByteBufferSweeperSpec extends TestBase {
               Effect.exists(folderPath) shouldBe true
             }
 
-            if (forceSave.enabledBeforeClean)
+            if (alreadyForced)
+              forced.get() shouldBe true
+            else if (forceSave.enabledBeforeClean)
               forced.get() shouldBe true
             else
               forced.get() shouldBe false
@@ -287,11 +318,18 @@ class ByteBufferSweeperSpec extends TestBase {
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
             val forceSave = TestForceSave.mmap()
-            val forced = new AtomicBoolean(false)
+            val alreadyForced = randomBoolean()
+            val forced = new AtomicBoolean(alreadyForced)
+
+            implicit val applier: ForceSaveApplier =
+              if (alreadyForced)
+                mock[ForceSaveApplier] //mock it so it not get invoked
+              else
+                ForceSaveApplier.DefaultApplier
 
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFile(filePath)
-            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)
+            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
 
             //file is eventually deleted but the folder is not deleted
             eventual(2.minutes) {
@@ -299,7 +337,9 @@ class ByteBufferSweeperSpec extends TestBase {
               Effect.exists(folderPath) shouldBe true
             }
 
-            if (forceSave.enabledBeforeClean)
+            if (alreadyForced)
+              forced.get() shouldBe true
+            else if (forceSave.enabledBeforeClean)
               forced.get() shouldBe true
             else
               forced.get() shouldBe false
@@ -323,10 +363,17 @@ class ByteBufferSweeperSpec extends TestBase {
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
             val forceSave = TestForceSave.mmap()
-            val forced = new AtomicBoolean(false)
+            val alreadyForced = randomBoolean()
+            val forced = new AtomicBoolean(alreadyForced)
+
+            implicit val applier: ForceSaveApplier =
+              if (alreadyForced)
+                mock[ForceSaveApplier] //mock it so it not get invoked
+              else
+                ForceSaveApplier.DefaultApplier
 
             //clean first
-            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)
+            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
             //and then delete
             cleaner.actor send Command.DeleteFolder(folderPath, filePath)
 
@@ -335,7 +382,9 @@ class ByteBufferSweeperSpec extends TestBase {
               Effect.exists(filePath) shouldBe false
             }
 
-            if (forceSave.enabledBeforeClean)
+            if (alreadyForced)
+              forced.get() shouldBe true
+            else if (forceSave.enabledBeforeClean)
               forced.get() shouldBe true
             else
               forced.get() shouldBe false
@@ -357,18 +406,27 @@ class ByteBufferSweeperSpec extends TestBase {
             val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
             val forceSave = TestForceSave.mmap()
-            val forced = new AtomicBoolean(false)
+            val alreadyForced = randomBoolean()
+            val forced = new AtomicBoolean(alreadyForced)
+
+            implicit val applier: ForceSaveApplier =
+              if (alreadyForced)
+                mock[ForceSaveApplier] //mock it so it not get invoked
+              else
+                ForceSaveApplier.DefaultApplier
 
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFolder(folderPath, filePath)
-            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)
+            cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
 
             eventual(2.minutes) {
               Effect.exists(folderPath) shouldBe false
               Effect.exists(filePath) shouldBe false
             }
 
-            if (forceSave.enabledBeforeClean)
+            if (alreadyForced)
+              forced.get() shouldBe true
+            else if (forceSave.enabledBeforeClean)
               forced.get() shouldBe true
             else
               forced.get() shouldBe false
@@ -405,7 +463,14 @@ class ByteBufferSweeperSpec extends TestBase {
             Effect.exists(filePath) shouldBe true
 
             val forceSave = TestForceSave.mmap()
-            val forced = new AtomicBoolean(false)
+            val alreadyForced = randomBoolean()
+            val forced = new AtomicBoolean(alreadyForced)
+
+            implicit val applier: ForceSaveApplier =
+              if (alreadyForced)
+                mock[ForceSaveApplier] //mock it so it not get invoked
+              else
+                ForceSaveApplier.DefaultApplier
 
             val hasReference = new AtomicBoolean(true)
             //clean will get rescheduled first.
@@ -419,7 +484,9 @@ class ByteBufferSweeperSpec extends TestBase {
               (cleaner.actor ask Command.IsClean(filePath)).await(10.seconds) shouldBe true
             }
 
-            if (forceSave.enabledBeforeClean)
+            if (alreadyForced)
+              forced.get() shouldBe true
+            else if (forceSave.enabledBeforeClean)
               forced.get() shouldBe true
             else
               forced.get() shouldBe false
@@ -439,17 +506,22 @@ class ByteBufferSweeperSpec extends TestBase {
               val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
               val forceSave = TestForceSave.mmap()
-              val forced = new AtomicBoolean(false)
+              val alreadyForced = randomBoolean()
+              val forced = new AtomicBoolean(alreadyForced)
+
+              implicit val applier: ForceSaveApplier = ForceSaveApplier.DefaultApplier
 
               runThis(randomIntMax(10) max 1) {
                 Seq(
-                  () => cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave),
+                  () => cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier),
                   () => cleaner.actor send Command.DeleteFolder(filePath, filePath)
                 ).runThisRandomly
               }
 
               eventual(10.seconds) {
-                if (forceSave.enabledBeforeClean)
+                if (alreadyForced)
+                  forced.get() shouldBe true
+                else if (forceSave.enabledBeforeClean)
                   forced.get() shouldBe true
                 else
                   forced.get() shouldBe false
@@ -509,18 +581,27 @@ class ByteBufferSweeperSpec extends TestBase {
               val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
 
               val forceSave = TestForceSave.mmap()
-              val forced = new AtomicBoolean(false)
+              val alreadyForced = randomBoolean()
+              val forced = new AtomicBoolean(alreadyForced)
+
+              implicit val applier: ForceSaveApplier =
+                if (alreadyForced)
+                  mock[ForceSaveApplier] //mock it so it not get invoked
+                else
+                  ForceSaveApplier.DefaultApplier
 
               //randomly submit clean and delete in any order and random number of times.
               runThis(randomIntMax(100) max 1) {
                 Seq(
-                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)),
+                  () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(forceSaveApplier)),
                   () => runThis(randomIntMax(10) max 1)(cleaner.actor send Command.DeleteFolder(filePath, filePath))
                 ).runThisRandomly
               }
 
               eventual(10.seconds) {
-                if (forceSave.enabledBeforeClean)
+                if (alreadyForced)
+                  forced.get() shouldBe true
+                else if (forceSave.enabledBeforeClean)
                   forced.get() shouldBe true
                 else
                   forced.get() shouldBe false

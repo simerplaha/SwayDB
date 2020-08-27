@@ -36,7 +36,7 @@ import swaydb.data.slice.Slice
 private[file] object ChannelFile {
   def write(path: Path,
             blockCacheFileId: Long,
-            forceSave: ForceSave.ChannelFiles): ChannelFile = {
+            forceSave: ForceSave.ChannelFiles)(implicit forceSaveApplier: ForceSaveApplier): ChannelFile = {
     val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     new ChannelFile(
       path = path,
@@ -48,7 +48,7 @@ private[file] object ChannelFile {
   }
 
   def read(path: Path,
-           blockCacheFileId: Long): ChannelFile =
+           blockCacheFileId: Long)(implicit forceSaveApplier: ForceSaveApplier): ChannelFile =
     if (Effect.exists(path)) {
       val channel = FileChannel.open(path, StandardOpenOption.READ)
       new ChannelFile(

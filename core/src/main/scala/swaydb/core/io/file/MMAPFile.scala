@@ -31,7 +31,6 @@ import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.Reserve
@@ -46,7 +45,8 @@ private[file] object MMAPFile {
             bufferSize: Long,
             blockCacheFileId: Long,
             deleteAfterClean: Boolean,
-            forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor): MMAPFile =
+            forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor,
+                                            forceSaveApplier: ForceSaveApplier): MMAPFile =
     MMAPFile(
       path = path,
       channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
@@ -59,7 +59,8 @@ private[file] object MMAPFile {
 
   def read(path: Path,
            blockCacheFileId: Long,
-           deleteAfterClean: Boolean)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
+           deleteAfterClean: Boolean)(implicit cleaner: ByteBufferSweeperActor,
+                                      forceSaveApplier: ForceSaveApplier): MMAPFile = {
     val channel = FileChannel.open(path, StandardOpenOption.READ)
 
     MMAPFile(
@@ -79,7 +80,8 @@ private[file] object MMAPFile {
                     bufferSize: Long,
                     blockCacheFileId: Long,
                     deleteAfterClean: Boolean,
-                    forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor): MMAPFile = {
+                    forceSave: ForceSave.MMAPFiles)(implicit cleaner: ByteBufferSweeperActor,
+                                                    forceSaveApplier: ForceSaveApplier): MMAPFile = {
     val buff = channel.map(mode, 0, bufferSize)
     new MMAPFile(
       path = path,

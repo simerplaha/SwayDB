@@ -34,7 +34,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.Effect
+import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
@@ -60,6 +60,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
     //mmap is false. FIXME - use ByteBufferCleaner.Disabled instead
     implicit val bufferCleaner: ByteBufferSweeperActor = null
+    implicit val forceSaveApplier = ForceSaveApplier.DefaultApplier
 
     IO(Effect.files(levelPath, Extension.Seg)) flatMap {
       files =>
@@ -77,7 +78,8 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                   blockCache = None,
                   keyValueMemorySweeper = memorySweeper,
                   fileSweeper = fileSweeper,
-                  bufferCleaner = bufferCleaner
+                  bufferCleaner = bufferCleaner,
+                  forceSaveApplier = forceSaveApplier
                 )
               }
           }
@@ -173,16 +175,28 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  fileSweeper: FileSweeperActor,
                                                  bufferCleaner: ByteBufferSweeperActor,
+                                                 forceSaveApplier: ForceSaveApplier,
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  skipListMerger: SkipListMerger[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
     IO {
       Effect.walkDelete(appendixDir)
+
+      val mmap =
+        MMAP.Disabled(
+          forceSave =
+            ForceSave.BeforeClose(
+              enableBeforeCopy = true,
+              enableForReadOnly = true,
+              logBenchmark = false
+            )
+        )
+
       Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
         nullKey = Slice.Null,
         nullValue = Segment.Null,
         folder = appendixDir,
-        mmap = MMAP.Disabled(ForceSave.Disabled),
+        mmap = mmap,
         flushOnOverflow = true,
         fileSize = 1.gb
       )

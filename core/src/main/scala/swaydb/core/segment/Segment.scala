@@ -35,7 +35,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.io.file.{BlockCache, DBFile, Effect}
+import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -213,7 +213,8 @@ private[core] object Segment extends LazyLogging {
                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                      blockCache: Option[BlockCache.State],
                                                                      segmentIO: SegmentIO,
-                                                                     idGenerator: IDGenerator): Slice[PersistentSegment] = {
+                                                                     idGenerator: IDGenerator,
+                                                                     forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
     val transient =
       SegmentBlock.writeOneOrMany(
         mergeStats = mergeStats,
@@ -245,7 +246,8 @@ private[core] object Segment extends LazyLogging {
                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                        blockCache: Option[BlockCache.State],
                                                        segmentIO: SegmentIO,
-                                                       idGenerator: IDGenerator): Slice[PersistentSegment] =
+                                                       idGenerator: IDGenerator,
+                                                       forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] =
     segments.mapRecover(
       block =
         segment =>
@@ -297,7 +299,8 @@ private[core] object Segment extends LazyLogging {
                           segmentBytes: Slice[Slice[Byte]])(implicit segmentIO: SegmentIO,
                                                             fileSweeper: FileSweeperActor,
                                                             bufferCleaner: ByteBufferSweeperActor,
-                                                            blockCache: Option[BlockCache.State]): DBFile =
+                                                            blockCache: Option[BlockCache.State],
+                                                            forceSaveApplier: ForceSaveApplier): DBFile =
     mmap match {
       case MMAP.Enabled(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
         DBFile.mmapWriteAndRead(
@@ -367,7 +370,8 @@ private[core] object Segment extends LazyLogging {
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         blockCache: Option[BlockCache.State],
                                                         segmentIO: SegmentIO,
-                                                        idGenerator: IDGenerator): Slice[Segment] =
+                                                        idGenerator: IDGenerator,
+                                                        forceSaveApplier: ForceSaveApplier): Slice[Segment] =
     segment match {
       case segment: PersistentSegment =>
         val nextPath = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
@@ -433,7 +437,8 @@ private[core] object Segment extends LazyLogging {
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         blockCache: Option[BlockCache.State],
                                                         segmentIO: SegmentIO,
-                                                        idGenerator: IDGenerator): Slice[PersistentSegment] = {
+                                                        idGenerator: IDGenerator,
+                                                        forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
     val builder =
       if (removeDeletes)
         MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)(SegmentGrouper.addLastLevel)
@@ -520,7 +525,8 @@ private[core] object Segment extends LazyLogging {
                                          fileSweeper: FileSweeperActor,
                                          bufferCleaner: ByteBufferSweeperActor,
                                          blockCache: Option[BlockCache.State],
-                                         segmentIO: SegmentIO): PersistentSegment = {
+                                         segmentIO: SegmentIO,
+                                         forceSaveApplier: ForceSaveApplier): PersistentSegment = {
 
     val file =
       mmap match {
@@ -615,7 +621,8 @@ private[core] object Segment extends LazyLogging {
                                   blockCache: Option[BlockCache.State],
                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                   fileSweeper: FileSweeperActor,
-                                  bufferCleaner: ByteBufferSweeperActor): PersistentSegment = {
+                                  bufferCleaner: ByteBufferSweeperActor,
+                                  forceSaveApplier: ForceSaveApplier): PersistentSegment = {
 
     implicit val segmentIO: SegmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)

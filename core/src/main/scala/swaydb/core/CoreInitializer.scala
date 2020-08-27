@@ -31,7 +31,7 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.BlockCache
+import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
@@ -181,6 +181,8 @@ private[core] object CoreInitializer extends LazyLogging {
                     config: LevelConfig): IO[swaydb.Error.Level, NextLevel] =
       config match {
         case config: MemoryLevelConfig =>
+          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Disabled
+
           Level(
             bloomFilterConfig = BloomFilterBlock.Config.disabled,
             hashIndexConfig = block.hashindex.HashIndexBlock.Config.disabled,
@@ -206,6 +208,8 @@ private[core] object CoreInitializer extends LazyLogging {
           )
 
         case config: PersistentLevelConfig =>
+          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.DefaultApplier
+
           Level(
             bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainKeyIndex),
             hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.randomKeyIndex),
@@ -231,6 +235,8 @@ private[core] object CoreInitializer extends LazyLogging {
                      previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Bag.Less]] =
       levelConfigs match {
         case Nil =>
+          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.DefaultApplier
+
           createLevel(
             id = 1,
             nextLevel = previousLowerLevel,

@@ -38,6 +38,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
@@ -169,6 +170,7 @@ object TestData {
       implicit val blockCache = level.blockCache
       implicit val bufferCleaner = level.bufferCleaner
       implicit val keyValueSweeper = level.keyValueMemorySweeper
+      implicit val forceSaveApplier = level.forceSaveApplier
 
       if (keyValues.isEmpty)
         IO.unit

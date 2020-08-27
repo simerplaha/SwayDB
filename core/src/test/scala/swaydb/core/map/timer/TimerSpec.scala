@@ -28,6 +28,7 @@ import java.nio.file.Path
 
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
@@ -46,6 +47,7 @@ class PersistentTimerSpec extends TimerSpec {
                            timeOrder: TimeOrder[Slice[Byte]],
                            functionStore: FunctionStore,
                            ec: ExecutionContext,
+                           forceSaveApplier: ForceSaveApplier,
                            cleaner: ByteBufferSweeperActor,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
@@ -65,6 +67,7 @@ class MemoryTimerSpec extends TimerSpec {
                            timeOrder: TimeOrder[Slice[Byte]],
                            functionStore: FunctionStore,
                            ec: ExecutionContext,
+                           forceSaveApplier: ForceSaveApplier,
                            cleaner: ByteBufferSweeperActor,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
@@ -84,6 +87,7 @@ sealed trait TimerSpec extends TestBase {
                            timeOrder: TimeOrder[Slice[Byte]],
                            functionStore: FunctionStore,
                            ec: ExecutionContext,
+                           forceSaveApplier: ForceSaveApplier,
                            cleaner: ByteBufferSweeperActor,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer

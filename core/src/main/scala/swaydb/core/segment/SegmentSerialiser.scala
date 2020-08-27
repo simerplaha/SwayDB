@@ -32,7 +32,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
 import swaydb.data.util.Options._
 import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
 import swaydb.data.MaxKey
@@ -56,6 +56,7 @@ private[core] sealed trait SegmentSerialiser {
                                  fileSweeper: FileSweeperActor,
                                  bufferCleaner: ByteBufferSweeperActor,
                                  blockCache: Option[BlockCache.State],
+                                 forceSaveApplier: ForceSaveApplier,
                                  segmentIO: SegmentIO): Segment
 
   def bytesRequired(value: Segment): Int
@@ -120,6 +121,7 @@ private[core] object SegmentSerialiser {
                                    fileSweeper: FileSweeperActor,
                                    bufferCleaner: ByteBufferSweeperActor,
                                    blockCache: Option[BlockCache.State],
+                                   forceSaveApplier: ForceSaveApplier,
                                    segmentIO: SegmentIO): Segment = {
 
       val formatId = reader.get() //formatId
