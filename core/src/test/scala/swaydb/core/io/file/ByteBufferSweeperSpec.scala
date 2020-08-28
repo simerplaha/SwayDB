@@ -233,7 +233,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
             if (alreadyForced)
               mock[ForceSaveApplier] //mock it so it not get invoked
             else
-              ForceSaveApplier.DefaultApplier
+              ForceSaveApplier.Enabled
 
           val command = Command.Clean(buffer, () => false, forced, path, forceSave)
 
@@ -281,7 +281,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.DefaultApplier
+                ForceSaveApplier.Enabled
 
             //clean first
             cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
@@ -325,7 +325,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.DefaultApplier
+                ForceSaveApplier.Enabled
 
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFile(filePath)
@@ -370,7 +370,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.DefaultApplier
+                ForceSaveApplier.Enabled
 
             //clean first
             cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
@@ -413,7 +413,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.DefaultApplier
+                ForceSaveApplier.Enabled
 
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFolder(folderPath, filePath)
@@ -470,7 +470,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.DefaultApplier
+                ForceSaveApplier.Enabled
 
             val hasReference = new AtomicBoolean(true)
             //clean will get rescheduled first.
@@ -509,7 +509,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               val alreadyForced = randomBoolean()
               val forced = new AtomicBoolean(alreadyForced)
 
-              implicit val applier: ForceSaveApplier = ForceSaveApplier.DefaultApplier
+              implicit val applier: ForceSaveApplier = ForceSaveApplier.Enabled
 
               runThis(randomIntMax(10) max 1) {
                 Seq(
@@ -588,7 +588,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
                 if (alreadyForced)
                   mock[ForceSaveApplier] //mock it so it not get invoked
                 else
-                  ForceSaveApplier.DefaultApplier
+                  ForceSaveApplier.Enabled
 
               //randomly submit clean and delete in any order and random number of times.
               runThis(randomIntMax(100) max 1) {

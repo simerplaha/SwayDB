@@ -62,7 +62,7 @@ object ForceSaveApplier extends LazyLogging {
       logger.error(s"Disabled ForceSaveApplier beforeClose - ${file.path}", new Exception("Disabled ForceSaveApplier"))
   }
 
-  object DefaultApplier extends ForceSaveApplier {
+  object Enabled extends ForceSaveApplier {
 
     /**
      * Applies forceSave condition for before cleaning the file.

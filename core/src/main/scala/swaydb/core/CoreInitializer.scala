@@ -208,7 +208,7 @@ private[core] object CoreInitializer extends LazyLogging {
           )
 
         case config: PersistentLevelConfig =>
-          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.DefaultApplier
+          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
 
           Level(
             bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainKeyIndex),
@@ -235,7 +235,7 @@ private[core] object CoreInitializer extends LazyLogging {
                      previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Bag.Less]] =
       levelConfigs match {
         case Nil =>
-          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.DefaultApplier
+          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
 
           createLevel(
             id = 1,

@@ -60,7 +60,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
     //mmap is false. FIXME - use ByteBufferCleaner.Disabled instead
     implicit val bufferCleaner: ByteBufferSweeperActor = null
-    implicit val forceSaveApplier = ForceSaveApplier.DefaultApplier
+    implicit val forceSaveApplier = ForceSaveApplier.Enabled
 
     IO(Effect.files(levelPath, Extension.Seg)) flatMap {
       files =>
