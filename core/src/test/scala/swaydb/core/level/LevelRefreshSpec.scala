@@ -76,7 +76,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
     "remove expired key-values" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, mmap = mmapSegments))
           val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
           //dispatch another put request so that existing Segment gets split
@@ -107,7 +107,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
     "update createdInLevel" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
           val maps = TestMap(keyValues)

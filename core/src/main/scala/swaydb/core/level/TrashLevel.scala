@@ -224,4 +224,10 @@ private[core] object TrashLevel extends NextLevel {
 
   override def delete()(implicit executionContext: ExecutionContext): Future[Unit] =
     Futures.unit
+
+  override def closeNoSweepNoRelease(): IO[Error.Level, Unit] =
+    IO.unit
+
+  override def deleteNoSweepNoClose(): IO[Error.Level, Unit] =
+    IO.unit
 }

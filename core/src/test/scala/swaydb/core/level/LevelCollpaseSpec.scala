@@ -80,7 +80,7 @@ sealed trait LevelCollapseSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           //disable throttling so that it does not automatically collapse small Segments
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
           val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
@@ -121,7 +121,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
               //          implicit val compressionType: Option[KeyValueCompressionType] = randomCompressionTypeOption(keyValuesCount)
               //disable throttling so that it does not automatically collapse small Segments
-              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = false, deleteEventually = false))
+              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = false, deleteEventually = false, mmap = mmapSegments))
 
               assertAllSegmentsCreatedInLevel(level)
 
@@ -136,17 +136,17 @@ sealed trait LevelCollapseSpec extends TestBase {
               //reopening the Level will make the Segments unreadable.
               //reopen the Segments
               val segments =
-                level.segmentsInLevel().map {
-                  case segment: PersistentSegment =>
-                    Segment(
-                      path = segment.path,
-                      mmap = MMAP.Disabled(forceSave = TestForceSave.channel()),
-                      checkExists = true
-                    )
+              level.segmentsInLevel().map {
+                case segment: PersistentSegment =>
+                  Segment(
+                    path = segment.path,
+                    mmap = mmapSegments,
+                    checkExists = true
+                  )
 
-                  case _ =>
-                    fail("Expected PersistentSegment")
-                }
+                case _ =>
+                  fail("Expected PersistentSegment")
+              }
 
               //reopen the Level with larger min segment size
               val reopenLevel = level.reopen(segmentSize = 20.mb)
@@ -171,7 +171,7 @@ sealed trait LevelCollapseSpec extends TestBase {
       //Remove or expiring key-values should have the same result
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
           val expiryAt = 5.seconds.fromNow
           val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
@@ -194,7 +194,6 @@ sealed trait LevelCollapseSpec extends TestBase {
           level.putKeyValuesTest(Slice(expireEverySecond.toArray)).runRandomIO.right.value
           keyValues.zipWithIndex foreach {
             case (keyValue, index) =>
-
               if (index % 2 == 0)
                 level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut.value.deadline should contain(expiryAt + index.millisecond)
           }
@@ -211,7 +210,7 @@ sealed trait LevelCollapseSpec extends TestBase {
   "update createdInLevel" in {
     TestCaseSweeper {
       implicit sweeper =>
-        val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+        val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
         val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
         val maps = TestMap(keyValues)

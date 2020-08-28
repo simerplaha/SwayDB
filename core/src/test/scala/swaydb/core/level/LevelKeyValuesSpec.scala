@@ -179,7 +179,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "not return an empty level if all the key values in the Level were REMOVED by RANGE but it has a lower Level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb), nextLevel = Some(TestLevel()))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value

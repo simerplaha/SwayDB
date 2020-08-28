@@ -103,7 +103,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           implicit sweeper =>
             //small Segment size so that small Segments do not collapse when running this test
             // as reads do not value retried on failure in Level, they only value retried in LevelZero.
-            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.bytes))
+            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.bytes, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount)
             val segment = TestSegment(keyValues)
             level.put(segment).right.right.value.right.value should contain only level.levelNumber
@@ -155,8 +155,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
             val segments =
               Seq(
-                TestSegment(keyValues1, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue)),
-                TestSegment(keyValues3, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue))
+                TestSegment(keyValues1, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments)),
+                TestSegment(keyValues3, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments))
               )
 
             level.put(segments).right.right.value.right.value should contain only level.levelNumber
@@ -203,7 +203,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
               val keyValues = randomPutKeyValues(100)
 
-              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, deleteEventually = false), levelStorage = storage)
+              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, deleteEventually = false, mmap = mmapSegments), levelStorage = storage)
 
               level.putKeyValuesTest(keyValues).runRandomIO.right.value
               level.segmentsCount() shouldBe keyValues.size
@@ -312,7 +312,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues))
               val targetSegment = TestSegment(keyValues.last).runRandomIO.right.value
 
-              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 150.bytes, deleteEventually = false))
+              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 150.bytes, deleteEventually = false, mmap = mmapSegments))
               level.put(targetSegment).right.right.value.right.value should contain only level.levelNumber
 
               //segment to copy
@@ -382,14 +382,15 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
             //no key-values value forwarded to next Level
             (nextLevel.isTrash _).expects() returning false
-            (nextLevel.closeNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
-            (nextLevel.closeSegments _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.closeNoSweepNoRelease _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
-            (nextLevel.deleteNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+
+            val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
+            val segment = TestSegment(keyValues, path = Effect.createDirectoriesIfAbsent(randomIntDirectory).resolve(s"1000.${Extension.Seg.toString}"))
 
             val level = TestLevel(nextLevel = Some(nextLevel))
-            val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-            level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).value //write first Segment to Level
+            level.putKeyValues(keyValues.size, keyValues, Seq(segment), None).value //write first Segment to Level
             assertGetFromThisLevelOnly(keyValues, level)
 
             level.put(TestSegment(keyValues.take(1))).right.right.value.right.value should contain only level.levelNumber
@@ -403,7 +404,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val nextLevel = mock[NextLevel]
             (nextLevel.isTrash _).expects() returning false
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
             level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
             assertGetFromThisLevelOnly(keyValues, level)
@@ -428,10 +429,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
             }
 
-            (nextLevel.closeNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
-            (nextLevel.closeSegments _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.closeNoSweepNoRelease _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
-            (nextLevel.deleteNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
             level.put(segment).right.right.value.right.value should contain only Int.MaxValue
 
@@ -446,7 +446,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val nextLevel = mock[NextLevel]
             (nextLevel.isTrash _).expects() returning false
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
             level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
             assertGetFromThisLevelOnly(keyValues, level)
@@ -463,10 +463,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 (Iterable.empty, segments)
             }
 
-            (nextLevel.closeNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
-            (nextLevel.closeSegments _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.closeNoSweepNoRelease _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
-            (nextLevel.deleteNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
             level.put(segment).right.right.value.right.value should contain only level.levelNumber
 
@@ -481,7 +480,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val nextLevel = mock[NextLevel]
             (nextLevel.isTrash _).expects() returning false
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
             level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
             assertGet(keyValues, level)
@@ -508,10 +507,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
             }
 
-            (nextLevel.closeNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
-            (nextLevel.closeSegments _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.closeNoSweepNoRelease _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
-            (nextLevel.deleteNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
             level.put(Seq(segment2, segment3)).right.right.value.right.value should contain only(level.levelNumber, Int.MaxValue)
 
@@ -528,7 +526,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val nextLevel = mock[NextLevel]
             (nextLevel.isTrash _).expects() returning false
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
             level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
             assertGet(keyValues, level)
@@ -553,10 +551,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 IO.Right[Nothing, IO[swaydb.Error.Level, Set[Int]]](IO[swaydb.Error.Level, Set[Int]](throw IO.throwable("Kaboom!!")))
             }
 
-            (nextLevel.closeNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
-            (nextLevel.closeSegments _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.closeNoSweepNoRelease _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
-            (nextLevel.deleteNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
             level.put(segment).right.right.value.right.value should contain only level.levelNumber
 

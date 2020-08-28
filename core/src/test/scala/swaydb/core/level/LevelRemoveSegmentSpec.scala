@@ -40,6 +40,8 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
+import scala.concurrent.duration.DurationInt
+
 class LevelRemoveSegmentSpec0 extends LevelRemoveSegmentSpec
 
 class LevelRemoveSegmentSpec1 extends LevelRemoveSegmentSpec {
@@ -77,7 +79,7 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
       TestCaseSweeper {
         implicit sweeper =>
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, mmap = mmapSegments))
           level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).runRandomIO.right.value
 
           level.removeSegments(level.segmentsInLevel()).runRandomIO.right.value
@@ -85,10 +87,15 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
           level.isEmpty shouldBe true
 
           if (persistent) {
-            if(isWindowsAndMMAPSegments())
-              sweeper.receiveAll()
+            if (isWindowsAndMMAPSegments())
+              eventual(10.seconds) {
+                sweeper.receiveAll()
+                level.segmentFilesOnDisk shouldBe empty
+              }
+            else
+              level.segmentFilesOnDisk shouldBe empty
 
-            level.segmentFilesOnDisk shouldBe empty
+
             level.reopen.isEmpty shouldBe true
           }
       }

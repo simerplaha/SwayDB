@@ -92,7 +92,7 @@ class MapsSpec extends TestBase {
             path.folders.map(_.folderId) should contain only 0
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
-              maps.close.value
+              maps.close().value
               sweeper.receiveAll()
             }
 
@@ -142,7 +142,7 @@ class MapsSpec extends TestBase {
               ).value
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
-              maps.close.value
+              maps.close().value
               sweeper.receiveAll()
             }
 
@@ -291,7 +291,7 @@ class MapsSpec extends TestBase {
               )
 
             if (originalMaps.mmap.hasMMAP && OperatingSystem.isWindows) {
-              originalMaps.close.value
+              originalMaps.close().value
               sweeper.receiveAll()
             }
 
@@ -350,7 +350,7 @@ class MapsSpec extends TestBase {
             maps.lastOption().value.pathOption.value.folderId shouldBe 0
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
-              maps.close.value
+              maps.close().value
               sweeper.receiveAll()
             }
 
@@ -371,7 +371,7 @@ class MapsSpec extends TestBase {
             recovered1.lastOption().value.pathOption.value.folderId shouldBe 0
 
             if (recovered1.mmap.hasMMAP && OperatingSystem.isWindows) {
-              recovered1.close.value
+              recovered1.close().value
               sweeper.receiveAll()
             }
 
@@ -416,7 +416,7 @@ class MapsSpec extends TestBase {
             maps.write(_ => MapEntry.Put[Slice[Byte], Memory](1, Memory.remove(1)))
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
-              maps.close.value
+              maps.close().value
               sweeper.receiveAll()
             }
 
@@ -464,7 +464,7 @@ class MapsSpec extends TestBase {
             maps.write(_ => MapEntry.Put[Slice[Byte], Memory](3, Memory.remove(3)))
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
-              maps.close.value
+              maps.close().value
               sweeper.receiveAll()
             }
 

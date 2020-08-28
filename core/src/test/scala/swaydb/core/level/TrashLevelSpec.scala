@@ -72,7 +72,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
     "delete Segments when Push from an upper level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10), segmentConfig = SegmentBlock.Config.random(pushForward = true)).sweep()
+          val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments)).sweep()
 
           val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.right.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.right.value)
           level.put(segments).right.right.value.right.value

@@ -218,6 +218,7 @@ sealed trait QueueSpec extends TestBase {
         reopen2.pop().value shouldBe 5
         reopen2.pop().value shouldBe 6
         reopen2.pop().value shouldBe 1
+        reopen2.close()
     }
   }
 }

@@ -1780,7 +1780,7 @@ object CommonAssertions {
     def ensureClose(): Unit = {
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
-      maps.close.value
+      maps.close().value
       maps.bufferCleaner.actor.receiveAllForce[Bag.Less]()
       (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
     }

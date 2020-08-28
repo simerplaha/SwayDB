@@ -133,7 +133,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           val putKeyValues = randomPutKeyValues(keyValuesCount)
           //refresh so that if there is a compression running, this Segment will compressed.
           val segments =
-            TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+            TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
               .runRandomIO
               .right.value
               .refresh(
@@ -168,7 +168,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           val putKeyValues = randomPutKeyValues(keyValuesCount)
           //refresh so that if there is a compression running, this Segment will compressed.
           val segments =
-            TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
+            TestSegment(putKeyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue, mmap = mmapSegments))
               .runRandomIO.right.value
               .refresh(
                 removeDeletes = false,

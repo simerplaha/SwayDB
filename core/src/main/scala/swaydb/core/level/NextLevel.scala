@@ -124,4 +124,8 @@ trait NextLevel extends LevelRef {
   def nextThrottlePushCount: Int
 
   def deleteNoSweep: IO[swaydb.Error.Level, Unit]
+
+  def deleteNoSweepNoClose(): IO[swaydb.Error.Level, Unit]
+
+  def closeNoSweepNoRelease(): IO[swaydb.Error.Level, Unit]
 }

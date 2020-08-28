@@ -209,9 +209,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
                 //deleteUncommittedSegments will also be invoked on Levels with cleared and closed Segments there will never be
                 //memory-mapped. So disable mmap in this test specially for windows which does not allow deleting memory-mapped files without
                 //clearing the MappedByteBuffer.
-                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled(TestForceSave.channel())))
-                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled(TestForceSave.channel())))
-                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlock.Config.random.copy(mmap = MMAP.Disabled(TestForceSave.channel())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId), segmentConfig = SegmentBlock.Config.random(mmap = mmapSegments).copy(mmap = MMAP.Disabled(TestForceSave.channel())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId), segmentConfig = SegmentBlock.Config.random(mmap = mmapSegments).copy(mmap = MMAP.Disabled(TestForceSave.channel())))
+                TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId), segmentConfig = SegmentBlock.Config.random(mmap = mmapSegments).copy(mmap = MMAP.Disabled(TestForceSave.channel())))
                 currentSegmentId + 3
             }
             //every level folder has 3 uncommitted Segments plus 1 valid Segment
@@ -231,7 +231,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "value the largest segment in the Level when the Level is not empty" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
           level.putKeyValuesTest(randomizedKeyValues(2000)).runRandomIO.right.value
 
           val largeSegmentId = Level.largestSegmentId(level.segmentsInLevel())
@@ -242,7 +242,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "return 0 when the Level is empty" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           Level.largestSegmentId(level.segmentsInLevel()) shouldBe 0
       }
@@ -269,7 +269,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       TestCaseSweeper {
         implicit sweeper =>
           val nextLevel = TestLevel()
-          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
           //      level.segmentsCount() should be >= 2
 
           implicit val reserve = ReserveRange.create[Unit]()
@@ -290,7 +290,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       TestCaseSweeper {
         implicit sweeper =>
           val nextLevel = TestLevel()
-          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           level.segmentsCount() should be >= 2
 
@@ -331,7 +331,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       TestCaseSweeper {
         implicit sweeper =>
           val keyValues = randomizedKeyValues(count = 10000, startId = Some(1))
-          val level = TestLevel(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+          val level = TestLevel(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           level.segmentsCount() should be >= 2
 

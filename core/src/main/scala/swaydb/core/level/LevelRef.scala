@@ -263,8 +263,6 @@ private[core] trait LevelRef {
 
   def delete()(implicit executionContext: ExecutionContext): Future[Unit]
 
-  def deleteNoSweep: IO[swaydb.Error.Level, Unit]
-
   def hasMMAP: Boolean =
     LevelRef.hasMMAP(this)
 }

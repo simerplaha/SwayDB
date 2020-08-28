@@ -70,7 +70,7 @@ class SegmentMemorySweeperSpec extends TestBase {
           val segment =
             TestSegment(
               keyValues = keyValues,
-              segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false)
+              segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false, mmap = mmapSegments)
             )
 
           //initially Segment's cache is empty

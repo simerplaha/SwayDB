@@ -283,28 +283,28 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           assertSegment(
             keyValues = Slice(Memory.put(0), Memory.Range(1, 10, FromValue.Null, Value.remove(randomDeadlineOption, Time.empty))),
-            segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount),
+            segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount, mmap = mmapSegments),
             ensureOneSegmentOnly = false,
             assert = doAssert
           )
 
           assertSegment(
             keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.remove(None, Time.empty), Value.remove(randomDeadlineOption, Time.empty))),
-            segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount),
+            segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount, mmap = mmapSegments),
             ensureOneSegmentOnly = false,
             assert = doAssert
           )
 
           assertSegment(
             keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.update(Slice.Null, randomDeadlineOption, Time.empty), Value.remove(randomDeadlineOption, Time.empty))),
-            segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount),
+            segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount, mmap = mmapSegments),
             ensureOneSegmentOnly = false,
             assert = doAssert
           )
 
           assertSegment(
             keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.put(1, randomDeadlineOption, Time.empty), Value.remove(randomDeadlineOption, Time.empty))),
-            segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount),
+            segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount, mmap = mmapSegments),
             ensureOneSegmentOnly = false,
             assert = doAssert
           )
@@ -460,7 +460,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 keyValues =
                   randomizedKeyValues(keyValuesCount),
 
-                segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false),
+                segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false, mmap = mmapSegments),
 
                 closeAfterCreate =
                   true,
@@ -631,7 +631,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
           val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
           val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(mmap = mmapSegments)
 
           val segment =
             TestSegment(

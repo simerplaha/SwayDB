@@ -1561,56 +1561,54 @@ private[core] case class Level(dirs: Seq[Dir],
    */
 
   def releaseLocks: IO[swaydb.Error.Close, Unit] =
-    IO[swaydb.Error.Close, Unit](Effect.release(lock))
-      .flatMap {
-        _ =>
-          nextLevel.map(_.releaseLocks) getOrElse IO.unit
-      }
+    nextLevel
+      .map(_.releaseLocks)
+      .getOrElse(IO.unit)
+      .and(IO[swaydb.Error.Close, Unit](Effect.release(lock)))
       .onLeftSideEffect {
         failure =>
           logger.error("{}: Failed to release locks", pathDistributor.head, failure.exception)
       }
 
-  def closeAppendix(): IO[Error.Level, Unit] =
+  def closeAppendixInThisLevel(): IO[Error.Level, Unit] =
     IO(appendix.close())
       .onLeftSideEffect {
         failure =>
           logger.error("{}: Failed to close appendix", pathDistributor.head, failure.exception)
       }
 
-  def close()(implicit executionContext: ExecutionContext): Future[Unit] =
-    LevelCloser.closeAsync[Future]()
-      .andIO(closeNoSweep())
-
-  def closeNoSweep(): IO[swaydb.Error.Level, Unit] =
-    nextLevel
-      .map(_.closeNoSweep)
-      .getOrElse(IO.unit)
-      .and(closeAppendix())
-      .and(closeSegments())
-      .and(releaseLocks)
-
-  def closeSegments(): IO[swaydb.Error.Level, Unit] = {
+  def closeSegmentsInThisLevel(): IO[Error.Level, Unit] =
     segmentsInLevel()
       .foreachIO(segment => IO(segment.close), failFast = false)
-      .foreach {
+      .getOrElse(IO.unit)
+      .onLeftSideEffect {
         failure =>
           logger.error("{}: Failed to close Segment file.", pathDistributor.head, failure.exception)
       }
 
-    nextLevel match {
-      case Some(nextLevel) =>
-        nextLevel.closeSegments()
-
-      case None =>
-        IO.unit
-    }
-  }
-
-  private def deleteNextLevelNoSweep() =
+  //close without terminating Actors and without releasing locks.
+  def closeNoSweepNoRelease(): IO[swaydb.Error.Level, Unit] =
     nextLevel
-      .map(_.deleteNoSweep)
+      .map(_.closeNoSweepNoRelease())
       .getOrElse(IO.unit)
+      .and(closeAppendixInThisLevel())
+      .and(closeSegmentsInThisLevel())
+
+  def close()(implicit executionContext: ExecutionContext): Future[Unit] =
+    closeNoSweepNoRelease() //close all the files first without releasing locks
+      .toFuture
+      .and(LevelCloser.closeAsync[Future]()) //close background Actors and Caches if any.
+      .andIO(releaseLocks) //finally release locks
+
+  def closeNoSweep(): IO[swaydb.Error.Level, Unit] =
+    closeNoSweepNoRelease()
+      .and(releaseLocks)
+
+  def closeSegments(): IO[swaydb.Error.Level, Unit] =
+    nextLevel
+      .map(_.closeSegments())
+      .getOrElse(IO.unit)
+      .and(closeSegmentsInThisLevel())
 
   private def deleteFiles() =
     pathDistributor
@@ -1621,14 +1619,23 @@ private[core] case class Level(dirs: Seq[Dir],
       }
       .getOrElse(IO.unit)
 
+  def deleteNoSweepNoClose(): IO[swaydb.Error.Level, Unit] =
+    nextLevel
+      .map(_.deleteNoSweepNoClose())
+      .getOrElse(IO.unit)
+      .and(deleteFiles())
+
   override def deleteNoSweep: IO[swaydb.Error.Level, Unit] =
     closeNoSweep()
-      .and(deleteNextLevelNoSweep())
+      .and(deleteNoSweepNoClose())
       .and(deleteFiles())
 
   override def delete()(implicit executionContext: ExecutionContext): Future[Unit] =
     close()
-      .andIO(closeNoSweep())
-      .andIO(deleteNextLevelNoSweep())
+      .andIO(
+        nextLevel
+          .map(_.deleteNoSweepNoClose())
+          .getOrElse(IO.unit)
+      )
       .andIO(deleteFiles())
 }

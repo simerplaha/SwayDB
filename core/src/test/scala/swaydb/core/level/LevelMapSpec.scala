@@ -220,10 +220,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
             }
 
-            (nextLevel.closeNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
-            (nextLevel.closeSegments _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.closeNoSweepNoRelease _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
-            (nextLevel.deleteNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
             val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
             level.put(map).right.right.value.right.value should contain only Int.MaxValue
@@ -254,10 +253,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
             }
 
-            (nextLevel.closeNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
-            (nextLevel.closeSegments _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.closeNoSweepNoRelease _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
-            (nextLevel.deleteNoSweep _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
+            (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
             val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
             val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000))

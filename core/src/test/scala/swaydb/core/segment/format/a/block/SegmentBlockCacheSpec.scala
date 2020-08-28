@@ -336,7 +336,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 binarySearchIndexConfig = BinarySearchIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false),
                 hashIndexConfig = HashIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false),
                 bloomFilterConfig = BloomFilterBlock.Config.random(hasCompression = false, cacheOnAccess = false),
-                segmentConfig = SegmentBlock.Config.random(hasCompression = false, cacheOnAccess = false, cacheBlocksOnCreate = false)
+                segmentConfig = SegmentBlock.Config.random(hasCompression = false, cacheOnAccess = false, cacheBlocksOnCreate = false, mmap = mmapSegments)
               ).asInstanceOf[PersistentSegmentOne]
 
             val blockCache = segment.ref.segmentBlockCache

@@ -572,19 +572,25 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   def map: Map[OK, OV, K, V] =
     currentMap
 
-  def close: IO[swaydb.Error.Map, Unit] = {
-    IO(timer.close) onLeftSideEffect {
-      failure =>
-        logger.error("Failed to close timer file", failure.exception)
-    }
-
-    (Seq(currentMap) ++ maps.asScala)
-      .foreachIO(f = map => IO(map.close()), failFast = false)
-      .getOrElse(IO.unit)
-  }
+  def close(): IO[swaydb.Error.Map, Unit] =
+    IO(timer.close)
+      .onLeftSideEffect {
+        failure =>
+          logger.error("Failed to close timer file", failure.exception)
+      }
+      .and {
+        snapshot()
+          .foreachIO(map => IO(map.close()), failFast = false)
+          .getOrElse(IO.unit)
+      }
 
   def delete(): IO[Error.Map, Unit] =
-    close.flatMap(_ => IO(snapshot().foreach(_.delete)))
+    close()
+      .and {
+        snapshot()
+          .foreachIO(map => IO(map.delete))
+          .getOrElse(IO.unit)
+      }
 
   def queuedMapsIterator =
     maps.iterator()

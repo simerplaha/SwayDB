@@ -972,31 +972,29 @@ private[swaydb] case class LevelZero(path: Path,
 
   private def closeMaps: IO[Error.Map, Unit] =
     maps
-      .close
+      .close()
       .onLeftSideEffect {
         exception =>
           logger.error(s"$path: Failed to close maps", exception)
       }
 
-  private def closeNextLevelNoSweep: IO[Error.Level, Unit] =
-    nextLevel
-      .map(_.closeNoSweep)
-      .getOrElse(IO.unit)
-
   def closeNoSweep: IO[swaydb.Error.Level, Unit] =
     closeMaps
-      .and(closeNextLevelNoSweep)
+      .and(
+        nextLevel
+          .map(_.closeNoSweep)
+          .getOrElse(IO.unit)
+      )
       .and(releaseLocks)
-
-  private def closeNextLevel()(implicit executionContext: ExecutionContext): Future[Unit] =
-    nextLevel
-      .map(_.close())
-      .getOrElse(Futures.unit)
 
   override def close()(implicit executionContext: ExecutionContext): Future[Unit] =
     closeMaps
       .toFuture
-      .and(closeNextLevel())
+      .and(
+        nextLevel
+          .map(_.close())
+          .getOrElse(Futures.unit)
+      )
       .andIO(releaseLocks)
 
   def closeSegments: IO[swaydb.Error.Level, Unit] =
@@ -1004,19 +1002,15 @@ private[swaydb] case class LevelZero(path: Path,
       .map(_.closeSegments())
       .getOrElse(IO.unit)
 
-  private def deleteNextLevelNoSweep: IO[Error.Level, Unit] =
-    nextLevel
-      .map(_.deleteNoSweep)
-      .getOrElse(IO.unit)
-
-  override def deleteNoSweep: IO[swaydb.Error.Level, Unit] =
-    closeNoSweep
-      .and(deleteNextLevelNoSweep)
-      .and(IO(Effect.walkDelete(path.getParent)))
-
   override def delete()(implicit executionContext: ExecutionContext): Future[Unit] =
-    close()
-      .andIO(deleteNextLevelNoSweep)
+    closeMaps
+      .toFuture
+      .and(
+        nextLevel
+          .map(_.delete())
+          .getOrElse(Futures.unit)
+      )
+      .andIO(releaseLocks)
       .andIO(IO(Effect.walkDelete(path.getParent)))
 
   def mmap: MMAP =

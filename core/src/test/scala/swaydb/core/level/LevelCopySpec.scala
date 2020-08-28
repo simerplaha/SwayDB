@@ -35,11 +35,14 @@ import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.data.RunThis.eventual
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
+
+import scala.concurrent.duration.DurationInt
 
 class LevelCopySpec0 extends LevelCopySpec
 
@@ -110,6 +113,14 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
           segment2.delete // delete segment2 so there is a failure in copying Segments
 
+          if (isWindowsAndMMAPSegments())
+            eventual(10.seconds) {
+              sweeper.receiveAll()
+              segment2.existsOnDisk shouldBe false
+            }
+          else
+            segment2.existsOnDisk shouldBe false
+
           val segments = Iterable(segment1, segment2)
           level.copyLocal(segments).left.value.exception shouldBe a[NoSuchFileException]
 
@@ -141,8 +152,8 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
     TestCaseSweeper {
       implicit sweeper =>
 
-        val level2 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
-        val level1 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = true), nextLevel = Some(level2))
+        val level2 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+        val level1 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = true, mmap = mmapSegments), nextLevel = Some(level2))
 
         val keyValues = randomPutKeyValues(keyValuesCount)
         val maps = TestMap(keyValues)
