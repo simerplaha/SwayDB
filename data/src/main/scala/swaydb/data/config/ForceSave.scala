@@ -28,7 +28,7 @@ package swaydb.data.config
  * Config to set if forceSave should be applied to [[java.nio.MappedByteBuffer]] and [[java.nio.channels.FileChannel]].
  */
 sealed trait ForceSave {
-  def enableForReadOnly: Boolean
+  def enableForReadOnlyMode: Boolean
   def enableBeforeCopy: Boolean
   def isDisabled: Boolean
   def enabledBeforeClose: Boolean
@@ -54,7 +54,7 @@ object ForceSave {
   sealed trait Disabled extends MMAPFiles with ChannelFiles
   case object Disabled extends Disabled {
     override val isDisabled: Boolean = true
-    override val enableForReadOnly: Boolean = false
+    override val enableForReadOnlyMode: Boolean = false
     override val enabledBeforeClose: Boolean = false
     override val enabledBeforeClean: Boolean = false
     override val enableBeforeCopy: Boolean = false
@@ -64,15 +64,15 @@ object ForceSave {
   /**
    * Enabled force save only before copying a file.
    *
-   * @param enableForReadOnly if true will also apply forceSave to files are they are opened
-   *                          in readOnly mode. This is required for situations where a database
-   *                          instance was closed without properly closing all files. Depending on
-   *                          the operating system, re-opening same database instance might use
-   *                          the same MappedByteBuffer which might not be flushed/force saved.
-   *                          Setting this to true will cover those situations.
-   * @param logBenchmark      if true logs time taken to forceSave.
+   * @param enableForReadOnlyMode if true will also apply forceSave to files are they are opened
+   *                              in readOnly mode. This is required for situations where a database
+   *                              instance was closed without properly closing all files. Depending on
+   *                              the operating system, re-opening same database instance might use
+   *                              the same MappedByteBuffer which might not be flushed/force saved.
+   *                              Setting this to true will cover those situations.
+   * @param logBenchmark          if true logs time taken to forceSave.
    */
-  case class BeforeCopy(enableForReadOnly: Boolean, logBenchmark: Boolean) extends MMAPFiles with ChannelFiles {
+  case class BeforeCopy(enableForReadOnlyMode: Boolean, logBenchmark: Boolean) extends MMAPFiles with ChannelFiles {
     override val isDisabled: Boolean = false
     override val enabledBeforeClose: Boolean = false
     override val enabledBeforeClean: Boolean = false
@@ -82,17 +82,17 @@ object ForceSave {
   /**
    * Enables force save before the file is closed. This applies to both memory-mapped and file-channel files.
    *
-   * @param enableBeforeCopy  if true enables [[BeforeCopy]]
-   * @param enableForReadOnly if true will also apply forceSave to files are they are opened
-   *                          in readOnly mode. This is required for situations where a database
-   *                          instance was closed without properly closing all files. Depending on
-   *                          the operating system, re-opening same database instance might use
-   *                          the same MappedByteBuffer which might not be flushed/force saved.
-   *                          Setting this to true will cover those situations.
-   * @param logBenchmark      if true logs time taken to forceSave.
+   * @param enableBeforeCopy      if true enables [[BeforeCopy]]
+   * @param enableForReadOnlyMode if true will also apply forceSave to files are they are opened
+   *                              in readOnly mode. This is required for situations where a database
+   *                              instance was closed without properly closing all files. Depending on
+   *                              the operating system, re-opening same database instance might use
+   *                              the same MappedByteBuffer which might not be flushed/force saved.
+   *                              Setting this to true will cover those situations.
+   * @param logBenchmark          if true logs time taken to forceSave.
    */
   case class BeforeClose(enableBeforeCopy: Boolean,
-                         enableForReadOnly: Boolean,
+                         enableForReadOnlyMode: Boolean,
                          logBenchmark: Boolean) extends MMAPFiles with ChannelFiles {
     override val isDisabled: Boolean = false
     override val enabledBeforeClose: Boolean = true
@@ -102,17 +102,17 @@ object ForceSave {
   /**
    * Enables force save before a memory-mapped file are cleaned.
    *
-   * @param enableBeforeCopy  if true enables [[BeforeCopy]]
-   * @param enableForReadOnly if true will also apply forceSave to files are they are opened
-   *                          in readOnly mode. This is required for situations where a database
-   *                          instance was closed without properly closing all files. Depending on
-   *                          the operating system, re-opening same database instance might use
-   *                          the same MappedByteBuffer which might not be flushed/force saved.
-   *                          Setting this to true will cover those situations.
-   * @param logBenchmark      if true logs time taken to forceSave.
+   * @param enableBeforeCopy      if true enables [[BeforeCopy]]
+   * @param enableForReadOnlyMode if true will also apply forceSave to files are they are opened
+   *                              in readOnly mode. This is required for situations where a database
+   *                              instance was closed without properly closing all files. Depending on
+   *                              the operating system, re-opening same database instance might use
+   *                              the same MappedByteBuffer which might not be flushed/force saved.
+   *                              Setting this to true will cover those situations.
+   * @param logBenchmark          if true logs time taken to forceSave.
    */
   case class BeforeClean(enableBeforeCopy: Boolean,
-                         enableForReadOnly: Boolean,
+                         enableForReadOnlyMode: Boolean,
                          logBenchmark: Boolean) extends MMAPFiles {
     override val isDisabled: Boolean = false
     override val enabledBeforeClose: Boolean = false
@@ -126,20 +126,20 @@ object ForceSave {
     ForceSave.Disabled
 
   def beforeClose(enableBeforeCopy: Boolean,
-                  enableForReadOnly: Boolean,
+                  enableForReadOnlyMode: Boolean,
                   logBenchmark: Boolean): ForceSave.BeforeClose =
     BeforeClose(
       enableBeforeCopy = enableBeforeCopy,
-      enableForReadOnly = enableForReadOnly,
+      enableForReadOnlyMode = enableForReadOnlyMode,
       logBenchmark = logBenchmark
     )
 
   def beforeClean(enableBeforeCopy: Boolean,
-                  enableForReadOnly: Boolean,
+                  enableForReadOnlyMode: Boolean,
                   logBenchmark: Boolean): ForceSave.BeforeClean =
     BeforeClean(
       enableBeforeCopy = enableBeforeCopy,
-      enableForReadOnly = enableForReadOnly,
+      enableForReadOnlyMode = enableForReadOnlyMode,
       logBenchmark = logBenchmark
     )
 }

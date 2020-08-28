@@ -187,7 +187,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
           forceSave =
             ForceSave.BeforeClose(
               enableBeforeCopy = true,
-              enableForReadOnly = true,
+              enableForReadOnlyMode = true,
               logBenchmark = false
             )
         )

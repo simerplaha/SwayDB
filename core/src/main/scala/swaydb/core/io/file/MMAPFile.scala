@@ -109,7 +109,7 @@ private[file] class MMAPFile(val path: Path,
   //Force is applied on files after they are marked immutable so it only needs
   //to be invoked once.
   private val forced = {
-    if (forceSaveConfig.enableForReadOnly)
+    if (forceSaveConfig.enableForReadOnlyMode)
       new AtomicBoolean(false)
     else
       new AtomicBoolean(mode == MapMode.READ_ONLY)

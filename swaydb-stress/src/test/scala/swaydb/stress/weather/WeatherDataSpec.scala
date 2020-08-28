@@ -17,12 +17,12 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.weather
+package swaydb.stress.weather
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IOValues._
@@ -272,8 +272,8 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
         //do initial put or batch (whichever one) to ensure that data exists for readRequests.
         //    doPut
         doBatch(inBatchesOf = 100000 min keyValueCount)
-        putRequest runThis 6.times
-        batchRandomRequest runThis 4.times
+        putRequest runThis 4.times
+        batchRandomRequest runThis 2.times
         batchRequest(inBatchesOf = 10000 min keyValueCount)
         //    Future {
         //      while (true) {
@@ -283,7 +283,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
         //      }
         //    }
 
-        readRequests runThis 16.times await 1.hour
+        readRequests runThis 10.times await 1.hour
         println("************************* DONE *************************")
     }
   }

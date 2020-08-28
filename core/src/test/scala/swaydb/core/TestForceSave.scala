@@ -62,13 +62,13 @@ object TestForceSave {
     else if (Random.nextBoolean())
       ForceSave.BeforeClean(
         enableBeforeCopy = Random.nextBoolean(),
-        enableForReadOnly = Random.nextBoolean(),
+        enableForReadOnlyMode = Random.nextBoolean(),
         logBenchmark = true
       )
     else if (Random.nextBoolean())
       ForceSave.BeforeClose(
-        enableBeforeCopy = Random.nextBoolean(),
-        enableForReadOnly = Random.nextBoolean(),
+        enableBeforeCopy = Random.nextBoolean(), //java heap error on true and false
+        enableForReadOnlyMode = Random.nextBoolean(), //java heap error on true
         logBenchmark = true
       )
     else
@@ -82,8 +82,8 @@ object TestForceSave {
       ForceSave.Disabled
     else if (Random.nextBoolean())
       ForceSave.BeforeClose(
-        enableBeforeCopy = Random.nextBoolean(),
-        enableForReadOnly = Random.nextBoolean(),
+        enableBeforeCopy = Random.nextBoolean(), //java heap error on true and false
+        enableForReadOnlyMode = Random.nextBoolean(), //java heap error on true and false
         logBenchmark = true
       )
     else

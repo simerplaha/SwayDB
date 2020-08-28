@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.simulation
+package swaydb.stress.simulation
 
 import swaydb.IO
 import swaydb.core.TestCaseSweeper
@@ -31,7 +31,7 @@ import swaydb.core.TestData._
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.MMAP
 import swaydb.serializers.Default._
-import swaydb.simulation.Domain._
+import swaydb.stress.simulation.Domain._
 
 class Memory_SimulationSpec extends SimulationSpec {
 

@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.weather
+package swaydb.stress.weather
 
 import swaydb.IO
 import swaydb.core.TestCaseSweeper

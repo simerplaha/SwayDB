@@ -17,12 +17,12 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.simulation
+package swaydb.stress.simulation
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -32,9 +32,9 @@ import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.serializers.Default._
-import swaydb.simulation.Domain._
-import swaydb.simulation.ProductCommand._
-import swaydb.simulation.RemoveAsserted._
+import swaydb.stress.simulation.Domain._
+import swaydb.stress.simulation.ProductCommand._
+import swaydb.stress.simulation.RemoveAsserted._
 import swaydb.{Actor, ActorRef, Apply, Bag, IO, PureFunction, Scheduler}
 
 import scala.collection.mutable
@@ -64,7 +64,7 @@ object ProductCommand {
   case object BatchPut extends ProductCommand
   case object BatchDelete extends ProductCommand
   case object BatchExpire extends ProductCommand
-  //assert's User's state and User's products state.
+  //asserts User's state and User's products state.
   case class AssertState(removeAsserted: RemoveAsserted) extends ProductCommand
 }
 

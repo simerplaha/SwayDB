@@ -72,7 +72,7 @@ private[file] class ChannelFile(val path: Path,
   //Force is applied on files after they are marked immutable so it only needs
   //to be invoked once.
   private val forced = {
-    if (forceSave.enableForReadOnly)
+    if (forceSave.enableForReadOnlyMode)
       new AtomicBoolean(false)
     else
       new AtomicBoolean(mode == StandardOpenOption.READ)
