@@ -72,7 +72,8 @@ object ForceSave {
    *                              Setting this to true will cover those situations.
    * @param logBenchmark          if true logs time taken to forceSave.
    */
-  case class BeforeCopy(enableForReadOnlyMode: Boolean, logBenchmark: Boolean) extends MMAPFiles with ChannelFiles {
+  case class BeforeCopy(enableForReadOnlyMode: Boolean,
+                        logBenchmark: Boolean) extends MMAPFiles with ChannelFiles {
     override val isDisabled: Boolean = false
     override val enabledBeforeClose: Boolean = false
     override val enabledBeforeClean: Boolean = false
@@ -119,9 +120,6 @@ object ForceSave {
     override val enabledBeforeClean: Boolean = true
   }
 
-  /**
-   * These functions get used from Java and are simply constructor functions the above objects.
-   */
   def disabled(): ForceSave.Disabled =
     ForceSave.Disabled
 
@@ -130,6 +128,13 @@ object ForceSave {
                   logBenchmark: Boolean): ForceSave.BeforeClose =
     BeforeClose(
       enableBeforeCopy = enableBeforeCopy,
+      enableForReadOnlyMode = enableForReadOnlyMode,
+      logBenchmark = logBenchmark
+    )
+
+  def beforeCopy(enableForReadOnlyMode: Boolean,
+                 logBenchmark: Boolean): BeforeCopy =
+    BeforeCopy(
       enableForReadOnlyMode = enableForReadOnlyMode,
       logBenchmark = logBenchmark
     )
