@@ -46,11 +46,11 @@ class Persistent_SimulationSpec extends SimulationSpec {
                        sweeper: TestCaseSweeper) =
     swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](
       dir = randomDir,
-      mmapMaps = MMAP.randomForMap(),
-      mmapAppendix = MMAP.randomForMap(),
-      cacheKeyValueIds = randomBoolean(),
-      acceleration = Accelerator.brake(),
-      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
+//      mmapMaps = MMAP.randomForMap(),
+//      mmapAppendix = MMAP.randomForMap(),
+//      cacheKeyValueIds = randomBoolean(),
+//      acceleration = Accelerator.brake(),
+//      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
     ).get.sweep()
 }
 
@@ -60,9 +60,9 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
                        sweeper: TestCaseSweeper) =
     swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](
       dir = randomDir,
-      mmapMaps = MMAP.randomForMap(),
-      mmapAppendix = MMAP.randomForMap(),
-      cacheKeyValueIds = randomBoolean(),
-      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
+//      mmapMaps = MMAP.randomForMap(),
+//      mmapAppendix = MMAP.randomForMap(),
+//      cacheKeyValueIds = randomBoolean(),
+//      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
     ).get.sweep()
 }

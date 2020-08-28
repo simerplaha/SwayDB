@@ -69,7 +69,8 @@ object MMAP {
    *                         See - https://github.com/simerplaha/SwayDB/issues/251.
    *
    */
-  case class Enabled(deleteAfterClean: Boolean, forceSave: ForceSave.MMAPFiles) extends MMAP.Segment with MMAP.Map {
+  case class Enabled(deleteAfterClean: Boolean,
+                     forceSave: ForceSave.MMAPFiles) extends MMAP.Segment with MMAP.Map {
     override val mmapReads: Boolean = true
     override val mmapWrites: Boolean = true
     override val isMMAP: Boolean = true
@@ -80,7 +81,6 @@ object MMAP {
     def copyWithForceSave(forceSave: ForceSave.MMAPFiles): Enabled =
       copy(forceSave = forceSave)
   }
-
 
   /**
    * Enables memory-mapped files for read only. This does not require force safe as
