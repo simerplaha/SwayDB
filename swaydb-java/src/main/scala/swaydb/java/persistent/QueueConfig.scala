@@ -32,7 +32,6 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
-import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
@@ -46,9 +45,9 @@ object QueueConfig {
 
   final class Config[A](dir: Path,
                         private var mapSize: Int = 4.mb,
-                        private var mmapMaps: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
+                        private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                         private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                        private var mmapAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
+                        private var mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
                         private var appendixFlushCheckpointSize: Int = 2.mb,
                         private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                         private var cacheKeyValueIds: Boolean = true,

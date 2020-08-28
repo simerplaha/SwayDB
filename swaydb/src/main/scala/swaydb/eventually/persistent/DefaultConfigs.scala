@@ -36,6 +36,16 @@ object DefaultConfigs {
 
   implicit lazy val sweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext
 
+  def mmap(): MMAP.Disabled =
+    MMAP.Disabled(
+      forceSave =
+        ForceSave.BeforeClose(
+          enableBeforeCopy = false,
+          enableForReadOnlyMode = false,
+          logBenchmark = false
+        )
+    )
+
   def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.Enable =
     SortedKeyIndex.Enable(
       prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
@@ -102,7 +112,7 @@ object DefaultConfigs {
       deleteSegmentsEventually = true,
       pushForward = false,
       //mmap is disabled for eventually persistent databases to give in-memory levels more memory-space.
-      mmap = MMAP.Disabled(ForceSave.Disabled),
+      mmap = DefaultConfigs.mmap(),
       minSegmentSize = 8.mb,
       maxKeyValuesPerSegment = Int.MaxValue,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),

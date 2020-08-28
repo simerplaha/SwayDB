@@ -27,6 +27,7 @@ package swaydb.eventually.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.KeyOrderConverter
 import swaydb.configs.level.DefaultEventuallyPersistentConfig
 import swaydb.core.Core
 import swaydb.core.function.FunctionStore
@@ -34,10 +35,8 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{IO, KeyOrderConverter}
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
@@ -59,7 +58,7 @@ object Map extends LazyLogging {
                              otherDirs: Seq[Dir] = Seq.empty,
                              shutdownTimeout: FiniteDuration = 30.seconds,
                              cacheKeyValueIds: Boolean = true,
-                             mmapPersistentLevelAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
+                             mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                              deleteMemorySegmentsEventually: Boolean = true,
                              acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                              persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),

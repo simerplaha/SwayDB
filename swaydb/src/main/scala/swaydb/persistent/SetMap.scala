@@ -33,7 +33,6 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
@@ -44,9 +43,9 @@ object SetMap extends LazyLogging {
 
   def apply[K, V, F, BAG[_]](dir: Path,
                              mapSize: Int = 4.mb,
-                             mmapMaps: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
+                             mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                              recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                             mmapAppendix: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, ForceSave.Disabled),
+                             mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
                              appendixFlushCheckpointSize: Int = 2.mb,
                              otherDirs: Seq[Dir] = Seq.empty,
                              cacheKeyValueIds: Boolean = true,

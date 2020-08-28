@@ -37,7 +37,7 @@ class FiniteDurationsSpec extends AnyFlatSpec with Matchers {
   it should "return duration as string" in {
     (1 to 100) foreach {
       i =>
-        i.second.asString shouldBe s"$i.0 seconds"
+        i.second.asString shouldBe s"$i.000000 seconds"
     }
   }
 
