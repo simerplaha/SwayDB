@@ -46,6 +46,7 @@ class Persistent_SimulationSpec extends SimulationSpec {
                        sweeper: TestCaseSweeper) =
     swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](
       dir = randomDir,
+      acceleration = Accelerator.brake(),
 //      mmapMaps = MMAP.randomForMap(),
 //      mmapAppendix = MMAP.randomForMap(),
 //      cacheKeyValueIds = randomBoolean(),
@@ -60,6 +61,7 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
                        sweeper: TestCaseSweeper) =
     swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](
       dir = randomDir,
+      acceleration = Accelerator.brake(),
 //      mmapMaps = MMAP.randomForMap(),
 //      mmapAppendix = MMAP.randomForMap(),
 //      cacheKeyValueIds = randomBoolean(),

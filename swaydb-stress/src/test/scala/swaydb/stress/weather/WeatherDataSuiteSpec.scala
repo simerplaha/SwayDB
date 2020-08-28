@@ -28,7 +28,7 @@ import swaydb.IO
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.data.accelerate.Accelerator
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.MMAP
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -47,6 +47,7 @@ class Persistent_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
     swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
+      acceleration = Accelerator.brake(),
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
@@ -60,6 +61,7 @@ class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
     swaydb.persistent.MultiMap_EAP[Int, Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
+      acceleration = Accelerator.brake(),
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
@@ -73,6 +75,7 @@ class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
     swaydb.persistent.SetMap[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
+      acceleration = Accelerator.brake(),
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
@@ -92,6 +95,7 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
     swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
+      acceleration = Accelerator.brake(),
       //      cacheKeyValueIds = randomBoolean(),
       //      mmapPersistentLevelAppendix = MMAP.randomForMap(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
