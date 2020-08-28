@@ -4,7 +4,7 @@ import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
 
 val lz4Version = "1.7.1"
-val snappyVersion = "1.1.7.6"
+val snappyVersion = "1.1.7.7"
 val logbackClassicVersion = "1.2.3"
 val scalaLoggingVersion = "3.9.2"
 val scalaMockVersion = "5.0.0"
