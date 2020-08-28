@@ -113,9 +113,10 @@ object ForceSaveApplier extends LazyLogging {
      */
     def beforeClose[F <: DBFileType](file: F,
                                      forceSave: ForceSave): Unit =
-      if (forceSave.logBenchmark)
-        Benchmark(s"ForceSave before close: '${file.path}", useLazyLogging = true)(file.forceSave())
-      else
-        file.forceSave()
+      if (forceSave.enabledBeforeClose)
+        if (forceSave.logBenchmark)
+          Benchmark(s"ForceSave before close: '${file.path}", useLazyLogging = true)(file.forceSave())
+        else
+          file.forceSave()
   }
 }
