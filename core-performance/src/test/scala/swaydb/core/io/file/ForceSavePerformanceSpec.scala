@@ -35,7 +35,7 @@ import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._
 import swaydb.data.config.ForceSave
-import swaydb.data.util.{Maths, OperatingSystem}
+import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
 class ForceSavePerformanceSpec extends TestBase {
@@ -47,6 +47,10 @@ class ForceSavePerformanceSpec extends TestBase {
        * Mac
        * Slowest: 0.027715 seconds
        * fastest: 0.005657 seconds
+       *
+       * Windows
+       * Slowest: 0.014765 seconds
+       * fastest: 0.009364 seconds
        */
 
       TestCaseSweeper {
@@ -73,7 +77,6 @@ class ForceSavePerformanceSpec extends TestBase {
             slowest = slowest max newTime
             quickest = quickest min newTime
 
-
             implicit val forceSaveApplier = ForceSaveApplier.Enabled
             ByteBufferCleaner.initialiseCleaner(buffer, path, new AtomicBoolean(true), ForceSave.Disabled)
             channel.close()
@@ -91,6 +94,10 @@ class ForceSavePerformanceSpec extends TestBase {
        * Mac
        * Slowest: 0.011574 seconds
        * fastest: 0.005066 seconds
+       *
+       * Windows
+       * Slowest: 0.014361 seconds
+       * fastest: 0.008592 seconds
        */
 
       TestCaseSweeper {
