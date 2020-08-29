@@ -112,7 +112,7 @@ object Default {
 
   implicit object StringSerializer extends Serializer[String] {
     override def write(data: String): Slice[Byte] =
-      Slice.writeString(data)
+      Slice.writeString(data, StandardCharsets.UTF_8)
 
     override def read(data: Slice[Byte]): String =
       data.readString(StandardCharsets.UTF_8)
@@ -120,7 +120,7 @@ object Default {
 
   implicit object OptionStringSerializer extends Serializer[Option[String]] {
     override def write(data: Option[String]): Slice[Byte] =
-      data.map(Slice.writeString(_)).getOrElse(Slice.emptyBytes)
+      data.map(data => Slice.writeString(data, StandardCharsets.UTF_8)).getOrElse(Slice.emptyBytes)
 
     override def read(data: Slice[Byte]): Option[String] =
       if (data.isEmpty)

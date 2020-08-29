@@ -284,10 +284,10 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
     }
 
     "not stack overflow" in {
-      Stream[Int](1 to 1000000)
-        .filter(_ % 100000 == 0)
+      Stream[Int](1 to 100000)
+        .filter(_ % 10000 == 0)
         .materialize[BAG]
-        .await should contain only(100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000)
+        .await should contain only(10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000)
     }
 
     "sum" in {

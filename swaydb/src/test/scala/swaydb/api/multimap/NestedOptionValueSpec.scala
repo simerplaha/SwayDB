@@ -28,9 +28,9 @@ import org.scalatest.OptionValues._
 import swaydb.Bag
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
-import TestCaseSweeper._
 
 class NestedOptionValueSpec extends TestBaseEmbedded {
   override val keyValueCount: Int = 1000
@@ -94,7 +94,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
             else if (data.head == 0)
               Some(Value.Empty)
             else
-              Some(Value.NonEmpty(StringSerializer.read(data)))
+              Some(Value.NonEmpty(StringSerializer.read(data.dropHead())))
         }
 
         val root = swaydb.memory.MultiMap_EAP[Int, Int, Option[Value], Nothing, Bag.Less]().sweep()
