@@ -82,7 +82,6 @@ class MultiMapExpireSpec5 extends SwayDBExpireSpec {
     generateRandomNestedMaps(swaydb.memory.MultiMap_EAP[Int, Int, String, Nothing, IO.ApiIO]().get).sweep()
 }
 
-
 sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
@@ -117,13 +116,21 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
             val db = newDB()
             //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
             val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+            import swaydb.data.util.FiniteDurations._
 
             (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-            eitherOne(
-              left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-              right = db.remove(1, keyValueCount).right.value
-            )
+            db match {
+              case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+                eitherOne(
+                  left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+                  right = db.remove(1, keyValueCount).right.value
+                )
+
+              case db @ SetMap(_) =>
+                //setMap does not have range expiration
+                (1 to keyValueCount) foreach (i => db.remove(i).right.value)
+            }
 
             doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
@@ -148,11 +155,11 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
 
                 eitherOne(
                   left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-                  right = db.update(1, keyValueCount, value = "updated").right.value
+                  right = db.update(from = 1, to = keyValueCount, value = "updated").right.value
                 )
                 eitherOne(
                   left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-                  right = db.expire(1, keyValueCount, deadline).right.value
+                  right = db.expire(from = 1, to = keyValueCount, deadline).right.value
                 )
 
                 if (deadline.hasTimeLeft())
@@ -274,14 +281,17 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
                   right = db.update(1, keyValueCount, value = "updated").right.value
                 )
 
+                eitherOne(
+                  left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+                  right = db.remove(from = 1, to = keyValueCount).right.value
+                )
+
               case SetMap(_) =>
-              //no update
+                //no update
+
+                (1 to keyValueCount) foreach (i => db.remove(i).right.value)
             }
 
-            eitherOne(
-              left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-              right = db.remove(1, keyValueCount).right.value
-            )
 
             doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 

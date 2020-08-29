@@ -19,6 +19,7 @@
 
 package swaydb.api
 
+import org.scalatest.exceptions.TestFailedException
 import swaydb.IO.ApiIO
 import swaydb.IOValues._
 import swaydb.{MultiMapKey, _}
@@ -76,13 +77,26 @@ trait TestBaseEmbedded extends TestBase {
   def doAssertEmpty[V](db: SetMapT[Int, V, Nothing, IO.ApiIO]) =
     (1 to keyValueCount) foreach {
       i =>
-        db.expiration(i).right.value match {
-          case Some(value) =>
-            value.hasTimeLeft() shouldBe false
+        try
+          db.get(i).right.value shouldBe empty
+        catch {
+          case _: TestFailedException =>
+            //if it's not empty then check if the expiration was going to occur in near millisecond time.
+            db.expiration(i).value match {
+              case Some(deadline) =>
+                //print out for debugging
+                //                import swaydb.data.util.FiniteDurations._
+                //                println("Time-left: " + deadline.timeLeft.asString)
 
-          case None =>
+                //if timeLeft is false then read again should return empty now
+                deadline.hasTimeLeft() shouldBe false
+                db.get(i).right.value shouldBe empty
+
+              case None =>
+                //if expiration is none then the key-value should return empty.
+                db.get(i).right.value shouldBe empty
+            }
         }
-        db.get(i).right.value shouldBe empty
     }
 
   def pluralSegment(count: Int) = if (count == 1) "Segment" else "Segments"
