@@ -27,6 +27,7 @@ package swaydb
 import swaydb.data.stream.step
 import swaydb.data.util.OptionMutable
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -259,11 +260,25 @@ trait Stream[A] { self =>
         size + 1
     }
 
+  private def materializeBuilder[BAG[_], X[_]](implicit bag: Bag[BAG],
+                                               builder: mutable.Builder[A, X[A]]): BAG[mutable.Builder[A, X[A]]] =
+    foldLeft(builder) {
+      case (builder, item) =>
+        builder += item
+        builder
+    }
+
   /**
    * Materialises/closes and processes the stream to a [[Seq]].
    */
-  def materialize[BAG[_]](implicit bag: Bag[BAG]): BAG[ListBuffer[A]] =
-    foldLeft(ListBuffer.empty[A])(_ += _)
+  def materializeFromBuilder[BAG[_], X[_]](implicit bag: Bag[BAG],
+                                           builder: mutable.Builder[A, X[A]]): BAG[X[A]] =
+    bag.transform(materializeBuilder)(_.result())
+
+  def materialize[BAG[_]](implicit bag: Bag[BAG]): BAG[ListBuffer[A]] = {
+    implicit val listBuffer = ListBuffer.newBuilder[A]
+    bag.transform(materializeBuilder)(_.result())
+  }
 
   def streamer: Streamer[A] =
     new Streamer[A] {
