@@ -284,17 +284,13 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
     }
 
     "partition" in {
-      Stream[Int](1 to 10)
-        .partition(_ % 2 == 0)
-        ._1
-        .materialize[BAG]
-        .await shouldBe (1 to 10).filter(_ % 2 == 0)
+      val (leftStream, rightStream) =
+        Stream[Int](1 to 10)
+          .partition[BAG](_ % 2 == 0)
+          .await
 
-      Stream[Int](1 to 10)
-        .partition(_ % 2 == 0)
-        ._2
-        .materialize[BAG]
-        .await shouldBe (1 to 10).filter(_ % 2 != 0)
+      leftStream shouldBe (1 to 10).filter(_ % 2 == 0)
+      rightStream shouldBe (1 to 10).filterNot(_ % 2 == 0)
     }
 
     "not stack overflow" in {

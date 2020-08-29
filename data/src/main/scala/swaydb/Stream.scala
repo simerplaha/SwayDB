@@ -181,9 +181,6 @@ trait Stream[A] { self =>
   def filterNot(f: A => Boolean): Stream[A] =
     filter(!f(_))
 
-  def partition(f: A => Boolean): (Stream[A], Stream[A]) =
-    (filter(f(_)), filterNot(f(_)))
-
   def collect[B](pf: PartialFunction[A, B]): Stream[B] =
     new step.Collect[A, B](
       previousStream = self,
@@ -240,6 +237,17 @@ trait Stream[A] { self =>
     foldLeft(()) {
       case (_, item) =>
         f(item)
+    }
+
+  def partition[BAG[_]](f: A => Boolean)(implicit bag: Bag[BAG]): BAG[(ListBuffer[A], ListBuffer[A])] =
+    foldLeft((ListBuffer.empty[A], ListBuffer.empty[A])) {
+      case (buckets @ (left, right), elem) =>
+        if (f(elem))
+          left += elem
+        else
+          right += elem
+
+        buckets
     }
 
   /**
