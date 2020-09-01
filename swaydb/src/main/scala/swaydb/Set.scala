@@ -40,9 +40,6 @@ import swaydb.serializers.{Serializer, _}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Set {
-  def apply[A, F, BAG[_]](api: Core[BAG])(implicit serializer: Serializer[A],
-                                          bag: Bag[BAG]): Set[A, F, BAG] =
-    new Set(api)
 
   implicit def nothing[A]: Functions[A, Nothing] =
     new Functions[A, Nothing]()(null)

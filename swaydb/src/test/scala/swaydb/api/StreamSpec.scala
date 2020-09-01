@@ -332,7 +332,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
 
       Seq(
         getException(matStream),
-        getException(foreachStream),
+        getException(foreachStream)
       ) foreach {
         exception =>
           exception.getMessage shouldBe "Failed at 100"
