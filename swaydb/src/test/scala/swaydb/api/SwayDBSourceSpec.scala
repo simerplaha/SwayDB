@@ -110,7 +110,7 @@ sealed trait SwayDBSourceSpec extends TestBaseEmbedded {
                   item._2
               }
 
-            result.materialize shouldBe (10 to 100).toList
+            result.materialize shouldBe (10 to 100).toList.map(_.toString)
 
         }
       }
