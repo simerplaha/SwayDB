@@ -30,7 +30,7 @@ import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.util.Futures
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.Try
+import scala.util.{Success, Try}
 
 /**
  * [[Bag]]s implement functions for managing side-effect. You can use any external effect type like Try, Future etc.
@@ -240,6 +240,9 @@ object Bag extends LazyLogging {
 
             override def execute[F](f: => F): X[F] =
               transfer.to(selfSerial.execute(f))
+
+            override def terminate(): X[Unit] =
+              transfer.to(selfSerial.terminate())
           }
 
         override def exception[A](a: X[A]): Option[Throwable] =
@@ -282,6 +285,9 @@ object Bag extends LazyLogging {
 
             override def execute[F](f: => F): X[F] =
               transfer.to(selfSerial.execute(f))
+
+            override def terminate(): X[Unit] =
+              transfer.to(selfSerial.terminate())
           }
 
         override def fromPromise[A](a: Promise[A]): X[A] =
@@ -330,6 +336,9 @@ object Bag extends LazyLogging {
         new Serial[ThrowableIO] {
           override def execute[F](f: => F): ThrowableIO[F] =
             IO(f)
+
+          override def terminate(): ThrowableIO[Unit] =
+            IO.unit
         }
 
       override def apply[A](a: => A): IO.ThrowableIO[A] =
@@ -414,6 +423,9 @@ object Bag extends LazyLogging {
         new Serial[ApiIO] {
           override def execute[F](f: => F): ApiIO[F] =
             IO(f)
+
+          override def terminate(): ApiIO[Unit] =
+            IO.unit
         }
 
       override def foreach[A](a: ApiIO[A])(f: A => Unit): Unit =
@@ -475,6 +487,9 @@ object Bag extends LazyLogging {
         new Serial[Try] {
           override def execute[F](f: => F): Try[F] =
             Try(f)
+
+          override def terminate(): Try[Unit] =
+            Success(())
         }
 
       override def foreach[A](a: Try[A])(f: A => Unit): Unit =
@@ -527,6 +542,9 @@ object Bag extends LazyLogging {
       override def createSerial(): Serial[Less] =
         new Serial[Less] {
           override def execute[F](f: => F): F = f
+
+          override def terminate(): Less[Unit] =
+            ()
         }
 
       override def foreach[A](a: Less[A])(f: A => Unit): Unit = f(a)
@@ -549,7 +567,7 @@ object Bag extends LazyLogging {
     }
 
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
-    new Async.Retryable[Future] {
+    new Async.Retryable[Future] { self =>
 
       override def executionContext: ExecutionContext =
         ec
@@ -567,6 +585,9 @@ object Bag extends LazyLogging {
             actor.send(() => promise.tryComplete(Try(f)))
             promise.future
           }
+
+          override def terminate(): Future[Unit] =
+            actor.terminateAndClear[Future]()(self)
         }
 
       override val unit: Future[Unit] =

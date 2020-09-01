@@ -338,10 +338,10 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
     execute(_.clear(readState))
 
   def close(): BAG[Unit] =
-    IO.fromFuture {
+    bag.and {
       closed = true
-      onClose
-    }.run(0)
+      serial.terminate()
+    }(IO.fromFuture(onClose).run(0))
 
   def delete(): BAG[Unit] =
     IO.fromFuture {

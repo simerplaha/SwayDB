@@ -35,7 +35,7 @@ import scala.util.{Failure, Try}
 object Bag {
 
   implicit def apply[T](implicit runTime: zio.Runtime[T]): swaydb.Bag.Async[Task] =
-    new Async[Task] {
+    new Async[Task] { self =>
 
       override def executionContext: ExecutionContext =
         runTime.platform.executor.asEC
@@ -57,6 +57,9 @@ object Bag {
             //ok may be zio.Actor is required here.
             Task.fromFuture(_ => promise.future)
           }
+
+          override def terminate(): Task[Unit] =
+            actor.terminateAndClear[Task]()(self)
         }
 
       override val unit: Task[Unit] =

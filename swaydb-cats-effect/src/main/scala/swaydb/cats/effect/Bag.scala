@@ -39,7 +39,7 @@ object Bag {
    */
   implicit def apply(implicit contextShift: ContextShift[IO],
                      ec: ExecutionContext): swaydb.Bag.Async[IO] =
-    new Async[IO] {
+    new Async[IO] { self =>
 
       override def executionContext: ExecutionContext =
         ec
@@ -56,6 +56,9 @@ object Bag {
             actor.send(() => promise.tryComplete(Try(f)))
             IO.fromFuture(IO(promise.future))
           }
+
+          override def terminate(): IO[Unit] =
+            actor.terminateAndClear[IO]()(self)
         }
 
       override val unit: IO[Unit] =
