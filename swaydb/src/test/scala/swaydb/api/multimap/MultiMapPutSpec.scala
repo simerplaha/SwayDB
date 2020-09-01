@@ -30,27 +30,27 @@ import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.serializers.Default._
-import swaydb.{Bag, MultiMap_EAP}
+import swaydb.{Bag, MultiMap_Experimental}
 
 class MultiMapPutSpec0 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap_EAP[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap_EAP[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep()
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep()
 }
 
 class MultiMapPutSpec1 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap_EAP[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap_EAP[Int, Int, String, Nothing, Bag.Less]().sweep()
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less]().sweep()
 }
 
 sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap_EAP[Int, Int, String, Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less]
 
   "Root" should {
     "Initialise a RootMap & SubMap from Root" in {
@@ -88,7 +88,7 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
           val root = newDB()
 
-          def insert(firstMap: MultiMap_EAP[Int, Int, String, Nothing, Bag.Less]) = {
+          def insert(firstMap: MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less]) = {
             firstMap.put(3, "three")
             firstMap.put(4, "four")
             firstMap.put(5, "five")
