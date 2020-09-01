@@ -312,17 +312,17 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
                 db.put(i, i.toString).right.value
             }
 
-            db.from(9999).stream.materialize.runRandomIO.right.value should contain only((9999, "9999"), (10000, "10000"))
-            db.from(9998).stream.drop(2).take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
-            db.before(9999).stream.take(1).materialize.runRandomIO.right.value should contain only ((9998, "9998"))
-            db.after(9999).stream.take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
-            db.after(9999).stream.drop(1).materialize.runRandomIO.right.value shouldBe empty
+            db.stream.from(9999).materialize.runRandomIO.right.value should contain only((9999, "9999"), (10000, "10000"))
+            db.stream.from(9998).drop(2).take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
+            db.stream.before(9999).take(1).materialize.runRandomIO.right.value should contain only ((9998, "9998"))
+            db.stream.after(9999).take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
+            db.stream.after(9999).drop(1).materialize.runRandomIO.right.value shouldBe empty
 
-            db.after(10).stream.takeWhile(_._1 <= 11).materialize.runRandomIO.right.value should contain only ((11, "11"))
-            db.after(10).stream.takeWhile(_._1 <= 11).drop(1).materialize.runRandomIO.right.value shouldBe empty
+            db.stream.after(10).takeWhile(_._1 <= 11).materialize.runRandomIO.right.value should contain only ((11, "11"))
+            db.stream.after(10).takeWhile(_._1 <= 11).drop(1).materialize.runRandomIO.right.value shouldBe empty
 
-            db.fromOrBefore(0).stream.materialize.runRandomIO.right.value shouldBe empty
-            db.fromOrAfter(0).stream.take(1).materialize.runRandomIO.right.value should contain only ((1, "1"))
+            db.stream.fromOrBefore(0).materialize.runRandomIO.right.value shouldBe empty
+            db.stream.fromOrAfter(0).take(1).materialize.runRandomIO.right.value should contain only ((1, "1"))
         }
       }
     }

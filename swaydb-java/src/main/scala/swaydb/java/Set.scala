@@ -185,21 +185,6 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def timeLeft(elem: A): Optional[java.time.Duration] =
     asScala.timeLeft(elem).asJavaMap(_.toJava)
 
-  def from(key: A): Set[A, F] =
-    Set(asScala.from(key))
-
-  def before(key: A): Set[A, F] =
-    Set(asScala.before(key))
-
-  def fromOrBefore(key: A): Set[A, F] =
-    Set(asScala.fromOrBefore(key))
-
-  def after(key: A): Set[A, F] =
-    Set(asScala.after(key))
-
-  def fromOrAfter(key: A): Set[A, F] =
-    Set(asScala.fromOrAfter(key))
-
   def headOptional: Optional[A] =
     asScala.headOption.asJava
 
@@ -222,9 +207,6 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
 
   def lastOptional: Optional[A] =
     asScala.lastOption.asJava
-
-  def reverse: Set[A, F] =
-    Set(asScala.reverse)
 
   def asJava: util.Set[A] =
     asScala.asScala.asJava

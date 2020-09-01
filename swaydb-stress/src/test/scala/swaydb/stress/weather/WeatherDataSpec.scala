@@ -119,8 +119,8 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     val startFrom = randomNextInt(keyValueCount) min (keyValueCount - 100)
     val took =
       db
-        .from(startFrom)
         .stream
+        .from(startFrom)
         .takeWhile {
           case (key, _) =>
             if (key % 10000 == 0)
@@ -150,9 +150,9 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     val startFrom = randomNextInt(keyValueCount) min (keyValueCount - 100)
     val took =
       db
+        .stream
         .from(startFrom)
         .reverse
-        .stream
         .takeWhile {
           case (key, _) =>
             key > startFrom - 100
@@ -181,8 +181,8 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
       }.materialize.runRandomIO.right.value shouldBe (1 to 100)
 
     db
-      .fromOrAfter(0)
       .stream
+      .fromOrAfter(0)
       .take(100)
       .map {
         case (key, value) =>
@@ -194,8 +194,8 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
 
   def doDrop(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
     db
-      .from(keyValueCount - 200)
       .stream
+      .from(keyValueCount - 200)
       .drop(100)
       .map {
         case (key, value) =>
@@ -206,9 +206,9 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
 
   def doTakeRight(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
     db
+      .stream
       .fromOrBefore(Int.MaxValue)
       .reverse
-      .stream
       .take(100)
       .map {
         case (key, value) =>

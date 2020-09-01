@@ -29,7 +29,7 @@ import java.nio.file.Path
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 
-import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
  * Base trait for a basic SwayDB Map type.
@@ -142,21 +142,11 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def timeLeft(key: K): BAG[Option[FiniteDuration]]
 
-  def from(key: K): MapT[K, V, F, BAG]
-
-  def before(key: K): MapT[K, V, F, BAG]
-
-  def fromOrBefore(key: K): MapT[K, V, F, BAG]
-
-  def after(key: K): MapT[K, V, F, BAG]
-
-  def fromOrAfter(key: K): MapT[K, V, F, BAG]
-
   def headOption: BAG[Option[(K, V)]]
 
   def headOrNull: BAG[(K, V)]
 
-  def stream: Stream[(K, V)]
+  def stream: Source[K, (K, V)]
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]]
 
@@ -167,8 +157,6 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
   def nonEmpty: BAG[Boolean]
 
   def lastOption: BAG[Option[(K, V)]]
-
-  def reverse: MapT[K, V, F, BAG]
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

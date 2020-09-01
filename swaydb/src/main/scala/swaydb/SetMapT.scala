@@ -31,7 +31,7 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 
 import scala.collection.mutable
-import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
  * Base trait for a basic SwayDB SetMap type.
@@ -101,21 +101,11 @@ trait SetMapT[K, V, F, BAG[_]] extends Sweepable[BAG] {
 
   def timeLeft(key: K): BAG[Option[FiniteDuration]]
 
-  def from(key: K): SetMapT[K, V, F, BAG]
-
-  def before(key: K): SetMapT[K, V, F, BAG]
-
-  def fromOrBefore(key: K): SetMapT[K, V, F, BAG]
-
-  def after(key: K): SetMapT[K, V, F, BAG]
-
-  def fromOrAfter(key: K): SetMapT[K, V, F, BAG]
-
   def headOption: BAG[Option[(K, V)]]
 
   def headOrNull: BAG[(K, V)]
 
-  def stream: Stream[(K, V)]
+  def stream: Source[K, (K, V)]
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]]
 
@@ -126,8 +116,6 @@ trait SetMapT[K, V, F, BAG[_]] extends Sweepable[BAG] {
   def nonEmpty: BAG[Boolean]
 
   def lastOption: BAG[Option[(K, V)]]
-
-  def reverse: SetMapT[K, V, F, BAG]
 
   def toBag[X[_]](implicit bag: Bag[X]): SetMapT[K, V, F, X]
 

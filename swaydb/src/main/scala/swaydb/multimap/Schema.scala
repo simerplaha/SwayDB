@@ -451,9 +451,9 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
    */
   def keys: Stream[M] =
     innerMap
-      .after(MultiMapKey.SubMapsStart(thisMapKey))
       .keys
       .stream
+      .after(MultiMapKey.SubMapsStart(thisMapKey))
       .takeWhile {
         case MultiMapKey.SubMap(parentKey, _) =>
           parentKey == thisMapKey

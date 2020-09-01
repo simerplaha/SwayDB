@@ -33,11 +33,12 @@ import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.stream.From
 import swaydb.data.util.TupleOrNone
 import swaydb.serializers.{Serializer, _}
 
 import scala.collection.mutable
-import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Map {
 
@@ -96,11 +97,9 @@ object Map {
  *
  * For documentation check - http://swaydb.io/
  */
-case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
-                                        private val from: Option[From[K]] = None,
-                                        private val reverseIteration: Boolean = false)(implicit val keySerializer: Serializer[K],
-                                                                                       val valueSerializer: Serializer[V],
-                                                                                       val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
+case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit val keySerializer: Serializer[K],
+                                                                             val valueSerializer: Serializer[V],
+                                                                             val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   def path: Path =
     core.zero.path.getParent
@@ -274,11 +273,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
     bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def keys: Set[K, F, BAG] =
-    Set[K, F, BAG](
-      core = core,
-      from = from,
-      reverseIteration = reverseIteration
-    )(keySerializer, bag)
+    Set[K, F, BAG](core)(keySerializer, bag)
 
   private[swaydb] def keySet: mutable.Set[K] =
     keys.asScala
@@ -304,29 +299,25 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
-  def from(key: K): Map[K, V, F, BAG] =
-    copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
-
-  def before(key: K): Map[K, V, F, BAG] =
-    copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = true, after = false)))
-
-  def fromOrBefore(key: K): Map[K, V, F, BAG] =
-    copy(from = Some(From(key = key, orBefore = true, orAfter = false, before = false, after = false)))
-
-  def after(key: K): Map[K, V, F, BAG] =
-    copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = true)))
-
-  def fromOrAfter(key: K): Map[K, V, F, BAG] =
-    copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
-
   def headOption: BAG[Option[(K, V)]] =
-    bag.transform(headOrNull(readState = core.readStates.get()))(Option(_))
+    bag.transform(
+      headOrNull(
+        from = None,
+        reverseIteration = false,
+        readState = core.readStates.get())
+    )(Option(_))
 
   def headOrNull: BAG[(K, V)] =
-    headOrNull(readState = core.readStates.get())
+    headOrNull(
+      from = None,
+      reverseIteration = false,
+      readState = core.readStates.get()
+    )
 
-  private def headOrNull[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[(K, V)] =
-    bag.map(headOptionTupleOrNull(readState)) {
+  private def headOrNull[BAG[_]](from: Option[From[K]],
+                                 reverseIteration: Boolean,
+                                 readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[(K, V)] =
+    bag.map(headOptionTupleOrNull(from, reverseIteration, readState)) {
       case TupleOrNone.None =>
         null
 
@@ -336,7 +327,9 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
         (key, value)
     }
 
-  private def headOptionTupleOrNull[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  private def headOptionTupleOrNull[BAG[_]](from: Option[From[K]],
+                                            reverseIteration: Boolean,
+                                            readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     from match {
       case Some(from) =>
         val fromKeyBytes: Slice[Byte] = from.key
@@ -366,21 +359,28 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
           core.head(readState)
     }
 
-  private def nextTupleOrNone[BAG[_]](previousKey: K, readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  private def nextTupleOrNone[BAG[_]](previousKey: K,
+                                      reverseIteration: Boolean,
+                                      readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     if (reverseIteration)
       core.before(keySerializer.write(previousKey), readState)
     else
       core.after(keySerializer.write(previousKey), readState)
 
-  def stream: Stream[(K, V)] =
-    new Stream[(K, V)] {
+
+  def stream: Source[K, (K, V)] =
+    new Source[K, (K, V)](from = None, reverse = false) {
       val readState = core.readStates.get()
 
-      override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[(K, V)] =
-        self.headOrNull(readState)
+      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) =
+        self.headOrNull(
+          from = from,
+          reverseIteration = reverse,
+          readState = readState
+        )
 
-      override private[swaydb] def nextOrNull[BAG[_]](previous: (K, V))(implicit bag: Bag[BAG]): BAG[(K, V)] =
-        bag.map(nextTupleOrNone(previous._1, readState)) {
+      override private[swaydb] def nextOrNull[BAG[_]](previous: (K, V), reverse: Boolean)(implicit bag: Bag[BAG]) =
+        bag.map(nextTupleOrNone(previousKey = previous._1, reverseIteration = reverse, readState = readState)) {
           case TupleOrNone.None =>
             null
 
@@ -404,25 +404,13 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
     bag.transform(isEmpty)(!_)
 
   def lastOption: BAG[Option[(K, V)]] =
-    if (reverseIteration)
-      bag.map(core.head(core.readStates.get())) {
-        case TupleOrNone.Some(key, value) =>
-          Some((key.read[K], value.read[V]))
+    bag.map(core.last(core.readStates.get())) {
+      case TupleOrNone.Some(key, value) =>
+        Some((key.read[K], value.read[V]))
 
-        case TupleOrNone.None =>
-          None
-      }
-    else
-      bag.map(core.last(core.readStates.get())) {
-        case TupleOrNone.Some(key, value) =>
-          Some((key.read[K], value.read[V]))
-
-        case TupleOrNone.None =>
-          None
-      }
-
-  def reverse: Map[K, V, F, BAG] =
-    copy(reverseIteration = true)
+      case TupleOrNone.None =>
+        None
+    }
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

@@ -22,10 +22,14 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb
+package swaydb.data.stream
 
 case class From[K](key: K,
                    orAfter: Boolean,
                    orBefore: Boolean,
                    before: Boolean,
-                   after: Boolean)
+                   after: Boolean) {
+
+  def as[B](key: B): From[B] =
+    copy[B](key)
+}

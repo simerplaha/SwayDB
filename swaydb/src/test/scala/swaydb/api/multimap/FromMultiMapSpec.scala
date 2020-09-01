@@ -89,8 +89,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
             map =>
               map.get(1) shouldBe empty
               map.stream.materialize.toList shouldBe empty
-              map.from(1).stream.materialize.toList shouldBe empty
-              map.from(1).reverse.stream.materialize.toList shouldBe empty
+              map.stream.from(1).materialize.toList shouldBe empty
+              map.stream.from(1).reverse.materialize.toList shouldBe empty
           }
 
           root.schema.keys.materialize.toList should contain only(1, 2)
@@ -110,44 +110,44 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
           firstMap.put(1, "one")
 
           firstMap
+            .stream
             .from(2)
-            .stream
             .materialize
             .toList shouldBe empty
 
           firstMap
+            .stream
             .after(1)
-            .stream
             .materialize
             .toList shouldBe empty
 
           firstMap
+            .stream
             .from(1)
-            .stream
             .materialize
             .toList should contain only ((1, "one"))
 
           firstMap
+            .stream
             .fromOrBefore(2)
-            .stream
             .materialize
             .toList should contain only ((1, "one"))
 
           firstMap
+            .stream
             .fromOrBefore(1)
-            .stream
             .materialize
             .toList should contain only ((1, "one"))
 
           firstMap
+            .stream
             .after(0)
-            .stream
             .materialize
             .toList should contain only ((1, "one"))
 
           firstMap
-            .fromOrAfter(0)
             .stream
+            .fromOrAfter(0)
             .materialize
             .toList should contain only ((1, "one"))
 
@@ -179,24 +179,24 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
 
           runThisParallel(20.times) {
             Seq(
-              () => subMap1.from(3).stream.materialize shouldBe empty,
-              () => subMap1.after(2).stream.materialize shouldBe empty,
-              () => subMap1.from(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
-              () => subMap1.fromOrBefore(2).stream.materialize.toList should contain only ((2, "two")),
-              () => subMap1.fromOrBefore(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
-              () => subMap1.after(0).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
-              () => subMap1.fromOrAfter(0).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+              () => subMap1.stream.from(3).materialize shouldBe empty,
+              () => subMap1.stream.after(2).materialize shouldBe empty,
+              () => subMap1.stream.from(1).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+              () => subMap1.stream.fromOrBefore(2).materialize.toList should contain only ((2, "two")),
+              () => subMap1.stream.fromOrBefore(1).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+              () => subMap1.stream.after(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+              () => subMap1.stream.fromOrAfter(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
               () => subMap1.stream.size shouldBe 2,
               () => subMap1.headOption.value shouldBe ((1, "one")),
               () => subMap1.lastOption.value shouldBe ((2, "two")),
 
-              () => subMap2.from(5).stream.materialize shouldBe empty,
-              () => subMap2.after(4).stream.materialize shouldBe empty,
-              () => subMap2.from(3).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
-              () => subMap2.fromOrBefore(5).stream.materialize.toList should contain only ((4, "four")),
-              () => subMap2.fromOrBefore(3).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
-              () => subMap2.after(0).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
-              () => subMap2.fromOrAfter(1).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+              () => subMap2.stream.from(5).materialize shouldBe empty,
+              () => subMap2.stream.after(4).materialize shouldBe empty,
+              () => subMap2.stream.from(3).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+              () => subMap2.stream.fromOrBefore(5).materialize.toList should contain only ((4, "four")),
+              () => subMap2.stream.fromOrBefore(3).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+              () => subMap2.stream.after(0).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+              () => subMap2.stream.fromOrAfter(1).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
               () => subMap2.stream.size shouldBe 2,
               () => subMap2.headOption.value shouldBe ((3, "three")),
               () => subMap2.lastOption.value shouldBe ((4, "four"))
@@ -223,26 +223,26 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
 
           runThisParallel(20.times) {
             Seq(
-              () => subMap1.from(4).stream.materialize.toList shouldBe empty,
-              () => subMap1.after(3).stream.materialize.toList shouldBe empty,
-              () => subMap1.from(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+              () => subMap1.stream.from(4).materialize.toList shouldBe empty,
+              () => subMap1.stream.after(3).materialize.toList shouldBe empty,
+              () => subMap1.stream.from(1).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
               () => subMap1.schema.keys.materialize.toList should contain only 3,
-              () => subMap1.fromOrBefore(2).stream.materialize.toList should contain only ((2, "two")),
+              () => subMap1.stream.fromOrBefore(2).materialize.toList should contain only ((2, "two")),
 
-              () => subMap1.fromOrBefore(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
-              () => subMap1.after(0).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
-              () => subMap1.fromOrAfter(0).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+              () => subMap1.stream.fromOrBefore(1).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+              () => subMap1.stream.after(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+              () => subMap1.stream.fromOrAfter(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
               () => subMap1.stream.size shouldBe 2,
               () => subMap1.headOption.value shouldBe ((1, "one")),
               () => subMap1.schema.keys.lastOption.value shouldBe 3,
 
-              () => subMap2.from(5).stream.materialize.toList shouldBe empty,
-              () => subMap2.after(4).stream.materialize.toList shouldBe empty,
-              () => subMap2.from(3).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
-              () => subMap2.fromOrBefore(5).stream.materialize.toList should contain only ((4, "four")),
-              () => subMap2.fromOrBefore(3).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
-              () => subMap2.after(0).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
-              () => subMap2.fromOrAfter(1).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+              () => subMap2.stream.from(5).materialize.toList shouldBe empty,
+              () => subMap2.stream.after(4).materialize.toList shouldBe empty,
+              () => subMap2.stream.from(3).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+              () => subMap2.stream.fromOrBefore(5).materialize.toList should contain only ((4, "four")),
+              () => subMap2.stream.fromOrBefore(3).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+              () => subMap2.stream.after(0).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+              () => subMap2.stream.fromOrAfter(1).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
               () => subMap2.stream.size shouldBe 2,
               () => subMap2.headOption.value shouldBe ((3, "three")),
               () => subMap2.lastOption.value shouldBe ((4, "four"))
@@ -317,30 +317,30 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
                 () => eitherOne(doInserts(skipRandomly = true), (), ()),
 
                 () => rootMap.schema.keys.materialize.toList should contain only(2, 3),
-                () => rootMap.from(1).stream.materialize.toList shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
+                () => rootMap.stream.from(1).materialize.toList shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
                 //reverse from the map.
-                () => rootMap.before(2).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((1, "one")),
-                () => rootMap.before(3).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((2, "two"), (1, "one")),
-                () => rootMap.before(4).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((3, "three"), (2, "two"), (1, "one")),
-                () => rootMap.before(5).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((4, "four"), (3, "three"), (2, "two"), (1, "one")),
-                () => rootMap.from(3).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((3, "three"), (2, "two"), (1, "one")),
+                () => rootMap.stream.before(2).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((1, "one")),
+                () => rootMap.stream.before(3).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((2, "two"), (1, "one")),
+                () => rootMap.stream.before(4).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((3, "three"), (2, "two"), (1, "one")),
+                () => rootMap.stream.before(5).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((4, "four"), (3, "three"), (2, "two"), (1, "one")),
+                () => rootMap.stream.from(3).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((3, "three"), (2, "two"), (1, "one")),
 
                 //forward from entry
-                () => rootMap.from(1).stream.materialize shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
-                () => rootMap.fromOrAfter(1).stream.materialize shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
-                () => rootMap.fromOrBefore(1).stream.materialize shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
-                () => rootMap.after(2).stream.materialize shouldBe List((3, "three"), (4, "four")),
+                () => rootMap.stream.from(1).materialize shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
+                () => rootMap.stream.fromOrAfter(1).materialize shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
+                () => rootMap.stream.fromOrBefore(1).materialize shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
+                () => rootMap.stream.after(2).materialize shouldBe List((3, "three"), (4, "four")),
 
                 () => childMap1.stream.materialize shouldBe List((11, "one one"), (22, "two two"), (33, "three three"), (44, "four four")),
-                () => childMap1.from(11).stream.materialize shouldBe List((11, "one one"), (22, "two two"), (33, "three three"), (44, "four four")),
-                () => childMap1.from(22).stream.materialize shouldBe List((22, "two two"), (33, "three three"), (44, "four four")),
-                () => childMap1.from(33).stream.materialize shouldBe List((33, "three three"), (44, "four four")),
-                () => childMap1.from(44).stream.materialize shouldBe List((44, "four four")),
+                () => childMap1.stream.from(11).materialize shouldBe List((11, "one one"), (22, "two two"), (33, "three three"), (44, "four four")),
+                () => childMap1.stream.from(22).materialize shouldBe List((22, "two two"), (33, "three three"), (44, "four four")),
+                () => childMap1.stream.from(33).materialize shouldBe List((33, "three three"), (44, "four four")),
+                () => childMap1.stream.from(44).materialize shouldBe List((44, "four four")),
 
-                () => childMap1.from(11).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((11, "one one")),
-                () => childMap1.from(22).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((22, "two two"), (11, "one one")),
-                () => childMap1.from(33).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((33, "three three"), (22, "two two"), (11, "one one")),
-                () => childMap1.from(44).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((44, "four four"), (33, "three three"), (22, "two two"), (11, "one one")),
+                () => childMap1.stream.from(11).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((11, "one one")),
+                () => childMap1.stream.from(22).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((22, "two two"), (11, "one one")),
+                () => childMap1.stream.from(33).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((33, "three three"), (22, "two two"), (11, "one one")),
+                () => childMap1.stream.from(44).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((44, "four four"), (33, "three three"), (22, "two two"), (11, "one one")),
 
                 () => childMap1.schema.stream.materialize shouldBe empty
               ).runThisRandomly

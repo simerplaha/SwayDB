@@ -27,17 +27,17 @@ package swaydb
 import java.nio.file.Path
 
 import swaydb.MultiMapKey.{MapEntriesEnd, MapEntriesStart, MapEntry}
-import swaydb.multimap.Transaction
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
+import swaydb.data.stream.From
 import swaydb.multimap.{Schema, Transaction}
 import swaydb.serializers.{Serializer, _}
 
 import scala.collection.compat._
 import scala.collection.mutable
-import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object MultiMap_EAP {
 
@@ -278,8 +278,6 @@ object MultiMap_EAP {
  */
 case class MultiMap_EAP[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Map[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]], BAG],
                                                     thisMapKey: Iterable[M],
-                                                    private val from: Option[From[MultiMapKey.MapEntry[M, K]]] = None,
-                                                    private val reverseIteration: Boolean = false,
                                                     defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
                                                                                                 tableSerializer: Serializer[M],
                                                                                                 valueSerializer: Serializer[V],
@@ -656,21 +654,6 @@ case class MultiMap_EAP[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
-  def from(key: K): MultiMap_EAP[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = false, orAfter = false, before = false, after = false)))
-
-  def before(key: K): MultiMap_EAP[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = false, orAfter = false, before = true, after = false)))
-
-  def fromOrBefore(key: K): MultiMap_EAP[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = true, orAfter = false, before = false, after = false)))
-
-  def after(key: K): MultiMap_EAP[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = false, orAfter = false, before = false, after = true)))
-
-  def fromOrAfter(key: K): MultiMap_EAP[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = false, orAfter = true, before = false, after = false)))
-
   def headOption: BAG[Option[(K, V)]] =
     stream.headOption
 
@@ -692,40 +675,49 @@ case class MultiMap_EAP[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap
           (key, value)
       }
 
-  def stream: Stream[(K, V)] =
-    from match {
-      case Some(from) =>
-        val start =
-          if (from.before)
-            innerMap.before(from.key)
-          else if (from.after)
-            innerMap.after(from.key)
-          else if (from.orBefore)
-            innerMap.fromOrBefore(from.key)
-          else if (from.orAfter)
-            innerMap.fromOrAfter(from.key)
-          else
-            innerMap.from(from.key)
+  def stream: Source[K, (K, V)] =
+    new Source[K, (K, V)](None, false) {
 
-        if (reverseIteration)
-          boundStreamToMap(start.reverse.stream)
-        else
-          boundStreamToMap(start.stream)
+      var innerStream: Stream[(K, V)] = _
 
-      case None =>
-        if (reverseIteration)
-          boundStreamToMap {
-            innerMap
-              .before(MapEntriesEnd(thisMapKey))
-              .reverse
-              .stream
+      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = {
+        val appliedStream =
+          from match {
+            case Some(from) =>
+              val start =
+                if (from.before)
+                  innerMap.stream.before(MultiMapKey.MapEntry(thisMapKey, from.key))
+                else if (from.after)
+                  innerMap.stream.after(MultiMapKey.MapEntry(thisMapKey, from.key))
+                else if (from.orBefore)
+                  innerMap.stream.fromOrBefore(MultiMapKey.MapEntry(thisMapKey, from.key))
+                else if (from.orAfter)
+                  innerMap.stream.fromOrAfter(MultiMapKey.MapEntry(thisMapKey, from.key))
+                else
+                  innerMap.stream.from(MultiMapKey.MapEntry(thisMapKey, from.key))
+
+              if (reverse)
+                start.reverse
+              else
+                start
+
+            case None =>
+              if (reverse)
+                innerMap
+                  .stream
+                  .before(MapEntriesEnd(thisMapKey))
+                  .reverse
+              else
+                innerMap
+                  .stream
+                  .after(MapEntriesStart(thisMapKey))
           }
-        else
-          boundStreamToMap {
-            innerMap
-              .after(MapEntriesStart(thisMapKey))
-              .stream
-          }
+        innerStream = boundStreamToMap(appliedStream)
+        innerStream.headOrNull
+      }
+
+      override private[swaydb] def nextOrNull[BAG[_]](previous: (K, V), reverse: Boolean)(implicit bag: Bag[BAG]) =
+        innerStream.nextOrNull(previous)
     }
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
@@ -743,14 +735,11 @@ case class MultiMap_EAP[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap
   def lastOption: BAG[Option[(K, V)]] =
     stream.lastOption
 
-  def reverse: MultiMap_EAP[M, K, V, F, BAG] =
-    copy(reverseIteration = true)
-
   /**
    * Returns an Async API of type O where the [[Bag]] is known.
    */
   def toBag[X[_]](implicit bag: Bag[X]): MultiMap_EAP[M, K, V, F, X] =
-    MultiMap_EAP(innerMap.toBag[X], thisMapKey, from, reverseIteration, defaultExpiration)
+    MultiMap_EAP(innerMap.toBag[X], thisMapKey, defaultExpiration)
 
   def asScala: scala.collection.mutable.Map[K, V] =
     ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))

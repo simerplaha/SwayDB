@@ -31,10 +31,11 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.stream.From
 import swaydb.serializers.Serializer
 
 import scala.collection.mutable
-import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object SetMap {
   /**
@@ -215,29 +216,54 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
-  def from(key: K): SetMap[K, V, F, BAG] =
-    SetMap(set = set.from((key, nullValue)))
-
-  def before(key: K): SetMap[K, V, F, BAG] =
-    SetMap(set = set.before((key, nullValue)))
-
-  def fromOrBefore(key: K): SetMap[K, V, F, BAG] =
-    SetMap(set = set.fromOrBefore((key, nullValue)))
-
-  def after(key: K): SetMap[K, V, F, BAG] =
-    SetMap(set = set.after((key, nullValue)))
-
-  def fromOrAfter(key: K): SetMap[K, V, F, BAG] =
-    SetMap(set = set.fromOrAfter((key, nullValue)))
-
   def headOption: BAG[Option[(K, V)]] =
     set.headOption
 
   def headOrNull: BAG[(K, V)] =
     set.headOrNull
 
-  def stream: Stream[(K, V)] =
-    set.stream
+  def stream: Source[K, (K, V)] =
+    new Source[K, (K, V)](None, false) {
+
+      var innerSource: Source[(K, V), (K, V)] = _
+
+      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = {
+        innerSource =
+          from match {
+            case Some(from) =>
+              val start =
+                if (from.before)
+                  set.stream.before((from.key, nullValue))
+                else if (from.after)
+                  set.stream.after((from.key, nullValue))
+                else if (from.orBefore)
+                  set.stream.fromOrBefore((from.key, nullValue))
+                else if (from.orAfter)
+                  set.stream.fromOrAfter((from.key, nullValue))
+                else
+                  set.stream.from((from.key, nullValue))
+
+              if (reverse)
+                start.reverse
+              else
+                start
+
+            case None =>
+              if (reverse)
+                set
+                  .stream
+                  .reverse
+              else
+                set
+                  .stream
+          }
+
+        innerSource.headOrNull
+      }
+
+      override private[swaydb] def nextOrNull[BAG[_]](previous: (K, V), reverse: Boolean)(implicit bag: Bag[BAG]) =
+        innerSource.nextOrNull(previous, reverse)
+    }
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
     set.iterator
@@ -253,9 +279,6 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
 
   def lastOption: BAG[Option[(K, V)]] =
     set.lastOption
-
-  def reverse: SetMap[K, V, F, BAG] =
-    SetMap(set.reverse)
 
   private def copy(): Unit = ()
 

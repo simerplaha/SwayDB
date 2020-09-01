@@ -201,26 +201,11 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def timeLeft(key: K): Optional[Duration] =
     asScala.timeLeft(key).asJavaMap(_.toJava)
 
-  def from(key: K): Map[K, V, F] =
-    Map(asScala.from(key))
-
-  def before(key: K): Map[K, V, F] =
-    Map(asScala.before(key))
-
-  def fromOrBefore(key: K): Map[K, V, F] =
-    Map(asScala.fromOrBefore(key))
-
-  def after(key: K): Map[K, V, F] =
-    Map(asScala.after(key))
-
-  def fromOrAfter(key: K): Map[K, V, F] =
-    Map(asScala.fromOrAfter(key))
-
   def headOptional: Optional[KeyVal[K, V]] =
     asScala.headOption.asJavaMap(KeyVal(_))
 
-  def stream: Stream[KeyVal[K, V]] =
-    new Stream(asScala.stream.map(_.asKeyVal))
+  def stream: Source[K, KeyVal[K, V]] =
+    new Source(asScala.stream.transformValue(_.asKeyVal))
 
   def iterator: java.util.Iterator[KeyVal[K, V]] =
     asScala
@@ -239,9 +224,6 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
 
   def lastOptional: Optional[KeyVal[K, V]] =
     asScala.lastOption.asJavaMap(KeyVal(_))
-
-  def reverse: Map[K, V, F] =
-    Map(asScala.reverse)
 
   def close(): Unit =
     asScala.close()

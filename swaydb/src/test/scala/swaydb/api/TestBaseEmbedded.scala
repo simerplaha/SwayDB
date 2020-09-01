@@ -22,11 +22,11 @@ package swaydb.api
 import org.scalatest.exceptions.TestFailedException
 import swaydb.IO.ApiIO
 import swaydb.IOValues._
-import swaydb.{MultiMapKey, _}
 import swaydb.core.CommonAssertions.eitherOne
-import swaydb.data.RunThis._
 import swaydb.core.{TestBase, TestExecutionContext}
+import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
+import swaydb.{MultiMapKey, _}
 
 import scala.annotation.tailrec
 import scala.concurrent.Future
@@ -128,7 +128,7 @@ trait TestBaseEmbedded extends TestBase {
               (1 to 500000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
                 i =>
                   db match {
-                    case map @ Map(core, from, reverseIteration) =>
+                    case map @ Map(core) =>
                       map.update(1, 1000000, value = "just triggering update to assert remove").right.value
 
                     case SetMap(set) =>
@@ -161,7 +161,7 @@ trait TestBaseEmbedded extends TestBase {
 
   def doExpire(from: Int, to: Int, deadline: Deadline, db: SetMapT[Int, String, Nothing, IO.ApiIO]): Unit =
     db match {
-      case db @ Map(_, _, _) =>
+      case db @ Map(_) =>
         eitherOne(
           left = (from to to) foreach (i => db.expire(i, deadline).right.value),
           right = db.expire(from, to, deadline).right.value
@@ -173,7 +173,7 @@ trait TestBaseEmbedded extends TestBase {
 
   def doRemove(from: Int, to: Int, db: SetMapT[Int, String, Nothing, IO.ApiIO]): Unit =
     db match {
-      case db @ Map(_, _, _) =>
+      case db @ Map(_) =>
         eitherOne(
           left = (from to to) foreach (i => db.remove(i).right.value),
           right = db.remove(from = from, to = to).right.value
@@ -185,7 +185,7 @@ trait TestBaseEmbedded extends TestBase {
 
   def doUpdateOrIgnore(from: Int, to: Int, value: String, db: SetMapT[Int, String, Nothing, IO.ApiIO]): Unit =
     db match {
-      case db @ Map(_, _, _) =>
+      case db @ Map(_) =>
         eitherOne(
           left = (from to to) foreach (i => db.update(i, value = value).right.value),
           right = db.update(from, to, value = value).right.value
