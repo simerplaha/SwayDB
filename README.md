@@ -14,7 +14,8 @@
 
 Embeddable **persistent** and **in-memory** key-value storage engine aimed for **high performance** & **resource efficiency**.
 
-Data is managed by creating familiar data structures like `Map`, `Set`, `Queue` & `MultiMap` and new data types like `SetMap`. 
+Data is managed by creating familiar data structures like `Map`, `Set`, `Queue` `MultiMap`, `SetMap` and can easily convert 
+to native Java and Scala data types `Map` and `Set`.
   
 Conditional updates/data modifications can be performed by simply submitting any **Java**, **Scala**, **Kotlin** or any 
 **native JVM** code - **No query language**.
