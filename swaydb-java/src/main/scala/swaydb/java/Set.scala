@@ -188,8 +188,8 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def headOptional: Optional[A] =
     asScala.headOption.asJava
 
-  def stream: Stream[A] =
-    Stream.fromScala(asScala.stream)
+  def stream: Source[A, A] =
+    new Source(asScala.stream)
 
   def iterator: java.util.Iterator[A] =
     asScala
