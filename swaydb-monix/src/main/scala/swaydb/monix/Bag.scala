@@ -35,7 +35,7 @@ import scala.util.{Failure, Try}
 object Bag {
 
   implicit def apply(implicit scheduler: monix.execution.Scheduler): swaydb.Bag.Async[Task] =
-    new Async[Task] {
+    new Async[Task] { self =>
 
       override def executionContext: ExecutionContext =
         scheduler
@@ -57,6 +57,9 @@ object Bag {
             actor.send(() => promise.tryComplete(Try(f)))
             Task.fromFuture(promise.future)
           }
+
+          override def terminate(): Task[Unit] =
+            actor.terminateAndClear[Task]()(self)
         }
 
       override val unit: Task[Unit] =
