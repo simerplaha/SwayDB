@@ -41,45 +41,43 @@ import scala.reflect.ClassTag
 
 object SetMap extends LazyLogging {
 
-  def apply[K, V, F, BAG[_]](dir: Path,
-                             mapSize: Int = 4.mb,
-                             mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
-                             recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                             mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                             appendixFlushCheckpointSize: Int = 2.mb,
-                             otherDirs: Seq[Dir] = Seq.empty,
-                             cacheKeyValueIds: Boolean = true,
-                             shutdownTimeout: FiniteDuration = 30.seconds,
-                             acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                             threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                             sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                             randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
-                             binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
-                             mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
-                             valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
-                             segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                             fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                             memoryCache: MemoryCache = DefaultConfigs.memoryCache,
-                             levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                             levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
-                             levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
-                             levelThreeThrottle: LevelMeter => Throttle = DefaultConfigs.levelThreeThrottle,
-                             levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
-                             levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
-                             levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit keySerializer: Serializer[K],
-                                                                                                         valueSerializer: Serializer[V],
-                                                                                                         functionClassTag: ClassTag[F],
-                                                                                                         bag: swaydb.Bag[BAG],
-                                                                                                         functions: swaydb.Set.Functions[(K, V), F],
-                                                                                                         byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                         typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.SetMap[K, V, F, BAG]] =
+  def apply[K, V, BAG[_]](dir: Path,
+                          mapSize: Int = 4.mb,
+                          mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
+                          recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                          mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                          appendixFlushCheckpointSize: Int = 2.mb,
+                          otherDirs: Seq[Dir] = Seq.empty,
+                          cacheKeyValueIds: Boolean = true,
+                          shutdownTimeout: FiniteDuration = 30.seconds,
+                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                          threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+                          sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                          randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                          binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
+                          mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+                          valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
+                          segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
+                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                          memoryCache: MemoryCache = DefaultConfigs.memoryCache,
+                          levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
+                          levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
+                          levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
+                          levelThreeThrottle: LevelMeter => Throttle = DefaultConfigs.levelThreeThrottle,
+                          levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
+                          levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
+                          levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit keySerializer: Serializer[K],
+                                                                                                      valueSerializer: Serializer[V],
+                                                                                                      bag: swaydb.Bag[BAG],
+                                                                                                      byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                      typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
       val nullCheckedOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
       val ordering: KeyOrder[Slice[Byte]] = swaydb.SetMap.ordering(nullCheckedOrder)
 
       val set =
-        Set[(K, V), F, BAG](
+        Set[(K, V), Nothing, BAG](
           dir = dir,
           mapSize = mapSize,
           mmapMaps = mmapMaps,
@@ -107,15 +105,15 @@ object SetMap extends LazyLogging {
           levelFiveThrottle = levelFiveThrottle,
           levelSixThrottle = levelSixThrottle
         )(serializer = serialiser,
-          functionClassTag = functionClassTag,
+          functionClassTag = ClassTag.Nothing,
           bag = bag,
-          functions = functions,
+          functions = swaydb.Set.nothing,
           byteKeyOrder = ordering
         )
 
       bag.transform(set) {
         set =>
-          swaydb.SetMap[K, V, F, BAG](set)
+          swaydb.SetMap[K, V, BAG](set)
       }
     }
 }

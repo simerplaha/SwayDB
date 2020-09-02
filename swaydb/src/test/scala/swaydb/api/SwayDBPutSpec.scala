@@ -41,8 +41,8 @@ class SwayDBPutSpec0 extends SwayDBPutSpec {
 class SwayDBPut_SetMap_Spec0 extends SwayDBPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMap[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.SetMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep()
+  override def newDB()(implicit sweeper: TestCaseSweeper): SetMap[Int, String, IO.ApiIO] =
+    swaydb.persistent.SetMap[Int, String, IO.ApiIO](dir = randomDir).right.value.sweep()
 }
 
 class SwayDBPutSpec1 extends SwayDBPutSpec {

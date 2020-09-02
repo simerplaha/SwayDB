@@ -37,8 +37,8 @@ class SwayDBSpec0 extends SwayDBSpec {
 }
 
 class SwayDB_SetMap_Spec0 extends SwayDBSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMap[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.SetMap[Int, String, Nothing, IO.ApiIO](randomDir).right.value.sweep()
+  override def newDB()(implicit sweeper: TestCaseSweeper): SetMap[Int, String, IO.ApiIO] =
+    swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir).right.value.sweep()
 
   override val keyValueCount: Int = 100
 }

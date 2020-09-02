@@ -31,18 +31,18 @@ import swaydb.serializers.Default._
 import TestCaseSweeper._
 
 class SetMapSpec0 extends SetMapSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.SetMap[Int, String, Nothing, Bag.Less](randomDir).sweep()
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Bag.Less] =
+    swaydb.persistent.SetMap[Int, String, Bag.Less](randomDir).sweep()
 }
 
 class SetMapSpec3 extends SetMapSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.SetMap[Int, String, Nothing, Bag.Less]().sweep()
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Bag.Less] =
+    swaydb.memory.SetMap[Int, String, Bag.Less]().sweep()
 }
 
 sealed trait SetMapSpec extends TestBase {
 
-  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Bag.Less]
 
   "put" in {
     TestCaseSweeper {

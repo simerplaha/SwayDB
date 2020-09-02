@@ -37,7 +37,7 @@ class ScalaSetMapSpec0 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.SetMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value.sweep()
+    swaydb.persistent.SetMap[Int, String, IO.ApiIO](dir = randomDir).right.value.sweep()
 }
 
 class ScalaMapSpec1 extends ScalaMapSpec {

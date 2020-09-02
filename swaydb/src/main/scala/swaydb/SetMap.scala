@@ -126,7 +126,7 @@ object SetMap {
  * [[SetMap]] has limited write APIs as compared to [[swaydb.Map]]
  * and range & update operations are not supported.
  */
-case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SetMapT[K, V, F, BAG] { self =>
+case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit bag: Bag[BAG]) extends SetMapT[K, V, Nothing, BAG] { self =>
 
   private final val nullValue: V = null.asInstanceOf[V]
 
@@ -283,15 +283,15 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
   private def copy(): Unit = ()
 
   override def asScala: mutable.Map[K, V] =
-    ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
+    ScalaMap[K, V, Nothing](toBag[Bag.Less](Bag.less))
 
   override private[swaydb] def keySet: mutable.Set[K] =
-    ScalaSet[K, V, F](toBag[Bag.Less](Bag.less), nullValue)
+    ScalaSet[K, V, Nothing](toBag[Bag.Less](Bag.less), nullValue)
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.
    */
-  def toBag[X[_]](implicit bag: Bag[X]): SetMap[K, V, F, X] =
+  def toBag[X[_]](implicit bag: Bag[X]): SetMap[K, V, X] =
     SetMap(set = set.toBag[X])
 
   def close(): BAG[Unit] =
@@ -301,5 +301,5 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
     set.delete()
 
   override def toString(): String =
-    classOf[SetMap[_, _, _, BAG]].getSimpleName
+    classOf[SetMap[_, _, BAG]].getSimpleName
 }

@@ -42,29 +42,27 @@ object SetMap extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[K, V, F, BAG[_]](mapSize: Int = 4.mb,
-                             minSegmentSize: Int = 2.mb,
-                             maxKeyValuesPerSegment: Int = Int.MaxValue,
-                             fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                             deleteSegmentsEventually: Boolean = true,
-                             shutdownTimeout: FiniteDuration = 30.seconds,
-                             acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                             levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                             lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
-                             threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
-                                                                                                                               valueSerializer: Serializer[V],
-                                                                                                                               functionClassTag: ClassTag[F],
-                                                                                                                               bag: swaydb.Bag[BAG],
-                                                                                                                               functions: swaydb.Set.Functions[(K, V), F],
-                                                                                                                               byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                               typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.SetMap[K, V, F, BAG]] =
+  def apply[K, V, BAG[_]](mapSize: Int = 4.mb,
+                          minSegmentSize: Int = 2.mb,
+                          maxKeyValuesPerSegment: Int = Int.MaxValue,
+                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                          deleteSegmentsEventually: Boolean = true,
+                          shutdownTimeout: FiniteDuration = 30.seconds,
+                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                          levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
+                          lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
+                          threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
+                                                                                                                            valueSerializer: Serializer[V],
+                                                                                                                            bag: swaydb.Bag[BAG],
+                                                                                                                            byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                            typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
       val keyOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
       val ordering: KeyOrder[Slice[Byte]] = swaydb.SetMap.ordering(keyOrder)
 
       val set =
-        Set[(K, V), F, BAG](
+        Set[(K, V), Nothing, BAG](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -76,15 +74,15 @@ object SetMap extends LazyLogging {
           lastLevelThrottle = lastLevelThrottle,
           threadStateCache = threadStateCache
         )(serializer = serialiser,
-          functionClassTag = functionClassTag,
+          functionClassTag = ClassTag.Nothing,
           bag = bag,
-          functions = functions,
+          functions = swaydb.Set.nothing,
           byteKeyOrder = ordering
         )
 
       bag.transform(set) {
         set =>
-          swaydb.SetMap[K, V, F, BAG](set)
+          swaydb.SetMap[K, V, BAG](set)
       }
     }
 }

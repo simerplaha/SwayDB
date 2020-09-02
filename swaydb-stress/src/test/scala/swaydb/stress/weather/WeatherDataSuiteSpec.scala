@@ -73,7 +73,7 @@ class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
 
 class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.persistent.SetMap[Int, WeatherData, Nothing, IO.ApiIO](
+    swaydb.persistent.SetMap[Int, WeatherData, IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
       //      mmapMaps = MMAP.randomForMap(),
@@ -87,7 +87,7 @@ class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
 
 class Memory_SetMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.SetMap[Int, WeatherData, Nothing, IO.ApiIO]().get.sweep()
+    swaydb.memory.SetMap[Int, WeatherData, IO.ApiIO]().get.sweep()
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
