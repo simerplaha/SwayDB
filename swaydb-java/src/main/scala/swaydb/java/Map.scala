@@ -26,6 +26,7 @@ package swaydb.java
 
 import java.nio.file.Path
 import java.time.Duration
+import java.util
 import java.util.Optional
 
 import swaydb.data.accelerate.LevelZeroMeter
@@ -213,6 +214,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
       .map(KeyVal(_))
       .asJava
 
+
   def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries
 
@@ -224,6 +226,9 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
 
   def lastOptional: Optional[KeyVal[K, V]] =
     asScala.lastOption.asJavaMap(KeyVal(_))
+
+  def asJava: util.Map[K, V] =
+    asScala.asScala.asJava
 
   def close(): Unit =
     asScala.close()
