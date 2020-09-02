@@ -61,7 +61,7 @@ object Actor {
     def send(message: T, delay: java.time.Duration): TimerTask =
       asScala.send(message, delay.toScala)
 
-    def ask[R](message: JavaFunction[Actor.Ref[R, Void], T], delay: java.time.Duration, scheduler: Scheduler): swaydb.Actor.Task[R, CompletionStage] = {
+    def ask[R](message: JavaFunction[Actor.Ref[R, Void], T], delay: java.time.Duration): swaydb.Actor.Task[R, CompletionStage] = {
       val javaFuture =
         asScala.ask[R, scala.concurrent.Future](
           message =
