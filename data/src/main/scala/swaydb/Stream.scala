@@ -275,11 +275,19 @@ trait Stream[A] { self =>
                                            builder: mutable.Builder[A, X[A]]): BAG[X[A]] =
     bag.transform(materializeBuilder)(_.result())
 
+  /**
+   * Executes this Stream within the provided [[Bag]].
+   */
   def materialize[BAG[_]](implicit bag: Bag[BAG]): BAG[ListBuffer[A]] = {
     implicit val listBuffer = ListBuffer.newBuilder[A]
     bag.transform(materializeBuilder)(_.result())
   }
 
+  /**
+   * A [[Streamer]] is a simple interface to a [[Stream]] instance which
+   * only one has function [[Streamer.nextOrNull]] that can be used to
+   * create other interop implementations with other Streaming libraries.
+   */
   def streamer: Streamer[A] =
     new Streamer[A] {
       var previous: A = _
@@ -291,8 +299,11 @@ trait Stream[A] { self =>
           else
             self.nextOrNull(previous)
 
-        bag.foreach(next)(previous = _)
-        next
+        bag.transform(next) {
+          next =>
+            previous = next
+            next
+        }
       }
     }
 

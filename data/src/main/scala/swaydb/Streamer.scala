@@ -25,9 +25,14 @@
 package swaydb
 
 /**
- * Iterator that can be used to build [[Stream]]s from other streaming libraries.
+ * An Iterator like implementation  that can be used to build [[Stream]]s
+ * from other streaming libraries.
  *
  * This trait can be used to create async or sync streams.
+ *
+ * @see [[Stream.streamer]] to create this object from a SwayDB stream
+ *      which can then be converted into other stream from other Streaming
+ *      libraries.
  */
 trait Streamer[A] {
   def nextOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A]
