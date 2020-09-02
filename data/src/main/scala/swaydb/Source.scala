@@ -99,13 +99,15 @@ abstract class Source[K, T](from: Option[From[K]],
     }
 
   /**
-   * This function is used internally for to convert Scala types to Java types.
+   * This function is used internally to convert Scala types to Java types and is used before applying
+   * any of the above from operations.
    *
-   * For real world use-cases functional types on [[Source]] will lead to confusing API since
-   * [[from]] could be set multiple times.
+   * For real world use-cases returning [[Source]] on each [[Stream]] operation will lead to confusing API
+   * since [[from]] could be set multiple times and executing tail from operations would start a new stream
+   * ignoring prior stream operations which is not a valid API.
    */
   private[swaydb] def transformValue[B](f: T => B): Source[K, B] =
-    new Source[K, B](from = self.from, reverse = self.reverse) { thisSource =>
+    new Source[K, B](from = self.from, reverse = self.reverse) { transformSource =>
 
       var previousA: T = _
 
@@ -123,7 +125,7 @@ abstract class Source[K, T](from: Option[From[K]],
         if (previousA == null)
           bag.success(null.asInstanceOf[B])
         else
-          bag.map(self.nextOrNull(thisSource.previousA, reverse)) {
+          bag.map(self.nextOrNull(transformSource.previousA, reverse)) {
             nextA =>
               previousA = nextA
               if (nextA == null)

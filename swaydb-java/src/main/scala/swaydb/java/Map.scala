@@ -214,7 +214,6 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
       .map(KeyVal(_))
       .asJava
 
-
   def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries
 
