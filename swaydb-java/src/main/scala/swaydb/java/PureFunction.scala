@@ -88,12 +88,12 @@ object PureFunction {
         }
     }
 
-  def asScala[K, R <: Return.Set[Void]](function: PureFunction.OnKey[K, Void, R]): swaydb.PureFunction.OnKey[K, Nothing, Apply.Set[Nothing]] =
-    new swaydb.PureFunction.OnKey[K, Nothing, Apply.Set[Nothing]] {
+  def asScala[K, R <: Return.Set[Void]](function: PureFunction.OnKey[K, Void, R]): swaydb.PureFunction.OnKey[K, Nothing, Apply.Set] =
+    new swaydb.PureFunction.OnKey[K, Nothing, Apply.Set] {
       override def id: String =
         function.id
 
-      override def apply(key: K, deadline: Option[duration.Deadline]): Apply.Set[Nothing] =
+      override def apply(key: K, deadline: Option[duration.Deadline]): Apply.Set =
         Return.toScalaSet(function.apply(key, deadline.asJavaMap(_.asJava)))
     }
 

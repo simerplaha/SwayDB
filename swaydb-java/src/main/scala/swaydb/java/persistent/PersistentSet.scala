@@ -209,7 +209,7 @@ object PersistentSet {
       this
     }
 
-    private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]()(serializer)
+    private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]()(serializer)
 
     def registerFunctions(functions: F*): Config[A, F] = {
       functions.foreach(registerFunction(_))
@@ -238,7 +238,7 @@ object PersistentSet {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
       val scalaMap =
-        swaydb.persistent.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]], Bag.Less](
+        swaydb.persistent.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set], Bag.Less](
           dir = dir,
           mapSize = mapSize,
           mmapMaps = mmapMaps,
@@ -265,9 +265,9 @@ object PersistentSet {
           levelFiveThrottle = levelFiveThrottle.asScala,
           levelSixThrottle = levelSixThrottle.asScala
         )(serializer = serializer,
-          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
           bag = Bag.less,
-          functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
+          functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
           byteKeyOrder = scalaKeyOrder
         )
 
@@ -280,7 +280,7 @@ object PersistentSet {
     new Config(
       dir = dir,
       serializer = SerializerConverter.toScala(keySerializer),
-      functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]])
+      functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set]])
     )
 
   def functionsOff[A](dir: Path,

@@ -115,7 +115,7 @@ object Prepare {
   /**
    * Converts java prepare statements with [[swaydb.java.PureFunction.OnKey]] to scala prepare statements with [[swaydb.PureFunction.OnKey]]
    */
-  def toScala[K, F <: swaydb.java.PureFunction.OnKey[K, Void, Return.Set[Void]]](prepare: Prepare.Set[K, F]): swaydb.Prepare[K, Nothing, swaydb.PureFunction.OnKey[K, Nothing, Apply.Set[Nothing]]] =
+  def toScala[K, F <: swaydb.java.PureFunction.OnKey[K, Void, Return.Set[Void]]](prepare: Prepare.Set[K, F]): swaydb.Prepare[K, Nothing, swaydb.PureFunction.OnKey[K, Nothing, Apply.Set]] =
     prepare match {
       case AddToSet(elem, expireAfter) =>
         new swaydb.Prepare.Add(elem, expireAfter.asScalaMap(_.toScala.fromNow))

@@ -56,16 +56,16 @@ object Apply {
   /**
    * Function outputs for Set
    */
-  sealed trait Set[+V] extends Apply[V]
+  sealed trait Set extends Apply[Nothing]
 
-  case object Nothing extends Map[Nothing] with Set[Nothing]
-  case object Remove extends Map[Nothing] with Set[Nothing]
+  case object Nothing extends Map[Nothing] with Set
+  case object Remove extends Map[Nothing] with Set
   object Expire {
     def apply(after: FiniteDuration): Expire =
       new Expire(after.fromNow)
   }
 
-  final case class Expire(deadline: Deadline) extends Map[Nothing] with Set[Nothing]
+  final case class Expire(deadline: Deadline) extends Map[Nothing] with Set
 
   object Update {
     def apply[V](value: V): Update[V] =

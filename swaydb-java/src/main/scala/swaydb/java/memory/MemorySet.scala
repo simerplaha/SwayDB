@@ -114,7 +114,7 @@ object MemorySet {
       this
     }
 
-    private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]()(serializer)
+    private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]()(serializer)
 
     def registerFunctions(functions: F*): Config[A, F] = {
       functions.foreach(registerFunction(_))
@@ -144,7 +144,7 @@ object MemorySet {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
       val scalaMap =
-        swaydb.memory.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]], Bag.Less](
+        swaydb.memory.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set], Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -155,9 +155,9 @@ object MemorySet {
           lastLevelThrottle = lastLevelThrottle.asScala,
           threadStateCache = threadStateCache
         )(serializer = serializer,
-          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
           bag = Bag.less,
-          functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
+          functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
           byteKeyOrder = scalaKeyOrder
         )
 
@@ -168,7 +168,7 @@ object MemorySet {
   def functionsOn[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
     new Config(
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]])
+      functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set]])
     )
 
   def functionsOff[A](serializer: JavaSerializer[A]): Config[A, Void] =

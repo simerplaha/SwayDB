@@ -183,7 +183,7 @@ object EventuallyPersistentSet {
       this
     }
 
-    private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]()(serializer)
+    private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]()(serializer)
 
     def registerFunctions(functions: F*): Config[A, F] = {
       functions.foreach(registerFunction(_))
@@ -212,7 +212,7 @@ object EventuallyPersistentSet {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
       val scalaMap =
-        swaydb.eventually.persistent.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]], Bag.Less](
+        swaydb.eventually.persistent.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set], Bag.Less](
           dir = dir,
           mapSize = mapSize,
           maxMemoryLevelSize = maxMemoryLevelSize,
@@ -235,9 +235,9 @@ object EventuallyPersistentSet {
           memoryCache = memoryCache,
           threadStateCache = threadStateCache
         )(serializer = serializer,
-          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
           bag = Bag.less,
-          functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
+          functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
           byteKeyOrder = scalaKeyOrder
         )
 
@@ -250,7 +250,7 @@ object EventuallyPersistentSet {
     new Config(
       dir = dir,
       serializer = SerializerConverter.toScala(keySerializer),
-      functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]])
+      functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set]])
     )
 
   def functionsOff[A](dir: Path,

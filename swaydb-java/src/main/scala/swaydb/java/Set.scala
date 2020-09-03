@@ -50,8 +50,8 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
   implicit val bag = Bag.less
 
-  val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], Bag.Less] =
-    _asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], Bag.Less]]
+  val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set], Bag.Less] =
+    _asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set], Bag.Less]]
 
   def path: Path =
     asScala.path
@@ -147,7 +147,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
     asScala.commit {
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]]) {
+        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]]) {
           case (scala, java) =>
             val javaFunk = java.asInstanceOf[Prepare.Set[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]]
             scala += Prepare.toScala(javaFunk)
@@ -158,7 +158,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
     val prepareStatements =
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]]) {
+        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]]) {
           case (scala, java) =>
             val javaFunk = java.asInstanceOf[Prepare.Set[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]]
             scala += Prepare.toScala(javaFunk)

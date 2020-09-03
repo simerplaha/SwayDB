@@ -59,7 +59,7 @@ object Interop {
    * Converts java Set function to Scala.
    */
   implicit class SetInterop[K, R <: Return.Set[Void]](function: PureFunction.OnKey[K, Void, R]) {
-    @inline final def asScala: swaydb.PureFunction.OnKey[K, Nothing, Apply.Set[Nothing]] =
+    @inline final def asScala: swaydb.PureFunction.OnKey[K, Nothing, Apply.Set] =
       PureFunction asScala function
   }
 }

@@ -78,7 +78,7 @@ object Return {
         new Apply.Update(value, expireAfter.asScalaMap(_.toScala.fromNow))
     }
 
-  private[java] def toScalaSet(returnValue: Return.Set[java.lang.Void]): Apply.Set[scala.Nothing] =
+  private[java] def toScalaSet(returnValue: Return.Set[java.lang.Void]): Apply.Set =
     returnValue match {
       case Nothing() =>
         Apply.Nothing
