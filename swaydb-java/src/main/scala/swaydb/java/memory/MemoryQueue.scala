@@ -37,7 +37,7 @@ import swaydb.serializers.Serializer
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration._
 
-object QueueConfig {
+object MemoryQueue {
 
   final class Config[A](private var mapSize: Int = 4.mb,
                         private var minSegmentSize: Int = 2.mb,

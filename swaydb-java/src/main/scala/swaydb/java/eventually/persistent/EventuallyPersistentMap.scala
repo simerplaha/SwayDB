@@ -46,7 +46,7 @@ import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-object MapConfig {
+object EventuallyPersistentMap {
 
   final class Config[K, V, F](dir: Path,
                               private var mapSize: Int = 4.mb,

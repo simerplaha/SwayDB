@@ -47,7 +47,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-object MapConfig {
+object PersistentMap {
 
   final class Config[K, V, F](dir: Path,
                               private var mapSize: Int = 4.mb,

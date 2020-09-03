@@ -41,7 +41,7 @@ import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
-object QueueConfig {
+object PersistentQueue {
 
   final class Config[A](dir: Path,
                         private var mapSize: Int = 4.mb,

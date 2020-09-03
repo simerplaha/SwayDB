@@ -31,7 +31,9 @@ import swaydb.Pair;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.memory.SetConfig;
+import swaydb.java.eventually.persistent.EventuallyPersistentSet;
+import swaydb.java.memory.MemorySet;
+import swaydb.java.persistent.PersistentSet;
 import swaydb.java.serializers.Serializer;
 
 import java.io.*;
@@ -47,7 +49,7 @@ class MemorySetTest extends SetTest {
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) {
     return
-      swaydb.java.memory.SetConfig
+      MemorySet
         .functionsOff(keySerializer)
         .get();
   }
@@ -62,7 +64,7 @@ class PersistentSetTest extends SetTest {
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
     return
-      swaydb.java.persistent.SetConfig
+      PersistentSet
         .functionsOff(testDir(), keySerializer)
         .get();
   }
@@ -77,7 +79,7 @@ class EventuallyPersistentSetTest extends SetTest {
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
     return
-      swaydb.java.eventually.persistent.SetConfig
+      EventuallyPersistentSet
         .functionsOff(testDir(), keySerializer)
         .get();
   }
@@ -357,7 +359,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
   @Test
   void comparatorTest() {
     Set<Integer, Void> set =
-      SetConfig
+      MemorySet
         .functionsOff(intSerializer())
         .setTypedComparator((left, right) -> left.compareTo(right) * -1)
         .get();
@@ -428,8 +430,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    SetConfig.Config<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> config =
-      SetConfig.functionsOn(intSerializer());
+    MemorySet.Config<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> config =
+      MemorySet.functionsOn(intSerializer());
 
     Set<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> set = config.get();
 

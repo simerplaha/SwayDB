@@ -32,7 +32,9 @@ import swaydb.Pair;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.memory.MapConfig;
+import swaydb.java.eventually.persistent.EventuallyPersistentMap;
+import swaydb.java.memory.MemoryMap;
+import swaydb.java.persistent.PersistentMap;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
@@ -49,7 +51,7 @@ class MemoryMapTest extends MapTest {
   public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
                                           Serializer<V> valueSerializer) {
     return
-      MapConfig
+      MemoryMap
         .functionsOff(keySerializer, valueSerializer)
         .get();
   }
@@ -66,7 +68,7 @@ class PersistentMapTest extends MapTest {
                                           Serializer<V> valueSerializer) throws IOException {
 
     return
-      swaydb.java.persistent.MapConfig
+      PersistentMap
         .functionsOff(testDir(), keySerializer, valueSerializer)
         .get();
   }
@@ -83,7 +85,7 @@ class EventuallyPersistentMapTest extends MapTest {
                                           Serializer<V> valueSerializer) throws IOException {
 
     return
-      swaydb.java.eventually.persistent.MapConfig
+      EventuallyPersistentMap
         .functionsOff(testDir(), keySerializer, valueSerializer)
         .get();
   }
@@ -448,7 +450,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
   @Test
   void comparatorTest() {
     Map<Integer, Integer, Void> map =
-      MapConfig
+      MemoryMap
         .functionsOff(intSerializer(), intSerializer())
         .setTypedComparator((left, right) -> left.compareTo(right) * -1)
         .get();
@@ -552,8 +554,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    MapConfig.Config<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> config =
-      MapConfig
+    MemoryMap.Config<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> config =
+      MemoryMap
         .functionsOn(intSerializer(), intSerializer());
 
     Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> map =
