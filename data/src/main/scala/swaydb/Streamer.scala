@@ -25,7 +25,7 @@
 package swaydb
 
 /**
- * An Iterator like implementation  that can be used to build [[Stream]]s
+ * An Iterator like implementation that can be used to build [[Stream]]s
  * from other streaming libraries.
  *
  * This trait can be used to create async or sync streams.
