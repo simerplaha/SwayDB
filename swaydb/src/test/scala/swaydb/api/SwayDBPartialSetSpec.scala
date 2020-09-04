@@ -62,7 +62,7 @@ class SwayDBPartialSet_Persistent_Spec extends SwayDBPartialSetSpec {
   import SwayDBPartialSetSpec._
 
   override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less] =
-    swaydb.persistent.Set[(Int, Option[String]), Nothing, Bag.Less](randomDir, mapSize = 10.bytes).sweep()
+    swaydb.persistent.Set[(Int, Option[String]), Nothing, Bag.Less](randomDir, mapSize = 10.bytes).sweep(_.delete())
 }
 
 class SwayDBPartialSet_Memory_Spec extends SwayDBPartialSetSpec {
@@ -70,7 +70,7 @@ class SwayDBPartialSet_Memory_Spec extends SwayDBPartialSetSpec {
   import SwayDBPartialSetSpec._
 
   override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less] =
-    swaydb.memory.Set[(Int, Option[String]), Nothing, Bag.Less](mapSize = 10.bytes).sweep()
+    swaydb.memory.Set[(Int, Option[String]), Nothing, Bag.Less](mapSize = 10.bytes).sweep(_.delete())
 }
 
 trait SwayDBPartialSetSpec extends TestBaseEmbedded {

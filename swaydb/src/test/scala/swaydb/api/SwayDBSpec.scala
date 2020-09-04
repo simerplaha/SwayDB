@@ -26,19 +26,19 @@ import swaydb.IOValues._
 import swaydb._
 import swaydb.data.RunThis.runThis
 import swaydb.core.{Core, TestCaseSweeper}
-import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
+import swaydb.core.TestCaseSweeper._
 import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value.sweep()
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
 
   override val keyValueCount: Int = 100
 }
 
 class SwayDB_SetMap_Spec0 extends SwayDBSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper): SetMap[Int, String, IO.ApiIO] =
-    swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir).right.value.sweep()
+    swaydb.persistent.SetMap[Int, String, IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
 
   override val keyValueCount: Int = 100
 }
@@ -48,7 +48,7 @@ class SwayDBSpec1 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value.sweep()
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBSpec2 extends SwayDBSpec {
@@ -56,7 +56,7 @@ class SwayDBSpec2 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value.sweep()
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBSpec3 extends SwayDBSpec {
@@ -64,21 +64,21 @@ class SwayDBSpec3 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB()(implicit sweeper: TestCaseSweeper): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep()
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value.sweep(_.delete().get)
 }
 
 class MultiMapSwayDBSpec4 extends SwayDBSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestCaseSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep()
+    generateRandomNestedMaps(swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
 }
 
 class MultiMapSwayDBSpec5 extends SwayDBSpec {
   val keyValueCount: Int = 10000
 
   override def newDB()(implicit sweeper: TestCaseSweeper): MapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, IO.ApiIO]().get).sweep()
+    generateRandomNestedMaps(swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
 sealed trait SwayDBSpec extends TestBaseEmbedded {

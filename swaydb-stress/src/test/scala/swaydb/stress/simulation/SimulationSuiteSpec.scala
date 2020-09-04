@@ -37,7 +37,7 @@ class Memory_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: swaydb.Map.Functions[Long, Domain, Functions],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Long, Domain, Functions, IO.ApiIO]().get.sweep()
+    swaydb.memory.Map[Long, Domain, Functions, IO.ApiIO]().get.sweep(_.delete().get)
 }
 
 class Persistent_SimulationSpec extends SimulationSpec {
@@ -52,7 +52,7 @@ class Persistent_SimulationSpec extends SimulationSpec {
 //      cacheKeyValueIds = randomBoolean(),
 //      acceleration = Accelerator.brake(),
 //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
-    ).get.sweep()
+    ).get.sweep(_.delete().get)
 }
 
 class Memory_Persistent_SimulationSpec extends SimulationSpec {
@@ -66,5 +66,5 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
 //      mmapAppendix = MMAP.randomForMap(),
 //      cacheKeyValueIds = randomBoolean(),
 //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
-    ).get.sweep()
+    ).get.sweep(_.delete().get)
 }

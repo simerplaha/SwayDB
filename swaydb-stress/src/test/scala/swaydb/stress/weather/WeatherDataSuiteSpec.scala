@@ -35,12 +35,12 @@ import swaydb.serializers.Default._
 
 class Memory_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO]().get.sweep()
+    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO]().get.sweep(_.delete().get)
 }
 
 class Memory_MultiMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.MultiMap_Experimental[Int, Int, WeatherData, Nothing, IO.ApiIO]().get.sweep()
+    swaydb.memory.MultiMap_Experimental[Int, Int, WeatherData, Nothing, IO.ApiIO]().get.sweep(_.delete().get)
 }
 
 class Persistent_WeatherDataSpec extends WeatherDataSpec {
@@ -54,7 +54,7 @@ class Persistent_WeatherDataSpec extends WeatherDataSpec {
       //      acceleration = Accelerator.brake(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment()),
       //      memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb)
-    ).get.sweep()
+    ).get.sweep(_.delete().get)
 }
 
 class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
@@ -68,7 +68,7 @@ class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
       //      acceleration = Accelerator.brake(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment()),
       //      memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb)
-    ).get.sweep()
+    ).get.sweep(_.delete().get)
 }
 
 class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
@@ -82,12 +82,12 @@ class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
       //      acceleration = Accelerator.brake(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment()),
       //      memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb),
-    ).get.sweep()
+    ).get.sweep(_.delete().get)
 }
 
 class Memory_SetMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.SetMap[Int, WeatherData, IO.ApiIO]().get.sweep()
+    swaydb.memory.SetMap[Int, WeatherData, IO.ApiIO]().get.sweep(_.delete().get)
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
@@ -99,5 +99,5 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
       //      cacheKeyValueIds = randomBoolean(),
       //      mmapPersistentLevelAppendix = MMAP.randomForMap(),
       //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
-    ).get.sweep()
+    ).get.sweep(_.delete().get)
 }

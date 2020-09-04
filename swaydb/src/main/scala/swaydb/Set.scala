@@ -30,7 +30,6 @@ import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.core.function.{FunctionStore => CoreFunctionStore}
 import swaydb.core.segment.ThreadReadState
-import swaydb.data.Sweepable
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
@@ -87,7 +86,7 @@ object Set {
  * For documentation check - http://swaydb.io/
  */
 case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit serializer: Serializer[A],
-                                                                          bag: Bag[BAG]) extends Sweepable[BAG] { self =>
+                                                                          bag: Bag[BAG]) { self =>
 
   def path: Path =
     core.zero.path.getParent

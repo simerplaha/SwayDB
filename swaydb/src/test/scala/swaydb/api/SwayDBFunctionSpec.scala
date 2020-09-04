@@ -71,27 +71,27 @@ class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
 
   override def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function],
                        sweeper: TestCaseSweeper): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.persistent.Map[Key, Int, Key.Function, IO.ApiIO](randomDir).right.value.sweep()
+    swaydb.persistent.Map[Key, Int, Key.Function, IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
 
   override def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function],
                        sweeper: TestCaseSweeper): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.persistent.Map[Key, Int, Key.Function, IO.ApiIO](randomDir, mapSize = 1.byte).right.value.sweep()
+    swaydb.persistent.Map[Key, Int, Key.Function, IO.ApiIO](randomDir, mapSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
 
   override def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function],
                        sweeper: TestCaseSweeper): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.memory.Map[Key, Int, Key.Function, IO.ApiIO](mapSize = 1.byte).right.value.sweep()
+    swaydb.memory.Map[Key, Int, Key.Function, IO.ApiIO](mapSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
   override def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function],
                        sweeper: TestCaseSweeper): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.memory.Map[Key, Int, Key.Function, IO.ApiIO]().right.value.sweep()
+    swaydb.memory.Map[Key, Int, Key.Function, IO.ApiIO]().right.value.sweep(_.delete().get)
 }
 
 //class SwayDBFunctionSpec4 extends SwayDBFunctionSpec {

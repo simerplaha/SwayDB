@@ -30,13 +30,12 @@ import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Bytes
-import swaydb.data.Sweepable
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
-import scala.concurrent.duration.{Deadline, DurationInt, FiniteDuration}
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Queue {
   /**
@@ -90,7 +89,7 @@ object Queue {
  */
 case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
                             private val pushIds: AtomicLong,
-                            private val popIds: AtomicLong) extends Sweepable[Bag.Less] with LazyLogging {
+                            private val popIds: AtomicLong) extends LazyLogging {
 
   private val nullA = null.asInstanceOf[A]
 

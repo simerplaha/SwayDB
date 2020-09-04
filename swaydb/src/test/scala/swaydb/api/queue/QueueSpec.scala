@@ -41,12 +41,12 @@ import TestCaseSweeper._
 class QueueSpec0 extends QueueSpec {
 
   override def newQueue()(implicit sweeper: TestCaseSweeper): Queue[Int] =
-    swaydb.persistent.Queue[Int, Bag.Less](randomDir).sweep()
+    swaydb.persistent.Queue[Int, Bag.Less](randomDir).sweep(_.delete())
 }
 
 class QueueSpec3 extends QueueSpec {
   override def newQueue()(implicit sweeper: TestCaseSweeper): Queue[Int] =
-    swaydb.memory.Queue[Int, Bag.Less]().sweep()
+    swaydb.memory.Queue[Int, Bag.Less]().sweep(_.delete())
 }
 
 sealed trait QueueSpec extends TestBase {

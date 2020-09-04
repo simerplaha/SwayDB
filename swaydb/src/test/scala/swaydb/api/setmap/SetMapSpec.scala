@@ -32,12 +32,12 @@ import TestCaseSweeper._
 
 class SetMapSpec0 extends SetMapSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Bag.Less] =
-    swaydb.persistent.SetMap[Int, String, Bag.Less](randomDir).sweep()
+    swaydb.persistent.SetMap[Int, String, Bag.Less](randomDir).sweep(_.delete())
 }
 
 class SetMapSpec3 extends SetMapSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMap[Int, String, Bag.Less] =
-    swaydb.memory.SetMap[Int, String, Bag.Less]().sweep()
+    swaydb.memory.SetMap[Int, String, Bag.Less]().sweep(_.delete())
 }
 
 sealed trait SetMapSpec extends TestBase {

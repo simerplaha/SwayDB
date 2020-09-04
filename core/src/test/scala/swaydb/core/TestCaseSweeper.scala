@@ -24,7 +24,7 @@
 
 package swaydb.core
 
-import java.nio.file.{NoSuchFileException, Path}
+import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.TestSweeper._
@@ -36,7 +36,6 @@ import swaydb.core.level.LevelRef
 import swaydb.core.map.Maps
 import swaydb.core.segment.Segment
 import swaydb.data.RunThis._
-import swaydb.data.Sweepable
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.{ActorRef, ActorWire, Bag, Scheduler}
 
@@ -77,7 +76,7 @@ object TestCaseSweeper extends LazyLogging {
       paths = ListBuffer.empty,
       actors = ListBuffer.empty,
       actorWires = ListBuffer.empty,
-      sweepables = ListBuffer.empty
+      functions = ListBuffer.empty
     )
 
   def deleteParentPath(path: Path) = {
@@ -102,7 +101,6 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.mapFiles.foreach(_.close())
     sweeper.maps.foreach(_.delete().get)
     sweeper.segments.foreach(_.close)
-    sweeper.sweepables.foreach(_.close())
     sweeper.levels.foreach(_.close().await(30.seconds))
 
     //TERMINATE - terminate all initialised actors
@@ -135,7 +133,7 @@ object TestCaseSweeper extends LazyLogging {
         map.pathOption.foreach(deleteParentPath)
     }
 
-    sweeper.sweepables.foreach(_.delete())
+    sweeper.functions.foreach(_ ())
     sweeper.dbFiles.foreach(_.delete())
 
     sweeper.paths.foreach {
@@ -236,10 +234,9 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepWireActor actor
   }
 
-  implicit class SweepableSweeperImplicits[BAG[_], T](sweepable: T) {
-    def sweep()(implicit sweeper: TestCaseSweeper,
-                evd: T <:< Sweepable[BAG]): T =
-      sweeper sweepSweepable sweepable
+  implicit class FunctionSweeperImplicits[BAG[_], T](sweepable: T) {
+    def sweep(f: T => Unit)(implicit sweeper: TestCaseSweeper): T =
+      sweeper.sweepItem(sweepable, f)
   }
 }
 
@@ -273,7 +270,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
                       private val actorWires: ListBuffer[ActorWire[_, _]],
-                      private val sweepables: ListBuffer[Sweepable[Any]]) {
+                      private val functions: ListBuffer[() => Unit]) {
 
 
   implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
@@ -380,9 +377,9 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
     actor
   }
 
-  def sweepSweepable[BAG[_], T](sweepable: T)(implicit ev: T <:< Sweepable[BAG]): T = {
-    sweepables += sweepable.asInstanceOf[Sweepable[Any]]
-    sweepable
+  def sweepItem[T](item: T, sweepable: T => Unit): T = {
+    functions += (() => sweepable(item))
+    item
   }
 
   /**
