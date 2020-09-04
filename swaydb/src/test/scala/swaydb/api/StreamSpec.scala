@@ -25,7 +25,8 @@ import swaydb.Bag._
 import swaydb.IO.ApiIO
 import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._
-import swaydb.{Bag, IO, Stream}
+import swaydb.Stream
+import swaydb.{Bag, IO}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -49,7 +50,7 @@ class StreamIOSpec extends StreamSpec[IO.ApiIO] {
     a.left.get.exception
 }
 
-class StreamBagLessSpec extends StreamSpec[Bag.Less] {
+class StreamLessSpec extends StreamSpec[Bag.Less] {
   override def get[A](a: Bag.Less[A]): A = a
 
   override def getException(a: => Less[_]): Throwable =
@@ -85,208 +86,209 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
   "Stream" should {
 
     "empty" in {
-      Stream.empty[Int]
+      Stream
+        .empty[Int, BAG]
         .map(_.toString)
-        .materialize[BAG]
+        .materialize
         .await shouldBe empty
     }
 
     "range" in {
       Stream
-        .range(1, 100)
-        .materialize[BAG]
+        .range[BAG](1, 100)
+        .materialize
         .await shouldBe (1 to 100)
 
       Stream
-        .range('a', 'z')
-        .materialize[BAG]
+        .range[BAG]('a', 'z')
+        .materialize
         .await shouldBe ('a' to 'z')
     }
 
     "rangeUntil" in {
       Stream
-        .rangeUntil(1, 100)
-        .materialize[BAG]
+        .rangeUntil[BAG](1, 100)
+        .materialize
         .await shouldBe (1 to 99)
 
       Stream
-        .rangeUntil('a', 'z')
-        .materialize[BAG]
+        .rangeUntil[BAG]('a', 'z')
+        .materialize
         .await shouldBe ('a' to 'y')
     }
 
     "tabulate" in {
       Stream
-        .tabulate[Int](5)(_ + 1)
-        .materialize[BAG]
+        .tabulate[Int, BAG](5)(_ + 1)
+        .materialize
         .await shouldBe (1 to 5)
 
       Stream
-        .tabulate[Int](0)(_ + 1)
-        .materialize[BAG]
+        .tabulate[Int, BAG](0)(_ + 1)
+        .materialize
         .await shouldBe empty
     }
 
     "headOption" in {
-      Stream[Int](1 to 100)
-        .headOption[BAG]
+      Stream[Int, BAG](1 to 100)
+        .headOption
         .await should contain(1)
     }
 
     "headOption failure" in {
       def stream =
-        Stream[Int](failureIterator)
-          .headOption[BAG]
+        Stream[Int, BAG](failureIterator)
+          .headOption
 
       getException(stream).getMessage shouldBe "Failed hasNext"
     }
 
     "take" in {
-      Stream[Int](1, 2)
+      Stream[Int, BAG](1, 2)
         .map(_ + 1)
         .take(1)
-        .materialize[BAG]
+        .materialize
         .await shouldBe List(2)
     }
 
     "count" in {
-      Stream[Int](1 to 100)
-        .count[BAG](_ % 2 == 0)
+      Stream[Int, BAG](1 to 100)
+        .count(_ % 2 == 0)
         .await shouldBe 50
     }
 
     "lastOptionLinear" in {
-      Stream[Int](1 to 100)
-        .lastOption[BAG]
+      Stream[Int, BAG](1 to 100)
+        .lastOption
         .await should contain(100)
     }
 
     "lastOption failure" in {
       def stream =
-        Stream[Int](failureIterator)
-          .lastOption[BAG]
+        Stream[Int, BAG](failureIterator)
+          .lastOption
 
       getException(stream).getMessage shouldBe "Failed hasNext"
     }
 
     "map" in {
-      Stream[Int](1 to 1000)
+      Stream[Int, BAG](1 to 1000)
         .map(_ + " one")
         .map(_ + " two")
         .map(_ + " three")
-        .materialize[BAG]
+        .materialize
         .await shouldBe (1 to 1000).map(_ + " one two three")
     }
 
     "collect conditional" in {
-      Stream[Int](1 to 1000)
+      Stream[Int, BAG](1 to 1000)
         .collect { case n if n % 2 == 0 => n }
-        .materialize[BAG]
+        .materialize
         .await shouldBe (2 to 1000 by 2)
     }
 
     "collectFirst" in {
-      Stream[Int](1 to 1000)
-        .collectFirst[Int, BAG] { case n if n % 2 == 0 => n }
+      Stream[Int, BAG](1 to 1000)
+        .collectFirst { case n if n % 2 == 0 => n }
         .await should contain(2)
     }
 
     "collect all" in {
-      Stream[Int](1 to 1000)
+      Stream[Int, BAG](1 to 1000)
         .collect { case n => n }
-        .materialize[BAG]
+        .materialize
         .await shouldBe (1 to 1000)
     }
 
     "drop, take and map" in {
-      Stream[Int](1 to 20)
+      Stream[Int, BAG](1 to 20)
         .map(_.toString)
         .drop(10)
         .take(5)
         .map(_.toInt)
         .drop(2)
         .take(1)
-        .materialize[BAG]
+        .materialize
         .await should contain only 13
     }
 
     "drop, take" in {
-      Stream[Int](1 to 1000)
+      Stream[Int, BAG](1 to 1000)
         .map(_.toString)
         .drop(10)
         .take(1)
         .map(_.toInt)
-        .materialize[BAG]
+        .materialize
         .await should have size 1
     }
 
     "foreach" in {
       var foreachItems = ListBuffer.empty[Int]
 
-      Stream[Int](1 to 1000)
+      Stream[Int, BAG](1 to 1000)
         .map(_.toString)
         .drop(0)
         .take(1000)
         .map(_.toInt)
-        .foreach[BAG](foreachItems += _)
+        .foreach(foreachItems += _)
         .await shouldBe (())
 
       foreachItems shouldBe (1 to 1000)
     }
 
     "takeWhile" in {
-      Stream[Int](1 to 1000)
+      Stream[Int, BAG](1 to 1000)
         .map(_.toString)
         .drop(10)
         .takeWhile(_.toInt <= 10)
-        .materialize[BAG]
+        .materialize
         .await shouldBe empty
     }
 
     "dropWhile" in {
-      Stream[Int](1 to 20)
+      Stream[Int, BAG](1 to 20)
         .map(_.toString)
         .drop(10)
         .dropWhile(_.toInt <= 20)
-        .materialize[BAG]
+        .materialize
         .await shouldBe empty
 
-      Stream[Int](1 to 20)
+      Stream[Int, BAG](1 to 20)
         .map(_.toString)
         .drop(11)
         .dropWhile(_.toInt % 2 == 0)
-        .materialize[BAG]
+        .materialize
         .await shouldBe (13 to 20).map(_.toString)
     }
 
     "flatMap" in {
-      Stream[Int](1 to 10)
-        .flatMap(_ => Stream[Int](1 to 10))
-        .materialize[BAG]
+      Stream[Int, BAG](1 to 10)
+        .flatMap(_ => Stream[Int, BAG](1 to 10))
+        .materialize
         .await shouldBe Array.fill(10)(1 to 10).flatten
     }
 
     "filter" in {
-      Stream[Int](1 to 10)
+      Stream[Int, BAG](1 to 10)
         .map(_ + 10)
         .filter(_ % 2 == 0)
         .take(2)
-        .materialize[BAG]
+        .materialize
         .await should contain only(12, 14)
     }
 
     "filterNot" in {
-      Stream[Int](1 to 10)
+      Stream[Int, BAG](1 to 10)
         .filterNot(_ % 2 == 0)
         .take(2)
-        .materialize[BAG]
+        .materialize
         .await shouldBe (1 to 10).filter(_ % 2 != 0).take(2)
     }
 
     "partition" in {
       val (leftStream, rightStream) =
-        Stream[Int](1 to 10)
-          .partition[BAG](_ % 2 == 0)
+        Stream[Int, BAG](1 to 10)
+          .partition(_ % 2 == 0)
           .await
 
       leftStream shouldBe (1 to 10).filter(_ % 2 == 0)
@@ -294,23 +296,23 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
     }
 
     "not stack overflow" in {
-      Stream[Int](1 to 100000)
+      Stream[Int, BAG](1 to 100000)
         .filter(_ % 10000 == 0)
-        .materialize[BAG]
+        .materialize
         .await should contain only(10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000)
     }
 
     "sum" in {
       val range = 1 to 100
 
-      Stream[Int](range)
-        .sum[BAG]
+      Stream[Int, BAG](range)
+        .sum
         .await shouldBe range.sum
     }
 
     "failure should terminate the Stream" in {
       def matStream =
-        Stream[Int](1 to 1000)
+        Stream[Int, BAG](1 to 1000)
           .map {
             int =>
               if (int == 100)
@@ -318,11 +320,11 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
               else
                 int
           }
-          .materialize[BAG]
+          .materialize
 
       def foreachStream =
-        Stream[Int](1 to 1000)
-          .foreach[BAG] {
+        Stream[Int, BAG](1 to 1000)
+          .foreach {
             int =>
               if (int == 100)
                 throw new Exception(s"Failed at $int")

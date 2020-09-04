@@ -19,14 +19,11 @@
 
 package swaydb.api
 
-import java.nio.file.Files
-
-import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb._
-import swaydb.data.RunThis.runThis
-import swaydb.core.{Core, TestCaseSweeper}
+import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper.SweepableSweeperImplicits
+import swaydb.data.RunThis.runThis
 import swaydb.serializers.Default._
 
 class SwayDBSourceSpec0 extends SwayDBSourceSpec {
@@ -110,7 +107,7 @@ sealed trait SwayDBSourceSpec extends TestBaseEmbedded {
                   item._2
               }
 
-            result.materialize shouldBe (10 to 100).toList.map(_.toString)
+            result.materialize.value shouldBe (10 to 100).toList.map(_.toString)
 
         }
       }

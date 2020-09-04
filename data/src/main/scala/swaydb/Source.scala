@@ -24,114 +24,35 @@
 
 package swaydb
 
-import swaydb.data.stream.From
+import swaydb.data.stream.SourceFree
 
 /**
- * Provides a starting point from a [[Stream]] and implements APIs to dictate [[From]] where
- * there stream should start.
- *
- * @param from    start point for this stream
- * @param reverse runs stream in reverse order
- * @tparam K the type of key
- * @tparam T the type of value.
+ * [[Source]] carries the [[BAG]] information at the time of creation whereas [[SourceFree]] requires
+ * [[BAG]] at the time of execution.
  */
-abstract class Source[K, T](from: Option[From[K]],
-                            reverse: Boolean) extends Stream[T] { self =>
+class Source[K, T, BAG[_]](private[swaydb] override val free: SourceFree[K, T])(implicit bag: Bag[BAG]) extends Stream[T, BAG](free) {
 
-  /**
-   * Always invoked once at the begining of the [[Stream]].
-   *
-   * @param from    where to fetch the head from
-   * @param reverse if this stream is in reverse order.
-   * @return first element of this stream
-   */
-  private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]): BAG[T]
+  def from(key: K): Source[K, T, BAG] =
+    new Source(free.from(key))
 
-  /**
-   * Invoked after [[headOrNull]] is invoked.
-   *
-   * @param previous previously read element
-   * @param reverse  if this stream is in reverse iteration.
-   * @return next element in this stream.
-   */
-  private[swaydb] def nextOrNull[BAG[_]](previous: T, reverse: Boolean)(implicit bag: Bag[BAG]): BAG[T]
+  def before(key: K): Source[K, T, BAG] =
+    new Source(free.before(key))
 
-  private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[T] =
-    self.headOrNull(from, reverse)
+  def fromOrBefore(key: K): Source[K, T, BAG] =
+    new Source(free.fromOrBefore(key))
 
-  private[swaydb] def nextOrNull[BAG[_]](previous: T)(implicit bag: Bag[BAG]): BAG[T] =
-    self.nextOrNull(previous, reverse)
+  def after(key: K): Source[K, T, BAG] =
+    new Source(free.after(key))
 
-  def from(key: K): Source[K, T] =
-    new Source[K, T](from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)), reverse = self.reverse) {
-      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = self.headOrNull(from, reverse)
-      override private[swaydb] def nextOrNull[BAG[_]](previous: T, reverse: Boolean)(implicit bag: Bag[BAG]) = self.nextOrNull(previous, reverse)
-    }
+  def fromOrAfter(key: K): Source[K, T, BAG] =
+    new Source(free.fromOrAfter(key))
 
-  def before(key: K): Source[K, T] =
-    new Source[K, T](from = Some(From(key = key, orBefore = false, orAfter = false, before = true, after = false)), reverse = self.reverse) {
-      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = self.headOrNull(from, reverse)
-      override private[swaydb] def nextOrNull[BAG[_]](previous: T, reverse: Boolean)(implicit bag: Bag[BAG]) = self.nextOrNull(previous, reverse)
-    }
+  def reverse: Source[K, T, BAG] =
+    new Source(free.reverse)
 
-  def fromOrBefore(key: K): Source[K, T] =
-    new Source[K, T](from = Some(From(key = key, orBefore = true, orAfter = false, before = false, after = false)), reverse = self.reverse) {
-      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = self.headOrNull(from, reverse)
-      override private[swaydb] def nextOrNull[BAG[_]](previous: T, reverse: Boolean)(implicit bag: Bag[BAG]) = self.nextOrNull(previous, reverse)
-    }
+  override def toBag[BAG[_]](implicit bag: Bag[BAG]): Source[K, T, BAG] =
+    new Source[K, T, BAG](free)(bag)
 
-  def after(key: K): Source[K, T] =
-    new Source[K, T](from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = true)), reverse = self.reverse) {
-      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = self.headOrNull(from, reverse)
-      override private[swaydb] def nextOrNull[BAG[_]](previous: T, reverse: Boolean)(implicit bag: Bag[BAG]) = self.nextOrNull(previous, reverse)
-    }
-
-  def fromOrAfter(key: K): Source[K, T] =
-    new Source[K, T](from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)), reverse = self.reverse) {
-      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = self.headOrNull(from, reverse)
-      override private[swaydb] def nextOrNull[BAG[_]](previous: T, reverse: Boolean)(implicit bag: Bag[BAG]) = self.nextOrNull(previous, reverse)
-    }
-
-  def reverse: Source[K, T] =
-    new Source[K, T](from = from, reverse = true) {
-      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = self.headOrNull(from, reverse)
-      override private[swaydb] def nextOrNull[BAG[_]](previous: T, reverse: Boolean)(implicit bag: Bag[BAG]) = self.nextOrNull(previous, reverse)
-    }
-
-  /**
-   * This function is used internally to convert Scala types to Java types and is used before applying
-   * any of the above from operations.
-   *
-   * For real world use-cases returning [[Source]] on each [[Stream]] operation will lead to confusing API
-   * since [[from]] could be set multiple times and executing tail from operations would start a new stream
-   * ignoring prior stream operations which is not a valid API.
-   */
-  private[swaydb] def transformValue[B](f: T => B): Source[K, B] =
-    new Source[K, B](from = self.from, reverse = self.reverse) { transformSource =>
-
-      var previousA: T = _
-
-      override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) =
-        bag.map(self.headOrNull(from, reverse)) {
-          previousAOrNull =>
-            previousA = previousAOrNull
-            if (previousAOrNull == null)
-              null.asInstanceOf[B]
-            else
-              f(previousAOrNull)
-        }
-
-      override private[swaydb] def nextOrNull[BAG[_]](previous: B, reverse: Boolean)(implicit bag: Bag[BAG]) =
-        if (previousA == null)
-          bag.success(null.asInstanceOf[B])
-        else
-          bag.map(self.nextOrNull(transformSource.previousA, reverse)) {
-            nextA =>
-              previousA = nextA
-              if (nextA == null)
-                null.asInstanceOf[B]
-              else
-                f(nextA)
-          }
-    }
+  private[swaydb] def transformValue[B](f: T => B): Source[K, B, BAG] =
+    new Source(free.transformValue(f))
 }

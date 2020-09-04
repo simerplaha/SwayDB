@@ -34,10 +34,12 @@ import swaydb.data.util.Java._
 import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
-import scala.collection.mutable.ListBuffer
 
 object Stream {
-  def fromScala[A](stream: swaydb.Stream[A]): Stream[A] =
+
+  private implicit val bag = Bag.less
+
+  def fromScala[A](stream: swaydb.Stream[A, Bag.Less]): Stream[A] =
     new Stream(stream)
 
   def create[A](iterator: java.util.Iterator[A]): Stream[A] =
@@ -47,26 +49,25 @@ object Stream {
     new Stream[A](swaydb.Stream(iterator.asScala))
 
   def range(from: Int, to: Int): Stream[Integer] =
-    new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Integer]])
+    new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Integer, Bag.Less]])
 
   def rangeUntil(from: Int, toExclusive: Int): Stream[Integer] =
-    new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Integer]])
+    new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Integer, Bag.Less]])
 
   def range(from: Char, to: Char): Stream[Character] =
-    new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Character]])
+    new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Character, Bag.Less]])
 
   def rangeUntil(from: Char, toExclusive: Char): Stream[Character] =
-    new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Character]])
+    new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Character, Bag.Less]])
 
   def tabulate[T](count: Int, function: JavaFunction[Int, T]): Stream[T] =
-    new Stream(swaydb.Stream.tabulate[T](count)(function.apply))
+    new Stream(swaydb.Stream.tabulate[T, Bag.Less](count)(function.apply))
 }
 
-class Stream[A](val asScala: swaydb.Stream[A]) {
-  implicit val bag = Bag.less
+class Stream[A](val asScala: swaydb.Stream[A, Bag.Less]) {
 
   def forEach(consumer: Consumer[A]): Unit =
-    asScala.foreach(consumer.asScala)(bag)
+    asScala.foreach(consumer.asScala)
 
   def map[B](function: JavaFunction[A, B]): Stream[B] =
     Stream.fromScala(asScala.map(function.asScala))
@@ -99,16 +100,16 @@ class Stream[A](val asScala: swaydb.Stream[A]) {
     asScala.headOption.asJava
 
   def foldLeft[B](initial: B, function: BiFunction[B, A, B]): B =
-    asScala.foldLeft(initial)(function.asScala)(bag)
+    asScala.foldLeft(initial)(function.asScala)
 
   def count(predicate: Predicate[A]): Int =
-    asScala.count(predicate.test)(bag)
+    asScala.count(predicate.test)
 
   def iterator(): util.Iterator[A] =
-    asScala.iterator.asJava
+    asScala.iterator(Bag.less).asJava
 
   def size: Int =
-    asScala.size(bag)
+    asScala.size
 
   def materialize: util.List[A] =
     asScala.materialize.asJava

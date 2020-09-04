@@ -31,7 +31,7 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.stream.From
+import swaydb.data.stream.{From, SourceFree}
 import swaydb.serializers.Serializer
 
 import scala.collection.mutable
@@ -145,7 +145,7 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
   def put(keyValues: (K, V)*): BAG[OK] =
     put(keyValues)
 
-  def put(keyValues: Stream[(K, V)]): BAG[OK] =
+  def put(keyValues: Stream[(K, V), BAG]): BAG[OK] =
     set.add(keyValues)
 
   def put(keyValues: Iterable[(K, V)]): BAG[OK] =
@@ -160,7 +160,7 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
   def remove(keys: K*): BAG[OK] =
     set.remove(keys.map(key => (key, nullValue)))
 
-  def remove(keys: Stream[K]): BAG[OK] =
+  def remove(keys: Stream[K, BAG]): BAG[OK] =
     set.remove(keys.map((_, nullValue)))
 
   def remove(keys: Iterable[K]): BAG[OK] =
@@ -222,10 +222,10 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
   def headOrNull: BAG[(K, V)] =
     set.headOrNull
 
-  def stream: Source[K, (K, V)] =
-    new Source[K, (K, V)](None, false) {
+  private def sourceFree(): SourceFree[K, (K, V)] =
+    new SourceFree[K, (K, V)](None, false) {
 
-      var innerSource: Source[(K, V), (K, V)] = _
+      var innerSource: SourceFree[(K, V), (K, V)] = _
 
       override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = {
         innerSource =
@@ -244,18 +244,23 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
                   set.stream.from((from.key, nullValue))
 
               if (reverse)
-                start.reverse
+                start
+                  .reverse
+                  .free
               else
                 start
+                  .free
 
             case None =>
               if (reverse)
                 set
                   .stream
                   .reverse
+                  .free
               else
                 set
                   .stream
+                  .free
           }
 
         innerSource.headOrNull
@@ -264,6 +269,9 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
       override private[swaydb] def nextOrNull[BAG[_]](previous: (K, V), reverse: Boolean)(implicit bag: Bag[BAG]) =
         innerSource.nextOrNull(previous, reverse)
     }
+
+  def stream: Source[K, (K, V), BAG] =
+    new Source(sourceFree())
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
     set.iterator

@@ -24,11 +24,11 @@
 
 package swaydb.data.stream.step
 
-import swaydb.Stream
 import swaydb.Bag
+import swaydb.data.stream.StreamFree
 
-private[swaydb] class Take[A](previousStream: Stream[A],
-                              take: Int) extends Stream[A] {
+private[swaydb] class Take[A](previousStream: StreamFree[A],
+                              take: Int) extends StreamFree[A] {
 
   var taken: Int = 0
 
@@ -44,7 +44,7 @@ private[swaydb] class Take[A](previousStream: Stream[A],
     if (taken == take)
       bag.success(null.asInstanceOf[A])
     else
-      Step.foldLeft(null.asInstanceOf[A], previous, previousStream, 0, Stream.takeOne) {
+      Step.foldLeft(null.asInstanceOf[A], previous, previousStream, 0, StreamFree.takeOne) {
         case (_, next) =>
           taken += 1
           next

@@ -17,316 +17,169 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
 package swaydb
 
-import swaydb.data.stream.step
-import swaydb.data.util.OptionMutable
+import swaydb.data.stream.StreamFree
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-/**
- * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
- * it's required by the stream.
- */
 object Stream {
 
-  implicit class NumericStreamImplicits[T](stream: Stream[T])(implicit numeric: Numeric[T]) {
-    def sum[BAG[_]](implicit bag: Bag[BAG]): BAG[T] =
+  implicit class NumericStreamImplicits[T, BAG[_]](stream: Stream[T, BAG]) {
+    def sum(implicit numeric: Numeric[T]): BAG[T] =
       stream.foldLeft(numeric.zero)(numeric.plus)
   }
-
-  val takeOne = Some(1)
 
   /**
    * Create and empty [[Stream]].
    */
-  def empty[A]: Stream[A] =
-    apply[A](Iterable.empty)
+  def empty[A, BAG[_]](implicit bag: Bag[BAG]): Stream[A, BAG] =
+    apply[A, BAG](Iterable.empty)
 
-  def apply[T](items: T*): Stream[T] =
-    apply[T](items.iterator)
+  def apply[T, BAG[_]](items: T*)(implicit bag: Bag[BAG]): Stream[T, BAG] =
+    apply[T, BAG](items.iterator)
 
-  def range(from: Int, to: Int): Stream[Int] =
-    apply[Int](from to to)
+  def range[BAG[_]](from: Int, to: Int)(implicit bag: Bag[BAG]): Stream[Int, BAG] =
+    apply[Int, BAG](from to to)
 
-  def range(from: Char, to: Char): Stream[Char] =
-    apply[Char](from to to)
+  def range[BAG[_]](from: Char, to: Char)(implicit bag: Bag[BAG]): Stream[Char, BAG] =
+    apply[Char, BAG](from to to)
 
-  def rangeUntil(from: Int, toExclusive: Int): Stream[Int] =
-    apply[Int](from until toExclusive)
+  def rangeUntil[BAG[_]](from: Int, toExclusive: Int)(implicit bag: Bag[BAG]): Stream[Int, BAG] =
+    apply[Int, BAG](from until toExclusive)
 
-  def rangeUntil(from: Char, to: Char): Stream[Char] =
-    apply[Char](from until to)
+  def rangeUntil[BAG[_]](from: Char, to: Char)(implicit bag: Bag[BAG]): Stream[Char, BAG] =
+    apply[Char, BAG](from until to)
 
-  def tabulate[A](n: Int)(f: Int => A): Stream[A] =
-    apply[A](
-      new Iterator[A] {
-        var used = 0
-
-        override def hasNext: Boolean =
-          used < n
-
-        override def next(): A = {
-          val nextA = f(used)
-          used += 1
-          nextA
-        }
-      }
-    )
+  def tabulate[A, BAG[_]](n: Int)(f: Int => A)(implicit bag: Bag[BAG]): Stream[A, BAG] =
+    new Stream(StreamFree.tabulate(n)(f))
 
   /**
    * Create a [[Stream]] from a collection.
    */
-  def apply[A](items: Iterable[A]): Stream[A] =
-    apply[A](items.iterator)
+  def apply[A, BAG[_]](items: Iterable[A])(implicit bag: Bag[BAG]): Stream[A, BAG] =
+    apply[A, BAG](items.iterator)
 
-  def apply[A](it: Iterator[A]): Stream[A] =
-    new Stream[A] {
-      @inline final private def stepBagLess[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
-        if (it.hasNext)
-          bag.success(it.next())
-        else
-          bag.success(null.asInstanceOf[A])
-
-      /**
-       * Iterators created manually will require saving from Exceptions within the Stream.
-       * This is not included in the Stream implementation itself because SwayDB handles
-       * Exceptions in LevelZero and try catch is expensive.
-       */
-      @inline final private def stepSafe[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
-        bag.flatMap(bag(it.hasNext)) {
-          hasNext =>
-            if (hasNext)
-              bag(it.next())
-            else
-              bag.success(null.asInstanceOf[A])
-        }
-
-      @inline private final def step[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
-        if (bag == Bag.less)
-          stepBagLess(bag)
-        else
-          stepSafe(bag)
-
-      override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
-        step(bag)
-
-      override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) =
-        step(bag)
-    }
+  def apply[A, BAG[_]](it: Iterator[A])(implicit bag: Bag[BAG]): Stream[A, BAG] =
+    new Stream(StreamFree(it))
 }
 
 /**
  * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
  * it's required by the stream.
+ *
+ * The difference between [[Stream]] and [[StreamFree]] is that [[Stream]] carries the [[BAG]]
+ * at the time of creation whereas [[StreamFree]] requires the [[BAG]] when materialised.
+ *
+ * [[Stream]] can be converted to other bags by calling [[toBag]]
  */
-trait Stream[A] { self =>
+class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val bag: Bag[BAG]) {
 
-  private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A]
-  private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[A]
+  private[swaydb] def headOrNull: BAG[A] =
+    free.headOrNull
 
-  final def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
-    bag.map(headOrNull)(Option(_))
+  private[swaydb] def nextOrNull(previous: A): BAG[A] =
+    free.nextOrNull(previous)
 
-  def map[B](f: A => B): Stream[B] =
-    new step.Map(
-      previousStream = self,
-      f = f
+  def headOption: BAG[Option[A]] =
+    free.headOption
+
+  def map[B](f: A => B): Stream[B, BAG] =
+    new Stream(free.map(f))
+
+  def flatMap[B](f: A => Stream[B, BAG]): Stream[B, BAG] =
+    new Stream(
+      free flatMap {
+        item =>
+          f(item).free
+      }
     )
 
-  def flatMap[B](f: A => Stream[B]): Stream[B] =
-    new step.FlatMap(
-      previousStream = self,
-      f = f
-    )
+  def drop(count: Int): Stream[A, BAG] =
+    new Stream(free.drop(count))
 
-  def drop(count: Int): Stream[A] =
-    if (count <= 0)
-      this
-    else
-      new step.Drop[A](
-        previousStream = self,
-        drop = count
-      )
+  def dropWhile(f: A => Boolean): Stream[A, BAG] =
+    new Stream(free.dropWhile(f))
 
-  def dropWhile(f: A => Boolean): Stream[A] =
-    new step.DropWhile[A](
-      previousStream = self,
-      condition = f
-    )
+  def take(count: Int): Stream[A, BAG] =
+    new Stream(free.take(count))
 
-  def take(count: Int): Stream[A] =
-    new step.Take(
-      previousStream = self,
-      take = count
-    )
+  def takeWhile(f: A => Boolean): Stream[A, BAG] =
+    new Stream(free.takeWhile(f))
 
-  def takeWhile(f: A => Boolean): Stream[A] =
-    new step.TakeWhile[A](
-      previousStream = self,
-      condition = f
-    )
+  def filter(f: A => Boolean): Stream[A, BAG] =
+    new Stream(free.filter(f))
 
-  def filter(f: A => Boolean): Stream[A] =
-    new step.Filter[A](
-      previousStream = self,
-      condition = f
-    )
+  def filterNot(f: A => Boolean): Stream[A, BAG] =
+    new Stream(free.filterNot(f))
 
-  def filterNot(f: A => Boolean): Stream[A] =
-    filter(!f(_))
+  def collect[B](pf: PartialFunction[A, B]): Stream[B, BAG] =
+    new Stream(free.collect(pf))
 
-  def collect[B](pf: PartialFunction[A, B]): Stream[B] =
-    new step.Collect[A, B](
-      previousStream = self,
-      pf = pf
-    )
+  def collectFirst[B](pf: PartialFunction[A, B]): BAG[Option[B]] =
+    free.collectFirst(pf)
 
-  def collectFirst[B, BAG[_]](pf: PartialFunction[A, B])(implicit bag: Bag[BAG]): BAG[Option[B]] =
-    bag.map(collectFirstOrNull(pf))(Option(_))
+  def collectFirstOrNull[B](pf: PartialFunction[A, B]): BAG[B] =
+    free.collectFirstOrNull(pf)
 
-  def collectFirstOrNull[B, BAG[_]](pf: PartialFunction[A, B])(implicit bag: Bag[BAG]): BAG[B] =
-    collect(pf).headOrNull
-
-  def count[BAG[_]](f: A => Boolean)(implicit bag: Bag[BAG]): BAG[Int] =
-    foldLeft(0) {
-      case (c, item) if f(item) => c + 1
-      case (c, _) => c
-    }
+  def count(f: A => Boolean): BAG[Int] =
+    free.count(f)
 
   /**
-   * Reads all items from the Stream and returns the last.
+   * Reads all items from the StreamBag and returns the last.
    *
    * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
    */
-  def lastOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] = {
-    val last =
-      foldLeft(OptionMutable.Null: OptionMutable[A]) {
-        (previous, next) =>
-          if (previous.isNoneC) {
-            OptionMutable.Some(next)
-          } else {
-            previous.getC setValue next
-            previous
-          }
-      }
-
-    bag.transform(last)(_.toOption)
-  }
+  def lastOption: BAG[Option[A]] =
+    free.lastOption
 
   /**
    * Materializes are executes the stream.
    */
-  def foldLeft[B, BAG[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[BAG]): BAG[B] =
-    bag.safe { //safe execution of the stream to recover errors.
-      step.Step.foldLeft(
-        initial = initial,
-        afterOrNull = null.asInstanceOf[A],
-        stream = self,
-        drop = 0,
-        take = None
-      )(f)
-    }
+  def foldLeft[B](initial: B)(f: (B, A) => B): BAG[B] =
+    free.foldLeft(initial)(f)
 
-  def foreach[BAG[_]](f: A => Unit)(implicit bag: Bag[BAG]): BAG[Unit] =
-    foldLeft(()) {
-      case (_, item) =>
-        f(item)
-    }
+  def foreach(f: A => Unit): BAG[Unit] =
+    free.foreach(f)
 
-  def partition[BAG[_]](f: A => Boolean)(implicit bag: Bag[BAG]): BAG[(ListBuffer[A], ListBuffer[A])] =
-    foldLeft((ListBuffer.empty[A], ListBuffer.empty[A])) {
-      case (buckets @ (left, right), elem) =>
-        if (f(elem))
-          left += elem
-        else
-          right += elem
-
-        buckets
-    }
+  def partition(f: A => Boolean): BAG[(ListBuffer[A], ListBuffer[A])] =
+    free.partition(f)
 
   /**
-   * Folds over all elements in the Stream to calculate it's total size.
+   * Folds over all elements in the StreamBag to calculate it's total size.
    */
-  def size[BAG[_]](implicit bag: Bag[BAG]): BAG[Int] =
-    foldLeft(0) {
-      case (size, _) =>
-        size + 1
-    }
-
-  private def materializeBuilder[BAG[_], X[_]](implicit bag: Bag[BAG],
-                                               builder: mutable.Builder[A, X[A]]): BAG[mutable.Builder[A, X[A]]] =
-    foldLeft(builder) {
-      case (builder, item) =>
-        builder += item
-        builder
-    }
+  def size: BAG[Int] =
+    free.size
 
   /**
    * Materialises/closes and processes the stream to a [[Seq]].
    */
-  def materializeFromBuilder[BAG[_], X[_]](implicit bag: Bag[BAG],
-                                           builder: mutable.Builder[A, X[A]]): BAG[X[A]] =
-    bag.transform(materializeBuilder)(_.result())
+  def materializeFromBuilder[X[_]](implicit builder: mutable.Builder[A, X[A]]): BAG[X[A]] =
+    free.materializeFromBuilder
 
   /**
-   * Executes this Stream within the provided [[Bag]].
+   * Executes this StreamBag within the provided [[Bag]].
    */
-  def materialize[BAG[_]](implicit bag: Bag[BAG]): BAG[ListBuffer[A]] = {
-    implicit val listBuffer = ListBuffer.newBuilder[A]
-    bag.transform(materializeBuilder)(_.result())
-  }
+  def materialize: BAG[ListBuffer[A]] =
+    free.materialize
 
   /**
-   * A [[Streamer]] is a simple interface to a [[Stream]] instance which
+   * A [[StreamerFree]] is a simple interface to a [[StreamFree]] instance which
    * only one has function [[Streamer.nextOrNull]] that can be used to
    * create other interop implementations with other Streaming libraries.
    */
-  def streamer: Streamer[A] =
-    new Streamer[A] {
-      var previous: A = _
-
-      override def nextOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] = {
-        val next =
-          if (previous == null)
-            self.headOrNull
-          else
-            self.nextOrNull(previous)
-
-        bag.transform(next) {
-          next =>
-            previous = next
-            next
-        }
-      }
-    }
+  def streamer: Streamer[A, BAG] =
+    free.streamer
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[A]] =
-    new Iterator[BAG[A]] {
-      val stream = streamer
-      var nextBag: BAG[A] = _
-      var failedStream: Boolean = false
+    free.iterator
 
-      override def hasNext: Boolean =
-        if (failedStream) {
-          false
-        } else {
-          nextBag = stream.nextOrNull
-          if (bag.isSuccess(nextBag)) {
-            bag.getUnsafe(nextBag) != null
-          } else {
-            failedStream = true
-            true
-          }
-        }
-
-      override def next(): BAG[A] =
-        nextBag
-    }
+  def toBag[BAG[_]](implicit bag: Bag[BAG]): Stream[A, BAG] =
+    new Stream[A, BAG](free)(bag)
 }

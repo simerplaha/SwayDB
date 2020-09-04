@@ -46,7 +46,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def put(keyValues: (K, V)*): BAG[OK]
 
-  def put(keyValues: Stream[(K, V)]): BAG[OK]
+  def put(keyValues: Stream[(K, V), BAG]): BAG[OK]
 
   def put(keyValues: Iterable[(K, V)]): BAG[OK]
 
@@ -58,7 +58,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def remove(keys: K*): BAG[OK]
 
-  def remove(keys: Stream[K]): BAG[OK]
+  def remove(keys: Stream[K, BAG]): BAG[OK]
 
   def remove(keys: Iterable[K]): BAG[OK]
 
@@ -74,7 +74,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def expire(keys: (K, Deadline)*): BAG[OK]
 
-  def expire(keys: Stream[(K, Deadline)]): BAG[OK]
+  def expire(keys: Stream[(K, Deadline), BAG]): BAG[OK]
 
   def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
 
@@ -86,7 +86,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def update(keyValues: (K, V)*): BAG[OK]
 
-  def update(keyValues: Stream[(K, V)]): BAG[OK]
+  def update(keyValues: Stream[(K, V), BAG]): BAG[OK]
 
   def update(keyValues: Iterable[(K, V)]): BAG[OK]
 
@@ -100,7 +100,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
 
-  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
 
   def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
 
@@ -146,7 +146,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def headOrNull: BAG[(K, V)]
 
-  def stream: Source[K, (K, V)]
+  def stream: Source[K, (K, V), BAG]
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]]
 

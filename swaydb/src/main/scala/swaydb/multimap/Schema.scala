@@ -27,7 +27,8 @@ package swaydb.multimap
 import swaydb.MultiMapKey.MapStart
 import swaydb.core.util.Times._
 import swaydb.serializers._
-import swaydb.{Apply, Bag, IO, Map, MultiMapKey, MultiMap_Experimental, Prepare, PureFunction, Stream}
+import swaydb.Stream
+import swaydb.{Apply, Bag, IO, Map, MultiMapKey, MultiMap_Experimental, Prepare, PureFunction}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -429,7 +430,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
                                                                      evV: V2 <:< V,
                                                                      evF: F2 <:< F): BAG[Option[MultiMap_Experimental[M2, K2, V2, F2, BAG]]] = {
     val mapPrefix: Iterable[M] = thisMapKey.toBuffer += mapKey
-    implicit val b: Bag[BAG] = bag
+    implicit val bag2: Bag[BAG] = bag
 
     bag.map(innerMap.getKeyDeadline(MapStart(mapPrefix), bag)) {
       case Some((_, deadline)) =>
@@ -449,7 +450,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
   /**
    * Keys of all child Maps.
    */
-  def keys: Stream[M] =
+  def keys: Stream[M, BAG] =
     innerMap
       .keys
       .stream
@@ -467,11 +468,13 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
       }
 
   //todo - flatten Options and BAG.
-  def stream: Stream[BAG[Option[MultiMap_Experimental[M, K, V, F, BAG]]]] =
+  def stream: Stream[BAG[Option[MultiMap_Experimental[M, K, V, F, BAG]]], BAG] =
     keys.map(key => get(key))
 
-  private def stream[BAG[_]](bag: Bag[BAG]): Stream[BAG[Option[MultiMap_Experimental[M, K, V, F, BAG]]]] =
-    keys.map(key => get(key, bag))
+  private def stream[BAG[_]](bag: Bag[BAG]): Stream[BAG[Option[MultiMap_Experimental[M, K, V, F, BAG]]], BAG] = {
+    val free = keys.free.map((key: M) => get[M, K, V, F, BAG](mapKey = key, bag = bag))
+    new Stream(free)(bag)
+  }
 
   def isEmpty: BAG[Boolean] =
     bag.transform(keys.headOrNull) {

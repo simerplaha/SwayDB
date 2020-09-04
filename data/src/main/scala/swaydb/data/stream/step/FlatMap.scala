@@ -24,14 +24,15 @@
 
 package swaydb.data.stream.step
 
-import swaydb.{Bag, Stream}
+import swaydb.Bag
+import swaydb.data.stream.StreamFree
 
-private[swaydb] class FlatMap[A, B](previousStream: Stream[A],
-                                    f: A => Stream[B]) extends Stream[B] {
+private[swaydb] class FlatMap[A, B](previousStream: StreamFree[A],
+                                    f: A => StreamFree[B]) extends StreamFree[B] {
 
   //cache stream and emits it's items.
   //next Stream is read only if the current cached stream is emitted.
-  var innerStream: Stream[B] = _
+  var innerStream: StreamFree[B] = _
   var previousA: A = _
 
   def streamNext[BAG[_]](nextA: A)(implicit bag: Bag[BAG]): BAG[B] = {

@@ -24,10 +24,11 @@
 
 package swaydb.data.stream.step
 
-import swaydb.{Bag, Stream}
+import swaydb.Bag
+import swaydb.data.stream.StreamFree
 
-private[swaydb] class Collect[A, B](previousStream: Stream[A],
-                                    pf: PartialFunction[A, B]) extends Stream[B] {
+private[swaydb] class Collect[A, B](previousStream: StreamFree[A],
+                                    pf: PartialFunction[A, B]) extends StreamFree[B] {
 
   var previousA: A = _
 

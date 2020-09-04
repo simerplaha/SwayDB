@@ -100,8 +100,8 @@ trait SwayDBPartialSetSpec extends TestBaseEmbedded {
                 set.get((i, None)).value shouldBe ((i, Some(s"value $i")))
             }
 
-            set.stream.materialize[Bag.Less].toList shouldBe keyValues
-            set.stream.reverse.materialize[Bag.Less].toList shouldBe keyValues.reverse
+            set.stream.materialize.toList shouldBe keyValues
+            set.stream.reverse.materialize.toList shouldBe keyValues.reverse
           }
 
           assertReads()

@@ -24,10 +24,11 @@
 
 package swaydb.data.stream.step
 
-import swaydb.{Bag, Stream}
+import swaydb.Bag
+import swaydb.data.stream.StreamFree
 
-private[swaydb] class Filter[A](previousStream: Stream[A],
-                                condition: A => Boolean) extends Stream[A] {
+private[swaydb] class Filter[A](previousStream: StreamFree[A],
+                                condition: A => Boolean) extends StreamFree[A] {
 
   override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
     bag.flatMap(previousStream.headOrNull) {

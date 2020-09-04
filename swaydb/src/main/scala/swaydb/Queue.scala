@@ -115,7 +115,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
   def push(elems: A*): OK =
     push(elems)
 
-  def push(elems: Stream[A]): OK =
+  def push(elems: Stream[A, Bag.Less]): OK =
     set.add {
       elems.map {
         item =>
@@ -207,7 +207,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
 
   private def copy(): Unit = ()
 
-  def stream: Stream[A] =
+  def stream: Stream[A, Bag.Less] =
     set
       .stream
       .map(_._2)

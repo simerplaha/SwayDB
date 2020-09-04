@@ -24,7 +24,9 @@
 
 package swaydb.java
 
-class Source[K, T](scalaSource: swaydb.Source[K, T]) extends Stream[T](scalaSource) {
+import swaydb.Bag
+
+class Source[K, T](scalaSource: swaydb.Source[K, T, Bag.Less]) extends Stream[T](scalaSource) {
 
   def from(key: K): Source[K, T] =
     new Source(scalaSource.from(key))

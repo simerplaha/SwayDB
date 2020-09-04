@@ -72,12 +72,12 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
           child1
             .stream
-            .materialize[Bag.Less]
+            .materialize
             .toList should contain inOrderOnly((3, "three"), (4, "four"))
 
           child2
             .stream
-            .materialize[Bag.Less]
+            .materialize
             .toList should contain inOrderOnly((4, "four again"), (5, "five"))
       }
     }
@@ -107,12 +107,12 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
           child2
             .stream
-            .materialize[Bag.Less]
+            .materialize
             .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
           child3
             .stream
-            .materialize[Bag.Less]
+            .materialize
             .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
       }
     }
@@ -152,12 +152,12 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
           sub21.get(1).value shouldBe "1"
           sub22.get(2).value shouldBe "2"
 
-          root.schema.keys.materialize[Bag.Less].toList should have size 2
+          root.schema.keys.materialize.toList should have size 2
 
-          val rootSubMaps = root.schema.stream.materialize[Bag.Less].toList.flatten
+          val rootSubMaps = root.schema.stream.materialize.toList.flatten
           rootSubMaps.foreach(_.isEmpty shouldBe true) //has no map entries
 
-          val subMaps = rootSubMaps.flatMap(_.schema.stream.materialize[Bag.Less].toList.flatten)
+          val subMaps = rootSubMaps.flatMap(_.schema.stream.materialize.toList.flatten)
           subMaps should have size 4
 
           subMaps(0).get(1).value shouldBe "one"

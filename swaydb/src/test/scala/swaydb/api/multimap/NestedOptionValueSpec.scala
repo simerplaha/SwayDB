@@ -114,7 +114,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
         root.get(3).value shouldBe None
         root.get(2).value.value shouldBe Value.NonEmpty("two")
 
-        root.stream.materialize[Bag.Less].toList shouldBe List((1, Some(Value.Empty)), (2, Some(Value.NonEmpty("two"))), (3, None))
+        root.stream.materialize.toList shouldBe List((1, Some(Value.Empty)), (2, Some(Value.NonEmpty("two"))), (3, None))
     }
   }
 }

@@ -33,7 +33,7 @@ import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.stream.From
+import swaydb.data.stream.{From, SourceFree}
 import swaydb.data.util.TupleOrNone
 import swaydb.serializers.{Serializer, _}
 
@@ -116,7 +116,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def put(keyValues: (K, V)*): BAG[OK] =
     bag.suspend(put(keyValues))
 
-  def put(keyValues: Stream[(K, V)]): BAG[OK] =
+  def put(keyValues: Stream[(K, V), BAG]): BAG[OK] =
     bag.flatMap(keyValues.materialize)(put)
 
   def put(keyValues: Iterable[(K, V)]): BAG[OK] =
@@ -141,7 +141,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def remove(keys: K*): BAG[OK] =
     bag.suspend(remove(keys))
 
-  def remove(keys: Stream[K]): BAG[OK] =
+  def remove(keys: Stream[K, BAG]): BAG[OK] =
     bag.flatMap(keys.materialize)(remove)
 
   def remove(keys: Iterable[K]): BAG[OK] =
@@ -165,7 +165,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def expire(keys: (K, Deadline)*): BAG[OK] =
     bag.suspend(expire(keys))
 
-  def expire(keys: Stream[(K, Deadline)]): BAG[OK] =
+  def expire(keys: Stream[(K, Deadline), BAG]): BAG[OK] =
     bag.flatMap(keys.materialize)(expire)
 
   def expire(keys: Iterable[(K, Deadline)]): BAG[OK] =
@@ -194,7 +194,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def update(keyValues: (K, V)*): BAG[OK] =
     bag.suspend(update(keyValues))
 
-  def update(keyValues: Stream[(K, V)]): BAG[OK] =
+  def update(keyValues: Stream[(K, V), BAG]): BAG[OK] =
     bag.flatMap(keyValues.materialize)(update)
 
   def update(keyValues: Iterable[(K, V)]): BAG[OK] =
@@ -222,7 +222,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.suspend(core.put(preparesToUntyped(prepare).iterator))
 
-  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
+  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
       prepares =>
         commit(prepares)
@@ -367,9 +367,8 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     else
       core.after(keySerializer.write(previousKey), readState)
 
-
-  def stream: Source[K, (K, V)] =
-    new Source[K, (K, V)](from = None, reverse = false) {
+  private def sourceFree(): SourceFree[K, (K, V)] =
+    new SourceFree[K, (K, V)](from = None, reverse = false) {
       val readState = core.readStates.get()
 
       override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) =
@@ -390,6 +389,10 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
             (key, value)
         }
     }
+
+
+  def stream: Source[K, (K, V), BAG] =
+    new Source(sourceFree())
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
     stream.iterator(bag)

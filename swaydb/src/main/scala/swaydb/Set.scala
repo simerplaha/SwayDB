@@ -34,7 +34,7 @@ import swaydb.data.Sweepable
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.stream.From
+import swaydb.data.stream.{From, SourceFree}
 import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -116,7 +116,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def add(elems: A*): BAG[OK] =
     add(elems)
 
-  def add(elems: Stream[A]): BAG[OK] =
+  def add(elems: Stream[A, BAG]): BAG[OK] =
     bag.flatMap(elems.materialize)(add)
 
   def add(elems: Iterable[A]): BAG[OK] =
@@ -134,7 +134,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def remove(elems: A*): BAG[OK] =
     remove(elems)
 
-  def remove(elems: Stream[A]): BAG[OK] =
+  def remove(elems: Stream[A, BAG]): BAG[OK] =
     bag.flatMap(elems.materialize)(remove)
 
   def remove(elems: Iterable[A]): BAG[OK] =
@@ -158,7 +158,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def expire(elems: (A, Deadline)*): BAG[OK] =
     expire(elems)
 
-  def expire(elems: Stream[(A, Deadline)]): BAG[OK] =
+  def expire(elems: Stream[(A, Deadline), BAG]): BAG[OK] =
     bag.flatMap(elems.materialize)(expire)
 
   def expire(elems: Iterable[(A, Deadline)]): BAG[OK] =
@@ -190,7 +190,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
     bag.suspend(core.put(preparesToUntyped(prepare).iterator))
 
-  def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
+  def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
       statements =>
         commit(statements)
@@ -286,8 +286,8 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     else
       core.afterKey(serializer.write(previous), readState)
 
-  def stream: Source[A, A] =
-    new Source[A, A](from = None, reverse = false) {
+  private def sourceFree(): SourceFree[A, A] =
+    new SourceFree[A, A](from = None, reverse = false) {
       val readState = core.readStates.get()
 
       override private[swaydb] def headOrNull[BAG[_]](from: Option[From[A]], reverse: Boolean)(implicit bag: Bag[BAG]) =
@@ -306,6 +306,9 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
             serializer.read(slice)
         }
     }
+
+  def stream: Source[A, A, BAG] =
+    new swaydb.Source(sourceFree())
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[A]] =
     stream.iterator(bag)

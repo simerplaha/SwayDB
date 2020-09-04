@@ -31,7 +31,7 @@ import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
-import swaydb.data.stream.From
+import swaydb.data.stream.{From, SourceFree, StreamFree}
 import swaydb.multimap.{Schema, Transaction}
 import swaydb.serializers.{Serializer, _}
 
@@ -279,9 +279,9 @@ object MultiMap_Experimental {
 case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Map[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]], BAG],
                                                              thisMapKey: Iterable[M],
                                                              defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
-                                                                                                tableSerializer: Serializer[M],
-                                                                                                valueSerializer: Serializer[V],
-                                                                                                val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
+                                                                                                         tableSerializer: Serializer[M],
+                                                                                                         valueSerializer: Serializer[V],
+                                                                                                         val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   override def path: Path =
     innerMap.path
@@ -351,8 +351,8 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
     innerMap.commit(innerKeyValues)
   }
 
-  override def put(keyValues: Stream[(K, V)]): BAG[OK] = {
-    val stream: Stream[Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]] =
+  override def put(keyValues: Stream[(K, V), BAG]): BAG[OK] = {
+    val stream: Stream[Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]], BAG] =
       keyValues.map {
         case (key, value) =>
           Prepare.Put(MapEntry(thisMapKey, key), Some(value), defaultExpiration)
@@ -385,7 +385,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
       keys.map(key => MapEntry(thisMapKey, key))
     }
 
-  def remove(keys: Stream[K]): BAG[OK] =
+  def remove(keys: Stream[K, BAG]): BAG[OK] =
     bag.flatMap(keys.materialize)(remove)
 
   def remove(keys: Iterable[K]): BAG[OK] =
@@ -409,7 +409,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
   def expire(keys: (K, Deadline)*): BAG[OK] =
     bag.suspend(expire(keys))
 
-  def expire(keys: Stream[(K, Deadline)]): BAG[OK] =
+  def expire(keys: Stream[(K, Deadline), BAG]): BAG[OK] =
     bag.flatMap(keys.materialize)(expire)
 
   def expire(keys: Iterable[(K, Deadline)]): BAG[OK] =
@@ -441,7 +441,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
     innerMap.commit(updates)
   }
 
-  def update(keyValues: Stream[(K, V)]): BAG[OK] =
+  def update(keyValues: Stream[(K, V), BAG]): BAG[OK] =
     bag.flatMap(keyValues.materialize)(update)
 
   def update(keyValues: Iterable[(K, V)]): BAG[OK] = {
@@ -509,7 +509,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
    *
    * @see [[MultiMap_Experimental.commit]] to commit [[Transaction]]s.
    */
-  def toTransaction[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Iterable[Transaction[M, K, V, PF]]] =
+  def toTransaction[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Iterable[Transaction[M, K, V, PF]]] =
     bag.transform(prepare.materialize) {
       prepares =>
         toTransaction(prepares)
@@ -541,7 +541,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     innerMap.commit(prepare.map(prepare => MultiMap_Experimental.toInnerPrepare(thisMapKey, defaultExpiration, prepare)))
 
-  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
+  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
       prepares =>
         commit(prepares)
@@ -660,25 +660,10 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
   def headOrNull: BAG[(K, V)] =
     stream.headOrNull
 
-  //restricts this Stream to fetch entries of this Map only.
-  private def boundStreamToMap(stream: Stream[(MultiMapKey[M, K], Option[V])]): Stream[(K, V)] =
-    stream
-      .takeWhile {
-        case (MapEntry(parent, _), _) =>
-          parent == thisMapKey
+  private def sourceFree(): SourceFree[K, (K, V)] =
+    new SourceFree[K, (K, V)](None, false) {
 
-        case _ =>
-          false
-      }
-      .collect {
-        case (MapEntry(_, key), Some(value)) =>
-          (key, value)
-      }
-
-  def stream: Source[K, (K, V)] =
-    new Source[K, (K, V)](None, false) {
-
-      var innerStream: Stream[(K, V)] = _
+      var freeStream: StreamFree[(K, V)] = _
 
       override private[swaydb] def headOrNull[BAG[_]](from: Option[From[K]], reverse: Boolean)(implicit bag: Bag[BAG]) = {
         val appliedStream =
@@ -712,13 +697,33 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
                   .stream
                   .after(MapEntriesStart(thisMapKey))
           }
-        innerStream = boundStreamToMap(appliedStream)
-        innerStream.headOrNull
+
+        //restricts this Stream to fetch entries of this Map only.
+
+        freeStream =
+          appliedStream
+            .free
+            .takeWhile {
+              case (MapEntry(parent, _), _) =>
+                parent == thisMapKey
+
+              case _ =>
+                false
+            }
+            .collect {
+              case (MapEntry(_, key), Some(value)) =>
+                (key, value)
+            }
+
+        freeStream.headOrNull
       }
 
       override private[swaydb] def nextOrNull[BAG[_]](previous: (K, V), reverse: Boolean)(implicit bag: Bag[BAG]) =
-        innerStream.nextOrNull(previous)
+        freeStream.nextOrNull(previous)
     }
+
+  def stream: Source[K, (K, V), BAG] =
+    new Source(sourceFree())
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
     stream.iterator(bag)

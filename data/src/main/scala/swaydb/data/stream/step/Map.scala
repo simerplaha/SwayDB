@@ -24,10 +24,11 @@
 
 package swaydb.data.stream.step
 
-import swaydb.{Bag, Stream}
+import swaydb.Bag
+import swaydb.data.stream.StreamFree
 
-private[swaydb] class Map[A, B](previousStream: Stream[A],
-                                f: A => B) extends Stream[B] {
+private[swaydb] class Map[A, B](previousStream: StreamFree[A],
+                                f: A => B) extends StreamFree[B] {
 
   var previousA: A = _
 
