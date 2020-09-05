@@ -36,20 +36,6 @@ import scala.concurrent.duration._
 
 object DefaultMemoryConfig extends LazyLogging {
 
-  private lazy val compactionExecutionContext =
-    new ExecutionContext {
-      val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
-
-      def execute(runnable: Runnable) =
-        threadPool execute runnable
-
-      def reportFailure(exception: Throwable): Unit = {
-        val message = s"REPORT FAILURE! ${exception.getMessage}"
-        println(message)
-        logger.error(message, exception)
-      }
-    }
-
   /**
    * Default configuration for 2 leveled Memory database.
    */
@@ -59,11 +45,11 @@ object DefaultMemoryConfig extends LazyLogging {
             deleteSegmentsEventually: Boolean,
             acceleration: LevelZeroMeter => Accelerator,
             levelZeroThrottle: LevelZeroMeter => FiniteDuration,
-            lastLevelThrottle: LevelMeter => Throttle): SwayDBMemoryConfig =
+            lastLevelThrottle: LevelMeter => Throttle)(implicit executionContext: ExecutionContext): SwayDBMemoryConfig =
     ConfigWizard
       .withMemoryLevel0(
         mapSize = mapSize,
-        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         acceleration = acceleration,
         throttle = levelZeroThrottle
       )

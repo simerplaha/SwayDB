@@ -17,23 +17,21 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
 package swaydb.configs.level
 
-import java.util.concurrent.ThreadFactory
+import java.util.concurrent.Executors
 
-object SingleThreadFactory {
+import com.typesafe.scalalogging.LazyLogging
 
-  def create(daemon: Boolean = true) =
-    new ThreadFactory {
-      override def newThread(r: Runnable): Thread = {
-        val thread = new Thread(r)
-        thread.setDaemon(daemon)
-        thread
-      }
-    }
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+
+object DefaultExecutionContext extends LazyLogging {
+
+  def executionContext: ExecutionContextExecutorService =
+    ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor(DefaultThreadFactory.create()))
 }

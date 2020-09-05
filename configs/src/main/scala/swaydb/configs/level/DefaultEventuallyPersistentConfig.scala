@@ -37,20 +37,6 @@ import scala.concurrent.duration._
 
 object DefaultEventuallyPersistentConfig extends LazyLogging {
 
-  private lazy val compactionExecutionContext: ExecutionContext =
-    new ExecutionContext {
-      val threadPool = new ForkJoinPool(2)
-
-      def execute(runnable: Runnable) =
-        threadPool execute runnable
-
-      def reportFailure(exception: Throwable): Unit = {
-        val message = s"REPORT FAILURE! ${exception.getMessage}"
-        println(message)
-        logger.error(message, exception)
-      }
-    }
-
   /**
    * Default configuration for in-memory 3 leveled database that is persistent for the 3rd Level.
    */
@@ -70,13 +56,13 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             persistentLevelMightContainKeyIndex: MightContainIndex,
             persistentLevelValuesConfig: ValuesConfig,
             persistentLevelSegmentConfig: SegmentConfig,
-            acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig =
+            acceleration: LevelZeroMeter => Accelerator)(implicit executionContext: ExecutionContext): SwayDBPersistentConfig =
     ConfigWizard
       .withMemoryLevel0(
         mapSize = mapSize,
         acceleration = acceleration,
         throttle = _ => Duration.Zero,
-        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext)
       )
       .withMemoryLevel1(
         minSegmentSize = memoryLevelMinSegmentSize,
@@ -103,7 +89,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         mightContainKey = persistentLevelMightContainKeyIndex,
         valuesConfig = persistentLevelValuesConfig,
         segmentConfig = persistentLevelSegmentConfig,
-        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           (_: LevelMeter) =>
             Throttle(

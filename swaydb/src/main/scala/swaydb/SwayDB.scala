@@ -28,7 +28,7 @@ import java.nio.file.Path
 import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.configs.level.SingleThreadFactory
+import swaydb.configs.level.DefaultThreadFactory
 import swaydb.core.Core
 import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.FileSweeper.FileSweeperActor
@@ -63,7 +63,7 @@ object SwayDB extends LazyLogging {
    */
   lazy val sweeperExecutionContext: ExecutionContext =
     new ExecutionContext {
-      val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
+      val threadPool = Executors.newSingleThreadExecutor(DefaultThreadFactory.create())
 
       def execute(runnable: Runnable): Unit =
         threadPool execute runnable

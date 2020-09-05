@@ -73,6 +73,7 @@ object Map extends LazyLogging {
                                                                                                          functionClassTag: ClassTag[F],
                                                                                                          bag: swaydb.Bag[BAG],
                                                                                                          functions: swaydb.Map.Functions[K, V, F],
+                            exe
                                                                                                          byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                          typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.Map[K, V, F, BAG]] =
     bag.suspend {
