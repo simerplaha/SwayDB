@@ -24,20 +24,23 @@
 
 package swaydb.memory
 
-import swaydb.SwayDB
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{ActorConfig, FileCache}
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultConfigs {
 
-  def fileCache(maxOpen: Int = 100,
-                actorConfig: ActorConfig = ActorConfig.TimeLoop(s"${this.getClass.getName} - File Cache Actor", delay = 10.seconds, ec = SwayDB.sweeperExecutionContext)): FileCache.Enable =
+  def fileCache(implicit ec: ExecutionContext): FileCache.Enable =
     FileCache.Enable(
-      maxOpen = maxOpen,
-      actorConfig = actorConfig
+      maxOpen = 1000,
+      actorConfig =
+        ActorConfig.Basic(
+          name = s"${this.getClass.getName} - FileCache TimeLoop Actor",
+          ec = ec
+        )
     )
 
   def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration =

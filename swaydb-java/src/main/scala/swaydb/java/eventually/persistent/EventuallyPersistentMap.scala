@@ -26,14 +26,15 @@ package swaydb.java.eventually.persistent
 
 import java.nio.file.Path
 import java.util.Collections
+import java.util.concurrent.ExecutorService
 
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
-import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java.data.slice.ByteSlice
@@ -43,6 +44,7 @@ import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
 
 import scala.compat.java8.FunctionConverters._
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
@@ -66,11 +68,12 @@ object EventuallyPersistentMap {
                               private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                               private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                               private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                              private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                              private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
+                              private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                              private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                               private var byteComparator: KeyComparator[ByteSlice] = null,
                               private var typedComparator: KeyComparator[K] = null,
+                              private var compactionEC: Option[ExecutionContextExecutorService] = None,
                               keySerializer: Serializer[K],
                               valueSerializer: Serializer[V],
                               functionClassTag: ClassTag[_]) {
@@ -185,6 +188,11 @@ object EventuallyPersistentMap {
       this
     }
 
+    def setCompactionExecutionContext(executionContext: ExecutorService) = {
+      this.compactionEC = Some(ExecutionContext.fromExecutorService(executionContext))
+      this
+    }
+
     private val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]()(keySerializer, valueSerializer)
 
     def registerFunctions(functions: F*): Config[K, V, F] = {
@@ -240,7 +248,8 @@ object EventuallyPersistentMap {
           functions = functions.asInstanceOf[swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]],
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]],
           bag = Bag.less,
-          byteKeyOrder = scalaKeyOrder
+          byteKeyOrder = scalaKeyOrder,
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
       swaydb.java.Map[K, V, F](scalaMap)

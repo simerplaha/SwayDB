@@ -24,8 +24,6 @@
 
 package swaydb.configs.level
 
-import java.util.concurrent.Executors
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}

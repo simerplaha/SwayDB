@@ -25,7 +25,6 @@
 package swaydb.configs.level
 
 import java.nio.file.Path
-import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}

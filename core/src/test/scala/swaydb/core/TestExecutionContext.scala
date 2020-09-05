@@ -24,20 +24,13 @@
 
 package swaydb.core
 
-import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.Executors
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
 object TestExecutionContext {
 
-  val executionContext: ExecutionContext =
-    new ExecutionContext {
-      val threadPool = new ForkJoinPool(Runtime.getRuntime.availableProcessors())
+  val executionContext: ExecutionContextExecutorService =
+    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors()))
 
-      def execute(runnable: Runnable) =
-        threadPool execute runnable
-
-      def reportFailure(t: Throwable): Unit =
-        t.printStackTrace(System.err)
-    }
 }

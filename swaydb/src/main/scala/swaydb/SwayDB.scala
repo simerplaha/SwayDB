@@ -25,12 +25,9 @@
 package swaydb
 
 import java.nio.file.Path
-import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.configs.level.DefaultThreadFactory
 import swaydb.core.Core
-import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -43,7 +40,6 @@ import swaydb.data.repairAppendix._
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers.Serializer
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
@@ -55,22 +51,6 @@ object SwayDB extends LazyLogging {
   private implicit def memoryFunctionStore: FunctionStore = FunctionStore.memory()
 
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-
-  /**
-   * Default execution context for all databases.
-   *
-   * This can be overridden by provided an implicit parameter in the scope of where the database is initialized.
-   */
-  lazy val sweeperExecutionContext: ExecutionContext =
-    new ExecutionContext {
-      val threadPool = Executors.newSingleThreadExecutor(DefaultThreadFactory.create())
-
-      def execute(runnable: Runnable): Unit =
-        threadPool execute runnable
-
-      def reportFailure(exception: Throwable): Unit =
-        logger.error("sweeperExecutionContext context failure", exception)
-    }
 
   /**
    * Creates a database based on the input config.

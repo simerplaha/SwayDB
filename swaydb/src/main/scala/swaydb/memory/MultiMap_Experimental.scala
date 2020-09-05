@@ -25,6 +25,7 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -34,6 +35,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 import swaydb.{Apply, KeyOrderConverter, MultiMapKey, MultiMap_Experimental, PureFunction}
 
+import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
@@ -52,7 +54,7 @@ object MultiMap_Experimental extends LazyLogging {
   def apply[M, K, V, F, BAG[_]](mapSize: Int = 4.mb,
                                 minSegmentSize: Int = 2.mb,
                                 maxKeyValuesPerSegment: Int = Int.MaxValue,
-                                fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                                fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                 deleteSegmentsEventually: Boolean = true,
                                 shutdownTimeout: FiniteDuration = 30.seconds,
                                 acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
@@ -65,7 +67,8 @@ object MultiMap_Experimental extends LazyLogging {
                                                                                                                                   bag: swaydb.Bag[BAG],
                                                                                                                                   functions: swaydb.MultiMap_Experimental.Functions[M, K, V, F],
                                                                                                                                   byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                                  typedKeyOrder: KeyOrder[K] = null): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
+                                                                                                                                  typedKeyOrder: KeyOrder[K] = null,
+                                                                                                                                  compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val mapKeySerializer: Serializer[MultiMapKey[M, K]] = MultiMapKey.serializer(keySerializer, tableSerializer)
       implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toNestedOption(valueSerializer)
@@ -91,7 +94,8 @@ object MultiMap_Experimental extends LazyLogging {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]],
           bag = bag,
           functions = functions.innerFunctions,
-          byteKeyOrder = internalKeyOrder
+          byteKeyOrder = internalKeyOrder,
+          compactionEC = compactionEC
         )
 
       bag.flatMap(map) {

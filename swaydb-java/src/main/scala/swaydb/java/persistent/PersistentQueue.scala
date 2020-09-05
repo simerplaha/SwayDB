@@ -26,8 +26,10 @@ package swaydb.java.persistent
 
 import java.nio.file.Path
 import java.util.Collections
+import java.util.concurrent.ExecutorService
 
 import swaydb.Bag
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -38,6 +40,7 @@ import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 
 import scala.compat.java8.FunctionConverters._
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
@@ -58,8 +61,8 @@ object PersistentQueue {
                         private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                         private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                         private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                        private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                        private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
+                        private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                        private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                         private var levelOneThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelOneThrottle _).asJava,
                         private var levelTwoThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelTwoThrottle _).asJava,
@@ -68,6 +71,7 @@ object PersistentQueue {
                         private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                         private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                        private var compactionEC: Option[ExecutionContextExecutorService] = None,
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {
@@ -190,6 +194,11 @@ object PersistentQueue {
       this
     }
 
+    def setCompactionExecutionContext(executionContext: ExecutorService) = {
+      this.compactionEC = Some(ExecutionContext.fromExecutorService(executionContext))
+      this
+    }
+
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
         swaydb.persistent.Queue[A, Bag.Less](
@@ -218,7 +227,10 @@ object PersistentQueue {
           levelFourThrottle = levelFourThrottle.asScala,
           levelFiveThrottle = levelFiveThrottle.asScala,
           levelSixThrottle = levelSixThrottle.asScala
-        )(serializer = serializer, bag = Bag.less)
+        )(serializer = serializer,
+          bag = Bag.less,
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+        )
 
       swaydb.java.Queue[A](scalaQueue)
     }

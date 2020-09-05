@@ -28,7 +28,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.KeyOrderConverter
-import swaydb.configs.level.DefaultPersistentConfig
+import swaydb.configs.level.{DefaultExecutionContext, DefaultPersistentConfig}
 import swaydb.core.Core
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -39,6 +39,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
+import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
@@ -64,8 +65,8 @@ object Set extends LazyLogging {
                           mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                           valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                           segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                          memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
+                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                          memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                           levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                           levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
                           levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
@@ -77,7 +78,8 @@ object Set extends LazyLogging {
                                                                                                       bag: swaydb.Bag[BAG],
                                                                                                       functions: swaydb.Set.Functions[A, F],
                                                                                                       byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                      typedKeyOrder: KeyOrder[A] = null): BAG[swaydb.Set[A, F, BAG]] =
+                                                                                                      typedKeyOrder: KeyOrder[A] = null,
+                                                                                                      compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       val coreFunctions: FunctionStore.Memory = functions.core

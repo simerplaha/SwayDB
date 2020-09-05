@@ -32,6 +32,22 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
 object DefaultExecutionContext extends LazyLogging {
 
-  def executionContext: ExecutionContextExecutorService =
+  /**
+   * ExecutionContext used for Compaction. This is a lazy val so once initialised
+   * it will be used for all SwayDB instances that use default ExecutionContext.
+   *
+   * You can overwrite this when creating your SwayDB instance.
+   */
+  lazy val compactionEC: ExecutionContextExecutorService =
     ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor(DefaultThreadFactory.create()))
+
+  /**
+   * ExecutionContext used for [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]] Actors.
+   *
+   * You can overwrite this by provided your own [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]]
+   * configurations.
+   */
+  lazy val sweeperEC: ExecutionContextExecutorService =
+    ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor(DefaultThreadFactory.create()))
+
 }

@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -36,6 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
+import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 
@@ -47,14 +49,15 @@ object Queue extends LazyLogging {
   def apply[A, BAG[_]](mapSize: Int = 4.mb,
                        minSegmentSize: Int = 2.mb,
                        maxKeyValuesPerSegment: Int = Int.MaxValue,
-                       fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                       fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                        deleteSegmentsEventually: Boolean = true,
                        shutdownTimeout: FiniteDuration = 30.seconds,
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
-                                                                                                                         bag: Bag[BAG]): BAG[swaydb.Queue[A]] =
+                                                                                                                         bag: Bag[BAG],
+                                                                                                                         compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =
         swaydb.Queue.serialiser[A](serializer)

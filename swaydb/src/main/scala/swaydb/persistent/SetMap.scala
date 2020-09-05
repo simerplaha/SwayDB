@@ -27,6 +27,7 @@ package swaydb.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -36,6 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
+import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
@@ -58,8 +60,8 @@ object SetMap extends LazyLogging {
                           mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                           valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                           segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                          memoryCache: MemoryCache = DefaultConfigs.memoryCache,
+                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                          memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                           levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                           levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
                           levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
@@ -70,7 +72,8 @@ object SetMap extends LazyLogging {
                                                                                                       valueSerializer: Serializer[V],
                                                                                                       bag: swaydb.Bag[BAG],
                                                                                                       byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                      typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.SetMap[K, V, BAG]] =
+                                                                                                      typedKeyOrder: KeyOrder[K] = null,
+                                                                                                      compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
       val nullCheckedOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
@@ -108,7 +111,8 @@ object SetMap extends LazyLogging {
           functionClassTag = ClassTag.Nothing,
           bag = bag,
           functions = swaydb.Set.nothing,
-          byteKeyOrder = ordering
+          byteKeyOrder = ordering,
+          compactionEC = compactionEC
         )
 
       bag.transform(set) {

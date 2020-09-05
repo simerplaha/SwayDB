@@ -24,7 +24,6 @@
 
 package swaydb.persistent
 
-import swaydb.SwayDB
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
@@ -36,8 +35,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultConfigs {
-
-  implicit lazy val sweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext
 
   def mmap(): MMAP.Enabled =
     MMAP.Enabled(
@@ -127,26 +124,24 @@ object DefaultConfigs {
       compression = _ => Seq.empty
     )
 
-  def fileCache(implicit ec: ExecutionContext = sweeperEC): FileCache.Enable =
+  def fileCache(implicit ec: ExecutionContext): FileCache.Enable =
     FileCache.Enable(
       maxOpen = 1000,
       actorConfig =
-        ActorConfig.TimeLoop(
+        ActorConfig.Basic(
           name = s"${this.getClass.getName} - FileCache TimeLoop Actor",
-          delay = 10.seconds,
           ec = ec
         )
     )
 
-  def memoryCache(implicit ec: ExecutionContext = sweeperEC): MemoryCache.ByteCacheOnly =
+  def memoryCache(implicit ec: ExecutionContext): MemoryCache.ByteCacheOnly =
     ByteCacheOnly(
       minIOSeekSize = 4096,
       skipBlockCacheSeekSize = 4096 * 10,
       cacheCapacity = 1.gb,
       actorConfig =
-        ActorConfig.TimeLoop(
-          name = s"${this.getClass.getName} - MemoryCache TimeLoop Actor",
-          delay = 10.seconds,
+        ActorConfig.Basic(
+          name = s"${this.getClass.getName} - MemoryCache Actor",
           ec = ec
         )
     )

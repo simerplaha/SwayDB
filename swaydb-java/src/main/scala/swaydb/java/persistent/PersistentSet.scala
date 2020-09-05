@@ -26,7 +26,9 @@ package swaydb.java.persistent
 
 import java.nio.file.Path
 import java.util.Collections
+import java.util.concurrent.ExecutorService
 
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -43,6 +45,7 @@ import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
 
 import scala.compat.java8.FunctionConverters._
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
@@ -64,8 +67,8 @@ object PersistentSet {
                            private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                            private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                           private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                           private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
+                           private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                           private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                            private var levelOneThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelOneThrottle _).asJava,
                            private var levelTwoThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelTwoThrottle _).asJava,
@@ -76,6 +79,7 @@ object PersistentSet {
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var byteComparator: KeyComparator[ByteSlice] = null,
                            private var typedComparator: KeyComparator[A] = null,
+                           private var compactionEC: Option[ExecutionContextExecutorService] = None,
                            serializer: Serializer[A],
                            functionClassTag: ClassTag[_]) {
 
@@ -209,6 +213,11 @@ object PersistentSet {
       this
     }
 
+    def setCompactionExecutionContext(executionContext: ExecutorService) = {
+      this.compactionEC = Some(ExecutionContext.fromExecutorService(executionContext))
+      this
+    }
+
     private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]()(serializer)
 
     def registerFunctions(functions: F*): Config[A, F] = {
@@ -268,7 +277,8 @@ object PersistentSet {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
           bag = Bag.less,
           functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
-          byteKeyOrder = scalaKeyOrder
+          byteKeyOrder = scalaKeyOrder,
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
       swaydb.java.Set[A, F](scalaMap)

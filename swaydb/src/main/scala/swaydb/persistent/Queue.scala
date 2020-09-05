@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -37,6 +38,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
+import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 
@@ -62,8 +64,8 @@ object Queue extends LazyLogging {
                        mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                        valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                        segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                       fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                       memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
+                       fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                       memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                        levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                        levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
                        levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
@@ -71,7 +73,8 @@ object Queue extends LazyLogging {
                        levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
                        levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
                        levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A],
-                                                                                                   bag: Bag[BAG]): BAG[swaydb.Queue[A]] =
+                                                                                                   bag: Bag[BAG],
+                                                                                                   compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =
         swaydb.Queue.serialiser[A](serializer)
