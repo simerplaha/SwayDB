@@ -27,11 +27,11 @@ package swaydb
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.Core
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.tool.AppendixRepairer
+import swaydb.core.{BuildInfo, Core}
 import swaydb.data.MaxKey
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -51,6 +51,8 @@ object SwayDB extends LazyLogging {
   private implicit def memoryFunctionStore: FunctionStore = FunctionStore.memory()
 
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+
+  final def buildInfo: BuildInfo = BuildInfo()
 
   /**
    * Creates a database based on the input config.

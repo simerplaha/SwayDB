@@ -31,8 +31,8 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
 import swaydb.core.io.file.Effect._
+import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
