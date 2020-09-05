@@ -25,7 +25,6 @@
 package swaydb.persistent
 
 import java.nio.file.Path
-import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
@@ -40,7 +39,6 @@ import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.util.{Failure, Success, Try}
 
 object Queue extends LazyLogging {
 
@@ -82,8 +80,8 @@ object Queue extends LazyLogging {
       implicit val keyOrder: KeyOrder[Slice[Byte]] =
         swaydb.Queue.ordering
 
-      Try {
-        Set[(Long, A), Nothing, Bag.Less](
+      val set =
+        Set[(Long, A), Nothing, BAG](
           dir = dir,
           mapSize = mapSize,
           mmapMaps = mmapMaps,
@@ -111,37 +109,7 @@ object Queue extends LazyLogging {
           levelFiveThrottle = levelFiveThrottle,
           levelSixThrottle = levelSixThrottle
         )
-      } match {
-        case Success(set) =>
-          val first: Long =
-            set.headOption match {
-              case Some((first, _)) =>
-                first
 
-              case None =>
-                0
-            }
-
-          val last: Long =
-            set.lastOption match {
-              case Some((used, _)) =>
-                used + 1
-
-              case None =>
-                0
-            }
-
-          val queue =
-            swaydb.Queue(
-              set = set,
-              pushIds = new AtomicLong(last),
-              popIds = new AtomicLong(first)
-            )
-
-          bag.success(queue)
-
-        case Failure(exception) =>
-          bag.failure(exception)
-      }
+      bag.flatMap(set)(set => swaydb.Queue.fromSet(set))
     }
 }

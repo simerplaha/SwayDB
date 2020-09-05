@@ -22,13 +22,14 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.memory
+package swaydb.eventually.persistent
+
+import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -42,16 +43,30 @@ object Queue extends LazyLogging {
 
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   *
+   *
    */
-  def apply[A, BAG[_]](mapSize: Int = 4.mb,
-                       minSegmentSize: Int = 2.mb,
-                       maxKeyValuesPerSegment: Int = Int.MaxValue,
-                       fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
-                       deleteSegmentsEventually: Boolean = true,
+  def apply[A, BAG[_]](dir: Path,
+                       mapSize: Int = 4.mb,
+                       maxMemoryLevelSize: Int = 100.mb,
+                       maxSegmentsToPush: Int = 5,
+                       memoryLevelSegmentSize: Int = 2.mb,
+                       memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
+                       persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
+                       otherDirs: Seq[Dir] = Seq.empty,
+                       cacheKeyValueIds: Boolean = true,
+                       mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                       deleteMemorySegmentsEventually: Boolean = true,
                        shutdownTimeout: FiniteDuration = 30.seconds,
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                       levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                       lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
+                       persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                       persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                       binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
+                       mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+                       valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
+                       segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
+                       fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                       memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                          bag: Bag[BAG],
                                                                                                                          compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[swaydb.Queue[A]] =
@@ -64,15 +79,27 @@ object Queue extends LazyLogging {
 
       val set =
         Set[(Long, A), Nothing, BAG](
+          dir = dir,
           mapSize = mapSize,
-          minSegmentSize = minSegmentSize,
-          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-          fileCache = fileCache,
-          deleteSegmentsEventually = deleteSegmentsEventually,
+          maxMemoryLevelSize = maxMemoryLevelSize,
+          maxSegmentsToPush = maxSegmentsToPush,
+          memoryLevelSegmentSize = memoryLevelSegmentSize,
+          memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
+          persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
+          otherDirs = otherDirs,
+          cacheKeyValueIds = cacheKeyValueIds,
+          mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
+          deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
           shutdownTimeout = shutdownTimeout,
           acceleration = acceleration,
-          levelZeroThrottle = levelZeroThrottle,
-          lastLevelThrottle = lastLevelThrottle,
+          persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
+          persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,
+          binarySearchIndex = binarySearchIndex,
+          mightContainKeyIndex = mightContainKeyIndex,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig,
+          fileCache = fileCache,
+          memoryCache = memoryCache,
           threadStateCache = threadStateCache
         )
 

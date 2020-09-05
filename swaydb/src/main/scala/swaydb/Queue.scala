@@ -38,6 +38,39 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Queue {
+
+  private[swaydb] def fromSet[A, BAG[_]](set: swaydb.Set[(Long, A), Nothing, BAG])(implicit bag: Bag[BAG]): BAG[Queue[A]] =
+    bag.flatMap(set.headOption) {
+      headOption =>
+        bag.map(set.lastOption) {
+          lastOption =>
+
+            val first: Long =
+              headOption match {
+                case Some((first, _)) =>
+                  first
+
+                case None =>
+                  0
+              }
+
+            val last: Long =
+              lastOption match {
+                case Some((used, _)) =>
+                  used + 1
+
+                case None =>
+                  0
+              }
+
+            swaydb.Queue(
+              set = set.toBag[Bag.Less],
+              pushIds = new AtomicLong(last),
+              popIds = new AtomicLong(first)
+            )
+        }
+    }
+
   /**
    * Combines two serialisers into a single Serialiser.
    */
