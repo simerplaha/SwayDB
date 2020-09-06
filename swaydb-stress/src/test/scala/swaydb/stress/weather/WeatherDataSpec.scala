@@ -28,10 +28,11 @@ import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.Assertion
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._
 import swaydb.{Bag, IO, OK}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
@@ -39,7 +40,6 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
 
   def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]
 
-  implicit val ec = TestExecutionContext.executionContext
   implicit val bag = Bag.apiIO
 
   val keyValueCount = 1000000

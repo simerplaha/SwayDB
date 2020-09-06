@@ -27,10 +27,7 @@ package swaydb.stress.weather
 import swaydb.IO
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.core.TestData._
-import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.config.MMAP
-import swaydb.data.util.StorageUnits._
+import swaydb.data.accelerate.Accelerator
 import swaydb.serializers.Default._
 
 class Memory_WeatherDataSpec extends WeatherDataSpec {
