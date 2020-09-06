@@ -53,7 +53,7 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
       doAssert[Int, Int](MultiMapKey.MapEntry(0, 100))
       doAssert[Int, Int](MultiMapKey.MapEntriesEnd(0))
       doAssert[Int, Int](MultiMapKey.SubMapsStart(0))
-      doAssert[Int, Int](MultiMapKey.SubMap(0, 1000, 1))
+      doAssert[Int, Int](MultiMapKey.SubMap(0, 1000))
       doAssert[Int, Int](MultiMapKey.SubMapsEnd(0))
       doAssert[Int, Int](MultiMapKey.MapEnd(0))
     }
@@ -64,7 +64,7 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
       doAssert[Int, Int](MultiMapKey.MapEntry(1, 100))
       doAssert[Int, Int](MultiMapKey.MapEntriesEnd(1))
       doAssert[Int, Int](MultiMapKey.SubMapsStart(1))
-      doAssert[Int, Int](MultiMapKey.SubMap(1, 1000, 2))
+      doAssert[Int, Int](MultiMapKey.SubMap(1, 1000))
       doAssert[Int, Int](MultiMapKey.SubMapsEnd(1))
       doAssert[Int, Int](MultiMapKey.MapEnd(1))
     }
@@ -76,7 +76,7 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
       doAssert[String, String](MultiMapKey.MapEntry(1, "one key"))
       doAssert[String, String](MultiMapKey.MapEntriesEnd(1))
       doAssert[String, String](MultiMapKey.SubMapsStart(1))
-      doAssert[String, String](MultiMapKey.SubMap(1, "one sub map", 2))
+      doAssert[String, String](MultiMapKey.SubMap(1, "one sub map"))
       doAssert[String, String](MultiMapKey.SubMapsEnd(1))
       doAssert[String, String](MultiMapKey.MapEnd(1))
     }
@@ -87,7 +87,7 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
       doAssert[String, String](MultiMapKey.MapEntriesEnd(Long.MaxValue))
       doAssert[String, String](MultiMapKey.MapEntry(Long.MaxValue, randomCharacters(100000)))
       doAssert[String, String](MultiMapKey.SubMapsStart(Long.MaxValue))
-      doAssert[String, String](MultiMapKey.SubMap(Long.MaxValue, randomCharacters(100000), 2))
+      doAssert[String, String](MultiMapKey.SubMap(Long.MaxValue, randomCharacters(100000)))
       doAssert[String, String](MultiMapKey.SubMapsEnd(Long.MaxValue))
       doAssert[String, String](MultiMapKey.MapEnd(Long.MaxValue))
     }
@@ -98,7 +98,7 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
       doAssert[Double, Double](MultiMapKey.MapEntry(Long.MaxValue, Double.MaxValue))
       doAssert[Double, Double](MultiMapKey.MapEntriesEnd(Long.MaxValue))
       doAssert[Double, Double](MultiMapKey.SubMapsStart(Long.MaxValue))
-      doAssert[Double, Double](MultiMapKey.SubMap(Long.MaxValue, Double.MaxValue, 2))
+      doAssert[Double, Double](MultiMapKey.SubMap(Long.MaxValue, Double.MaxValue))
       doAssert[Double, Double](MultiMapKey.SubMapsEnd(Long.MaxValue))
       doAssert[Double, Double](MultiMapKey.MapEnd(Long.MaxValue))
     }
@@ -127,7 +127,7 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
           MultiMapKey.MapEntry(2, 1),
           MultiMapKey.MapEntriesEnd(2),
           MultiMapKey.SubMapsStart(2),
-          MultiMapKey.SubMap(2, 1000, 3),
+          MultiMapKey.SubMap(2, 1000),
           MultiMapKey.SubMapsEnd(2),
           MultiMapKey.MapEnd(2),
 
@@ -139,9 +139,9 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
           MultiMapKey.MapEntry(100, 5),
           MultiMapKey.MapEntriesEnd(100),
           MultiMapKey.SubMapsStart(100),
-          MultiMapKey.SubMap(100, 1000, 4),
-          MultiMapKey.SubMap(100, 2000, 5),
-          MultiMapKey.SubMap(100, 3000, 6),
+          MultiMapKey.SubMap(100, 1000),
+          MultiMapKey.SubMap(100, 2000),
+          MultiMapKey.SubMap(100, 3000),
           MultiMapKey.SubMapsEnd(100),
           MultiMapKey.MapEnd(100),
 
@@ -151,8 +151,8 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
           MultiMapKey.MapEntry(200, 3),
           MultiMapKey.MapEntriesEnd(200),
           MultiMapKey.SubMapsStart(200),
-          MultiMapKey.SubMap(200, 1000, 7),
-          MultiMapKey.SubMap(200, 2000, 8),
+          MultiMapKey.SubMap(200, 1000),
+          MultiMapKey.SubMap(200, 2000),
           MultiMapKey.SubMapsEnd(200),
           MultiMapKey.MapEnd(200)
         )
@@ -191,9 +191,9 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
           MultiMapKey.MapEntry(2, randomString3),
           MultiMapKey.MapEntriesEnd(2),
           MultiMapKey.SubMapsStart(2),
-          MultiMapKey.SubMap(2, randomString3, 4),
-          MultiMapKey.SubMap(2, randomString4, 5),
-          MultiMapKey.SubMap(2, randomString5, 6),
+          MultiMapKey.SubMap(2, randomString3),
+          MultiMapKey.SubMap(2, randomString4),
+          MultiMapKey.SubMap(2, randomString5),
           MultiMapKey.SubMapsEnd(2),
           MultiMapKey.MapEnd(2),
 
@@ -233,8 +233,8 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
           () => MultiMapKey.MapEntry(2, 2),
           () => MultiMapKey.MapEntriesEnd(2),
           () => MultiMapKey.SubMapsStart(2),
-          () => MultiMapKey.SubMap(2, 1000, 3), //depending on the order of inserion for this test either
-          () => MultiMapKey.SubMap(2, 1000, 4), //3 or 4 gets selected but in reality subMaps with same key will not have different subMapIds.
+          () => MultiMapKey.SubMap(2, 1000), //depending on the order of inserion for this test either
+          () => MultiMapKey.SubMap(2, 1000), //3 or 4 gets selected but in reality subMaps with same key will not have different subMapIds.
           () => MultiMapKey.SubMapsEnd(2),
           () => MultiMapKey.MapEnd(2),
 
@@ -259,7 +259,7 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
           MultiMapKey.MapEntry(2, 2),
           MultiMapKey.MapEntriesEnd(2),
           MultiMapKey.SubMapsStart(2),
-          MultiMapKey.SubMap(2, 1000, 4),
+          MultiMapKey.SubMap(2, 1000),
           MultiMapKey.SubMapsEnd(2),
           MultiMapKey.MapEnd(2),
 
@@ -281,7 +281,7 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
           MultiMapKey.MapEntry(2, 2),
           MultiMapKey.MapEntriesEnd(2),
           MultiMapKey.SubMapsStart(2),
-          MultiMapKey.SubMap(2, 1000, 3),
+          MultiMapKey.SubMap(2, 1000),
           MultiMapKey.SubMapsEnd(2),
           MultiMapKey.MapEnd(2),
 

@@ -44,7 +44,7 @@ protected object MultiMapKey {
   case class MapEntriesEnd(mapId: Long) extends MultiMapKey[Nothing, Nothing]
 
   case class SubMapsStart(mapId: Long) extends MultiMapKey[Nothing, Nothing]
-  case class SubMap[+M](mapId: Long, subMapKey: M, subMapId: Long) extends MultiMapKey[M, Nothing]
+  case class SubMap[+M](mapId: Long, subMapKey: M) extends MultiMapKey[M, Nothing]
   case class SubMapsEnd(mapId: Long) extends MultiMapKey[Nothing, Nothing]
 
   case class MapEnd(mapId: Long) extends MultiMapKey[Nothing, Nothing]
@@ -108,15 +108,13 @@ protected object MultiMapKey {
               .addUnsignedLong(mapId)
               .add(MultiMapKey.subMapsStart)
 
-          case MultiMapKey.SubMap(mapId, subMapKey, subMapId) =>
+          case MultiMapKey.SubMap(mapId, subMapKey) =>
             val dataKeyBytes = tableSerializer.write(subMapKey)
 
-            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + Bytes.sizeOfUnsignedInt(dataKeyBytes.size) + dataKeyBytes.size + Bytes.sizeOfUnsignedLong(subMapId) + 1)
+            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1 + dataKeyBytes.size)
               .addUnsignedLong(mapId)
               .add(MultiMapKey.subMap)
-              .addUnsignedInt(dataKeyBytes.size)
               .addAll(dataKeyBytes)
-              .addUnsignedLong(subMapId)
 
           case MultiMapKey.SubMapsEnd(mapId) =>
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
@@ -147,8 +145,7 @@ protected object MultiMapKey {
         else if (dataType == MultiMapKey.subMap)
           MultiMapKey.SubMap(
             mapId = mapId,
-            subMapKey = tableSerializer.read(reader.read(reader.readUnsignedInt())),
-            subMapId = reader.readUnsignedLong()
+            subMapKey = tableSerializer.read(reader.readRemaining())
           )
         else if (dataType == MultiMapKey.subMapsEnd)
           MultiMapKey.SubMapsEnd(mapId)
@@ -185,35 +182,14 @@ protected object MultiMapKey {
 
           val defaultOrderResult = KeyOrder.default.compare(tableBytesLeft, tableBytesRight)
           if (defaultOrderResult == 0) {
-            val aToCompare =
-              if (leftDataType == MultiMapKey.subMap)
-                ???
-              else
-                a.drop(tableBytesLeft.size)
-
-            val bToCompare =
-              if (rightDataType == MultiMapKey.subMap)
-                b.drop(tableBytesRight.size)
-              else
-                b.drop(tableBytesRight.size)
-
-            customOrder.compare(a.drop(tableBytesLeft.size), b.drop(tableBytesRight.size))
+            val aTail = a.drop(tableBytesLeft.size)
+            val bTail = b.drop(tableBytesRight.size)
+            customOrder.compare(aTail, bTail)
           } else {
             defaultOrderResult
           }
         } else {
           throw IO.throwable(s"Invalid key with prefix byte ${a.head}")
-        }
-      }
-
-      override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
-        val reader = key.createReader()
-        val mapId = reader.readUnsignedLong()
-        if (reader.get() == MultiMapKey.subMap) {
-          val size = key.readUnsignedInt() //size of tableKey
-          key.take(Bytes.sizeOfUnsignedLong(mapId) + Bytes.sizeOfUnsignedInt(size) + size)
-        } else {
-          key
         }
       }
     }

@@ -51,7 +51,23 @@ object Apply {
           Apply.Update(Some(value), deadline)
       }
   }
-  sealed trait Map[+V] extends Apply[V]
+
+  sealed trait Map[+V] extends Apply[V] {
+    def map[B](f: V => B): Apply.Map[B] =
+      this match {
+        case Nothing =>
+          Nothing
+
+        case Remove =>
+          Remove
+
+        case expire: Expire =>
+          expire
+
+        case Update(value, deadline) =>
+          Apply.Update(f(value), deadline)
+      }
+  }
 
   /**
    * Function outputs for Set

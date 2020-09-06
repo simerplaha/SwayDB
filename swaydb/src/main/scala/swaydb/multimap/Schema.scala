@@ -37,7 +37,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 /**
  * Provides APIs to manage children/nested maps/child maps of [[MultiMap_Experimental]].
  */
-class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]], BAG],
+class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], MultiValue[V], PureFunction[MultiMapKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
                                  val mapId: Long,
                                  val defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
                                                                           tableSerializer: Serializer[M],
@@ -293,13 +293,13 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
     bag.flatMap(buffer) {
       buffer =>
         val nextMapId = counter.next
-        buffer += Prepare.Put(MultiMapKey.SubMap[M](mapId, mapKey, nextMapId), None, expiration)
-        buffer += Prepare.Put(MultiMapKey.MapStart(nextMapId), None, expiration)
-        buffer += Prepare.Put(MultiMapKey.MapEntriesStart(nextMapId), None, expiration)
-        buffer += Prepare.Put(MultiMapKey.MapEntriesEnd(nextMapId), None, expiration)
-        buffer += Prepare.Put(MultiMapKey.SubMapsStart(nextMapId), None, expiration)
-        buffer += Prepare.Put(MultiMapKey.SubMapsEnd(nextMapId), None, expiration)
-        buffer += Prepare.Put(MultiMapKey.MapEnd(nextMapId), None, expiration)
+        buffer += Prepare.Put(MultiMapKey.SubMap[M](mapId, mapKey), MultiValue.MapId(nextMapId), expiration)
+        buffer += Prepare.Put(MultiMapKey.MapStart(nextMapId), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiMapKey.MapEntriesStart(nextMapId), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiMapKey.MapEntriesEnd(nextMapId), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiMapKey.SubMapsStart(nextMapId), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiMapKey.SubMapsEnd(nextMapId), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiMapKey.MapEnd(nextMapId), MultiValue.None, expiration)
 
         bag.transform(innerMap.commit(buffer)) {
           _ =>
@@ -323,8 +323,8 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
    */
   private def prepareRemove(expiration: Option[Deadline],
                             forceClear: Boolean,
-                            expire: Boolean): BAG[ListBuffer[Prepare[MultiMapKey[M, K], Option[V], Nothing]]] = {
-    val buffer = ListBuffer.empty[Prepare[MultiMapKey[M, K], Option[V], Nothing]]
+                            expire: Boolean): BAG[ListBuffer[Prepare[MultiMapKey[M, K], MultiValue[V], Nothing]]] = {
+    val buffer = ListBuffer.empty[Prepare[MultiMapKey[M, K], MultiValue[V], Nothing]]
 
     //todo - use the map level BAG instead synchronous IO.ApiIO.
     if (forceClear || expire) {
@@ -355,7 +355,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
   private def prepareRemove(mapKey: M,
                             expiration: Option[Deadline],
                             forceClear: Boolean,
-                            expire: Boolean): BAG[ListBuffer[Prepare[MultiMapKey[M, K], Option[V], Nothing]]] =
+                            expire: Boolean): BAG[ListBuffer[Prepare[MultiMapKey[M, K], MultiValue[V], Nothing]]] =
     bag.flatMap(get(mapKey)) {
       case Some(child) =>
         val buffer = child.schema.prepareRemove(expiration = expiration, forceClear = forceClear, expire = expire)
@@ -380,7 +380,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
    */
   private def buildPrepareRemove(subMapKey: M, subMapId: Long, expire: Option[Deadline]): Seq[Prepare.Remove[MultiMapKey[M, K]]] = {
     Seq(
-      Prepare.Remove(MultiMapKey.SubMap(mapId, subMapKey, subMapId), None, expire),
+      Prepare.Remove(MultiMapKey.SubMap(mapId, subMapKey), None, expire),
       Prepare.Remove(MultiMapKey.MapStart(subMapId), Some(MultiMapKey.MapEnd(subMapId)), expire)
     )
   }
@@ -429,21 +429,24 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
                                                                      evK: K2 <:< K,
                                                                      evV: V2 <:< V,
                                                                      evF: F2 <:< F): BAG[Option[MultiMap_Experimental[M2, K2, V2, F2, BAG]]] = {
-    bag.map(innerMap.getKeyDeadline(SubMap(mapId, mapKey, 0), bag)) {
-      case Some((key: SubMap[M2], deadline)) =>
+    bag.map(innerMap.getKeyValueDeadline(SubMap(mapId, mapKey), bag)) {
+      case Some(((key: SubMap[M2], deadline), value: MultiValue.MapId)) =>
         implicit val bag2: Bag[BAG] = bag
 
         Some(
           MultiMap_Experimental[M, K, V, F, BAG](
             innerMap = innerMap.toBag[BAG],
             mapKey = key.subMapKey,
-            mapId = key.subMapId,
+            mapId = value.id,
             defaultExpiration = deadline
           ).asInstanceOf[MultiMap_Experimental[M2, K2, V2, F2, BAG]]
         )
 
-      case Some((key, _)) =>
-        throw new Exception(s"Expected ${classOf[SubMap[_]].getSimpleName}. Got ${key.getClass.getSimpleName}")
+      case Some(((key, _), value)) =>
+        throw new Exception(
+          s"Expected key ${classOf[SubMap[_]].getSimpleName}. Got ${key.getClass.getSimpleName}. " +
+            s"Expected value ${classOf[MultiValue.MapId].getSimpleName}. Got ${value.getClass.getSimpleName}. "
+        )
 
       case None =>
         None
@@ -459,14 +462,14 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
       .stream
       .after(MultiMapKey.SubMapsStart(mapId))
       .takeWhile {
-        case MultiMapKey.SubMap(parentMap, _, _) =>
+        case MultiMapKey.SubMap(parentMap, _) =>
           parentMap == mapId
 
         case _ =>
           false
       }
       .collect {
-        case MultiMapKey.SubMap(_, dataKey, _) =>
+        case MultiMapKey.SubMap(_, dataKey) =>
           dataKey
       }
 

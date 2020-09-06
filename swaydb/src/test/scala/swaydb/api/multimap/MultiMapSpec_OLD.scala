@@ -163,7 +163,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
                 (MultiMapKey.MapEntry(MultiMap_Experimental.rootMapId, 2), Some("two")),
                 (MultiMapKey.MapEntriesEnd(MultiMap_Experimental.rootMapId), None),
                 (MultiMapKey.SubMapsStart(MultiMap_Experimental.rootMapId), None),
-                (MultiMapKey.SubMap(MultiMap_Experimental.rootMapId, 1, MultiMap_Experimental.rootMapId + 3), None),
+                (MultiMapKey.SubMap(MultiMap_Experimental.rootMapId, 1), None),
                 (MultiMapKey.SubMapsEnd(MultiMap_Experimental.rootMapId), None),
                 (MultiMapKey.MapEnd(MultiMap_Experimental.rootMapId), None),
 

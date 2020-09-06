@@ -33,6 +33,7 @@ import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.multimap.MultiValue
 import swaydb.serializers.Serializer
 import swaydb.{Apply, KeyOrderConverter, MultiMapKey, MultiMap_Experimental, PureFunction}
 
@@ -72,14 +73,14 @@ object MultiMap_Experimental extends LazyLogging {
                                                                                                                                   compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val mapKeySerializer: Serializer[MultiMapKey[M, K]] = MultiMapKey.serializer(keySerializer, tableSerializer)
-      implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toNestedOption(valueSerializer)
+      implicit val optionValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)
 
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiMapKey.ordering(keyOrder)
 
       //the inner map with custom keyOrder and custom key-value types to support nested Maps.
       val map =
-        swaydb.memory.Map[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]], BAG](
+        swaydb.memory.Map[MultiMapKey[M, K], MultiValue[V], PureFunction[MultiMapKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -92,7 +93,7 @@ object MultiMap_Experimental extends LazyLogging {
           threadStateCache = threadStateCache
         )(keySerializer = mapKeySerializer,
           valueSerializer = optionValueSerializer,
-          functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]],
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiMapKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]]],
           bag = bag,
           functions = functions.innerFunctions,
           byteKeyOrder = internalKeyOrder,
