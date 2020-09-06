@@ -29,13 +29,11 @@ import java.nio.file.Path
 import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.data.Time
-import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
 import swaydb.core.map.counter.Counter
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 private[core] trait Timer {
@@ -78,10 +76,7 @@ private[core] object Timer {
   def persistent(path: Path,
                  mmap: MMAP.Map,
                  mod: Long,
-                 flushCheckpointSize: Long)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                            timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore,
-                                            bufferCleaner: ByteBufferSweeperActor,
+                 flushCheckpointSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
                                             forceSaveApplier: ForceSaveApplier,
                                             writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                                             reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, Timer] =

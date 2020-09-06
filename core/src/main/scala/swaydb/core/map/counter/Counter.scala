@@ -37,13 +37,13 @@ import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private[core] trait Counter {
+private[swaydb] trait Counter {
   def next: Long
 
   def close: Unit
 }
 
-private[core] object Counter {
+private[swaydb] object Counter {
   val defaultKey = Slice.emptyBytes
 
   def memory(): MemoryCounter =
@@ -52,13 +52,10 @@ private[core] object Counter {
   def persistent(path: Path,
                  mmap: MMAP.Map,
                  mod: Long,
-                 flushCheckpointSize: Long)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                            timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore,
-                                            bufferCleaner: ByteBufferSweeperActor,
+                 flushCheckpointSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
                                             forceSaveApplier: ForceSaveApplier,
                                             writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] =
+                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, Counter] =
     PersistentCounter(
       path = path,
       mmap = mmap,

@@ -26,6 +26,7 @@ package swaydb.core
 
 import java.util.function.Supplier
 
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.build.BuildValidator
 import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
@@ -155,6 +156,7 @@ private[swaydb] object Core {
 private[swaydb] class Core[BAG[_]](val zero: LevelZero,
                                    threadStateCache: ThreadStateCache,
                                    onClose: => Future[Unit])(implicit bag: Bag[BAG],
+                                                             private[swaydb] val bufferSweeper: ByteBufferSweeperActor,
                                                              shutdownExecutionContext: ExecutionContext) {
 
   @volatile private var closed: Boolean = false
@@ -357,5 +359,7 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
       zero = zero,
       threadStateCache = threadStateCache,
       onClose = onClose
-    )(bag, shutdownExecutionContext)
+    )(bag = bag,
+      bufferSweeper = bufferSweeper,
+      shutdownExecutionContext = shutdownExecutionContext)
 }

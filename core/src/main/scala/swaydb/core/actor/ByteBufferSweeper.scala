@@ -44,7 +44,7 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
-private[core] object ByteBufferSweeper extends LazyLogging {
+private[swaydb] object ByteBufferSweeper extends LazyLogging {
 
   val className = ByteBufferSweeper.getClass.getSimpleName.split("\\$").last
 

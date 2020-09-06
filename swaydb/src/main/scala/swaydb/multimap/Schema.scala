@@ -28,6 +28,7 @@ import swaydb.MultiMapKey.MapStart
 import swaydb.core.util.Times._
 import swaydb.serializers._
 import swaydb.Stream
+import swaydb.core.map.counter.Counter
 import swaydb.{Apply, Bag, IO, Map, MultiMapKey, MultiMap_Experimental, Prepare, PureFunction}
 
 import scala.collection.mutable.ListBuffer
@@ -41,6 +42,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
                                  val defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
                                                                           tableSerializer: Serializer[M],
                                                                           valueSerializer: Serializer[V],
+                                                                          counter: Counter,
                                                                           bag: Bag[BAG]) {
 
   /**

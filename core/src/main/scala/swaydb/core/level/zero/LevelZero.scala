@@ -39,7 +39,7 @@ import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
-import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
+import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
@@ -94,13 +94,10 @@ private[core] object LevelZero extends LazyLogging {
                 mmap = mmap,
                 mod = 100000,
                 flushCheckpointSize = 1.mb
-              )(keyOrder = KeyOrder.default,
-                timeOrder = timeOrder,
-                functionStore = functionStore,
-                bufferCleaner = bufferCleaner,
+              )(bufferCleaner = bufferCleaner,
                 forceSaveApplier = forceSaveApplier,
-                writer = TimerMapEntryWriter.TimerPutMapEntryWriter,
-                reader = TimerMapEntryReader.TimerPutMapEntryReader)
+                writer = CounterMapEntryWriter.CounterPutMapEntryWriter,
+                reader = CounterMapEntryReader.CounterPutMapEntryReader)
             } else {
               IO.Right(Timer.empty)
             }
@@ -154,13 +151,10 @@ private[core] object LevelZero extends LazyLogging {
                     mmap = LevelRef.getMMAPLog(nextLevel),
                     mod = 100000,
                     flushCheckpointSize = 1.mb
-                  )(keyOrder = KeyOrder.default,
-                    timeOrder = timeOrder,
-                    functionStore = functionStore,
-                    bufferCleaner = bufferCleaner,
+                  )(bufferCleaner = bufferCleaner,
                     forceSaveApplier = forceSaveApplier,
-                    writer = TimerMapEntryWriter.TimerPutMapEntryWriter,
-                    reader = TimerMapEntryReader.TimerPutMapEntryReader)
+                    writer = CounterMapEntryWriter.CounterPutMapEntryWriter,
+                    reader = CounterMapEntryReader.CounterPutMapEntryReader)
 
                 case None =>
                   IO.Right(Timer.memory())

@@ -28,7 +28,11 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.build.BuildValidator
+import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.map.counter.Counter
+import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -36,7 +40,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Apply, KeyOrderConverter, MultiMapKey, MultiMap_Experimental, PureFunction}
+import swaydb.{Apply, IO, KeyOrderConverter, MultiMapKey, MultiMap_Experimental, PureFunction}
 
 import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -137,7 +141,24 @@ object MultiMap_Experimental extends LazyLogging {
 
       bag.flatMap(map) {
         map =>
-          swaydb.MultiMap_Experimental[M, K, V, F, BAG](map)
+          implicit val writer = CounterMapEntryWriter.CounterPutMapEntryWriter
+          implicit val reader = CounterMapEntryReader.CounterPutMapEntryReader
+          implicit val core: ByteBufferSweeperActor = map.core.bufferSweeper
+          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
+
+          Counter.persistent(
+            path = dir,
+            mmap = mmapMaps,
+            mod = 1000,
+            flushCheckpointSize = 1.mb
+          ) match {
+            case IO.Right(counter) =>
+              implicit val implicitCounter: Counter = counter
+              swaydb.MultiMap_Experimental[M, K, V, F, BAG](map)
+
+            case IO.Left(error) =>
+              bag.failure(error.exception)
+          }
       }
     }
 }

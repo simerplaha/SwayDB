@@ -30,7 +30,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
-import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, TimerMapEntryReader, TimerMapEntryWriter}
+import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, CounterMapEntryReader, CounterMapEntryWriter}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -80,8 +80,8 @@ sealed trait TimerSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
   implicit val functionStore = FunctionStore.memory()
-  implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
-  implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
+  implicit val timerReader = CounterMapEntryReader.CounterPutMapEntryReader
+  implicit val timerWriter = CounterMapEntryWriter.CounterPutMapEntryWriter
 
   def newTimer(path: Path)(implicit keyOrder: KeyOrder[Slice[Byte]],
                            timeOrder: TimeOrder[Slice[Byte]],

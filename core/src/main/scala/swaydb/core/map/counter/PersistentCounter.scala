@@ -57,18 +57,18 @@ private[core] object PersistentCounter extends LazyLogging {
       throw new IllegalAccessException("Counter does not require skipList merger.")
   }
 
-  def apply(path: Path,
-            mmap: MMAP.Map,
-            mod: Long,
-            flushCheckpointSize: Long)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                       timeOrder: TimeOrder[Slice[Byte]],
-                                       bufferCleaner: ByteBufferSweeperActor,
-                                       functionStore: FunctionStore,
-                                       forceSaveApplier: ForceSaveApplier,
-                                       writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] = {
+  private[counter] def apply(path: Path,
+                             mmap: MMAP.Map,
+                             mod: Long,
+                             flushCheckpointSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
+                                                        forceSaveApplier: ForceSaveApplier,
+                                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
+                                                        reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] = {
     //Disabled because autoClose is not required here.
     implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] = Actor.deadActor()
+    implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+    implicit val timeOrder: TimeOrder[Slice[Byte]] = null
+    implicit val functionStore: FunctionStore = null
 
     IO {
       Map.persistent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]](
@@ -158,7 +158,14 @@ private[core] class PersistentCounter(mod: Long,
   override def next: Long =
     synchronized {
       count += 1
-      if (count % mod == 0) PersistentCounter.checkpoint(count, mod, map)
+
+      if (count % mod == 0)
+        PersistentCounter.checkpoint(
+          nextTime = count,
+          mod = mod,
+          map = map
+        )
+
       count
     }
 

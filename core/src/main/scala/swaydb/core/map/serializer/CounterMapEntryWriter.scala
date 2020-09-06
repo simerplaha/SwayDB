@@ -25,30 +25,30 @@
 package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.core.util.Bytes
+import swaydb.data.slice.Slice
 
-private[core] object TimerMapEntryReader {
+private[swaydb] object CounterMapEntryWriter {
 
-  implicit object TimerPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] {
-    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Slice[Byte]] = {
-      val _ = reader.readUnsignedInt()
-      val keySize = reader.readUnsignedInt()
+  implicit object CounterPutMapEntryWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]] {
+    val id: Int = 0
 
-      val key =
-        if (keySize == 0)
-          Slice.emptyBytes
-        else
-          reader.read(keySize)
+    override val isRange: Boolean = false
+    override val isUpdate: Boolean = false
 
-      val valueSize = reader.readUnsignedInt()
+    override def write(entry: MapEntry.Put[Slice[Byte], Slice[Byte]], bytes: Slice[Byte]): Unit =
+      bytes
+        .addUnsignedInt(id)
+        .addUnsignedInt(entry.key.size)
+        .addAll(entry.key)
+        .addUnsignedInt(entry.value.size)
+        .addAll(entry.value)
 
-      val value =
-        if (valueSize == 0)
-          Slice.emptyBytes
-        else
-          reader.read(valueSize)
-
-      MapEntry.Put(key, value)(TimerMapEntryWriter.TimerPutMapEntryWriter)
-    }
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Slice[Byte]]): Int =
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(entry.key.size) +
+        entry.key.size +
+        Bytes.sizeOfUnsignedInt(entry.value.size) +
+        entry.value.size
   }
 }

@@ -27,6 +27,7 @@ package swaydb
 import java.nio.file.Path
 
 import swaydb.MultiMapKey.{MapEntriesEnd, MapEntriesStart, MapEntry}
+import swaydb.core.map.counter.Counter
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
@@ -47,7 +48,8 @@ object MultiMap_Experimental {
   private[swaydb] def apply[M, K, V, F, BAG[_]](rootMap: swaydb.Map[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
                                                                                                                                                                           keySerializer: Serializer[K],
                                                                                                                                                                           tableSerializer: Serializer[M],
-                                                                                                                                                                          valueSerializer: Serializer[V]): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
+                                                                                                                                                                          valueSerializer: Serializer[V],
+                                                                                                                                                                          counter: Counter): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
     bag.flatMap(rootMap.isEmpty) {
       isEmpty =>
         val rootMapKey = Seq.empty[M]
@@ -281,6 +283,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
                                                              defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
                                                                                                          tableSerializer: Serializer[M],
                                                                                                          valueSerializer: Serializer[V],
+                                                                                                         counter: Counter,
                                                                                                          val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   override def path: Path =
