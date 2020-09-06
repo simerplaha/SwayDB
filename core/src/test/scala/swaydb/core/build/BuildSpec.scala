@@ -157,7 +157,7 @@ class BuildSpec extends TestBase {
             val folder = createRandomDir
 
             implicit val validator = BuildValidator.DisallowOlderVersions
-            Build.validateOrCreate(folder).left.value.getMessage should startWith("Previous SwayDB version (unknown) is not compatible with")
+            Build.validateOrCreate(folder).left.value.getMessage should startWith("Previous SwayDB version (version number unknown) is not compatible with")
 
         }
       }

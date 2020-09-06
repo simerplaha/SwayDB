@@ -29,9 +29,6 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.file.Effect
-import swaydb.core.util.CRC32
-import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
 import swaydb.macros.VersionReader
 
 sealed trait Build
@@ -70,19 +67,8 @@ object Build extends LazyLogging {
   def write[E: IO.ExceptionHandler](folder: Path, buildInfo: Build.Info): IO[E, Path] =
     IO {
       val file = folder.resolve(fileName)
-      val versionBytes = Slice.create[Byte](1 + ByteSizeOf.int * 3)
 
-      versionBytes add Build.formatId
-
-      versionBytes addInt buildInfo.major
-      versionBytes addInt buildInfo.minor
-      versionBytes addInt buildInfo.revision
-
-      val crc = CRC32.forBytes(versionBytes)
-
-      val slice = Slice.create[Byte](ByteSizeOf.long + versionBytes.size)
-      slice addLong crc
-      slice addAll versionBytes
+      val slice = BuildSerialiser.write(buildInfo)
 
       Effect.createDirectoriesIfAbsent(folder)
       logger.info(s"Writing build.info - v${buildInfo.version}")
@@ -98,23 +84,7 @@ object Build extends LazyLogging {
     else
       IO {
         val bytes = Effect.readAllBytes(file)
-
-        val crc = bytes.readLong()
-        val versionBytes = bytes.drop(ByteSizeOf.long)
-        val versionBytesCRC = CRC32.forBytes(versionBytes)
-
-        assert(versionBytesCRC == crc, s"$file has invalid CRC. $versionBytesCRC != $crc")
-
-        val versionReader = versionBytes.createReader()
-        val formatId = versionReader.get()
-        assert(formatId == Build.formatId, s"$file has invalid formatId. $formatId != ${Build.formatId}")
-
-        val major = versionReader.readInt()
-        val minor = versionReader.readInt()
-        val revision = versionReader.readInt()
-
-        val buildInfo = Build.Info(major = major, minor = minor, revision = revision)
-
+        val buildInfo = BuildSerialiser.read(bytes, file)
         logger.info(s"build.info - v${buildInfo.version}")
         buildInfo
       }
