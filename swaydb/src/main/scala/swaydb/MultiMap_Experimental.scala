@@ -50,10 +50,10 @@ object MultiMap_Experimental {
    * Given the inner [[swaydb.Map]] instance this creates a parent [[MultiMap_Experimental]] instance.
    */
   private[swaydb] def apply[M, K, V, F, BAG[_]](rootMap: swaydb.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
-                                                                                                                                                                                      keySerializer: Serializer[K],
-                                                                                                                                                                                      tableSerializer: Serializer[M],
-                                                                                                                                                                                      valueSerializer: Serializer[V],
-                                                                                                                                                                                      counter: Counter): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
+                                                                                                                                                                                keySerializer: Serializer[K],
+                                                                                                                                                                                tableSerializer: Serializer[M],
+                                                                                                                                                                                valueSerializer: Serializer[V],
+                                                                                                                                                                                counter: Counter): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
     bag.flatMap(rootMap.isEmpty) {
       isEmpty =>
 
@@ -786,10 +786,14 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
     ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
 
   def close(): BAG[Unit] =
-    innerMap.close()
+    bag.and(bag(counter.close)) {
+      innerMap.close()
+    }
 
   def delete(): BAG[Unit] =
-    innerMap.delete()
+    bag.and(bag(counter.close)) {
+      innerMap.delete()
+    }
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getSimpleName

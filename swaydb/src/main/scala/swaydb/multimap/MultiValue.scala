@@ -85,12 +85,36 @@ object MultiValue {
       new MapId(id)
   }
 
-  class MapId(val id: Long) extends Our
+  class MapId(val id: Long) extends Our {
+    override def equals(other: Any): Boolean =
+      other match {
+        case other: MapId =>
+          other.id == id
+
+        case _ =>
+          false
+      }
+
+    override def hashCode(): Int =
+      id.hashCode()
+  }
 
   object Their {
     @inline def apply[V](value: V): Their[V] =
       new Their(value)
   }
 
-  class Their[+V](val value: V) extends MultiValue[V]
+  class Their[+V](val value: V) extends MultiValue[V] {
+    override def equals(other: Any): Boolean =
+      other match {
+        case other: Their[_] =>
+          value == other.value
+
+        case _ =>
+          false
+      }
+
+    override def hashCode(): Int =
+      value.hashCode()
+  }
 }

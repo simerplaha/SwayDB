@@ -48,22 +48,22 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    * Creates new or initialises the existing map.
    */
   def init[M2](mapKey: M2)(implicit evT: M2 <:< M): BAG[MultiMap_Experimental[M2, K, V, F, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = None, forceClear = false)
+    getOrPut(childKey = mapKey, expireAt = None, forceClear = false)
 
   def init[M2, K2](mapKey: M2, keyType: Class[K2])(implicit evT: M2 <:< M,
                                                    evK: K2 <:< K): BAG[MultiMap_Experimental[M2, K2, V, F, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = None, forceClear = false)
+    getOrPut(childKey = mapKey, expireAt = None, forceClear = false)
 
   def init[M2, K2, V2](mapKey: M2, keyType: Class[K2], valueType: Class[V2])(implicit evT: M2 <:< M,
                                                                              evK: K2 <:< K,
                                                                              evV: V2 <:< V): BAG[MultiMap_Experimental[M2, K2, V2, F, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = None, forceClear = false)
+    getOrPut(childKey = mapKey, expireAt = None, forceClear = false)
 
   def init[M2, K2, V2, F2](mapKey: M2, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2])(implicit evT: M2 <:< M,
                                                                                                           evK: K2 <:< K,
                                                                                                           evV: V2 <:< V,
                                                                                                           evF: F2 <:< F): BAG[MultiMap_Experimental[M2, K2, V2, F2, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = None, forceClear = false)
+    getOrPut(childKey = mapKey, expireAt = None, forceClear = false)
 
   /**
    * Creates new or initialises the existing map.
@@ -165,22 +165,22 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    *       Always use [[init]] if clearing existing entries is not required.
    */
   def replace[M2](mapKey: M2, expireAt: Deadline)(implicit evT: M2 <:< M): BAG[MultiMap_Experimental[M2, K, V, F, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = Some(expireAt), forceClear = true)
+    getOrPut(childKey = mapKey, expireAt = Some(expireAt), forceClear = true)
 
   def replace[M2, K2](mapKey: M2, keyType: Class[K2], expireAt: Deadline)(implicit evT: M2 <:< M,
                                                                           evK: K2 <:< K): BAG[MultiMap_Experimental[M2, K2, V, F, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = Some(expireAt), forceClear = true)
+    getOrPut(childKey = mapKey, expireAt = Some(expireAt), forceClear = true)
 
   def replace[M2, K2, V2](mapKey: M2, keyType: Class[K2], valueType: Class[V2], expireAt: Deadline)(implicit evT: M2 <:< M,
                                                                                                     evK: K2 <:< K,
                                                                                                     evV: V2 <:< V): BAG[MultiMap_Experimental[M2, K2, V2, F, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = Some(expireAt), forceClear = true)
+    getOrPut(childKey = mapKey, expireAt = Some(expireAt), forceClear = true)
 
   def replace[M2, K2, V2, F2](mapKey: M2, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2], expireAt: Deadline)(implicit evT: M2 <:< M,
                                                                                                                                  evK: K2 <:< K,
                                                                                                                                  evV: V2 <:< V,
                                                                                                                                  evF: F2 <:< F): BAG[MultiMap_Experimental[M2, K2, V2, F2, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = Some(expireAt), forceClear = true)
+    getOrPut(childKey = mapKey, expireAt = Some(expireAt), forceClear = true)
 
   /**
    * Clears existing entries before creating the Map.
@@ -190,22 +190,22 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    */
 
   def replace[M2](mapKey: M2, expireAt: Option[Deadline])(implicit evT: M2 <:< M): BAG[MultiMap_Experimental[M2, K, V, F, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = expireAt, forceClear = true)
+    getOrPut(childKey = mapKey, expireAt = expireAt, forceClear = true)
 
   def replace[M2, K2](mapKey: M2, keyType: Class[K2], expireAt: Option[Deadline])(implicit evT: M2 <:< M,
                                                                                   evK: K2 <:< K): BAG[MultiMap_Experimental[M2, K2, V, F, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = expireAt, forceClear = true)
+    getOrPut(childKey = mapKey, expireAt = expireAt, forceClear = true)
 
   def replace[M2, K2, V2](mapKey: M2, keyType: Class[K2], valueType: Class[V2], expireAt: Option[Deadline])(implicit evT: M2 <:< M,
                                                                                                             evK: K2 <:< K,
                                                                                                             evV: V2 <:< V): BAG[MultiMap_Experimental[M2, K2, V2, F, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = expireAt, forceClear = true)
+    getOrPut(childKey = mapKey, expireAt = expireAt, forceClear = true)
 
   def replace[M2, K2, V2, F2](mapKey: M2, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2], expireAt: Option[Deadline])(implicit evT: M2 <:< M,
                                                                                                                                          evK: K2 <:< K,
                                                                                                                                          evV: V2 <:< V,
                                                                                                                                          evF: F2 <:< F): BAG[MultiMap_Experimental[M2, K2, V2, F2, BAG]] =
-    getOrPut(mapKey = mapKey, expireAt = expireAt, forceClear = true)
+    getOrPut(childKey = mapKey, expireAt = expireAt, forceClear = true)
 
 
   def remove(mapKey: M): BAG[Boolean] =
@@ -223,7 +223,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
   /**
    * Inserts a child map to this [[MultiMap_Experimental]].
    *
-   * @param mapKey     key assign to the child
+   * @param childKey   key assign to the child
    * @param expireAt   expiration
    * @param forceClear if true, removes all existing entries before initialising the child Map.
    *                   Clear uses a range entry to clear existing key-values and inserts to [[Range]]
@@ -232,32 +232,32 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    *                   range entries will get applied the performance goes back to normal. But try to avoid
    *                   using clear.
    */
-  private def getOrPut[M2, K2, V2, F2](mapKey: M2, expireAt: Option[Deadline], forceClear: Boolean)(implicit evT: M2 <:< M,
-                                                                                                    evK: K2 <:< K,
-                                                                                                    evV: V2 <:< V,
-                                                                                                    evF: F2 <:< F): BAG[MultiMap_Experimental[M2, K2, V2, F2, BAG]] =
-    bag.flatMap(get(mapKey)) {
-      case Some(_map) =>
-        val map = _map.asInstanceOf[MultiMap_Experimental[M2, K2, V2, F2, BAG]]
+  private def getOrPut[M2, K2, V2, F2](childKey: M2, expireAt: Option[Deadline], forceClear: Boolean)(implicit evT: M2 <:< M,
+                                                                                                      evK: K2 <:< K,
+                                                                                                      evV: V2 <:< V,
+                                                                                                      evF: F2 <:< F): BAG[MultiMap_Experimental[M2, K2, V2, F2, BAG]] =
+    bag.flatMap(get(childKey)) {
+      case Some(_child) =>
+        val childMap = _child.asInstanceOf[MultiMap_Experimental[M2, K2, V2, F2, BAG]]
 
         if (forceClear)
-          create(mapKey = mapKey, expireAt = expireAt, forceClear = forceClear, expire = false)
+          create(childKey = childKey, Some(childMap.mapId), expireAt = expireAt, forceClear = forceClear, expire = false)
         else
           expireAt match {
             case Some(updatedExpiration) =>
               val newExpiration = defaultExpiration earlier updatedExpiration
               //if the expiration is not updated return the map.
               if (defaultExpiration contains newExpiration)
-                bag.success(map)
+                bag.success(childMap)
               else // expiration is updated perform create.
-                create(mapKey = mapKey, expireAt = Some(newExpiration), forceClear = false, expire = true)
+                create(childKey = childKey, Some(childMap.mapId), expireAt = Some(newExpiration), forceClear = false, expire = true)
 
             case None =>
-              bag.success(map)
+              bag.success(childMap)
           }
 
       case None =>
-        create(mapKey = mapKey, expireAt = expireAt, forceClear = false, expire = false)
+        create(childKey = childKey, childId = None, expireAt = expireAt, forceClear = false, expire = false)
     }
 
   /**
@@ -281,31 +281,32 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
     }
 
 
-  private def create[M2, K2, V2, F2](mapKey: M2, expireAt: Option[Deadline], forceClear: Boolean, expire: Boolean)(implicit evT: M2 <:< M,
-                                                                                                                   evK: K2 <:< K,
-                                                                                                                   evV: V2 <:< V,
-                                                                                                                   evF: F2 <:< F): BAG[MultiMap_Experimental[M2, K2, V2, F2, BAG]] = {
+  private def create[M2, K2, V2, F2](childKey: M2, childId: Option[Long], expireAt: Option[Deadline], forceClear: Boolean, expire: Boolean)(implicit evT: M2 <:< M,
+                                                                                                                                            evK: K2 <:< K,
+                                                                                                                                            evV: V2 <:< V,
+                                                                                                                                            evF: F2 <:< F): BAG[MultiMap_Experimental[M2, K2, V2, F2, BAG]] = {
     val expiration = expireAt earlier defaultExpiration
 
-    val buffer = prepareRemove(mapKey = mapKey, expiration = expiration, forceClear = forceClear, expire = expire)
+    val buffer = prepareRemove(mapKey = childKey, expiration = expiration, forceClear = forceClear, expire = expire)
 
     bag.flatMap(buffer) {
       buffer =>
-        val nextMapId = counter.next
-        buffer += Prepare.Put(MultiKey.Child[M](mapId, mapKey), MultiValue.MapId(nextMapId), expiration)
-        buffer += Prepare.Put(MultiKey.Start(nextMapId), MultiValue.None, expiration)
-        buffer += Prepare.Put(MultiKey.EntriesStart(nextMapId), MultiValue.None, expiration)
-        buffer += Prepare.Put(MultiKey.EntriesEnd(nextMapId), MultiValue.None, expiration)
-        buffer += Prepare.Put(MultiKey.ChildrenStart(nextMapId), MultiValue.None, expiration)
-        buffer += Prepare.Put(MultiKey.ChildrenEnd(nextMapId), MultiValue.None, expiration)
-        buffer += Prepare.Put(MultiKey.End(nextMapId), MultiValue.None, expiration)
+        val childIdOrNew = childId getOrElse counter.next
+
+        buffer += Prepare.Put(MultiKey.Child[M](mapId, childKey), MultiValue.MapId(childIdOrNew), expiration)
+        buffer += Prepare.Put(MultiKey.Start(childIdOrNew), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiKey.EntriesStart(childIdOrNew), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiKey.EntriesEnd(childIdOrNew), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiKey.ChildrenStart(childIdOrNew), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiKey.ChildrenEnd(childIdOrNew), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiKey.End(childIdOrNew), MultiValue.None, expiration)
 
         bag.transform(innerMap.commit(buffer)) {
           _ =>
             MultiMap_Experimental(
               innerMap = innerMap,
-              mapKey = mapKey.asInstanceOf[M],
-              mapId = nextMapId,
+              mapKey = childKey.asInstanceOf[M],
+              mapId = childIdOrNew,
               defaultExpiration = expiration
             ).asInstanceOf[MultiMap_Experimental[M2, K2, V2, F2, BAG]]
         }

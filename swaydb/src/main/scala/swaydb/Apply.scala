@@ -36,7 +36,7 @@ object Apply {
    * Function outputs for Map
    */
   object Map {
-    def toOption[V](value: Map[V]): Map[Option[V]] =
+    @inline def toOption[V](value: Map[V]): Map[Option[V]] =
       value match {
         case Apply.Nothing =>
           Apply.Nothing
@@ -53,7 +53,7 @@ object Apply {
   }
 
   sealed trait Map[+V] extends Apply[V] {
-    def map[B](f: V => B): Apply.Map[B] =
+    @inline def map[B](f: V => B): Apply.Map[B] =
       this match {
         case Nothing =>
           Nothing
