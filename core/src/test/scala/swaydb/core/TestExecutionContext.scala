@@ -24,13 +24,11 @@
 
 package swaydb.core
 
-import java.util.concurrent.Executors
-
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+import scala.concurrent.ExecutionContext
 
 object TestExecutionContext {
 
-  val executionContext: ExecutionContextExecutorService =
-    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors()))
+  val executionContext: ExecutionContext =
+    scala.concurrent.ExecutionContext.Implicits.global
 
 }

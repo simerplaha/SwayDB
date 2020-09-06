@@ -188,12 +188,14 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
 
   @inline private def assertTerminated[T, BAG2[_]](f: => BAG2[T])(implicit bag: Bag[BAG2]): BAG2[T] =
     if (closed)
-      bag.failure(new IllegalStateException(Core.closedMessage))
+      bag.failure(new IllegalAccessException(Core.closedMessage))
     else
       f
 
   @inline private def execute[R, BAG[_]](thunk: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
-    assertTerminated {
+    if (closed)
+      bag.failure(new IllegalAccessException(Core.closedMessage))
+    else
       try
         bag.success(thunk(zero))
       catch {
@@ -201,7 +203,6 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
           val error = IO.ExceptionHandler.toError(throwable)
           IO.Defer(thunk(zero), error).run(1)
       }
-    }
 
   def put(key: Slice[Byte]): BAG[OK] =
     assertTerminated(serial.execute(zero.put(key)))
