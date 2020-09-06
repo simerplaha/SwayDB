@@ -83,15 +83,15 @@ private[core] object PersistentCounter extends LazyLogging {
     } flatMap {
       map =>
         map.head() match {
-          case usedID: Slice[Byte] =>
-            val startId = usedID.readLong()
+          case userId: Slice[Byte] =>
+            val startId = userId.readLong()
             map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong(startId + mod))) flatMap {
               wrote =>
                 if (wrote)
                   IO {
                     new PersistentCounter(
                       mod = mod,
-                      startID = startId,
+                      startId = startId,
                       map = map
                     )
                   }
@@ -106,7 +106,7 @@ private[core] object PersistentCounter extends LazyLogging {
                   IO {
                     new PersistentCounter(
                       mod = mod,
-                      startID = Counter.startId,
+                      startId = Counter.startId,
                       map = map
                     )
                   }
@@ -116,55 +116,36 @@ private[core] object PersistentCounter extends LazyLogging {
         }
     }
   }
-
-  /**
-   * Stores next checkpoint count to Map.
-   *
-   * Why throw exceptions?
-   * Writes are ALWAYS expected to succeed but unexpected failures can still occur.
-   * Since nextTime is called for each written key-value having an IO wrapper
-   * for each [[PersistentCounter.next]] call can increase in-memory objects which can cause
-   * performance issues.
-   *
-   * Throwing exception on failure is temporarily solution since failures are not expected and if failure does occur
-   * it would be due to file system permission issue.
-   *
-   * Possibly needs a better solution.
-   */
-  private[counter] def checkpoint(nextTime: Long,
-                                  mod: Long,
-                                  map: PersistentMap[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) =
-    map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong(nextTime + mod))) onLeftSideEffect {
-      failed =>
-        val message = s"Failed to write counter entry: $nextTime"
-        logger.error(message, failed.exception)
-        throw IO.throwable(message) //:O see note above
-    } foreach {
-      wrote =>
-        if (!wrote) {
-          val message = s"Failed to write counter entry: $nextTime"
-          logger.error(message)
-          throw IO.throwable(message) //:O see note above
-        }
-    }
 }
 
 private[core] class PersistentCounter(mod: Long,
-                                      startID: Long,
-                                      map: PersistentMap[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Counter {
+                                      startId: Long,
+                                      map: PersistentMap[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Counter with LazyLogging {
 
-  private var count = startID
+  private var count = startId
 
   override def next: Long =
     synchronized {
       count += 1
 
+      /**
+       * Stores next checkpoint count to Map.
+       *
+       * Why throw exception?
+       * Writes are ALWAYS expected to succeed but unexpected failures can still occur.
+       * Since nextTime is called for each written key-value having an IO wrapper
+       * for each [[PersistentCounter.next]] call can increase in-memory objects which can cause
+       * performance issues.
+       *
+       * Throwing exception on failure is temporarily solution since failures are not expected and if failure does occur
+       * it would be due to file system permission issue.
+       */
       if (count % mod == 0)
-        PersistentCounter.checkpoint(
-          nextTime = count,
-          mod = mod,
-          map = map
-        )
+        if (!map.writeNoSync(MapEntry.Put(Counter.defaultKey, Slice.writeLong(count + mod)))) {
+          val message = s"Failed to write counter entry: $count"
+          logger.error(message)
+          throw IO.throwable(message) //:O see note above
+        }
 
       count
     }
