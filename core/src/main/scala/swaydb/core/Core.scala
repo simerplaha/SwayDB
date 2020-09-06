@@ -200,7 +200,7 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
         bag.success(thunk(zero))
       catch {
         case throwable: Throwable =>
-          val error = IO.ExceptionHandler.toError(throwable)
+          val error = IO.ExceptionHandler.toError[swaydb.Error.Level](throwable)
           IO.Defer(thunk(zero), error).run(1)
       }
 
