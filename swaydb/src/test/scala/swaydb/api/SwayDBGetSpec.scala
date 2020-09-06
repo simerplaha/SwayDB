@@ -56,12 +56,12 @@ class SwayDBGetSpec3 extends SwayDBGetSpec {
 
 class MultiMapGetSpec4 extends SwayDBGetSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
 }
 
 class MultiMapGetSpec5 extends SwayDBGetSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
 sealed trait SwayDBGetSpec extends TestBaseEmbedded {
@@ -158,7 +158,7 @@ sealed trait SwayDBGetSpec extends TestBaseEmbedded {
             (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
             db match {
-              case _: MultiMap_Experimental[Int, Int, String, Nothing, IO.ApiIO] =>
+              case _: MultiMap[Int, Int, String, Nothing, IO.ApiIO] =>
                 assertThrows[NotImplementedError](db.keySet)
 
               case _ =>

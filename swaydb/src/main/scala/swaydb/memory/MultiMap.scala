@@ -35,13 +35,13 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
-import swaydb.{Apply, KeyOrderConverter, MultiMap_Experimental, PureFunction}
+import swaydb.{Apply, KeyOrderConverter, MultiMap, PureFunction}
 
 import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
-object MultiMap_Experimental extends LazyLogging {
+object MultiMap extends LazyLogging {
 
   /**
    * MultiMap is not a new Core type but is just a wrapper implementation on [[swaydb.Map]] type
@@ -67,10 +67,10 @@ object MultiMap_Experimental extends LazyLogging {
                                                                                                                                   valueSerializer: Serializer[V],
                                                                                                                                   functionClassTag: ClassTag[F],
                                                                                                                                   bag: swaydb.Bag[BAG],
-                                                                                                                                  functions: swaydb.MultiMap_Experimental.Functions[M, K, V, F],
+                                                                                                                                  functions: swaydb.MultiMap.Functions[M, K, V, F],
                                                                                                                                   byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                   typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                                  compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
+                                                                                                                                  compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val mapKeySerializer: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, tableSerializer)
       implicit val optionValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)
@@ -104,7 +104,7 @@ object MultiMap_Experimental extends LazyLogging {
         map =>
           implicit val counter = Counter.memory()
 
-          swaydb.MultiMap_Experimental[M, K, V, F, BAG](map)
+          swaydb.MultiMap[M, K, V, F, BAG](map)
       }
     }
 }

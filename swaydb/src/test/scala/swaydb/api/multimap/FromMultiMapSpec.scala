@@ -32,7 +32,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import swaydb.{Bag, MultiMap_Experimental}
+import swaydb.{Bag, MultiMap}
 import TestCaseSweeper._
 
 import scala.util.Random
@@ -40,36 +40,36 @@ import scala.util.Random
 class FromMultiMapSpec0 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep(_.delete())
 }
 
 class FromMultiMapSpec1 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
 }
 
 class FromMultiMapSpec2 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less]().sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]().sweep(_.delete())
 }
 
 class FromMultiMapSpec3 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte).sweep(_.delete())
 }
 
 sealed trait FromMultiMapSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less]
 
   implicit val bag = Bag.less
 
@@ -169,7 +169,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
 
           val rootMap = db.schema.init(1)
 
-          val subMap1: Less[MultiMap_Experimental[Int, Int, String, Nothing, Less]] = rootMap.schema.init(2)
+          val subMap1: Less[MultiMap[Int, Int, String, Nothing, Less]] = rootMap.schema.init(2)
           subMap1.put(1, "one")
           subMap1.put(2, "two")
 

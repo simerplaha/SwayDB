@@ -35,7 +35,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Default._
-import swaydb.{Bag, MultiMap_Experimental, Prepare}
+import swaydb.{Bag, MultiMap, Prepare}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -43,40 +43,40 @@ import scala.concurrent.duration._
 class MultiMapSpecOLD0 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep(_.delete())
 }
 
 class MultiMapSpecOLD1 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapSpecOLD2 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less]().sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]().sweep(_.delete())
 }
 
 class MultiMapSpecOLD3 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte).sweep(_.delete())
 }
 
 /**
- * OLD test-cases when [[MultiMap_Experimental]] was called Extension. Keeping these test around
+ * OLD test-cases when [[MultiMap]] was called Extension. Keeping these test around
  * because cover some use-cases.
  */
 sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less]
 
   implicit val bag = Bag.less
 
@@ -96,12 +96,12 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
           //assert
           rootMap.innerMap.stream.materialize.toList shouldBe
             List(
-              (MultiKey.Start(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.EntriesStart(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.EntriesEnd(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.ChildrenStart(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.ChildrenEnd(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.End(MultiMap_Experimental.rootMapId), MultiValue.None)
+              (MultiKey.Start(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.EntriesStart(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.EntriesEnd(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.ChildrenStart(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.ChildrenEnd(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.End(MultiMap.rootMapId), MultiValue.None)
             )
       }
     }
@@ -122,14 +122,14 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
           //assert
           rootMap.innerMap.stream.materialize.toList shouldBe
             List(
-              (MultiKey.Start(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.EntriesStart(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.Entry(MultiMap_Experimental.rootMapId, 1), MultiValue.Their("one")),
-              (MultiKey.Entry(MultiMap_Experimental.rootMapId, 2), MultiValue.Their("two")),
-              (MultiKey.EntriesEnd(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.ChildrenStart(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.ChildrenEnd(MultiMap_Experimental.rootMapId), MultiValue.None),
-              (MultiKey.End(MultiMap_Experimental.rootMapId), MultiValue.None)
+              (MultiKey.Start(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.EntriesStart(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.Entry(MultiMap.rootMapId, 1), MultiValue.Their("one")),
+              (MultiKey.Entry(MultiMap.rootMapId, 2), MultiValue.Their("two")),
+              (MultiKey.EntriesEnd(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.ChildrenStart(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.ChildrenEnd(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.End(MultiMap.rootMapId), MultiValue.None)
             )
       }
     }
@@ -155,8 +155,8 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
             rootMap.stream.materialize shouldBe ListBuffer((1, "one"), (2, "two"))
             childMap.stream.materialize shouldBe ListBuffer((1, "childMap one"), (2, "childMap two"))
 
-            val expectedRootId = MultiMap_Experimental.rootMapId
-            val expectedChildId = MultiMap_Experimental.rootMapId + 1
+            val expectedRootId = MultiMap.rootMapId
+            val expectedChildId = MultiMap.rootMapId + 1
 
             //assert
             rootMap.innerMap.stream.materialize.toList shouldBe

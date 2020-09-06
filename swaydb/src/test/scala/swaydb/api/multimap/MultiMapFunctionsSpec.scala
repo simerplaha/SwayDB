@@ -32,40 +32,40 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import swaydb.{Apply, Bag, MultiMap_Experimental, Prepare, PureFunction}
+import swaydb.{Apply, Bag, MultiMap, Prepare, PureFunction}
 
 import scala.concurrent.duration._
 
 class MultiMapFunctionsSpec0 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap_Experimental.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
                        sweeper: TestCaseSweeper) =
-    swaydb.persistent.MultiMap_Experimental[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir).sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec1 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap_Experimental.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
                        sweeper: TestCaseSweeper) =
-    swaydb.persistent.MultiMap_Experimental[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec2 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap_Experimental.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.MultiMap_Experimental[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]().sweep(_.delete())
+    swaydb.memory.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]().sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec3 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap_Experimental.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.MultiMap_Experimental[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](mapSize = 1.byte).sweep(_.delete())
+    swaydb.memory.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](mapSize = 1.byte).sweep(_.delete())
 }
 
 sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int = 30
 
-  def newDB()(implicit functions: swaydb.MultiMap_Experimental.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
-              sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]
+  def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]],
+              sweeper: TestCaseSweeper): MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]
 
   implicit val bag = Bag.less
 
@@ -94,7 +94,7 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
       }
 
     //register all types of functions
-    implicit val functions = swaydb.MultiMap_Experimental.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]](onKeyValueFunction, onValueFunction, onKeyFunction)
+    implicit val functions = swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]](onKeyValueFunction, onValueFunction, onKeyFunction)
 
     "single" in {
       TestCaseSweeper {

@@ -32,11 +32,12 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import swaydb.{Bag, IO, MultiMap_Experimental, Prepare}
+import swaydb.{Bag, IO, MultiMap, Prepare}
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
+import swaydb.core.util.Benchmark
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -44,36 +45,36 @@ import scala.util.Random
 class MultiMapSpec0 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir).sweep(_.delete())
 }
 
 class MultiMapSpec1 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapSpec2 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less]().sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]().sweep(_.delete())
 }
 
 class MultiMapSpec3 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte).sweep(_.delete())
 }
 
 sealed trait MultiMapSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less]
 
   implicit val bag = Bag.less
 
@@ -92,7 +93,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
   //  |          |_______ child21 - (9, "nine"), (10, "ten")
   //  |          |_______ child22 - (11, "eleven"), (12, "twelve")
 
-  def buildRootMap()(implicit sweeper: TestCaseSweeper): MultiMap_Experimental[Int, Int, String, Nothing, Bag.Less] = {
+  def buildRootMap()(implicit sweeper: TestCaseSweeper): MultiMap[Int, Int, String, Nothing, Bag.Less] = {
     val root = newDB()
     root.put(0, "zero")
 
@@ -183,6 +184,31 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           root.put(stream)
 
           root.stream.materialize.toList shouldBe (1 to 10).map(int => (int, int.toString)).toList
+      }
+    }
+
+    "dsadasd" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          val root = newDB()
+
+          val child = root.schema.init(2)
+
+          Benchmark("") {
+            (1 to 1000000) foreach {
+              i =>
+                child.put(i, i.toString)
+            }
+          }
+
+          Benchmark("") {
+            (1 to 1000000) foreach {
+              i =>
+                child.get(i).value shouldBe i.toString
+            }
+          }
+
+          println("debu")
       }
     }
 

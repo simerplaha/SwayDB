@@ -172,11 +172,9 @@ private[swaydb] object MultiKey {
         val rightMapId = b.readUnsignedLong()
         val rightDataType = b.drop(Bytes.sizeOfUnsignedLong(rightMapId)).head
 
-        //use default sorting if the keys are pointer keys
-        if (leftDataType == MultiKey.start || leftDataType == MultiKey.end || leftDataType == MultiKey.childrenStart || leftDataType == MultiKey.childrenEnd || leftDataType == MultiKey.entriesStart || leftDataType == MultiKey.entriesEnd ||
-          rightDataType == MultiKey.start || rightDataType == MultiKey.end || rightDataType == MultiKey.childrenStart || rightDataType == MultiKey.childrenEnd || rightDataType == MultiKey.entriesStart || rightDataType == MultiKey.entriesEnd) {
+        if (leftDataType != MultiKey.entry && leftDataType != MultiKey.child && rightDataType != MultiKey.entry && rightDataType != MultiKey.child) {
           KeyOrder.default.compare(a, b)
-        } else if (leftDataType == MultiKey.entry || leftDataType == MultiKey.child) {
+        } else {
           val tableBytesLeft = a.take(Bytes.sizeOfUnsignedLong(leftMapId) + 1)
           val tableBytesRight = b.take(Bytes.sizeOfUnsignedLong(rightMapId) + 1)
 
@@ -188,9 +186,27 @@ private[swaydb] object MultiKey {
           } else {
             defaultOrderResult
           }
-        } else {
-          throw IO.throwable(s"Invalid key with prefix byte ${a.head}")
         }
+
+        //use default sorting if the keys are pointer keys
+        //        if (leftDataType == MultiKey.start || leftDataType == MultiKey.end || leftDataType == MultiKey.childrenStart || leftDataType == MultiKey.childrenEnd || leftDataType == MultiKey.entriesStart || leftDataType == MultiKey.entriesEnd ||
+        //          rightDataType == MultiKey.start || rightDataType == MultiKey.end || rightDataType == MultiKey.childrenStart || rightDataType == MultiKey.childrenEnd || rightDataType == MultiKey.entriesStart || rightDataType == MultiKey.entriesEnd) {
+        //          KeyOrder.default.compare(a, b)
+        //        } else if (leftDataType == MultiKey.entry || leftDataType == MultiKey.child) {
+        //          val tableBytesLeft = a.take(Bytes.sizeOfUnsignedLong(leftMapId) + 1)
+        //          val tableBytesRight = b.take(Bytes.sizeOfUnsignedLong(rightMapId) + 1)
+        //
+        //          val defaultOrderResult = KeyOrder.default.compare(tableBytesLeft, tableBytesRight)
+        //          if (defaultOrderResult == 0) {
+        //            val aTail = a.drop(tableBytesLeft.size)
+        //            val bTail = b.drop(tableBytesRight.size)
+        //            customOrder.compare(aTail, bTail)
+        //          } else {
+        //            defaultOrderResult
+        //          }
+        //        } else {
+        //          throw IO.throwable(s"Invalid key with prefix byte ${a.head}")
+        //        }
       }
     }
 }

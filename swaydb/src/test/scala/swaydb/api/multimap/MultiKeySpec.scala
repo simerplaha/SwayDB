@@ -36,7 +36,7 @@ import swaydb.serializers.Serializer
 import scala.collection.SortedSet
 import scala.util.{Random, Try}
 
-class MultiMapKeySpec extends AnyWordSpec with Matchers {
+class MultiKeySpec extends AnyWordSpec with Matchers {
 
   "mapKeySerializer" should {
     def doAssert[T, K](key: MultiKey[T, K])(implicit keySerializer: Serializer[K],

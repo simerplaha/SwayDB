@@ -41,31 +41,31 @@ import scala.collection.compat._
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-object MultiMap_Experimental {
+object MultiMap {
 
   //this should start from 1 because 0 will be used for format changes.
   val rootMapId: Long = Counter.startId
 
   /**
-   * Given the inner [[swaydb.Map]] instance this creates a parent [[MultiMap_Experimental]] instance.
+   * Given the inner [[swaydb.Map]] instance this creates a parent [[MultiMap]] instance.
    */
   private[swaydb] def apply[M, K, V, F, BAG[_]](rootMap: swaydb.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
                                                                                                                                                                                 keySerializer: Serializer[K],
                                                                                                                                                                                 tableSerializer: Serializer[M],
                                                                                                                                                                                 valueSerializer: Serializer[V],
-                                                                                                                                                                                counter: Counter): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
+                                                                                                                                                                                counter: Counter): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.flatMap(rootMap.isEmpty) {
       isEmpty =>
 
         def initialEntries: BAG[OK] =
           rootMap.commit(
             Seq(
-              Prepare.Put(MultiKey.Start(MultiMap_Experimental.rootMapId), MultiValue.None),
-              Prepare.Put(MultiKey.EntriesStart(MultiMap_Experimental.rootMapId), MultiValue.None),
-              Prepare.Put(MultiKey.EntriesEnd(MultiMap_Experimental.rootMapId), MultiValue.None),
-              Prepare.Put(MultiKey.ChildrenStart(MultiMap_Experimental.rootMapId), MultiValue.None),
-              Prepare.Put(MultiKey.ChildrenEnd(MultiMap_Experimental.rootMapId), MultiValue.None),
-              Prepare.Put(MultiKey.End(MultiMap_Experimental.rootMapId), MultiValue.None)
+              Prepare.Put(MultiKey.Start(MultiMap.rootMapId), MultiValue.None),
+              Prepare.Put(MultiKey.EntriesStart(MultiMap.rootMapId), MultiValue.None),
+              Prepare.Put(MultiKey.EntriesEnd(MultiMap.rootMapId), MultiValue.None),
+              Prepare.Put(MultiKey.ChildrenStart(MultiMap.rootMapId), MultiValue.None),
+              Prepare.Put(MultiKey.ChildrenEnd(MultiMap.rootMapId), MultiValue.None),
+              Prepare.Put(MultiKey.End(MultiMap.rootMapId), MultiValue.None)
             )
           )
 
@@ -73,18 +73,18 @@ object MultiMap_Experimental {
         if (isEmpty)
           bag.transform(initialEntries) {
             _ =>
-              swaydb.MultiMap_Experimental[M, K, V, F, BAG](
+              swaydb.MultiMap[M, K, V, F, BAG](
                 innerMap = rootMap,
                 mapKey = null.asInstanceOf[M],
-                mapId = MultiMap_Experimental.rootMapId
+                mapId = MultiMap.rootMapId
               )
           }
         else
           bag.success(
-            swaydb.MultiMap_Experimental[M, K, V, F, BAG](
+            swaydb.MultiMap[M, K, V, F, BAG](
               innerMap = rootMap,
               mapKey = null.asInstanceOf[M],
-              mapId = MultiMap_Experimental.rootMapId
+              mapId = MultiMap.rootMapId
             )
           )
     }
@@ -122,7 +122,7 @@ object MultiMap_Experimental {
   }
 
   /**
-   * All registered function for a [[MultiMap_Experimental]].
+   * All registered function for a [[MultiMap]].
    */
   final case class Functions[M, K, V, F]()(implicit keySerializer: Serializer[K],
                                            tableSerializer: Serializer[M],
@@ -174,7 +174,7 @@ object MultiMap_Experimental {
       }
 
     /**
-     * Register the function converting it to [[MultiMap_Experimental.innerMap]]'s function type.
+     * Register the function converting it to [[MultiMap.innerMap]]'s function type.
      */
     def register[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit = {
       val innerFunction =
@@ -233,13 +233,13 @@ object MultiMap_Experimental {
 
 
   /**
-   * Converts [[Prepare]] statements of this [[MultiMap_Experimental]] to inner [[Map]]'s statements.
+   * Converts [[Prepare]] statements of this [[MultiMap]] to inner [[Map]]'s statements.
    */
   def toInnerPrepare[M, K, V, F](prepare: Transaction[M, K, V, F]): Prepare[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]] =
     toInnerPrepare(prepare.mapId, prepare.defaultExpiration, prepare.prepare)
 
   /**
-   * Converts [[Prepare]] statements of this [[MultiMap_Experimental]] to inner [[Map]]'s statements.
+   * Converts [[Prepare]] statements of this [[MultiMap]] to inner [[Map]]'s statements.
    */
   def toInnerPrepare[M, K, V, F](mapId: Long, defaultExpiration: Option[Deadline], prepare: Prepare[K, V, F]): Prepare[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]] =
     prepare match {
@@ -284,15 +284,15 @@ object MultiMap_Experimental {
 }
 
 /**
- * [[MultiMap_Experimental]] extends [[swaydb.Map]]'s API to allow storing multiple Maps withing a single Map.
+ * [[MultiMap]] extends [[swaydb.Map]]'s API to allow storing multiple Maps withing a single Map.
  *
- * [[MultiMap_Experimental]] is just a simple extension that uses custom data types ([[MultiKey]]) and
+ * [[MultiMap]] is just a simple extension that uses custom data types ([[MultiKey]]) and
  * KeyOrder ([[MultiKey.ordering]]) for it's API.
  */
-case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
-                                                             mapKey: M,
-                                                             mapId: Long,
-                                                             defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
+case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
+                                                mapKey: M,
+                                                mapId: Long,
+                                                defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
                                                                                                          tableSerializer: Serializer[M],
                                                                                                          valueSerializer: Serializer[V],
                                                                                                          counter: Counter,
@@ -302,7 +302,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
     innerMap.path
 
   /**
-   * APIs for managing child map of this [[MultiMap_Experimental]].
+   * APIs for managing child map of this [[MultiMap]].
    */
   val schema: Schema[M, K, V, F, BAG] =
     new Schema(
@@ -312,31 +312,31 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
     )
 
   /**
-   * Narrows this [[MultiMap_Experimental]]'s map key type [[M]]
+   * Narrows this [[MultiMap]]'s map key type [[M]]
    */
-  def narrow[M2](mapKey: Class[M2])(implicit evT: M2 <:< M): MultiMap_Experimental[M2, K, V, F, BAG] =
-    this.asInstanceOf[MultiMap_Experimental[M2, K, V, F, BAG]]
+  def narrow[M2](mapKey: Class[M2])(implicit evT: M2 <:< M): MultiMap[M2, K, V, F, BAG] =
+    this.asInstanceOf[MultiMap[M2, K, V, F, BAG]]
 
   /**
-   * Narrows this [[MultiMap_Experimental]]'s map key type [[M]] and key-value key type [[K]]
+   * Narrows this [[MultiMap]]'s map key type [[M]] and key-value key type [[K]]
    */
   def narrow[M2, K2](mapKey: Class[M2],
                      keyType: Class[K2])(implicit evT: M2 <:< M,
-                                         evK: K2 <:< K): MultiMap_Experimental[M2, K2, V, F, BAG] =
-    this.asInstanceOf[MultiMap_Experimental[M2, K2, V, F, BAG]]
+                                         evK: K2 <:< K): MultiMap[M2, K2, V, F, BAG] =
+    this.asInstanceOf[MultiMap[M2, K2, V, F, BAG]]
 
   /**
-   * Narrows this [[MultiMap_Experimental]]'s map key type [[M]], key-value key type [[K]] and value type [[V]]
+   * Narrows this [[MultiMap]]'s map key type [[M]], key-value key type [[K]] and value type [[V]]
    */
   def narrow[M2, K2, V2](mapKey: Class[M2],
                          keyType: Class[K2],
                          valueType: Class[V2])(implicit evT: M2 <:< M,
                                                evK: K2 <:< K,
-                                               evV: V2 <:< V): MultiMap_Experimental[M2, K2, V2, F, BAG] =
-    this.asInstanceOf[MultiMap_Experimental[M2, K2, V2, F, BAG]]
+                                               evV: V2 <:< V): MultiMap[M2, K2, V2, F, BAG] =
+    this.asInstanceOf[MultiMap[M2, K2, V2, F, BAG]]
 
   /**
-   * Narrows this [[MultiMap_Experimental]]'s map key type [[M]], key-value key type [[K]], value type [[V]] and function type [[F]].
+   * Narrows this [[MultiMap]]'s map key type [[M]], key-value key type [[K]], value type [[V]] and function type [[F]].
    */
   def narrow[M2, K2, V2, F2](mapKey: Class[M2],
                              keyType: Class[K2],
@@ -344,8 +344,8 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
                              functionType: Class[F2])(implicit evT: M2 <:< M,
                                                       evK: K2 <:< K,
                                                       evV: V2 <:< V,
-                                                      evF: F2 <:< F): MultiMap_Experimental[M2, K2, V2, F2, BAG] =
-    this.asInstanceOf[MultiMap_Experimental[M2, K2, V2, F2, BAG]]
+                                                      evF: F2 <:< F): MultiMap[M2, K2, V2, F2, BAG] =
+    this.asInstanceOf[MultiMap[M2, K2, V2, F2, BAG]]
 
   def put(key: K, value: V): BAG[OK] =
     innerMap.put(Entry(mapId, key), MultiValue.Their(value), defaultExpiration)
@@ -511,18 +511,18 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
 
   /**
    * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
-   * multiple [[MultiMap_Experimental]] [[Prepare]] statements can be executed as a single transaction.
+   * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
    *
-   * @see [[MultiMap_Experimental.commit]] to commit [[Transaction]]s.
+   * @see [[MultiMap.commit]] to commit [[Transaction]]s.
    */
   def toTransaction[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Seq[Transaction[M, K, V, PF]] =
     prepare.map(prepare => new Transaction(mapId, defaultExpiration, prepare))
 
   /**
    * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
-   * multiple [[MultiMap_Experimental]] [[Prepare]] statements can be executed as a single transaction.
+   * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
    *
-   * @see [[MultiMap_Experimental.commit]] to commit [[Transaction]]s.
+   * @see [[MultiMap.commit]] to commit [[Transaction]]s.
    */
   def toTransaction[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Iterable[Transaction[M, K, V, PF]]] =
     bag.transform(prepare.materialize) {
@@ -532,9 +532,9 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
 
   /**
    * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
-   * multiple [[MultiMap_Experimental]] [[Prepare]] statements can be executed as a single transaction.
+   * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
    *
-   * @see [[MultiMap_Experimental.commit]] to commit [[Transaction]]s.
+   * @see [[MultiMap.commit]] to commit [[Transaction]]s.
    */
   def toTransaction[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Iterable[Transaction[M, K, V, PF]] =
     prepare.map(prepare => new Transaction(mapId, defaultExpiration, prepare))
@@ -549,12 +549,12 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
     innerMap.commit {
       transaction map {
         transaction =>
-          MultiMap_Experimental.toInnerPrepare(transaction)
+          MultiMap.toInnerPrepare(transaction)
       }
     }
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    innerMap.commit(prepare.map(prepare => MultiMap_Experimental.toInnerPrepare(mapId, defaultExpiration, prepare)))
+    innerMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
 
   def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -563,7 +563,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    innerMap.commit(prepare.map(prepare => MultiMap_Experimental.toInnerPrepare(mapId, defaultExpiration, prepare)))
+    innerMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
 
   def get(key: K): BAG[Option[V]] =
     bag.flatMap(innerMap.get(MultiKey.Entry(mapId, key))) {
@@ -573,7 +573,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
             bag.success(Some(their.value))
 
           case _: MultiValue.Our =>
-            bag.failure(MultiMap_Experimental.failure(classOf[Their[_]], classOf[MultiValue.Our]))
+            bag.failure(MultiMap.failure(classOf[Their[_]], classOf[MultiValue.Our]))
 
         }
 
@@ -587,7 +587,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
         Some(key)
 
       case Some(entry) =>
-        MultiMap_Experimental.failure(Entry.getClass, entry.getClass)
+        MultiMap.failure(Entry.getClass, entry.getClass)
 
       case None =>
         None
@@ -599,10 +599,10 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
         Some((key, their.value))
 
       case Some((Entry(_, _), _: MultiValue.Our)) =>
-        MultiMap_Experimental.failure(classOf[MultiValue.Their[V]], classOf[MultiValue.Our])
+        MultiMap.failure(classOf[MultiValue.Their[V]], classOf[MultiValue.Our])
 
       case Some(entry) =>
-        MultiMap_Experimental.failure(Entry.getClass, entry.getClass)
+        MultiMap.failure(Entry.getClass, entry.getClass)
 
       case None =>
         None
@@ -617,7 +617,7 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
         Some((key, deadline))
 
       case Some(entry) =>
-        MultiMap_Experimental.failure(Entry.getClass, entry.getClass)
+        MultiMap.failure(Entry.getClass, entry.getClass)
 
       case None =>
         None
@@ -774,8 +774,8 @@ case class MultiMap_Experimental[M, K, V, F, BAG[_]] private(private[swaydb] val
   /**
    * Returns an Async API of type O where the [[Bag]] is known.
    */
-  def toBag[X[_]](implicit bag: Bag[X]): MultiMap_Experimental[M, K, V, F, X] =
-    MultiMap_Experimental(
+  def toBag[X[_]](implicit bag: Bag[X]): MultiMap[M, K, V, F, X] =
+    MultiMap(
       innerMap = innerMap.toBag[X],
       mapKey = mapKey,
       mapId = mapId,
