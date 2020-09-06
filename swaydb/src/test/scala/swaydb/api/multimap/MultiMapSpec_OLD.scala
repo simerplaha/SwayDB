@@ -27,14 +27,15 @@ package swaydb.api.multimap
 import org.scalatest.OptionValues._
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
+import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.multimap.MultiKey
 import swaydb.serializers.Default._
-import swaydb.{Bag, MultiMap_Experimental, MultiMapKey, Prepare}
+import swaydb.{Bag, MultiMap_Experimental, Prepare}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -79,7 +80,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
 
   implicit val bag = Bag.less
 
-  //  implicit val mapKeySerializer = MultiMapKey.serializer(IntSerializer)
+  //  implicit val mapKeySerializer = MultiKey.serializer(IntSerializer)
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
 
@@ -95,12 +96,12 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
           //assert
           rootMap.innerMap.stream.materialize.toList shouldBe
             List(
-              (MultiMapKey.MapStart(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.MapEntriesStart(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.MapEntriesEnd(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.SubMapsStart(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.SubMapsEnd(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.MapEnd(MultiMap_Experimental.rootMapId), None)
+              (MultiKey.Start(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.EntriesStart(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.EntriesEnd(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.ChildrenStart(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.ChildrenEnd(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.End(MultiMap_Experimental.rootMapId), None)
             )
       }
     }
@@ -121,14 +122,14 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
           //assert
           rootMap.innerMap.stream.materialize.toList shouldBe
             List(
-              (MultiMapKey.MapStart(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.MapEntriesStart(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.MapEntry(MultiMap_Experimental.rootMapId, 1), Some("one")),
-              (MultiMapKey.MapEntry(MultiMap_Experimental.rootMapId, 2), Some("two")),
-              (MultiMapKey.MapEntriesEnd(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.SubMapsStart(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.SubMapsEnd(MultiMap_Experimental.rootMapId), None),
-              (MultiMapKey.MapEnd(MultiMap_Experimental.rootMapId), None)
+              (MultiKey.Start(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.EntriesStart(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.Entry(MultiMap_Experimental.rootMapId, 1), Some("one")),
+              (MultiKey.Entry(MultiMap_Experimental.rootMapId, 2), Some("two")),
+              (MultiKey.EntriesEnd(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.ChildrenStart(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.ChildrenEnd(MultiMap_Experimental.rootMapId), None),
+              (MultiKey.End(MultiMap_Experimental.rootMapId), None)
             )
       }
     }
@@ -157,25 +158,25 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
             //assert
             rootMap.innerMap.stream.materialize.toList shouldBe
               List(
-                (MultiMapKey.MapStart(MultiMap_Experimental.rootMapId), None),
-                (MultiMapKey.MapEntriesStart(MultiMap_Experimental.rootMapId), None),
-                (MultiMapKey.MapEntry(MultiMap_Experimental.rootMapId, 1), Some("one")),
-                (MultiMapKey.MapEntry(MultiMap_Experimental.rootMapId, 2), Some("two")),
-                (MultiMapKey.MapEntriesEnd(MultiMap_Experimental.rootMapId), None),
-                (MultiMapKey.SubMapsStart(MultiMap_Experimental.rootMapId), None),
-                (MultiMapKey.SubMap(MultiMap_Experimental.rootMapId, 1), None),
-                (MultiMapKey.SubMapsEnd(MultiMap_Experimental.rootMapId), None),
-                (MultiMapKey.MapEnd(MultiMap_Experimental.rootMapId), None),
+                (MultiKey.Start(MultiMap_Experimental.rootMapId), None),
+                (MultiKey.EntriesStart(MultiMap_Experimental.rootMapId), None),
+                (MultiKey.Entry(MultiMap_Experimental.rootMapId, 1), Some("one")),
+                (MultiKey.Entry(MultiMap_Experimental.rootMapId, 2), Some("two")),
+                (MultiKey.EntriesEnd(MultiMap_Experimental.rootMapId), None),
+                (MultiKey.ChildrenStart(MultiMap_Experimental.rootMapId), None),
+                (MultiKey.Child(MultiMap_Experimental.rootMapId, 1), None),
+                (MultiKey.ChildrenEnd(MultiMap_Experimental.rootMapId), None),
+                (MultiKey.End(MultiMap_Experimental.rootMapId), None),
 
                 //childMaps entries
-                (MultiMapKey.MapStart(1), None),
-                (MultiMapKey.MapEntriesStart(1), None),
-                (MultiMapKey.MapEntry(1, 1), Some("childMap one")),
-                (MultiMapKey.MapEntry(1, 2), Some("childMap two")),
-                (MultiMapKey.MapEntriesEnd(1), None),
-                (MultiMapKey.SubMapsStart(1), None),
-                (MultiMapKey.SubMapsEnd(1), None),
-                (MultiMapKey.MapEnd(1), None)
+                (MultiKey.Start(1), None),
+                (MultiKey.EntriesStart(1), None),
+                (MultiKey.Entry(1, 1), Some("childMap one")),
+                (MultiKey.Entry(1, 2), Some("childMap two")),
+                (MultiKey.EntriesEnd(1), None),
+                (MultiKey.ChildrenStart(1), None),
+                (MultiKey.ChildrenEnd(1), None),
+                (MultiKey.End(1), None)
               )
         }
       }
@@ -264,25 +265,25 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         //assert
         //      rootMap.baseMap().toList shouldBe
         //        List(
-        //          (MultiMapKey.Start(MultiMap_Experimental.rootMapId), None),
-        //          (MultiMapKey.EntriesStart(MultiMap_Experimental.rootMapId), None),
-        //          //          (MultiMapKey.Entry(MultiMap_Experimental.rootMapId, 1), Some("one")),//expired
-        //          (MultiMapKey.Entry(MultiMap_Experimental.rootMapId, 2), Some("two")),
-        //          (MultiMapKey.EntriesEnd(MultiMap_Experimental.rootMapId), None),
-        //          (MultiMapKey.SubMapsStart(MultiMap_Experimental.rootMapId), None),
-        //          (MultiMapKey.SubMap(MultiMap_Experimental.rootMapId, 1), Some("sub map")),
-        //          (MultiMapKey.SubMapsEnd(MultiMap_Experimental.rootMapId), None),
-        //          (MultiMapKey.End(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.Start(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.EntriesStart(MultiMap_Experimental.rootMapId), None),
+        //          //          (MultiKey.Entry(MultiMap_Experimental.rootMapId, 1), Some("one")),//expired
+        //          (MultiKey.Entry(MultiMap_Experimental.rootMapId, 2), Some("two")),
+        //          (MultiKey.EntriesEnd(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.SubMapsStart(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.SubMap(MultiMap_Experimental.rootMapId, 1), Some("sub map")),
+        //          (MultiKey.SubMapsEnd(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.End(MultiMap_Experimental.rootMapId), None),
         //
         //          //childMaps entries
-        //          (MultiMapKey.Start(1), Some("sub map")),
-        //          (MultiMapKey.EntriesStart(1), None),
-        //          //          (MultiMapKey.Entry(1, 1), Some("childMap one")), //expired
-        //          (MultiMapKey.Entry(1, 2), Some("childMap two")),
-        //          (MultiMapKey.EntriesEnd(1), None),
-        //          (MultiMapKey.SubMapsStart(1), None),
-        //          (MultiMapKey.SubMapsEnd(1), None),
-        //          (MultiMapKey.End(1), None)
+        //          (MultiKey.Start(1), Some("sub map")),
+        //          (MultiKey.EntriesStart(1), None),
+        //          //          (MultiKey.Entry(1, 1), Some("childMap one")), //expired
+        //          (MultiKey.Entry(1, 2), Some("childMap two")),
+        //          (MultiKey.EntriesEnd(1), None),
+        //          (MultiKey.SubMapsStart(1), None),
+        //          (MultiKey.SubMapsEnd(1), None),
+        //          (MultiKey.End(1), None)
         //        )
       }
     }
@@ -317,23 +318,23 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         //assert
         //      rootMap.baseMap().toList shouldBe
         //        List(
-        //          (MultiMapKey.Start(MultiMap_Experimental.rootMapId), None),
-        //          (MultiMapKey.EntriesStart(MultiMap_Experimental.rootMapId), None),
-        //          (MultiMapKey.EntriesEnd(MultiMap_Experimental.rootMapId), None),
-        //          (MultiMapKey.SubMapsStart(MultiMap_Experimental.rootMapId), None),
-        //          (MultiMapKey.SubMap(MultiMap_Experimental.rootMapId, 1), Some("sub map")),
-        //          (MultiMapKey.SubMapsEnd(MultiMap_Experimental.rootMapId), None),
-        //          (MultiMapKey.End(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.Start(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.EntriesStart(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.EntriesEnd(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.SubMapsStart(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.SubMap(MultiMap_Experimental.rootMapId, 1), Some("sub map")),
+        //          (MultiKey.SubMapsEnd(MultiMap_Experimental.rootMapId), None),
+        //          (MultiKey.End(MultiMap_Experimental.rootMapId), None),
         //
         //          //childMaps entries
-        //          (MultiMapKey.Start(1), Some("sub map")),
-        //          (MultiMapKey.EntriesStart(1), None),
-        //          (MultiMapKey.Entry(1, 1), Some("childMap two")),
-        //          (MultiMapKey.Entry(1, 4), Some("childMap two")),
-        //          (MultiMapKey.EntriesEnd(1), None),
-        //          (MultiMapKey.SubMapsStart(1), None),
-        //          (MultiMapKey.SubMapsEnd(1), None),
-        //          (MultiMapKey.End(1), None)
+        //          (MultiKey.Start(1), Some("sub map")),
+        //          (MultiKey.EntriesStart(1), None),
+        //          (MultiKey.Entry(1, 1), Some("childMap two")),
+        //          (MultiKey.Entry(1, 4), Some("childMap two")),
+        //          (MultiKey.EntriesEnd(1), None),
+        //          (MultiKey.SubMapsStart(1), None),
+        //          (MultiKey.SubMapsEnd(1), None),
+        //          (MultiKey.End(1), None)
         //        )
       }
     }
@@ -649,7 +650,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   //  "Map" should {
   //
   //    "return entries ranges" in {
-  //      Map.entriesRangeKeys(Seq(1, 2, 3)) shouldBe ((MultiMapKey.MapEntriesStart(Seq(1, 2, 3)), MultiMapKey.MapEntriesEnd(Seq(1, 2, 3))))
+  //      Map.entriesRangeKeys(Seq(1, 2, 3)) shouldBe ((MultiKey.MapEntriesStart(Seq(1, 2, 3)), MultiKey.MapEntriesEnd(Seq(1, 2, 3))))
   //    }
   //
   //    "return empty childMap range keys for a empty SubMap" in {
@@ -667,7 +668,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   //      val firstMap = rootMap.children.init(1, "rootMap")
   //      val secondMap = firstMap.children.init(2, "second map")
   //
-  //      Map.childSubMapRanges(firstMap).get should contain only ((MultiMapKey.SubMap(Seq(1), 2), MultiMapKey.MapStart(Seq(1, 2)), MultiMapKey.MapEnd(Seq(1, 2))))
+  //      Map.childSubMapRanges(firstMap).get should contain only ((MultiKey.SubMap(Seq(1), 2), MultiKey.MapStart(Seq(1, 2)), MultiKey.MapEnd(Seq(1, 2))))
   //      Map.childSubMapRanges(secondMap).get shouldBe empty
   //
   //      rootMap.delete()
@@ -680,8 +681,8 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   //      val secondMap = firstMap.children.init(2, "second")
   //      val thirdMap = secondMap.children.init(2, "third")
   //
-  //      Map.childSubMapRanges(firstMap).get should contain inOrderOnly((MultiMapKey.SubMap(Seq(1), 2), MultiMapKey.MapStart(Seq(1, 2)), MultiMapKey.MapEnd(Seq(1, 2))), (MultiMapKey.SubMap(Seq(1, 2), 2), MultiMapKey.MapStart(Seq(1, 2, 2)), MultiMapKey.MapEnd(Seq(1, 2, 2))))
-  //      Map.childSubMapRanges(secondMap).get should contain only ((MultiMapKey.SubMap(Seq(1, 2), 2), MultiMapKey.MapStart(Seq(1, 2, 2)), MultiMapKey.MapEnd(Seq(1, 2, 2))))
+  //      Map.childSubMapRanges(firstMap).get should contain inOrderOnly((MultiKey.SubMap(Seq(1), 2), MultiKey.MapStart(Seq(1, 2)), MultiKey.MapEnd(Seq(1, 2))), (MultiKey.SubMap(Seq(1, 2), 2), MultiKey.MapStart(Seq(1, 2, 2)), MultiKey.MapEnd(Seq(1, 2, 2))))
+  //      Map.childSubMapRanges(secondMap).get should contain only ((MultiKey.SubMap(Seq(1, 2), 2), MultiKey.MapStart(Seq(1, 2, 2)), MultiKey.MapEnd(Seq(1, 2, 2))))
   //      Map.childSubMapRanges(thirdMap).get shouldBe empty
   //
   //      db.delete()
@@ -705,16 +706,16 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   //
   //      val mapHierarchy =
   //        List(
-  //          (MultiMapKey.SubMap(Seq(1), 2), MultiMapKey.MapStart(Seq(1, 2)), MultiMapKey.MapEnd(Seq(1, 2))),
-  //          (MultiMapKey.SubMap(Seq(1, 2), 2), MultiMapKey.MapStart(Seq(1, 2, 2)), MultiMapKey.MapEnd(Seq(1, 2, 2))),
-  //          (MultiMapKey.SubMap(Seq(1, 2), 3), MultiMapKey.MapStart(Seq(1, 2, 3)), MultiMapKey.MapEnd(Seq(1, 2, 3))),
-  //          (MultiMapKey.SubMap(Seq(1, 2), 4), MultiMapKey.MapStart(Seq(1, 2, 4)), MultiMapKey.MapEnd(Seq(1, 2, 4))),
-  //          (MultiMapKey.SubMap(Seq(1, 2, 4), 44), MultiMapKey.MapStart(Seq(1, 2, 4, 44)), MultiMapKey.MapEnd(Seq(1, 2, 4, 44))),
-  //          (MultiMapKey.SubMap(Seq(1, 2), 5), MultiMapKey.MapStart(Seq(1, 2, 5)), MultiMapKey.MapEnd(Seq(1, 2, 5))),
-  //          (MultiMapKey.SubMap(Seq(1, 2, 5), 55), MultiMapKey.MapStart(Seq(1, 2, 5, 55)), MultiMapKey.MapEnd(Seq(1, 2, 5, 55))),
-  //          (MultiMapKey.SubMap(Seq(1, 2, 5, 55), 5555), MultiMapKey.MapStart(Seq(1, 2, 5, 55, 5555)), MultiMapKey.MapEnd(Seq(1, 2, 5, 55, 5555))),
-  //          (MultiMapKey.SubMap(Seq(1, 2, 5, 55), 6666), MultiMapKey.MapStart(Seq(1, 2, 5, 55, 6666)), MultiMapKey.MapEnd(Seq(1, 2, 5, 55, 6666))),
-  //          (MultiMapKey.SubMap(Seq(1, 2, 5), 555), MultiMapKey.MapStart(Seq(1, 2, 5, 555)), MultiMapKey.MapEnd(Seq(1, 2, 5, 555)))
+  //          (MultiKey.SubMap(Seq(1), 2), MultiKey.MapStart(Seq(1, 2)), MultiKey.MapEnd(Seq(1, 2))),
+  //          (MultiKey.SubMap(Seq(1, 2), 2), MultiKey.MapStart(Seq(1, 2, 2)), MultiKey.MapEnd(Seq(1, 2, 2))),
+  //          (MultiKey.SubMap(Seq(1, 2), 3), MultiKey.MapStart(Seq(1, 2, 3)), MultiKey.MapEnd(Seq(1, 2, 3))),
+  //          (MultiKey.SubMap(Seq(1, 2), 4), MultiKey.MapStart(Seq(1, 2, 4)), MultiKey.MapEnd(Seq(1, 2, 4))),
+  //          (MultiKey.SubMap(Seq(1, 2, 4), 44), MultiKey.MapStart(Seq(1, 2, 4, 44)), MultiKey.MapEnd(Seq(1, 2, 4, 44))),
+  //          (MultiKey.SubMap(Seq(1, 2), 5), MultiKey.MapStart(Seq(1, 2, 5)), MultiKey.MapEnd(Seq(1, 2, 5))),
+  //          (MultiKey.SubMap(Seq(1, 2, 5), 55), MultiKey.MapStart(Seq(1, 2, 5, 55)), MultiKey.MapEnd(Seq(1, 2, 5, 55))),
+  //          (MultiKey.SubMap(Seq(1, 2, 5, 55), 5555), MultiKey.MapStart(Seq(1, 2, 5, 55, 5555)), MultiKey.MapEnd(Seq(1, 2, 5, 55, 5555))),
+  //          (MultiKey.SubMap(Seq(1, 2, 5, 55), 6666), MultiKey.MapStart(Seq(1, 2, 5, 55, 6666)), MultiKey.MapEnd(Seq(1, 2, 5, 55, 6666))),
+  //          (MultiKey.SubMap(Seq(1, 2, 5), 555), MultiKey.MapStart(Seq(1, 2, 5, 555)), MultiKey.MapEnd(Seq(1, 2, 5, 555)))
   //        )
   //
   //      Map.childSubMapRanges(firstMap).get shouldBe mapHierarchy

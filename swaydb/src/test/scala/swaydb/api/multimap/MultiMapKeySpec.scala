@@ -26,7 +26,7 @@ package swaydb.api.multimap
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.MultiMapKey
+import swaydb.multimap.MultiKey
 import swaydb.core.TestData._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -39,126 +39,126 @@ import scala.util.{Random, Try}
 class MultiMapKeySpec extends AnyWordSpec with Matchers {
 
   "mapKeySerializer" should {
-    def doAssert[T, K](key: MultiMapKey[T, K])(implicit keySerializer: Serializer[K],
+    def doAssert[T, K](key: MultiKey[T, K])(implicit keySerializer: Serializer[K],
                                                tableSerializer: Serializer[T]) = {
-      val mapKeySerializer = MultiMapKey.serializer[T, K](keySerializer, tableSerializer)
+      val mapKeySerializer = MultiKey.serializer[T, K](keySerializer, tableSerializer)
       val wrote = mapKeySerializer.write(key)
       val read = mapKeySerializer.read(wrote)
       read shouldBe key
     }
 
     "write & read empty keys" in {
-      doAssert[Int, Int](MultiMapKey.MapStart(0))
-      doAssert[Int, Int](MultiMapKey.MapEntriesStart(0))
-      doAssert[Int, Int](MultiMapKey.MapEntry(0, 100))
-      doAssert[Int, Int](MultiMapKey.MapEntriesEnd(0))
-      doAssert[Int, Int](MultiMapKey.SubMapsStart(0))
-      doAssert[Int, Int](MultiMapKey.SubMap(0, 1000))
-      doAssert[Int, Int](MultiMapKey.SubMapsEnd(0))
-      doAssert[Int, Int](MultiMapKey.MapEnd(0))
+      doAssert[Int, Int](MultiKey.Start(0))
+      doAssert[Int, Int](MultiKey.EntriesStart(0))
+      doAssert[Int, Int](MultiKey.Entry(0, 100))
+      doAssert[Int, Int](MultiKey.EntriesEnd(0))
+      doAssert[Int, Int](MultiKey.ChildrenStart(0))
+      doAssert[Int, Int](MultiKey.Child(0, 1000))
+      doAssert[Int, Int](MultiKey.ChildrenEnd(0))
+      doAssert[Int, Int](MultiKey.End(0))
     }
 
     "write & read MapKeys with Int key" in {
-      doAssert[Int, Int](MultiMapKey.MapStart(1))
-      doAssert[Int, Int](MultiMapKey.MapEntriesStart(1))
-      doAssert[Int, Int](MultiMapKey.MapEntry(1, 100))
-      doAssert[Int, Int](MultiMapKey.MapEntriesEnd(1))
-      doAssert[Int, Int](MultiMapKey.SubMapsStart(1))
-      doAssert[Int, Int](MultiMapKey.SubMap(1, 1000))
-      doAssert[Int, Int](MultiMapKey.SubMapsEnd(1))
-      doAssert[Int, Int](MultiMapKey.MapEnd(1))
+      doAssert[Int, Int](MultiKey.Start(1))
+      doAssert[Int, Int](MultiKey.EntriesStart(1))
+      doAssert[Int, Int](MultiKey.Entry(1, 100))
+      doAssert[Int, Int](MultiKey.EntriesEnd(1))
+      doAssert[Int, Int](MultiKey.ChildrenStart(1))
+      doAssert[Int, Int](MultiKey.Child(1, 1000))
+      doAssert[Int, Int](MultiKey.ChildrenEnd(1))
+      doAssert[Int, Int](MultiKey.End(1))
     }
 
 
     "write & read MapKeys with Int String" in {
-      doAssert[String, String](MultiMapKey.MapStart(1))
-      doAssert[String, String](MultiMapKey.MapEntriesStart(1))
-      doAssert[String, String](MultiMapKey.MapEntry(1, "one key"))
-      doAssert[String, String](MultiMapKey.MapEntriesEnd(1))
-      doAssert[String, String](MultiMapKey.SubMapsStart(1))
-      doAssert[String, String](MultiMapKey.SubMap(1, "one sub map"))
-      doAssert[String, String](MultiMapKey.SubMapsEnd(1))
-      doAssert[String, String](MultiMapKey.MapEnd(1))
+      doAssert[String, String](MultiKey.Start(1))
+      doAssert[String, String](MultiKey.EntriesStart(1))
+      doAssert[String, String](MultiKey.Entry(1, "one key"))
+      doAssert[String, String](MultiKey.EntriesEnd(1))
+      doAssert[String, String](MultiKey.ChildrenStart(1))
+      doAssert[String, String](MultiKey.Child(1, "one sub map"))
+      doAssert[String, String](MultiKey.ChildrenEnd(1))
+      doAssert[String, String](MultiKey.End(1))
     }
 
     "write & read MapKeys with large single value" in {
-      doAssert[String, String](MultiMapKey.MapStart(Long.MaxValue))
-      doAssert[String, String](MultiMapKey.MapEntriesStart(Long.MaxValue))
-      doAssert[String, String](MultiMapKey.MapEntriesEnd(Long.MaxValue))
-      doAssert[String, String](MultiMapKey.MapEntry(Long.MaxValue, randomCharacters(100000)))
-      doAssert[String, String](MultiMapKey.SubMapsStart(Long.MaxValue))
-      doAssert[String, String](MultiMapKey.SubMap(Long.MaxValue, randomCharacters(100000)))
-      doAssert[String, String](MultiMapKey.SubMapsEnd(Long.MaxValue))
-      doAssert[String, String](MultiMapKey.MapEnd(Long.MaxValue))
+      doAssert[String, String](MultiKey.Start(Long.MaxValue))
+      doAssert[String, String](MultiKey.EntriesStart(Long.MaxValue))
+      doAssert[String, String](MultiKey.EntriesEnd(Long.MaxValue))
+      doAssert[String, String](MultiKey.Entry(Long.MaxValue, randomCharacters(100000)))
+      doAssert[String, String](MultiKey.ChildrenStart(Long.MaxValue))
+      doAssert[String, String](MultiKey.Child(Long.MaxValue, randomCharacters(100000)))
+      doAssert[String, String](MultiKey.ChildrenEnd(Long.MaxValue))
+      doAssert[String, String](MultiKey.End(Long.MaxValue))
     }
 
     "write & read MapKeys with Double" in {
-      doAssert[Double, Double](MultiMapKey.MapStart(Long.MaxValue))
-      doAssert[Double, Double](MultiMapKey.MapEntriesStart(Long.MaxValue))
-      doAssert[Double, Double](MultiMapKey.MapEntry(Long.MaxValue, Double.MaxValue))
-      doAssert[Double, Double](MultiMapKey.MapEntriesEnd(Long.MaxValue))
-      doAssert[Double, Double](MultiMapKey.SubMapsStart(Long.MaxValue))
-      doAssert[Double, Double](MultiMapKey.SubMap(Long.MaxValue, Double.MaxValue))
-      doAssert[Double, Double](MultiMapKey.SubMapsEnd(Long.MaxValue))
-      doAssert[Double, Double](MultiMapKey.MapEnd(Long.MaxValue))
+      doAssert[Double, Double](MultiKey.Start(Long.MaxValue))
+      doAssert[Double, Double](MultiKey.EntriesStart(Long.MaxValue))
+      doAssert[Double, Double](MultiKey.Entry(Long.MaxValue, Double.MaxValue))
+      doAssert[Double, Double](MultiKey.EntriesEnd(Long.MaxValue))
+      doAssert[Double, Double](MultiKey.ChildrenStart(Long.MaxValue))
+      doAssert[Double, Double](MultiKey.Child(Long.MaxValue, Double.MaxValue))
+      doAssert[Double, Double](MultiKey.ChildrenEnd(Long.MaxValue))
+      doAssert[Double, Double](MultiKey.End(Long.MaxValue))
     }
   }
 
   "ordering" should {
     "ordering MapKeys in the order of Start, Entry & End" in {
       val order = KeyOrder(Ordering.by[Slice[Byte], Int](_.readInt())(Ordering.Int))
-      val mapKeySerializer = MultiMapKey.serializer[Int, Int](IntSerializer, IntSerializer)
-      implicit val mapKeyOrder = Ordering.by[MultiMapKey[Int, Int], Slice[Byte]](mapKeySerializer.write)(MultiMapKey.ordering(order))
+      val mapKeySerializer = MultiKey.serializer[Int, Int](IntSerializer, IntSerializer)
+      implicit val mapKeyOrder = Ordering.by[MultiKey[Int, Int], Slice[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
 
       val keys =
         Seq(
-          MultiMapKey.MapStart(0),
-          MultiMapKey.SubMapsStart(0),
-          MultiMapKey.SubMapsEnd(0),
-          MultiMapKey.MapEnd(0),
+          MultiKey.Start(0),
+          MultiKey.ChildrenStart(0),
+          MultiKey.ChildrenEnd(0),
+          MultiKey.End(0),
 
-          MultiMapKey.MapStart(1),
-          MultiMapKey.SubMapsStart(1),
-          MultiMapKey.SubMapsEnd(1),
-          MultiMapKey.MapEnd(1),
+          MultiKey.Start(1),
+          MultiKey.ChildrenStart(1),
+          MultiKey.ChildrenEnd(1),
+          MultiKey.End(1),
 
-          MultiMapKey.MapStart(2),
-          MultiMapKey.MapEntriesStart(2),
-          MultiMapKey.MapEntry(2, 1),
-          MultiMapKey.MapEntriesEnd(2),
-          MultiMapKey.SubMapsStart(2),
-          MultiMapKey.SubMap(2, 1000),
-          MultiMapKey.SubMapsEnd(2),
-          MultiMapKey.MapEnd(2),
+          MultiKey.Start(2),
+          MultiKey.EntriesStart(2),
+          MultiKey.Entry(2, 1),
+          MultiKey.EntriesEnd(2),
+          MultiKey.ChildrenStart(2),
+          MultiKey.Child(2, 1000),
+          MultiKey.ChildrenEnd(2),
+          MultiKey.End(2),
 
-          MultiMapKey.MapStart(100),
-          MultiMapKey.MapEntriesStart(100),
-          MultiMapKey.MapEntry(100, 2),
-          MultiMapKey.MapEntry(100, 3),
-          MultiMapKey.MapEntry(100, 4),
-          MultiMapKey.MapEntry(100, 5),
-          MultiMapKey.MapEntriesEnd(100),
-          MultiMapKey.SubMapsStart(100),
-          MultiMapKey.SubMap(100, 1000),
-          MultiMapKey.SubMap(100, 2000),
-          MultiMapKey.SubMap(100, 3000),
-          MultiMapKey.SubMapsEnd(100),
-          MultiMapKey.MapEnd(100),
+          MultiKey.Start(100),
+          MultiKey.EntriesStart(100),
+          MultiKey.Entry(100, 2),
+          MultiKey.Entry(100, 3),
+          MultiKey.Entry(100, 4),
+          MultiKey.Entry(100, 5),
+          MultiKey.EntriesEnd(100),
+          MultiKey.ChildrenStart(100),
+          MultiKey.Child(100, 1000),
+          MultiKey.Child(100, 2000),
+          MultiKey.Child(100, 3000),
+          MultiKey.ChildrenEnd(100),
+          MultiKey.End(100),
 
-          MultiMapKey.MapStart(200),
-          MultiMapKey.MapEntriesStart(200),
-          MultiMapKey.MapEntry(200, 2),
-          MultiMapKey.MapEntry(200, 3),
-          MultiMapKey.MapEntriesEnd(200),
-          MultiMapKey.SubMapsStart(200),
-          MultiMapKey.SubMap(200, 1000),
-          MultiMapKey.SubMap(200, 2000),
-          MultiMapKey.SubMapsEnd(200),
-          MultiMapKey.MapEnd(200)
+          MultiKey.Start(200),
+          MultiKey.EntriesStart(200),
+          MultiKey.Entry(200, 2),
+          MultiKey.Entry(200, 3),
+          MultiKey.EntriesEnd(200),
+          MultiKey.ChildrenStart(200),
+          MultiKey.Child(200, 1000),
+          MultiKey.Child(200, 2000),
+          MultiKey.ChildrenEnd(200),
+          MultiKey.End(200)
         )
 
       //shuffle and create a list
-      val map = SortedSet[MultiMapKey[Int, Int]](Random.shuffle(keys): _*)(mapKeyOrder)
+      val map = SortedSet[MultiKey[Int, Int]](Random.shuffle(keys): _*)(mapKeyOrder)
 
       //key-values should
       map.toList shouldBe keys
@@ -166,8 +166,8 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
 
     "ordering MapKeys in the order of Start, Entry & End when keys are large String" in {
       val order = KeyOrder(Ordering.by[Slice[Byte], String](_.readString())(Ordering.String))
-      val mapKeySerializer = MultiMapKey.serializer[String, String](StringSerializer, StringSerializer)
-      implicit val mapKeyOrder = Ordering.by[MultiMapKey[String, String], Slice[Byte]](mapKeySerializer.write)(MultiMapKey.ordering(order))
+      val mapKeySerializer = MultiKey.serializer[String, String](StringSerializer, StringSerializer)
+      implicit val mapKeyOrder = Ordering.by[MultiKey[String, String], Slice[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
 
       val stringLength = 100000
 
@@ -179,33 +179,33 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
 
       val keys =
         Seq(
-          MultiMapKey.MapStart(1),
-          MultiMapKey.SubMapsStart(1),
-          MultiMapKey.SubMapsEnd(1),
-          MultiMapKey.MapEnd(1),
+          MultiKey.Start(1),
+          MultiKey.ChildrenStart(1),
+          MultiKey.ChildrenEnd(1),
+          MultiKey.End(1),
 
-          MultiMapKey.MapStart(2),
-          MultiMapKey.MapEntriesStart(2),
-          MultiMapKey.MapEntry(2, randomString1),
-          MultiMapKey.MapEntry(2, randomString2),
-          MultiMapKey.MapEntry(2, randomString3),
-          MultiMapKey.MapEntriesEnd(2),
-          MultiMapKey.SubMapsStart(2),
-          MultiMapKey.SubMap(2, randomString3),
-          MultiMapKey.SubMap(2, randomString4),
-          MultiMapKey.SubMap(2, randomString5),
-          MultiMapKey.SubMapsEnd(2),
-          MultiMapKey.MapEnd(2),
+          MultiKey.Start(2),
+          MultiKey.EntriesStart(2),
+          MultiKey.Entry(2, randomString1),
+          MultiKey.Entry(2, randomString2),
+          MultiKey.Entry(2, randomString3),
+          MultiKey.EntriesEnd(2),
+          MultiKey.ChildrenStart(2),
+          MultiKey.Child(2, randomString3),
+          MultiKey.Child(2, randomString4),
+          MultiKey.Child(2, randomString5),
+          MultiKey.ChildrenEnd(2),
+          MultiKey.End(2),
 
-          MultiMapKey.MapStart(3),
-          MultiMapKey.MapEntry(3, randomString3),
-          MultiMapKey.MapEntry(3, randomString4),
-          MultiMapKey.MapEntry(3, randomString5),
-          MultiMapKey.MapEnd(3)
+          MultiKey.Start(3),
+          MultiKey.Entry(3, randomString3),
+          MultiKey.Entry(3, randomString4),
+          MultiKey.Entry(3, randomString5),
+          MultiKey.End(3)
         )
 
       //shuffle and create a list
-      val map = SortedSet[MultiMapKey[String, String]](Random.shuffle(keys): _*)(mapKeyOrder)
+      val map = SortedSet[MultiKey[String, String]](Random.shuffle(keys): _*)(mapKeyOrder)
 
       //key-values should
       map.toList shouldBe keys
@@ -213,82 +213,82 @@ class MultiMapKeySpec extends AnyWordSpec with Matchers {
 
     "remove duplicate key-values" in {
       val order = KeyOrder(Ordering.by[Slice[Byte], Int](_.readInt())(Ordering.Int))
-      val mapKeySerializer = MultiMapKey.serializer[Int, Int](IntSerializer, IntSerializer)
-      implicit val mapKeyOrder = Ordering.by[MultiMapKey[Int, Int], Slice[Byte]](mapKeySerializer.write)(MultiMapKey.ordering(order))
+      val mapKeySerializer = MultiKey.serializer[Int, Int](IntSerializer, IntSerializer)
+      implicit val mapKeyOrder = Ordering.by[MultiKey[Int, Int], Slice[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
 
-      val keys: Seq[() => MultiMapKey[Int, Int]] =
+      val keys: Seq[() => MultiKey[Int, Int]] =
         Seq(
-          () => MultiMapKey.MapStart(0),
-          () => MultiMapKey.MapEntriesStart(0),
-          () => MultiMapKey.MapEntriesEnd(0),
-          () => MultiMapKey.MapEnd(0),
-          () => MultiMapKey.MapStart(0),
-          () => MultiMapKey.MapEntriesStart(0),
-          () => MultiMapKey.MapEntriesEnd(0),
-          () => MultiMapKey.MapEnd(0),
+          () => MultiKey.Start(0),
+          () => MultiKey.EntriesStart(0),
+          () => MultiKey.EntriesEnd(0),
+          () => MultiKey.End(0),
+          () => MultiKey.Start(0),
+          () => MultiKey.EntriesStart(0),
+          () => MultiKey.EntriesEnd(0),
+          () => MultiKey.End(0),
 
-          () => MultiMapKey.MapStart(2),
-          () => MultiMapKey.MapEntriesStart(2),
-          () => MultiMapKey.MapEntry(2, 2),
-          () => MultiMapKey.MapEntry(2, 2),
-          () => MultiMapKey.MapEntriesEnd(2),
-          () => MultiMapKey.SubMapsStart(2),
-          () => MultiMapKey.SubMap(2, 1000), //depending on the order of inserion for this test either
-          () => MultiMapKey.SubMap(2, 1000), //3 or 4 gets selected but in reality subMaps with same key will not have different subMapIds.
-          () => MultiMapKey.SubMapsEnd(2),
-          () => MultiMapKey.MapEnd(2),
+          () => MultiKey.Start(2),
+          () => MultiKey.EntriesStart(2),
+          () => MultiKey.Entry(2, 2),
+          () => MultiKey.Entry(2, 2),
+          () => MultiKey.EntriesEnd(2),
+          () => MultiKey.ChildrenStart(2),
+          () => MultiKey.Child(2, 1000), //depending on the order of inserion for this test either
+          () => MultiKey.Child(2, 1000), //3 or 4 gets selected but in reality subMaps with same key will not have different subMapIds.
+          () => MultiKey.ChildrenEnd(2),
+          () => MultiKey.End(2),
 
-          () => MultiMapKey.MapStart(100),
-          () => MultiMapKey.MapEntry(100, 4),
-          () => MultiMapKey.MapEntry(100, 5),
-          () => MultiMapKey.MapEnd(100)
+          () => MultiKey.Start(100),
+          () => MultiKey.Entry(100, 4),
+          () => MultiKey.Entry(100, 5),
+          () => MultiKey.End(100)
         )
 
       //shuffle and create a list
-      val map = SortedSet[MultiMapKey[Int, Int]](Random.shuffle(keys).map(_ ()): _*)(mapKeyOrder)
+      val map = SortedSet[MultiKey[Int, Int]](Random.shuffle(keys).map(_ ()): _*)(mapKeyOrder)
 
       val expected1 =
         Seq(
-          MultiMapKey.MapStart(0),
-          MultiMapKey.MapEntriesStart(0),
-          MultiMapKey.MapEntriesEnd(0),
-          MultiMapKey.MapEnd(0),
+          MultiKey.Start(0),
+          MultiKey.EntriesStart(0),
+          MultiKey.EntriesEnd(0),
+          MultiKey.End(0),
 
-          MultiMapKey.MapStart(2),
-          MultiMapKey.MapEntriesStart(2),
-          MultiMapKey.MapEntry(2, 2),
-          MultiMapKey.MapEntriesEnd(2),
-          MultiMapKey.SubMapsStart(2),
-          MultiMapKey.SubMap(2, 1000),
-          MultiMapKey.SubMapsEnd(2),
-          MultiMapKey.MapEnd(2),
+          MultiKey.Start(2),
+          MultiKey.EntriesStart(2),
+          MultiKey.Entry(2, 2),
+          MultiKey.EntriesEnd(2),
+          MultiKey.ChildrenStart(2),
+          MultiKey.Child(2, 1000),
+          MultiKey.ChildrenEnd(2),
+          MultiKey.End(2),
 
-          MultiMapKey.MapStart(100),
-          MultiMapKey.MapEntry(100, 4),
-          MultiMapKey.MapEntry(100, 5),
-          MultiMapKey.MapEnd(100)
+          MultiKey.Start(100),
+          MultiKey.Entry(100, 4),
+          MultiKey.Entry(100, 5),
+          MultiKey.End(100)
         )
 
       val expected2 =
         Seq(
-          MultiMapKey.MapStart(0),
-          MultiMapKey.MapEntriesStart(0),
-          MultiMapKey.MapEntriesEnd(0),
-          MultiMapKey.MapEnd(0),
+          MultiKey.Start(0),
+          MultiKey.EntriesStart(0),
+          MultiKey.EntriesEnd(0),
+          MultiKey.End(0),
 
-          MultiMapKey.MapStart(2),
-          MultiMapKey.MapEntriesStart(2),
-          MultiMapKey.MapEntry(2, 2),
-          MultiMapKey.MapEntriesEnd(2),
-          MultiMapKey.SubMapsStart(2),
-          MultiMapKey.SubMap(2, 1000),
-          MultiMapKey.SubMapsEnd(2),
-          MultiMapKey.MapEnd(2),
+          MultiKey.Start(2),
+          MultiKey.EntriesStart(2),
+          MultiKey.Entry(2, 2),
+          MultiKey.EntriesEnd(2),
+          MultiKey.ChildrenStart(2),
+          MultiKey.Child(2, 1000),
+          MultiKey.ChildrenEnd(2),
+          MultiKey.End(2),
 
-          MultiMapKey.MapStart(100),
-          MultiMapKey.MapEntry(100, 4),
-          MultiMapKey.MapEntry(100, 5),
-          MultiMapKey.MapEnd(100)
+          MultiKey.Start(100),
+          MultiKey.Entry(100, 4),
+          MultiKey.Entry(100, 5),
+          MultiKey.End(100)
         )
 
       //key-values should

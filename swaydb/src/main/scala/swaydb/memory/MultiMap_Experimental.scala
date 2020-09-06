@@ -33,9 +33,9 @@ import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.multimap.MultiValue
+import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
-import swaydb.{Apply, KeyOrderConverter, MultiMapKey, MultiMap_Experimental, PureFunction}
+import swaydb.{Apply, KeyOrderConverter, MultiMap_Experimental, PureFunction}
 
 import scala.concurrent.ExecutionContextExecutorService
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -72,15 +72,15 @@ object MultiMap_Experimental extends LazyLogging {
                                                                                                                                   typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                   compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
     bag.suspend {
-      implicit val mapKeySerializer: Serializer[MultiMapKey[M, K]] = MultiMapKey.serializer(keySerializer, tableSerializer)
+      implicit val mapKeySerializer: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, tableSerializer)
       implicit val optionValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)
 
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
-      val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiMapKey.ordering(keyOrder)
+      val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiKey.ordering(keyOrder)
 
       //the inner map with custom keyOrder and custom key-value types to support nested Maps.
       val map =
-        swaydb.memory.Map[MultiMapKey[M, K], MultiValue[V], PureFunction[MultiMapKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG](
+        swaydb.memory.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -93,7 +93,7 @@ object MultiMap_Experimental extends LazyLogging {
           threadStateCache = threadStateCache
         )(keySerializer = mapKeySerializer,
           valueSerializer = optionValueSerializer,
-          functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiMapKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]]],
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]]],
           bag = bag,
           functions = functions.innerFunctions,
           byteKeyOrder = internalKeyOrder,

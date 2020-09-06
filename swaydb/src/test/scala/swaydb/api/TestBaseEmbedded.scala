@@ -22,11 +22,12 @@ package swaydb.api
 import org.scalatest.exceptions.TestFailedException
 import swaydb.IO.ApiIO
 import swaydb.IOValues._
+import swaydb._
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.{TestBase, TestExecutionContext}
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.{MultiMapKey, _}
+import swaydb.multimap.MultiKey
 
 import scala.annotation.tailrec
 import scala.concurrent.Future
@@ -42,7 +43,7 @@ trait TestBaseEmbedded extends TestBase {
       map =>
         println(map)
         map._1 match {
-          case MultiMapKey.MapEnd(_) => println //new line
+          case MultiKey.End(_) => println //new line
           case _ =>
         }
     }

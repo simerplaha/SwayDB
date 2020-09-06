@@ -22,135 +22,135 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb
+package swaydb.multimap
 
+import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
-protected sealed trait MultiMapKey[+M, +K] {
-  def mapId: Long
+private[swaydb] sealed trait MultiKey[+M, +K] {
+  def childId: Long
 }
 
-protected object MultiMapKey {
+private[swaydb] object MultiKey {
 
-  //map start
-  case class MapStart(mapId: Long) extends MultiMapKey[Nothing, Nothing]
+  case class Start(childId: Long) extends MultiKey[Nothing, Nothing]
 
-  case class MapEntriesStart(mapId: Long) extends MultiMapKey[Nothing, Nothing]
-  case class MapEntry[+K](mapId: Long, dataKey: K) extends MultiMapKey[Nothing, K]
-  case class MapEntriesEnd(mapId: Long) extends MultiMapKey[Nothing, Nothing]
+  case class EntriesStart(childId: Long) extends MultiKey[Nothing, Nothing]
+  case class Entry[+K](childId: Long, entryKey: K) extends MultiKey[Nothing, K]
+  case class EntriesEnd(childId: Long) extends MultiKey[Nothing, Nothing]
 
-  case class SubMapsStart(mapId: Long) extends MultiMapKey[Nothing, Nothing]
-  case class SubMap[+M](mapId: Long, subMapKey: M) extends MultiMapKey[M, Nothing]
-  case class SubMapsEnd(mapId: Long) extends MultiMapKey[Nothing, Nothing]
+  case class ChildrenStart(childId: Long) extends MultiKey[Nothing, Nothing]
+  case class Child[+C](childId: Long, childKey: C) extends MultiKey[C, Nothing]
+  case class ChildrenEnd(childId: Long) extends MultiKey[Nothing, Nothing]
 
-  case class MapEnd(mapId: Long) extends MultiMapKey[Nothing, Nothing]
+  case class End(childId: Long) extends MultiKey[Nothing, Nothing]
 
   //starting of the Map
-  private val mapStart: Byte = 1
+  private val start: Byte = 1
   //ids for entries block
-  private val mapEntriesStart: Byte = 2
-  private val mapEntry: Byte = 3
-  private val mapEntriesEnd: Byte = 10
+  private val entriesStart: Byte = 2
+  private val entry: Byte = 3
+  private val entriesEnd: Byte = 10
   //ids for subMaps block
-  private val subMapsStart: Byte = 11
-  private val subMap: Byte = 12
-  private val subMapsEnd: Byte = 20
+  private val childrenStart: Byte = 11
+  private val child: Byte = 12
+  private val childrenEnd: Byte = 20
   //leave enough space to allow for adding other data like mapSize etc.
-  private val mapEnd: Byte = 127 //keep this to map so that there is enough space in the map to add more data types.
+  private val end: Byte = 127 //keep this to map so that there is enough space in the map to add more data types.
   //actual queues's data is outside the map
 
   /**
-   * Serializer implementation for [[MultiMapKey]] types.
+   * Serializer implementation for [[MultiKey]] types.
    *
    * Formats:
-   * [[MapStart]] - formatId|mapKey.size|mapKey|dataType
-   * [[MapEntry]] - formatId|mapKey.size|mapKey|dataType|dataKey
-   * [[MapEnd]]   - formatId|mapKey.size|mapKey|dataType
+   * [[Start]] - formatId|mapKey.size|mapKey|dataType
+   * [[Entry]] - formatId|mapKey.size|mapKey|dataType|dataKey
+   * [[End]]   - formatId|mapKey.size|mapKey|dataType
    *
    * mapKey   - the unique id of the Map.
-   * dataType - the type of [[MultiMapKey]] which can be either one of [[mapStart]], [[mapEntry]] or [[mapEnd]]
+   * dataType - the type of [[MultiKey]] which can be either one of [[start]], [[entry]] or [[end]]
    * dataKey  - the entry key for the Map.
    */
   implicit def serializer[T, K](implicit keySerializer: Serializer[K],
-                                tableSerializer: Serializer[T]): Serializer[MultiMapKey[T, K]] =
-    new Serializer[MultiMapKey[T, K]] {
-      override def write(data: MultiMapKey[T, K]): Slice[Byte] =
+                                tableSerializer: Serializer[T]): Serializer[MultiKey[T, K]] =
+    new Serializer[MultiKey[T, K]] {
+      override def write(data: MultiKey[T, K]): Slice[Byte] =
         data match {
-          case MultiMapKey.MapStart(mapId) =>
+          case MultiKey.Start(mapId) =>
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
-              .add(MultiMapKey.mapStart)
+              .add(MultiKey.start)
 
-          case MultiMapKey.MapEntriesStart(mapId) =>
+          case MultiKey.EntriesStart(mapId) =>
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
-              .add(MultiMapKey.mapEntriesStart)
+              .add(MultiKey.entriesStart)
 
-          case MultiMapKey.MapEntry(mapId, dataKey) =>
+          case MultiKey.Entry(mapId, dataKey) =>
             val dataKeyBytes = keySerializer.write(dataKey)
 
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + dataKeyBytes.size + 1)
               .addUnsignedLong(mapId)
-              .add(MultiMapKey.mapEntry)
+              .add(MultiKey.entry)
               .addAll(dataKeyBytes)
 
-          case MultiMapKey.MapEntriesEnd(mapId) =>
+          case MultiKey.EntriesEnd(mapId) =>
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
-              .add(MultiMapKey.mapEntriesEnd)
+              .add(MultiKey.entriesEnd)
 
-          case MultiMapKey.SubMapsStart(mapId) =>
+          case MultiKey.ChildrenStart(mapId) =>
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
-              .add(MultiMapKey.subMapsStart)
+              .add(MultiKey.childrenStart)
 
-          case MultiMapKey.SubMap(mapId, subMapKey) =>
+          case MultiKey.Child(mapId, subMapKey) =>
             val dataKeyBytes = tableSerializer.write(subMapKey)
 
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1 + dataKeyBytes.size)
               .addUnsignedLong(mapId)
-              .add(MultiMapKey.subMap)
+              .add(MultiKey.child)
               .addAll(dataKeyBytes)
 
-          case MultiMapKey.SubMapsEnd(mapId) =>
+          case MultiKey.ChildrenEnd(mapId) =>
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
-              .add(MultiMapKey.subMapsEnd)
+              .add(MultiKey.childrenEnd)
 
-          case MultiMapKey.MapEnd(mapId) =>
+          case MultiKey.End(mapId) =>
 
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
-              .add(MultiMapKey.mapEnd)
+              .add(MultiKey.end)
         }
 
-      override def read(data: Slice[Byte]): MultiMapKey[T, K] = {
+      override def read(data: Slice[Byte]): MultiKey[T, K] = {
         val reader = Reader(slice = data)
         val mapId = reader.readUnsignedLong()
         val dataType = reader.get()
-        if (dataType == MultiMapKey.mapStart)
-          MultiMapKey.MapStart(mapId)
-        else if (dataType == MultiMapKey.mapEntriesStart)
-          MultiMapKey.MapEntriesStart(mapId)
-        else if (dataType == MultiMapKey.mapEntry)
-          MultiMapKey.MapEntry(mapId, keySerializer.read(reader.readRemaining()))
-        else if (dataType == MultiMapKey.mapEntriesEnd)
-          MultiMapKey.MapEntriesEnd(mapId)
-        else if (dataType == MultiMapKey.subMapsStart)
-          MultiMapKey.SubMapsStart(mapId)
-        else if (dataType == MultiMapKey.subMap)
-          MultiMapKey.SubMap(
-            mapId = mapId,
-            subMapKey = tableSerializer.read(reader.readRemaining())
+        if (dataType == MultiKey.start)
+          MultiKey.Start(mapId)
+        else if (dataType == MultiKey.entriesStart)
+          MultiKey.EntriesStart(mapId)
+        else if (dataType == MultiKey.entry)
+          MultiKey.Entry(mapId, keySerializer.read(reader.readRemaining()))
+        else if (dataType == MultiKey.entriesEnd)
+          MultiKey.EntriesEnd(mapId)
+        else if (dataType == MultiKey.childrenStart)
+          MultiKey.ChildrenStart(mapId)
+        else if (dataType == MultiKey.child)
+          MultiKey.Child(
+            childId = mapId,
+            childKey = tableSerializer.read(reader.readRemaining())
           )
-        else if (dataType == MultiMapKey.subMapsEnd)
-          MultiMapKey.SubMapsEnd(mapId)
-        else if (dataType == MultiMapKey.mapEnd)
-          MultiMapKey.MapEnd(mapId)
+        else if (dataType == MultiKey.childrenEnd)
+          MultiKey.ChildrenEnd(mapId)
+        else if (dataType == MultiKey.end)
+          MultiKey.End(mapId)
         else
           throw IO.throwable(s"Invalid dataType: $dataType")
       }
@@ -160,7 +160,7 @@ protected object MultiMapKey {
    * Implements un-typed ordering for performance. This ordering can also be implemented using types.
    * See documentation at http://www.swaydb.io/custom-key-ordering/
    *
-   * Creates dual ordering on [[MultiMapKey.mapId]]. Orders mapKey using the [[KeyOrder.default]] order
+   * Creates dual ordering on [[MultiKey.childId]]. Orders mapKey using the [[KeyOrder.default]] order
    * and applies custom ordering on the user provided keys.
    */
   def ordering(customOrder: KeyOrder[Slice[Byte]]) =
@@ -173,10 +173,10 @@ protected object MultiMapKey {
         val rightDataType = b.drop(Bytes.sizeOfUnsignedLong(rightMapId)).head
 
         //use default sorting if the keys are pointer keys
-        if (leftDataType == MultiMapKey.mapStart || leftDataType == MultiMapKey.mapEnd || leftDataType == MultiMapKey.subMapsStart || leftDataType == MultiMapKey.subMapsEnd || leftDataType == MultiMapKey.mapEntriesStart || leftDataType == MultiMapKey.mapEntriesEnd ||
-          rightDataType == MultiMapKey.mapStart || rightDataType == MultiMapKey.mapEnd || rightDataType == MultiMapKey.subMapsStart || rightDataType == MultiMapKey.subMapsEnd || rightDataType == MultiMapKey.mapEntriesStart || rightDataType == MultiMapKey.mapEntriesEnd) {
+        if (leftDataType == MultiKey.start || leftDataType == MultiKey.end || leftDataType == MultiKey.childrenStart || leftDataType == MultiKey.childrenEnd || leftDataType == MultiKey.entriesStart || leftDataType == MultiKey.entriesEnd ||
+          rightDataType == MultiKey.start || rightDataType == MultiKey.end || rightDataType == MultiKey.childrenStart || rightDataType == MultiKey.childrenEnd || rightDataType == MultiKey.entriesStart || rightDataType == MultiKey.entriesEnd) {
           KeyOrder.default.compare(a, b)
-        } else if (leftDataType == MultiMapKey.mapEntry || leftDataType == MultiMapKey.subMap) {
+        } else if (leftDataType == MultiKey.entry || leftDataType == MultiKey.child) {
           val tableBytesLeft = a.take(Bytes.sizeOfUnsignedLong(leftMapId) + 1)
           val tableBytesRight = b.take(Bytes.sizeOfUnsignedLong(rightMapId) + 1)
 
