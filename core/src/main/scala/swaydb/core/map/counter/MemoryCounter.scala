@@ -17,28 +17,24 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.map.timer
+package swaydb.core.map.counter
 
 import java.util.concurrent.atomic.AtomicLong
 
-import swaydb.core.data.Time
-
-private[core] object MemoryTimer {
-  def apply(): MemoryTimer =
-    new MemoryTimer(new AtomicLong(0))
+private[core] object MemoryCounter {
+  def apply(): MemoryCounter =
+    new MemoryCounter(new AtomicLong(0))
 }
 
-private[core] class MemoryTimer(time: AtomicLong) extends Timer {
+private[core] class MemoryCounter(count: AtomicLong) extends Counter {
 
-  override val empty = false
-
-  def next: Time =
-    Time(time.incrementAndGet())
+  def next: Long =
+    count.incrementAndGet()
 
   override def close: Unit =
     ()

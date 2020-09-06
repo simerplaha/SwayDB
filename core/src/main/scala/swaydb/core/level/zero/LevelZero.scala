@@ -372,7 +372,7 @@ private[swaydb] case class LevelZero(path: Path,
 
       maps.write {
         timer =>
-          if (timer.empty)
+          if (timer.isEmptyTimer)
             throw new IllegalArgumentException("Functions are disabled.")
           else
             MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
@@ -392,7 +392,7 @@ private[swaydb] case class LevelZero(path: Path,
       else
         maps.write {
           timer =>
-            if (timer.empty)
+            if (timer.isEmptyTimer)
               throw new IllegalArgumentException("Functions are disabled.")
             else
               (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
