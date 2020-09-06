@@ -26,7 +26,7 @@ package swaydb.macros
 
 import java.nio.file.{Files, Paths}
 
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters._
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
@@ -71,7 +71,7 @@ object VersionReader {
         case None =>
           c.abort(
             c.enclosingPosition,
-            s"Failed to read version number from file ${filePath}"
+            s"Failed to read version number from file $filePath"
           )
       }
 
@@ -89,12 +89,12 @@ object VersionReader {
         case None =>
           c.abort(
             c.enclosingPosition,
-            s"Invalid version string: ${versionString}"
+            s"Invalid version string: $versionString"
           )
       }
 
-    val quasi = q"${(major, minor, revision)}"
+    val tuple = q"${(major, minor, revision)}"
 
-    c.Expr[(Int, Int, Int)](quasi)
+    c.Expr[(Int, Int, Int)](tuple)
   }
 }

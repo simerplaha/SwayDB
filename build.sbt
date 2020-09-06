@@ -214,6 +214,7 @@ lazy val macros =
   project
     .settings(commonSettings)
     .settings(publishSettings)
+    .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .settings(libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value)
 
 lazy val `swaydb-stress` =
