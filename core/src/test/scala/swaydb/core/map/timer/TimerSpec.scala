@@ -30,7 +30,8 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
-import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, CounterMapEntryReader, CounterMapEntryWriter}
+import swaydb.core.map.counter.Counter
+import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, MapEntryReader, MapEntryWriter}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -109,7 +110,7 @@ sealed trait TimerSpec extends TestBase {
 
           val dir = randomDir
           val timer: Timer = newTimer(dir)
-          write(1 to 1000, timer)
+          write((Counter.startId.toInt + 1) to 1000, timer)
           timer.close
 
           if (persistent) {
