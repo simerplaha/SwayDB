@@ -28,6 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.KeyOrderConverter
 import swaydb.configs.level.{DefaultExecutionContext, DefaultMemoryConfig}
 import swaydb.core.Core
+import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -86,7 +87,8 @@ object Set extends LazyLogging {
           memoryCache = MemoryCache.Disable
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
-          functionStore = coreFunctions
+          functionStore = coreFunctions,
+          buildValidator = BuildValidator.DisallowOlderVersions
         ) map {
           db =>
             swaydb.Set[A, F, BAG](db.toBag)

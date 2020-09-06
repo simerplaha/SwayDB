@@ -29,6 +29,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -72,7 +73,8 @@ object Queue extends LazyLogging {
                        levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
                        levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A],
                                                                                                    bag: Bag[BAG],
-                                                                                                   compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[swaydb.Queue[A]] =
+                                                                                                   compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
+                                                                                                   buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =
         swaydb.Queue.serialiser[A](serializer)

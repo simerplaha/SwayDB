@@ -30,6 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.KeyOrderConverter
 import swaydb.configs.level.{DefaultExecutionContext, DefaultPersistentConfig}
 import swaydb.core.Core
+import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -76,7 +77,8 @@ object Map extends LazyLogging {
                                                                                                          functions: swaydb.Map.Functions[K, V, F],
                                                                                                          byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                          typedKeyOrder: KeyOrder[K] = null,
-                                                                                                         compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[swaydb.Map[K, V, F, BAG]] =
+                                                                                                         compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
+                                                                                                         buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.Map[K, V, F, BAG]] =
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       val coreFunctions: swaydb.core.function.FunctionStore = functions.core
@@ -115,7 +117,8 @@ object Map extends LazyLogging {
           memoryCache = memoryCache
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
-          functionStore = coreFunctions
+          functionStore = coreFunctions,
+          buildValidator = buildValidator
         ) map {
           db =>
             swaydb.Map[K, V, F, BAG](db.toBag)

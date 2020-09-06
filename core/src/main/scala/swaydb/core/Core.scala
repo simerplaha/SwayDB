@@ -26,6 +26,7 @@ package swaydb.core
 
 import java.util.function.Supplier
 
+import swaydb.core.build.BuildValidator
 import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero
@@ -61,7 +62,8 @@ private[swaydb] object Core {
             shutdownTimeout: FiniteDuration,
             threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
+                                                functionStore: FunctionStore,
+                                                buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
@@ -80,7 +82,8 @@ private[swaydb] object Core {
             shutdownTimeout: FiniteDuration,
             threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
+                                                functionStore: FunctionStore,
+                                                buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,

@@ -28,6 +28,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -86,7 +87,8 @@ object MultiMap_Experimental extends LazyLogging {
                                                                                                             functions: swaydb.MultiMap_Experimental.Functions[M, K, V, F],
                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                             typedKeyOrder: KeyOrder[K] = null,
-                                                                                                            compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
+                                                                                                            compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
+                                                                                                            buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[MultiMap_Experimental[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val mapKeySerializer: Serializer[MultiMapKey[M, K]] = MultiMapKey.serializer(keySerializer, tableSerializer)
       implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toNestedOption(valueSerializer)
@@ -129,7 +131,8 @@ object MultiMap_Experimental extends LazyLogging {
           bag = bag,
           functions = functions.innerFunctions,
           byteKeyOrder = internalKeyOrder,
-          compactionEC = compactionEC
+          compactionEC = compactionEC,
+          buildValidator = buildValidator
         )
 
       bag.flatMap(map) {

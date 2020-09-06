@@ -28,6 +28,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
@@ -68,7 +69,8 @@ object SetMap extends LazyLogging {
                                                                                                                             bag: swaydb.Bag[BAG],
                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                            compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[swaydb.SetMap[K, V, BAG]] =
+                                                                                                                            compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
+                                                                                                                            buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
       val nullCheckedOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
@@ -103,7 +105,8 @@ object SetMap extends LazyLogging {
           bag = bag,
           functions = swaydb.Set.nothing,
           byteKeyOrder = ordering,
-          compactionEC = compactionEC
+          compactionEC = compactionEC,
+          buildValidator = buildValidator
         )
 
       bag.transform(set) {

@@ -31,7 +31,8 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.tool.AppendixRepairer
-import swaydb.core.{BuildInfo, Core}
+import swaydb.core.Core
+import swaydb.core.build.{Build, BuildValidator}
 import swaydb.data.MaxKey
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -52,7 +53,7 @@ object SwayDB extends LazyLogging {
 
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  final def buildInfo: BuildInfo = BuildInfo()
+  final def buildInfo: Build = Build.thisBuild()
 
   /**
    * Creates a database based on the input config.
@@ -73,7 +74,8 @@ object SwayDB extends LazyLogging {
                      shutdownTimeout: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                       valueSerializer: Serializer[V],
                                                       functionClassTag: ClassTag[F],
-                                                      keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
+                                                      keyOrder: KeyOrder[Slice[Byte]],
+                                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
@@ -94,7 +96,8 @@ object SwayDB extends LazyLogging {
                   cacheKeyValueIds: Boolean,
                   shutdownTimeout: FiniteDuration)(implicit serializer: Serializer[T],
                                                    functionClassTag: ClassTag[F],
-                                                   keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
+                                                   keyOrder: KeyOrder[Slice[Byte]],
+                                                   buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
@@ -116,7 +119,8 @@ object SwayDB extends LazyLogging {
                      shutdownTimeout: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                       valueSerializer: Serializer[V],
                                                       functionClassTag: ClassTag[F],
-                                                      keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
+                                                      keyOrder: KeyOrder[Slice[Byte]],
+                                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
@@ -137,7 +141,8 @@ object SwayDB extends LazyLogging {
                   cacheKeyValueIds: Boolean,
                   shutdownTimeout: FiniteDuration)(implicit serializer: Serializer[T],
                                                    functionClassTag: ClassTag[F],
-                                                   keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
+                                                   keyOrder: KeyOrder[Slice[Byte]],
+                                                   buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,

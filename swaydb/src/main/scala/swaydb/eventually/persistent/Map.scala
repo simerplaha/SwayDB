@@ -30,6 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.KeyOrderConverter
 import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecutionContext}
 import swaydb.core.Core
+import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{ThreadStateCache, _}
@@ -77,7 +78,8 @@ object Map extends LazyLogging {
                                                                                                                                functions: swaydb.Map.Functions[K, V, F],
                                                                                                                                byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                               compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[swaydb.Map[K, V, F, BAG]] =
+                                                                                                                               compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
+                                                                                                                               buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.Map[K, V, F, BAG]] =
     bag.suspend {
 
       implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
@@ -113,7 +115,8 @@ object Map extends LazyLogging {
           memoryCache = memoryCache
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
-          functionStore = coreFunctions
+          functionStore = coreFunctions,
+          buildValidator = buildValidator
         ) map {
           db =>
             swaydb.Map[K, V, F, BAG](db.toBag)

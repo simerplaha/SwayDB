@@ -30,6 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
+import swaydb.core.build.{Build, BuildValidator}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
@@ -46,7 +47,7 @@ import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.storage.{AppendixStorage, LevelStorage}
+import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.{ActorRef, ActorWire, Bag, Error, IO}
 
 import scala.concurrent.duration._
@@ -140,172 +141,188 @@ private[core] object CoreInitializer extends LazyLogging {
             memoryCache: MemoryCache,
             shutdownTimeout: FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                              timeOrder: TimeOrder[Slice[Byte]],
-                                             functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
+                                             functionStore: FunctionStore,
+                                             buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
+    val validationResult =
+      config.level0.storage match {
+        case Level0Storage.Memory =>
+          IO.unit
 
-    implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] =
-      FileSweeper(fileCache)
-
-    val memorySweeper: Option[MemorySweeper.Enabled] =
-      MemorySweeper(memoryCache)
-
-    implicit val blockCache: Option[BlockCache.State] =
-      memorySweeper flatMap BlockCache.init
-
-    implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] =
-      memorySweeper flatMap {
-        enabled: MemorySweeper.Enabled =>
-          enabled match {
-            case sweeper: MemorySweeper.All =>
-              Some(sweeper)
-
-            case sweeper: MemorySweeper.KeyValueSweeper =>
-              Some(sweeper)
-
-            case _: MemorySweeper.BlockSweeper =>
-              None
-          }
+        case Level0Storage.Persistent(_, dir, _) =>
+          Build.validateOrCreate(dir)
       }
 
-    implicit val compactionStrategy: Compactor[ThrottleState] =
-      ThrottleCompactor
+    validationResult match {
+      case IO.Right(_) =>
 
-    implicit val bufferCleaner: ByteBufferSweeperActor =
-      ByteBufferSweeper()(fileSweeper.executionContext)
+        implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] =
+          FileSweeper(fileCache)
 
-    val contexts = executionContexts(config)
+        val memorySweeper: Option[MemorySweeper.Enabled] =
+          MemorySweeper(memoryCache)
 
-    implicit val shutdownEC: ExecutionContext = shutdownExecutionContext(contexts)
+        implicit val blockCache: Option[BlockCache.State] =
+          memorySweeper flatMap BlockCache.init
 
-    def createLevel(id: Long,
-                    nextLevel: Option[NextLevel],
-                    config: LevelConfig): IO[swaydb.Error.Level, NextLevel] =
-      config match {
-        case config: MemoryLevelConfig =>
-          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Disabled
+        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] =
+          memorySweeper flatMap {
+            enabled: MemorySweeper.Enabled =>
+              enabled match {
+                case sweeper: MemorySweeper.All =>
+                  Some(sweeper)
 
-          Level(
-            bloomFilterConfig = BloomFilterBlock.Config.disabled,
-            hashIndexConfig = block.hashindex.HashIndexBlock.Config.disabled,
-            binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config.disabled,
-            sortedIndexConfig = SortedIndexBlock.Config.disabled,
-            valuesConfig = ValuesBlock.Config.disabled,
-            segmentConfig =
-              SegmentBlock.Config(
-                fileOpenIOStrategy = IOStrategy.AsyncIO(false),
-                blockIOStrategy = _ => IOStrategy.ConcurrentIO(false),
-                cacheBlocksOnCreate = false,
-                minSize = config.minSegmentSize,
-                maxCount = config.maxKeyValuesPerSegment,
-                pushForward = config.copyForward,
-                mmap = MMAP.Disabled(ForceSave.Disabled),
-                deleteEventually = config.deleteSegmentsEventually,
-                compressions = _ => Seq.empty
-              ),
-            levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
-            appendixStorage = AppendixStorage.Memory,
-            nextLevel = nextLevel,
-            throttle = config.throttle
-          )
+                case sweeper: MemorySweeper.KeyValueSweeper =>
+                  Some(sweeper)
 
-        case config: PersistentLevelConfig =>
-          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
-
-          Level(
-            bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainKeyIndex),
-            hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.randomKeyIndex),
-            binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
-            sortedIndexConfig = SortedIndexBlock.Config(config.sortedKeyIndex),
-            valuesConfig = ValuesBlock.Config(config.valuesConfig),
-            segmentConfig = SegmentBlock.Config(config.segmentConfig),
-            levelStorage =
-              LevelStorage.Persistent(
-                dir = config.dir.resolve(id.toString),
-                otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
-              ),
-            appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
-            nextLevel = nextLevel,
-            throttle = config.throttle
-          )
-
-        case TrashLevelConfig =>
-          IO.Right(TrashLevel)
-      }
-
-    def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Bag.Less]] =
-      levelConfigs match {
-        case Nil =>
-          implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
-
-          createLevel(
-            id = 1,
-            nextLevel = previousLowerLevel,
-            config = config.level1
-          ) flatMap {
-            level1 =>
-              LevelZero(
-                mapSize = config.level0.mapSize,
-                storage = config.level0.storage,
-                enableTimer = enableTimer,
-                cacheKeyValueIds = cacheKeyValueIds,
-                nextLevel = Some(level1),
-                throttle = config.level0.throttle,
-                acceleration = config.level0.acceleration
-              ) flatMap {
-                zero: LevelZero =>
-                  initialiseCompaction(
-                    zero = zero,
-                    executionContexts = contexts
-                  ) map {
-                    implicit compactor =>
-
-                      addShutdownHook(zero, shutdownTimeout)
-
-                      //trigger initial wakeUp.
-                      sendInitialWakeUp(compactor)
-
-                      new Core[Bag.Less](
-                        zero = zero,
-                        threadStateCache = threadStateCache,
-                        onClose = onClose(zero)
-                      )
-                  }
+                case _: MemorySweeper.BlockSweeper =>
+                  None
               }
           }
 
-        case lowestLevelConfig :: upperLevelConfigs =>
+        implicit val compactionStrategy: Compactor[ThrottleState] =
+          ThrottleCompactor
 
-          val levelNumber: Long =
-            previousLowerLevel
-              .flatMap(_.pathDistributor.headOption.map(_.path.folderId - 1))
-              .getOrElse(levelConfigs.size + 1)
+        implicit val bufferCleaner: ByteBufferSweeperActor =
+          ByteBufferSweeper()(fileSweeper.executionContext)
 
-          createLevel(levelNumber, previousLowerLevel, lowestLevelConfig) flatMap {
-            newLowerLevel =>
-              createLevels(upperLevelConfigs, Some(newLowerLevel))
+        val contexts = executionContexts(config)
+
+        implicit val shutdownEC: ExecutionContext = shutdownExecutionContext(contexts)
+
+        def createLevel(id: Long,
+                        nextLevel: Option[NextLevel],
+                        config: LevelConfig): IO[swaydb.Error.Level, NextLevel] =
+          config match {
+            case config: MemoryLevelConfig =>
+              implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Disabled
+
+              Level(
+                bloomFilterConfig = BloomFilterBlock.Config.disabled,
+                hashIndexConfig = block.hashindex.HashIndexBlock.Config.disabled,
+                binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config.disabled,
+                sortedIndexConfig = SortedIndexBlock.Config.disabled,
+                valuesConfig = ValuesBlock.Config.disabled,
+                segmentConfig =
+                  SegmentBlock.Config(
+                    fileOpenIOStrategy = IOStrategy.AsyncIO(false),
+                    blockIOStrategy = _ => IOStrategy.ConcurrentIO(false),
+                    cacheBlocksOnCreate = false,
+                    minSize = config.minSegmentSize,
+                    maxCount = config.maxKeyValuesPerSegment,
+                    pushForward = config.copyForward,
+                    mmap = MMAP.Disabled(ForceSave.Disabled),
+                    deleteEventually = config.deleteSegmentsEventually,
+                    compressions = _ => Seq.empty
+                  ),
+                levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
+                appendixStorage = AppendixStorage.Memory,
+                nextLevel = nextLevel,
+                throttle = config.throttle
+              )
+
+            case config: PersistentLevelConfig =>
+              implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
+
+              Level(
+                bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainKeyIndex),
+                hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.randomKeyIndex),
+                binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
+                sortedIndexConfig = SortedIndexBlock.Config(config.sortedKeyIndex),
+                valuesConfig = ValuesBlock.Config(config.valuesConfig),
+                segmentConfig = SegmentBlock.Config(config.segmentConfig),
+                levelStorage =
+                  LevelStorage.Persistent(
+                    dir = config.dir.resolve(id.toString),
+                    otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
+                  ),
+                appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
+                nextLevel = nextLevel,
+                throttle = config.throttle
+              )
+
+            case TrashLevelConfig =>
+              IO.Right(TrashLevel)
           }
-      }
 
-    logger.info(s"Booting ${config.otherLevels.size + 2} Levels.")
+        def createLevels(levelConfigs: List[LevelConfig],
+                         previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Bag.Less]] =
+          levelConfigs match {
+            case Nil =>
+              implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
 
-    /**
-     * Convert [[swaydb.Error.Level]] to [[swaydb.Error]]
-     */
-    createLevels(config.otherLevels.reverse, None) match {
-      case IO.Right(core) =>
-        IO[swaydb.Error.Boot, Core[Bag.Less]](core)
+              createLevel(
+                id = 1,
+                nextLevel = previousLowerLevel,
+                config = config.level1
+              ) flatMap {
+                level1 =>
+                  LevelZero(
+                    mapSize = config.level0.mapSize,
+                    storage = config.level0.storage,
+                    enableTimer = enableTimer,
+                    cacheKeyValueIds = cacheKeyValueIds,
+                    nextLevel = Some(level1),
+                    throttle = config.level0.throttle,
+                    acceleration = config.level0.acceleration
+                  ) flatMap {
+                    zero: LevelZero =>
+                      initialiseCompaction(
+                        zero = zero,
+                        executionContexts = contexts
+                      ) map {
+                        implicit compactor =>
 
-      case IO.Left(createError) =>
-        IO(LevelCloser.closeSync[Bag.Less](10.seconds)) match {
-          case IO.Right(_) =>
-            IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createError.exception)
+                          addShutdownHook(zero, shutdownTimeout)
 
-          case IO.Left(closeError) =>
-            val createException = createError.exception
-            logger.error("Failed to create", createException)
-            logger.error("Failed to close", closeError.exception)
-            IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createException)
+                          //trigger initial wakeUp.
+                          sendInitialWakeUp(compactor)
+
+                          new Core[Bag.Less](
+                            zero = zero,
+                            threadStateCache = threadStateCache,
+                            onClose = onClose(zero)
+                          )
+                      }
+                  }
+              }
+
+            case lowestLevelConfig :: upperLevelConfigs =>
+
+              val levelNumber: Long =
+                previousLowerLevel
+                  .flatMap(_.pathDistributor.headOption.map(_.path.folderId - 1))
+                  .getOrElse(levelConfigs.size + 1)
+
+              createLevel(levelNumber, previousLowerLevel, lowestLevelConfig) flatMap {
+                newLowerLevel =>
+                  createLevels(upperLevelConfigs, Some(newLowerLevel))
+              }
+          }
+
+        logger.info(s"Booting ${config.otherLevels.size + 2} Levels.")
+
+        /**
+         * Convert [[swaydb.Error.Level]] to [[swaydb.Error]]
+         */
+        createLevels(config.otherLevels.reverse, None) match {
+          case IO.Right(core) =>
+            IO[swaydb.Error.Boot, Core[Bag.Less]](core)
+
+          case IO.Left(createError) =>
+            IO(LevelCloser.closeSync[Bag.Less](10.seconds)) match {
+              case IO.Right(_) =>
+                IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createError.exception)
+
+              case IO.Left(closeError) =>
+                val createException = createError.exception
+                logger.error("Failed to create", createException)
+                logger.error("Failed to close", closeError.exception)
+                IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createException)
+            }
         }
+
+      case IO.Left(error) =>
+        IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
     }
   }
 }
