@@ -348,7 +348,6 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
       bag.success(buffer)
   }
 
-
   /**
    * Builds [[Prepare.Remove]] statements to remove the key's map and all that key's children.
    */

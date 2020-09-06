@@ -78,7 +78,10 @@ object MultiValue {
     }
 
   sealed trait Our extends MultiValue[Nothing]
-  object None extends Our
+  object None extends Our {
+    override def toString: String =
+      "MultiValue.None"
+  }
 
   object MapId {
     @inline def apply(id: Long): MapId =
@@ -97,6 +100,9 @@ object MultiValue {
 
     override def hashCode(): Int =
       id.hashCode()
+
+    override def toString: String =
+      s"MultiValue.MapId($id)"
   }
 
   object Their {
@@ -116,5 +122,8 @@ object MultiValue {
 
     override def hashCode(): Int =
       value.hashCode()
+
+    override def toString: String =
+      s"MultiValue.Their(${value.toString})"
   }
 }
