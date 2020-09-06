@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 private[core] object MemoryCounter {
   def apply(): MemoryCounter =
-    new MemoryCounter(new AtomicLong(0))
+    new MemoryCounter(new AtomicLong(Counter.startId))
 }
 
 private[core] class MemoryCounter(count: AtomicLong) extends Counter {

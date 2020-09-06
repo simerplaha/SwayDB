@@ -31,10 +31,10 @@ import scala.concurrent.duration.Deadline
 /**
  * Holds [[Prepare]] statements which than get converted to [[MultiMap_Experimental.innerMap]]'s [[Prepare]] type.
  *
- * @param thisMapKey        [[MultiMap_Experimental]] key's
+ * @param mapId             [[MultiMap_Experimental]] key's
  * @param defaultExpiration [[MultiMap_Experimental]] default expiration
  * @param prepare           The [[Prepare]] statemented created for the [[MultiMap_Experimental]]
  */
-class Transaction[+M, +K, +V, +F](val thisMapKey: Iterable[M],
+class Transaction[+M, +K, +V, +F](val mapId: Long,
                                   val defaultExpiration: Option[Deadline],
                                   val prepare: Prepare[K, V, F])

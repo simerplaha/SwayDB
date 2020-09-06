@@ -145,8 +145,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       TestCaseSweeper {
         implicit sweeper =>
           val root = buildRootMap()
-          root.put(0, "zero1")
-          root.get(0).value shouldBe "zero1"
+          root.put(key = 0, value = "zero1")
+          root.get(key = 0).value shouldBe "zero1"
 
           val child1 = root.schema.get(1).value
           val child11 = child1.schema.get(11).value

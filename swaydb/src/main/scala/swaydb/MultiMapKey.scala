@@ -30,29 +30,24 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
-import scala.collection.mutable.ListBuffer
-
-protected sealed trait MultiMapKey[+T, +K] {
-  def parentKey: Iterable[T]
+protected sealed trait MultiMapKey[+M, +K] {
+  def mapId: Long
 }
 
 protected object MultiMapKey {
 
   //map start
-  case class MapStart[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
+  case class MapStart(mapId: Long) extends MultiMapKey[Nothing, Nothing]
 
-  case class MapEntriesStart[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
-  case class MapEntry[+T, +K](parentKey: Iterable[T], dataKey: K) extends MultiMapKey[T, K]
-  case class MapEntriesEnd[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
+  case class MapEntriesStart(mapId: Long) extends MultiMapKey[Nothing, Nothing]
+  case class MapEntry[+K](mapId: Long, dataKey: K) extends MultiMapKey[Nothing, K]
+  case class MapEntriesEnd(mapId: Long) extends MultiMapKey[Nothing, Nothing]
 
-  case class SubMapsStart[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
-  case class SubMap[+T](parentKey: Iterable[T], subMapKey: T) extends MultiMapKey[T, Nothing]
-  case class SubMapsEnd[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
+  case class SubMapsStart(mapId: Long) extends MultiMapKey[Nothing, Nothing]
+  case class SubMap[+M](mapId: Long, subMapKey: M, subMapId: Long) extends MultiMapKey[M, Nothing]
+  case class SubMapsEnd(mapId: Long) extends MultiMapKey[Nothing, Nothing]
 
-  case class MapEnd[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
-
-  //formatId for the serializers. Each key is prepended with this formatId.
-  private val formatId: Byte = 0
+  case class MapEnd(mapId: Long) extends MultiMapKey[Nothing, Nothing]
 
   //starting of the Map
   private val mapStart: Byte = 1
@@ -67,35 +62,6 @@ protected object MultiMapKey {
   //leave enough space to allow for adding other data like mapSize etc.
   private val mapEnd: Byte = 127 //keep this to map so that there is enough space in the map to add more data types.
   //actual queues's data is outside the map
-
-  protected def writeKeys[T](keys: Iterable[T],
-                             keySerializer: Serializer[T]): Slice[Byte] =
-    if (keys.isEmpty)
-      Slice.emptyBytes
-    else {
-      val slices = keys map keySerializer.write
-
-      val size = slices.foldLeft(0) {
-        case (size, bytes) =>
-          size + Bytes.sizeOfUnsignedInt(bytes.size) + bytes.size
-      }
-
-      val slice = Slice.create[Byte](size)
-      slices foreach {
-        keySlice =>
-          slice addUnsignedInt keySlice.size
-          slice addAll keySlice
-      }
-
-      slice
-    }
-
-  private def readKeys[T](keys: Slice[Byte], keySerializer: Serializer[T]): Iterable[T] =
-    Reader(keys).foldLeft(ListBuffer.empty[T]) {
-      case (keys, reader) =>
-        val tailKeyBytes = reader.read(reader.readUnsignedInt())
-        keys :+ keySerializer.read(tailKeyBytes)
-    }
 
   /**
    * Serializer implementation for [[MultiMapKey]] types.
@@ -114,104 +80,80 @@ protected object MultiMapKey {
     new Serializer[MultiMapKey[T, K]] {
       override def write(data: MultiMapKey[T, K]): Slice[Byte] =
         data match {
-          case MultiMapKey.MapStart(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, tableSerializer)
-
-            Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
-              .add(formatId)
-              .addUnsignedInt(keyBytes.size)
-              .addAll(keyBytes)
+          case MultiMapKey.MapStart(mapId) =>
+            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+              .addUnsignedLong(mapId)
               .add(MultiMapKey.mapStart)
 
-          case MultiMapKey.MapEntriesStart(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, tableSerializer)
-
-            Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
-              .add(formatId)
-              .addUnsignedInt(keyBytes.size)
-              .addAll(keyBytes)
+          case MultiMapKey.MapEntriesStart(mapId) =>
+            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+              .addUnsignedLong(mapId)
               .add(MultiMapKey.mapEntriesStart)
 
-          case MultiMapKey.MapEntry(mapKeys, dataKey) =>
-            val mapKeyBytes = writeKeys(mapKeys, tableSerializer)
+          case MultiMapKey.MapEntry(mapId, dataKey) =>
             val dataKeyBytes = keySerializer.write(dataKey)
 
-            Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
-              .add(formatId)
-              .addUnsignedInt(mapKeyBytes.size)
-              .addAll(mapKeyBytes)
+            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + dataKeyBytes.size + 1)
+              .addUnsignedLong(mapId)
               .add(MultiMapKey.mapEntry)
               .addAll(dataKeyBytes)
 
-          case MultiMapKey.MapEntriesEnd(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, tableSerializer)
-
-            Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
-              .add(formatId)
-              .addUnsignedInt(keyBytes.size)
-              .addAll(keyBytes)
+          case MultiMapKey.MapEntriesEnd(mapId) =>
+            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+              .addUnsignedLong(mapId)
               .add(MultiMapKey.mapEntriesEnd)
 
-          case MultiMapKey.SubMapsStart(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, tableSerializer)
-
-            Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
-              .add(formatId)
-              .addUnsignedInt(keyBytes.size)
-              .addAll(keyBytes)
+          case MultiMapKey.SubMapsStart(mapId) =>
+            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+              .addUnsignedLong(mapId)
               .add(MultiMapKey.subMapsStart)
 
-          case MultiMapKey.SubMap(mapKeys, subMapKey) =>
-            val mapKeyBytes = writeKeys(mapKeys, tableSerializer)
+          case MultiMapKey.SubMap(mapId, subMapKey, subMapId) =>
             val dataKeyBytes = tableSerializer.write(subMapKey)
 
-            Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
-              .add(formatId)
-              .addUnsignedInt(mapKeyBytes.size)
-              .addAll(mapKeyBytes)
+            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + Bytes.sizeOfUnsignedInt(dataKeyBytes.size) + dataKeyBytes.size + Bytes.sizeOfUnsignedLong(subMapId) + 1)
+              .addUnsignedLong(mapId)
               .add(MultiMapKey.subMap)
+              .addUnsignedInt(dataKeyBytes.size)
               .addAll(dataKeyBytes)
+              .addUnsignedLong(subMapId)
 
-          case MultiMapKey.SubMapsEnd(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, tableSerializer)
-
-            Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
-              .add(formatId)
-              .addUnsignedInt(keyBytes.size)
-              .addAll(keyBytes)
+          case MultiMapKey.SubMapsEnd(mapId) =>
+            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+              .addUnsignedLong(mapId)
               .add(MultiMapKey.subMapsEnd)
 
-          case MultiMapKey.MapEnd(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, tableSerializer)
+          case MultiMapKey.MapEnd(mapId) =>
 
-            Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
-              .add(formatId)
-              .addUnsignedInt(keyBytes.size)
-              .addAll(keyBytes)
+            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+              .addUnsignedLong(mapId)
               .add(MultiMapKey.mapEnd)
         }
 
       override def read(data: Slice[Byte]): MultiMapKey[T, K] = {
-        val reader = Reader(slice = data, position = 1)
-        val keyBytes = reader.read(reader.readUnsignedInt())
-        val keys = readKeys(keyBytes, tableSerializer)
+        val reader = Reader(slice = data)
+        val mapId = reader.readUnsignedLong()
         val dataType = reader.get()
         if (dataType == MultiMapKey.mapStart)
-          MultiMapKey.MapStart(keys)
+          MultiMapKey.MapStart(mapId)
         else if (dataType == MultiMapKey.mapEntriesStart)
-          MultiMapKey.MapEntriesStart(keys)
+          MultiMapKey.MapEntriesStart(mapId)
         else if (dataType == MultiMapKey.mapEntry)
-          MultiMapKey.MapEntry(keys, keySerializer.read(reader.readRemaining()))
+          MultiMapKey.MapEntry(mapId, keySerializer.read(reader.readRemaining()))
         else if (dataType == MultiMapKey.mapEntriesEnd)
-          MultiMapKey.MapEntriesEnd(keys)
+          MultiMapKey.MapEntriesEnd(mapId)
         else if (dataType == MultiMapKey.subMapsStart)
-          MultiMapKey.SubMapsStart(keys)
+          MultiMapKey.SubMapsStart(mapId)
         else if (dataType == MultiMapKey.subMap)
-          MultiMapKey.SubMap(keys, tableSerializer.read(reader.readRemaining()))
+          MultiMapKey.SubMap(
+            mapId = mapId,
+            subMapKey = tableSerializer.read(reader.read(reader.readUnsignedInt())),
+            subMapId = reader.readUnsignedLong()
+          )
         else if (dataType == MultiMapKey.subMapsEnd)
-          MultiMapKey.SubMapsEnd(keys)
+          MultiMapKey.SubMapsEnd(mapId)
         else if (dataType == MultiMapKey.mapEnd)
-          MultiMapKey.MapEnd(keys)
+          MultiMapKey.MapEnd(mapId)
         else
           throw IO.throwable(s"Invalid dataType: $dataType")
       }
@@ -221,37 +163,57 @@ protected object MultiMapKey {
    * Implements un-typed ordering for performance. This ordering can also be implemented using types.
    * See documentation at http://www.swaydb.io/custom-key-ordering/
    *
-   * Creates dual ordering on [[MultiMapKey.parentKey]]. Orders mapKey using the [[KeyOrder.default]] order
+   * Creates dual ordering on [[MultiMapKey.mapId]]. Orders mapKey using the [[KeyOrder.default]] order
    * and applies custom ordering on the user provided keys.
    */
   def ordering(customOrder: KeyOrder[Slice[Byte]]) =
     new KeyOrder[Slice[Byte]] {
-      def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
-        val readerLeft = Reader(slice = a, position = 1)
-        val keySizeLeft = readerLeft.readUnsignedInt()
-        readerLeft.skip(keySizeLeft)
-        val dataTypeLeft = readerLeft.get()
+      override def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
+        val leftMapId = a.readUnsignedLong()
+        val leftDataType = a.drop(Bytes.sizeOfUnsignedLong(leftMapId)).head
 
-        val readerRight = Reader(slice = a, position = 1)
-        val keySizeRight = readerRight.readUnsignedInt() //read the keySize integer
-        readerRight.skip(keySizeRight) //skip key size
-        val dataTypeRight = readerRight.get() //read the data type to apply ordering (default or custom)
+        val rightMapId = b.readUnsignedLong()
+        val rightDataType = b.drop(Bytes.sizeOfUnsignedLong(rightMapId)).head
 
         //use default sorting if the keys are pointer keys
-        if (dataTypeLeft == MultiMapKey.mapStart || dataTypeLeft == MultiMapKey.mapEnd || dataTypeLeft == MultiMapKey.subMapsStart || dataTypeLeft == MultiMapKey.subMapsEnd || dataTypeLeft == MultiMapKey.mapEntriesStart || dataTypeLeft == MultiMapKey.mapEntriesEnd ||
-          dataTypeRight == MultiMapKey.mapStart || dataTypeRight == MultiMapKey.mapEnd || dataTypeRight == MultiMapKey.subMapsStart || dataTypeRight == MultiMapKey.subMapsEnd || dataTypeRight == MultiMapKey.mapEntriesStart || dataTypeRight == MultiMapKey.mapEntriesEnd) {
+        if (leftDataType == MultiMapKey.mapStart || leftDataType == MultiMapKey.mapEnd || leftDataType == MultiMapKey.subMapsStart || leftDataType == MultiMapKey.subMapsEnd || leftDataType == MultiMapKey.mapEntriesStart || leftDataType == MultiMapKey.mapEntriesEnd ||
+          rightDataType == MultiMapKey.mapStart || rightDataType == MultiMapKey.mapEnd || rightDataType == MultiMapKey.subMapsStart || rightDataType == MultiMapKey.subMapsEnd || rightDataType == MultiMapKey.mapEntriesStart || rightDataType == MultiMapKey.mapEntriesEnd) {
           KeyOrder.default.compare(a, b)
-        } else if (dataTypeLeft == MultiMapKey.mapEntry || dataTypeLeft == MultiMapKey.subMap) {
-          val tableBytesLeft = a.take(1 + Bytes.sizeOfUnsignedInt(keySizeLeft) + keySizeLeft + 1)
-          val tableBytesRight = b.take(1 + Bytes.sizeOfUnsignedInt(keySizeRight) + keySizeRight + 1)
+        } else if (leftDataType == MultiMapKey.mapEntry || leftDataType == MultiMapKey.subMap) {
+          val tableBytesLeft = a.take(Bytes.sizeOfUnsignedLong(leftMapId) + 1)
+          val tableBytesRight = b.take(Bytes.sizeOfUnsignedLong(rightMapId) + 1)
 
           val defaultOrderResult = KeyOrder.default.compare(tableBytesLeft, tableBytesRight)
-          if (defaultOrderResult == 0)
+          if (defaultOrderResult == 0) {
+            val aToCompare =
+              if (leftDataType == MultiMapKey.subMap)
+                ???
+              else
+                a.drop(tableBytesLeft.size)
+
+            val bToCompare =
+              if (rightDataType == MultiMapKey.subMap)
+                b.drop(tableBytesRight.size)
+              else
+                b.drop(tableBytesRight.size)
+
             customOrder.compare(a.drop(tableBytesLeft.size), b.drop(tableBytesRight.size))
-          else
+          } else {
             defaultOrderResult
+          }
         } else {
           throw IO.throwable(s"Invalid key with prefix byte ${a.head}")
+        }
+      }
+
+      override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
+        val reader = key.createReader()
+        val mapId = reader.readUnsignedLong()
+        if (reader.get() == MultiMapKey.subMap) {
+          val size = key.readUnsignedInt() //size of tableKey
+          key.take(Bytes.sizeOfUnsignedLong(mapId) + Bytes.sizeOfUnsignedInt(size) + size)
+        } else {
+          key
         }
       }
     }

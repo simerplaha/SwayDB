@@ -106,7 +106,7 @@ private[core] object PersistentCounter extends LazyLogging {
                   IO {
                     new PersistentCounter(
                       mod = mod,
-                      startID = 0,
+                      startID = Counter.startId,
                       map = map
                     )
                   }
