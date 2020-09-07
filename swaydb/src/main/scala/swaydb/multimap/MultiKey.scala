@@ -39,9 +39,9 @@ private[swaydb] object MultiKey {
 
   case class Start(childId: Long) extends MultiKey[Nothing, Nothing]
 
-  case class EntriesStart(childId: Long) extends MultiKey[Nothing, Nothing]
-  case class Entry[+K](childId: Long, entryKey: K) extends MultiKey[Nothing, K]
-  case class EntriesEnd(childId: Long) extends MultiKey[Nothing, Nothing]
+  case class KeysStart(childId: Long) extends MultiKey[Nothing, Nothing]
+  case class Key[+K](childId: Long, key: K) extends MultiKey[Nothing, K]
+  case class KeysEnd(childId: Long) extends MultiKey[Nothing, Nothing]
 
   case class ChildrenStart(childId: Long) extends MultiKey[Nothing, Nothing]
   case class Child[+C](childId: Long, childKey: C) extends MultiKey[C, Nothing]
@@ -68,7 +68,7 @@ private[swaydb] object MultiKey {
    *
    * Formats:
    * [[Start]] - formatId|mapKey.size|mapKey|dataType
-   * [[Entry]] - formatId|mapKey.size|mapKey|dataType|dataKey
+   * [[Key]] - formatId|mapKey.size|mapKey|dataType|dataKey
    * [[End]]   - formatId|mapKey.size|mapKey|dataType
    *
    * mapKey   - the unique id of the Map.
@@ -85,12 +85,12 @@ private[swaydb] object MultiKey {
               .addUnsignedLong(mapId)
               .add(MultiKey.start)
 
-          case MultiKey.EntriesStart(mapId) =>
+          case MultiKey.KeysStart(mapId) =>
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.entriesStart)
 
-          case MultiKey.Entry(mapId, dataKey) =>
+          case MultiKey.Key(mapId, dataKey) =>
             val dataKeyBytes = keySerializer.write(dataKey)
 
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + dataKeyBytes.size + 1)
@@ -98,7 +98,7 @@ private[swaydb] object MultiKey {
               .add(MultiKey.entry)
               .addAll(dataKeyBytes)
 
-          case MultiKey.EntriesEnd(mapId) =>
+          case MultiKey.KeysEnd(mapId) =>
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.entriesEnd)
@@ -135,11 +135,11 @@ private[swaydb] object MultiKey {
         if (dataType == MultiKey.start)
           MultiKey.Start(mapId)
         else if (dataType == MultiKey.entriesStart)
-          MultiKey.EntriesStart(mapId)
+          MultiKey.KeysStart(mapId)
         else if (dataType == MultiKey.entry)
-          MultiKey.Entry(mapId, keySerializer.read(reader.readRemaining()))
+          MultiKey.Key(mapId, keySerializer.read(reader.readRemaining()))
         else if (dataType == MultiKey.entriesEnd)
-          MultiKey.EntriesEnd(mapId)
+          MultiKey.KeysEnd(mapId)
         else if (dataType == MultiKey.childrenStart)
           MultiKey.ChildrenStart(mapId)
         else if (dataType == MultiKey.child)

@@ -295,8 +295,8 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
 
         buffer += Prepare.Put(MultiKey.Child[M](mapId, childKey), MultiValue.MapId(childIdOrNew), expiration)
         buffer += Prepare.Put(MultiKey.Start(childIdOrNew), MultiValue.None, expiration)
-        buffer += Prepare.Put(MultiKey.EntriesStart(childIdOrNew), MultiValue.None, expiration)
-        buffer += Prepare.Put(MultiKey.EntriesEnd(childIdOrNew), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiKey.KeysStart(childIdOrNew), MultiValue.None, expiration)
+        buffer += Prepare.Put(MultiKey.KeysEnd(childIdOrNew), MultiValue.None, expiration)
         buffer += Prepare.Put(MultiKey.ChildrenStart(childIdOrNew), MultiValue.None, expiration)
         buffer += Prepare.Put(MultiKey.ChildrenEnd(childIdOrNew), MultiValue.None, expiration)
         buffer += Prepare.Put(MultiKey.End(childIdOrNew), MultiValue.None, expiration)

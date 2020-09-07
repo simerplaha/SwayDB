@@ -49,9 +49,9 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
 
     "write & read empty keys" in {
       doAssert[Int, Int](MultiKey.Start(0))
-      doAssert[Int, Int](MultiKey.EntriesStart(0))
-      doAssert[Int, Int](MultiKey.Entry(0, 100))
-      doAssert[Int, Int](MultiKey.EntriesEnd(0))
+      doAssert[Int, Int](MultiKey.KeysStart(0))
+      doAssert[Int, Int](MultiKey.Key(0, 100))
+      doAssert[Int, Int](MultiKey.KeysEnd(0))
       doAssert[Int, Int](MultiKey.ChildrenStart(0))
       doAssert[Int, Int](MultiKey.Child(0, 1000))
       doAssert[Int, Int](MultiKey.ChildrenEnd(0))
@@ -60,9 +60,9 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
 
     "write & read MapKeys with Int key" in {
       doAssert[Int, Int](MultiKey.Start(1))
-      doAssert[Int, Int](MultiKey.EntriesStart(1))
-      doAssert[Int, Int](MultiKey.Entry(1, 100))
-      doAssert[Int, Int](MultiKey.EntriesEnd(1))
+      doAssert[Int, Int](MultiKey.KeysStart(1))
+      doAssert[Int, Int](MultiKey.Key(1, 100))
+      doAssert[Int, Int](MultiKey.KeysEnd(1))
       doAssert[Int, Int](MultiKey.ChildrenStart(1))
       doAssert[Int, Int](MultiKey.Child(1, 1000))
       doAssert[Int, Int](MultiKey.ChildrenEnd(1))
@@ -72,9 +72,9 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
 
     "write & read MapKeys with Int String" in {
       doAssert[String, String](MultiKey.Start(1))
-      doAssert[String, String](MultiKey.EntriesStart(1))
-      doAssert[String, String](MultiKey.Entry(1, "one key"))
-      doAssert[String, String](MultiKey.EntriesEnd(1))
+      doAssert[String, String](MultiKey.KeysStart(1))
+      doAssert[String, String](MultiKey.Key(1, "one key"))
+      doAssert[String, String](MultiKey.KeysEnd(1))
       doAssert[String, String](MultiKey.ChildrenStart(1))
       doAssert[String, String](MultiKey.Child(1, "one sub map"))
       doAssert[String, String](MultiKey.ChildrenEnd(1))
@@ -83,9 +83,9 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
 
     "write & read MapKeys with large single value" in {
       doAssert[String, String](MultiKey.Start(Long.MaxValue))
-      doAssert[String, String](MultiKey.EntriesStart(Long.MaxValue))
-      doAssert[String, String](MultiKey.EntriesEnd(Long.MaxValue))
-      doAssert[String, String](MultiKey.Entry(Long.MaxValue, randomCharacters(100000)))
+      doAssert[String, String](MultiKey.KeysStart(Long.MaxValue))
+      doAssert[String, String](MultiKey.KeysEnd(Long.MaxValue))
+      doAssert[String, String](MultiKey.Key(Long.MaxValue, randomCharacters(100000)))
       doAssert[String, String](MultiKey.ChildrenStart(Long.MaxValue))
       doAssert[String, String](MultiKey.Child(Long.MaxValue, randomCharacters(100000)))
       doAssert[String, String](MultiKey.ChildrenEnd(Long.MaxValue))
@@ -94,9 +94,9 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
 
     "write & read MapKeys with Double" in {
       doAssert[Double, Double](MultiKey.Start(Long.MaxValue))
-      doAssert[Double, Double](MultiKey.EntriesStart(Long.MaxValue))
-      doAssert[Double, Double](MultiKey.Entry(Long.MaxValue, Double.MaxValue))
-      doAssert[Double, Double](MultiKey.EntriesEnd(Long.MaxValue))
+      doAssert[Double, Double](MultiKey.KeysStart(Long.MaxValue))
+      doAssert[Double, Double](MultiKey.Key(Long.MaxValue, Double.MaxValue))
+      doAssert[Double, Double](MultiKey.KeysEnd(Long.MaxValue))
       doAssert[Double, Double](MultiKey.ChildrenStart(Long.MaxValue))
       doAssert[Double, Double](MultiKey.Child(Long.MaxValue, Double.MaxValue))
       doAssert[Double, Double](MultiKey.ChildrenEnd(Long.MaxValue))
@@ -123,21 +123,21 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
           MultiKey.End(1),
 
           MultiKey.Start(2),
-          MultiKey.EntriesStart(2),
-          MultiKey.Entry(2, 1),
-          MultiKey.EntriesEnd(2),
+          MultiKey.KeysStart(2),
+          MultiKey.Key(2, 1),
+          MultiKey.KeysEnd(2),
           MultiKey.ChildrenStart(2),
           MultiKey.Child(2, 1000),
           MultiKey.ChildrenEnd(2),
           MultiKey.End(2),
 
           MultiKey.Start(100),
-          MultiKey.EntriesStart(100),
-          MultiKey.Entry(100, 2),
-          MultiKey.Entry(100, 3),
-          MultiKey.Entry(100, 4),
-          MultiKey.Entry(100, 5),
-          MultiKey.EntriesEnd(100),
+          MultiKey.KeysStart(100),
+          MultiKey.Key(100, 2),
+          MultiKey.Key(100, 3),
+          MultiKey.Key(100, 4),
+          MultiKey.Key(100, 5),
+          MultiKey.KeysEnd(100),
           MultiKey.ChildrenStart(100),
           MultiKey.Child(100, 1000),
           MultiKey.Child(100, 2000),
@@ -146,10 +146,10 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
           MultiKey.End(100),
 
           MultiKey.Start(200),
-          MultiKey.EntriesStart(200),
-          MultiKey.Entry(200, 2),
-          MultiKey.Entry(200, 3),
-          MultiKey.EntriesEnd(200),
+          MultiKey.KeysStart(200),
+          MultiKey.Key(200, 2),
+          MultiKey.Key(200, 3),
+          MultiKey.KeysEnd(200),
           MultiKey.ChildrenStart(200),
           MultiKey.Child(200, 1000),
           MultiKey.Child(200, 2000),
@@ -185,11 +185,11 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
           MultiKey.End(1),
 
           MultiKey.Start(2),
-          MultiKey.EntriesStart(2),
-          MultiKey.Entry(2, randomString1),
-          MultiKey.Entry(2, randomString2),
-          MultiKey.Entry(2, randomString3),
-          MultiKey.EntriesEnd(2),
+          MultiKey.KeysStart(2),
+          MultiKey.Key(2, randomString1),
+          MultiKey.Key(2, randomString2),
+          MultiKey.Key(2, randomString3),
+          MultiKey.KeysEnd(2),
           MultiKey.ChildrenStart(2),
           MultiKey.Child(2, randomString3),
           MultiKey.Child(2, randomString4),
@@ -198,9 +198,9 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
           MultiKey.End(2),
 
           MultiKey.Start(3),
-          MultiKey.Entry(3, randomString3),
-          MultiKey.Entry(3, randomString4),
-          MultiKey.Entry(3, randomString5),
+          MultiKey.Key(3, randomString3),
+          MultiKey.Key(3, randomString4),
+          MultiKey.Key(3, randomString5),
           MultiKey.End(3)
         )
 
@@ -219,19 +219,19 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
       val keys: Seq[() => MultiKey[Int, Int]] =
         Seq(
           () => MultiKey.Start(0),
-          () => MultiKey.EntriesStart(0),
-          () => MultiKey.EntriesEnd(0),
+          () => MultiKey.KeysStart(0),
+          () => MultiKey.KeysEnd(0),
           () => MultiKey.End(0),
           () => MultiKey.Start(0),
-          () => MultiKey.EntriesStart(0),
-          () => MultiKey.EntriesEnd(0),
+          () => MultiKey.KeysStart(0),
+          () => MultiKey.KeysEnd(0),
           () => MultiKey.End(0),
 
           () => MultiKey.Start(2),
-          () => MultiKey.EntriesStart(2),
-          () => MultiKey.Entry(2, 2),
-          () => MultiKey.Entry(2, 2),
-          () => MultiKey.EntriesEnd(2),
+          () => MultiKey.KeysStart(2),
+          () => MultiKey.Key(2, 2),
+          () => MultiKey.Key(2, 2),
+          () => MultiKey.KeysEnd(2),
           () => MultiKey.ChildrenStart(2),
           () => MultiKey.Child(2, 1000), //depending on the order of inserion for this test either
           () => MultiKey.Child(2, 1000), //3 or 4 gets selected but in reality subMaps with same key will not have different subMapIds.
@@ -239,8 +239,8 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
           () => MultiKey.End(2),
 
           () => MultiKey.Start(100),
-          () => MultiKey.Entry(100, 4),
-          () => MultiKey.Entry(100, 5),
+          () => MultiKey.Key(100, 4),
+          () => MultiKey.Key(100, 5),
           () => MultiKey.End(100)
         )
 
@@ -250,44 +250,44 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
       val expected1 =
         Seq(
           MultiKey.Start(0),
-          MultiKey.EntriesStart(0),
-          MultiKey.EntriesEnd(0),
+          MultiKey.KeysStart(0),
+          MultiKey.KeysEnd(0),
           MultiKey.End(0),
 
           MultiKey.Start(2),
-          MultiKey.EntriesStart(2),
-          MultiKey.Entry(2, 2),
-          MultiKey.EntriesEnd(2),
+          MultiKey.KeysStart(2),
+          MultiKey.Key(2, 2),
+          MultiKey.KeysEnd(2),
           MultiKey.ChildrenStart(2),
           MultiKey.Child(2, 1000),
           MultiKey.ChildrenEnd(2),
           MultiKey.End(2),
 
           MultiKey.Start(100),
-          MultiKey.Entry(100, 4),
-          MultiKey.Entry(100, 5),
+          MultiKey.Key(100, 4),
+          MultiKey.Key(100, 5),
           MultiKey.End(100)
         )
 
       val expected2 =
         Seq(
           MultiKey.Start(0),
-          MultiKey.EntriesStart(0),
-          MultiKey.EntriesEnd(0),
+          MultiKey.KeysStart(0),
+          MultiKey.KeysEnd(0),
           MultiKey.End(0),
 
           MultiKey.Start(2),
-          MultiKey.EntriesStart(2),
-          MultiKey.Entry(2, 2),
-          MultiKey.EntriesEnd(2),
+          MultiKey.KeysStart(2),
+          MultiKey.Key(2, 2),
+          MultiKey.KeysEnd(2),
           MultiKey.ChildrenStart(2),
           MultiKey.Child(2, 1000),
           MultiKey.ChildrenEnd(2),
           MultiKey.End(2),
 
           MultiKey.Start(100),
-          MultiKey.Entry(100, 4),
-          MultiKey.Entry(100, 5),
+          MultiKey.Key(100, 4),
+          MultiKey.Key(100, 5),
           MultiKey.End(100)
         )
 

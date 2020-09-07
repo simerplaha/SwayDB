@@ -97,8 +97,8 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
           rootMap.innerMap.stream.materialize.toList shouldBe
             List(
               (MultiKey.Start(MultiMap.rootMapId), MultiValue.None),
-              (MultiKey.EntriesStart(MultiMap.rootMapId), MultiValue.None),
-              (MultiKey.EntriesEnd(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.KeysStart(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.KeysEnd(MultiMap.rootMapId), MultiValue.None),
               (MultiKey.ChildrenStart(MultiMap.rootMapId), MultiValue.None),
               (MultiKey.ChildrenEnd(MultiMap.rootMapId), MultiValue.None),
               (MultiKey.End(MultiMap.rootMapId), MultiValue.None)
@@ -123,10 +123,10 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
           rootMap.innerMap.stream.materialize.toList shouldBe
             List(
               (MultiKey.Start(MultiMap.rootMapId), MultiValue.None),
-              (MultiKey.EntriesStart(MultiMap.rootMapId), MultiValue.None),
-              (MultiKey.Entry(MultiMap.rootMapId, 1), MultiValue.Their("one")),
-              (MultiKey.Entry(MultiMap.rootMapId, 2), MultiValue.Their("two")),
-              (MultiKey.EntriesEnd(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.KeysStart(MultiMap.rootMapId), MultiValue.None),
+              (MultiKey.Key(MultiMap.rootMapId, 1), MultiValue.Their("one")),
+              (MultiKey.Key(MultiMap.rootMapId, 2), MultiValue.Their("two")),
+              (MultiKey.KeysEnd(MultiMap.rootMapId), MultiValue.None),
               (MultiKey.ChildrenStart(MultiMap.rootMapId), MultiValue.None),
               (MultiKey.ChildrenEnd(MultiMap.rootMapId), MultiValue.None),
               (MultiKey.End(MultiMap.rootMapId), MultiValue.None)
@@ -162,10 +162,10 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
             rootMap.innerMap.stream.materialize.toList shouldBe
               List(
                 (MultiKey.Start(expectedRootId), MultiValue.None),
-                (MultiKey.EntriesStart(expectedRootId), MultiValue.None),
-                (MultiKey.Entry(expectedRootId, 1), MultiValue.Their("one")),
-                (MultiKey.Entry(expectedRootId, 2), MultiValue.Their("two")),
-                (MultiKey.EntriesEnd(expectedRootId), MultiValue.None),
+                (MultiKey.KeysStart(expectedRootId), MultiValue.None),
+                (MultiKey.Key(expectedRootId, 1), MultiValue.Their("one")),
+                (MultiKey.Key(expectedRootId, 2), MultiValue.Their("two")),
+                (MultiKey.KeysEnd(expectedRootId), MultiValue.None),
                 (MultiKey.ChildrenStart(expectedRootId), MultiValue.None),
                 (MultiKey.Child(expectedRootId, 1), MultiValue.MapId(expectedChildId)),
                 (MultiKey.ChildrenEnd(expectedRootId), MultiValue.None),
@@ -174,10 +174,10 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
 
                 //childMaps entries
                 (MultiKey.Start(expectedChildId), MultiValue.None),
-                (MultiKey.EntriesStart(expectedChildId), MultiValue.None),
-                (MultiKey.Entry(expectedChildId, 1), MultiValue.Their("childMap one")),
-                (MultiKey.Entry(expectedChildId, 2), MultiValue.Their("childMap two")),
-                (MultiKey.EntriesEnd(expectedChildId), MultiValue.None),
+                (MultiKey.KeysStart(expectedChildId), MultiValue.None),
+                (MultiKey.Key(expectedChildId, 1), MultiValue.Their("childMap one")),
+                (MultiKey.Key(expectedChildId, 2), MultiValue.Their("childMap two")),
+                (MultiKey.KeysEnd(expectedChildId), MultiValue.None),
                 (MultiKey.ChildrenStart(expectedChildId), MultiValue.None),
                 (MultiKey.ChildrenEnd(expectedChildId), MultiValue.None),
                 (MultiKey.End(expectedChildId), MultiValue.None)
