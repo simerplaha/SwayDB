@@ -40,23 +40,6 @@ sealed trait BuildValidator { self =>
 
 object BuildValidator {
 
-  @deprecated("This validator will be removed from next version 0.14.9")
-  def ignoreUnsafe(): BuildValidator.IgnoreUnsafe =
-    IgnoreUnsafe
-
-  @deprecated("This validator will be removed from next version 0.14.9")
-  sealed trait IgnoreUnsafe extends BuildValidator
-
-  /**
-   * [[IgnoreUnsafe]] is available temporarily to allow running previously created database.
-   * v0.14.8 does not support old [[MultiMap]] instances.
-   */
-  @deprecated("This validator will be removed from next version 0.14.9")
-  object IgnoreUnsafe extends IgnoreUnsafe {
-    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisBuild: Build.Info): IO[E, Unit] =
-      IO.unit
-  }
-
   /**
    * This validate does not allow SwayDB boot-up on version that are older than 0.14.0 or
    * if no build.info exist.
@@ -68,7 +51,7 @@ object BuildValidator {
           IO.unit
 
         case Build.NoBuildInfo =>
-          IO.failed(s"Incompatible versions! v${thisBuild.version} is incompatible with your current database.")
+          IO.failed(s"This directory is not empty or is an older version of SwayDB which is incompatible with v${thisBuild.version}.")
 
         case previous @ Build.Info(major, minor, revision) =>
           val isValid = major >= 0 && minor >= 14 && revision >= 0

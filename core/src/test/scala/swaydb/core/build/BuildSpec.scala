@@ -135,39 +135,44 @@ class BuildSpec extends TestBase {
   }
 
   "validateOrCreate" should {
-    "create" when {
-      "Ignore" in {
-        TestCaseSweeper {
-          implicit sweeper =>
-            val folder = randomDir
-
-            implicit val validator = BuildValidator.IgnoreUnsafe
-            Build.validateOrCreate(folder).value
-
-            Build.read(folder).value shouldBe a[Build.Info]
-
-        }
-      }
-    }
-
-    "fail on an existing database" when {
+    "fail on an existing non-empty directories" when {
       "DisallowOlderVersions" in {
         TestCaseSweeper {
           implicit sweeper =>
             val folder = createRandomDir
+            val file = folder.resolve("somefile.txt")
+
+            Effect.createFile(file)
+            Effect.exists(folder) shouldBe true
+            Effect.exists(file) shouldBe true
 
             implicit val validator = BuildValidator.DisallowOlderVersions
-            Build.validateOrCreate(folder).left.value.getMessage should startWith("Previous SwayDB version (version number unknown) is not compatible with")
-
+            Build.validateOrCreate(folder).left.value.getMessage should startWith("This directory is not empty or is an older version of SwayDB which is incompatible with")
         }
       }
     }
 
-    "pass on empty directories" when {
+    "pass on empty directory" when {
+      "DisallowOlderVersions" in {
+        TestCaseSweeper {
+          implicit sweeper =>
+            val folder = createRandomDir
+            Effect.exists(folder) shouldBe true
+
+            implicit val validator = BuildValidator.DisallowOlderVersions
+            Build.validateOrCreate(folder).value
+
+            Build.read(folder).value shouldBe a[Build.Info]
+        }
+      }
+    }
+
+    "pass on non existing directory" when {
       "DisallowOlderVersions" in {
         TestCaseSweeper {
           implicit sweeper =>
             val folder = randomDir
+            Effect.exists(folder) shouldBe false
 
             implicit val validator = BuildValidator.DisallowOlderVersions
             Build.validateOrCreate(folder).value
