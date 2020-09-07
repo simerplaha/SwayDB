@@ -53,7 +53,7 @@ object SwayDB extends LazyLogging {
 
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  final def buildInfo: Build = Build.thisBuild()
+  final def buildInfo: Build.Info = Build.thisBuild()
 
   /**
    * Creates a database based on the input config.
