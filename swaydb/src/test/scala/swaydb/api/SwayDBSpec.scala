@@ -27,6 +27,7 @@ import swaydb._
 import swaydb.data.RunThis.runThis
 import swaydb.core.{Core, TestCaseSweeper}
 import swaydb.core.TestCaseSweeper._
+import swaydb.core.build.BuildValidator
 import swaydb.data.DataType
 import swaydb.serializers.Default._
 
@@ -460,10 +461,39 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           val dir = randomDir
           val map = swaydb.persistent.Map[Int, Int, Nothing, Bag.Less](dir)
           map.path shouldBe dir
+          map.put(1, 1)
           map.close()
 
           val set = swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir)
           set.left.value.exception.getMessage shouldBe s"Invalid data-type! This directory is of type ${DataType.Map.name} and not ${DataType.Set.name}."
+
+          //reopen it as a map
+          val reopened = swaydb.persistent.Map[Int, Int, Nothing, Bag.Less](dir).sweep(_.delete())
+          reopened.get(1).value shouldBe 1
+
+      }
+    }
+
+    "allow different data-types on same directory" when {
+      "ignore validator is used" in {
+        TestCaseSweeper {
+          implicit sweeper =>
+            val dir = randomDir
+            val map = swaydb.persistent.Map[Int, Int, Nothing, Bag.Less](dir)
+            map.path shouldBe dir
+            map.put(1, 1)
+            map.close()
+
+            implicit val validator = BuildValidator.Ignore(DataType.Set)
+            val set = swaydb.persistent.Set[Int, Nothing, Bag.Less](dir)
+            set.add(2)
+            set.contains(2) shouldBe true
+            set.close()
+
+            val reopened = swaydb.persistent.Set[Int, Nothing, Bag.Less](dir).sweep(_.delete())
+            reopened.contains(2) shouldBe true
+            reopened.contains(1) shouldBe true
+        }
       }
     }
 
