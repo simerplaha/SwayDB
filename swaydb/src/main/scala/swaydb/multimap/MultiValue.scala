@@ -28,8 +28,8 @@ import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
-sealed trait MultiValue[+V]
-object MultiValue {
+private[swaydb] sealed trait MultiValue[+V]
+private[swaydb] object MultiValue {
 
   private val two = Slice(2.toByte)
 

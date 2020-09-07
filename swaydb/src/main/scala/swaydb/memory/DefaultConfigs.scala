@@ -37,8 +37,9 @@ object DefaultConfigs {
     FileCache.Enable(
       maxOpen = 1000,
       actorConfig =
-        ActorConfig.Basic(
+        ActorConfig.TimeLoop(
           name = s"${this.getClass.getName} - FileCache TimeLoop Actor",
+          delay = 10.seconds,
           ec = ec
         )
     )
