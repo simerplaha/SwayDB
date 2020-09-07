@@ -673,9 +673,9 @@ class Actor[-T, S](val name: String,
           failure
       }
     } else {
-      logger.info(s"""Actor("$name") is busy. Blocking untilFree. isTerminated = $isTerminated.""")
+      logger.warn(s"""Actor("$name") is busy. Blocking untilFree. isTerminated = $isTerminated.""")
       Reserve.blockUntilFree(busy)
-      logger.info(s"""Actor("$name") up.""")
+      logger.warn(s"""Actor("$name") up.""")
       whileNotBusySync(continueIfNonEmpty)(releaseFunction)
     }
 
