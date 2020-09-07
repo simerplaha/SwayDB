@@ -27,12 +27,12 @@ package swaydb
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.Core
 import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.build.{Build, BuildValidator}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.tool.AppendixRepairer
-import swaydb.core.Core
-import swaydb.core.build.{Build, BuildValidator}
 import swaydb.data.MaxKey
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -53,7 +53,7 @@ object SwayDB extends LazyLogging {
 
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  final def buildInfo: Build.Info = Build.thisBuild()
+  final def version: Build.Version = Build.thisVersion()
 
   /**
    * Creates a database based on the input config.
@@ -66,91 +66,91 @@ object SwayDB extends LazyLogging {
    * @tparam V Type of value
    * @return Database instance
    */
-  def apply[K, V, F](config: SwayDBPersistentConfig,
-                     fileCache: FileCache.Enable,
+  def apply[K, V, F](fileCache: FileCache.Enable,
                      memoryCache: MemoryCache,
                      threadStateCache: ThreadStateCache,
                      cacheKeyValueIds: Boolean,
-                     shutdownTimeout: FiniteDuration)(implicit keySerializer: Serializer[K],
-                                                      valueSerializer: Serializer[V],
-                                                      functionClassTag: ClassTag[F],
-                                                      keyOrder: KeyOrder[Slice[Byte]],
-                                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
+                     shutdownTimeout: FiniteDuration,
+                     config: SwayDBPersistentConfig)(implicit keySerializer: Serializer[K],
+                                                     valueSerializer: Serializer[V],
+                                                     functionClassTag: ClassTag[F],
+                                                     keyOrder: KeyOrder[Slice[Byte]],
+                                                     buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
-      config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache,
       shutdownTimeout = shutdownTimeout,
-      threadStateCache = threadStateCache
+      threadStateCache = threadStateCache,
+      config = config
     ) map {
       db =>
         swaydb.Map[K, V, F, Bag.Less](db)
     }
 
-  def apply[T, F](config: SwayDBPersistentConfig,
-                  fileCache: FileCache.Enable,
+  def apply[T, F](fileCache: FileCache.Enable,
                   memoryCache: MemoryCache,
                   threadStateCache: ThreadStateCache,
                   cacheKeyValueIds: Boolean,
-                  shutdownTimeout: FiniteDuration)(implicit serializer: Serializer[T],
-                                                   functionClassTag: ClassTag[F],
-                                                   keyOrder: KeyOrder[Slice[Byte]],
-                                                   buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
+                  shutdownTimeout: FiniteDuration,
+                  config: SwayDBPersistentConfig)(implicit serializer: Serializer[T],
+                                                  functionClassTag: ClassTag[F],
+                                                  keyOrder: KeyOrder[Slice[Byte]],
+                                                  buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
-      config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache,
       shutdownTimeout = shutdownTimeout,
-      threadStateCache = threadStateCache
+      threadStateCache = threadStateCache,
+      config = config
     ) map {
       db =>
         swaydb.Set[T, F, Bag.Less](db)
     }
 
-  def apply[K, V, F](config: SwayDBMemoryConfig,
-                     fileCache: FileCache.Enable,
+  def apply[K, V, F](fileCache: FileCache.Enable,
                      memoryCache: MemoryCache,
                      threadStateCache: ThreadStateCache,
                      cacheKeyValueIds: Boolean,
-                     shutdownTimeout: FiniteDuration)(implicit keySerializer: Serializer[K],
-                                                      valueSerializer: Serializer[V],
-                                                      functionClassTag: ClassTag[F],
-                                                      keyOrder: KeyOrder[Slice[Byte]],
-                                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
+                     shutdownTimeout: FiniteDuration,
+                     config: SwayDBMemoryConfig)(implicit keySerializer: Serializer[K],
+                                                 valueSerializer: Serializer[V],
+                                                 functionClassTag: ClassTag[F],
+                                                 keyOrder: KeyOrder[Slice[Byte]],
+                                                 buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
-      config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache,
       shutdownTimeout = shutdownTimeout,
-      threadStateCache = threadStateCache
+      threadStateCache = threadStateCache,
+      config = config
     ) map {
       db =>
         swaydb.Map[K, V, F, Bag.Less](db)
     }
 
-  def apply[T, F](config: SwayDBMemoryConfig,
-                  fileCache: FileCache.Enable,
+  def apply[T, F](fileCache: FileCache.Enable,
                   memoryCache: MemoryCache,
                   threadStateCache: ThreadStateCache,
                   cacheKeyValueIds: Boolean,
-                  shutdownTimeout: FiniteDuration)(implicit serializer: Serializer[T],
-                                                   functionClassTag: ClassTag[F],
-                                                   keyOrder: KeyOrder[Slice[Byte]],
-                                                   buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
+                  shutdownTimeout: FiniteDuration,
+                  config: SwayDBMemoryConfig)(implicit serializer: Serializer[T],
+                                              functionClassTag: ClassTag[F],
+                                              keyOrder: KeyOrder[Slice[Byte]],
+                                              buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
-      config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache,
       shutdownTimeout = shutdownTimeout,
-      threadStateCache = threadStateCache
+      threadStateCache = threadStateCache,
+      config = config
     ) map {
       db =>
         swaydb.Set[T, F, Bag.Less](db)

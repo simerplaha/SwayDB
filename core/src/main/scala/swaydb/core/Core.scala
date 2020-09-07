@@ -44,8 +44,8 @@ import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.TupleOrNone
 import swaydb.{Bag, IO, OK, Prepare}
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Core defines the interface to SwayDB's internals. User level APIs interact with SwayDB via this instance only
@@ -55,16 +55,16 @@ private[swaydb] object Core {
 
   val closedMessage = "This SwayDB instance was closed."
 
-  def apply(config: SwayDBPersistentConfig,
-            enableTimer: Boolean,
+  def apply(enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache,
             shutdownTimeout: FiniteDuration,
-            threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore,
-                                                buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] =
+            threadStateCache: ThreadStateCache,
+            config: SwayDBPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                            timeOrder: TimeOrder[Slice[Byte]],
+                                            functionStore: FunctionStore,
+                                            buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
@@ -75,16 +75,16 @@ private[swaydb] object Core {
       shutdownTimeout = shutdownTimeout
     )
 
-  def apply(config: SwayDBMemoryConfig,
-            enableTimer: Boolean,
+  def apply(enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache,
             shutdownTimeout: FiniteDuration,
-            threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore,
-                                                buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] =
+            threadStateCache: ThreadStateCache,
+            config: SwayDBMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore,
+                                        buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,

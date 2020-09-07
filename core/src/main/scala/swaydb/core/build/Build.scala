@@ -29,6 +29,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.file.Effect
+import swaydb.data.DataType
 import swaydb.macros.VersionReader
 
 sealed trait Build
@@ -40,13 +41,19 @@ object Build extends LazyLogging {
 
   final val (major, minor, revision) = VersionReader.version
 
-  final def thisBuild(): Build.Info = Build.Info(major, minor, revision)
+  case class Version(major: Int,
+                     minor: Int,
+                     revision: Int) {
+    val version = s"""$major.$minor.$revision"""
+  }
+
+  final def thisVersion(): Version = Version(major, minor, revision)
 
   def validate[E: IO.ExceptionHandler](folder: Path)(implicit validator: BuildValidator): IO[E, Build] =
     read(folder) flatMap {
       previousBuild =>
         validator
-          .validate(previousBuild, Build.thisBuild())
+          .validate(previousBuild, Build.thisVersion())
           .andThen(previousBuild)
     }
 
@@ -54,15 +61,15 @@ object Build extends LazyLogging {
     validate(folder) flatMap {
       case Build.Fresh | Build.NoBuildInfo =>
         //if there is no existing Build.Info write the current build's Build.Info.
-        write(folder).and(IO.unit)
+        write(folder, validator.dataType).and(IO.unit)
 
       case _: Build.Info =>
         //if Build.Info already exists. Do nothing.
         IO.unit
     }
 
-  def write[E: IO.ExceptionHandler](folder: Path): IO[E, Path] =
-    write(folder, thisBuild())
+  def write[E: IO.ExceptionHandler](folder: Path, dataType: DataType): IO[E, Path] =
+    write(folder, Build.Info(thisVersion(), dataType))
 
   def write[E: IO.ExceptionHandler](folder: Path, buildInfo: Build.Info): IO[E, Path] =
     IO {
@@ -106,7 +113,6 @@ object Build extends LazyLogging {
   /**
    * Existing database with [[Build.Info]]
    */
-  case class Info private(major: Int, minor: Int, revision: Int) extends Build {
-    val version = s"""$major.$minor.$revision"""
-  }
+  case class Info private(version: Version,
+                          dataType: DataType) extends Build
 }

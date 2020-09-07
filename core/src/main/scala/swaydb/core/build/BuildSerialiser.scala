@@ -27,6 +27,7 @@ package swaydb.core.build
 import java.nio.file.Path
 
 import swaydb.core.util.CRC32
+import swaydb.data.DataType
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -40,13 +41,15 @@ sealed trait BuildSerialiser {
 
 object BuildSerialiser extends BuildSerialiser {
   override def write(buildInfo: Build.Info): Slice[Byte] = {
-    val versionBytes = Slice.create[Byte](1 + ByteSizeOf.int * 3)
+    val versionBytes = Slice.create[Byte](1 + 1 + ByteSizeOf.int * 3)
 
     versionBytes add Build.formatId
 
-    versionBytes addInt buildInfo.major
-    versionBytes addInt buildInfo.minor
-    versionBytes addInt buildInfo.revision
+    versionBytes add buildInfo.dataType.id
+
+    versionBytes addInt buildInfo.version.major
+    versionBytes addInt buildInfo.version.minor
+    versionBytes addInt buildInfo.version.revision
 
     val crc = CRC32.forBytes(versionBytes)
 
@@ -61,16 +64,24 @@ object BuildSerialiser extends BuildSerialiser {
     val versionBytes = bytes.drop(ByteSizeOf.long)
     val versionBytesCRC = CRC32.forBytes(versionBytes)
 
-    assert(versionBytesCRC == crc, s"$file has invalid CRC. $versionBytesCRC != $crc")
+    assert(versionBytesCRC == crc, s"Invalid CRC. $versionBytesCRC != $crc in file: $file")
 
     val versionReader = versionBytes.createReader()
     val formatId = versionReader.get()
-    assert(formatId == Build.formatId, s"$file has invalid formatId. $formatId != ${Build.formatId}")
+    assert(formatId == Build.formatId, s"Invalid formatId. $formatId != ${Build.formatId} in file: $file")
 
-    val major = versionReader.readInt()
-    val minor = versionReader.readInt()
-    val revision = versionReader.readInt()
+    val dataTypeId = versionReader.get()
 
-    Build.Info(major = major, minor = minor, revision = revision)
+    DataType(dataTypeId) match {
+      case Some(dataType) =>
+        val major = versionReader.readInt()
+        val minor = versionReader.readInt()
+        val revision = versionReader.readInt()
+        val version = Build.Version(major = major, minor = minor, revision = revision)
+        Build.Info(version, dataType)
+
+      case None =>
+        throw new IllegalStateException(s"Invalid data-type id '$dataTypeId' in file: $file.")
+    }
   }
 }

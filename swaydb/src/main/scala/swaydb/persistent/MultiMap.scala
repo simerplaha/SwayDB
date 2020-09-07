@@ -29,6 +29,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -89,7 +90,7 @@ object MultiMap extends LazyLogging {
                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                             typedKeyOrder: KeyOrder[K] = null,
                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
-                                                                                                            buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[MultiMap[M, K, V, F, BAG]] =
+                                                                                                            buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap)): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val innerMapKeySerialiser: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, mapKeySerializer)
       implicit val optionValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)

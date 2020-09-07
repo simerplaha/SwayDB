@@ -27,6 +27,7 @@ import swaydb._
 import swaydb.data.RunThis.runThis
 import swaydb.core.{Core, TestCaseSweeper}
 import swaydb.core.TestCaseSweeper._
+import swaydb.data.DataType
 import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {
@@ -449,6 +450,20 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
               db.get(1).left.value.exception.getMessage shouldBe Core.closedMessage
           }
         }
+      }
+    }
+
+    "disallow different data-types on same directory" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+
+          val dir = randomDir
+          val map = swaydb.persistent.Map[Int, Int, Nothing, Bag.Less](dir)
+          map.path shouldBe dir
+          map.close()
+
+          val set = swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir)
+          set.left.value.exception.getMessage shouldBe s"Invalid data-type! This directory is of type ${DataType.Map.name} and not ${DataType.Set.name}."
       }
     }
 

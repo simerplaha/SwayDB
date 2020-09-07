@@ -32,6 +32,7 @@ import swaydb.configs.level.{DefaultExecutionContext, DefaultPersistentConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -81,7 +82,7 @@ object Set extends LazyLogging {
                                                                                                       byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                       typedKeyOrder: KeyOrder[A] = null,
                                                                                                       compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
-                                                                                                      buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.Set[A, F, BAG]] =
+                                                                                                      buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       val coreFunctions: FunctionStore.Memory = functions.core

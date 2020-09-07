@@ -30,6 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -75,7 +76,7 @@ object SetMap extends LazyLogging {
                                                                                                       byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                       typedKeyOrder: KeyOrder[K] = null,
                                                                                                       compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
-                                                                                                      buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.SetMap[K, V, BAG]] =
+                                                                                                      buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap)): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
       val nullCheckedOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)

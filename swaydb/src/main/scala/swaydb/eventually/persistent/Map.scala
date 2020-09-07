@@ -32,6 +32,7 @@ import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecution
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -79,7 +80,7 @@ object Map extends LazyLogging {
                                                                                                                                byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
-                                                                                                                               buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.Map[K, V, F, BAG]] =
+                                                                                                                               buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map)): BAG[swaydb.Map[K, V, F, BAG]] =
     bag.suspend {
 
       implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
@@ -89,6 +90,8 @@ object Map extends LazyLogging {
         Core(
           enableTimer = functionClassTag != ClassTag.Nothing,
           cacheKeyValueIds = cacheKeyValueIds,
+          fileCache = fileCache,
+          memoryCache = memoryCache,
           shutdownTimeout = shutdownTimeout,
           threadStateCache = threadStateCache,
           config =
@@ -110,9 +113,7 @@ object Map extends LazyLogging {
               persistentLevelValuesConfig = valuesConfig,
               persistentLevelSegmentConfig = segmentConfig,
               acceleration = acceleration
-            ),
-          fileCache = fileCache,
-          memoryCache = memoryCache
+            )
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
           functionStore = coreFunctions,

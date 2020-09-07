@@ -25,38 +25,42 @@
 package swaydb.core.build
 
 import swaydb.IO
+import swaydb.data.DataType
 
 sealed trait BuildValidator { self =>
 
-  def validate[E: IO.ExceptionHandler](previousBuild: Build,
-                                       thisBuild: Build.Info): IO[E, Unit]
+  def dataType: DataType
 
-  def and(validator: BuildValidator): BuildValidator =
-    new BuildValidator {
-      override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisBuild: Build.Info): IO[E, Unit] =
-        self.validate(previousBuild, thisBuild) and validator.validate(previousBuild, thisBuild)
-    }
+  def validate[E: IO.ExceptionHandler](previousBuild: Build,
+                                       thisVersion: Build.Version): IO[E, Unit]
 }
 
 object BuildValidator {
+
+  case class Ignore(dataType: DataType) extends BuildValidator {
+    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisVersion: Build.Version): IO[E, Unit] =
+      IO.unit
+  }
 
   /**
    * This validate does not allow SwayDB boot-up on version that are older than 0.14.0 or
    * if no build.info exist.
    */
-  object DisallowOlderVersions extends BuildValidator {
-    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisBuild: Build.Info): IO[E, Unit] =
+  case class DisallowOlderVersions(dataType: DataType) extends BuildValidator {
+    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisVersion: Build.Version): IO[E, Unit] =
       previousBuild match {
         case Build.Fresh =>
           IO.unit
 
         case Build.NoBuildInfo =>
-          IO.failed(s"This directory is not empty or is an older version of SwayDB which is incompatible with v${thisBuild.version}.")
+          IO.failed(s"This directory is not empty or is an older version of SwayDB which is incompatible with v${thisVersion.version}.")
 
-        case previous @ Build.Info(major, minor, revision) =>
-          val isValid = major >= 0 && minor >= 14 && revision >= 0
+        case previous @ Build.Info(previousVersion, previousDataType) =>
+          val isValid = previousVersion.major >= 0 && previousVersion.minor >= 14 && previousVersion.revision >= 0
           if (!isValid)
-            IO.failed(s"Incompatible versions! v${previous.version} not compatible with v${thisBuild.version}.")
+            IO.failed(s"Incompatible versions! v${previous.version} not compatible with v${thisVersion.version}.")
+          else if (previousDataType != dataType)
+            IO.failed(s"Invalid data-type! This directory is of type ${previous.dataType.name} and not ${dataType.name}.")
           else
             IO.unit
       }

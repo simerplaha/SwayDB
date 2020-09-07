@@ -30,6 +30,7 @@ import swaydb.configs.level.{DefaultExecutionContext, DefaultMemoryConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
@@ -88,7 +89,7 @@ object Set extends LazyLogging {
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
           functionStore = coreFunctions,
-          buildValidator = BuildValidator.DisallowOlderVersions
+          buildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)
         ) map {
           db =>
             swaydb.Set[A, F, BAG](db.toBag)

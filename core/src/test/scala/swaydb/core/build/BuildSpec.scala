@@ -26,12 +26,16 @@ package swaydb.core.build
 
 import java.nio.file.FileAlreadyExistsException
 
+import swaydb.Error.IO
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.io.file.Effect
 import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.DataType
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
+
+import scala.util.Random
 
 class BuildSpec extends TestBase {
 
@@ -39,24 +43,28 @@ class BuildSpec extends TestBase {
     "create a build.info file" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val buildInfo = Build.Info(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
+          DataType.all foreach {
+            dataType =>
+              val version = Build.Version(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
+              val buildInfo = Build.Info(version = version, dataType = dataType)
 
-          val folder = randomDir
-          Build.write(folder, buildInfo).value shouldBe folder.resolve(Build.fileName)
+              val folder = randomDir
+              Build.write(folder, buildInfo).value shouldBe folder.resolve(Build.fileName)
 
-          val readBuildInfo = Build.read(folder).value
-          readBuildInfo shouldBe buildInfo
+              val readBuildInfo = Build.read(folder).value
+              readBuildInfo shouldBe buildInfo
+          }
       }
     }
 
-    "fail is build.info already exists" in {
+    "fail if build.info already exists" in {
       TestCaseSweeper {
         implicit sweeper =>
           val folder = createRandomDir
           val file = Effect.createFile(folder.resolve(Build.fileName))
           val fileContent = Effect.readAllBytes(file)
 
-          Build.write(folder).left.value shouldBe a[FileAlreadyExistsException]
+          Build.write(folder, DataType.Map).left.value shouldBe a[FileAlreadyExistsException]
 
           //file content is unaffected
           Effect.readAllBytes(file) shouldBe fileContent
@@ -66,7 +74,7 @@ class BuildSpec extends TestBase {
 
   "read" should {
     "return fresh" when {
-      "it's a new folder" in {
+      "the folder does not exist" in {
         TestCaseSweeper {
           implicit sweeper =>
 
@@ -75,16 +83,32 @@ class BuildSpec extends TestBase {
             Build.read(folder).value shouldBe Build.Fresh
         }
       }
-    }
 
-    "return NoBuildInfo" when {
-      "fold exists but there was no build.info file" in {
+      "the folder exists but is empty" in {
         TestCaseSweeper {
           implicit sweeper =>
 
             val folder = createRandomDir
             Effect.exists(folder) shouldBe true
+            Build.read(folder).value shouldBe Build.Fresh
+        }
+      }
+    }
+
+    "return NoBuildInfo" when {
+      "non-empty folder exists without build.info file" in {
+        TestCaseSweeper {
+          implicit sweeper =>
+
+            val folder = createRandomDir
+            val file = Effect.createFile(folder.resolve("somefile.txt"))
+
+            Effect.exists(folder) shouldBe true
+            Effect.exists(file) shouldBe true
+
             Build.read(folder).value shouldBe Build.NoBuildInfo
+
+            Build.read(file).value shouldBe Build.NoBuildInfo
         }
       }
     }
@@ -95,40 +119,48 @@ class BuildSpec extends TestBase {
       "invalid crc" in {
         TestCaseSweeper {
           implicit sweeper =>
-            val buildInfo = Build.Info(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
+            DataType.all foreach {
+              dataType =>
+                val version = Build.Version(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
+                val buildInfo = Build.Info(version = version, dataType = dataType)
 
-            val folder = randomDir
-            val file = Build.write(folder, buildInfo).value
+                val folder = randomDir
+                val file = Build.write(folder, buildInfo).value
 
-            //drop crc
-            Effect.overwrite(file, Effect.readAllBytes(file).dropHead())
+                //drop crc
+                Effect.overwrite(file, Effect.readAllBytes(file).dropHead())
 
-            Build.read(folder).left.value.getMessage should startWith(s"assertion failed: $file has invalid CRC.")
+                Build.read(folder).left.value.getMessage should startWith(s"assertion failed: Invalid CRC.")
+            }
         }
       }
 
       "invalid formatId" in {
         TestCaseSweeper {
           implicit sweeper =>
-            val buildInfo = Build.Info(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
+            DataType.all foreach {
+              dataType =>
+                val version = Build.Version(major = randomIntMax(), minor = randomIntMax(), revision = randomIntMax())
+                val buildInfo = Build.Info(version = version, dataType = dataType)
 
-            val folder = randomDir
-            val file = Build.write(folder, buildInfo).value
+                val folder = randomDir
+                val file = Build.write(folder, buildInfo).value
 
-            val existsBytes = Effect.readAllBytes(file)
+                val existsBytes = Effect.readAllBytes(file)
 
-            val bytesWithInvalidFormatId = Slice.create[Byte](existsBytes.size)
-            bytesWithInvalidFormatId addAll existsBytes.take(ByteSizeOf.long) //keep CRC
-            bytesWithInvalidFormatId add (Build.formatId + 1).toByte //change formatId
-            bytesWithInvalidFormatId addAll existsBytes.drop(ByteSizeOf.long + 1) //keep the rest
-            bytesWithInvalidFormatId.isFull shouldBe true
+                val bytesWithInvalidFormatId = Slice.create[Byte](existsBytes.size)
+                bytesWithInvalidFormatId addAll existsBytes.take(ByteSizeOf.long) //keep CRC
+                bytesWithInvalidFormatId add (Build.formatId + 1).toByte //change formatId
+                bytesWithInvalidFormatId addAll existsBytes.drop(ByteSizeOf.long + 1) //keep the rest
+                bytesWithInvalidFormatId.isFull shouldBe true
 
-            //overwrite
-            Effect.overwrite(file, bytesWithInvalidFormatId)
+                //overwrite
+                Effect.overwrite(file, bytesWithInvalidFormatId)
 
-            //Invalid formatId will return invalid CRC.
-            //            Build.read(folder).left.value.getMessage shouldBe s"assertion failed: $file has invalid formatId. ${Build.formatId + 1} != ${Build.formatId}"
-            Build.read(folder).left.value.getMessage should startWith(s"assertion failed: $file has invalid CRC.")
+                //Invalid formatId will return invalid CRC.
+                //            Build.read(folder).left.value.getMessage shouldBe s"assertion failed: $file has invalid formatId. ${Build.formatId + 1} != ${Build.formatId}"
+                Build.read(folder).left.value.getMessage should startWith(s"assertion failed: Invalid CRC.")
+            }
         }
       }
     }
@@ -139,15 +171,42 @@ class BuildSpec extends TestBase {
       "DisallowOlderVersions" in {
         TestCaseSweeper {
           implicit sweeper =>
-            val folder = createRandomDir
-            val file = folder.resolve("somefile.txt")
+            DataType.all foreach {
+              dataType =>
 
-            Effect.createFile(file)
-            Effect.exists(folder) shouldBe true
-            Effect.exists(file) shouldBe true
+                val folder = createRandomDir
+                val file = folder.resolve("somefile.txt")
 
-            implicit val validator = BuildValidator.DisallowOlderVersions
-            Build.validateOrCreate(folder).left.value.getMessage should startWith("This directory is not empty or is an older version of SwayDB which is incompatible with")
+                Effect.createFile(file)
+                Effect.exists(folder) shouldBe true
+                Effect.exists(file) shouldBe true
+
+                implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
+                Build.validateOrCreate(folder).left.value.getMessage should startWith("This directory is not empty or is an older version of SwayDB which is incompatible with")
+            }
+        }
+      }
+    }
+
+    "fail on an existing directory with different dataType" when {
+      "DisallowOlderVersions" in {
+        TestCaseSweeper {
+          implicit sweeper =>
+            DataType.all foreach {
+              invalidDataType =>
+
+                val dataType = Random.shuffle(DataType.all.toList).find(_ != invalidDataType).get
+
+                implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
+                val folder = createRandomDir
+                Build.validateOrCreate(folder)
+
+                Effect.exists(folder) shouldBe true
+                Effect.exists(folder.resolve(Build.fileName)) shouldBe true
+
+                val error = Build.validateOrCreate(folder)(IO.ExceptionHandler, BuildValidator.DisallowOlderVersions(invalidDataType))
+                error.left.value.exception.getMessage shouldBe s"Invalid data-type! This directory is of type ${dataType.name} and not ${invalidDataType.name}."
+            }
         }
       }
     }
@@ -156,13 +215,16 @@ class BuildSpec extends TestBase {
       "DisallowOlderVersions" in {
         TestCaseSweeper {
           implicit sweeper =>
-            val folder = createRandomDir
-            Effect.exists(folder) shouldBe true
+            DataType.all foreach {
+              dataType =>
+                val folder = createRandomDir
+                Effect.exists(folder) shouldBe true
 
-            implicit val validator = BuildValidator.DisallowOlderVersions
-            Build.validateOrCreate(folder).value
+                implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
+                Build.validateOrCreate(folder).value
 
-            Build.read(folder).value shouldBe a[Build.Info]
+                Build.read(folder).value shouldBe a[Build.Info]
+            }
         }
       }
     }
@@ -171,13 +233,16 @@ class BuildSpec extends TestBase {
       "DisallowOlderVersions" in {
         TestCaseSweeper {
           implicit sweeper =>
-            val folder = randomDir
-            Effect.exists(folder) shouldBe false
+            DataType.all foreach {
+              dataType =>
+                val folder = randomDir
+                Effect.exists(folder) shouldBe false
 
-            implicit val validator = BuildValidator.DisallowOlderVersions
-            Build.validateOrCreate(folder).value
+                implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
+                Build.validateOrCreate(folder).value
 
-            Build.read(folder).value shouldBe a[Build.Info]
+                Build.read(folder).value shouldBe a[Build.Info]
+            }
         }
       }
     }

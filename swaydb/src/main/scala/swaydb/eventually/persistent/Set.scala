@@ -32,6 +32,7 @@ import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecution
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -78,7 +79,7 @@ object Set extends LazyLogging {
                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                             typedKeyOrder: KeyOrder[A] = null,
                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
-                                                                                                                            buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.Set[A, F, BAG]] =
+                                                                                                                            buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       implicit val coreFunctions: FunctionStore.Memory = functions.core
@@ -87,8 +88,10 @@ object Set extends LazyLogging {
         Core(
           enableTimer = functionClassTag != ClassTag.Nothing,
           cacheKeyValueIds = cacheKeyValueIds,
-          threadStateCache = threadStateCache,
+          fileCache = fileCache,
+          memoryCache = memoryCache,
           shutdownTimeout = shutdownTimeout,
+          threadStateCache = threadStateCache,
           config =
             DefaultEventuallyPersistentConfig(
               dir = dir,
@@ -108,9 +111,7 @@ object Set extends LazyLogging {
               persistentLevelValuesConfig = valuesConfig,
               persistentLevelSegmentConfig = segmentConfig,
               acceleration = acceleration
-            ),
-          fileCache = fileCache,
-          memoryCache = memoryCache
+            )
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
           functionStore = coreFunctions,
