@@ -201,7 +201,7 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
       catch {
         case throwable: Throwable =>
           val error = IO.ExceptionHandler.toError[swaydb.Error.Level](throwable)
-          IO.Defer(thunk(zero), error).run(1)
+          IO.Defer[swaydb.Error.Level, R](thunk(zero), error).run(1)
       }
 
   def put(key: Slice[Byte]): BAG[OK] =

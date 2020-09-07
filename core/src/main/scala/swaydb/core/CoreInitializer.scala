@@ -27,6 +27,7 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.API
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
@@ -110,7 +111,8 @@ private[core] object CoreInitializer extends LazyLogging {
                                                        shutdownEC: ExecutionContext): ShutdownHookThread =
     sys.addShutdownHook {
       implicit val bag = Bag.future
-      Await.result(IO.Defer(CoreShutdown.close(zero)).run(0), shutdownTimeout)
+      val defer = IO.Defer(value = CoreShutdown.close(zero)).run(0)
+      Await.result(defer, shutdownTimeout)
     }
 
   def onClose(zero: LevelZero)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
