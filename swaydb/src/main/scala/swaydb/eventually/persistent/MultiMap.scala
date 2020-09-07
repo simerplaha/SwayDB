@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.persistent
+package swaydb.eventually.persistent
 
 import java.nio.file.Path
 
@@ -34,8 +34,7 @@ import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.counter.Counter
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config._
+import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -50,51 +49,43 @@ import scala.reflect.ClassTag
 object MultiMap extends LazyLogging {
 
   /**
-   * MultiMap is not a new Core type but is just a wrapper implementation on [[swaydb.Map]] type
-   * with custom key-ordering to support nested Map.
+   * A 3 Leveled in-memory database where the 3rd is persistent.
    *
-   * @tparam M   Map's key type.
-   * @tparam K   Key-values key type
-   * @tparam V   Values type
-   * @tparam F   Function type
-   * @tparam BAG Effect type
+   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[M, K, V, F, BAG[_]](dir: Path,
                                 mapSize: Int = 4.mb,
-                                mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
-                                recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                                mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                                appendixFlushCheckpointSize: Int = 2.mb,
+                                maxMemoryLevelSize: Int = 100.mb,
+                                maxSegmentsToPush: Int = 5,
+                                memoryLevelSegmentSize: Int = 2.mb,
+                                memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
+                                persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                                 otherDirs: Seq[Dir] = Seq.empty,
-                                cacheKeyValueIds: Boolean = true,
                                 shutdownTimeout: FiniteDuration = 30.seconds,
+                                cacheKeyValueIds: Boolean = true,
+                                mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                                deleteMemorySegmentsEventually: Boolean = true,
                                 acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                                threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                                sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                                randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                                persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                                persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
                                 binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                                 mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                                 valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                                 segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                                 fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                 memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
-                                levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                                levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
-                                levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
-                                levelThreeThrottle: LevelMeter => Throttle = DefaultConfigs.levelThreeThrottle,
-                                levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
-                                levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
-                                levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit keySerializer: Serializer[K],
-                                                                                                            mapKeySerializer: Serializer[M],
-                                                                                                            valueSerializer: Serializer[V],
-                                                                                                            functionClassTag: ClassTag[F],
-                                                                                                            bag: swaydb.Bag[BAG],
-                                                                                                            functions: swaydb.MultiMap.Functions[M, K, V, F],
-                                                                                                            byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                            typedKeyOrder: KeyOrder[K] = null,
-                                                                                                            compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
-                                                                                                            buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[MultiMap[M, K, V, F, BAG]] =
+                                threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
+                                                                                                                                  mapKeySerializer: Serializer[M],
+                                                                                                                                  valueSerializer: Serializer[V],
+                                                                                                                                  functionClassTag: ClassTag[F],
+                                                                                                                                  bag: swaydb.Bag[BAG],
+                                                                                                                                  functions: swaydb.MultiMap.Functions[M, K, V, F],
+                                                                                                                                  byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                                  typedKeyOrder: KeyOrder[K] = null,
+                                                                                                                                  compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
+                                                                                                                                  buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
+
       implicit val innerMapKeySerialiser: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, mapKeySerializer)
       implicit val optionValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)
 
@@ -103,33 +94,29 @@ object MultiMap extends LazyLogging {
 
       //the inner map with custom keyOrder and custom key-value types to support nested Maps.
       val map =
-        swaydb.persistent.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG](
+        swaydb.eventually.persistent.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG](
           dir = dir,
           mapSize = mapSize,
-          mmapMaps = mmapMaps,
-          recoveryMode = recoveryMode,
-          mmapAppendix = mmapAppendix,
-          appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+          maxMemoryLevelSize = maxMemoryLevelSize,
+          maxSegmentsToPush = maxSegmentsToPush,
+          memoryLevelSegmentSize = memoryLevelSegmentSize,
+          memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
+          persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           otherDirs = otherDirs,
-          cacheKeyValueIds = cacheKeyValueIds,
           shutdownTimeout = shutdownTimeout,
+          cacheKeyValueIds = cacheKeyValueIds,
+          mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
+          deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
           acceleration = acceleration,
-          threadStateCache = threadStateCache,
-          sortedKeyIndex = sortedKeyIndex,
-          randomKeyIndex = randomKeyIndex,
+          persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
+          persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,
           binarySearchIndex = binarySearchIndex,
           mightContainKeyIndex = mightContainKeyIndex,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
           fileCache = fileCache,
           memoryCache = memoryCache,
-          levelZeroThrottle = levelZeroThrottle,
-          levelOneThrottle = levelOneThrottle,
-          levelTwoThrottle = levelTwoThrottle,
-          levelThreeThrottle = levelThreeThrottle,
-          levelFourThrottle = levelFourThrottle,
-          levelFiveThrottle = levelFiveThrottle,
-          levelSixThrottle = levelSixThrottle
+          threadStateCache = threadStateCache
         )(keySerializer = innerMapKeySerialiser,
           valueSerializer = optionValueSerializer,
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]]],
@@ -144,7 +131,7 @@ object MultiMap extends LazyLogging {
         map =>
           swaydb.MultiMap.withPersistentCounter(
             path = dir,
-            mmap = mmapMaps,
+            mmap = mmapPersistentLevelAppendix,
             map = map
           )
       }

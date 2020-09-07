@@ -26,6 +26,7 @@ package swaydb
 
 import java.nio.file.Path
 
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.counter.Counter
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
@@ -44,7 +45,31 @@ object MultiMap {
   //this should start from 1 because 0 will be used for format changes.
   val rootMapId: Long = Counter.startId
 
-  type InnerMap[M, K, V, F, BAG[_]] = swaydb.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG]
+  private[swaydb] def withPersistentCounter[M, K, V, F, BAG[_]](path: Path,
+                                                                mmap: swaydb.data.config.MMAP.Map,
+                                                                map: swaydb.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
+                                                                                                                                                                                            keySerializer: Serializer[K],
+                                                                                                                                                                                            mapKeySerializer: Serializer[M],
+                                                                                                                                                                                            valueSerializer: Serializer[V]): BAG[MultiMap[M, K, V, F, BAG]] = {
+    implicit val writer = swaydb.core.map.serializer.CounterMapEntryWriter.CounterPutMapEntryWriter
+    implicit val reader = swaydb.core.map.serializer.CounterMapEntryReader.CounterPutMapEntryReader
+    implicit val core = map.core.bufferSweeper
+    implicit val forceSaveApplier = ForceSaveApplier.Enabled
+
+    Counter.persistent(
+      path = path.resolve("multimap"),
+      mmap = mmap,
+      mod = 1000,
+      flushCheckpointSize = 1.mb
+    ) match {
+      case IO.Right(counter) =>
+        implicit val implicitCounter: Counter = counter
+        swaydb.MultiMap[M, K, V, F, BAG](map)
+
+      case IO.Left(error) =>
+        bag.failure(error.exception)
+    }
+  }
 
   /**
    * Given the inner [[swaydb.Map]] instance this creates a parent [[MultiMap]] instance.
