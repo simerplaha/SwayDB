@@ -110,9 +110,8 @@ private[core] object CoreInitializer extends LazyLogging {
                       shutdownTimeout: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
                                                        shutdownEC: ExecutionContext): ShutdownHookThread =
     sys.addShutdownHook {
-      implicit val bag = Bag.future
-      val defer = IO.Defer(value = CoreShutdown.close(zero)).run(0)
-      Await.result(defer, shutdownTimeout)
+      implicit val bag = Bag.less
+      IO.Defer(Await.result(CoreShutdown.close(zero), shutdownTimeout)).run(0)
     }
 
   def onClose(zero: LevelZero)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
