@@ -38,7 +38,7 @@ import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
 
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object MemoryQueue {

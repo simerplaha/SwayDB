@@ -45,7 +45,7 @@ import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
 
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
