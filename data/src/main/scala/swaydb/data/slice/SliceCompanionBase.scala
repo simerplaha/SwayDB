@@ -326,6 +326,9 @@ trait SliceCompanionBase {
     @inline final def readUnsignedLongWithByteSize(): (Long, Int) =
       Bytez.readUnsignedLongWithByteSize(slice)
 
+    @inline final def readUnsignedLongByteSize(): Int =
+      Bytez.readUnsignedLongByteSize(slice)
+
     @inline final def addSignedLong(long: Long): Slice[Byte] = {
       Bytez.writeSignedLong(long, slice)
       slice

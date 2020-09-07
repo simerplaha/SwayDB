@@ -166,12 +166,10 @@ private[swaydb] object MultiKey {
   def ordering(customOrder: KeyOrder[Slice[Byte]]) =
     new KeyOrder[Slice[Byte]] {
       override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
-        val leftMapId = left.readUnsignedLong()
-        val letMapIdByteSize = Bytes.sizeOfUnsignedLong(leftMapId)
+        val letMapIdByteSize = left.readUnsignedLongByteSize()
         val leftType = left.drop(letMapIdByteSize).head
 
-        val rightMapId = right.readUnsignedLong()
-        val rightMapIdByteSize = Bytes.sizeOfUnsignedLong(rightMapId)
+        val rightMapIdByteSize = right.readUnsignedLongByteSize()
         val rightType = right.drop(rightMapIdByteSize).head
 
         if (leftType != MultiKey.key && leftType != MultiKey.child && rightType != MultiKey.key && rightType != MultiKey.child) {

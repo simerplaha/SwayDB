@@ -455,6 +455,18 @@ private[swaydb] trait Bytez {
 
     (long, index + 1)
   }
+
+  def readUnsignedLongByteSize(slice: Slice[Byte]): Int = {
+    var index = 0
+    var byte = slice.get(index)
+
+    while ((byte & 0x80) != 0) {
+      index += 1
+      byte = slice.get(index)
+    }
+
+    index + 1
+  }
 }
 
 private[swaydb] object Bytez extends Bytez

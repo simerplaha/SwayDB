@@ -8,7 +8,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.{ByteSizeOf, Bytez}
 
 import scala.util.Random
 
@@ -229,6 +229,31 @@ class BytezSpec extends AnyWordSpec with Matchers {
           }
       }
     }
+
+    "readUnsignedLongByteSize" in {
+      var bytes = Slice.create[Byte](9)
+      bytes.addUnsignedLong(0)
+      bytes.size shouldBe 1
+      bytes.readUnsignedLongByteSize() shouldBe 1
+
+      bytes = Slice.create[Byte](9)
+      bytes.addUnsignedLong(Long.MaxValue)
+      bytes.size shouldBe 9
+      bytes.readUnsignedLongByteSize() shouldBe 9
+      bytes.isFull shouldBe true
+
+      longRanges foreach {
+        range =>
+          range foreach {
+            long =>
+              val slice = Slice.create[Byte](ByteSizeOf.varLong)
+              Bytes.writeUnsignedLong(long, slice)
+
+              Bytez.readUnsignedLongByteSize(slice) shouldBe slice.size
+          }
+      }
+    }
+
   }
 
   "writeUnsignedIntReversed" in {
