@@ -71,7 +71,7 @@ object PersistentQueue {
                         private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                         private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                        private var compactionEC: Option[ExecutionContextExecutorService] = None,
+                        private var compactionEC: Option[ExecutionContext] = None,
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {

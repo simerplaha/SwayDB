@@ -52,7 +52,7 @@ object MemoryQueue {
                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                         private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                        private var compactionEC: Option[ExecutionContextExecutorService] = None,
+                        private var compactionEC: Option[ExecutionContext] = None,
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {

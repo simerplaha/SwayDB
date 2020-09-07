@@ -28,11 +28,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.build.BuildValidator
-import swaydb.core.io.file.ForceSaveApplier
-import swaydb.core.map.counter.Counter
-import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.KeyOrder
@@ -40,9 +36,9 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
-import swaydb.{Apply, IO, KeyOrderConverter, MultiMap, PureFunction}
+import swaydb.{Apply, KeyOrderConverter, MultiMap, PureFunction}
 
-import scala.concurrent.ExecutionContextExecutorService
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
@@ -82,7 +78,7 @@ object MultiMap extends LazyLogging {
                                                                                                                                   functions: swaydb.MultiMap.Functions[M, K, V, F],
                                                                                                                                   byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                   typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                                  compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
+                                                                                                                                  compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
                                                                                                                                   buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
 

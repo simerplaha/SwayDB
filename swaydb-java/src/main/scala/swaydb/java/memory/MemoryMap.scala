@@ -60,7 +60,7 @@ object MemoryMap {
                               private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                               private var byteComparator: KeyComparator[ByteSlice] = null,
                               private var typedComparator: KeyComparator[K] = null,
-                              private var compactionEC: Option[ExecutionContextExecutorService] = None,
+                              private var compactionEC: Option[ExecutionContext] = None,
                               keySerializer: Serializer[K],
                               valueSerializer: Serializer[V],
                               functionClassTag: ClassTag[_]) {

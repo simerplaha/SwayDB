@@ -60,7 +60,7 @@ object MemorySet {
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var byteComparator: KeyComparator[ByteSlice] = null,
                            private var typedComparator: KeyComparator[A] = null,
-                           private var compactionEC: Option[ExecutionContextExecutorService] = None,
+                           private var compactionEC: Option[ExecutionContext] = None,
                            serializer: Serializer[A],
                            functionClassTag: ClassTag[_]) {
 

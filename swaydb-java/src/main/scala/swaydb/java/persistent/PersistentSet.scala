@@ -79,7 +79,7 @@ object PersistentSet {
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var byteComparator: KeyComparator[ByteSlice] = null,
                            private var typedComparator: KeyComparator[A] = null,
-                           private var compactionEC: Option[ExecutionContextExecutorService] = None,
+                           private var compactionEC: Option[ExecutionContext] = None,
                            serializer: Serializer[A],
                            functionClassTag: ClassTag[_]) {
 

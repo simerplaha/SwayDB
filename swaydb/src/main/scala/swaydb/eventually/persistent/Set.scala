@@ -39,7 +39,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
-import scala.concurrent.ExecutionContextExecutorService
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
@@ -77,7 +77,7 @@ object Set extends LazyLogging {
                                                                                                                             functions: swaydb.Set.Functions[A, F],
                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                             typedKeyOrder: KeyOrder[A] = null,
-                                                                                                                            compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
+                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
                                                                                                                             buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)

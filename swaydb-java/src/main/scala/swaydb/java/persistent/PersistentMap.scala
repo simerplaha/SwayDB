@@ -79,7 +79,7 @@ object PersistentMap {
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                               private var byteComparator: KeyComparator[ByteSlice] = null,
                               private var typedComparator: KeyComparator[K] = null,
-                              private var compactionEC: Option[ExecutionContextExecutorService] = None,
+                              private var compactionEC: Option[ExecutionContext] = None,
                               keySerializer: Serializer[K],
                               valueSerializer: Serializer[V],
                               functionClassTag: ClassTag[_]) {

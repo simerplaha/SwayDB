@@ -38,7 +38,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
-import scala.concurrent.ExecutionContextExecutorService
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object Queue extends LazyLogging {
@@ -73,7 +73,7 @@ object Queue extends LazyLogging {
                        levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
                        levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A],
                                                                                                    bag: Bag[BAG],
-                                                                                                   compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
+                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
                                                                                                    buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =

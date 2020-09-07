@@ -37,7 +37,7 @@ import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, KeyOrderConverter, MultiMap, PureFunction}
 
-import scala.concurrent.ExecutionContextExecutorService
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
@@ -70,7 +70,7 @@ object MultiMap extends LazyLogging {
                                                                                                                                   functions: swaydb.MultiMap.Functions[M, K, V, F],
                                                                                                                                   byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                   typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                                  compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC): BAG[MultiMap[M, K, V, F, BAG]] =
+                                                                                                                                  compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val mapKeySerializer: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, tableSerializer)
       implicit val optionValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)

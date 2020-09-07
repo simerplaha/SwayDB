@@ -44,7 +44,7 @@ import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
 
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
@@ -73,7 +73,7 @@ object EventuallyPersistentMap {
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                               private var byteComparator: KeyComparator[ByteSlice] = null,
                               private var typedComparator: KeyComparator[K] = null,
-                              private var compactionEC: Option[ExecutionContextExecutorService] = None,
+                              private var compactionEC: Option[ExecutionContext] = None,
                               keySerializer: Serializer[K],
                               valueSerializer: Serializer[V],
                               functionClassTag: ClassTag[_]) {
