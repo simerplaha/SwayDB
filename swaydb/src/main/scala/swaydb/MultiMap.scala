@@ -42,6 +42,8 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object MultiMap {
 
+  val folderName = "multimap-gen"
+
   //this should start from 1 because 0 will be used for format changes.
   val rootMapId: Long = Counter.startId
 
@@ -57,7 +59,7 @@ object MultiMap {
     implicit val forceSaveApplier = ForceSaveApplier.Enabled
 
     Counter.persistent(
-      path = path.resolve("multimap"),
+      path = path.resolve(MultiMap.folderName),
       mmap = mmap,
       mod = 1000,
       flushCheckpointSize = 1.mb

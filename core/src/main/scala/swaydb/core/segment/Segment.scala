@@ -1082,7 +1082,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption { self =>
   def isMMAP: Boolean
 
   def segmentId: Long =
-    Effect.fileId(path)._1
+    Effect.numberFileId(path)._1
 
   def put(newKeyValues: Slice[KeyValue],
           removeDeletes: Boolean,

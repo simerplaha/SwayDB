@@ -109,7 +109,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 (keyValues, segment) => {
                   assertReads(keyValues, segment)
 
-                  segment.segmentId shouldBe Effect.fileId(segment.path)._1
+                  segment.segmentId shouldBe Effect.numberFileId(segment.path)._1
 
                   segment.minKey shouldBe keyValues.head.key
                   segment.maxKey shouldBe {

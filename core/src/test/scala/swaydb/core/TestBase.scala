@@ -247,7 +247,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                          sweeper: TestCaseSweeper): Segment = {
 
-      val segmentId = Effect.fileId(path)._1 - 1
+      val segmentId = Effect.numberFileId(path)._1 - 1
 
       implicit val idGenerator: IDGenerator = IDGenerator(segmentId)
 

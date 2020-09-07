@@ -465,7 +465,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           map.close()
 
           val set = swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir)
-          set.left.value.exception.getMessage shouldBe s"Invalid data-type! This directory is of type ${DataType.Map.name} and not ${DataType.Set.name}."
+          set.left.value.exception.getMessage shouldBe s"Invalid type ${DataType.Set.name}. This directory is of type ${DataType.Map.name}."
 
           //reopen it as a map
           val reopened = swaydb.persistent.Map[Int, Int, Nothing, Bag.Less](dir).sweep(_.delete())
@@ -484,7 +484,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
             map.put(1, 1)
             map.close()
 
-            implicit val validator = BuildValidator.Ignore(DataType.Set)
+            implicit val validator = BuildValidator.Ignore
             val set = swaydb.persistent.Set[Int, Nothing, Bag.Less](dir)
             set.add(2)
             set.contains(2) shouldBe true

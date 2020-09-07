@@ -45,7 +45,7 @@ private[core] object Effect extends LazyLogging {
 
   implicit class PathExtensionImplicits(path: Path) {
     @inline def fileId =
-      Effect.fileId(path)
+      Effect.numberFileId(path)
 
     @inline def incrementFileId =
       Effect.incrementFileId(path)
@@ -201,7 +201,7 @@ private[core] object Effect extends LazyLogging {
   }
 
   def incrementFileId(path: Path): Path = {
-    val (id, ext) = fileId(path)
+    val (id, ext) = numberFileId(path)
     path.getParent.resolve(s"${id + 1}.${ext.toString}")
   }
 
@@ -215,9 +215,9 @@ private[core] object Effect extends LazyLogging {
     path.getFileName.toString.toLong
 
   def fileExtension(path: Path): Extension =
-    fileId(path)._2
+    numberFileId(path)._2
 
-  def fileId(path: Path): (Long, Extension) = {
+  def numberFileId(path: Path): (Long, Extension) = {
     val fileName = path.getFileName.toString
     val extensionIndex = fileName.lastIndexOf(".")
     val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
@@ -231,18 +231,19 @@ private[core] object Effect extends LazyLogging {
       }
 
     val ext = fileName.substring(extIndex + 1, fileName.length)
-    if (ext == Extension.Log.toString)
-      (fileId, Extension.Log)
-    else if (ext == Extension.Seg.toString)
-      (fileId, Extension.Seg)
-    else {
-      logger.error("Unknown extension for file {}", path)
-      throw swaydb.Exception.UnknownExtension(path)
+
+    Extension.all.find(_.toString == ext) match {
+      case Some(extension) =>
+        (fileId, extension)
+
+      case None =>
+        logger.error("Unknown extension for file {}", path)
+        throw swaydb.Exception.UnknownExtension(path)
     }
   }
 
   def isExtension(path: Path, ext: Extension): Boolean =
-    Try(fileId(path)).map(_._2 == ext) getOrElse false
+    Try(numberFileId(path)).map(_._2 == ext) getOrElse false
 
   def files(folder: Path,
             extension: Extension): List[Path] =
@@ -251,7 +252,7 @@ private[core] object Effect extends LazyLogging {
         .asScala
         .filter(isExtension(_, extension))
         .toList
-        .sortBy(path => fileId(path)._1)
+        .sortBy(path => numberFileId(path)._1)
     }
 
   def folders(folder: Path): List[Path] =
@@ -279,9 +280,27 @@ private[core] object Effect extends LazyLogging {
 
   def isEmptyOrNotExists[E: IO.ExceptionHandler](path: Path): IO[E, Boolean] =
     if (exists(path))
-      IO(!Files.list(path).iterator().hasNext).recover {
-        case _: NotDirectoryException =>
-          false
+      IO {
+        val emptyFolder =
+          try
+            Effect.folders(path).isEmpty
+          catch {
+            case _: NotDirectoryException =>
+              false //some file exists so it's not empty.
+          }
+
+        def nonEmptyFiles =
+          Effect.stream(path) {
+            _.iterator().asScala.exists {
+              file =>
+                Extension.all.exists {
+                  extension =>
+                    file.toString.endsWith(extension.toString)
+                }
+            }
+          }
+
+        emptyFolder && !nonEmptyFiles
       }
     else
       IO.`true`

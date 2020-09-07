@@ -134,7 +134,7 @@ object MultiMap extends LazyLogging {
           functions = functions.innerFunctions,
           byteKeyOrder = internalKeyOrder,
           compactionEC = compactionEC,
-          buildValidator = buildValidator
+          buildValidator = buildValidator and BuildValidator.MultiMapFileExists(dir.resolve(swaydb.MultiMap.folderName))
         )
 
       bag.flatMap(map) {

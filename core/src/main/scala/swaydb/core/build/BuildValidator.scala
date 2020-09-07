@@ -24,22 +24,41 @@
 
 package swaydb.core.build
 
+import java.nio.file.Path
+
 import swaydb.IO
+import swaydb.core.io.file.Effect
 import swaydb.data.DataType
 
 sealed trait BuildValidator { self =>
 
-  def dataType: DataType
-
   def validate[E: IO.ExceptionHandler](previousBuild: Build,
-                                       thisVersion: Build.Version): IO[E, Unit]
+                                       thisVersion: Build.Version): IO[E, Option[DataType]]
+
+  def and(other: BuildValidator): BuildValidator =
+    new BuildValidator {
+      override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisVersion: Build.Version): IO[E, Option[DataType]] =
+        self.validate(
+          previousBuild = previousBuild,
+          thisVersion = thisVersion
+        ) flatMap {
+          previousDataType =>
+            other.validate(
+              previousBuild = previousBuild,
+              thisVersion = thisVersion
+            ) transform {
+              nextDataType =>
+                nextDataType orElse previousDataType
+            }
+        }
+    }
 }
 
 object BuildValidator {
 
-  case class Ignore(dataType: DataType) extends BuildValidator {
-    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisVersion: Build.Version): IO[E, Unit] =
-      IO.unit
+  case object Ignore extends BuildValidator {
+    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisVersion: Build.Version): IO[E, Option[DataType]] =
+      IO.none
   }
 
   /**
@@ -47,22 +66,55 @@ object BuildValidator {
    * if no build.info exist.
    */
   case class DisallowOlderVersions(dataType: DataType) extends BuildValidator {
-    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisVersion: Build.Version): IO[E, Unit] =
+    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisVersion: Build.Version): IO[E, Option[DataType]] =
       previousBuild match {
         case Build.Fresh =>
-          IO.unit
+          IO(Some(dataType))
 
         case Build.NoBuildInfo =>
-          IO.failed(s"This directory is not empty or is an older version of SwayDB which is incompatible with v${thisVersion.version}.")
+          IO.failed(s"Missing ${Build.fileName} file. This directory might be an incompatible older version of SwayDB. Current version: v${thisVersion.version}.")
 
         case previous @ Build.Info(previousVersion, previousDataType) =>
           val isValid = previousVersion.major >= 0 && previousVersion.minor >= 14 && previousVersion.revision >= 0
           if (!isValid)
-            IO.failed(s"Incompatible versions! v${previous.version} not compatible with v${thisVersion.version}.")
+            IO.failed(s"Incompatible versions! v${previous.version} is not compatible with v${thisVersion.version}.")
           else if (previousDataType != dataType)
-            IO.failed(s"Invalid data-type! This directory is of type ${previous.dataType.name} and not ${dataType.name}.")
+            IO.failed(s"Invalid type ${dataType.name}. This directory is of type ${previous.dataType.name}.")
           else
-            IO.unit
+            IO(Some(dataType))
+      }
+  }
+
+  /**
+   * Validates that a MultiMap has the multimap folder with log file.
+   */
+  case class MultiMapFileExists(multiMapFolder: Path) extends BuildValidator {
+
+    def checkExists[E: IO.ExceptionHandler](): IO[E, Option[DataType]] =
+      Effect.isEmptyOrNotExists(multiMapFolder) match {
+        case IO.Right(isEmpty) =>
+          if (isEmpty)
+            IO.failed(s"Missing multimap gen file or folder: $multiMapFolder.")
+          else
+            IO.none
+
+        case IO.Left(value) =>
+          IO.Left(value)
+      }
+
+    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisVersion: Build.Version): IO[E, Option[DataType]] =
+      previousBuild match {
+        case Build.Fresh =>
+          IO.none
+
+        case Build.NoBuildInfo =>
+          checkExists()
+
+        case Build.Info(_, dataType) =>
+          if (dataType != DataType.MultiMap)
+            IO.failed(s"Invalid data-type ${dataType.name}. Expected ${DataType.MultiMap.name}.")
+          else
+            checkExists()
       }
   }
 }

@@ -30,6 +30,7 @@ import swaydb.Error.IO
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.io.file.Effect
+import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.DataType
 import swaydb.data.slice.Slice
@@ -99,16 +100,18 @@ class BuildSpec extends TestBase {
       "non-empty folder exists without build.info file" in {
         TestCaseSweeper {
           implicit sweeper =>
+            Extension.all foreach {
+              extension =>
+                val folder = createRandomDir
+                val file = Effect.createFile(folder.resolve(s"somefile.$extension"))
 
-            val folder = createRandomDir
-            val file = Effect.createFile(folder.resolve("somefile.txt"))
+                Effect.exists(folder) shouldBe true
+                Effect.exists(file) shouldBe true
 
-            Effect.exists(folder) shouldBe true
-            Effect.exists(file) shouldBe true
+                Build.read(folder).value shouldBe Build.NoBuildInfo
 
-            Build.read(folder).value shouldBe Build.NoBuildInfo
-
-            Build.read(file).value shouldBe Build.NoBuildInfo
+                Build.read(file).value shouldBe Build.NoBuildInfo
+            }
         }
       }
     }
@@ -173,16 +176,19 @@ class BuildSpec extends TestBase {
           implicit sweeper =>
             DataType.all foreach {
               dataType =>
+                Extension.all foreach {
+                  extension =>
 
-                val folder = createRandomDir
-                val file = folder.resolve("somefile.txt")
+                    val folder = createRandomDir
+                    val file = folder.resolve(s"somefile.$extension")
 
-                Effect.createFile(file)
-                Effect.exists(folder) shouldBe true
-                Effect.exists(file) shouldBe true
+                    Effect.createFile(file)
+                    Effect.exists(folder) shouldBe true
+                    Effect.exists(file) shouldBe true
 
-                implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
-                Build.validateOrCreate(folder).left.value.getMessage should startWith("This directory is not empty or is an older version of SwayDB which is incompatible with")
+                    implicit val validator = BuildValidator.DisallowOlderVersions(dataType)
+                    Build.validateOrCreate(folder).left.value.getMessage should startWith("Missing build.info file. This directory might be an incompatible older version of SwayDB. Current version:")
+                }
             }
         }
       }
@@ -205,7 +211,7 @@ class BuildSpec extends TestBase {
                 Effect.exists(folder.resolve(Build.fileName)) shouldBe true
 
                 val error = Build.validateOrCreate(folder)(IO.ExceptionHandler, BuildValidator.DisallowOlderVersions(invalidDataType))
-                error.left.value.exception.getMessage shouldBe s"Invalid data-type! This directory is of type ${dataType.name} and not ${invalidDataType.name}."
+                error.left.value.exception.getMessage shouldBe s"Invalid type ${invalidDataType.name}. This directory is of type ${dataType.name}."
             }
         }
       }

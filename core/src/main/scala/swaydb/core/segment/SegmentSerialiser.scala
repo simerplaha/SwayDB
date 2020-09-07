@@ -169,7 +169,7 @@ private[core] object SegmentSerialiser {
         }
       }
 
-      val fileType = Effect.fileId(segmentPath)._2
+      val fileType = Effect.numberFileId(segmentPath)._2
 
       if (fileType != Extension.Seg)
         throw new Exception(s"File is not a Segment. Path: $segmentPath")

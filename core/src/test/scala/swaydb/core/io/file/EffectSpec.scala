@@ -39,19 +39,19 @@ class EffectSpec extends TestBase {
   "fileId" should {
 
     "value the file id" in {
-      Effect.fileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe(1, Extension.Log)
-      Effect.fileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe(10, Extension.Log)
-      Effect.fileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe(1000, Extension.Seg)
+      Effect.numberFileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe(1, Extension.Log)
+      Effect.numberFileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe(10, Extension.Log)
+      Effect.numberFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe(1000, Extension.Seg)
     }
 
     "fail if the file's name is not an integer" in {
       val path = Paths.get("/one/notInt.log")
-      IO(Effect.fileId(path)).left.value shouldBe swaydb.Exception.NotAnIntFile(path)
+      IO(Effect.numberFileId(path)).left.value shouldBe swaydb.Exception.NotAnIntFile(path)
     }
 
     "fail if the file has invalid extension" in {
       val path = Paths.get("/one/1.txt")
-      IO(Effect.fileId(path)).left.runRandomIO.right.value shouldBe swaydb.Exception.UnknownExtension(path)
+      IO(Effect.numberFileId(path)).left.runRandomIO.right.value shouldBe swaydb.Exception.UnknownExtension(path)
     }
   }
 
@@ -314,24 +314,30 @@ class EffectSpec extends TestBase {
     "folder exists and is non-empty" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val dir = createRandomDir
-          Effect.exists(dir) shouldBe true
+          Extension.all foreach {
+            extension =>
+              val dir = createRandomDir
+              Effect.exists(dir) shouldBe true
 
-          Effect.createFile(dir.resolve("somefile.txt"))
+              Effect.createFile(dir.resolve(s"somefile.$extension"))
 
-          Effect.isEmptyOrNotExists(dir).value shouldBe false
+              Effect.isEmptyOrNotExists(dir).value shouldBe false
+          }
       }
     }
 
     "input is a file" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val file = createRandomDir.resolve("somefile.txt")
-          Effect.createFile(file)
+          Extension.all foreach {
+            extension =>
+              val file = createRandomDir.resolve(s"somefile.$extension")
+              Effect.createFile(file)
 
-          Effect.exists(file) shouldBe true
+              Effect.exists(file) shouldBe true
 
-          Effect.isEmptyOrNotExists(file).value shouldBe false
+              Effect.isEmptyOrNotExists(file).value shouldBe false
+          }
       }
     }
   }

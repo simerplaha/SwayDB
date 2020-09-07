@@ -24,6 +24,8 @@
 
 package swaydb.core.util
 
+import swaydb.macros.Sealed
+
 private[swaydb] sealed trait Extension
 private[swaydb] object Extension {
   case object Log extends Extension {
@@ -33,4 +35,11 @@ private[swaydb] object Extension {
   case object Seg extends Extension {
     override def toString: String = "seg"
   }
+
+  case object Info extends Extension {
+    override def toString: String = "info"
+  }
+
+  def all =
+    Sealed.array[Extension]
 }

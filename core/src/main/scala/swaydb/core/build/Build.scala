@@ -49,23 +49,35 @@ object Build extends LazyLogging {
 
   final def thisVersion(): Version = Version(major, minor, revision)
 
-  def validate[E: IO.ExceptionHandler](folder: Path)(implicit validator: BuildValidator): IO[E, Build] =
+  def validate[E: IO.ExceptionHandler](folder: Path)(implicit validator: BuildValidator): IO[E, (Option[DataType], Build)] =
     read(folder) flatMap {
       previousBuild =>
         validator
           .validate(previousBuild, Build.thisVersion())
-          .andThen(previousBuild)
+          .map {
+            dataType =>
+              (dataType, previousBuild)
+          }
     }
 
   def validateOrCreate[E: IO.ExceptionHandler](folder: Path)(implicit validator: BuildValidator): IO[E, Unit] =
     validate(folder) flatMap {
-      case Build.Fresh | Build.NoBuildInfo =>
-        //if there is no existing Build.Info write the current build's Build.Info.
-        write(folder, validator.dataType).and(IO.unit)
+      case (dataType, result) =>
+        result match {
+          case Build.Fresh | Build.NoBuildInfo =>
+            //if there is no existing Build.Info write the current build's Build.Info.
+            dataType match {
+              case Some(dataType) =>
+                write(folder, dataType).and(IO.unit)
 
-      case _: Build.Info =>
-        //if Build.Info already exists. Do nothing.
-        IO.unit
+              case None =>
+                IO.unit
+            }
+
+          case _: Build.Info =>
+            //if Build.Info already exists. Do nothing.
+            IO.unit
+        }
     }
 
   def write[E: IO.ExceptionHandler](folder: Path, dataType: DataType): IO[E, Path] =
