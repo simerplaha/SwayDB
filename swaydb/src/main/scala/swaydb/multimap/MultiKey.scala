@@ -68,7 +68,7 @@ private[swaydb] object MultiKey {
    *
    * Formats:
    * [[Start]] - formatId|mapKey.size|mapKey|dataType
-   * [[Key]] - formatId|mapKey.size|mapKey|dataType|dataKey
+   * [[Key]]   - formatId|mapKey.size|mapKey|dataType|dataKey
    * [[End]]   - formatId|mapKey.size|mapKey|dataType
    *
    * mapKey   - the unique id of the Map.
@@ -122,7 +122,6 @@ private[swaydb] object MultiKey {
               .add(MultiKey.childrenEnd)
 
           case MultiKey.End(mapId) =>
-
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.end)
@@ -167,10 +166,10 @@ private[swaydb] object MultiKey {
     new KeyOrder[Slice[Byte]] {
       override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
         val letMapIdByteSize = left.readUnsignedLongByteSize()
-        val leftType = left.drop(letMapIdByteSize).head
+        val leftType = left.get(letMapIdByteSize)
 
         val rightMapIdByteSize = right.readUnsignedLongByteSize()
-        val rightType = right.drop(rightMapIdByteSize).head
+        val rightType = right.get(rightMapIdByteSize)
 
         if (leftType != MultiKey.key && leftType != MultiKey.child && rightType != MultiKey.key && rightType != MultiKey.child) {
           KeyOrder.default.compare(left, right)

@@ -208,6 +208,9 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
     getOrPut(childKey = mapKey, expireAt = expireAt, forceClear = true)
 
 
+  /**
+   * @return false if the map does not exist else true on successful remove.
+   */
   def remove(mapKey: M): BAG[Boolean] =
     bag.flatMap(prepareRemove(mapKey = mapKey, expiration = None, forceClear = true, expire = false)) {
       buffer =>
