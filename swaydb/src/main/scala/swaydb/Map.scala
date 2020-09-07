@@ -124,7 +124,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
 
   def put(keyValues: Iterator[(K, V)]): BAG[OK] =
     bag.suspend {
-      core.put {
+      core.commit {
         keyValues map {
           case (key, value) =>
             Prepare.Put(keySerializer.write(key), valueSerializer.write(value), None)
@@ -148,19 +148,19 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     remove(keys.iterator)
 
   def remove(keys: Iterator[K]): BAG[OK] =
-    bag.suspend(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
+    bag.suspend(core.commit(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
 
   def expire(key: K, after: FiniteDuration): BAG[OK] =
-    bag.suspend(core.remove(key, after.fromNow))
+    bag.suspend(core.expire(key, after.fromNow))
 
   def expire(key: K, at: Deadline): BAG[OK] =
-    bag.suspend(core.remove(key, at))
+    bag.suspend(core.expire(key, at))
 
   def expire(from: K, to: K, after: FiniteDuration): BAG[OK] =
-    bag.suspend(core.remove(from, to, after.fromNow))
+    bag.suspend(core.expire(from, to, after.fromNow))
 
   def expire(from: K, to: K, at: Deadline): BAG[OK] =
-    bag.suspend(core.remove(from, to, at))
+    bag.suspend(core.expire(from, to, at))
 
   def expire(keys: (K, Deadline)*): BAG[OK] =
     bag.suspend(expire(keys))
@@ -173,7 +173,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
 
   def expire(keys: Iterator[(K, Deadline)]): BAG[OK] =
     bag.suspend {
-      core.put {
+      core.commit {
         keys map {
           keyDeadline =>
             Prepare.Remove(
@@ -202,7 +202,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
 
   def update(keyValues: Iterator[(K, V)]): BAG[OK] =
     bag.suspend {
-      core.put {
+      core.commit {
         keyValues map {
           case (key, value) =>
             Prepare.Update(keySerializer.write(key), valueSerializer.write(value))
@@ -220,7 +220,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.suspend(core.put(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
   def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -229,7 +229,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.suspend(core.put(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
   /**
    * Returns target value for the input key.

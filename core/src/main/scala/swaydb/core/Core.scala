@@ -225,7 +225,7 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
    * @note If the default time order [[TimeOrder.long]] is used
    *       Times should always be unique and in incremental order for *ALL* key values.
    */
-  def put(entries: Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]]): BAG[OK] =
+  def commit(entries: Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]]): BAG[OK] =
     assertTerminated {
       if (entries.isEmpty)
         bag.failure(new IllegalArgumentException("Cannot write empty batch"))
@@ -236,13 +236,13 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def remove(key: Slice[Byte]): BAG[OK] =
     assertTerminated(serial.execute(zero.remove(key)))
 
-  def remove(key: Slice[Byte], at: Deadline): BAG[OK] =
+  def expire(key: Slice[Byte], at: Deadline): BAG[OK] =
     assertTerminated(serial.execute(zero.remove(key, at)))
 
   def remove(from: Slice[Byte], to: Slice[Byte]): BAG[OK] =
     assertTerminated(serial.execute(zero.remove(from, to)))
 
-  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): BAG[OK] =
+  def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): BAG[OK] =
     assertTerminated(serial.execute(zero.remove(from, to, at)))
 
   def update(key: Slice[Byte], value: Slice[Byte]): BAG[OK] =

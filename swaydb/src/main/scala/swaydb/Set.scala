@@ -122,7 +122,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     add(elems.iterator)
 
   def add(elems: Iterator[A]): BAG[OK] =
-    bag.suspend(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = Slice.Null, deadline = None))))
+    bag.suspend(core.commit(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = Slice.Null, deadline = None))))
 
   def remove(elem: A): BAG[OK] =
     bag.suspend(core.remove(elem))
@@ -140,19 +140,19 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     remove(elems.iterator)
 
   def remove(elems: Iterator[A]): BAG[OK] =
-    bag.suspend(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
+    bag.suspend(core.commit(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
   def expire(elem: A, after: FiniteDuration): BAG[OK] =
-    bag.suspend(core.remove(elem, after.fromNow))
+    bag.suspend(core.expire(elem, after.fromNow))
 
   def expire(elem: A, at: Deadline): BAG[OK] =
-    bag.suspend(core.remove(elem, at))
+    bag.suspend(core.expire(elem, at))
 
   def expire(from: A, to: A, after: FiniteDuration): BAG[OK] =
-    bag.suspend(core.remove(from, to, after.fromNow))
+    bag.suspend(core.expire(from, to, after.fromNow))
 
   def expire(from: A, to: A, at: Deadline): BAG[OK] =
-    bag.suspend(core.remove(from, to, at))
+    bag.suspend(core.expire(from, to, at))
 
   def expire(elems: (A, Deadline)*): BAG[OK] =
     expire(elems)
@@ -165,7 +165,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
 
   def expire(elems: Iterator[(A, Deadline)]): BAG[OK] =
     bag.suspend {
-      core.put {
+      core.commit {
         elems map {
           elemWithExpire =>
             Prepare.Remove(
@@ -187,7 +187,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     bag.suspend(core.applyFunction(elem, Slice.writeString(function.id)))
 
   def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
-    bag.suspend(core.put(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
   def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -196,7 +196,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
-    bag.suspend(core.put(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
   def levelZeroMeter: LevelZeroMeter =
     core.levelZeroMeter
