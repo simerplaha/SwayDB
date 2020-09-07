@@ -33,9 +33,6 @@ sealed trait DataType {
 
 object DataType {
 
-  def all =
-    Sealed.array[DataType]
-
   def apply(id: Byte): Option[DataType] =
     all.find(_.id == id)
 
@@ -63,4 +60,7 @@ object DataType {
     override def id: Byte = 5
     def name = productPrefix
   }
+
+  def all =
+    Sealed.array[DataType]
 }
