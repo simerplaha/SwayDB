@@ -75,20 +75,23 @@ object Build extends LazyLogging {
       Effect.write(file, slice)
     }
 
-  def read[E: IO.ExceptionHandler](folder: Path): IO[E, Build] = {
-    val file = folder.resolve(fileName)
-    if (Effect.notExists(folder))
-      IO.Right(Build.Fresh)
-    else if (Effect.notExists(file))
-      IO.Right(Build.NoBuildInfo)
-    else
-      IO {
-        val bytes = Effect.readAllBytes(file)
-        val buildInfo = BuildSerialiser.read(bytes, file)
-        logger.info(s"build.info - v${buildInfo.version}")
-        buildInfo
-      }
-  }
+  def read[E: IO.ExceptionHandler](folder: Path): IO[E, Build] =
+    Effect.isEmptyOrNotExists(folder) flatMap {
+      isEmpty =>
+        val file = folder.resolve(fileName)
+
+        if (isEmpty)
+          IO.Right(Build.Fresh)
+        else if (Effect.notExists(file))
+          IO.Right(Build.NoBuildInfo)
+        else
+          IO {
+            val bytes = Effect.readAllBytes(file)
+            val buildInfo = BuildSerialiser.read(bytes, file)
+            logger.info(s"build.info - v${buildInfo.version}")
+            buildInfo
+          }
+    }
 
   /**
    * Brand new database

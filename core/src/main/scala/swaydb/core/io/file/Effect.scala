@@ -32,6 +32,7 @@ import java.util
 import java.util.function.BiPredicate
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.util.Extension
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
@@ -275,6 +276,15 @@ private[core] object Effect extends LazyLogging {
 
   def size(path: Path): Long =
     Files.size(path)
+
+  def isEmptyOrNotExists[E: IO.ExceptionHandler](path: Path): IO[E, Boolean] =
+    if (exists(path))
+      IO(!Files.list(path).iterator().hasNext).recover {
+        case _: NotDirectoryException =>
+          false
+      }
+    else
+      IO.`true`
 
   def printFilesSize(folder: Path, fileExtension: String) = {
     val extensionFilter =

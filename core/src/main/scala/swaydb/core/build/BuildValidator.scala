@@ -68,17 +68,12 @@ object BuildValidator {
           IO.unit
 
         case Build.NoBuildInfo =>
-          IO.failed(
-            s"Previous SwayDB version (version number unknown) is not compatible with v${thisBuild.version}. v0.14.8 " +
-            s"added incompatibility check which requires build.info file that did not exist in older versions. " +
-            s"If you want to ignore the incompatibility check you can supply BuildValidator.IgnoreUnsafe to your " +
-            s"SwayDB instance. Note that BuildValidator.IgnoreUnsafe will be removed from v0.14.9."
-          )
+          IO.failed(s"Incompatible versions! v${thisBuild.version} is incompatible with your current database.")
 
         case previous @ Build.Info(major, minor, revision) =>
           val isValid = major >= 0 && minor >= 14 && revision >= 0
           if (!isValid)
-            IO.failed(s"SwayDB v${previous.version} not compatible with v${thisBuild.version}.")
+            IO.failed(s"Incompatible versions! v${previous.version} not compatible with v${thisBuild.version}.")
           else
             IO.unit
       }

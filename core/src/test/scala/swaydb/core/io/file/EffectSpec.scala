@@ -289,4 +289,50 @@ class EffectSpec extends TestBase {
         Effect.readAllBytes(flattenedPath) shouldBe flattenBytes
     }
   }
+
+  "isEmptyOrNotExists" when {
+    "folder does not exist" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          val dir = randomDir
+          Effect.notExists(dir) shouldBe true
+
+          Effect.isEmptyOrNotExists(dir).value shouldBe true
+      }
+    }
+
+    "folder exists but is empty" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          val dir = createRandomDir
+          Effect.exists(dir) shouldBe true
+
+          Effect.isEmptyOrNotExists(dir).value shouldBe true
+      }
+    }
+
+    "folder exists and is non-empty" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          val dir = createRandomDir
+          Effect.exists(dir) shouldBe true
+
+          Effect.createFile(dir.resolve("somefile.txt"))
+
+          Effect.isEmptyOrNotExists(dir).value shouldBe false
+      }
+    }
+
+    "input is a file" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          val file = createRandomDir.resolve("somefile.txt")
+          Effect.createFile(file)
+
+          Effect.exists(file) shouldBe true
+
+          Effect.isEmptyOrNotExists(file).value shouldBe false
+      }
+    }
+  }
 }
