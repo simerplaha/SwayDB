@@ -37,18 +37,24 @@ object KeyOrder {
    */
   val default, lexicographic: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
-      def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
-        val minimum = Math.min(a.size, b.size)
-        var i = 0
-        while (i < minimum) {
-          val aB = a.getC(i) & 0xFF
-          val bB = b.getC(i) & 0xFF
-          if (aB != bB) return aB - bB
-          i += 1
-        }
-        a.size - b.size
-      }
+      def compare(a: Slice[Byte], b: Slice[Byte]): Int =
+        KeyOrder.defaultCompare(
+          a = a,
+          b = b,
+          maxBytes = Math.min(a.size, b.size)
+        )
     }
+
+  @inline def defaultCompare(a: Slice[Byte], b: Slice[Byte], maxBytes: Int): Int = {
+    var i = 0
+    while (i < maxBytes) {
+      val aB = a.getC(i) & 0xFF
+      val bB = b.getC(i) & 0xFF
+      if (aB != bB) return aB - bB
+      i += 1
+    }
+    a.size - b.size
+  }
 
   /**
    * Provides the default reverse ordering.

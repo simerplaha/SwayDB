@@ -165,23 +165,28 @@ private[swaydb] object MultiKey {
    */
   def ordering(customOrder: KeyOrder[Slice[Byte]]) =
     new KeyOrder[Slice[Byte]] {
-      override def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
-        val leftMapId = a.readUnsignedLong()
-        val leftDataType = a.drop(Bytes.sizeOfUnsignedLong(leftMapId)).head
+      override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
+        val leftMapId = left.readUnsignedLong()
+        val letMapIdByteSize = Bytes.sizeOfUnsignedLong(leftMapId)
+        val leftType = left.drop(letMapIdByteSize).head
 
-        val rightMapId = b.readUnsignedLong()
-        val rightDataType = b.drop(Bytes.sizeOfUnsignedLong(rightMapId)).head
+        val rightMapId = right.readUnsignedLong()
+        val rightMapIdByteSize = Bytes.sizeOfUnsignedLong(rightMapId)
+        val rightType = right.drop(rightMapIdByteSize).head
 
-        if (leftDataType != MultiKey.key && leftDataType != MultiKey.child && rightDataType != MultiKey.key && rightDataType != MultiKey.child) {
-          KeyOrder.default.compare(a, b)
+        if (leftType != MultiKey.key && leftType != MultiKey.child && rightType != MultiKey.key && rightType != MultiKey.child) {
+          KeyOrder.default.compare(left, right)
         } else {
-          val tableBytesLeft = a.take(Bytes.sizeOfUnsignedLong(leftMapId) + 1)
-          val tableBytesRight = b.take(Bytes.sizeOfUnsignedLong(rightMapId) + 1)
+          val defaultOrderResult =
+            KeyOrder.defaultCompare(
+              a = left,
+              b = right,
+              maxBytes = Math.min(letMapIdByteSize, rightMapIdByteSize) + 1
+            )
 
-          val defaultOrderResult = KeyOrder.default.compare(tableBytesLeft, tableBytesRight)
           if (defaultOrderResult == 0) {
-            val aTail = a.drop(tableBytesLeft.size)
-            val bTail = b.drop(tableBytesRight.size)
+            val aTail = left.drop(letMapIdByteSize + 1)
+            val bTail = right.drop(rightMapIdByteSize + 1)
             customOrder.compare(aTail, bTail)
           } else {
             defaultOrderResult

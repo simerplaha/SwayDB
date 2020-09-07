@@ -187,30 +187,28 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       }
     }
 
-    "dsadasd" in {
-      TestCaseSweeper {
-        implicit sweeper =>
-          val root = newDB()
-
-          val child = root.schema.init(2)
-
-          Benchmark("") {
-            (1 to 1000000) foreach {
-              i =>
-                child.put(i, i.toString)
-            }
-          }
-
-          Benchmark("") {
-            (1 to 1000000) foreach {
-              i =>
-                child.get(i).value shouldBe i.toString
-            }
-          }
-
-          println("debu")
-      }
-    }
+//    "benchmark" in {
+//      TestCaseSweeper {
+//        implicit sweeper =>
+//          val root = newDB()
+//
+//          val child = root.schema.init(2)
+//
+//          Benchmark("") {
+//            (1 to 1000000) foreach {
+//              i =>
+//                child.put(i, i.toString)
+//            }
+//          }
+//
+//          Benchmark("") {
+//            (1 to 1000000) foreach {
+//              i =>
+//                child.get(i).value shouldBe i.toString
+//            }
+//          }
+//      }
+//    }
 
     "put a stream to an expired map and also submit key-values with deadline later than map's deadline" in {
       TestCaseSweeper {
