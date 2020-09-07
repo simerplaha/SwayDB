@@ -76,7 +76,7 @@ private[swaydb] object MultiKey {
    * dataKey  - the entry key for the Map.
    */
   implicit def serializer[T, K](implicit keySerializer: Serializer[K],
-                                tableSerializer: Serializer[T]): Serializer[MultiKey[T, K]] =
+                                childKeySerializer: Serializer[T]): Serializer[MultiKey[T, K]] =
     new Serializer[MultiKey[T, K]] {
       override def write(data: MultiKey[T, K]): Slice[Byte] =
         data match {
@@ -109,7 +109,7 @@ private[swaydb] object MultiKey {
               .add(MultiKey.childrenStart)
 
           case MultiKey.Child(mapId, subMapKey) =>
-            val dataKeyBytes = tableSerializer.write(subMapKey)
+            val dataKeyBytes = childKeySerializer.write(subMapKey)
 
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1 + dataKeyBytes.size)
               .addUnsignedLong(mapId)
@@ -145,7 +145,7 @@ private[swaydb] object MultiKey {
         else if (dataType == MultiKey.child)
           MultiKey.Child(
             childId = mapId,
-            childKey = tableSerializer.read(reader.readRemaining())
+            childKey = childKeySerializer.read(reader.readRemaining())
           )
         else if (dataType == MultiKey.childrenEnd)
           MultiKey.ChildrenEnd(mapId)

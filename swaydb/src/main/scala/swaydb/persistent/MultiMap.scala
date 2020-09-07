@@ -85,7 +85,7 @@ object MultiMap extends LazyLogging {
                                 levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
                                 levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
                                 levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit keySerializer: Serializer[K],
-                                                                                                            tableSerializer: Serializer[M],
+                                                                                                            mapKeySerializer: Serializer[M],
                                                                                                             valueSerializer: Serializer[V],
                                                                                                             functionClassTag: ClassTag[F],
                                                                                                             bag: swaydb.Bag[BAG],
@@ -95,7 +95,7 @@ object MultiMap extends LazyLogging {
                                                                                                             compactionEC: ExecutionContextExecutorService = DefaultExecutionContext.compactionEC,
                                                                                                             buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
-      implicit val mapKeySerializer: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, tableSerializer)
+      implicit val innerMapKeySerialiser: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, mapKeySerializer)
       implicit val optionValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)
 
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
@@ -130,7 +130,7 @@ object MultiMap extends LazyLogging {
           levelFourThrottle = levelFourThrottle,
           levelFiveThrottle = levelFiveThrottle,
           levelSixThrottle = levelSixThrottle
-        )(keySerializer = mapKeySerializer,
+        )(keySerializer = innerMapKeySerialiser,
           valueSerializer = optionValueSerializer,
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]]],
           bag = bag,
@@ -148,7 +148,7 @@ object MultiMap extends LazyLogging {
           implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
 
           Counter.persistent(
-            path = dir,
+            path = dir.resolve("multimap"),
             mmap = mmapMaps,
             mod = 1000,
             flushCheckpointSize = 1.mb

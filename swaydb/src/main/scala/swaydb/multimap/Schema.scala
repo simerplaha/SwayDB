@@ -39,7 +39,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
                                  val mapId: Long,
                                  val defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
-                                                                          tableSerializer: Serializer[M],
+                                                                          childKeySerializer: Serializer[M],
                                                                           valueSerializer: Serializer[V],
                                                                           counter: Counter,
                                                                           bag: Bag[BAG]) {

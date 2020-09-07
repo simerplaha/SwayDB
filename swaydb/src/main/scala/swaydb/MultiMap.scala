@@ -51,7 +51,7 @@ object MultiMap {
    */
   private[swaydb] def apply[M, K, V, F, BAG[_]](rootMap: swaydb.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
                                                                                                                                                                                 keySerializer: Serializer[K],
-                                                                                                                                                                                tableSerializer: Serializer[M],
+                                                                                                                                                                                mapKeySerializer: Serializer[M],
                                                                                                                                                                                 valueSerializer: Serializer[V],
                                                                                                                                                                                 counter: Counter): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.flatMap(rootMap.isEmpty) {
@@ -103,7 +103,7 @@ object MultiMap {
 
   object Functions {
     def apply[M, K, V, F](functions: F*)(implicit keySerializer: Serializer[K],
-                                         tableSerializer: Serializer[M],
+                                         mapKeySerializer: Serializer[M],
                                          valueSerializer: Serializer[V],
                                          ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
       val f = new Functions[M, K, V, F]()
@@ -112,7 +112,7 @@ object MultiMap {
     }
 
     def apply[M, K, V, F](functions: Iterable[F])(implicit keySerializer: Serializer[K],
-                                                  tableSerializer: Serializer[M],
+                                                  mapKeySerializer: Serializer[M],
                                                   valueSerializer: Serializer[V],
                                                   ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
       val f = new Functions[M, K, V, F]()
@@ -125,7 +125,7 @@ object MultiMap {
    * All registered function for a [[MultiMap]].
    */
   final case class Functions[M, K, V, F]()(implicit keySerializer: Serializer[K],
-                                           tableSerializer: Serializer[M],
+                                           mapKeySerializer: Serializer[M],
                                            valueSerializer: Serializer[V]) {
 
     private implicit val optionalSerialiser = MultiValue.serialiser(valueSerializer)
@@ -293,7 +293,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
                                                 mapKey: M,
                                                 mapId: Long,
                                                 defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
-                                                                                            tableSerializer: Serializer[M],
+                                                                                            mapKeySerializer: Serializer[M],
                                                                                             valueSerializer: Serializer[V],
                                                                                             counter: Counter,
                                                                                             val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
