@@ -37,7 +37,14 @@ object VersionReader {
   def versionImpl(c: blackbox.Context): c.Expr[(Int, Int, Int)] = {
     import c.universe._
 
-    val macroDirectory = this.getClass.getResource(".").getPath
+    val _macroDirectory = this.getClass.getResource(".").getPath
+
+    val macroDirectory =
+      if (_macroDirectory.startsWith("/")) //windows starts path with a slash /C:/..
+        _macroDirectory.drop(1)
+      else
+        _macroDirectory
+
     if (macroDirectory == null)
       c.abort(
         c.enclosingPosition,
