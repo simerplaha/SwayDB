@@ -86,7 +86,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
             fullIndex = true
           ),
         segmentConfig =
-          SegmentBlock.Config.random2(minSegmentSize = Int.MaxValue)
+          SegmentBlock.Config.random2(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
       ).value
 
     blocks should have size 1
