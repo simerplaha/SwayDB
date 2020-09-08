@@ -160,7 +160,7 @@ class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val ba
   /**
    * Materialises/closes and processes the stream to a [[Seq]].
    */
-  def materializeFromBuilder[X[_]](implicit builder: mutable.Builder[A, X[A]]): BAG[X[A]] =
+  def materialize[X[_]](implicit builder: mutable.Builder[A, X[A]]): BAG[X[A]] =
     free.materializeFromBuilder
 
   /**

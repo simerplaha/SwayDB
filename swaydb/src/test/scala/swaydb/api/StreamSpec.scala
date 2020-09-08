@@ -25,8 +25,8 @@ import swaydb.Bag._
 import swaydb.IO.ApiIO
 import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._
-import swaydb.Stream
-import swaydb.{Bag, IO}
+import swaydb.data.slice.Slice
+import swaydb.{Bag, IO, Stream}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -86,22 +86,44 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
   "Stream" should {
 
     "empty" in {
-      Stream
-        .empty[Int, BAG]
-        .map(_.toString)
+      def stream =
+        Stream
+          .empty[Int, BAG]
+          .map(_.toString)
+
+      stream
         .materialize
+        .await shouldBe empty
+
+      stream
+        .materialize(List.newBuilder)
         .await shouldBe empty
     }
 
     "range" in {
-      Stream
-        .range[BAG](1, 100)
+      def intStream =
+        Stream
+          .range[BAG](1, 100)
+
+      def charStream =
+        Stream
+          .range[BAG]('a', 'z')
+
+      intStream
         .materialize
         .await shouldBe (1 to 100)
 
-      Stream
-        .range[BAG]('a', 'z')
+      charStream
         .materialize
+        .await shouldBe ('a' to 'z')
+
+      //from builders
+      intStream
+        .materialize(List.newBuilder)
+        .await shouldBe (1 to 100)
+
+      charStream
+        .materialize(List.newBuilder)
         .await shouldBe ('a' to 'z')
     }
 
@@ -172,11 +194,21 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
     }
 
     "map" in {
-      Stream[Int, BAG](1 to 1000)
-        .map(_ + " one")
-        .map(_ + " two")
-        .map(_ + " three")
+      def mapStream =
+        Stream[Int, BAG](1 to 1000)
+          .map(_ + " one")
+          .map(_ + " two")
+          .map(_ + " three")
+
+      mapStream
         .materialize
+        .await shouldBe (1 to 1000).map(_ + " one two three")
+
+      mapStream
+        .materialize(Slice.newBuilder(1)).await shouldBe a[Slice[Int]]
+
+      mapStream
+        .materialize(List.newBuilder)
         .await shouldBe (1 to 1000).map(_ + " one two three")
     }
 
@@ -201,14 +233,25 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
     }
 
     "drop, take and map" in {
-      Stream[Int, BAG](1 to 20)
-        .map(_.toString)
-        .drop(10)
-        .take(5)
-        .map(_.toInt)
-        .drop(2)
-        .take(1)
+      def stream =
+        Stream[Int, BAG](1 to 20)
+          .map(_.toString)
+          .drop(10)
+          .take(5)
+          .map(_.toInt)
+          .drop(2)
+          .take(1)
+
+      stream
         .materialize
+        .await should contain only 13
+
+      val sliceBuilder = stream.materialize(Slice.newBuilder(20))
+
+      sliceBuilder
+        .await shouldBe a[Slice[Int]]
+
+      sliceBuilder
         .await should contain only 13
     }
 
