@@ -33,9 +33,6 @@ sealed trait DataType {
 
 object DataType {
 
-  def apply(id: Byte): Option[DataType] =
-    all.find(_.id == id)
-
   case object Map extends DataType {
     override def id: Byte = 1
     def name = productPrefix
@@ -68,4 +65,7 @@ object DataType {
 
   def all =
     Sealed.array[DataType]
+
+  def apply(id: Byte): Option[DataType] =
+    all.find(_.id == id)
 }
