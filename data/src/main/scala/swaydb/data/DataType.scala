@@ -61,6 +61,11 @@ object DataType {
     def name = productPrefix
   }
 
+  case object Custom extends DataType {
+    override def id: Byte = 6
+    def name = productPrefix
+  }
+
   def all =
     Sealed.array[DataType]
 }
