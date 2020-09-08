@@ -40,7 +40,7 @@ object VersionReader {
     val _macroDirectory = this.getClass.getResource(".").getPath
 
     val macroDirectory =
-      if (_macroDirectory.startsWith("/")) //windows starts path with a slash /C:/..
+      if (System.getProperty("os.name").toLowerCase.startsWith("win") && _macroDirectory.startsWith("/")) //windows starts path with a slash /C:/..
         _macroDirectory.drop(1)
       else
         _macroDirectory
