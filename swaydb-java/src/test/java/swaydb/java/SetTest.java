@@ -135,6 +135,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
         assertFalse(present);
         return present;
       });
+
+    set.delete();
   }
 
   @Test
@@ -198,6 +200,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
         integer ->
           assertFalse(set.get(integer).isPresent())
       );
+
+    set.delete();
   }
 
   @Test
@@ -254,6 +258,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
         return true;
       });
+
+    set.delete();
   }
 
   @Test
@@ -297,6 +303,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
         return true;
       }
     );
+
+    set.delete();
   }
 
   @Test
@@ -313,6 +321,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     assertEquals(0, set.stream().size());
     assertTrue(set.isEmpty());
+
+    set.delete();
   }
 
   @Test
@@ -354,6 +364,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
         return false;
       }
     );
+
+    set.delete();
   }
 
   @Test
@@ -373,6 +385,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
         .materialize();
 
     assertEquals(Arrays.asList(2, 1), integers);
+
+    set.delete();
   }
 
   @Test
@@ -425,6 +439,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
         .materialize();
 
     assertEquals(Arrays.asList(1, 2), setKeys);
+
+    set.delete();
   }
 
 
@@ -457,6 +473,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
     set.applyFunction(1, 100, expire);
 
     assertTrue(set.isEmpty());
+
+    set.delete();
   }
 
   /**

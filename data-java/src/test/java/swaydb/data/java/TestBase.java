@@ -24,14 +24,25 @@
 
 package swaydb.data.java;
 
+import swaydb.data.util.OperatingSystem;
+
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 
 public abstract class TestBase {
 
+  String projectTargetFolder = this.getClass().getClassLoader().getResource("").getPath();
+
   public Path testFileDirectory() {
-    Path path = Paths.get(this.getClass().getClassLoader().getResource("").getPath()).getParent().getParent().resolve("TEST_FILES");
+    Path projectDirectory;
+    if (OperatingSystem.isWindows()) {
+      projectDirectory = Paths.get(projectTargetFolder.substring(1)).getParent().getParent();
+    } else {
+      projectDirectory = Paths.get(projectTargetFolder).getParent().getParent();
+    }
+
+    Path path = projectDirectory.resolve("TEST_FILES");
     return path;
   }
 

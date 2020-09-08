@@ -78,6 +78,8 @@ abstract class QueueTest extends TestBase implements JavaEventually {
     assertEquals(1, queue.popOrNull());
     assertEquals(2, queue.popOrNull());
     assertNull(queue.popOrNull());
+
+    queue.delete();
   }
 
   @Test
@@ -91,6 +93,8 @@ abstract class QueueTest extends TestBase implements JavaEventually {
 
     assertEquals(2, queue.popOrNull());
     assertNull(queue.popOrNull());
+
+    queue.delete();
   }
 
   @Test
@@ -109,5 +113,7 @@ abstract class QueueTest extends TestBase implements JavaEventually {
       );
 
     assertNull(queue.popOrNull());
+
+    queue.delete();
   }
 }

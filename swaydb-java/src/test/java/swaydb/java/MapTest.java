@@ -155,6 +155,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
         assertFalse(present);
         return present;
       });
+
+    map.delete();
   }
 
   @Test
@@ -221,6 +223,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
         integer ->
           assertFalse(map.get(integer).isPresent())
       );
+
+    map.delete();
   }
 
   @Test
@@ -277,6 +281,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
         return true;
       });
+
+    map.delete();
   }
 
   @Test
@@ -323,6 +329,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
         return true;
       }
     );
+
+    map.delete();
   }
 
 
@@ -373,6 +381,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
         integer ->
           assertEquals(0, map.get(integer).get())
       );
+
+    map.delete();
   }
 
   @Test
@@ -392,6 +402,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     assertEquals(0, map.stream().size());
     assertTrue(map.isEmpty());
+
+    map.delete();
   }
 
   @Test
@@ -445,6 +457,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
         return false;
       }
     );
+
+    map.delete();
   }
 
   @Test
@@ -464,6 +478,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
       .materialize();
 
     assertEquals(Arrays.asList(2, 1), integers);
+
+    map.delete();
   }
 
   @Test
@@ -549,8 +565,9 @@ abstract class MapTest extends TestBase implements JavaEventually {
         .materialize();
 
     assertEquals(Arrays.asList(1, 2), setKeys);
-  }
 
+    map.delete();
+  }
 
   @Test
   void registerAndApplyFunction() {
@@ -629,5 +646,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
     assertFalse(map.get(80).isPresent());
     assertFalse(map.get(90).isPresent());
     assertFalse(map.get(100).isPresent());
+
+    map.delete();
   }
 }
