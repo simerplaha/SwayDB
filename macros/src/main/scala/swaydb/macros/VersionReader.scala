@@ -83,7 +83,7 @@ object VersionReader {
       }
 
     //get major.minor.revision from version.
-    val regex = """(\d+)\.(\d+)\.(\d+)""".r
+    val regex = """(\d+)\.(\d+)\.?(\d+)?""".r
 
     val (major, minor, revision) =
       regex.findFirstMatchIn(versionString) match {
@@ -91,7 +91,10 @@ object VersionReader {
           val major = value.group(1)
           val minor = value.group(2)
           val revision = value.group(3)
-          (major.toInt, minor.toInt, revision.toInt)
+          if (revision == null)
+            (major.toInt, minor.toInt, 0)
+          else
+            (major.toInt, minor.toInt, revision.toInt)
 
         case None =>
           c.abort(
