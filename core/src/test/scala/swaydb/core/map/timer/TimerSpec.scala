@@ -39,15 +39,13 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.{Bytez, OperatingSystem}
 
 import scala.concurrent.ExecutionContext
+import swaydb.data.util.StorageUnits._
 
 class PersistentTimerSpec extends TimerSpec {
 
   override def persistent: Boolean = true
 
-  def newTimer(path: Path)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                           timeOrder: TimeOrder[Slice[Byte]],
-                           functionStore: FunctionStore,
-                           ec: ExecutionContext,
+  def newTimer(path: Path)(implicit ec: ExecutionContext,
                            forceSaveApplier: ForceSaveApplier,
                            cleaner: ByteBufferSweeperActor,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
@@ -64,10 +62,7 @@ class MemoryTimerSpec extends TimerSpec {
 
   override def persistent: Boolean = false
 
-  def newTimer(path: Path)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                           timeOrder: TimeOrder[Slice[Byte]],
-                           functionStore: FunctionStore,
-                           ec: ExecutionContext,
+  def newTimer(path: Path)(implicit ec: ExecutionContext,
                            forceSaveApplier: ForceSaveApplier,
                            cleaner: ByteBufferSweeperActor,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
@@ -80,14 +75,11 @@ sealed trait TimerSpec extends TestBase {
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
-  implicit val functionStore = FunctionStore.memory()
+  implicit val functionStore = FunctionStore.memory(appliedFunctionsMapSize = 1.mb)
   implicit val timerReader = CounterMapEntryReader.CounterPutMapEntryReader
   implicit val timerWriter = CounterMapEntryWriter.CounterPutMapEntryWriter
 
-  def newTimer(path: Path)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                           timeOrder: TimeOrder[Slice[Byte]],
-                           functionStore: FunctionStore,
-                           ec: ExecutionContext,
+  def newTimer(path: Path)(implicit ec: ExecutionContext,
                            forceSaveApplier: ForceSaveApplier,
                            cleaner: ByteBufferSweeperActor,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],

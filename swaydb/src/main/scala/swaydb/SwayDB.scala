@@ -49,8 +49,6 @@ import scala.reflect.ClassTag
  */
 object SwayDB extends LazyLogging {
 
-  private implicit def memoryFunctionStore: FunctionStore = FunctionStore.memory()
-
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   final def version: Build.Version = Build.thisVersion()
@@ -75,7 +73,8 @@ object SwayDB extends LazyLogging {
                                                      valueSerializer: Serializer[V],
                                                      functionClassTag: ClassTag[F],
                                                      keyOrder: KeyOrder[Slice[Byte]],
-                                                     buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
+                                                     buildValidator: BuildValidator,
+                                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
@@ -97,7 +96,8 @@ object SwayDB extends LazyLogging {
                   config: SwayDBPersistentConfig)(implicit serializer: Serializer[T],
                                                   functionClassTag: ClassTag[F],
                                                   keyOrder: KeyOrder[Slice[Byte]],
-                                                  buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
+                                                  buildValidator: BuildValidator,
+                                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
@@ -120,7 +120,8 @@ object SwayDB extends LazyLogging {
                                                  valueSerializer: Serializer[V],
                                                  functionClassTag: ClassTag[F],
                                                  keyOrder: KeyOrder[Slice[Byte]],
-                                                 buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
+                                                 buildValidator: BuildValidator,
+                                                 functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
@@ -142,7 +143,8 @@ object SwayDB extends LazyLogging {
                   config: SwayDBMemoryConfig)(implicit serializer: Serializer[T],
                                               functionClassTag: ClassTag[F],
                                               keyOrder: KeyOrder[Slice[Byte]],
-                                              buildValidator: BuildValidator): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
+                                              buildValidator: BuildValidator,
+                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,

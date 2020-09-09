@@ -82,7 +82,7 @@ object TestData {
 
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
-  implicit val functionStore: FunctionStore = FunctionStore.memory()
+  implicit val functionStore: FunctionStore = FunctionStore.memory(10.mb)
 
   val functionIdGenerator = new AtomicInteger(0)
 

@@ -41,22 +41,22 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 object Set {
 
   implicit def nothing[A]: Functions[A, Nothing] =
-    new Functions[A, Nothing]()(null)
+    new Functions[A, Nothing](0.byte)(null)
 
   implicit def void[A]: Functions[A, Void] =
-    new Functions[A, Void]()(null)
+    new Functions[A, Void](0.byte)(null)
 
   object Functions {
-    def apply[A, F](functions: F*)(implicit serializer: Serializer[A],
-                                   ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]) = {
-      val f = new Functions[A, F]()
+    def apply[A, F](fileSize: Int, functions: F*)(implicit serializer: Serializer[A],
+                                                  ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]) = {
+      val f = new Functions[A, F](fileSize)
       functions.foreach(f.register(_))
       f
     }
 
-    def apply[A, F](functions: Iterable[F])(implicit serializer: Serializer[A],
-                                            ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]) = {
-      val f = new Functions[A, F]()
+    def apply[A, F](fileSize: Int, functions: Iterable[F])(implicit serializer: Serializer[A],
+                                                           ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]) = {
+      val f = new Functions[A, F](fileSize)
       functions.foreach(f.register(_))
       f
     }
@@ -65,9 +65,9 @@ object Set {
   /**
    * Registered functions for [[Set]]
    */
-  final case class Functions[A, F]()(implicit serializer: Serializer[A]) {
+  final case class Functions[A, F](fileSize: Int)(implicit serializer: Serializer[A]) {
 
-    private[swaydb] val core = CoreFunctionStore.memory()
+    private[swaydb] val core = CoreFunctionStore.memory(fileSize)
 
     def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): Unit =
       functions.foreach(register(_))

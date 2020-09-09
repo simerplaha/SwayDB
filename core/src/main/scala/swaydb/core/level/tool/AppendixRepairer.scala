@@ -51,9 +51,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
 
   def apply(levelPath: Path,
             strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              fileSweeper: FileSweeperActor,
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[swaydb.Error.Level, Unit] = {
+                                              fileSweeper: FileSweeperActor): IO[swaydb.Error.Level, Unit] = {
 
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
@@ -73,8 +71,8 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                   mmap = MMAP.Disabled(ForceSave.Disabled),
                   checkExists = true
                 )(keyOrder = keyOrder,
-                  timeOrder = timeOrder,
-                  functionStore = functionStore,
+                  timeOrder = null,
+                  functionStore = null,
                   blockCache = None,
                   keyValueMemorySweeper = memorySweeper,
                   fileSweeper = fileSweeper,
@@ -172,11 +170,9 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
 
   def buildAppendixMap(appendixDir: Path,
                        segments: Slice[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                  fileSweeper: FileSweeperActor,
                                                  bufferCleaner: ByteBufferSweeperActor,
                                                  forceSaveApplier: ForceSaveApplier,
-                                                 functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  skipListMerger: SkipListMerger[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
     IO {

@@ -41,6 +41,7 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Random, Try}
+import swaydb.data.util.StorageUnits._
 
 protected sealed trait Functions
 
@@ -73,7 +74,7 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
   def newDB()(implicit functions: swaydb.Map.Functions[Long, Domain, Functions],
               sweeper: TestCaseSweeper): swaydb.Map[Long, Domain, Functions, IO.ApiIO]
 
-  implicit val functions = swaydb.Map.Functions[Long, Domain, Functions]()
+  implicit val functions = swaydb.Map.Functions[Long, Domain, Functions](1.mb)
 
   val ids = new AtomicInteger(0)
   val functionIDs = new AtomicInteger(0)

@@ -152,7 +152,7 @@ private[core] object LevelZero extends LazyLogging {
                           folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolder),
                           mmap = mmap,
                           flushOnOverflow = true,
-                          fileSize = 1.mb,
+                          fileSize = 4.mb,
                           dropCorruptedTailEntries = false
                         )
 
@@ -174,7 +174,7 @@ private[core] object LevelZero extends LazyLogging {
                     path = timerDir,
                     mmap = LevelRef.getMMAPLog(nextLevel),
                     mod = 100000,
-                    flushCheckpointSize = 1.mb
+                    flushCheckpointSize = functionStore.persistentStorageSpace
                   )(bufferCleaner = bufferCleaner,
                     forceSaveApplier = forceSaveApplier,
                     writer = CounterMapEntryWriter.CounterPutMapEntryWriter,
@@ -225,7 +225,7 @@ private[swaydb] case class LevelZero(path: Path,
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => FiniteDuration,
-                                     private val appliedFunctions: Option[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]],
+                                     appliedFunctions: Option[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]],
                                      private val lock: Option[FileLocker])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                                            functionStore: FunctionStore) extends LevelRef with LazyLogging {
@@ -384,6 +384,15 @@ private[swaydb] case class LevelZero(path: Path,
   def registerFunction(functionId: Slice[Byte], function: SwayFunction): OK =
     functionStore.put(functionId, function)
 
+  private def saveAppliedFunctionNoSync(function: Slice[Byte]): Unit =
+    appliedFunctions foreach {
+      appliedFunctions =>
+        if (appliedFunctions.notContains(function)) {
+          implicit val writer = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
+          appliedFunctions.writeNoSync(MapEntry.Put(function, Slice.Null))
+        }
+    }
+
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): OK =
     if (functionStore.notExists(function)) {
       throw new IllegalArgumentException(s"Cannot apply unregistered function '${function.readString()}'. Please make sure the function is registered. See http://swaydb.io/api/write/registerFunction.")
@@ -392,10 +401,12 @@ private[swaydb] case class LevelZero(path: Path,
 
       maps.write {
         timer =>
-          if (timer.isEmptyTimer)
+          if (timer.isEmptyTimer) {
             throw new IllegalArgumentException("Functions are disabled.")
-          else
+          } else {
+            saveAppliedFunctionNoSync(function)
             MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
+          }
       }
 
       OK.instance
@@ -412,11 +423,14 @@ private[swaydb] case class LevelZero(path: Path,
       else
         maps.write {
           timer =>
-            if (timer.isEmptyTimer)
+            if (timer.isEmptyTimer) {
               throw new IllegalArgumentException("Functions are disabled.")
-            else
+            } else {
+              saveAppliedFunctionNoSync(function)
+
               (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
                 MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
+            }
         }
 
       OK.instance

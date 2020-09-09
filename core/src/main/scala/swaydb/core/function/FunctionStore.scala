@@ -39,7 +39,7 @@ import scala.annotation.tailrec
  *
  * Missing functions will be reported with their functionId.
  */
-private[swaydb] sealed trait FunctionStore {
+private[swaydb] abstract class FunctionStore(val persistentStorageSpace: Long) {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
   def put(functionId: Slice[Byte], function: SwayFunction): OK
   def remove(functionId: Slice[Byte]): Unit
@@ -50,8 +50,8 @@ private[swaydb] sealed trait FunctionStore {
 
 private[swaydb] object FunctionStore {
 
-  def memory(): FunctionStore.Memory =
-    new Memory()
+  def memory(appliedFunctionsMapSize: Long): FunctionStore.Memory =
+    new Memory(appliedFunctionsMapSize)
 
   val order: FunctionIdOrder =
     new FunctionIdOrder {
@@ -85,7 +85,7 @@ private[swaydb] object FunctionStore {
 
   trait FunctionIdOrder extends Ordering[Slice[Byte]]
 
-  final class Memory extends FunctionStore {
+  final class Memory(persistentStorageSpace: Long) extends FunctionStore(persistentStorageSpace: Long) {
 
     val hashMap = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
 

@@ -29,10 +29,11 @@ import org.scalatest.matchers.should.Matchers
 import swaydb.core.data.{SwayFunction, SwayFunctionOutput}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.data.util.StorageUnits._
 
 class FunctionStoreSpec extends AnyFlatSpec with Matchers {
 
-  val store = FunctionStore.memory()
+  val store = FunctionStore.memory(1.mb)
 
   it should "write int keys" in {
 

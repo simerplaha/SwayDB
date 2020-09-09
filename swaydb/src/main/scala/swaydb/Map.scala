@@ -43,33 +43,35 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 object Map {
 
   implicit def nothing[K, V]: Functions[K, V, Nothing] =
-    new Functions[K, V, Nothing]()(null, null)
+    new Functions[K, V, Nothing](0.byte)(null, null)
 
   implicit def void[K, V]: Functions[K, V, Void] =
-    new Functions[K, V, Void]()(null, null)
+    new Functions[K, V, Void](0.byte)(null, null)
 
   object Functions {
-    def apply[K, V, F](functions: F*)(implicit keySerializer: Serializer[K],
+    def apply[K, V, F](fileSize: Int,
+                       functions: F*)(implicit keySerializer: Serializer[K],
                                       valueSerializer: Serializer[V],
                                       ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[K, V, F]()
+      val f = new Functions[K, V, F](fileSize)
       functions.foreach(f.register(_))
       f
     }
 
-    def apply[K, V, F](functions: Iterable[F])(implicit keySerializer: Serializer[K],
+    def apply[K, V, F](fileSize: Int,
+                       functions: Iterable[F])(implicit keySerializer: Serializer[K],
                                                valueSerializer: Serializer[V],
                                                ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[K, V, F]()
+      val f = new Functions[K, V, F](fileSize)
       functions.foreach(f.register(_))
       f
     }
   }
 
-  final case class Functions[K, V, F]()(implicit keySerializer: Serializer[K],
-                                        valueSerializer: Serializer[V]) {
+  final case class Functions[K, V, F](fileSize: Int)(implicit keySerializer: Serializer[K],
+                                                     valueSerializer: Serializer[V]) {
 
-    private[swaydb] val core = CoreFunctionStore.memory()
+    private[swaydb] val core = CoreFunctionStore.memory(fileSize: Int)
 
     def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
       functions.foreach(register(_))

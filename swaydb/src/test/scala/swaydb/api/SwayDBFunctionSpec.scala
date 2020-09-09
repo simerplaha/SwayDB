@@ -112,7 +112,7 @@ sealed trait SwayDBFunctionSpec extends TestBase {
 
 
   "SwayDB" should {
-    implicit val functionsMap = swaydb.Map.Functions[Key, Int, Key.Function]()
+    implicit val functionsMap = swaydb.Map.Functions[Key, Int, Key.Function](1.byte)
     functionsMap.register(Key.IncrementValue, Key.DoNothing)
 
     "perform concurrent atomic updates to a single key" in {

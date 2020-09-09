@@ -60,6 +60,9 @@ private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: 
   def clear(): Unit
   def size: Int
   def contains(key: Key): Boolean
+  def notContains(key: Key): Boolean =
+    !contains(key)
+
   def headKey: OptionKey
   def lastKey: OptionKey
 
