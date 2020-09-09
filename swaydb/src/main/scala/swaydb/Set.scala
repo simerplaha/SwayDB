@@ -312,7 +312,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
-  def isFunctionStoredAsApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): Boolean =
+  def isFunctionApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): Boolean =
     core.isFunctionApplied(Slice.writeString(functionId.id))
 
   def stream: Source[A, A, BAG] =

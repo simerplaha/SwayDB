@@ -118,12 +118,12 @@ private[core] object KeyValue {
         TupleOrNone.Some(put.key, put.deadline)
       }
 
-    def toKeyValueDeadlineOrNone: TupleOrNone[(Slice[Byte], Option[Deadline]), SliceOption[Byte]] =
+    def toKeyValueDeadlineOrNone: TupleOrNone[(Slice[Byte], SliceOption[Byte]), Option[Deadline]] =
       if (isNoneS) {
         TupleOrNone.None
       } else {
         val put = this.getPut
-        TupleOrNone.Some((put.key, put.deadline), put.getOrFetchValue)
+        TupleOrNone.Some((put.key, put.getOrFetchValue), put.deadline)
       }
 
     def getValue: Option[SliceOption[Byte]] =

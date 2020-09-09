@@ -432,7 +432,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
                                                                      evV: V2 <:< V,
                                                                      evF: F2 <:< F): BAG[Option[MultiMap[M2, K2, V2, F2, BAG]]] = {
     bag.map(innerMap.getKeyValueDeadline(Child(mapId, mapKey), bag)) {
-      case Some(((key: Child[M2], deadline), value: MultiValue.MapId)) =>
+      case Some(((key: Child[M2], value: MultiValue.MapId), deadline)) =>
         implicit val bag2: Bag[BAG] = bag
 
         Some(

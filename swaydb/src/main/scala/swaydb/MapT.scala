@@ -98,7 +98,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]]
 
-  def isFunctionStoredAsApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Boolean
+  def isFunctionApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Boolean
 
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
 
@@ -128,7 +128,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def getKeyDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[(K, Option[Deadline])]]
 
-  def getKeyValueDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[((K, Option[Deadline]), V)]]
+  def getKeyValueDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[((K, V), Option[Deadline])]]
 
   def contains(key: K): BAG[Boolean]
 

@@ -25,7 +25,7 @@
 package swaydb.java
 
 import java.nio.file.Path
-import java.util
+import java.{lang, util}
 import java.util.Optional
 
 import swaydb.data.accelerate.LevelZeroMeter
@@ -166,6 +166,15 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
 
     asScala commit prepareStatements
   }
+
+  def clearAppliedFunctions(): lang.Iterable[String] =
+    asScala.clearAppliedFunctions().asJava
+
+  def clearAppliedAndRegisteredFunctions(): lang.Iterable[String] =
+    asScala.clearAppliedAndRegisteredFunctions().asJava
+
+  def isFunctionApplied(function: F): Boolean =
+    asScala.isFunctionApplied(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
 
   def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter

@@ -26,7 +26,7 @@ package swaydb.java
 
 import java.nio.file.Path
 import java.time.Duration
-import java.util
+import java.{lang, util}
 import java.util.Optional
 
 import swaydb.data.accelerate.LevelZeroMeter
@@ -40,6 +40,7 @@ import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
+import scala.concurrent.duration
 
 /**
  * IOMap database API.
@@ -166,6 +167,21 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def getKey(key: K): Optional[K] =
     asScala.getKey(key).asJava
 
+  def getKeyDeadline(key: K): Optional[Pair[K, Optional[duration.Deadline]]] =
+    asScala.getKeyDeadline(key).map {
+      case (key, deadline) =>
+        Pair(key, deadline.asJava)
+    }.asJava
+
+  def getKeyValueDeadline(key: K): Optional[Pair[Pair[K, V], Optional[duration.Deadline]]] =
+    (asScala.getKeyValueDeadline(key, bag): Option[((K, V), Option[duration.Deadline])]) match {
+      case Some(((key, value), deadline)) =>
+        Optional.of(Pair(Pair(key, value), deadline.asJava))
+
+      case None =>
+        Optional.empty()
+    }
+
   def getKeyValue(key: K): Optional[KeyVal[K, V]] =
     asScala.getKeyValue(key).asJavaMap(KeyVal(_))
 
@@ -180,6 +196,15 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
     val functionBytes = Slice.writeString(functionId)
     asScala.core.mightContainFunction(functionBytes)
   }
+
+  def clearAppliedFunctions(): lang.Iterable[String] =
+    asScala.clearAppliedFunctions().asJava
+
+  def clearAppliedAndRegisteredFunctions(): lang.Iterable[String] =
+    asScala.clearAppliedAndRegisteredFunctions().asJava
+
+  def isFunctionApplied(function: F): Boolean =
+    asScala.isFunctionApplied(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
 
   def keys: Set[K, Void] =
     Set(asScala.keys)

@@ -102,9 +102,9 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
 
             def assertAppliedFunctions(map: Map[Int, String, PureFunction.Map[Int, String], Less]) = {
               //function1
-              map.isFunctionStoredAsApplied(function1) shouldBe true
+              map.isFunctionApplied(function1) shouldBe true
               //function2 not applied
-              map.isFunctionStoredAsApplied(function2) shouldBe false
+              map.isFunctionApplied(function2) shouldBe false
               //we don't know because compaction has not finished yet.
               map.clearAppliedFunctions().size shouldBe 0
             }
@@ -149,9 +149,9 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
             map.mightContainFunction(noDataToApply) shouldBe true
             map.mightContainFunction(hasData) shouldBe true
             //function1
-            map.isFunctionStoredAsApplied(noDataToApply) shouldBe true
+            map.isFunctionApplied(noDataToApply) shouldBe true
             //function2 not applied
-            map.isFunctionStoredAsApplied(hasData) shouldBe true
+            map.isFunctionApplied(hasData) shouldBe true
             //clear yields no
             map.clearAppliedFunctions().size shouldBe 0
 
@@ -167,9 +167,9 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
 
             reopened.clearAppliedFunctions().size shouldBe 2
             //function1
-            reopened.isFunctionStoredAsApplied(noDataToApply) shouldBe false
+            reopened.isFunctionApplied(noDataToApply) shouldBe false
             //function2 not applied
-            reopened.isFunctionStoredAsApplied(hasData) shouldBe false
+            reopened.isFunctionApplied(hasData) shouldBe false
         }
       }
     }

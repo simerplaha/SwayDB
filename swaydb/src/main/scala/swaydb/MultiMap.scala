@@ -130,9 +130,9 @@ object MultiMap {
 
   object Functions {
     def apply[M, K, V, F](functions: F*)(implicit keySerializer: Serializer[K],
-                                                        mapKeySerializer: Serializer[M],
-                                                        valueSerializer: Serializer[V],
-                                                        ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
+                                         mapKeySerializer: Serializer[M],
+                                         valueSerializer: Serializer[V],
+                                         ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
       val f = new Functions[M, K, V, F]()
       functions.foreach(f.register(_))
       f
@@ -650,12 +650,12 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
         None
     }
 
-  override def getKeyValueDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[((K, Option[Deadline]), V)]] =
+  override def getKeyValueDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[((K, V), Option[Deadline])]] =
     bag.map(innerMap.getKeyValueDeadline(MultiKey.Key(mapId, key), bag)) {
-      case Some(((MultiKey.Key(_, key), deadline), value: MultiValue.Their[V])) =>
-        Some(((key, deadline), value.value))
+      case Some(((MultiKey.Key(_, key), value: MultiValue.Their[V]), deadline)) =>
+        Some(((key, value.value), deadline))
 
-      case Some(((key, _), value)) =>
+      case Some(((key, value), _)) =>
         throw new Exception(
           s"Expected key ${classOf[MultiKey.Key[_]].getSimpleName}. Got ${key.getClass.getSimpleName}. " +
             s"Expected value ${classOf[MultiValue.Their[_]].getSimpleName}. Got ${value.getClass.getSimpleName}. "
@@ -804,7 +804,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   override def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
     innerMap.clearAppliedAndRegisteredFunctions()
 
-  override def isFunctionStoredAsApplied[PF <: F](functionId: PF)(implicit ev: PF <:< PureFunction[K, V, Apply.Map[V]]): Boolean =
+  override def isFunctionApplied[PF <: F](functionId: PF)(implicit ev: PF <:< PureFunction[K, V, Apply.Map[V]]): Boolean =
     innerMap.core.isFunctionApplied(Slice.writeString(functionId.id))
 
   /**

@@ -259,13 +259,13 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
         bag.success(Some((left.read[K], right)))
     }
 
-  override def getKeyValueDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[((K, Option[Deadline]), V)]] =
+  override def getKeyValueDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[((K, V), Option[Deadline])]] =
     bag.flatMap(core.getKeyValueDeadline[BAG](key, core.readStates.get())(bag)) {
       case TupleOrNone.None =>
-        bag.none[((K, Option[Deadline]), V)]
+        bag.none[((K, V), Option[Deadline])]
 
-      case TupleOrNone.Some((key, deadline), right) =>
-        bag.success(Some(((key.read[K], deadline), right.read[V])))
+      case TupleOrNone.Some((key, value), deadline) =>
+        bag.success(Some(((key.read[K], value.read[V]), deadline)))
     }
 
   def contains(key: K): BAG[Boolean] =
@@ -426,7 +426,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   override def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
-  override def isFunctionStoredAsApplied[PF <: F](functionId: PF)(implicit ev: PF <:< PureFunction[K, V, Apply.Map[V]]): Boolean =
+  override def isFunctionApplied[PF <: F](functionId: PF)(implicit ev: PF <:< PureFunction[K, V, Apply.Map[V]]): Boolean =
     core.isFunctionApplied(Slice.writeString(functionId.id))
 
   /**
