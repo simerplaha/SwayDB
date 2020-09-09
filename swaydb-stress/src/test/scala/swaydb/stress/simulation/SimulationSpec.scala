@@ -180,14 +180,14 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
           def createFunction() =
             new PureFunction.OnKey[Long, Domain, Apply.Map[Domain]] with Functions {
+              override val id: String =
+                functionIDs.incrementAndGet().toString
+
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 if (key == productId)
                   Apply.Update(updatedProduct)
                 else
                   Apply.Nothing
-
-              override def id: String =
-                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -213,11 +213,11 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
           def createFunction() =
             new PureFunction.OnKey[Long, Domain, Apply.Map[Domain]] with Functions {
+              override val id: String =
+                functionIDs.incrementAndGet().toString
+
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Expire(newDeadline)
-
-              override def id: String =
-                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -315,11 +315,11 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
           def createFunction() =
             new PureFunction.OnKey[Long, Domain, Apply.Map[Domain]] with Functions {
+              override val id: String =
+                functionIDs.incrementAndGet().toString
+
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Update(updatedProduct)
-
-              override def id: String =
-                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -357,11 +357,11 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
           def createFunction() =
             new PureFunction.OnKey[Long, Domain, Apply.Map[Domain]] with Functions {
+              override val id: String =
+                functionIDs.incrementAndGet().toString
+
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Expire(newDeadline)
-
-              override def id: String =
-                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -392,11 +392,11 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
           def createFunction() =
             new PureFunction.OnKey[Long, Domain, Apply.Map[Domain]] with Functions {
+              override val id: String =
+                functionIDs.incrementAndGet().toString
+
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Remove
-
-              override def id: String =
-                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -445,11 +445,11 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
           def createFunction() =
             new PureFunction.OnKey[Long, Domain, Apply.Map[Domain]] with Functions {
+              override val id: String =
+                functionIDs.incrementAndGet().toString
+
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Remove
-
-              override def id: String =
-                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())

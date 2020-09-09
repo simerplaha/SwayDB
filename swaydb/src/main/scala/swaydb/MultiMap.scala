@@ -210,6 +210,10 @@ object MultiMap {
           //just a parent implementation over Map.
           case function: swaydb.PureFunction.OnValue[V, Apply.Map[V]] =>
             new swaydb.PureFunction.OnValue[MultiValue[V], Apply.Map[MultiValue[V]]] {
+              //use user function's functionId
+              override val id: String =
+                function.id
+
               override def apply(value: MultiValue[V]): Apply.Map[MultiValue[V]] =
                 validate(value) {
                   value =>
@@ -217,14 +221,14 @@ object MultiMap {
                       .apply(value)
                       .map(value => MultiValue.Their(value))
                 }
-
-              //use user function's functionId
-              override def id: String =
-                function.id
             }
 
           case function: swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] =>
             new swaydb.PureFunction.OnKey[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]] {
+              //use user function's functionId
+              override val id: String =
+                function.id
+
               override def apply(key: MultiKey[M, K], deadline: Option[Deadline]): Apply.Map[MultiValue[V]] =
                 validate(key) {
                   dataKey =>
@@ -232,14 +236,14 @@ object MultiMap {
                       .apply(dataKey, deadline)
                       .map(value => MultiValue.Their(value))
                 }
-
-              //use user function's functionId
-              override def id: String =
-                function.id
             }
 
           case function: swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] =>
             new swaydb.PureFunction.OnKeyValue[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]] {
+              //use user function's functionId
+              override val id: String =
+                function.id
+
               override def apply(key: MultiKey[M, K], value: MultiValue[V], deadline: Option[Deadline]): Apply.Map[MultiValue[V]] =
                 validate(key, value) {
                   (dataKey, userValue) =>
@@ -247,10 +251,6 @@ object MultiMap {
                       .apply(dataKey, userValue, deadline)
                       .map(value => MultiValue.Their(value))
                 }
-
-              //use user function's functionId
-              override def id: String =
-                function.id
             }
         }
 

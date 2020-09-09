@@ -42,7 +42,7 @@ class FunctionStoreSpec extends AnyFlatSpec with Matchers {
         val function = SwayFunction.Key(_ => SwayFunctionOutput.Update(i, None))
 
         store.put(i, function)
-        store.exists(i) shouldBe true
+        store.contains(i) shouldBe true
         store.get(i).get.asInstanceOf[SwayFunction.Key].f(i) shouldBe SwayFunctionOutput.Update(i, None)
     }
   }

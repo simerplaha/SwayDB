@@ -39,13 +39,13 @@ import scala.annotation.tailrec
  *
  * Missing functions will be reported with their functionId.
  */
-private[swaydb] abstract class FunctionStore(val fileSize: Long) {
+private[swaydb] abstract class FunctionStore(val appliedFunctionsFileSize: Long) {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
   def put(functionId: Slice[Byte], function: SwayFunction): OK
   def remove(functionId: Slice[Byte]): Unit
-  def exists(functionId: Slice[Byte]): Boolean
-  def notExists(functionId: Slice[Byte]): Boolean =
-    !exists(functionId)
+  def contains(functionId: Slice[Byte]): Boolean
+  def notContains(functionId: Slice[Byte]): Boolean =
+    !contains(functionId)
 }
 
 private[swaydb] object FunctionStore {
@@ -85,7 +85,7 @@ private[swaydb] object FunctionStore {
 
   trait FunctionIdOrder extends Ordering[Slice[Byte]]
 
-  final class Memory(fileSize: Long) extends FunctionStore(fileSize) {
+  final class Memory(appliedFunctionsFileSize: Long) extends FunctionStore(appliedFunctionsFileSize) {
 
     val hashMap = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
 
@@ -98,7 +98,7 @@ private[swaydb] object FunctionStore {
       else
         throw new Exception("Another with the same functionId exists.")
 
-    override def exists(functionId: Slice[Byte]): Boolean =
+    override def contains(functionId: Slice[Byte]): Boolean =
       get(functionId).isDefined
 
     override def remove(functionId: Slice[Byte]): Unit =

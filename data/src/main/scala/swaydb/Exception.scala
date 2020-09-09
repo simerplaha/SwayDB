@@ -48,6 +48,7 @@ object Exception {
   case object NoSegmentsRemoved extends Exception("No Segments Removed")
   case object NotSentToNextLevel extends Exception("Not sent to next Level")
   case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
+  case class MissingFunctions(functions: Iterable[String]) extends Exception(s"Missing ${functions.size} functions. See this exception's functions value to see a list of missing functions.")
 
   /**
    * [[functionId]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception

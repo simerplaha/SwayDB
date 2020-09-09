@@ -49,29 +49,29 @@ object Map {
     new Functions[K, V, Void](0.byte)(null, null)
 
   object Functions {
-    def apply[K, V, F](fileSize: Int,
+    def apply[K, V, F](appliedFunctionsFileSize: Int,
                        functions: F*)(implicit keySerializer: Serializer[K],
                                       valueSerializer: Serializer[V],
                                       ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[K, V, F](fileSize)
+      val f = new Functions[K, V, F](appliedFunctionsFileSize)
       functions.foreach(f.register(_))
       f
     }
 
-    def apply[K, V, F](fileSize: Int,
+    def apply[K, V, F](appliedFunctionsFileSize: Int,
                        functions: Iterable[F])(implicit keySerializer: Serializer[K],
                                                valueSerializer: Serializer[V],
                                                ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[K, V, F](fileSize)
+      val f = new Functions[K, V, F](appliedFunctionsFileSize)
       functions.foreach(f.register(_))
       f
     }
   }
 
-  final case class Functions[K, V, F](fileSize: Int)(implicit keySerializer: Serializer[K],
-                                                     valueSerializer: Serializer[V]) {
+  final case class Functions[K, V, F](appliedFunctionsFileSize: Int)(implicit keySerializer: Serializer[K],
+                                                                     valueSerializer: Serializer[V]) {
 
-    private[swaydb] val core = CoreFunctionStore.memory(fileSize: Int)
+    private[swaydb] val core = CoreFunctionStore.memory(appliedFunctionsFileSize: Int)
 
     def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
       functions.foreach(register(_))
@@ -87,11 +87,7 @@ object Map {
         case function: swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] =>
           core.put(Slice.writeString(function.id), SwayDB.toCoreFunction(function))
       }
-
-    def remove[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
-      core.remove(Slice.writeString(function.id))
   }
-
 }
 
 /**

@@ -41,19 +41,19 @@ protected object Key {
   sealed trait Function extends Key
 
   case object IncrementValue extends Key.Function with swaydb.PureFunction.OnValue[Int, Apply.Map[Int]] {
+    override val id: String =
+      "1"
+
     override def apply(value: Int): Apply.Map[Int] =
       Apply.Update[Int](value + 1)
-
-    override def id: String =
-      "1"
   }
 
   case object DoNothing extends Key.Function with swaydb.PureFunction.OnValue[Int, Apply.Map[Int]] {
+    override val id: String =
+      "2"
+
     override def apply(value: Int): Apply.Map[Int] =
       Apply.Nothing
-
-    override def id: String =
-      "2"
   }
 
   implicit val deadlinePickler = transformPickler((nano: Long) => Deadline((nano, TimeUnit.NANOSECONDS)))(_.time.toNanos)

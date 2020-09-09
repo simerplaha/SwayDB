@@ -40,7 +40,7 @@ sealed trait PureFunction[+K, +V, R <: Apply[V]] {
    *
    * @return a unique id for each function.
    */
-  def id: String =
+  val id: String =
     this.getClass.getName
 }
 

@@ -288,6 +288,8 @@ object Error {
 
       case exception: Exception.GetOnIncompleteDeferredFutureIO => Error.GetOnIncompleteDeferredFutureIO(exception)
 
+      case exception: Exception.MissingFunctions => Error.MissingFunctions(exception.functions)
+
       case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
         Error.DataAccess(DataAccess.message, exception)
 
@@ -344,6 +346,10 @@ object Error {
 
   case class ReservedResource(reserve: Reserve[Unit]) extends Recoverable with Error.Close with Error.Delete with Error.Boot with Error.API {
     override def exception: Exception.ReservedResource = Exception.ReservedResource(reserve)
+  }
+
+  case class MissingFunctions(functions: Iterable[String]) extends Error.Close with Error.Delete with Error.Boot with Error.API {
+    override def exception: Exception.MissingFunctions = Exception.MissingFunctions(functions)
   }
 
   case class GetOnIncompleteDeferredFutureIO(exception: Exception.GetOnIncompleteDeferredFutureIO) extends Recoverable with Error.IO {

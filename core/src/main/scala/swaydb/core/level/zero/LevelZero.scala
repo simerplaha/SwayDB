@@ -56,6 +56,7 @@ import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.StorageUnits._
 import swaydb.{Actor, Error, IO, OK}
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, _}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
@@ -63,6 +64,28 @@ import scala.jdk.CollectionConverters._
 private[core] object LevelZero extends LazyLogging {
 
   val appliedFunctionsFolder = "applied-functions"
+
+  def checkMissingFunctions(appliedFunctions: map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type],
+                            functionStore: FunctionStore): IO[Error.Level, Unit] = {
+    val missingFunctions = ListBuffer.empty[String]
+    logger.info("Checking for missing functions.")
+
+    appliedFunctions.foreach {
+      case (functionId, _) =>
+        if (functionStore.notContains(functionId))
+          missingFunctions += functionId.readString()
+    }
+
+    if (missingFunctions.isEmpty)
+      logger.info("No missing functions.")
+    else
+      logger.error(s"Missing ${missingFunctions.size} functions. Please register the missing functions. See the error/exception MissingFunctions to see the list of missing function.")
+
+    if (missingFunctions.isEmpty)
+      IO.unit
+    else
+      IO.Left[Error.Level, Unit](Error.MissingFunctions(missingFunctions))
+  }
 
   def apply(mapSize: Long,
             storage: Level0Storage,
@@ -153,13 +176,14 @@ private[core] object LevelZero extends LazyLogging {
                             folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolder),
                             mmap = mmap,
                             flushOnOverflow = true,
-                            fileSize = functionStore.fileSize,
+                            fileSize = functionStore.appliedFunctionsFileSize,
                             dropCorruptedTailEntries = false
                           )
 
-                        appliedFunctionsMap.result andThen {
-                          (maps, Some(appliedFunctionsMap.item), path, Some(lock))
-                        }
+                        appliedFunctionsMap.result
+                          .and(checkMissingFunctions(appliedFunctionsMap.item, functionStore))
+                          .andThen((maps, Some(appliedFunctionsMap.item), path, Some(lock)))
+
                       } else {
                         IO.Right((maps, None, path, Some(lock)))
                       }
@@ -178,7 +202,7 @@ private[core] object LevelZero extends LazyLogging {
                     path = timerDir,
                     mmap = LevelRef.getMMAPLog(nextLevel),
                     mod = 100000,
-                    flushCheckpointSize = functionStore.fileSize
+                    flushCheckpointSize = functionStore.appliedFunctionsFileSize
                   )(bufferCleaner = bufferCleaner,
                     forceSaveApplier = forceSaveApplier,
                     writer = CounterMapEntryWriter.CounterPutMapEntryWriter,
@@ -209,20 +233,16 @@ private[core] object LevelZero extends LazyLogging {
 
     mapsAndPathAndLock map {
       case (maps, appliedFunctions, path, lock: Option[FileLocker]) =>
-        val zero =
-          new LevelZero(
-            path = path,
-            mapSize = mapSize,
-            maps = maps,
-            nextLevel = nextLevel,
-            inMemory = storage.memory,
-            throttle = throttle,
-            appliedFunctions = appliedFunctions,
-            lock = lock
-          )
-
-        zero.cleanAppliedFunctions()
-        zero
+        new LevelZero(
+          path = path,
+          mapSize = mapSize,
+          maps = maps,
+          nextLevel = nextLevel,
+          inMemory = storage.memory,
+          throttle = throttle,
+          appliedFunctionsMap = appliedFunctions,
+          lock = lock
+        )
     }
   }
 }
@@ -233,7 +253,7 @@ private[swaydb] case class LevelZero(path: Path,
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => FiniteDuration,
-                                     appliedFunctions: Option[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]],
+                                     appliedFunctionsMap: Option[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]],
                                      private val lock: Option[FileLocker])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                                            functionStore: FunctionStore) extends LevelRef with LazyLogging {
@@ -374,9 +394,9 @@ private[swaydb] case class LevelZero(path: Path,
     OK.instance
   }
 
-  def cleanAppliedFunctions(): Unit =
-    appliedFunctions foreach {
-      appliedFunctions =>
+  def cleanAppliedFunctions(): Int =
+    appliedFunctionsMap match {
+      case Some(appliedFunctions) =>
         logger.info(s"Clearing applied functions (0/${appliedFunctions.size})")
 
         val cleared =
@@ -389,8 +409,11 @@ private[swaydb] case class LevelZero(path: Path,
                 count
               }
           }
-
         logger.info(s"Cleared $cleared applied functions.")
+        cleared
+
+      case None =>
+        0
     }
 
   def clear(readState: ThreadReadState): OK =
@@ -412,16 +435,17 @@ private[swaydb] case class LevelZero(path: Path,
     functionStore.put(functionId, function)
 
   private def saveAppliedFunctionNoSync(function: Slice[Byte]): Unit =
-    appliedFunctions foreach {
+    appliedFunctionsMap foreach {
       appliedFunctions =>
         if (appliedFunctions.notContains(function)) {
-          implicit val writer = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
-          appliedFunctions.writeNoSync(MapEntry.Put(function, Slice.Null))
+          //writeNoSync because this already because this functions is already being
+          //called un map.write which is a sync function.
+          appliedFunctions.writeNoSync(MapEntry.Put(function, Slice.Null)(FunctionsMapEntryWriter.FunctionsPutMapEntryWriter))
         }
     }
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): OK =
-    if (functionStore.notExists(function)) {
+    if (functionStore.notContains(function)) {
       throw new IllegalArgumentException(s"Cannot apply unregistered function '${function.readString()}'. Please make sure the function is registered. See http://swaydb.io/api/write/registerFunction.")
     } else {
       validateInput(key)
@@ -440,7 +464,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): OK =
-    if (functionStore.notExists(function)) {
+    if (functionStore.notContains(function)) {
       throw new IllegalArgumentException(s"Cannot apply unregistered function '${function.readString()}'. Please make sure the function is registered. See http://swaydb.io/api/write/registerFunction.")
     } else {
       validateInput(fromKey, toKey)
