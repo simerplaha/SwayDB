@@ -43,7 +43,11 @@ import scala.collection.mutable.ListBuffer
  *
  * reverse on the merge results ensures that changes happen atomically.
  */
-object LevelZeroSkipListMerger extends SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] {
+case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                     timeOrder: TimeOrder[Slice[Byte]],
+                                     functionStore: FunctionStore) extends SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] {
+
+  import keyOrder._
 
   //.get is no good. Memory key-values will never result in failure since they do not perform IO (no side-effects).
   //But this is a temporary solution until applyValue is updated to accept type classes to perform side effect.
@@ -59,10 +63,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[SliceOption[Byte], MemoryO
    * Inserts a [[Memory.Fixed]] key-value into skipList.
    */
   def insert(insert: Memory.Fixed,
-             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                 functionStore: FunctionStore): Unit = {
-    import keyOrder._
+             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit =
     skipList.floor(insert.key) match {
       case floorEntry: Memory =>
         floorEntry match {
@@ -96,17 +97,13 @@ object LevelZeroSkipListMerger extends SkipListMerger[SliceOption[Byte], MemoryO
       case Memory.Null =>
         skipList.put(insert.key, insert)
     }
-  }
 
   /**
    * Inserts the input [[Memory.Range]] key-value into skipList and always maintaining the previous state of
    * the skipList before applying the new state so that all read queries read the latest write.
    */
   def insert(insert: Memory.Range,
-             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                 functionStore: FunctionStore): Unit = {
-    import keyOrder._
+             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit = {
     //value the start position of this range to fetch the range's start and end key-values for the skipList.
     val startKey =
       skipList.floor(insert.fromKey) mapS {
@@ -168,9 +165,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[SliceOption[Byte], MemoryO
 
   override def insert(insertKey: Slice[Byte],
                       insertValue: Memory,
-                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                          functionStore: FunctionStore): Unit =
+                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit =
     insertValue match {
       //if insert value is fixed, check the floor entry
       case insertValue: Memory.Fixed =>
@@ -184,9 +179,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[SliceOption[Byte], MemoryO
     }
 
   override def insert(entry: MapEntry[Slice[Byte], Memory],
-                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                          functionStore: FunctionStore): Unit =
+                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit =
     entry match {
       case MapEntry.Put(key, value: Memory) =>
         insert(key, value, skipList)

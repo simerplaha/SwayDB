@@ -42,20 +42,7 @@ import swaydb.{Actor, ActorRef, IO}
 
 private[core] object PersistentCounter extends LazyLogging {
 
-  private implicit object CounterSkipListMerger extends SkipListMerger[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]] {
-    override def insert(insertKey: Slice[Byte],
-                        insertValue: Slice[Byte],
-                        skipList: SkipListConcurrent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                      functionStore: FunctionStore): Unit =
-      throw new IllegalAccessException("Counter does not require skipList merger.")
-
-    override def insert(entry: MapEntry[Slice[Byte], Slice[Byte]],
-                        skipList: SkipListConcurrent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                      functionStore: FunctionStore): Unit =
-      throw new IllegalAccessException("Counter does not require skipList merger.")
-  }
+  private implicit object CounterSkipListMerger extends SkipListMerger.Disabled[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]]("CounterSkipListMerger")
 
   private[counter] def apply(path: Path,
                              mmap: MMAP.Map,
@@ -67,8 +54,6 @@ private[core] object PersistentCounter extends LazyLogging {
     //Disabled because autoClose is not required here.
     implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] = Actor.deadActor()
     implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-    implicit val timeOrder: TimeOrder[Slice[Byte]] = null
-    implicit val functionStore: FunctionStore = null
 
     IO {
       Map.persistent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]](

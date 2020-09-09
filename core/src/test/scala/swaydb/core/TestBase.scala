@@ -204,7 +204,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                                                                                               timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                               sweeper: TestCaseSweeper): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-      implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerger
+      implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerger()
       import sweeper._
 
       val testMap =

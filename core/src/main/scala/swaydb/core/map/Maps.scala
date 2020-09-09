@@ -34,14 +34,13 @@ import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.brake.BrakePedal
-import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.io.file.Effect._
+import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
@@ -55,10 +54,8 @@ private[core] object Maps extends LazyLogging {
                                        nullValue: OV,
                                        fileSize: Long,
                                        acceleration: LevelZeroMeter => Accelerator)(implicit keyOrder: KeyOrder[K],
-                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                     fileSweeper: FileSweeperActor,
                                                                                     bufferCleaner: ByteBufferSweeperActor,
-                                                                                    functionStore: FunctionStore,
                                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                     skipListMerger: SkipListMerger[OK, OV, K, V],
                                                                                     timer: Timer,
@@ -83,10 +80,8 @@ private[core] object Maps extends LazyLogging {
                                            fileSize: Long,
                                            acceleration: LevelZeroMeter => Accelerator,
                                            recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
-                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                    fileSweeper: FileSweeperActor,
                                                                    bufferCleaner: ByteBufferSweeperActor,
-                                                                   functionStore: FunctionStore,
                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                    reader: MapEntryReader[MapEntry[K, V]],
                                                                    skipListMerger: SkipListMerger[OK, OV, K, V],
@@ -152,10 +147,8 @@ private[core] object Maps extends LazyLogging {
                                                 mmap: MMAP.Map,
                                                 fileSize: Long,
                                                 recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
-                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                         fileSweeper: FileSweeperActor,
                                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                                        functionStore: FunctionStore,
                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                         mapReader: MapEntryReader[MapEntry[K, V]],
                                                                         skipListMerger: SkipListMerger[OK, OV, K, V],
@@ -279,10 +272,8 @@ private[core] object Maps extends LazyLogging {
 
   def nextMapUnsafe[OK, OV, K <: OK, V <: OV](nextMapSize: Long,
                                               currentMap: Map[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
-                                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                                              fileSweeper: FileSweeperActor,
                                                                              bufferCleaner: ByteBufferSweeperActor,
-                                                                             functionStore: FunctionStore,
                                                                              writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                              skipListMerger: SkipListMerger[OK, OV, K, V],
                                                                              forceSaveApplier: ForceSaveApplier): Map[OK, OV, K, V] =
@@ -364,10 +355,8 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
                                                    fileSize: Long,
                                                    acceleration: LevelZeroMeter => Accelerator,
                                                    @volatile private var currentMap: Map[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
-                                                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                                                         fileSweeper: FileSweeperActor,
                                                                                                         val bufferCleaner: ByteBufferSweeperActor,
-                                                                                                        functionStore: FunctionStore,
                                                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                         skipListMerger: SkipListMerger[OK, OV, K, V],
                                                                                                         timer: Timer,

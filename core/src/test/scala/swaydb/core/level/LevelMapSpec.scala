@@ -80,7 +80,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   "putMap on a single Level" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
+    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger()
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
       import sweeper._
@@ -167,7 +167,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   "putMap on two Level" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
+    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger()
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
       import sweeper._

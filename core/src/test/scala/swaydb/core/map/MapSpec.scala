@@ -56,7 +56,7 @@ class MapSpec extends TestBase {
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val skipListMerger = LevelZeroSkipListMerger
+  implicit val skipListMerger = LevelZeroSkipListMerger()
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val merger = AppendixSkipListMerger
   implicit def segmentIO = SegmentIO.random

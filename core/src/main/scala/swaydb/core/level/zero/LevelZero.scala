@@ -81,7 +81,8 @@ private[core] object LevelZero extends LazyLogging {
     else
       logger.info("cacheKeyValueIds is false. Key-value IDs cache disabled!")
 
-    implicit val skipListMerger: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
+    implicit val skipListMerger: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger()
+
     val mapsAndPathAndLock =
       storage match {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>

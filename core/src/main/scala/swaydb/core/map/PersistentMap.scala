@@ -31,8 +31,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
-import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
-import swaydb.core.function.FunctionStore
+import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.Effect._
@@ -41,8 +40,7 @@ import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.data.config.{IOStrategy, MMAP}
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.order.KeyOrder
 
 import scala.annotation.tailrec
 
@@ -55,8 +53,6 @@ private[map] object PersistentMap extends LazyLogging {
                                                    dropCorruptedTailEntries: Boolean,
                                                    nullKey: OK,
                                                    nullValue: OV)(implicit keyOrder: KeyOrder[K],
-                                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                                  functionStore: FunctionStore,
                                                                   fileSweeper: FileSweeperActor,
                                                                   bufferCleaner: ByteBufferSweeperActor,
                                                                   reader: MapEntryReader[MapEntry[K, V]],
@@ -96,10 +92,8 @@ private[map] object PersistentMap extends LazyLogging {
                                                    fileSize: Long,
                                                    nullKey: OK,
                                                    nullValue: OV)(implicit keyOrder: KeyOrder[K],
-                                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                                   fileSweeper: FileSweeperActor,
                                                                   bufferCleaner: ByteBufferSweeperActor,
-                                                                  functionStore: FunctionStore,
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V],
                                                                   forceSaveApplier: ForceSaveApplier): PersistentMap[OK, OV, K, V] = {
@@ -160,11 +154,8 @@ private[map] object PersistentMap extends LazyLogging {
                                                      dropCorruptedTailEntries: Boolean)(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                         mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                         skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                                        keyOrder: KeyOrder[K],
                                                                                         fileSweeper: FileSweeperActor,
                                                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                                                        functionStore: FunctionStore,
                                                                                         forceSaveApplier: ForceSaveApplier): (RecoveryResult[DBFile], Boolean) = {
     //read all existing logs and populate skipList
     var hasRange: Boolean = false
@@ -308,11 +299,8 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
                                                              flushOnOverflow: Boolean,
                                                              private val _skipList: SkipListConcurrent[OK, OV, K, V],
                                                              private var currentFile: DBFile,
-                                                             private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                   fileSweeper: FileSweeperActor,
+                                                             private val hasRangeInitial: Boolean)(implicit fileSweeper: FileSweeperActor,
                                                                                                    val bufferCleaner: ByteBufferSweeperActor,
-                                                                                                   functionStore: FunctionStore,
                                                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                    skipListMerger: SkipListMerger[OK, OV, K, V],
                                                                                                    forceSaveApplier: ForceSaveApplier) extends Map[OK, OV, K, V] with LazyLogging {

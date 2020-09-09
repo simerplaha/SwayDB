@@ -24,10 +24,7 @@
 
 package swaydb.core.map
 
-import swaydb.core.function.FunctionStore
 import swaydb.core.util.skiplist.SkipListConcurrent
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
 
 import scala.annotation.implicitNotFound
 
@@ -39,12 +36,18 @@ trait SkipListMerger[OK, OV, K <: OK, V <: OV] {
 
   def insert(insertKey: K,
              insertValue: V,
-             skipList: SkipListConcurrent[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
-                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore): Unit
+             skipList: SkipListConcurrent[OK, OV, K, V]): Unit
 
   def insert(entry: MapEntry[K, V],
-             skipList: SkipListConcurrent[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
-                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore): Unit
+             skipList: SkipListConcurrent[OK, OV, K, V]): Unit
+}
+
+object SkipListMerger {
+  case class Disabled[OK, OV, K <: OK, V <: OV](name: String) extends SkipListMerger[OK, OV, K, V] {
+    override def insert(insertKey: K, insertValue: V, skipList: SkipListConcurrent[OK, OV, K, V]): Unit =
+      throw new IllegalAccessException(s"$name - skipList merger is disabled.")
+
+    override def insert(entry: MapEntry[K, V], skipList: SkipListConcurrent[OK, OV, K, V]): Unit =
+      throw new IllegalAccessException(s"$name - skipList merger is disabled.")
+  }
 }

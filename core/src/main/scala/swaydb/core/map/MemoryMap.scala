@@ -27,18 +27,12 @@ package swaydb.core.map
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.function.FunctionStore
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.config.{ForceSave, MMAP}
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
 
 protected class MemoryMap[OK, OV, K <: OK, V <: OV](_skipList: SkipListConcurrent[OK, OV, K, V],
                                                     flushOnOverflow: Boolean,
-                                                    val fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                                        functionStore: FunctionStore,
-                                                                        skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
+                                                    val fileSize: Long)(implicit skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
 
   private var currentBytesWritten: Long = 0
   var skipListKeyValuesMaxCount: Int = 0

@@ -286,8 +286,9 @@ object CommonAssertions {
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+    val merger = LevelZeroSkipListMerger()
     val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(KeyOrder.default)
-    (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => LevelZeroSkipListMerger.insert(memory.key, memory, skipList))
+    (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => merger.insert(memory.key, memory, skipList))
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList
     skipList
   }

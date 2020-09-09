@@ -55,8 +55,6 @@ private[core] object Map extends LazyLogging {
                                            flushOnOverflow: Boolean,
                                            fileSize: Long,
                                            dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                                              functionStore: FunctionStore,
                                                                               fileSweeper: FileSweeperActor,
                                                                               bufferCleaner: ByteBufferSweeperActor,
                                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -79,8 +77,6 @@ private[core] object Map extends LazyLogging {
                                            mmap: MMAP.Map,
                                            flushOnOverflow: Boolean,
                                            fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                           functionStore: FunctionStore,
                                                            fileSweeper: FileSweeperActor,
                                                            bufferCleaner: ByteBufferSweeperActor,
                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -99,8 +95,6 @@ private[core] object Map extends LazyLogging {
                                        nullValue: OV,
                                        fileSize: Long = 0.byte,
                                        flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
-                                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                                        functionStore: FunctionStore,
                                                                         skipListMerge: SkipListMerger[OK, OV, K, V]): MemoryMap[OK, OV, K, V] =
     new MemoryMap[OK, OV, K, V](
       _skipList = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder),

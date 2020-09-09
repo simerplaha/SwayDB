@@ -61,7 +61,7 @@ class MapsSpec extends TestBase {
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
-  implicit val skipListMerger = LevelZeroSkipListMerger
+  implicit val skipListMerger = LevelZeroSkipListMerger()
 
   "Maps.persistent" should {
     "initialise and recover on reopen" in {
