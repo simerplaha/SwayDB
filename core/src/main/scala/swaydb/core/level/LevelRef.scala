@@ -74,11 +74,30 @@ object LevelRef {
   /**
    * Returns the first enabled [[MMAP.Map]] setting from first encountered PersistentLevel.
    */
-  def getMMAPLog(level: Option[LevelRef]): MMAP.Map =
-    firstPersistentLevel(level) collectFirst {
-      case level: Level if level.appendix.mmap.isMMAP =>
-        level.appendix.mmap
-    } getOrElse MMAP.Disabled(ForceSave.Disabled)
+  def getMmapForLogOrDisable(level: Option[LevelRef]): MMAP.Map = {
+    val mmap =
+      firstPersistentLevel(level) collectFirst {
+        case level: Level if level.appendix.mmap.isMMAP =>
+          level.appendix.mmap
+      }
+
+    mmap match {
+      case Some(mmap) =>
+        mmap
+
+      case None =>
+        firstPersistentLevel(level) collectFirst {
+          case level: Level =>
+            level.appendix.mmap
+        } match {
+          case Some(value) =>
+            value
+
+          case None =>
+            MMAP.Disabled(ForceSave.Disabled)
+        }
+    }
+  }
 
   def getLevels(level: LevelRef): List[LevelRef] = {
     @tailrec

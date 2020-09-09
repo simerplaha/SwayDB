@@ -41,7 +41,7 @@ import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, FunctionsMapEntryReader, FunctionsMapEntryWriter}
 import swaydb.core.map.timer.Timer
-import swaydb.core.map.{MapEntry, Maps, PersistentMap, SkipListMerger}
+import swaydb.core.map.{MapEntry, Maps, PersistentMap, RecoveryResult, SkipListMerger}
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.MinMax
@@ -63,7 +63,8 @@ import scala.jdk.CollectionConverters._
 
 private[core] object LevelZero extends LazyLogging {
 
-  val appliedFunctionsFolder = "applied-functions"
+  val appliedFunctionsFolderName = "applied-functions"
+  val timerFolderName = "timer"
 
   def checkMissingFunctions(appliedFunctions: map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type],
                             functionStore: FunctionStore): IO[Error.Level, Unit] = {
@@ -85,6 +86,27 @@ private[core] object LevelZero extends LazyLogging {
       IO.unit
     else
       IO.Left[Error.Level, Unit](Error.MissingFunctions(missingFunctions))
+  }
+
+  def createAppliedFunctionsMap(databaseDirectory: Path,
+                                mmap: MMAP.Map)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                functionStore: FunctionStore,
+                                                bufferCleaner: ByteBufferSweeperActor,
+                                                forceSaveApplier: ForceSaveApplier): RecoveryResult[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]] = {
+    implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
+    implicit val functionsEntryReader = FunctionsMapEntryReader.FunctionsPutMapEntryReader
+    implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](LevelZero.appliedFunctionsFolderName)
+    implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
+
+    map.Map.persistent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](
+      nullKey = Slice.Null,
+      nullValue = Slice.Null,
+      folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolderName),
+      mmap = mmap,
+      flushOnOverflow = true,
+      fileSize = functionStore.appliedFunctionsMapSize,
+      dropCorruptedTailEntries = false
+    )
   }
 
   def apply(mapSize: Long,
@@ -113,7 +135,7 @@ private[core] object LevelZero extends LazyLogging {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
           val timer =
             if (enableTimer) {
-              val timerDir = databaseDirectory.resolve("0").resolve("timer")
+              val timerDir = databaseDirectory.resolve("0").resolve(timerFolderName)
               Effect createDirectoriesIfAbsent timerDir
               Timer.persistent(
                 path = timerDir,
@@ -165,19 +187,11 @@ private[core] object LevelZero extends LazyLogging {
                   maps flatMap {
                     maps =>
                       if (enableTimer) {
-                        implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
-                        implicit val functionsEntryReader = FunctionsMapEntryReader.FunctionsPutMapEntryReader
-                        implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](LevelZero.appliedFunctionsFolder)
 
                         val appliedFunctionsMap =
-                          map.Map.persistent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](
-                            nullKey = Slice.Null,
-                            nullValue = Slice.Null,
-                            folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolder),
-                            mmap = mmap,
-                            flushOnOverflow = true,
-                            fileSize = functionStore.appliedFunctionsMapSize,
-                            dropCorruptedTailEntries = false
+                          createAppliedFunctionsMap(
+                            databaseDirectory = databaseDirectory,
+                            mmap = mmap
                           )
 
                         appliedFunctionsMap.result
@@ -196,28 +210,48 @@ private[core] object LevelZero extends LazyLogging {
             if (enableTimer)
               LevelRef.firstPersistentLevel(nextLevel).map(_.rootPath) match {
                 case Some(persistentPath) =>
-                  val timerDir = persistentPath.getParent.resolve("0").resolve("timer")
+                  val databaseDirectory = persistentPath.getParent.resolve("0")
+                  val timerDir = databaseDirectory.resolve(timerFolderName)
                   Effect createDirectoriesIfAbsent timerDir
-                  Timer.persistent(
-                    path = timerDir,
-                    mmap = LevelRef.getMMAPLog(nextLevel),
-                    mod = 100000,
-                    flushCheckpointSize = functionStore.appliedFunctionsMapSize
-                  )(bufferCleaner = bufferCleaner,
-                    forceSaveApplier = forceSaveApplier,
-                    writer = CounterMapEntryWriter.CounterPutMapEntryWriter,
-                    reader = CounterMapEntryReader.CounterPutMapEntryReader)
+
+                  val mmap = LevelRef.getMmapForLogOrDisable(nextLevel)
+
+                  val appliedFunctionsMap =
+                    createAppliedFunctionsMap(
+                      databaseDirectory = databaseDirectory,
+                      mmap = mmap
+                    )
+
+                  def timer =
+                    Timer.persistent(
+                      path = timerDir,
+                      mmap = mmap,
+                      mod = 100000,
+                      flushCheckpointSize = functionStore.appliedFunctionsMapSize
+                    )(bufferCleaner = bufferCleaner,
+                      forceSaveApplier = forceSaveApplier,
+                      writer = CounterMapEntryWriter.CounterPutMapEntryWriter,
+                      reader = CounterMapEntryReader.CounterPutMapEntryReader)
+
+                  appliedFunctionsMap.result
+                    .and(checkMissingFunctions(appliedFunctionsMap.item, functionStore))
+                    .and(timer)
+                    .map {
+                      timer =>
+                        (timer, Some(appliedFunctionsMap.item))
+                    }
 
                 case None =>
-                  IO.Right(Timer.memory())
+                  IO.Right((Timer.memory(), None))
               }
             else
-              IO.Right(Timer.empty)
+              IO.Right((Timer.empty, None))
 
           timer map {
-            implicit timer =>
+            case (timer, appliedFunctionsMap) =>
               //LevelZero does not required FileSweeper since they are all Map files.
               implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
+              implicit val implicitTimer = timer
 
               val map =
                 Maps.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -227,7 +261,7 @@ private[core] object LevelZero extends LazyLogging {
                   nullValue = Memory.Null
                 )
 
-              (map, None, Paths.get("MEMORY_DB").resolve(0.toString), None)
+              (map, appliedFunctionsMap, Paths.get("MEMORY_DB").resolve(0.toString), None)
           }
       }
 
