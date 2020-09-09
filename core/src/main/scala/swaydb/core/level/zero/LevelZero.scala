@@ -39,9 +39,9 @@ import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
-import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter}
+import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, FunctionsMapEntryReader, FunctionsMapEntryWriter}
 import swaydb.core.map.timer.Timer
-import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
+import swaydb.core.map.{MapEntry, Maps, PersistentMap, SkipListMerger}
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.MinMax
@@ -61,6 +61,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
 private[core] object LevelZero extends LazyLogging {
+
+  val appliedFunctionsFolder = "applied-functions"
 
   def apply(mapSize: Long,
             storage: Level0Storage,
@@ -125,17 +127,38 @@ private[core] object LevelZero extends LazyLogging {
                   //LevelZero does not required FileSweeper since they are all Map files.
                   implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
                   logger.info("{}: Recovering Maps.", path)
-                  Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-                    path = path,
-                    mmap = mmap,
-                    fileSize = mapSize,
-                    acceleration = acceleration,
-                    recovery = recovery,
-                    nullKey = Slice.Null,
-                    nullValue = Memory.Null
-                  ) map {
+
+                  val maps =
+                    Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+                      path = path,
+                      mmap = mmap,
+                      fileSize = mapSize,
+                      acceleration = acceleration,
+                      recovery = recovery,
+                      nullKey = Slice.Null,
+                      nullValue = Memory.Null
+                    )
+
+                  maps flatMap {
                     maps =>
-                      (maps, path, Some(lock))
+                      implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
+                      implicit val functionsEntryReader = FunctionsMapEntryReader.FunctionsPutMapEntryReader
+                      implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](LevelZero.appliedFunctionsFolder)
+
+                      val appliedFunctionsMap =
+                        map.Map.persistent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](
+                          nullKey = Slice.Null,
+                          nullValue = Slice.Null,
+                          folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolder),
+                          mmap = mmap,
+                          flushOnOverflow = true,
+                          fileSize = 1.mb,
+                          dropCorruptedTailEntries = false
+                        )
+
+                      appliedFunctionsMap.result andThen {
+                        (maps, Some(appliedFunctionsMap.item), path, Some(lock))
+                      }
                   }
               }
           }
@@ -176,12 +199,12 @@ private[core] object LevelZero extends LazyLogging {
                   nullValue = Memory.Null
                 )
 
-              (map, Paths.get("MEMORY_DB").resolve(0.toString), None)
+              (map, None, Paths.get("MEMORY_DB").resolve(0.toString), None)
           }
       }
 
     mapsAndPathAndLock map {
-      case (maps, path, lock: Option[FileLocker]) =>
+      case (maps, appliedFunctions, path, lock: Option[FileLocker]) =>
         new LevelZero(
           path = path,
           mapSize = mapSize,
@@ -189,6 +212,7 @@ private[core] object LevelZero extends LazyLogging {
           nextLevel = nextLevel,
           inMemory = storage.memory,
           throttle = throttle,
+          appliedFunctions = appliedFunctions,
           lock = lock
         )
     }
@@ -201,6 +225,7 @@ private[swaydb] case class LevelZero(path: Path,
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => FiniteDuration,
+                                     private val appliedFunctions: Option[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]],
                                      private val lock: Option[FileLocker])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                                            functionStore: FunctionStore) extends LevelRef with LazyLogging {

@@ -25,31 +25,17 @@
 package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
-import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.data.slice.{ReaderBase, Slice}
 
-private[swaydb] object CounterMapEntryWriter {
+private[swaydb] object FunctionsMapEntryReader {
 
-  implicit object CounterPutMapEntryWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]] {
-    val id: Byte = 0
+  implicit object FunctionsPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice.Null.type]] {
+    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Slice.Null.type] = {
+      val id = reader.get()
 
-    override val isRange: Boolean = false
-    override val isUpdate: Boolean = false
+      assert(id == FunctionsMapEntryWriter.FunctionsPutMapEntryWriter.id, s"Invalid Functions entry id - $id != ${FunctionsMapEntryWriter.FunctionsPutMapEntryWriter.id}")
 
-    override def write(entry: MapEntry.Put[Slice[Byte], Slice[Byte]], bytes: Slice[Byte]): Unit =
-      bytes
-        .add(id)
-        .addUnsignedInt(entry.key.size)
-        .addAll(entry.key)
-        .addUnsignedInt(entry.value.size)
-        .addAll(entry.value)
-
-    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Slice[Byte]]): Int =
-      ByteSizeOf.byte +
-        Bytes.sizeOfUnsignedInt(entry.key.size) +
-        entry.key.size +
-        Bytes.sizeOfUnsignedInt(entry.value.size) +
-        entry.value.size
+      MapEntry.Put(reader.readRemaining(), Slice.Null)(FunctionsMapEntryWriter.FunctionsPutMapEntryWriter)
+    }
   }
 }

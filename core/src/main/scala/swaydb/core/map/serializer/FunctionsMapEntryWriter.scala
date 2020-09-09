@@ -25,31 +25,24 @@
 package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
-import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
-private[swaydb] object CounterMapEntryWriter {
+private[swaydb] object FunctionsMapEntryWriter {
 
-  implicit object CounterPutMapEntryWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]] {
+  implicit object FunctionsPutMapEntryWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Slice.Null.type]] {
     val id: Byte = 0
 
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: MapEntry.Put[Slice[Byte], Slice[Byte]], bytes: Slice[Byte]): Unit =
+    override def write(entry: MapEntry.Put[Slice[Byte], Slice.Null.type], bytes: Slice[Byte]): Unit =
       bytes
         .add(id)
-        .addUnsignedInt(entry.key.size)
         .addAll(entry.key)
-        .addUnsignedInt(entry.value.size)
-        .addAll(entry.value)
 
-    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Slice[Byte]]): Int =
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Slice.Null.type]): Int =
       ByteSizeOf.byte +
-        Bytes.sizeOfUnsignedInt(entry.key.size) +
-        entry.key.size +
-        Bytes.sizeOfUnsignedInt(entry.value.size) +
-        entry.value.size
+        entry.key.size
   }
 }
