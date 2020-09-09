@@ -33,7 +33,7 @@ import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
+import scala.jdk.CollectionConverters._
 
 /**
  * Stores all functions currently registered. This should always contain
