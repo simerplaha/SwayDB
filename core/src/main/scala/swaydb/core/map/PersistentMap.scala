@@ -160,14 +160,17 @@ private[map] object PersistentMap extends LazyLogging {
     //read all existing logs and populate skipList
     var hasRange: Boolean = false
 
+    val files = folder.files(Extension.Log)
+
     val recoveredFiles =
-      folder.files(Extension.Log) mapRecover {
+      files mapRecover {
         path =>
           logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
           val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None, bufferCleaner, forceSaveApplier)
           val bytes = file.readAll
           logger.info("{}: Reading file.", path)
           val recovery = MapCodec.read[K, V](bytes, dropCorruptedTailEntries).get
+
           logger.info("{}: Recovered! Populating in-memory map with recovered key-values.", path)
           val entriesRecovered =
             recovery.item.foldLeft(0) {
@@ -186,6 +189,7 @@ private[map] object PersistentMap extends LazyLogging {
                 }
                 size + entry.entriesCount
             }
+
           logger.info(s"{}: Recovered {} ${if (entriesRecovered > 1) "entries" else "entry"}.", path, entriesRecovered)
           RecoveryResult(file, recovery.result)
       }
@@ -263,13 +267,13 @@ private[map] object PersistentMap extends LazyLogging {
 
     val nextPath = currentFile.path.incrementFileId
     val bytes = MapCodec.write(skipList)
-    val newFile =
 
+    val newFile =
       mmap match {
         case MMAP.Enabled(deleteAfterClean, forceSave) =>
           DBFile.mmapInit(
             path = nextPath,
-            IOStrategy.SynchronisedIO(true),
+            fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             bufferSize = bytes.size + size,
             blockCacheFileId = 0,
             autoClose = false,
@@ -312,6 +316,10 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
   private var actualFileSize: Long = fileSize
   // does not account of flushed entries.
   private var bytesWritten: Long = 0
+  //minimum of writes we should see before logging out warning messages that the fileSize is too small.
+  private val minimumNumberOfWritesAfterFlush = 10
+  //maintains allowed number of writes that can occurred after the last flush before warning.
+  private var allowedPostFlushEntriesBeforeWarn: Long = 0
   var skipListKeyValuesMaxCount: Int = _skipList.size
 
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
@@ -319,6 +327,8 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
 
   override val uniqueFileNumber: Long =
     Map.uniqueFileNumberGenerator.nextID
+
+  def typeName = productPrefix
 
   override def hasRange: Boolean = _hasRange
 
@@ -364,14 +374,14 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
       }
       skipListKeyValuesMaxCount += entry.entriesCount
       bytesWritten += entryTotalByteSize
-      //          println("bytesWritten: " + bytesWritten)
+      allowedPostFlushEntriesBeforeWarn -= 1 //decrement the number on successful write
       true
-    }
-    //flushOnOverflow is executed if the current file is empty, even if flushOnOverflow = false.
-    else if (!flushOnOverflow && bytesWritten != 0) {
+    } else if (!flushOnOverflow && bytesWritten != 0) {
+      //flushOnOverflow is executed if the current file is empty, even if flushOnOverflow = false.
       false
     } else {
       val nextFilesSize = entryTotalByteSize.toLong max fileSize
+
       try {
         val newFile =
           PersistentMap.nextFile(
@@ -380,6 +390,15 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
             size = nextFilesSize,
             skipList = _skipList
           )
+
+        /**
+         * If the fileSize is too small like 1.byte it will result in too many flushes. Log a warn message to increase
+         * file size.
+         */
+        if (allowedPostFlushEntriesBeforeWarn <= 0) //if it was in negative then restart the count
+          allowedPostFlushEntriesBeforeWarn = minimumNumberOfWritesAfterFlush
+        else if (allowedPostFlushEntriesBeforeWarn > 0) //If the count did not get negative then warn that the fileSize is too small.
+          logger.warn(s"$typeName's file size of $fileSize.bytes is too small and would result in too many flushes. Please increase the default fileSize to at least ${newFile.fileSize}.bytes. Folder: $path.")
 
         currentFile = newFile
         actualFileSize = nextFilesSize
@@ -414,4 +433,5 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
 
   override def pathOption: Option[Path] =
     Some(path)
+
 }

@@ -39,7 +39,7 @@ import scala.annotation.tailrec
  *
  * Missing functions will be reported with their functionId.
  */
-private[swaydb] abstract class FunctionStore(val appliedFunctionsFileSize: Long) {
+private[swaydb] abstract class FunctionStore(val appliedFunctionsMapSize: Long) {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
   def put(functionId: Slice[Byte], function: SwayFunction): OK
   def remove(functionId: Slice[Byte]): Unit

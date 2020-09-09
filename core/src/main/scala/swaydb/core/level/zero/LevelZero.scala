@@ -176,7 +176,7 @@ private[core] object LevelZero extends LazyLogging {
                             folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolder),
                             mmap = mmap,
                             flushOnOverflow = true,
-                            fileSize = functionStore.appliedFunctionsFileSize,
+                            fileSize = functionStore.appliedFunctionsMapSize,
                             dropCorruptedTailEntries = false
                           )
 
@@ -202,7 +202,7 @@ private[core] object LevelZero extends LazyLogging {
                     path = timerDir,
                     mmap = LevelRef.getMMAPLog(nextLevel),
                     mod = 100000,
-                    flushCheckpointSize = functionStore.appliedFunctionsFileSize
+                    flushCheckpointSize = functionStore.appliedFunctionsMapSize
                   )(bufferCleaner = bufferCleaner,
                     forceSaveApplier = forceSaveApplier,
                     writer = CounterMapEntryWriter.CounterPutMapEntryWriter,

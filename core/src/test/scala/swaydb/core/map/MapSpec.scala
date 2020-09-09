@@ -48,6 +48,7 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.data.RunThis._
 
 import scala.jdk.CollectionConverters._
 
@@ -56,8 +57,8 @@ class MapSpec extends TestBase {
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val skipListMerger = LevelZeroSkipListMerger()
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val skipListMerger = LevelZeroSkipListMerger()
   implicit val merger = AppendixSkipListMerger
   implicit def segmentIO = SegmentIO.random
 
@@ -234,7 +235,7 @@ class MapSpec extends TestBase {
 
             assertReads(recovered)
 
-            if(recovered.mmap.isMMAP && OperatingSystem.isWindows) {
+            if (recovered.mmap.isMMAP && OperatingSystem.isWindows) {
               recovered.close()
               sweeper.receiveAll()
             }
@@ -314,7 +315,7 @@ class MapSpec extends TestBase {
             recovered.get(2).toOptionS shouldBe empty
             recovered.close()
 
-            if(recovered.mmap.isMMAP && OperatingSystem.isWindows)
+            if (recovered.mmap.isMMAP && OperatingSystem.isWindows)
               sweeper.receiveAll()
 
             recovered
@@ -1072,6 +1073,8 @@ class MapSpec extends TestBase {
           //run this test multiple times to randomly generate multiple combinations of overlapping key-value with optionally & randomly added Put, Remove, Range or Update.
           (1 to 100) foreach {
             _ =>
+              implicit val testTimer: TestTimer = TestTimer.Incremental()
+
               //create a Map with randomly max size so that this test also covers when multiple maps are created. Also set flushOnOverflow to true so that the same Map gets written.
               val map =
                 Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -1104,6 +1107,71 @@ class MapSpec extends TestBase {
               reopened.asScala shouldBe map.asScala
               reopened.delete
           }
+      }
+    }
+  }
+
+
+  "inserting data" when {
+    "fileSize is too small that it overflows" should {
+      "extend the fileSize & also log warn message" in {
+        TestCaseSweeper {
+          implicit sweeper =>
+
+            runThis(100.times, log = true) {
+              import LevelZeroMapEntryReader._
+              import LevelZeroMapEntryWriter._
+              import sweeper._
+
+              //This test also shows how the merge handles situations when recovery happens on multiple log files
+              //of the same log and also tests the importance of TimeOrder for Functions. Setting deleteAfterClean
+              //to true ensure that the delete is not immediate and reopen will have to recover multiple log files.
+              //Since the key-values are random, functions could also be generated and using TestTimer.Empty will
+              //result in invalid recovery where reopen will result in different entries because functions without
+              //time value set will result in duplicate merges.
+              implicit val testTimer: TestTimer = TestTimer.Incremental()
+
+              val mmap = TestForceSave.mmap()
+
+              val map =
+                Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+                  nullKey = Slice.Null,
+                  nullValue = Memory.Null,
+                  folder = createRandomDir,
+                  //when deleteAfterClean is false, this will pass with TestTimer.Empty because the files are deleted
+                  //immediately and reopen does not have to recovery multiple log files with functions. But we always
+                  //use Timer when functions are enabled.
+                  mmap = MMAP.Enabled(deleteAfterClean = true, forceSave = mmap),
+                  flushOnOverflow = true,
+                  //setting t
+                  fileSize = 1.byte,
+                  dropCorruptedTailEntries = false
+                ).item.sweep()
+
+              //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
+              val keyValues = randomizedKeyValues(100, addPut = true)
+              val keyValueEntry = keyValues.toMapEntry.value
+              //slice write them to that if map's randomly selected size is too small and multiple maps are written to.
+              keyValues.groupedSlice(10) foreach {
+                keyValues =>
+                  map.writeSync(keyValues.toMapEntry.value) shouldBe true
+              }
+              map.values().asScala shouldBe keyValues
+
+              //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
+              val updatedValues = randomizedKeyValues(100, startId = Some(keyValues.head.key.readInt()), addPut = true)
+              val updatedEntries = updatedValues.toMapEntry.value
+              map.writeSync(updatedEntries) shouldBe true
+
+              //reopening the map should return in the original skipList.
+              val reopened = map.reopen.sweep()
+              reopened.size shouldBe map.size
+
+              reopened.asScala shouldBe map.asScala
+
+              reopened.delete
+            }
+        }
       }
     }
   }
