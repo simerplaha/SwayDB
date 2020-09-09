@@ -32,6 +32,8 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
+import scala.collection.mutable
+import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
 
 /**
  * Stores all functions currently registered. This should always contain
@@ -42,10 +44,15 @@ import scala.annotation.tailrec
 private[swaydb] abstract class FunctionStore {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
   def put(functionId: Slice[Byte], function: SwayFunction): OK
-  def remove(functionId: Slice[Byte]): Unit
+  def remove(functionId: Slice[Byte]): SwayFunction
+
   def contains(functionId: Slice[Byte]): Boolean
   def notContains(functionId: Slice[Byte]): Boolean =
     !contains(functionId)
+
+  def asScala: mutable.Map[Slice[Byte], SwayFunction]
+
+  def size: Int
 }
 
 private[swaydb] object FunctionStore {
@@ -101,7 +108,13 @@ private[swaydb] object FunctionStore {
     override def contains(functionId: Slice[Byte]): Boolean =
       get(functionId).isDefined
 
-    override def remove(functionId: Slice[Byte]): Unit =
+    override def remove(functionId: Slice[Byte]): SwayFunction =
       hashMap.remove(functionId)
+
+    def asScala: mutable.Map[Slice[Byte], SwayFunction] =
+      hashMap.asScala
+
+    def size =
+      hashMap.size()
   }
 }

@@ -48,7 +48,7 @@ object Set {
 
   object Functions {
     def apply[A, F](functions: F*)(implicit serializer: Serializer[A],
-                                                  ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]) = {
+                                   ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]) = {
       val f = new Functions[A, F]()
       functions.foreach(f.register(_))
       f
@@ -305,6 +305,15 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
             serializer.read(slice)
         }
     }
+
+  def clearAppliedFunctions(): BAG[Iterable[String]] =
+    bag.suspend(core.clearAppliedFunctions())
+
+  def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
+    bag.suspend(core.clearAppliedAndRegisteredFunctions())
+
+  def isFunctionStoredAsApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): Boolean =
+    core.isFunctionApplied(Slice.writeString(functionId.id))
 
   def stream: Source[A, A, BAG] =
     new swaydb.Source(sourceFree())

@@ -94,6 +94,12 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def clearKeyValues(): BAG[OK]
 
+  def clearAppliedFunctions(): BAG[Iterable[String]]
+
+  def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]]
+
+  def isFunctionStoredAsApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Boolean
+
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
 
   def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]

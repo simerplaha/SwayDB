@@ -798,6 +798,15 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   def lastOption: BAG[Option[(K, V)]] =
     stream.lastOption
 
+  override def clearAppliedFunctions(): BAG[Iterable[String]] =
+    innerMap.clearAppliedFunctions()
+
+  override def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
+    innerMap.clearAppliedAndRegisteredFunctions()
+
+  override def isFunctionStoredAsApplied[PF <: F](functionId: PF)(implicit ev: PF <:< PureFunction[K, V, Apply.Map[V]]): Boolean =
+    innerMap.core.isFunctionApplied(Slice.writeString(functionId.id))
+
   /**
    * Returns an Async API of type O where the [[Bag]] is known.
    */
@@ -824,4 +833,5 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getSimpleName
+
 }

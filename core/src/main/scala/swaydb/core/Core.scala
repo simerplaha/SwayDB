@@ -347,6 +347,15 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def clear(readState: ThreadReadState): BAG[OK] =
     execute(_.clear(readState))
 
+  def clearAppliedFunctions(): BAG[Iterable[String]] =
+    execute(_.clearAppliedFunctions())
+
+  def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
+    execute(_.clearAppliedAndRegisteredFunctions())
+
+  def isFunctionApplied(functionId: Slice[Byte]): Boolean =
+    zero.isFunctionApplied(functionId)
+
   def close(): BAG[Unit] =
     bag.and {
       closed = true

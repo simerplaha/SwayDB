@@ -197,7 +197,6 @@ private[core] object LevelZero extends LazyLogging {
                           )
 
                         appliedFunctionsMap.result
-                          .and(checkMissingFunctions(appliedFunctionsMap.item, functionStore))
                           .andThen((maps, Some(appliedFunctionsMap.item), path, Some(lock)))
 
                       } else {
@@ -237,7 +236,6 @@ private[core] object LevelZero extends LazyLogging {
                       reader = CounterMapEntryReader.CounterPutMapEntryReader)
 
                   appliedFunctionsMap.result
-                    .and(checkMissingFunctions(appliedFunctionsMap.item, functionStore))
                     .and(timer)
                     .map {
                       timer =>
@@ -268,18 +266,29 @@ private[core] object LevelZero extends LazyLogging {
           }
       }
 
-    mapsAndPathAndLock map {
+    mapsAndPathAndLock flatMap {
       case (maps, appliedFunctions, path, lock: Option[FileLocker]) =>
-        new LevelZero(
-          path = path,
-          mapSize = mapSize,
-          maps = maps,
-          nextLevel = nextLevel,
-          inMemory = storage.memory,
-          throttle = throttle,
-          appliedFunctionsMap = appliedFunctions,
-          lock = lock
-        )
+        val zero =
+          new LevelZero(
+            path = path,
+            mapSize = mapSize,
+            maps = maps,
+            nextLevel = nextLevel,
+            inMemory = storage.memory,
+            throttle = throttle,
+            appliedFunctionsMap = appliedFunctions,
+            lock = lock
+          )
+
+        appliedFunctions match {
+          case Some(appliedFunctions) =>
+            IO(zero.clearAppliedFunctions())
+              .and(checkMissingFunctions(appliedFunctions, functionStore))
+              .andThen(zero)
+
+          case None =>
+            IO.Right(zero)
+        }
     }
   }
 }
@@ -431,29 +440,77 @@ private[swaydb] case class LevelZero(path: Path,
     OK.instance
   }
 
-  def clearAppliedFunctions(): Iterable[String] =
+  def clearAppliedFunctions(): ListBuffer[String] =
     appliedFunctionsMap match {
       case Some(appliedFunctions) =>
-        logger.info(s"Checking for applied functions from ${appliedFunctions.size} functions.")
+        val totalAppliedFunctions = appliedFunctions.size
+        logger.info(s"Checking for applied functions to clear from $totalAppliedFunctions registered functions.")
+
+        var progress = 0
 
         val cleared =
           appliedFunctions.foldLeft(ListBuffer.empty[String]) {
             case (cleaned, (functionId, _)) =>
+              progress += 1
+
+              if (progress % 100 == 0)
+                logger.info(s"Checked $progress/$totalAppliedFunctions applied functions. Removed ${cleaned.size}.")
+
               if (!this.mightContainFunction(functionId)) {
                 appliedFunctions.writeSync(MapEntry.Remove(functionId)(FunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter))
-                functionStore.remove(functionId)
                 cleaned += functionId.readString()
+                cleaned
               } else {
                 cleaned
               }
           }
 
-        logger.info(s"Cleared ${cleared.size} applied functions.")
+        logger.info(s"${cleared.size} applied functions.")
         cleared
 
       case None =>
-        Seq.empty
+        ListBuffer.empty
     }
+
+  def clearAppliedAndRegisteredFunctions(): ListBuffer[String] = {
+    val clearedFunctions = clearAppliedFunctions()
+    val totalClearedFunctions = clearedFunctions.size
+
+    val totalAppliedFunctions = functionStore.size
+    logger.info(s"Checking for applied registered functions to clear from $totalAppliedFunctions registered functions.")
+
+    var progress = 0
+    var registeredFunctionsCleared = 0
+
+    clearedFunctions foreach {
+      removedFunctions =>
+        functionStore.remove(Slice.writeString(removedFunctions))
+    }
+
+    val cleared =
+      functionStore.asScala.foldLeft(clearedFunctions) {
+        case (totalCleaned, (functionId, _)) =>
+          progress += 1
+
+          if (progress % 100 == 0)
+            logger.info(s"Checked $progress/$totalAppliedFunctions applied functions. Removed ${totalCleaned.size}.")
+
+          if (!this.mightContainFunction(functionId)) {
+            functionStore.remove(functionId)
+            registeredFunctionsCleared += 1
+            totalCleaned += functionId.readString()
+          } else {
+            totalCleaned
+          }
+      }
+
+    logger.debug(s"Cleared total ${cleared.size} functions. $totalClearedFunctions applied functions and $registeredFunctionsCleared registered functions.")
+    cleared
+  }
+
+
+  def isFunctionApplied(functionId: Slice[Byte]): Boolean =
+    appliedFunctionsMap.exists(_.contains(functionId))
 
   def clear(readState: ThreadReadState): OK =
     headKey(readState) match {
