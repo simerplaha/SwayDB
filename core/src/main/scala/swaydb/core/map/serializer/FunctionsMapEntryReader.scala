@@ -30,12 +30,15 @@ import swaydb.data.slice.{ReaderBase, Slice}
 private[swaydb] object FunctionsMapEntryReader {
 
   implicit object FunctionsPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice.Null.type]] {
-    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Slice.Null.type] = {
+    override def read(reader: ReaderBase): MapEntry[Slice[Byte], Slice.Null.type] = {
       val id = reader.get()
 
-      assert(id == FunctionsMapEntryWriter.FunctionsPutMapEntryWriter.id, s"Invalid Functions entry id - $id != ${FunctionsMapEntryWriter.FunctionsPutMapEntryWriter.id}")
-
-      MapEntry.Put(reader.readRemaining(), Slice.Null)(FunctionsMapEntryWriter.FunctionsPutMapEntryWriter)
+      if (id == FunctionsMapEntryWriter.FunctionsPutMapEntryWriter.id)
+        MapEntry.Put(reader.readRemaining(), Slice.Null)(FunctionsMapEntryWriter.FunctionsPutMapEntryWriter)
+      else if (id == FunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter.id)
+        MapEntry.Remove(reader.readRemaining())(FunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter)
+      else
+        throw new IllegalArgumentException(s"Invalid Functions entry id - $id")
     }
   }
 }

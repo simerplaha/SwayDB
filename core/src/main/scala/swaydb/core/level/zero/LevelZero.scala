@@ -141,23 +141,27 @@ private[core] object LevelZero extends LazyLogging {
 
                   maps flatMap {
                     maps =>
-                      implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
-                      implicit val functionsEntryReader = FunctionsMapEntryReader.FunctionsPutMapEntryReader
-                      implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](LevelZero.appliedFunctionsFolder)
+                      if (enableTimer) {
+                        implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
+                        implicit val functionsEntryReader = FunctionsMapEntryReader.FunctionsPutMapEntryReader
+                        implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](LevelZero.appliedFunctionsFolder)
 
-                      val appliedFunctionsMap =
-                        map.Map.persistent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](
-                          nullKey = Slice.Null,
-                          nullValue = Slice.Null,
-                          folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolder),
-                          mmap = mmap,
-                          flushOnOverflow = true,
-                          fileSize = 4.mb,
-                          dropCorruptedTailEntries = false
-                        )
+                        val appliedFunctionsMap =
+                          map.Map.persistent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](
+                            nullKey = Slice.Null,
+                            nullValue = Slice.Null,
+                            folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolder),
+                            mmap = mmap,
+                            flushOnOverflow = true,
+                            fileSize = functionStore.fileSize,
+                            dropCorruptedTailEntries = false
+                          )
 
-                      appliedFunctionsMap.result andThen {
-                        (maps, Some(appliedFunctionsMap.item), path, Some(lock))
+                        appliedFunctionsMap.result andThen {
+                          (maps, Some(appliedFunctionsMap.item), path, Some(lock))
+                        }
+                      } else {
+                        IO.Right((maps, None, path, Some(lock)))
                       }
                   }
               }
@@ -174,7 +178,7 @@ private[core] object LevelZero extends LazyLogging {
                     path = timerDir,
                     mmap = LevelRef.getMMAPLog(nextLevel),
                     mod = 100000,
-                    flushCheckpointSize = functionStore.persistentStorageSpace
+                    flushCheckpointSize = functionStore.fileSize
                   )(bufferCleaner = bufferCleaner,
                     forceSaveApplier = forceSaveApplier,
                     writer = CounterMapEntryWriter.CounterPutMapEntryWriter,
@@ -205,16 +209,20 @@ private[core] object LevelZero extends LazyLogging {
 
     mapsAndPathAndLock map {
       case (maps, appliedFunctions, path, lock: Option[FileLocker]) =>
-        new LevelZero(
-          path = path,
-          mapSize = mapSize,
-          maps = maps,
-          nextLevel = nextLevel,
-          inMemory = storage.memory,
-          throttle = throttle,
-          appliedFunctions = appliedFunctions,
-          lock = lock
-        )
+        val zero =
+          new LevelZero(
+            path = path,
+            mapSize = mapSize,
+            maps = maps,
+            nextLevel = nextLevel,
+            inMemory = storage.memory,
+            throttle = throttle,
+            appliedFunctions = appliedFunctions,
+            lock = lock
+          )
+
+        zero.cleanAppliedFunctions()
+        zero
     }
   }
 }
@@ -365,6 +373,25 @@ private[swaydb] case class LevelZero(path: Path,
 
     OK.instance
   }
+
+  def cleanAppliedFunctions(): Unit =
+    appliedFunctions foreach {
+      appliedFunctions =>
+        logger.info(s"Clearing applied functions (0/${appliedFunctions.size})")
+
+        val cleared =
+          appliedFunctions.foldLeft(0) {
+            case (count, (functionId, _)) =>
+              if (!this.mightContainFunction(functionId)) {
+                appliedFunctions.writeSync(MapEntry.Remove(functionId)(FunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter))
+                count + 1
+              } else {
+                count
+              }
+          }
+
+        logger.info(s"Cleared $cleared applied functions.")
+    }
 
   def clear(readState: ThreadReadState): OK =
     headKey(readState) match {

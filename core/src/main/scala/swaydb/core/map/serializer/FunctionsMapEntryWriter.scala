@@ -45,4 +45,20 @@ private[swaydb] object FunctionsMapEntryWriter {
       ByteSizeOf.byte +
         entry.key.size
   }
+
+  implicit object FunctionsRemoveMapEntryWriter extends MapEntryWriter[MapEntry.Remove[Slice[Byte]]] {
+    val id: Byte = 1
+
+    override val isRange: Boolean = false
+    override val isUpdate: Boolean = false
+
+    override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
+      bytes
+        .add(id)
+        .addAll(entry.key)
+
+    override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
+      ByteSizeOf.byte +
+        entry.key.size
+  }
 }

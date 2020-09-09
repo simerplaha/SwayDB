@@ -75,7 +75,7 @@ sealed trait TimerSpec extends TestBase {
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
-  implicit val functionStore = FunctionStore.memory(appliedFunctionsMapSize = 1.mb)
+  implicit val functionStore = FunctionStore.memory(fileSize = 1.mb)
   implicit val timerReader = CounterMapEntryReader.CounterPutMapEntryReader
   implicit val timerWriter = CounterMapEntryWriter.CounterPutMapEntryWriter
 
