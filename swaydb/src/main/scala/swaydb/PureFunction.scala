@@ -52,6 +52,10 @@ sealed trait PureFunction[+K, +V, R <: Apply[V]] {
  */
 object PureFunction {
 
+  type Map[K, V] = PureFunction[K, V, Apply.Map[V]]
+
+  type Set[A] = PureFunction[A, Nothing, Apply.Set]
+
   trait OnValue[V, R <: Apply[V]] extends (V => R) with PureFunction[Nothing, V, R] {
     override def apply(value: V): R
   }
