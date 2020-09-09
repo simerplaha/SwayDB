@@ -52,6 +52,7 @@ object EventuallyPersistentMap {
 
   final class Config[K, V, F](dir: Path,
                               private var mapSize: Int = 4.mb,
+                              private var appliedFunctionsMapSize: Int = 4.mb,
                               private var maxMemoryLevelSize: Int = 100.mb,
                               private var maxSegmentsToPush: Int = 5,
                               private var memoryLevelSegmentSize: Int = 2.mb,
@@ -80,6 +81,11 @@ object EventuallyPersistentMap {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setAppliedFunctionsMapSize(size: Int) = {
+      this.appliedFunctionsMapSize = size
       this
     }
 
@@ -224,6 +230,7 @@ object EventuallyPersistentMap {
         swaydb.eventually.persistent.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less](
           dir = dir,
           mapSize = mapSize,
+          appliedFunctionsMapSize = appliedFunctionsMapSize,
           maxMemoryLevelSize = maxMemoryLevelSize,
           maxSegmentsToPush = maxSegmentsToPush,
           memoryLevelSegmentSize = memoryLevelSegmentSize,

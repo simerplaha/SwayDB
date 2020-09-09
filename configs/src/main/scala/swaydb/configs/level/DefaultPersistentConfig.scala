@@ -42,6 +42,7 @@ object DefaultPersistentConfig extends LazyLogging {
   def apply(dir: Path,
             otherDirs: Seq[Dir],
             mapSize: Int,
+            appliedFunctionsMapSize: Int,
             mmapMaps: MMAP.Map,
             recoveryMode: RecoveryMode,
             mmapAppendix: MMAP.Map,
@@ -90,6 +91,7 @@ object DefaultPersistentConfig extends LazyLogging {
       .withPersistentLevel0( //level0
         dir = dir,
         mapSize = mapSize,
+        appliedFunctionsMapSize = appliedFunctionsMapSize,
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),

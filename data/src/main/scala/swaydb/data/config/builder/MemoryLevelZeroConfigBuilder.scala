@@ -36,6 +36,7 @@ import scala.concurrent.duration.FiniteDuration
  */
 class MemoryLevelZeroConfigBuilder {
   private var mapSize: Long = _
+  private var appliedFunctionsMapSize: Long = _
   private var compactionExecutionContext: CompactionExecutionContext.Create = _
   private var acceleration: LevelZeroMeter => Accelerator = _
 }
@@ -50,23 +51,31 @@ object MemoryLevelZeroConfigBuilder {
   }
 
   class Step1(builder: MemoryLevelZeroConfigBuilder) {
-    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext.Create) = {
-      builder.compactionExecutionContext = compactionExecutionContext
+    def appliedFunctionsMapSize(mapSize: Long) = {
+      builder.appliedFunctionsMapSize = mapSize
       new Step2(builder)
     }
   }
 
   class Step2(builder: MemoryLevelZeroConfigBuilder) {
-    def acceleration(acceleration: JavaFunction[LevelZeroMeter, Accelerator]) = {
-      builder.acceleration = acceleration.apply
+    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext.Create) = {
+      builder.compactionExecutionContext = compactionExecutionContext
       new Step3(builder)
     }
   }
 
   class Step3(builder: MemoryLevelZeroConfigBuilder) {
+    def acceleration(acceleration: JavaFunction[LevelZeroMeter, Accelerator]) = {
+      builder.acceleration = acceleration.apply
+      new Step4(builder)
+    }
+  }
+
+  class Step4(builder: MemoryLevelZeroConfigBuilder) {
     def throttle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) =
       ConfigWizard.withMemoryLevel0(
         mapSize = builder.mapSize,
+        appliedFunctionsMapSize = builder.appliedFunctionsMapSize,
         compactionExecutionContext = builder.compactionExecutionContext,
         acceleration = builder.acceleration,
         throttle = throttle.apply

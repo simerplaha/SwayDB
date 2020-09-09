@@ -38,6 +38,7 @@ object DefaultMemoryConfig extends LazyLogging {
    * Default configuration for 2 leveled Memory database.
    */
   def apply(mapSize: Int,
+            appliedFunctionsMapSize: Int,
             minSegmentSize: Int,
             maxKeyValuesPerSegment: Int,
             deleteSegmentsEventually: Boolean,
@@ -47,6 +48,7 @@ object DefaultMemoryConfig extends LazyLogging {
     ConfigWizard
       .withMemoryLevel0(
         mapSize = mapSize,
+        appliedFunctionsMapSize = appliedFunctionsMapSize,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         acceleration = acceleration,
         throttle = levelZeroThrottle

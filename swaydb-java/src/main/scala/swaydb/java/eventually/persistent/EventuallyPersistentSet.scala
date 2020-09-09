@@ -52,6 +52,7 @@ object EventuallyPersistentSet {
 
   final class Config[A, F](dir: Path,
                            private var mapSize: Int = 4.mb,
+                           private var appliedFunctionsMapSize: Int = 4.mb,
                            private var maxMemoryLevelSize: Int = 100.mb,
                            private var maxSegmentsToPush: Int = 5,
                            private var memoryLevelSegmentSize: Int = 2.mb,
@@ -79,6 +80,11 @@ object EventuallyPersistentSet {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setAppliedFunctionsMapSize(size: Int) = {
+      this.appliedFunctionsMapSize = size
       this
     }
 
@@ -224,6 +230,7 @@ object EventuallyPersistentSet {
         swaydb.eventually.persistent.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set], Bag.Less](
           dir = dir,
           mapSize = mapSize,
+          appliedFunctionsMapSize = appliedFunctionsMapSize,
           maxMemoryLevelSize = maxMemoryLevelSize,
           maxSegmentsToPush = maxSegmentsToPush,
           memoryLevelSegmentSize = memoryLevelSegmentSize,

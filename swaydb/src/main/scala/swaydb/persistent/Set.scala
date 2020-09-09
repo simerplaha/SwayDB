@@ -52,6 +52,7 @@ object Set extends LazyLogging {
    */
   def apply[A, F, BAG[_]](dir: Path,
                           mapSize: Int = 4.mb,
+                          appliedFunctionsMapSize: Int = 4.mb,
                           mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                           recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                           mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
@@ -98,6 +99,7 @@ object Set extends LazyLogging {
               dir = dir,
               otherDirs = otherDirs,
               mapSize = mapSize,
+              appliedFunctionsMapSize = appliedFunctionsMapSize,
               mmapMaps = mmapMaps,
               recoveryMode = recoveryMode,
               mmapAppendix = mmapAppendix,

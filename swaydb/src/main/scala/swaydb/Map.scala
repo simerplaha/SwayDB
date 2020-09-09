@@ -43,35 +43,33 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 object Map {
 
   implicit def nothing[K, V]: Functions[K, V, Nothing] =
-    new Functions[K, V, Nothing](0.byte)(null, null)
+    new Functions[K, V, Nothing]()(null, null)
 
   implicit def void[K, V]: Functions[K, V, Void] =
-    new Functions[K, V, Void](0.byte)(null, null)
+    new Functions[K, V, Void]()(null, null)
 
   object Functions {
-    def apply[K, V, F](appliedFunctionsFileSize: Int,
-                       functions: F*)(implicit keySerializer: Serializer[K],
+    def apply[K, V, F](functions: F*)(implicit keySerializer: Serializer[K],
                                       valueSerializer: Serializer[V],
                                       ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[K, V, F](appliedFunctionsFileSize)
+      val f = new Functions[K, V, F]()
       functions.foreach(f.register(_))
       f
     }
 
-    def apply[K, V, F](appliedFunctionsFileSize: Int,
-                       functions: Iterable[F])(implicit keySerializer: Serializer[K],
+    def apply[K, V, F](functions: Iterable[F])(implicit keySerializer: Serializer[K],
                                                valueSerializer: Serializer[V],
                                                ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[K, V, F](appliedFunctionsFileSize)
+      val f = new Functions[K, V, F]()
       functions.foreach(f.register(_))
       f
     }
   }
 
-  final case class Functions[K, V, F](appliedFunctionsFileSize: Int)(implicit keySerializer: Serializer[K],
-                                                                     valueSerializer: Serializer[V]) {
+  final case class Functions[K, V, F]()(implicit keySerializer: Serializer[K],
+                                        valueSerializer: Serializer[V]) {
 
-    private[swaydb] val core = CoreFunctionStore.memory(appliedFunctionsFileSize: Int)
+    private[swaydb] val core = CoreFunctionStore.memory()
 
     def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
       functions.foreach(register(_))

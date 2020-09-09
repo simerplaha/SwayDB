@@ -42,6 +42,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
   def apply(dir: Path,
             otherDirs: Seq[Dir],
             mapSize: Int,
+            appliedFunctionsMapSize: Int,
             maxMemoryLevelSize: Int,
             maxSegmentsToPush: Int,
             memoryLevelMinSegmentSize: Int,
@@ -59,6 +60,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
     ConfigWizard
       .withMemoryLevel0(
         mapSize = mapSize,
+        appliedFunctionsMapSize = appliedFunctionsMapSize,
         acceleration = acceleration,
         throttle = _ => Duration.Zero,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext)

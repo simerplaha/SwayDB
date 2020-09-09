@@ -62,7 +62,7 @@ object PureFunction {
     function match {
       case function: PureFunction.OnValue[K, V, Return.Map[V]] =>
         new swaydb.PureFunction.OnValue[V, Apply.Map[V]] {
-          override def id: String =
+          override val id: String =
             function.id
 
           override def apply(value: V): Apply.Map[V] =
@@ -71,7 +71,7 @@ object PureFunction {
 
       case function: PureFunction.OnKey[K, V, Return.Map[V]] =>
         new swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] {
-          override def id: String =
+          override val id: String =
             function.id
 
           override def apply(key: K, deadline: Option[scala.concurrent.duration.Deadline]): Apply.Map[V] =
@@ -80,7 +80,7 @@ object PureFunction {
 
       case function: PureFunction.OnKeyValue[K, V, Return.Map[V]] =>
         new swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] {
-          override def id: String =
+          override val id: String =
             function.id
 
           override def apply(key: K, value: V, deadline: Option[scala.concurrent.duration.Deadline]): Apply.Map[V] =
@@ -90,7 +90,7 @@ object PureFunction {
 
   def asScala[K, R <: Return.Set[Void]](function: PureFunction.OnKey[K, Void, R]): swaydb.PureFunction.OnKey[K, Nothing, Apply.Set] =
     new swaydb.PureFunction.OnKey[K, Nothing, Apply.Set] {
-      override def id: String =
+      override val id: String =
         function.id
 
       override def apply(key: K, deadline: Option[duration.Deadline]): Apply.Set =

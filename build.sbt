@@ -143,7 +143,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(swaydb)
-    .aggregate(swaydb, core, compression, data, configs, serializers, `swaydb-monix`, `swaydb-zio`, `swaydb-cats-effect`)
+    .aggregate(swaydb, core, compression, data, configs, serializers, `swaydb-monix`, `swaydb-zio`, `swaydb-cats-effect`, `data-java`, `swaydb-java`)
 
 lazy val core =
   project
@@ -160,12 +160,12 @@ lazy val data =
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
     .dependsOn(macros % "compile-internal")
 
-//lazy val `data-java` =
-//  project
-//    .settings(commonSettings)
-//    .settings(publishSettings)
-//    .settings(libraryDependencies ++= commonJavaDependencies)
-//    .dependsOn(data)
+lazy val `data-java` =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonJavaDependencies)
+    .dependsOn(data)
 
 lazy val swaydb =
   project
@@ -224,13 +224,13 @@ lazy val `swaydb-stress` =
     .dependsOn(core, configs)
     .dependsOn(swaydb, core % "test->test")
 
-//lazy val `swaydb-java` =
-//  project
-//    .settings(name := "java")
-//    .settings(commonSettings)
-//    .settings(publishSettings)
-//    .settings(libraryDependencies ++= commonJavaDependencies)
-//    .dependsOn(swaydb, `data-java`)
+lazy val `swaydb-java` =
+  project
+    .settings(name := "java")
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonJavaDependencies)
+    .dependsOn(swaydb, `data-java`)
 
 /**
  * Support modules.

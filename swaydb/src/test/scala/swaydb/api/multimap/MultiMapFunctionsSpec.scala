@@ -94,7 +94,7 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
       }
 
     //register all types of functions
-    implicit val functions = swaydb.MultiMap.Functions[Int, Int, String, PureFunction.Map[Int, String]](1.byte, onKeyValueFunction, onValueFunction, onKeyFunction)
+    implicit val functions = swaydb.MultiMap.Functions[Int, Int, String, PureFunction.Map[Int, String]](onKeyValueFunction, onValueFunction, onKeyFunction)
 
     "single" in {
       TestCaseSweeper {

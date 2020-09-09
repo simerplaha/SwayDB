@@ -89,8 +89,8 @@ private[core] object LevelZero extends LazyLogging {
   }
 
   def createAppliedFunctionsMap(databaseDirectory: Path,
+                                appliedFunctionsMapSize: Long,
                                 mmap: MMAP.Map)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                functionStore: FunctionStore,
                                                 bufferCleaner: ByteBufferSweeperActor,
                                                 forceSaveApplier: ForceSaveApplier): RecoveryResult[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]] = {
     implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
@@ -104,12 +104,13 @@ private[core] object LevelZero extends LazyLogging {
       folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolderName),
       mmap = mmap,
       flushOnOverflow = true,
-      fileSize = functionStore.appliedFunctionsMapSize,
+      fileSize = appliedFunctionsMapSize,
       dropCorruptedTailEntries = false
     )
   }
 
   def apply(mapSize: Long,
+            appliedFunctionsMapSize: Long,
             storage: Level0Storage,
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
@@ -191,6 +192,7 @@ private[core] object LevelZero extends LazyLogging {
                         val appliedFunctionsMap =
                           createAppliedFunctionsMap(
                             databaseDirectory = databaseDirectory,
+                            appliedFunctionsMapSize = appliedFunctionsMapSize,
                             mmap = mmap
                           )
 
@@ -219,6 +221,7 @@ private[core] object LevelZero extends LazyLogging {
                   val appliedFunctionsMap =
                     createAppliedFunctionsMap(
                       databaseDirectory = databaseDirectory,
+                      appliedFunctionsMapSize = appliedFunctionsMapSize,
                       mmap = mmap
                     )
 
@@ -227,7 +230,7 @@ private[core] object LevelZero extends LazyLogging {
                       path = timerDir,
                       mmap = mmap,
                       mod = 100000,
-                      flushCheckpointSize = functionStore.appliedFunctionsMapSize
+                      flushCheckpointSize = 1.mb
                     )(bufferCleaner = bufferCleaner,
                       forceSaveApplier = forceSaveApplier,
                       writer = CounterMapEntryWriter.CounterPutMapEntryWriter,

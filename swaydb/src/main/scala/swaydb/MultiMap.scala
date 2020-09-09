@@ -123,26 +123,26 @@ object MultiMap {
   private[swaydb] def exception(expected: String, actual: String) = new IllegalStateException(s"Internal error: $expected expected but found $actual.")
 
   implicit def nothing[T, K, V]: Functions[T, K, V, Nothing] =
-    new Functions[T, K, V, Nothing](0)(null, null, null)
+    new Functions[T, K, V, Nothing]()(null, null, null)
 
   implicit def void[T, K, V]: Functions[T, K, V, Void] =
-    new Functions[T, K, V, Void](0)(null, null, null)
+    new Functions[T, K, V, Void]()(null, null, null)
 
   object Functions {
-    def apply[M, K, V, F](fileSize: Int, functions: F*)(implicit keySerializer: Serializer[K],
+    def apply[M, K, V, F](functions: F*)(implicit keySerializer: Serializer[K],
                                                         mapKeySerializer: Serializer[M],
                                                         valueSerializer: Serializer[V],
                                                         ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[M, K, V, F](fileSize)
+      val f = new Functions[M, K, V, F]()
       functions.foreach(f.register(_))
       f
     }
 
-    def apply[M, K, V, F](fileSize: Int, functions: Iterable[F])(implicit keySerializer: Serializer[K],
-                                                                 mapKeySerializer: Serializer[M],
-                                                                 valueSerializer: Serializer[V],
-                                                                 ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[M, K, V, F](fileSize)
+    def apply[M, K, V, F](functions: Iterable[F])(implicit keySerializer: Serializer[K],
+                                                  mapKeySerializer: Serializer[M],
+                                                  valueSerializer: Serializer[V],
+                                                  ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
+      val f = new Functions[M, K, V, F]()
       functions.foreach(f.register(_))
       f
     }
@@ -151,13 +151,13 @@ object MultiMap {
   /**
    * All registered function for a [[MultiMap]].
    */
-  final case class Functions[M, K, V, F](fileSize: Int)(implicit keySerializer: Serializer[K],
-                                                        mapKeySerializer: Serializer[M],
-                                                        valueSerializer: Serializer[V]) {
+  final case class Functions[M, K, V, F]()(implicit keySerializer: Serializer[K],
+                                           mapKeySerializer: Serializer[M],
+                                           valueSerializer: Serializer[V]) {
 
     private implicit val optionalSerialiser = MultiValue.serialiser(valueSerializer)
 
-    private[swaydb] val innerFunctions = swaydb.Map.Functions[MultiKey[M, K], MultiValue[V], swaydb.PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]](fileSize)
+    private[swaydb] val innerFunctions = swaydb.Map.Functions[MultiKey[M, K], MultiValue[V], swaydb.PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]]()
 
     def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
       functions.foreach(register(_))

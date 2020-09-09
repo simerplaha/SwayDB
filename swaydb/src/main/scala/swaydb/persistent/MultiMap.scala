@@ -58,6 +58,7 @@ object MultiMap extends LazyLogging {
    */
   def apply[M, K, V, F, BAG[_]](dir: Path,
                                 mapSize: Int = 4.mb,
+                                appliedFunctionsMapSize: Int = 4.mb,
                                 mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                                 recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                                 mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
@@ -103,6 +104,7 @@ object MultiMap extends LazyLogging {
         swaydb.persistent.Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG](
           dir = dir,
           mapSize = mapSize,
+          appliedFunctionsMapSize = appliedFunctionsMapSize,
           mmapMaps = mmapMaps,
           recoveryMode = recoveryMode,
           mmapAppendix = mmapAppendix,

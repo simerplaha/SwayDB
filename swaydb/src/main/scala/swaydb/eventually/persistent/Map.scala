@@ -53,6 +53,7 @@ object Map extends LazyLogging {
    */
   def apply[K, V, F, BAG[_]](dir: Path,
                              mapSize: Int = 4.mb,
+                             appliedFunctionsMapSize: Int = 4.mb,
                              maxMemoryLevelSize: Int = 100.mb,
                              maxSegmentsToPush: Int = 5,
                              memoryLevelSegmentSize: Int = 2.mb,
@@ -99,6 +100,7 @@ object Map extends LazyLogging {
               dir = dir,
               otherDirs = otherDirs,
               mapSize = mapSize,
+              appliedFunctionsMapSize = appliedFunctionsMapSize,
               maxMemoryLevelSize = maxMemoryLevelSize,
               maxSegmentsToPush = maxSegmentsToPush,
               memoryLevelMinSegmentSize = memoryLevelSegmentSize,

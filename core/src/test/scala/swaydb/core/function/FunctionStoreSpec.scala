@@ -33,7 +33,7 @@ import swaydb.data.util.StorageUnits._
 
 class FunctionStoreSpec extends AnyFlatSpec with Matchers {
 
-  val store = FunctionStore.memory(1.mb)
+  val store = FunctionStore.memory()
 
   it should "write int keys" in {
 

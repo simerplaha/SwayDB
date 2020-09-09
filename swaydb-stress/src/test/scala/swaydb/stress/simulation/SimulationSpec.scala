@@ -74,7 +74,7 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
   def newDB()(implicit functions: swaydb.Map.Functions[Long, Domain, Functions],
               sweeper: TestCaseSweeper): swaydb.Map[Long, Domain, Functions, IO.ApiIO]
 
-  implicit val functions = swaydb.Map.Functions[Long, Domain, Functions](1.mb)
+  implicit val functions = swaydb.Map.Functions[Long, Domain, Functions]()
 
   val ids = new AtomicInteger(0)
   val functionIDs = new AtomicInteger(0)

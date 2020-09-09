@@ -381,6 +381,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     def apply(nextLevel: Option[Level],
               mapSize: Long = randomIntMax(10.mb),
+              appliedFunctionsMapSize: Long = randomIntMax(1.mb),
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -389,6 +390,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
       LevelZero(
         mapSize = mapSize,
+        appliedFunctionsMapSize = appliedFunctionsMapSize,
         storage = level0Storage,
         nextLevel = nextLevel,
         enableTimer = true,

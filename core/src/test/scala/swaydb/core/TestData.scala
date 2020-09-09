@@ -82,7 +82,7 @@ object TestData {
 
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
-  implicit val functionStore: FunctionStore = FunctionStore.memory(10.mb)
+  implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   val functionIdGenerator = new AtomicInteger(0)
 
@@ -292,8 +292,9 @@ object TestData {
     def reopen(implicit sweeper: TestCaseSweeper): LevelZero =
       reopen()
 
-    def reopen(mapSize: Long = level.maps.map.size)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                    sweeper: TestCaseSweeper): LevelZero = {
+    def reopen(mapSize: Long = level.maps.map.size,
+               appliedFunctionsMapSize: Long = level.appliedFunctionsMap.map(_.fileSize).getOrElse(0))(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                       sweeper: TestCaseSweeper): LevelZero = {
 
       if (OperatingSystem.isWindows && level.hasMMAP) {
         import swaydb.data.RunThis._
@@ -309,6 +310,7 @@ object TestData {
 
                 LevelZero(
                   mapSize = mapSize,
+                  appliedFunctionsMapSize = appliedFunctionsMapSize,
                   enableTimer = true,
                   storage =
                     Level0Storage.Persistent(
