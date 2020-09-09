@@ -394,26 +394,28 @@ private[swaydb] case class LevelZero(path: Path,
     OK.instance
   }
 
-  def cleanAppliedFunctions(): Int =
+  def clearAppliedFunctions(): Iterable[String] =
     appliedFunctionsMap match {
       case Some(appliedFunctions) =>
-        logger.info(s"Clearing applied functions (0/${appliedFunctions.size})")
+        logger.info(s"Checking for applied functions from ${appliedFunctions.size} functions.")
 
         val cleared =
-          appliedFunctions.foldLeft(0) {
-            case (count, (functionId, _)) =>
+          appliedFunctions.foldLeft(ListBuffer.empty[String]) {
+            case (cleaned, (functionId, _)) =>
               if (!this.mightContainFunction(functionId)) {
                 appliedFunctions.writeSync(MapEntry.Remove(functionId)(FunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter))
-                count + 1
+                functionStore.remove(functionId)
+                cleaned += functionId.readString()
               } else {
-                count
+                cleaned
               }
           }
-        logger.info(s"Cleared $cleared applied functions.")
+
+        logger.info(s"Cleared ${cleared.size} applied functions.")
         cleared
 
       case None =>
-        0
+        Seq.empty
     }
 
   def clear(readState: ThreadReadState): OK =
@@ -954,12 +956,8 @@ private[swaydb] case class LevelZero(path: Path,
           }
     )
 
-  def mightContainFunctionInMaps(functionId: Slice[Byte]): Boolean =
-    maps.queuedMapsCountWithCurrent >= 2 ||
-      findFunctionInMaps(functionId)
-
   def mightContainFunction(functionId: Slice[Byte]): Boolean =
-    mightContainFunctionInMaps(functionId) ||
+    findFunctionInMaps(functionId) ||
       nextLevel.exists(_.mightContainFunction(functionId))
 
   override def hasNextLevel: Boolean =
