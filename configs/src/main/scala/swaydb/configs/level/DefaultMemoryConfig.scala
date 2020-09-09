@@ -39,6 +39,7 @@ object DefaultMemoryConfig extends LazyLogging {
    */
   def apply(mapSize: Int,
             appliedFunctionsMapSize: Int,
+            clearAppliedFunctionsOnBoot: Boolean,
             minSegmentSize: Int,
             maxKeyValuesPerSegment: Int,
             deleteSegmentsEventually: Boolean,
@@ -49,6 +50,7 @@ object DefaultMemoryConfig extends LazyLogging {
       .withMemoryLevel0(
         mapSize = mapSize,
         appliedFunctionsMapSize = appliedFunctionsMapSize,
+        clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         acceleration = acceleration,
         throttle = levelZeroThrottle

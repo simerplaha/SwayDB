@@ -40,6 +40,7 @@ class PersistentLevelZeroConfigBuilder {
   private var dir: Path = _
   private var mapSize: Long = _
   private var appliedFunctionsMapSize: Long = _
+  private var clearAppliedFunctionsOnBoot: Boolean = _
   private var mmap: MMAP.Map = _
   private var recoveryMode: RecoveryMode = _
   private var compactionExecutionContext: CompactionExecutionContext.Create = _
@@ -69,40 +70,47 @@ object PersistentLevelZeroConfigBuilder {
     }
   }
 
-
   class Step3(builder: PersistentLevelZeroConfigBuilder) {
-    def mmap(mmap: MMAP.Map) = {
-      builder.mmap = mmap
+    def clearAppliedFunctionsOnBoot(clear: Boolean) = {
+      builder.clearAppliedFunctionsOnBoot = clear
       new Step4(builder)
     }
   }
 
   class Step4(builder: PersistentLevelZeroConfigBuilder) {
-    def recoveryMode(recoveryMode: RecoveryMode) = {
-      builder.recoveryMode = recoveryMode
+    def mmap(mmap: MMAP.Map) = {
+      builder.mmap = mmap
       new Step5(builder)
     }
   }
 
   class Step5(builder: PersistentLevelZeroConfigBuilder) {
-    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext.Create) = {
-      builder.compactionExecutionContext = compactionExecutionContext
+    def recoveryMode(recoveryMode: RecoveryMode) = {
+      builder.recoveryMode = recoveryMode
       new Step6(builder)
     }
   }
 
   class Step6(builder: PersistentLevelZeroConfigBuilder) {
-    def acceleration(acceleration: JavaFunction[LevelZeroMeter, Accelerator]) = {
-      builder.acceleration = acceleration.apply
+    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext.Create) = {
+      builder.compactionExecutionContext = compactionExecutionContext
       new Step7(builder)
     }
   }
 
   class Step7(builder: PersistentLevelZeroConfigBuilder) {
+    def acceleration(acceleration: JavaFunction[LevelZeroMeter, Accelerator]) = {
+      builder.acceleration = acceleration.apply
+      new Step8(builder)
+    }
+  }
+
+  class Step8(builder: PersistentLevelZeroConfigBuilder) {
     def throttle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) =
       ConfigWizard.withPersistentLevel0(
         dir = builder.dir,
         mapSize = builder.mapSize,
+        clearAppliedFunctionsOnBoot = builder.clearAppliedFunctionsOnBoot,
         appliedFunctionsMapSize = builder.appliedFunctionsMapSize,
         mmap = builder.mmap,
         recoveryMode = builder.recoveryMode,

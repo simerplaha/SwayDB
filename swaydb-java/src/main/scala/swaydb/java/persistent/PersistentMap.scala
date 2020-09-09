@@ -55,6 +55,7 @@ object PersistentMap {
   final class Config[K, V, F](dir: Path,
                               private var mapSize: Int = 4.mb,
                               private var appliedFunctionsMapSize: Int = 4.mb,
+                              private var clearAppliedFunctionsOnBoot: Boolean = false,
                               private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                               private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                               private var mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
@@ -92,6 +93,11 @@ object PersistentMap {
 
     def setAppliedFunctionsMapSize(size: Int) = {
       this.appliedFunctionsMapSize = size
+      this
+    }
+
+    def setClearAppliedFunctionsOnBoot(clear: Boolean) = {
+      this.clearAppliedFunctionsOnBoot = clear
       this
     }
 
@@ -257,6 +263,7 @@ object PersistentMap {
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
+          clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
           mmapMaps = mmapMaps,
           recoveryMode = recoveryMode,
           mmapAppendix = mmapAppendix,

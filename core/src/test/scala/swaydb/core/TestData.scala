@@ -293,7 +293,8 @@ object TestData {
       reopen()
 
     def reopen(mapSize: Long = level.maps.map.size,
-               appliedFunctionsMapSize: Long = level.appliedFunctionsMap.map(_.fileSize).getOrElse(0))(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+               appliedFunctionsMapSize: Long = level.appliedFunctionsMap.map(_.fileSize).getOrElse(0),
+               clearAppliedFunctionsOnBoot: Boolean = false)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                        sweeper: TestCaseSweeper): LevelZero = {
 
       if (OperatingSystem.isWindows && level.hasMMAP) {
@@ -311,6 +312,7 @@ object TestData {
                 LevelZero(
                   mapSize = mapSize,
                   appliedFunctionsMapSize = appliedFunctionsMapSize,
+                  clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
                   enableTimer = true,
                   storage =
                     Level0Storage.Persistent(

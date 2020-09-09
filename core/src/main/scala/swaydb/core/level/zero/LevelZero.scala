@@ -111,6 +111,7 @@ private[core] object LevelZero extends LazyLogging {
 
   def apply(mapSize: Long,
             appliedFunctionsMapSize: Long,
+            clearAppliedFunctionsOnBoot: Boolean,
             storage: Level0Storage,
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
@@ -282,9 +283,13 @@ private[core] object LevelZero extends LazyLogging {
 
         appliedFunctions match {
           case Some(appliedFunctions) =>
-            IO(zero.clearAppliedFunctions())
-              .and(checkMissingFunctions(appliedFunctions, functionStore))
-              .andThen(zero)
+            if (clearAppliedFunctionsOnBoot)
+              IO(zero.clearAppliedFunctions())
+                .and(checkMissingFunctions(appliedFunctions, functionStore))
+                .andThen(zero)
+            else
+              checkMissingFunctions(appliedFunctions, functionStore)
+                .andThen(zero)
 
           case None =>
             IO.Right(zero)

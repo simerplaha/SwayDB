@@ -260,6 +260,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     mapSize = config.level0.mapSize,
                     storage = config.level0.storage,
                     appliedFunctionsMapSize = config.level0.appliedFunctionsMapSize,
+                    clearAppliedFunctionsOnBoot = config.level0.clearAppliedFunctionsOnBoot,
                     enableTimer = enableTimer,
                     cacheKeyValueIds = cacheKeyValueIds,
                     nextLevel = Some(level1),

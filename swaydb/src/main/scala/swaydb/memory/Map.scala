@@ -76,6 +76,7 @@ object Map extends LazyLogging {
             DefaultMemoryConfig(
               mapSize = mapSize,
               appliedFunctionsMapSize = 0, //memory instance don't use appliedFunctionsMap.
+              clearAppliedFunctionsOnBoot = false,
               minSegmentSize = minSegmentSize,
               maxKeyValuesPerSegment = maxKeyValuesPerSegment,
               deleteSegmentsEventually = deleteSegmentsEventually,

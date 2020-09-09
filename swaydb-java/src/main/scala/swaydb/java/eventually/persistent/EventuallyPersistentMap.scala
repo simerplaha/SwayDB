@@ -53,6 +53,7 @@ object EventuallyPersistentMap {
   final class Config[K, V, F](dir: Path,
                               private var mapSize: Int = 4.mb,
                               private var appliedFunctionsMapSize: Int = 4.mb,
+                              private var clearAppliedFunctionsOnBoot: Boolean = false,
                               private var maxMemoryLevelSize: Int = 100.mb,
                               private var maxSegmentsToPush: Int = 5,
                               private var memoryLevelSegmentSize: Int = 2.mb,
@@ -86,6 +87,11 @@ object EventuallyPersistentMap {
 
     def setAppliedFunctionsMapSize(size: Int) = {
       this.appliedFunctionsMapSize = size
+      this
+    }
+
+    def setClearAppliedFunctionsOnBoot(clear: Boolean) = {
+      this.clearAppliedFunctionsOnBoot = clear
       this
     }
 
@@ -231,6 +237,7 @@ object EventuallyPersistentMap {
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
+          clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
           maxMemoryLevelSize = maxMemoryLevelSize,
           maxSegmentsToPush = maxSegmentsToPush,
           memoryLevelSegmentSize = memoryLevelSegmentSize,

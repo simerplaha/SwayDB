@@ -43,6 +43,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             otherDirs: Seq[Dir],
             mapSize: Int,
             appliedFunctionsMapSize: Int,
+            clearAppliedFunctionsOnBoot: Boolean,
             maxMemoryLevelSize: Int,
             maxSegmentsToPush: Int,
             memoryLevelMinSegmentSize: Int,
@@ -61,6 +62,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
       .withMemoryLevel0(
         mapSize = mapSize,
         appliedFunctionsMapSize = appliedFunctionsMapSize,
+        clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
         acceleration = acceleration,
         throttle = _ => Duration.Zero,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext)

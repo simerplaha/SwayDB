@@ -48,6 +48,7 @@ object ConfigWizard {
   def withPersistentLevel0(dir: Path,
                            mapSize: Long,
                            appliedFunctionsMapSize: Long,
+                           clearAppliedFunctionsOnBoot: Boolean,
                            mmap: MMAP.Map,
                            recoveryMode: RecoveryMode,
                            compactionExecutionContext: CompactionExecutionContext.Create,
@@ -56,6 +57,7 @@ object ConfigWizard {
     PersistentLevelZeroConfig(
       mapSize = mapSize,
       appliedFunctionsMapSize = appliedFunctionsMapSize,
+      clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
       storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
       compactionExecutionContext = compactionExecutionContext,
       acceleration = acceleration,
@@ -67,12 +69,14 @@ object ConfigWizard {
 
   def withMemoryLevel0(mapSize: Long,
                        appliedFunctionsMapSize: Long,
+                       clearAppliedFunctionsOnBoot: Boolean,
                        compactionExecutionContext: CompactionExecutionContext.Create,
                        acceleration: LevelZeroMeter => Accelerator,
                        throttle: LevelZeroMeter => FiniteDuration): MemoryLevelZeroConfig =
     MemoryLevelZeroConfig(
       mapSize = mapSize,
       appliedFunctionsMapSize = appliedFunctionsMapSize,
+      clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
       storage = Level0Storage.Memory,
       compactionExecutionContext = compactionExecutionContext,
       acceleration = acceleration,
@@ -83,6 +87,7 @@ object ConfigWizard {
 sealed trait LevelZeroConfig {
   val mapSize: Long
   val appliedFunctionsMapSize: Long
+  val clearAppliedFunctionsOnBoot: Boolean
   val storage: Level0Storage
   val compactionExecutionContext: CompactionExecutionContext.Create
 
@@ -97,6 +102,7 @@ object PersistentLevelZeroConfig {
 
 case class PersistentLevelZeroConfig private(mapSize: Long,
                                              appliedFunctionsMapSize: Long,
+                                             clearAppliedFunctionsOnBoot: Boolean,
                                              storage: Level0Storage,
                                              compactionExecutionContext: CompactionExecutionContext.Create,
                                              acceleration: LevelZeroMeter => Accelerator,
@@ -175,6 +181,7 @@ object MemoryLevelZeroConfig {
 
 case class MemoryLevelZeroConfig(mapSize: Long,
                                  appliedFunctionsMapSize: Long,
+                                 clearAppliedFunctionsOnBoot: Boolean,
                                  storage: Level0Storage,
                                  compactionExecutionContext: CompactionExecutionContext.Create,
                                  acceleration: LevelZeroMeter => Accelerator,
