@@ -30,7 +30,9 @@ import java.util.Collections
 import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -85,6 +87,7 @@ object PersistentMap {
                               private var byteComparator: KeyComparator[ByteSlice] = null,
                               private var typedComparator: KeyComparator[K] = null,
                               private var compactionEC: Option[ExecutionContext] = None,
+                              private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
                               keySerializer: Serializer[K],
                               valueSerializer: Serializer[V],
                               functionClassTag: ClassTag[_]) {
@@ -239,6 +242,11 @@ object PersistentMap {
       this
     }
 
+    def setBuildValidator(buildValidator: BuildValidator) = {
+      this.buildValidator = buildValidator
+      this
+    }
+
     private val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]()(keySerializer, valueSerializer)
 
     def registerFunctions(functions: F*): Config[K, V, F] = {
@@ -302,7 +310,8 @@ object PersistentMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]],
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
+          buildValidator = buildValidator
         )
 
       swaydb.java.Map[K, V, F](scalaMap)

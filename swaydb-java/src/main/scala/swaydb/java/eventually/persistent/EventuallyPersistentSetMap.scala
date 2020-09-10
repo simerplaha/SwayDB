@@ -31,9 +31,10 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -48,7 +49,7 @@ import swaydb.serializers.Serializer
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
 
 object EventuallyPersistentSetMap {
@@ -78,6 +79,7 @@ object EventuallyPersistentSetMap {
                            private var byteComparator: KeyComparator[ByteSlice] = null,
                            private var typedComparator: KeyComparator[K] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
+                           private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
                            keySerializer: Serializer[K],
                            valueSerializer: Serializer[V]) {
 
@@ -201,6 +203,11 @@ object EventuallyPersistentSetMap {
       this
     }
 
+    def setBuildValidator(buildValidator: BuildValidator) = {
+      this.buildValidator = buildValidator
+      this
+    }
+
     def get(): swaydb.java.SetMap[K, V] = {
       val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -239,7 +246,8 @@ object EventuallyPersistentSetMap {
           valueSerializer = valueSerializer,
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
+          buildValidator = buildValidator
         )
 
       swaydb.java.SetMap[K, V](scalaMap)

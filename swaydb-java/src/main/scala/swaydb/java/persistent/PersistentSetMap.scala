@@ -31,7 +31,9 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -82,6 +84,7 @@ object PersistentSetMap {
                            private var byteComparator: KeyComparator[ByteSlice] = null,
                            private var typedComparator: KeyComparator[K] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
+                           private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
                            keySerializer: Serializer[K],
                            valueSerializer: Serializer[V]) {
 
@@ -225,6 +228,11 @@ object PersistentSetMap {
       this
     }
 
+    def setBuildValidator(buildValidator: BuildValidator) = {
+      this.buildValidator = buildValidator
+      this
+    }
+
     def get(): swaydb.java.SetMap[K, V] = {
       val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -267,7 +275,8 @@ object PersistentSetMap {
           valueSerializer = valueSerializer,
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
+          buildValidator = buildValidator
         )
 
       swaydb.java.SetMap[K, V](scalaMap)

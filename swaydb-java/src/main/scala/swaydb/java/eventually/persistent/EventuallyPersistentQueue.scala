@@ -31,7 +31,9 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
@@ -75,6 +77,7 @@ object EventuallyPersistentQueue {
                         private var byteComparator: KeyComparator[ByteSlice] = null,
                         private var typedComparator: KeyComparator[A] = null,
                         private var compactionEC: Option[ExecutionContext] = None,
+                        private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {
@@ -197,14 +200,12 @@ object EventuallyPersistentQueue {
       this
     }
 
-    def get(): swaydb.java.Queue[A] = {
-      val comparator: Either[KeyComparator[ByteSlice], KeyComparator[A]] =
-        Eithers.nullCheck(
-          left = byteComparator,
-          right = typedComparator,
-          default = KeyComparator.lexicographic
-        )
+    def setBuildValidator(buildValidator: BuildValidator) = {
+      this.buildValidator = buildValidator
+      this
+    }
 
+    def get(): swaydb.java.Queue[A] = {
       val scalaMap =
         swaydb.eventually.persistent.Queue[A, Bag.Less](
           dir = dir,
@@ -231,7 +232,8 @@ object EventuallyPersistentQueue {
           threadStateCache = threadStateCache
         )(serializer = serializer,
           bag = Bag.less,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
+          buildValidator = buildValidator
         )
 
       swaydb.java.Queue[A](scalaMap)

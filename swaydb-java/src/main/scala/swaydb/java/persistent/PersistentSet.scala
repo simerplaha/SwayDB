@@ -30,7 +30,9 @@ import java.util.Collections
 import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
+import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -85,6 +87,7 @@ object PersistentSet {
                            private var byteComparator: KeyComparator[ByteSlice] = null,
                            private var typedComparator: KeyComparator[A] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
+                           private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
                            serializer: Serializer[A],
                            functionClassTag: ClassTag[_]) {
 
@@ -238,6 +241,11 @@ object PersistentSet {
       this
     }
 
+    def setBuildValidator(buildValidator: BuildValidator) = {
+      this.buildValidator = buildValidator
+      this
+    }
+
     private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]()(serializer)
 
     def registerFunctions(functions: F*): Config[A, F] = {
@@ -301,7 +309,8 @@ object PersistentSet {
           bag = Bag.less,
           functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
+          buildValidator = buildValidator
         )
 
       swaydb.java.Set[A, F](scalaMap)
