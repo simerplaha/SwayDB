@@ -108,8 +108,8 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
           secondMap.put(1, "one")
           secondMap.stream.size shouldBe 1
 
-          secondMap.headOption.value shouldBe ((1, "one"))
-          secondMap.lastOption.value shouldBe ((1, "one"))
+          secondMap.head.value shouldBe ((1, "one"))
+          secondMap.last.value shouldBe ((1, "one"))
 
           secondMap.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList should contain only ((2, "one"))
           secondMap.stream.foldLeft(List.empty[(Int, String)]) { case (_, keyValue) => List(keyValue) } shouldBe List((1, "one"))
@@ -139,8 +139,8 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
           firstMap.put(2, "two")
 
           firstMap.stream.size shouldBe 2
-          firstMap.headOption.value shouldBe ((1, "one"))
-          firstMap.lastOption.value shouldBe ((2, "two"))
+          firstMap.head.value shouldBe ((1, "one"))
+          firstMap.last.value shouldBe ((2, "two"))
 
           firstMap.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList shouldBe List((2, "one"), (3, "two"))
           firstMap.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
@@ -180,8 +180,8 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
 
           //FIRST MAP ITERATIONS
           subMap1.stream.size shouldBe 2
-          subMap1.headOption.value shouldBe ((1, "one"))
-          subMap1.lastOption.value shouldBe ((2, "two"))
+          subMap1.head.value shouldBe ((1, "one"))
+          subMap1.last.value shouldBe ((2, "two"))
           subMap1.stream.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.toList shouldBe List((2, "one"), (3, "two"))
           subMap1.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
           subMap1.stream.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((2, "two"), (1, "one"))
@@ -199,8 +199,8 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
 
           //SECOND MAP ITERATIONS
           subMap2.stream.size shouldBe 2
-          subMap2.headOption.value shouldBe ((3, "three"))
-          subMap2.lastOption.value shouldBe ((4, "four"))
+          subMap2.head.value shouldBe ((3, "three"))
+          subMap2.last.value shouldBe ((4, "four"))
           subMap2.stream.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((3, "three"), (4, "four"))
           subMap2.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((3, "three"), (4, "four"))
           subMap2.stream.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((4, "four"), (3, "three"))
@@ -239,8 +239,8 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
 
           //FIRST MAP ITERATIONS
           subMap1.stream.size shouldBe 2
-          subMap1.headOption.value shouldBe ((1, "one"))
-          subMap1.lastOption.value shouldBe ((2, "two"))
+          subMap1.head.value shouldBe ((1, "one"))
+          subMap1.last.value shouldBe ((2, "two"))
           subMap1.schema.keys.lastOption.value shouldBe 3
           subMap1.stream.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((1, "one"), (2, "two"))
           subMap1.schema.keys.materialize.toList shouldBe List(3)

@@ -195,7 +195,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) ext
     asScala.timeLeft(key).asJavaMap(_.toJava)
 
   def head: Optional[KeyVal[K, V]] =
-    asScala.headOption.asJavaMap(KeyVal(_))
+    asScala.head.asJavaMap(KeyVal(_))
 
   def stream: Source[K, KeyVal[K, V]] =
     new Source(asScala.stream.transformValue(_.asKeyVal))
@@ -216,7 +216,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) ext
     asScala.nonEmpty
 
   def last: Optional[KeyVal[K, V]] =
-    asScala.lastOption.asJavaMap(KeyVal(_))
+    asScala.last.asJavaMap(KeyVal(_))
 
   def clearAppliedFunctions(): lang.Iterable[String] =
     asScala.clearAppliedFunctions().asJava

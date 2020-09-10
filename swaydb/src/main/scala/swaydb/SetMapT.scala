@@ -100,9 +100,7 @@ trait SetMapT[K, V, BAG[_]] {
 
   def timeLeft(key: K): BAG[Option[FiniteDuration]]
 
-  def headOption: BAG[Option[(K, V)]]
-
-  def headOrNull: BAG[(K, V)]
+  def head: BAG[Option[(K, V)]]
 
   def stream: Source[K, (K, V), BAG]
 
@@ -114,7 +112,7 @@ trait SetMapT[K, V, BAG[_]] {
 
   def nonEmpty: BAG[Boolean]
 
-  def lastOption: BAG[Option[(K, V)]]
+  def last: BAG[Option[(K, V)]]
 
   def toBag[X[_]](implicit bag: Bag[X]): SetMapT[K, V, X]
 

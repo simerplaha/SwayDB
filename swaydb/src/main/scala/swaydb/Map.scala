@@ -304,7 +304,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
-  def headOption: BAG[Option[(K, V)]] =
+  def head: BAG[Option[(K, V)]] =
     bag.transform(
       headOrNull(
         from = None,
@@ -312,7 +312,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
         readState = core.readStates.get())
     )(Option(_))
 
-  def headOrNull: BAG[(K, V)] =
+  private[swaydb] def headOrNull: BAG[(K, V)] =
     headOrNull(
       from = None,
       reverseIteration = false,
@@ -411,7 +411,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def nonEmpty: BAG[Boolean] =
     bag.transform(isEmpty)(!_)
 
-  def lastOption: BAG[Option[(K, V)]] =
+  def last: BAG[Option[(K, V)]] =
     bag.map(core.last(core.readStates.get())) {
       case TupleOrNone.Some(key, value) =>
         Some((key.read[K], value.read[V]))

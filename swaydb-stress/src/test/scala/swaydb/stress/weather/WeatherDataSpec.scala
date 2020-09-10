@@ -135,12 +135,12 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
   }
 
   def doHeadAndLast(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) = {
-    val (headKey, headValue) = db.headOption.get.get
+    val (headKey, headValue) = db.head.get.get
     headKey shouldBe 1
     headValue shouldBe WeatherData(Water(headKey, Direction.East, headKey), Wind(headKey, Direction.West, headKey, headKey), Location.Sydney)
     println(s"headKey: $headKey -> headValue: $headValue")
 
-    val (lastKey, lastValue) = db.lastOption.get.get
+    val (lastKey, lastValue) = db.last.get.get
     lastKey shouldBe keyValueCount
     lastValue shouldBe WeatherData(Water(lastKey, Direction.East, lastKey), Wind(lastKey, Direction.West, lastKey, lastKey), Location.Sydney)
     println(s"lastKey: $lastKey -> lastValue: $lastValue")

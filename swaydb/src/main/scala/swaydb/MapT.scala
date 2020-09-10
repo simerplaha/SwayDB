@@ -150,9 +150,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def timeLeft(key: K): BAG[Option[FiniteDuration]]
 
-  def headOption: BAG[Option[(K, V)]]
-
-  def headOrNull: BAG[(K, V)]
+  def head: BAG[Option[(K, V)]]
 
   def stream: Source[K, (K, V), BAG]
 
@@ -164,7 +162,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def nonEmpty: BAG[Boolean]
 
-  def lastOption: BAG[Option[(K, V)]]
+  def last: BAG[Option[(K, V)]]
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

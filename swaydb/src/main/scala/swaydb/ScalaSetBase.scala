@@ -38,16 +38,16 @@ protected abstract class ScalaSetBase[A, F](db: Set[A, F, Bag.Less]) extends mut
     db.isEmpty
 
   override def headOption: Option[A] =
-    db.headOption
+    db.head
 
   override def lastOption: Option[A] =
-    db.lastOption
+    db.last
 
   override def last: A =
-    db.lastOption.get
+    db.last.get
 
   override def head: A =
-    db.headOption.get
+    db.head.get
 
   override def clear(): Unit =
     db.clear()
@@ -66,10 +66,10 @@ protected abstract class ScalaSetBaseFromMap[A](db: SetMapT[A, _, Bag.Less]) ext
     db.isEmpty
 
   override def headOption: Option[A] =
-    db.headOption.map(_._1)
+    db.head.map(_._1)
 
   override def lastOption: Option[A] =
-    db.lastOption.map(_._1)
+    db.last.map(_._1)
 
   override def last: A =
     lastOption.get

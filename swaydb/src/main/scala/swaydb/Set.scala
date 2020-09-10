@@ -216,10 +216,10 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def timeLeft(elem: A): BAG[Option[FiniteDuration]] =
     bag.map(expiration(elem))(_.map(_.timeLeft))
 
-  def headOption: BAG[Option[A]] =
+  def head: BAG[Option[A]] =
     headOption(core.readStates.get())
 
-  def headOrNull: BAG[A] =
+  private[swaydb] def headOrNull: BAG[A] =
     headOrNull(
       from = None,
       reverseIteration = false,
@@ -330,7 +330,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def nonEmpty: BAG[Boolean] =
     bag.map(isEmpty)(!_)
 
-  def lastOption: BAG[Option[A]] =
+  def last: BAG[Option[A]] =
     bag.map(core.lastKey(core.readStates.get()))(_.mapC(_.read[A]))
 
   def toBag[X[_]](implicit bag: Bag[X]): Set[A, F, X] =

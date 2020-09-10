@@ -38,10 +38,10 @@ protected abstract class ScalaMapBase[K, V](db: SetMapT[K, V, Bag.Less]) extends
     db.isEmpty
 
   override def headOption: Option[(K, V)] =
-    db.headOption
+    db.head
 
   override def lastOption: Option[(K, V)] =
-    db.lastOption
+    db.last
 
   override def keySet: mutable.Set[K] =
     db.keySet
@@ -50,10 +50,10 @@ protected abstract class ScalaMapBase[K, V](db: SetMapT[K, V, Bag.Less]) extends
     db.contains(key)
 
   override def last: (K, V) =
-    db.lastOption.get
+    db.last.get
 
   override def head: (K, V) =
-    db.headOption.get
+    db.head.get
 
   override def clear(): Unit =
     db.clearKeyValues()

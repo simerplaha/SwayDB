@@ -156,8 +156,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
             .materialize
             .size shouldBe 1
 
-          firstMap.headOption.value shouldBe ((1, "one"))
-          firstMap.lastOption.value shouldBe ((1, "one"))
+          firstMap.head.value shouldBe ((1, "one"))
+          firstMap.last.value shouldBe ((1, "one"))
       }
     }
 
@@ -187,8 +187,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
               () => subMap1.stream.after(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
               () => subMap1.stream.fromOrAfter(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
               () => subMap1.stream.size shouldBe 2,
-              () => subMap1.headOption.value shouldBe ((1, "one")),
-              () => subMap1.lastOption.value shouldBe ((2, "two")),
+              () => subMap1.head.value shouldBe ((1, "one")),
+              () => subMap1.last.value shouldBe ((2, "two")),
 
               () => subMap2.stream.from(5).materialize shouldBe empty,
               () => subMap2.stream.after(4).materialize shouldBe empty,
@@ -198,8 +198,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
               () => subMap2.stream.after(0).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
               () => subMap2.stream.fromOrAfter(1).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
               () => subMap2.stream.size shouldBe 2,
-              () => subMap2.headOption.value shouldBe ((3, "three")),
-              () => subMap2.lastOption.value shouldBe ((4, "four"))
+              () => subMap2.head.value shouldBe ((3, "three")),
+              () => subMap2.last.value shouldBe ((4, "four"))
             ).runThisRandomly
           }
       }
@@ -233,7 +233,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
               () => subMap1.stream.after(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
               () => subMap1.stream.fromOrAfter(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
               () => subMap1.stream.size shouldBe 2,
-              () => subMap1.headOption.value shouldBe ((1, "one")),
+              () => subMap1.head.value shouldBe ((1, "one")),
               () => subMap1.schema.keys.lastOption.value shouldBe 3,
 
               () => subMap2.stream.from(5).materialize.toList shouldBe empty,
@@ -244,8 +244,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
               () => subMap2.stream.after(0).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
               () => subMap2.stream.fromOrAfter(1).materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
               () => subMap2.stream.size shouldBe 2,
-              () => subMap2.headOption.value shouldBe ((3, "three")),
-              () => subMap2.lastOption.value shouldBe ((4, "four"))
+              () => subMap2.head.value shouldBe ((3, "three")),
+              () => subMap2.last.value shouldBe ((4, "four"))
             ).runThisRandomly
           }
       }

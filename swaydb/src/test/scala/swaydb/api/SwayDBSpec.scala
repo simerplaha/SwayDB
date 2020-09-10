@@ -107,8 +107,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
             println("Removed .... ")
 
             db.stream.materialize.runRandomIO.value should contain only((1, "1"), (1000, "1000"))
-            db.headOption.value.value shouldBe ((1, "1"))
-            db.lastOption.value.value shouldBe ((1000, "1000"))
+            db.head.value.value shouldBe ((1, "1"))
+            db.last.value.value shouldBe ((1000, "1000"))
         }
       }
     }
@@ -135,8 +135,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
                 db.update(1, 100, value = "updated").value
 
                 db.stream.materialize.runRandomIO.value should contain only((1, "updated"), (100, "updated"))
-                db.headOption.value.value shouldBe ((1, "updated"))
-                db.lastOption.value.value shouldBe ((100, "updated"))
+                db.head.value.value shouldBe ((1, "updated"))
+                db.last.value.value shouldBe ((100, "updated"))
 
               case SetMap(set) =>
               //todo
@@ -164,8 +164,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
                 db.update(1, 100, value = "updated").value
 
                 db.stream.materialize.runRandomIO.value should contain only((1, "updated"), (100, "updated"))
-                db.headOption.value.value shouldBe ((1, "updated"))
-                db.lastOption.value.value shouldBe ((100, "updated"))
+                db.head.value.value shouldBe ((1, "updated"))
+                db.last.value.value shouldBe ((100, "updated"))
 
               case SetMap(set) =>
               //todo
@@ -207,8 +207,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
                 val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
 
                 db.stream.materialize.runRandomIO.value shouldBe expected
-                db.headOption.value.value shouldBe ((1, "1"))
-                db.lastOption.value.value shouldBe ((100, "100"))
+                db.head.value.value shouldBe ((1, "1"))
+                db.last.value.value shouldBe ((100, "100"))
 
               case SetMap(set) =>
               //todo
@@ -232,8 +232,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
                 db.stream.materialize.runRandomIO.value shouldBe empty
 
-                db.headOption.get shouldBe empty
-                db.lastOption.get shouldBe empty
+                db.head.get shouldBe empty
+                db.last.get shouldBe empty
 
               case SetMap(set) =>
               //todo
@@ -254,8 +254,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
             db.stream.materialize.runRandomIO.value shouldBe empty
 
-            db.headOption.get shouldBe empty
-            db.lastOption.get shouldBe empty
+            db.head.get shouldBe empty
+            db.last.get shouldBe empty
         }
       }
     }

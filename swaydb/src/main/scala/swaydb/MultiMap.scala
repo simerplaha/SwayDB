@@ -712,11 +712,8 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
-  def headOption: BAG[Option[(K, V)]] =
+  def head: BAG[Option[(K, V)]] =
     stream.headOption
-
-  def headOrNull: BAG[(K, V)] =
-    stream.headOrNull
 
   private def sourceFree(): SourceFree[K, (K, V)] =
     new SourceFree[K, (K, V)](from = None, reverse = false) {
@@ -795,7 +792,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   def nonEmpty: BAG[Boolean] =
     bag.map(stream.headOption)(_.nonEmpty)
 
-  def lastOption: BAG[Option[(K, V)]] =
+  def last: BAG[Option[(K, V)]] =
     stream.lastOption
 
   override def clearAppliedFunctions(): BAG[Iterable[String]] =

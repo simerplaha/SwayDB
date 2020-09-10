@@ -40,9 +40,9 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 object Queue {
 
   private[swaydb] def fromSet[A, BAG[_]](set: swaydb.Set[(Long, A), Nothing, BAG])(implicit bag: Bag[BAG]): BAG[Queue[A]] =
-    bag.flatMap(set.headOption) {
+    bag.flatMap(set.head) {
       headOption =>
-        bag.map(set.lastOption) {
+        bag.map(set.last) {
           lastOption =>
 
             val first: Long =
