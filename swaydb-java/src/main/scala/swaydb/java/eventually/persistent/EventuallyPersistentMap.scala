@@ -272,7 +272,7 @@ object EventuallyPersistentMap {
           threadStateCache = threadStateCache
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
-          functions = functions.asInstanceOf[swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]],
+          functions = functions,
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]],
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
