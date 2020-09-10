@@ -24,17 +24,138 @@
 
 package swaydb.java.multimap
 
+import java.time.Duration
+import java.util
 import java.util.Optional
 
-import swaydb.java.Deadline
+import swaydb.Bag.Less
 import swaydb.java.data.util.Java._
+import swaydb.java.{Deadline, MultiMap, Stream}
 import swaydb.{Apply, Bag}
 
-case class Schema[M, K, V](asScala: swaydb.multimap.Schema[M, K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less]) {
+import scala.compat.java8.DurationConverters._
+import scala.jdk.CollectionConverters._
+
+case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less]) {
 
   def mapId = asScala.mapId
 
   def defaultExpiration: Optional[Deadline] =
     asScala.defaultExpiration.asJava
 
+  /**
+   * Creates new or initialises the existing map.
+   */
+  def init[M2 <: M](mapKey: M2): MultiMap[M2, K, V, F] =
+    MultiMap(asScala.init(mapKey))
+
+  def init[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): MultiMap[M2, K2, V, F] =
+    MultiMap(asScala.init(mapKey, keyType))
+
+  def init[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): MultiMap[M2, K2, V2, F] =
+    MultiMap(asScala.init(mapKey, keyType, valueType))
+
+  /**
+   * Creates new or initialises the existing map.
+   */
+  def init[M2 <: M](mapKey: M2, expireAfter: Duration): MultiMap[M2, K, V, F] =
+    MultiMap(asScala.init(mapKey, expireAfter.toScala))
+
+  def init[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2], expireAfter: Duration): MultiMap[M2, K2, V, F] =
+    MultiMap(asScala.init(mapKey, keyType, expireAfter.toScala))
+
+  def init[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M2, K2, V2, F] =
+    MultiMap(asScala.init(mapKey, keyType, valueType, expireAfter.toScala))
+
+
+  /**
+   * Clears existing entries before creating the Map.
+   *
+   * @note Put has slower immediate write performance for preceding key-value entries.
+   *       Always use [[init]] if clearing existing entries is not required.
+   */
+  def replace[M2 <: M](mapKey: M2): MultiMap[M2, K, V, F] =
+    MultiMap(asScala.replace(mapKey))
+
+  def replace[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): MultiMap[M2, K2, V, F] =
+    MultiMap(asScala.replace(mapKey, keyType))
+
+  def replace[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): MultiMap[M2, K2, V2, F] =
+    MultiMap(asScala.replace(mapKey, keyType, valueType))
+
+
+  /**
+   * Clears existing entries before creating the Map.
+   *
+   * @note Put has slower immediate write performance for preceding key-value entries.
+   *       Always use [[init]] if clearing existing entries is not required.
+   */
+  def replace[M2 <: M](mapKey: M2, expireAfter: Duration): MultiMap[M2, K, V, F] =
+    MultiMap(asScala.replace(mapKey, expireAfter.toScala))
+
+  def replace[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2], expireAfter: Duration): MultiMap[M2, K2, V, F] =
+    MultiMap(asScala.replace(mapKey, keyType, expireAfter.toScala))
+
+  def replace[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M2, K2, V2, F] =
+    MultiMap(asScala.replace(mapKey, keyType, valueType, expireAfter.toScala))
+
+  /**
+   * @return false if the map does not exist else true on successful remove.
+   */
+  def remove(mapKey: M): Boolean =
+    asScala.remove(mapKey)
+
+  /**
+   * Returns the child Map
+   */
+  def get[M2 <: M](mapKey: M2): Optional[MultiMap[M2, K, V, F]] =
+    asScala.get(mapKey) match {
+      case Some(map) =>
+        Optional.of(MultiMap(map))
+
+      case None =>
+        Optional.empty()
+    }
+
+  def get[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): Optional[MultiMap[M2, K2, V, F]] =
+    asScala.get(mapKey, keyType) match {
+      case Some(map) =>
+        Optional.of(MultiMap(map))
+
+      case None =>
+        Optional.empty()
+    }
+
+  def get[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): Optional[MultiMap[M2, K2, V2, F]] =
+    asScala.get(mapKey, keyType, valueType) match {
+      case Some(map) =>
+        Optional.of(MultiMap(map))
+
+      case None =>
+        Optional.empty()
+    }
+
+  /**
+   * Keys of all child Maps.
+   */
+  def keys: Stream[M] =
+    swaydb.java.Stream.fromScala(asScala.keys)
+
+  def stream: Stream[MultiMap[M, K, V, F]] = {
+    val multiMaps: swaydb.Stream[MultiMap[M, K, V, F], Less] =
+      asScala
+        .stream
+        .collect {
+          case Some(map) =>
+            MultiMap[M, K, V, F](map)
+        }
+
+    swaydb.java.Stream.fromScala(multiMaps)
+  }
+
+  def isEmpty: Boolean =
+    asScala.isEmpty
+
+  def nonEmpty: Boolean =
+    asScala.nonEmpty
 }

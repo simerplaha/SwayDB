@@ -53,7 +53,7 @@ case class MultiMap[M, K, V, F](private val _asScala: swaydb.MultiMap[M, K, V, _
   def path: Path =
     asScala.path
 
-  def schema: Schema[M, K, V] =
+  def schema: Schema[M, K, V, F] =
     Schema(asScala.schema)
 
   def put(key: K, value: V): swaydb.OK =
