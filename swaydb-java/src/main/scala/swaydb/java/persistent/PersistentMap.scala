@@ -320,7 +320,7 @@ object PersistentMap {
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]]
+      functionClassTag = ClassTag.Any
     )
 
   def functionsOff[K, V](dir: Path,
@@ -330,7 +330,7 @@ object PersistentMap {
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
+      functionClassTag = ClassTag.Nothing
     )
 
 }

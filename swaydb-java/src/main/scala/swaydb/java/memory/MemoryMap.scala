@@ -186,7 +186,7 @@ object MemoryMap {
     new Config(
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag(classOf[swaydb.PureFunction[K, V, Apply.Map[V]]])
+      functionClassTag = ClassTag.Any
     )
 
   def functionsOff[K, V](keySerializer: JavaSerializer[K],

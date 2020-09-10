@@ -295,7 +295,7 @@ object EventuallyPersistentMultiMap {
       mapKeySerializer = SerializerConverter.toScala(mapKeySerializer),
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]]
+      functionClassTag = ClassTag.Any
     )
 
   def functionsOff[M, K, V](dir: Path,
@@ -307,6 +307,6 @@ object EventuallyPersistentMultiMap {
       mapKeySerializer = SerializerConverter.toScala(mapKeySerializer),
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
+      functionClassTag = ClassTag.Nothing
     )
 }

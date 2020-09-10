@@ -287,7 +287,7 @@ object EventuallyPersistentSet {
     new Config(
       dir = dir,
       serializer = SerializerConverter.toScala(keySerializer),
-      functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set]])
+      functionClassTag = ClassTag.Any
     )
 
   def functionsOff[A](dir: Path,
@@ -295,6 +295,6 @@ object EventuallyPersistentSet {
     new Config[A, Void](
       dir = dir,
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
+      functionClassTag = ClassTag.Nothing
     )
 }

@@ -182,7 +182,7 @@ object MemorySet {
   def functionsOn[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
     new Config(
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set]])
+      functionClassTag = ClassTag.Any
     )
 
   def functionsOff[A](serializer: JavaSerializer[A]): Config[A, Void] =

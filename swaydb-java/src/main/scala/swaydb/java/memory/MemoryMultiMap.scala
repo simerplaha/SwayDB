@@ -190,7 +190,7 @@ object MemoryMultiMap {
       mapKeySerializer = SerializerConverter.toScala(mapKeySerializer),
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag(classOf[swaydb.PureFunction[K, V, Apply.Map[V]]])
+      functionClassTag = ClassTag.Any
     )
 
   def functionsOff[M, K, V](mapKeySerializer: JavaSerializer[M],
