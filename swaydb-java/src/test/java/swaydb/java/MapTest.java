@@ -104,10 +104,10 @@ abstract class MapTest extends TestBase implements JavaEventually {
     map.put(2, 2);
     map.put(3, 3, Duration.ofSeconds(2));
     //list
-    map.put(Arrays.asList(new KeyVal<>(4, 4), new KeyVal<>(5, 5)));
+    map.put(Arrays.asList(KeyVal.create(4, 4), KeyVal.create(5, 5)));
     //same with iterator
-    map.put(Arrays.asList(new KeyVal<>(6, 6), new KeyVal<>(7, 7)).iterator());
-    map.put(Stream.create(Arrays.asList(new KeyVal<>(8, 8), new KeyVal<>(9, 9))));
+    map.put(Arrays.asList(KeyVal.create(6, 6), KeyVal.create(7, 7)).iterator());
+    map.put(Stream.create(Arrays.asList(KeyVal.create(8, 8), KeyVal.create(9, 9))));
 
     map.commit(Arrays.asList(Prepare.putInMap(10, 10), Prepare.putInMap(11, 11)));
 
@@ -241,12 +241,12 @@ abstract class MapTest extends TestBase implements JavaEventually {
     map.put(2, 2, expireAfter);
 
     //put list and expire list
-    map.put(Arrays.asList(new KeyVal<>(3, 3), new KeyVal<>(4, 4)));
-    map.expire(Arrays.asList(new Pair<>(3, expireAfter), new Pair<>(4, expireAfter)).iterator());
+    map.put(Arrays.asList(KeyVal.create(3, 3), KeyVal.create(4, 4)));
+    map.expire(Arrays.asList(Pair.create(3, expireAfter), Pair.create(4, expireAfter)).iterator());
 
     //put list and expire stream
-    map.put(Arrays.asList(new KeyVal<>(5, 5), new KeyVal<>(6, 6)));
-    map.expire(Stream.create(Arrays.asList(new Pair<>(5, expireAfter), new Pair<>(6, expireAfter))));
+    map.put(Arrays.asList(KeyVal.create(5, 5), KeyVal.create(6, 6)));
+    map.expire(Stream.create(Arrays.asList(Pair.create(5, expireAfter), Pair.create(6, expireAfter))));
 
     map.commit(
       Arrays.asList(

@@ -219,11 +219,11 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     //add list and expire list
     set.add(Arrays.asList(3, 4));
-    set.expire(Arrays.asList(new Pair<>(3, expireAfter), new Pair<>(4, expireAfter)).iterator());
+    set.expire(Arrays.asList(Pair.create(3, expireAfter), Pair.create(4, expireAfter)).iterator());
 
     //add list and expire stream
     set.add(Arrays.asList(5, 6));
-    set.expire(Stream.create(Arrays.asList(new Pair<>(5, expireAfter), new Pair<>(6, expireAfter))));
+    set.expire(Stream.create(Arrays.asList(Pair.create(5, expireAfter), Pair.create(6, expireAfter))));
 
     set.commit(
       Arrays.asList(
