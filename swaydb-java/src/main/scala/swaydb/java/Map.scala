@@ -140,10 +140,13 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     asScala.getKeyValue(key).asJavaMap(KeyVal(_))
 
   def getKeyDeadline(key: K): Optional[Pair[K, Optional[Deadline]]] =
-    asScala.getKeyDeadline(key).map {
-      case (key, deadline) =>
-        Pair(key, deadline.asJava)
-    }.asJava
+    (asScala.getKeyDeadline(key): Option[(K, Option[duration.Deadline])]) match {
+      case Some((key, deadline)) =>
+        Optional.of(Pair(key, deadline.asJava))
+
+      case None =>
+        Optional.empty()
+    }
 
   def getKeyValueDeadline(key: K): Optional[Pair[KeyVal[K, V], Optional[Deadline]]] =
     (asScala.getKeyValueDeadline(key, Bag.less): Option[((K, V), Option[duration.Deadline])]) match {

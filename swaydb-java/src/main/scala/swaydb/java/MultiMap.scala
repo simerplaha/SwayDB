@@ -35,7 +35,7 @@ import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 import swaydb.java.multimap.Schema
 import swaydb.multimap.Transaction
-import swaydb.{Bag, KeyVal, Pair, Prepare}
+import swaydb.{Bag, KeyVal, OK, Pair, Prepare}
 
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration
@@ -135,6 +135,9 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
       .asJava
       .asInstanceOf[lang.Iterable[Transaction[M, K, V, F]]]
 
+  def commitTransaction(transaction: java.lang.Iterable[Transaction[M, K, V, F]]): OK =
+    asScala.commit(transaction.asScala)
+
   def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): swaydb.OK =
     asScala.commit(prepare.asScala)
 
@@ -151,10 +154,13 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     asScala.getKeyValue(key).asJavaMap(KeyVal(_))
 
   def getKeyDeadline(key: K): Optional[Pair[K, Optional[Deadline]]] =
-    asScala.getKeyDeadline(key).map {
-      case (key, deadline) =>
-        Pair(key, deadline.asJava)
-    }.asJava
+    (asScala.getKeyDeadline(key): Option[(K, Option[duration.Deadline])]) match {
+      case Some((key, deadline)) =>
+        Optional.of(Pair(key, deadline.asJava))
+
+      case None =>
+        Optional.empty()
+    }
 
   def getKeyValueDeadline(key: K): Optional[Pair[KeyVal[K, V], Optional[Deadline]]] =
     (asScala.getKeyValueDeadline(key, Bag.less): Option[((K, V), Option[duration.Deadline])]) match {
