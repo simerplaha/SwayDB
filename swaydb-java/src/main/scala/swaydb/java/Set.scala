@@ -25,8 +25,8 @@
 package swaydb.java
 
 import java.nio.file.Path
-import java.{lang, util}
 import java.util.Optional
+import java.{lang, util}
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
@@ -38,7 +38,6 @@ import swaydb.{Apply, Bag, Pair}
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
-import scala.collection.compat._
 
 /**
  * Documentation - http://swaydb.io/
@@ -82,7 +81,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
     asScala.add(elems.asScala)
 
   def add(elems: java.util.Iterator[A]): swaydb.OK =
-    asScala.add(elems.asScala.to(Iterable))
+    asScala.add(elems.asScala)
 
   def remove(elem: A): swaydb.OK =
     asScala.remove(elem)
@@ -97,7 +96,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
     asScala.remove(elems.asScala)
 
   def remove(elems: java.util.Iterator[A]): swaydb.OK =
-    asScala.remove(elems.asScala.to(Iterable))
+    asScala.remove(elems.asScala)
 
   def expire(elem: A, after: java.time.Duration): swaydb.OK =
     asScala.expire(elem, after.toScala)
@@ -126,7 +125,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
       elems.asScala map {
         pair =>
           (pair.left, pair.right.toScala.fromNow)
-      } to Iterable
+      }
     }
 
   def clear(): swaydb.OK =

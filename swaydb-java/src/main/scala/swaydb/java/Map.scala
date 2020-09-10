@@ -36,7 +36,6 @@ import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 import swaydb.{Apply, Bag, KeyVal, Pair}
 
-import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration
@@ -68,7 +67,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
     asScala.put(keyValues.asScala.map(_.toTuple))
 
   def put(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
-    asScala.put(keyValues.asScala.map(_.toTuple).to(Iterable))
+    asScala.put(keyValues.asScala.map(_.toTuple))
 
   def remove(key: K): swaydb.OK =
     asScala.remove(key)
@@ -83,7 +82,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
     asScala.remove(keys.asScala)
 
   def remove(keys: java.util.Iterator[K]): swaydb.OK =
-    asScala.remove(keys.asScala.to(Iterable))
+    asScala.remove(keys.asScala)
 
   def expire(key: K, after: java.time.Duration): swaydb.OK =
     asScala.expire(key, after.toScala)
@@ -103,7 +102,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
     asScala.expire(keys.asScala.map(_.toScala))
 
   def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): swaydb.OK =
-    asScala.expire(keys.asScala.map(_.asScalaDeadline).to(Iterable))
+    asScala.expire(keys.asScala.map(_.asScalaDeadline))
 
   def expiration(key: K): Optional[Deadline] =
     asScala.expiration(key).asJavaMap(_.asJava)
@@ -121,7 +120,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
     asScala.update(keyValues.asScala.map(_.toTuple))
 
   def update(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
-    asScala.update(keyValues.asScala.map(_.toTuple).to(Iterable))
+    asScala.update(keyValues.asScala.map(_.toTuple))
 
   def clearKeyValues(): swaydb.OK =
     asScala.clearKeyValues()

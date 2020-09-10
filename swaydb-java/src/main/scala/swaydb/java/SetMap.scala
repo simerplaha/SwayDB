@@ -35,7 +35,6 @@ import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 import swaydb.{Bag, KeyVal}
 
-import scala.collection.compat._
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 
@@ -60,7 +59,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) {
     asScala.put(keyValues.asScala.map(_.toTuple))
 
   def put(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
-    asScala.put(keyValues.asScala.map(_.toTuple).to(Iterable))
+    asScala.put(keyValues.asScala.map(_.toTuple))
 
   def remove(key: K): swaydb.OK =
     asScala.remove(key)
@@ -72,7 +71,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) {
     asScala.remove(keys.asScala)
 
   def remove(keys: java.util.Iterator[K]): swaydb.OK =
-    asScala.remove(keys.asScala.to(Iterable))
+    asScala.remove(keys.asScala)
 
   def expire(key: K, after: java.time.Duration): swaydb.OK =
     asScala.expire(key, after.toScala)

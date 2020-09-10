@@ -44,11 +44,11 @@ import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
 
+import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters.{ScalaDurationOps, _}
 import scala.reflect.ClassTag
 
 object EventuallyPersistentSet {
