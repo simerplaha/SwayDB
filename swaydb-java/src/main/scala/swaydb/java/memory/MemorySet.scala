@@ -24,6 +24,7 @@
 
 package swaydb.java.memory
 
+import java.time.Duration
 import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
@@ -45,6 +46,7 @@ import swaydb.{Apply, Bag}
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.jdk.DurationConverters.{ScalaDurationOps, _}
 import scala.reflect.ClassTag
 
 object MemorySet {
@@ -53,6 +55,7 @@ object MemorySet {
                            private var minSegmentSize: Int = 2.mb,
                            private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                            private var deleteSegmentsEventually: Boolean = true,
+                           private var shutdownTimeout: Duration = 30.seconds.toJava,
                            private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -81,6 +84,11 @@ object MemorySet {
 
     def setDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
       this.deleteSegmentsEventually = deleteSegmentsEventually
+      this
+    }
+
+    def setShutdownTimeout(duration: Duration) = {
+      this.shutdownTimeout = duration
       this
     }
 
@@ -160,6 +168,7 @@ object MemorySet {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
+          shutdownTimeout = shutdownTimeout.toScala,
           acceleration = acceleration.asScala,
           levelZeroThrottle = levelZeroThrottle.asScala,
           lastLevelThrottle = lastLevelThrottle.asScala,
