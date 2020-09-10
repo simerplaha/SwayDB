@@ -331,7 +331,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   /**
    * APIs for managing child map of this [[MultiMap]].
    */
-  val schema: Schema[M, K, V, F, BAG] =
+  def schema: Schema[M, K, V, F, BAG] =
     new Schema(
       innerMap = innerMap,
       mapId = mapId,

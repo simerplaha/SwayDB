@@ -30,6 +30,8 @@ import java.util.Optional
 import swaydb.Apply
 import swaydb.data.util.Java._
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
 
 object Prepare {
@@ -90,6 +92,33 @@ object Prepare {
 
   def applyFunctionToSet[T, F](fromElem: T, toElem: T, function: F): ApplyFunctionToSet[T, F] =
     ApplyFunctionToSet[T, F](fromElem, Optional.of(toElem), function)
+
+  @inline private def add[K, V, F](prepare: Prepare.Map[K, V, F], buffer: ListBuffer[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]]) = {
+    val javaPrepare = prepare.asInstanceOf[Prepare.Map[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]]]
+    buffer += Prepare.toScala(javaPrepare)
+  }
+
+  def toScalaFromIterable[K, V, F](prepare: Iterable[Prepare.Map[K, V, F]]): ListBuffer[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]] =
+    prepare
+      .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]]) {
+        case (scala, java) =>
+          add(java, scala)
+      }
+
+  def toScalaFromIterator[K, V, F](prepare: Iterator[Prepare.Map[K, V, F]]): ListBuffer[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]] =
+    prepare
+      .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]]) {
+        case (scala, java) =>
+          add(java, scala)
+      }
+
+  def toScalaFromStream[K, V, F](prepare: Stream[Prepare.Map[K, V, F]]): ListBuffer[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]] =
+    prepare
+      .asScala
+      .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]]) {
+        case (scala, java) =>
+          add(java, scala)
+      }
 
   /**
    * Convert Prepare statements created in Java to of the type acceptable in Scala.
