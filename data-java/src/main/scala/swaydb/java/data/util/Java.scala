@@ -24,7 +24,7 @@
 
 package swaydb.java.data.util
 
-import java.util.Comparator
+import java.util.{Comparator, Optional}
 
 import swaydb.java.data.slice.ByteSlice
 
@@ -38,5 +38,16 @@ object Java {
   implicit class DeadlineConverter(deadline: scala.concurrent.duration.Deadline) {
     @inline final def asJava: swaydb.java.Deadline =
       new swaydb.java.Deadline(deadline)
+  }
+
+  implicit class OptionDeadlineConverter(deadline: Option[scala.concurrent.duration.Deadline]) {
+    @inline final def asJava: Optional[swaydb.java.Deadline] =
+      deadline match {
+        case Some(scalaDeadline) =>
+          Optional.of(scalaDeadline.asJava)
+
+        case None =>
+          Optional.empty()
+      }
   }
 }

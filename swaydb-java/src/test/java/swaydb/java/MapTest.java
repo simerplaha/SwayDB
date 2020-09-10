@@ -398,7 +398,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     assertEquals(100000, map.stream().size());
 
-    map.clear();
+    map.clearKeyValues();
 
     assertEquals(0, map.stream().size());
     assertTrue(map.isEmpty());

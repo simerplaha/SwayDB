@@ -167,15 +167,6 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
     asScala commit prepareStatements
   }
 
-  def clearAppliedFunctions(): lang.Iterable[String] =
-    asScala.clearAppliedFunctions().asJava
-
-  def clearAppliedAndRegisteredFunctions(): lang.Iterable[String] =
-    asScala.clearAppliedAndRegisteredFunctions().asJava
-
-  def isFunctionApplied(function: F): Boolean =
-    asScala.isFunctionApplied(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
-
   def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter
 
@@ -196,6 +187,15 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
 
   def headOptional: Optional[A] =
     asScala.headOption.asJava
+
+  def clearAppliedFunctions(): lang.Iterable[String] =
+    asScala.clearAppliedFunctions().asJava
+
+  def clearAppliedAndRegisteredFunctions(): lang.Iterable[String] =
+    asScala.clearAppliedAndRegisteredFunctions().asJava
+
+  def isFunctionApplied(function: F): Boolean =
+    asScala.isFunctionApplied(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
 
   def stream: Source[A, A] =
     new Source(asScala.stream)
