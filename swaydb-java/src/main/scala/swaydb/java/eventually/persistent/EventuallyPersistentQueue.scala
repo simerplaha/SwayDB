@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutorService
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
-import swaydb.core.util.Eithers
 import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._

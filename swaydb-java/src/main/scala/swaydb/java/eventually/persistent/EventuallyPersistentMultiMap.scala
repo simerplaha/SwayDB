@@ -84,12 +84,12 @@ object EventuallyPersistentMultiMap {
                                  private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
                                  private var typedComparator: KeyComparator[K] = null,
                                  private var compactionEC: Option[ExecutionContext] = None,
-                                 private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map))(implicit functionClassTag: ClassTag[F],
-                                                                                                                                  keySerializer: Serializer[K],
-                                                                                                                                  mapKeySerializer: Serializer[M],
-                                                                                                                                  valueSerializer: Serializer[V],
-                                                                                                                                  functions: swaydb.MultiMap.Functions[M, K, V, F],
-                                                                                                                                  evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
+                                 private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap))(implicit functionClassTag: ClassTag[F],
+                                                                                                                                       keySerializer: Serializer[K],
+                                                                                                                                       mapKeySerializer: Serializer[M],
+                                                                                                                                       valueSerializer: Serializer[V],
+                                                                                                                                       functions: swaydb.MultiMap.Functions[M, K, V, F],
+                                                                                                                                       evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
