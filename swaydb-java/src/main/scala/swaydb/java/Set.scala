@@ -45,7 +45,6 @@ import scala.jdk.CollectionConverters._
 case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
-  implicit val bag = Bag.less
 
   val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set], Bag.Less] =
     _asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set], Bag.Less]]

@@ -46,8 +46,6 @@ import scala.jdk.CollectionConverters._
  */
 case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
 
-  implicit val bag = Bag.less
-
   val asScala: swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less] =
     _asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less]]
 
@@ -174,7 +172,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
     }.asJava
 
   def getKeyValueDeadline(key: K): Optional[Pair[Pair[K, V], Optional[Deadline]]] =
-    (asScala.getKeyValueDeadline(key, bag): Option[((K, V), Option[duration.Deadline])]) match {
+    (asScala.getKeyValueDeadline(key, Bag.less): Option[((K, V), Option[duration.Deadline])]) match {
       case Some(((key, value), deadline)) =>
         Optional.of(Pair(Pair(key, value), deadline.asJava))
 
