@@ -43,9 +43,7 @@ import scala.concurrent.duration
 import scala.jdk.CollectionConverters._
 
 /**
- * IOMap database API.
- *
- * For documentation check - http://swaydb.io/bag/
+ * Documentation - http://swaydb.io/
  */
 case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
 

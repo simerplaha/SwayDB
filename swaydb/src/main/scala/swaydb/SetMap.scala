@@ -175,6 +175,9 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
   def expire(key: K, at: Deadline): BAG[OK] =
     set.expire((key, nullValue), at)
 
+  def expiration(key: K): BAG[Option[Deadline]] =
+    set.expiration((key, nullValue))
+
   def clearKeyValues(): BAG[OK] =
     set.clear()
 
@@ -209,9 +212,6 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
 
   def sizeOfSegments: Long =
     set.sizeOfSegments
-
-  def expiration(key: K): BAG[Option[Deadline]] =
-    set.expiration((key, nullValue))
 
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))

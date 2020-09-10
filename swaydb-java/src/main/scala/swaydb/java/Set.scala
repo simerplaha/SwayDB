@@ -41,9 +41,7 @@ import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
 /**
- * Set database API.
- *
- * For documentation check - http://swaydb.io/
+ * Documentation - http://swaydb.io/
  */
 case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
 
