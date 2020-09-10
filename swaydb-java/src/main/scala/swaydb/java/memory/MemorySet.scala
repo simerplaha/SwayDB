@@ -41,7 +41,7 @@ import swaydb.java.data.slice.{Slice => JavaSlice}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag}
+import swaydb.{Apply, Bag, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
@@ -63,9 +63,10 @@ object MemorySet {
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[A] = null,
-                           private var compactionEC: Option[ExecutionContext] = None,
-                           serializer: Serializer[A],
-                           functionClassTag: ClassTag[_]) {
+                           private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
+                                                                                      serializer: Serializer[A],
+                                                                                      functions: swaydb.Set.Functions[A, F],
+                                                                                      evd: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -132,16 +133,13 @@ object MemorySet {
       this
     }
 
-    private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]()(serializer)
-
     def registerFunctions(functions: F*): Config[A, F] = {
       functions.foreach(registerFunction(_))
       this
     }
 
     def registerFunction(function: F): Config[A, F] = {
-      val scalaFunction = PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]])
-      functions.register(scalaFunction)
+      functions.register(function)
       this
     }
 
@@ -156,7 +154,7 @@ object MemorySet {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
       val scalaMap =
-        swaydb.memory.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set], Bag.Less](
+        swaydb.memory.Set[A, F, Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -168,9 +166,9 @@ object MemorySet {
           lastLevelThrottle = lastLevelThrottle.asScala,
           threadStateCache = threadStateCache
         )(serializer = serializer,
-          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
+          functionClassTag = functionClassTag,
           bag = Bag.less,
-          functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
+          functions = functions,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
@@ -179,15 +177,21 @@ object MemorySet {
     }
   }
 
-  def functionsOn[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
-    new Config(
-      serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Any
-    )
+  def functionsOn[A](serializer: JavaSerializer[A]): Config[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] = {
 
-  def functionsOff[A](serializer: JavaSerializer[A]): Config[A, Void] =
-    new Config[A, Void](
-      serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Nothing
-    )
+    implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
+    implicit val functions = swaydb.Set.Functions[A, swaydb.PureFunction.Set[A]]()
+    val config: Config[A, PureFunction.Set[A]] = new Config()
+
+    config.asInstanceOf[Config[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
+  }
+
+  def functionsOff[A](serializer: JavaSerializer[A]): Config[A, Void] = {
+
+    implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
+    implicit val functions = swaydb.Set.Functions[A, Void]()
+    implicit val evd: Void <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] = null
+
+    new Config()
+  }
 }

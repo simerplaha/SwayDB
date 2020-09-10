@@ -27,7 +27,7 @@ package swaydb.java
 import java.time.Duration
 import java.util.Optional
 
-import swaydb.{KeyVal, OK, Pair}
+import swaydb.{KeyVal, OK, Pair, Prepare}
 
 /**
  * Base trait for a basic SwayDB Map type.
@@ -64,9 +64,9 @@ trait MapT[K, V, F] extends SetMapT[K, V] { self =>
 
   def applyFunction(from: K, to: K, function: F): OK
 
-  def commit[P <: Prepare.Map[K, V, F]](prepare: Stream[P]): OK
+  def commit(prepare: Stream[Prepare[K, V, F]]): OK
 
-  def commit[P <: Prepare.Map[K, V, F]](prepare: java.lang.Iterable[P]): OK
+  def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): OK
 
   def getKeyDeadline(key: K): Optional[Pair[K, Optional[Deadline]]]
 

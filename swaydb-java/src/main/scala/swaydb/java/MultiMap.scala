@@ -31,12 +31,11 @@ import java.{lang, util}
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.Slice
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 import swaydb.java.multimap.Schema
 import swaydb.multimap.Transaction
-import swaydb.{Apply, Bag, KeyVal, Pair}
+import swaydb.{Bag, KeyVal, Pair, Prepare}
 
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration
@@ -45,10 +44,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class MultiMap[M, K, V, F](private val _asScala: swaydb.MultiMap[M, K, V, _, Bag.Less]) extends MapT[K, V, F] {
-
-  val asScala: swaydb.MultiMap[M, K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less] =
-    _asScala.asInstanceOf[swaydb.MultiMap[M, K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less]]
+case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(implicit evd: F <:< swaydb.PureFunction.Map[K, V]) extends MapT[K, V, F] {
 
   def path: Path =
     asScala.path
@@ -128,25 +124,22 @@ case class MultiMap[M, K, V, F](private val _asScala: swaydb.MultiMap[M, K, V, _
     asScala.clearKeyValues()
 
   def applyFunction(key: K, function: F): swaydb.OK =
-    asScala.applyFunction(key, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
+    asScala.applyFunction(key, function)
 
   def applyFunction(from: K, to: K, function: F): swaydb.OK =
-    asScala.applyFunction(from, to, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
+    asScala.applyFunction(from, to, function)
 
-  def toTransaction[P <: Prepare.Map[K, V, F]](prepare: java.lang.Iterable[P]): java.lang.Iterable[Transaction[M, K, V, F]] =
+  def toTransaction[P <: Prepare[K, V, F]](prepare: java.lang.Iterable[P]): java.lang.Iterable[Transaction[M, K, V, F]] =
     asScala
-      .toTransaction(Prepare.toScalaFromIterable(prepare.asScala))
+      .toTransaction(prepare.asScala)
       .asJava
       .asInstanceOf[lang.Iterable[Transaction[M, K, V, F]]]
 
-  def commit[P <: Prepare.Map[K, V, F]](prepare: java.lang.Iterable[P]): swaydb.OK =
-    commit[P](prepare.iterator())
+  def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): swaydb.OK =
+    asScala.commit(prepare.asScala)
 
-  def commit[P <: Prepare.Map[K, V, F]](prepare: Stream[P]): swaydb.OK =
-    asScala.commit(Prepare.toScalaFromStream[K, V, F](prepare.asInstanceOf[Stream[Prepare.Map[K, V, F]]]))
-
-  def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.Iterator[P]): swaydb.OK =
-    asScala commit Prepare.toScalaFromIterator(prepare.asScala)
+  def commit(prepare: Stream[Prepare[K, V, F]]): swaydb.OK =
+    asScala.commit(prepare.asScala)
 
   def get(key: K): Optional[V] =
     asScala.get(key).asJava
@@ -178,11 +171,8 @@ case class MultiMap[M, K, V, F](private val _asScala: swaydb.MultiMap[M, K, V, _
   def mightContain(key: K): java.lang.Boolean =
     asScala.mightContain(key)
 
-  def mightContainFunction(function: F): java.lang.Boolean = {
-    val functionId = function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]].id
-    val functionBytes = Slice.writeString(functionId)
-    asScala.innerMap.core.mightContainFunction(functionBytes)
-  }
+  def mightContainFunction(function: F): java.lang.Boolean =
+    asScala.mightContainFunction(function)
 
   def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter
@@ -233,7 +223,7 @@ case class MultiMap[M, K, V, F](private val _asScala: swaydb.MultiMap[M, K, V, _
     asScala.clearAppliedAndRegisteredFunctions().asJava
 
   def isFunctionApplied(function: F): java.lang.Boolean =
-    asScala.isFunctionApplied(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
+    asScala.isFunctionApplied(function)
 
   def asJava: util.Map[K, V] =
     asScala.asScala.asJava

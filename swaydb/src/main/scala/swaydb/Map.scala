@@ -278,7 +278,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def keys: Set[K, F, BAG] =
-    Set[K, F, BAG](core)(keySerializer, bag)
+    Set[K, F, BAG](core)
 
   private[swaydb] def keySet: mutable.Set[K] =
     keys.asScala

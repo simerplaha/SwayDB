@@ -30,24 +30,17 @@ import java.{lang, util}
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.Slice
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
-import swaydb.{Apply, Bag, Pair}
+import swaydb.{Apply, Bag, Pair, Prepare}
 
-import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 
 /**
  * Documentation - http://swaydb.io/
  */
-case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
-
-  implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
-
-  val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set], Bag.Less] =
-    _asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set], Bag.Less]]
+case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
 
   def path: Path =
     asScala.path
@@ -61,11 +54,8 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def mightContain(elem: A): Boolean =
     asScala.mightContain(elem)
 
-  def mightContainFunction(function: F): Boolean = {
-    val functionId = function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]].id
-    val functionBytes = Slice.writeString(functionId)
-    asScala.core.mightContainFunction(functionBytes)
-  }
+  def mightContainFunction(function: F): Boolean =
+    asScala.mightContainFunction(function)
 
   def add(elem: A): swaydb.OK =
     asScala add elem
@@ -131,37 +121,16 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
     asScala.clear()
 
   def applyFunction(from: A, to: A, function: F): swaydb.OK =
-    asScala.applyFunction(from, to, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
+    asScala.applyFunction(from, to, function)
 
   def applyFunction(elem: A, function: F): swaydb.OK =
-    asScala.applyFunction(elem, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
+    asScala.applyFunction(elem, function)
 
-  def commit[P <: Prepare.Set[A, F]](prepare: java.lang.Iterable[P]): swaydb.OK =
-    commit[P](prepare.iterator())
+  def commit(prepare: java.lang.Iterable[Prepare[A, Void, F]]): swaydb.OK =
+    asScala.commit(prepare.asScala.asInstanceOf[Iterable[Prepare[A, Nothing, F]]])
 
-  def commit[P <: Prepare.Set[A, F]](prepare: Stream[P]): swaydb.OK =
-    asScala.commit {
-      prepare
-        .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]]) {
-          case (scala, java) =>
-            val javaFunk = java.asInstanceOf[Prepare.Set[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]]
-            scala += Prepare.toScala(javaFunk)
-        }
-    }
-
-  def commit[P <: Prepare.Set[A, F]](prepare: java.util.Iterator[P]): swaydb.OK = {
-    val prepareStatements =
-      prepare
-        .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]]) {
-          case (scala, java) =>
-            val javaFunk = java.asInstanceOf[Prepare.Set[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]]
-            scala += Prepare.toScala(javaFunk)
-        }
-
-    asScala commit prepareStatements
-  }
+  def commit(prepare: Stream[Prepare[A, Void, F]]): swaydb.OK =
+    asScala.commit(prepare.asInstanceOf[Stream[Prepare[A, Nothing, F]]].asScala)
 
   def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter
@@ -191,7 +160,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
     asScala.clearAppliedAndRegisteredFunctions().asJava
 
   def isFunctionApplied(function: F): Boolean =
-    asScala.isFunctionApplied(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
+    asScala.isFunctionApplied(function)
 
   def stream: Source[A, A] =
     new Source(asScala.stream)

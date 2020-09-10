@@ -44,7 +44,7 @@ import swaydb.java.data.slice.{Slice => JavaSlice}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag}
+import swaydb.{Apply, Bag, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
@@ -82,9 +82,10 @@ object EventuallyPersistentSet {
                            private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[A] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
-                           private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set),
-                           serializer: Serializer[A],
-                           functionClassTag: ClassTag[_]) {
+                           private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set))(implicit functionClassTag: ClassTag[F],
+                                                                                                                            serializer: Serializer[A],
+                                                                                                                            functions: swaydb.Set.Functions[A, F],
+                                                                                                                            evd: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -221,15 +222,13 @@ object EventuallyPersistentSet {
       this
     }
 
-    private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]]()(serializer)
-
     def registerFunctions(functions: F*): Config[A, F] = {
       functions.foreach(registerFunction(_))
       this
     }
 
     def registerFunction(function: F): Config[A, F] = {
-      functions.register(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
+      functions.register(function)
       this
     }
 
@@ -244,7 +243,7 @@ object EventuallyPersistentSet {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
       val scalaMap =
-        swaydb.eventually.persistent.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set], Bag.Less](
+        swaydb.eventually.persistent.Set[A, F, Bag.Less](
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -270,9 +269,9 @@ object EventuallyPersistentSet {
           memoryCache = memoryCache,
           threadStateCache = threadStateCache
         )(serializer = serializer,
-          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
+          functionClassTag = functionClassTag,
           bag = Bag.less,
-          functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set]]],
+          functions = functions,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
           buildValidator = buildValidator
@@ -283,18 +282,22 @@ object EventuallyPersistentSet {
   }
 
   def functionsOn[A](dir: Path,
-                     keySerializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
-    new Config(
-      dir = dir,
-      serializer = SerializerConverter.toScala(keySerializer),
-      functionClassTag = ClassTag.Any
-    )
+                     serializer: JavaSerializer[A]): Config[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] = {
+
+    implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
+    implicit val functions = swaydb.Set.Functions[A, swaydb.PureFunction.Set[A]]()
+    val config: Config[A, PureFunction.Set[A]] = new Config(dir)
+
+    config.asInstanceOf[Config[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
+  }
 
   def functionsOff[A](dir: Path,
-                      serializer: JavaSerializer[A]): Config[A, Void] =
-    new Config[A, Void](
-      dir = dir,
-      serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Nothing
-    )
+                      serializer: JavaSerializer[A]): Config[A, Void] = {
+
+    implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
+    implicit val functions = swaydb.Set.Functions[A, Void]()
+    implicit val evd: Void <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] = null
+
+    new Config(dir)
+  }
 }

@@ -41,9 +41,8 @@ import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java.data.slice.{Slice => JavaSlice}
-import swaydb.java.serializers.{Serializer => JavaSerializer}
-import swaydb.java.serializers.SerializerConverter
-import swaydb.java.{KeyComparator, KeyOrderConverter, PureFunction, Return}
+import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
+import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
 
@@ -83,10 +82,11 @@ object EventuallyPersistentMap {
                               private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
                               private var typedComparator: KeyComparator[K] = null,
                               private var compactionEC: Option[ExecutionContext] = None,
-                              private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map),
-                              keySerializer: Serializer[K],
-                              valueSerializer: Serializer[V],
-                              functionClassTag: ClassTag[_]) {
+                              private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map))(implicit functionClassTag: ClassTag[F],
+                                                                                                                               keySerializer: Serializer[K],
+                                                                                                                               valueSerializer: Serializer[V],
+                                                                                                                               functions: swaydb.Map.Functions[K, V, F],
+                                                                                                                               evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -158,13 +158,13 @@ object EventuallyPersistentMap {
       this
     }
 
-    def setPersistentLevelSortedKeyIndex(persitentLevelSortedKeyIndex: SortedKeyIndex) = {
-      this.persistentLevelSortedKeyIndex = persitentLevelSortedKeyIndex
+    def setPersistentLevelSortedKeyIndex(persistentLevelSortedKeyIndex: SortedKeyIndex) = {
+      this.persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex
       this
     }
 
-    def setPersistentLevelRandomKeyIndex(persitentLevelRandomKeyIndex: RandomKeyIndex) = {
-      this.persistentLevelRandomKeyIndex = persitentLevelRandomKeyIndex
+    def setPersistentLevelRandomKeyIndex(persistentLevelRandomKeyIndex: RandomKeyIndex) = {
+      this.persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex
       this
     }
 
@@ -218,7 +218,6 @@ object EventuallyPersistentMap {
       this
     }
 
-    private val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]()(keySerializer, valueSerializer)
 
     def registerFunctions(functions: F*): Config[K, V, F] = {
       functions.foreach(registerFunction(_))
@@ -226,7 +225,7 @@ object EventuallyPersistentMap {
     }
 
     def registerFunction(function: F): Config[K, V, F] = {
-      functions.register(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
+      functions.register(function)
       this
     }
 
@@ -246,7 +245,7 @@ object EventuallyPersistentMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.eventually.persistent.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less](
+        swaydb.eventually.persistent.Map[K, V, F, Bag.Less](
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -274,7 +273,7 @@ object EventuallyPersistentMap {
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
           functions = functions,
-          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]],
+          functionClassTag = functionClassTag,
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
@@ -287,21 +286,22 @@ object EventuallyPersistentMap {
 
   def functionsOn[K, V](dir: Path,
                         keySerializer: JavaSerializer[K],
-                        valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] =
-    new Config(
-      dir = dir,
-      keySerializer = SerializerConverter.toScala(keySerializer),
-      valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any
-    )
+                        valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]] = {
+
+    implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
+    implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
+    implicit val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction.Map[K, V]]()
+
+    new Config(dir = dir)
+  }
 
   def functionsOff[K, V](dir: Path,
                          keySerializer: JavaSerializer[K],
-                         valueSerializer: JavaSerializer[V]): Config[K, V, Void] =
-    new Config[K, V, Void](
-      dir = dir,
-      keySerializer = SerializerConverter.toScala(keySerializer),
-      valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Nothing
-    )
+                         valueSerializer: JavaSerializer[V]): Config[K, V, Void] = {
+    implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
+    implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
+    implicit val evidence: Void <:< swaydb.PureFunction[K, V, Apply.Map[V]] = null
+
+    new Config[K, V, Void](dir = dir)
+  }
 }

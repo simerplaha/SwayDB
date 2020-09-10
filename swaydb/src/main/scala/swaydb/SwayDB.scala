@@ -76,7 +76,7 @@ object SwayDB extends LazyLogging {
                                                      buildValidator: BuildValidator,
                                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
-      enableTimer = functionClassTag != ClassTag.Nothing,
+      enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache,
@@ -99,7 +99,7 @@ object SwayDB extends LazyLogging {
                                                   buildValidator: BuildValidator,
                                                   functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
-      enableTimer = functionClassTag != ClassTag.Nothing,
+      enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache,
@@ -123,7 +123,7 @@ object SwayDB extends LazyLogging {
                                                  buildValidator: BuildValidator,
                                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
-      enableTimer = functionClassTag != ClassTag.Nothing,
+      enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache,
@@ -146,7 +146,7 @@ object SwayDB extends LazyLogging {
                                               buildValidator: BuildValidator,
                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
-      enableTimer = functionClassTag != ClassTag.Nothing,
+      enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache,

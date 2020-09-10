@@ -24,6 +24,7 @@
 
 package swaydb
 
+import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
@@ -31,6 +32,30 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  */
 sealed trait Apply[+V]
 object Apply {
+
+  def nothingOnMap[V]: Apply.Map[V] =
+    Nothing
+
+  def removeMapEntry[V]: Apply.Map[V] =
+    Remove
+
+  def update[V](value: V): Apply.Update[V] =
+    Apply.Update(value)
+
+  def update[V](value: V, expire: java.time.Duration): Apply.Update[V] =
+    Apply.Update(value, expire.toScala)
+
+  def expireMapEntry[V](expire: java.time.Duration): Apply.Map[V] =
+    Expire(expire.toScala)
+
+  def nothingOnSet[V]: Apply.Set[V] =
+    Nothing.asInstanceOf[Apply.Set[V]]
+
+  def removeSetEntry[V]: Apply.Set[V] =
+    Remove.asInstanceOf[Apply.Set[V]]
+
+  def expireSetEntry[V](expire: java.time.Duration): Apply.Set[V] =
+    Expire(expire.toScala).asInstanceOf[Apply.Set[V]]
 
   /**
    * Function outputs for Map
@@ -72,16 +97,16 @@ object Apply {
   /**
    * Function outputs for Set
    */
-  sealed trait Set extends Apply[Nothing]
+  sealed trait Set[V] extends Apply[V]
 
-  case object Nothing extends Map[Nothing] with Set
-  case object Remove extends Map[Nothing] with Set
+  case object Nothing extends Map[Nothing] with Set[Nothing]
+  case object Remove extends Map[Nothing] with Set[Nothing]
   object Expire {
     def apply(after: FiniteDuration): Expire =
       new Expire(after.fromNow)
   }
 
-  final case class Expire(deadline: Deadline) extends Map[Nothing] with Set
+  final case class Expire(deadline: Deadline) extends Map[Nothing] with Set[Nothing]
 
   object Update {
     def apply[V](value: V): Update[V] =

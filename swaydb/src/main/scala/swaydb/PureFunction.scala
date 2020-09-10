@@ -26,7 +26,7 @@ package swaydb
 
 import scala.concurrent.duration.Deadline
 
-sealed trait PureFunction[+K, +V, R <: Apply[V]] {
+sealed trait PureFunction[+K, +V, +R <: Apply[V]] {
   /**
    * This unique [[id]] of this function.
    *
@@ -54,7 +54,7 @@ object PureFunction {
 
   type Map[K, V] = PureFunction[K, V, Apply.Map[V]]
 
-  type Set[A] = PureFunction[A, Nothing, Apply.Set]
+  type Set[A] = PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]
 
   trait OnValue[V, R <: Apply[V]] extends (V => R) with PureFunction[Nothing, V, R] {
     override def apply(value: V): R

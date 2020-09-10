@@ -48,14 +48,14 @@ object Set {
 
   object Functions {
     def apply[A, F](functions: F*)(implicit serializer: Serializer[A],
-                                   ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]) = {
+                                   ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) = {
       val f = new Functions[A, F]()
       functions.foreach(f.register(_))
       f
     }
 
     def apply[A, F](functions: Iterable[F])(implicit serializer: Serializer[A],
-                                            ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]) = {
+                                            ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) = {
       val f = new Functions[A, F]
       functions.foreach(f.register(_))
       f
@@ -69,13 +69,13 @@ object Set {
 
     private[swaydb] val core = CoreFunctionStore.memory()
 
-    def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): Unit =
+    def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Unit =
       functions.foreach(register(_))
 
-    def register[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): Unit =
+    def register[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Unit =
       core.put(Slice.writeString(function.id), SwayDB.toCoreFunction(function))
 
-    def remove[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): Unit =
+    def remove[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Unit =
       core.remove(Slice.writeString(function.id))
   }
 }
@@ -100,7 +100,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def mightContain(elem: A): BAG[Boolean] =
     bag.suspend(core mightContainKey elem)
 
-  def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]) =
+  def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) =
     bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def add(elem: A): BAG[OK] =
@@ -180,22 +180,22 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def clear(): BAG[OK] =
     bag.suspend(core.clear(core.readStates.get()))
 
-  def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
+  def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
     bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
-  def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
+  def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
     bag.suspend(core.applyFunction(elem, Slice.writeString(function.id)))
 
-  def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
+  def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
-  def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
+  def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
       statements =>
         commit(statements)
     }
 
-  def commit[PF <: F](prepare: Iterable[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): BAG[OK] =
+  def commit[PF <: F](prepare: Iterable[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
   def levelZeroMeter: LevelZeroMeter =
@@ -312,7 +312,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
-  def isFunctionApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set]): Boolean =
+  def isFunctionApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Boolean =
     core.isFunctionApplied(Slice.writeString(functionId.id))
 
   def stream: Source[A, A, BAG] =

@@ -26,7 +26,10 @@ package swaydb.java;
 
 
 import org.junit.jupiter.api.Test;
+import swaydb.Apply;
 import swaydb.Pair;
+import swaydb.Prepare;
+import swaydb.PureFunction;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.Slice;
@@ -62,7 +65,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
     set.add(Arrays.asList(6, 7).iterator());
     set.add(Stream.create(Arrays.asList(8, 9)));
 
-    set.commit(Arrays.asList(Prepare.addToSet(10), Prepare.addToSet(11)));
+    set.commit(Arrays.asList(Prepare.add(10), Prepare.add(11)));
 
     HashSet<Integer> actualKeyValues = new HashSet<>();
 
@@ -151,7 +154,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
       );
 
     //remove range
-    set.commit(Stream.range(51, 100).map(Prepare::removeFromSet));
+    set.commit(Stream.range(51, 100).map(Prepare::removeForSet));
 
     //non exist
     IntStream
@@ -187,8 +190,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     set.commit(
       Arrays.asList(
-        Prepare.addToSet(7),
-        Prepare.addToSet(8),
+        Prepare.add(7),
+        Prepare.add(8),
         Prepare.expireFromSet(7, Duration.ofSeconds(2)),
         Prepare.expireFromSet(8, Duration.ofSeconds(2))
       )
@@ -294,10 +297,10 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     set.commit(
       Arrays.asList(
-        Prepare.addToSet(1),
-        Prepare.addToSet(2),
-        Prepare.addToSet(10, Duration.ofSeconds(3)),
-        Prepare.removeFromSet(3, 3),
+        Prepare.add(1),
+        Prepare.add(2),
+        Prepare.addAndExpire(10, Duration.ofSeconds(3)),
+        Prepare.removeForSet(3, 3),
         Prepare.expireFromSet(2, Duration.ofSeconds(3)),
         Prepare.expireFromSet(61, 70, Duration.ofSeconds(3))
       )
@@ -406,26 +409,27 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    MemorySet.Config<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> config =
+    MemorySet.Config<Integer, PureFunction.OnKey<Integer, Void, Apply.Set<Void>>> config =
       MemorySet.functionsOn(intSerializer());
 
-    Set<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> set = config.get();
+    Set<Integer, PureFunction.OnKey<Integer, Void, Apply.Set<Void>>> set = config.get();
 
     set.add(Stream.range(1, 100));
 
-    PureFunction.OnKey<Integer, Void, Return.Set<Void>> expire =
-      (key, deadline) -> Return.expire(Duration.ZERO);
+    PureFunction.OnKey<Integer, Void, Apply.Set<Void>> expire =
+      (key, deadline) ->
+        Apply.expireSetEntry(Duration.ZERO);
 
     //does not compile
-//    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> incrementBy1 = null;
+//    PureFunction.OnValue<Integer, Integer, Apply.Set<Integer>> incrementBy1 = null;
 //    config.registerFunction(incrementBy1);
 
     //does not compile
-//    PureFunction.OnKeyValue<Integer, Integer, Return.Set<Integer>> removeMod0OrIncrementBy1 = null;
+//    PureFunction.OnKeyValue<Integer, Integer, Apply.Set<Integer>> removeMod0OrIncrementBy1 = null;
 //    config.registerFunction(removeMod0OrIncrementBy1);
 
     //this will not compile since the return type specified is a Set - expected!
-//    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> function = null;
+//    PureFunction.OnValue<Integer, Integer, Apply.Set<Integer>> function = null;
 //    config.registerFunction(function);
 
     config.registerFunction(expire);

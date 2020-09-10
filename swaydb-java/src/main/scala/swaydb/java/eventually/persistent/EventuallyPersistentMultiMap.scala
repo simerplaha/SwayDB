@@ -44,7 +44,7 @@ import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java.data.slice
 import swaydb.java.data.slice.{Slice => JavaSlice}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
-import swaydb.java.{KeyComparator, KeyOrderConverter, PureFunction, Return}
+import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
 
@@ -84,11 +84,12 @@ object EventuallyPersistentMultiMap {
                                  private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
                                  private var typedComparator: KeyComparator[K] = null,
                                  private var compactionEC: Option[ExecutionContext] = None,
-                                 private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map),
-                                 keySerializer: Serializer[K],
-                                 mapKeySerializer: Serializer[M],
-                                 valueSerializer: Serializer[V],
-                                 functionClassTag: ClassTag[_]) {
+                                 private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map))(implicit functionClassTag: ClassTag[F],
+                                                                                                                                  keySerializer: Serializer[K],
+                                                                                                                                  mapKeySerializer: Serializer[M],
+                                                                                                                                  valueSerializer: Serializer[V],
+                                                                                                                                  functions: swaydb.MultiMap.Functions[M, K, V, F],
+                                                                                                                                  evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -160,13 +161,13 @@ object EventuallyPersistentMultiMap {
       this
     }
 
-    def setPersistentLevelSortedKeyIndex(persitentLevelSortedKeyIndex: SortedKeyIndex) = {
-      this.persistentLevelSortedKeyIndex = persitentLevelSortedKeyIndex
+    def setPersistentLevelSortedKeyIndex(persistentLevelSortedKeyIndex: SortedKeyIndex) = {
+      this.persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex
       this
     }
 
-    def setPersistentLevelRandomKeyIndex(persitentLevelRandomKeyIndex: RandomKeyIndex) = {
-      this.persistentLevelRandomKeyIndex = persitentLevelRandomKeyIndex
+    def setPersistentLevelRandomKeyIndex(persistentLevelRandomKeyIndex: RandomKeyIndex) = {
+      this.persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex
       this
     }
 
@@ -220,15 +221,13 @@ object EventuallyPersistentMultiMap {
       this
     }
 
-    private val functions = swaydb.MultiMap.Functions[M, K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]()(keySerializer, mapKeySerializer, valueSerializer)
-
     def registerFunctions(functions: F*): Config[M, K, V, F] = {
       functions.foreach(registerFunction(_))
       this
     }
 
     def registerFunction(function: F): Config[M, K, V, F] = {
-      functions.register(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
+      functions.register(function)
       this
     }
 
@@ -248,7 +247,7 @@ object EventuallyPersistentMultiMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.eventually.persistent.MultiMap[M, K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less](
+        swaydb.eventually.persistent.MultiMap[M, K, V, F, Bag.Less](
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -277,7 +276,7 @@ object EventuallyPersistentMultiMap {
           mapKeySerializer = mapKeySerializer,
           valueSerializer = valueSerializer,
           functions = functions,
-          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]],
+          functionClassTag = functionClassTag,
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
@@ -288,27 +287,28 @@ object EventuallyPersistentMultiMap {
     }
   }
 
+
   def functionsOn[M, K, V](dir: Path,
                            mapKeySerializer: JavaSerializer[M],
                            keySerializer: JavaSerializer[K],
-                           valueSerializer: JavaSerializer[V]): Config[M, K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] =
-    new Config(
-      dir = dir,
-      mapKeySerializer = SerializerConverter.toScala(mapKeySerializer),
-      keySerializer = SerializerConverter.toScala(keySerializer),
-      valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any
-    )
+                           valueSerializer: JavaSerializer[V]): Config[M, K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] = {
+    implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
+    implicit val scalaMapKeySerializer: Serializer[M] = SerializerConverter.toScala(mapKeySerializer)
+    implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
+    implicit val functions = swaydb.MultiMap.Functions[M, K, V, swaydb.PureFunction.Map[K, V]]()
+
+    new Config(dir)
+  }
 
   def functionsOff[M, K, V](dir: Path,
                             mapKeySerializer: JavaSerializer[M],
                             keySerializer: JavaSerializer[K],
-                            valueSerializer: JavaSerializer[V]): Config[M, K, V, Void] =
-    new Config[M, K, V, Void](
-      dir = dir,
-      mapKeySerializer = SerializerConverter.toScala(mapKeySerializer),
-      keySerializer = SerializerConverter.toScala(keySerializer),
-      valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Nothing
-    )
+                            valueSerializer: JavaSerializer[V]): Config[M, K, V, Void] = {
+    implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
+    implicit val scalaMapKeySerializer: Serializer[M] = SerializerConverter.toScala(mapKeySerializer)
+    implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
+    implicit val evidence: Void <:< swaydb.PureFunction[K, V, Apply.Map[V]] = null
+
+    new Config[M, K, V, Void](dir)
+  }
 }

@@ -70,7 +70,7 @@ object Set extends LazyLogging {
 
       val set =
         Core(
-          enableTimer = functionClassTag != ClassTag.Nothing,
+          enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
           cacheKeyValueIds = false,
           threadStateCache = threadStateCache,
           shutdownTimeout = shutdownTimeout,

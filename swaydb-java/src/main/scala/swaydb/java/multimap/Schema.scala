@@ -25,18 +25,16 @@
 package swaydb.java.multimap
 
 import java.time.Duration
-import java.util
 import java.util.Optional
 
+import swaydb.Bag
 import swaydb.Bag.Less
 import swaydb.java.data.util.Java._
 import swaydb.java.{Deadline, MultiMap, Stream}
-import swaydb.{Apply, Bag}
 
 import scala.compat.java8.DurationConverters._
-import scala.jdk.CollectionConverters._
 
-case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less]) {
+case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Less])(implicit evd: F <:< swaydb.PureFunction.Map[K, V]) {
 
   def mapId = asScala.mapId
 
@@ -50,10 +48,10 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, swaydb.Pu
     MultiMap(asScala.init(mapKey))
 
   def init[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): MultiMap[M2, K2, V, F] =
-    MultiMap(asScala.init(mapKey, keyType))
+    MultiMap(asScala.init(mapKey, keyType))(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V]])
 
   def init[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): MultiMap[M2, K2, V2, F] =
-    MultiMap(asScala.init(mapKey, keyType, valueType))
+    MultiMap(asScala.init(mapKey, keyType, valueType))(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V2]])
 
   /**
    * Creates new or initialises the existing map.
@@ -62,10 +60,10 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, swaydb.Pu
     MultiMap(asScala.init(mapKey, expireAfter.toScala))
 
   def init[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2], expireAfter: Duration): MultiMap[M2, K2, V, F] =
-    MultiMap(asScala.init(mapKey, keyType, expireAfter.toScala))
+    MultiMap(asScala.init(mapKey, keyType, expireAfter.toScala))(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V]])
 
   def init[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M2, K2, V2, F] =
-    MultiMap(asScala.init(mapKey, keyType, valueType, expireAfter.toScala))
+    MultiMap(asScala.init(mapKey, keyType, valueType, expireAfter.toScala))(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V2]])
 
 
   /**
@@ -78,10 +76,10 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, swaydb.Pu
     MultiMap(asScala.replace(mapKey))
 
   def replace[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): MultiMap[M2, K2, V, F] =
-    MultiMap(asScala.replace(mapKey, keyType))
+    MultiMap(asScala.replace(mapKey, keyType))(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V]])
 
   def replace[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): MultiMap[M2, K2, V2, F] =
-    MultiMap(asScala.replace(mapKey, keyType, valueType))
+    MultiMap(asScala.replace(mapKey, keyType, valueType))(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V2]])
 
 
   /**
@@ -94,10 +92,10 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, swaydb.Pu
     MultiMap(asScala.replace(mapKey, expireAfter.toScala))
 
   def replace[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2], expireAfter: Duration): MultiMap[M2, K2, V, F] =
-    MultiMap(asScala.replace(mapKey, keyType, expireAfter.toScala))
+    MultiMap(asScala.replace(mapKey, keyType, expireAfter.toScala))(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V]])
 
   def replace[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M2, K2, V2, F] =
-    MultiMap(asScala.replace(mapKey, keyType, valueType, expireAfter.toScala))
+    MultiMap(asScala.replace(mapKey, keyType, valueType, expireAfter.toScala))(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V2]])
 
   /**
    * @return false if the map does not exist else true on successful remove.
@@ -120,7 +118,7 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, swaydb.Pu
   def get[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): Optional[MultiMap[M2, K2, V, F]] =
     asScala.get(mapKey, keyType) match {
       case Some(map) =>
-        Optional.of(MultiMap(map))
+        Optional.of(MultiMap(map)(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V]]))
 
       case None =>
         Optional.empty()
@@ -129,7 +127,7 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, swaydb.Pu
   def get[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): Optional[MultiMap[M2, K2, V2, F]] =
     asScala.get(mapKey, keyType, valueType) match {
       case Some(map) =>
-        Optional.of(MultiMap(map))
+        Optional.of(MultiMap(map)(evd.asInstanceOf[F <:< swaydb.PureFunction.Map[K2, V2]]))
 
       case None =>
         Optional.empty()
