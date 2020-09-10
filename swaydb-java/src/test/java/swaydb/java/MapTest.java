@@ -24,72 +24,25 @@
 
 package swaydb.java;
 
-
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import scala.collection.immutable.Seq;
 import swaydb.KeyVal;
 import swaydb.Pair;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.eventually.persistent.EventuallyPersistentMap;
 import swaydb.java.memory.MemoryMap;
-import swaydb.java.persistent.PersistentMap;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
-
-class MemoryMapTest extends MapTest {
-
-  public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
-                                          Serializer<V> valueSerializer) {
-    return
-      MemoryMap
-        .functionsOff(keySerializer, valueSerializer)
-        .get();
-  }
-}
-
-class PersistentMapTest extends MapTest {
-
-  @AfterEach
-  void deleteDir() throws IOException {
-    deleteTestDir();
-  }
-
-  public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
-                                          Serializer<V> valueSerializer) throws IOException {
-
-    return
-      PersistentMap
-        .functionsOff(testDir(), keySerializer, valueSerializer)
-        .get();
-  }
-}
-
-class EventuallyPersistentMapTest extends MapTest {
-
-  @AfterEach
-  void deleteDir() throws IOException {
-    deleteTestDir();
-  }
-
-  public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
-                                          Serializer<V> valueSerializer) throws IOException {
-
-    return
-      EventuallyPersistentMap
-        .functionsOff(testDir(), keySerializer, valueSerializer)
-        .get();
-  }
-}
 
 abstract class MapTest extends TestBase implements JavaEventually {
 
