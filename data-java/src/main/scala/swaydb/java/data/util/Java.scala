@@ -26,12 +26,12 @@ package swaydb.java.data.util
 
 import java.util.{Comparator, Optional}
 
-import swaydb.java.data.slice.ByteSlice
+import swaydb.java.data.slice.ByteSliceBuilder
 
 object Java {
 
-  implicit class ComparatorByteSliceImplicit(comparator: Comparator[ByteSlice]) {
-    @inline final def asScala: Ordering[ByteSlice] =
+  implicit class ComparatorByteSliceImplicit(comparator: Comparator[ByteSliceBuilder]) {
+    @inline final def asScala: Ordering[ByteSliceBuilder] =
       Ordering.comparatorToOrdering(comparator)
   }
 

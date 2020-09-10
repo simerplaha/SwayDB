@@ -40,7 +40,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
-import swaydb.java.data.slice.ByteSlice
+import swaydb.java.data.slice.{Slice => JavaSlice}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter, PureFunction, Return}
 import swaydb.persistent.DefaultConfigs
@@ -84,7 +84,7 @@ object PersistentMultiMap {
                                  private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                                  private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                                  private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                                 private var byteComparator: KeyComparator[ByteSlice] = null,
+                                 private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
                                  private var typedComparator: KeyComparator[K] = null,
                                  private var compactionEC: Option[ExecutionContext] = None,
                                  private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap),
@@ -228,7 +228,7 @@ object PersistentMultiMap {
       this
     }
 
-    def setByteComparator(byteComparator: KeyComparator[ByteSlice]) = {
+    def setByteComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -261,7 +261,7 @@ object PersistentMultiMap {
     }
 
     def get(): swaydb.java.MultiMap[M, K, V, F] = {
-      val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
+      val comparator: Either[KeyComparator[JavaSlice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,

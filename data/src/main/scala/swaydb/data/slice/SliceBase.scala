@@ -509,6 +509,12 @@ abstract class SliceBase[+T](array: Array[T],
       written = written
     )
 
+  /**
+   * Used to convert Java primitive types to Scala and vice versa.
+   */
+  def cast[B]: Slice[B] =
+    this.asInstanceOf[Slice[B]]
+
   override def equals(that: Any): Boolean =
     that match {
       case other: Slice[T] =>

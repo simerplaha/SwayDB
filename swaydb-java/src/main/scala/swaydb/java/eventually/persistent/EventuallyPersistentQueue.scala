@@ -39,7 +39,7 @@ import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.java._
-import swaydb.java.data.slice.ByteSlice
+import swaydb.java.data.slice.ByteSliceBuilder
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
@@ -74,7 +74,7 @@ object EventuallyPersistentQueue {
                         private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                         private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                        private var byteComparator: KeyComparator[ByteSlice] = null,
+                        private var byteComparator: KeyComparator[ByteSliceBuilder] = null,
                         private var typedComparator: KeyComparator[A] = null,
                         private var compactionEC: Option[ExecutionContext] = None,
                         private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Queue),
@@ -185,7 +185,7 @@ object EventuallyPersistentQueue {
       this
     }
 
-    def setByteComparator(byteComparator: KeyComparator[ByteSlice]) = {
+    def setByteComparator(byteComparator: KeyComparator[ByteSliceBuilder]) = {
       this.byteComparator = byteComparator
       this
     }

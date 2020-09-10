@@ -30,27 +30,30 @@ import java.nio.charset.{Charset, StandardCharsets}
 import swaydb.Pair
 import swaydb.Pair._
 
-object ByteSlice {
-  def apply(slice: Slice[Byte]): ByteSlice =
-    new ByteSlice(slice)
+object ByteSliceBuilder {
+  @inline def create(length: Int): ByteSliceBuilder =
+    apply(Slice.create[Byte](length))
 
-  def apply(slice: swaydb.data.slice.Slice[Byte]): ByteSlice =
-    new ByteSlice(Slice(slice))
+  @inline def apply(slice: Slice[Byte]): ByteSliceBuilder =
+    new ByteSliceBuilder(slice)
+
+  @inline def apply(slice: swaydb.data.slice.Slice[Byte]): ByteSliceBuilder =
+    new ByteSliceBuilder(Slice(slice))
 }
 
-class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asScala.asInstanceOf[swaydb.data.slice.Slice[java.lang.Byte]]) {
+class ByteSliceBuilder(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asScala.cast[java.lang.Byte]) {
 
-  @inline final def addByte(value: Byte): ByteSlice = {
+  @inline final def addByte(value: Byte): ByteSliceBuilder = {
     slice.asScala add value
     this
   }
 
-  @inline final def addBytes(anotherSlice: Slice[Byte]): ByteSlice = {
+  @inline final def addBytes(anotherSlice: Slice[Byte]): ByteSliceBuilder = {
     slice.asScala.addAll(anotherSlice.asScala)
     this
   }
 
-  @inline final def addBoolean(boolean: Boolean): ByteSlice = {
+  @inline final def addBoolean(boolean: Boolean): ByteSliceBuilder = {
     slice.asScala addBoolean boolean
     this
   }
@@ -58,7 +61,7 @@ class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asSc
   @inline final def readBoolean(): Boolean =
     slice.asScala.readBoolean()
 
-  @inline final def addInt(integer: java.lang.Integer): ByteSlice = {
+  @inline final def addInt(integer: java.lang.Integer): ByteSliceBuilder = {
     slice.asScala.addInt(integer)
     this
   }
@@ -66,10 +69,10 @@ class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asSc
   @inline final def readInt(): java.lang.Integer =
     slice.asScala.readInt()
 
-  @inline final def dropUnsignedInt(): ByteSlice =
-    ByteSlice(Slice(slice.asScala.dropUnsignedInt()))
+  @inline final def dropUnsignedInt(): ByteSliceBuilder =
+    ByteSliceBuilder(Slice(slice.asScala.dropUnsignedInt()))
 
-  @inline final def addSignedInt(integer: java.lang.Integer): ByteSlice = {
+  @inline final def addSignedInt(integer: java.lang.Integer): ByteSliceBuilder = {
     slice.asScala.addSignedInt(integer)
     this
   }
@@ -77,7 +80,7 @@ class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asSc
   @inline final def readSignedInt(): java.lang.Integer =
     slice.asScala.readSignedInt()
 
-  @inline final def addUnsignedInt(integer: java.lang.Integer): ByteSlice = {
+  @inline final def addUnsignedInt(integer: java.lang.Integer): ByteSliceBuilder = {
     slice.asScala.addUnsignedInt(integer)
     this
   }
@@ -88,7 +91,7 @@ class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asSc
   @inline final def readUnsignedIntWithByteSize(): Pair[java.lang.Integer, java.lang.Integer] =
     slice.asScala.readUnsignedIntWithByteSize().toPair.asInstanceOf[Pair[java.lang.Integer, java.lang.Integer]]
 
-  @inline final def addLong(value: Long): ByteSlice = {
+  @inline final def addLong(value: Long): ByteSliceBuilder = {
     slice.asScala.addLong(value)
     this
   }
@@ -96,7 +99,7 @@ class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asSc
   @inline final def readLong(): Long =
     slice.asScala.readLong()
 
-  @inline final def addUnsignedLong(value: Long): ByteSlice = {
+  @inline final def addUnsignedLong(value: Long): ByteSliceBuilder = {
     slice.asScala.addUnsignedLong(value)
     this
   }
@@ -107,7 +110,7 @@ class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asSc
   @inline final def readUnsignedLongWithByteSize(): Pair[java.lang.Long, java.lang.Integer] =
     slice.asScala.readUnsignedLongWithByteSize().toPair.asInstanceOf[Pair[java.lang.Long, java.lang.Integer]]
 
-  @inline final def addSignedLong(value: Long): ByteSlice = {
+  @inline final def addSignedLong(value: Long): ByteSliceBuilder = {
     slice.asScala.addSignedLong(value)
     this
   }
@@ -115,12 +118,12 @@ class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asSc
   @inline final def readSignedLong(): Long =
     slice.asScala.readSignedLong()
 
-  @inline final def addString(string: String, charsets: Charset): ByteSlice = {
+  @inline final def addString(string: String, charsets: Charset): ByteSliceBuilder = {
     slice.asScala.addString(string, charsets)
     this
   }
 
-  @inline final def addString(string: String): ByteSlice = {
+  @inline final def addString(string: String): ByteSliceBuilder = {
     addString(string, charsets = StandardCharsets.UTF_8)
     this
   }
@@ -142,7 +145,7 @@ class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asSc
 
   override def equals(obj: Any): Boolean =
     obj match {
-      case other: ByteSlice =>
+      case other: ByteSliceBuilder =>
         asScala.equals(other.asScala)
 
       case _ => false

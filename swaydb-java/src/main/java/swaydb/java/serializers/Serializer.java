@@ -24,12 +24,22 @@
 
 package swaydb.java.serializers;
 
-import swaydb.java.data.slice.ByteSlice;
+import swaydb.java.data.slice.Slice;
 
 public interface Serializer<A> {
 
+  /**
+   * You can also use ByteSliceBuilder to build
+   * custom serialisation.
+   */
   byte[] write(A data);
 
-  A read(ByteSlice slice);
+  /**
+   * A Slice is a section of Segment's byte array so this
+   * Slice could be directly coming from a Segment.
+   * <p>
+   * Do not mutate this byte array, just read its content build your object.
+   */
+  A read(Slice<Byte> slice);
 
 }

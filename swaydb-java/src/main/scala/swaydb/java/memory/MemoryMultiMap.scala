@@ -36,7 +36,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
-import swaydb.java.data.slice.ByteSlice
+import swaydb.java.data.slice.{Slice => JavaSlice}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter, MultiMap, PureFunction, Return}
 import swaydb.memory.DefaultConfigs
@@ -61,7 +61,7 @@ object MemoryMultiMap {
                                  private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                  private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                                  private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                                 private var byteComparator: KeyComparator[ByteSlice] = null,
+                                 private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
                                  private var typedComparator: KeyComparator[K] = null,
                                  private var compactionEC: Option[ExecutionContext] = None,
                                  keySerializer: Serializer[K],
@@ -119,7 +119,7 @@ object MemoryMultiMap {
       this
     }
 
-    def setByteComparator(byteComparator: KeyComparator[ByteSlice]) = {
+    def setByteComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -148,7 +148,7 @@ object MemoryMultiMap {
     }
 
     def get(): MultiMap[M, K, V, F] = {
-      val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
+      val comparator: Either[KeyComparator[JavaSlice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,

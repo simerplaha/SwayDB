@@ -29,7 +29,7 @@ import swaydb.KeyVal;
 import swaydb.Pair;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
-import swaydb.java.data.slice.ByteSlice;
+import swaydb.java.data.slice.Slice;
 import swaydb.java.memory.MemoryMap;
 import swaydb.java.serializers.Serializer;
 
@@ -470,7 +470,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
       }
 
       @Override
-      public Key read(ByteSlice slice) {
+      public Key read(Slice<Byte> slice) {
         if (slice.get(0) == 1) {
           return key1;
         } else {
@@ -487,7 +487,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
       }
 
       @Override
-      public Value read(ByteSlice slice) {
+      public Value read(Slice<Byte> slice) {
         if (slice.get(0) == 1) {
           return value1;
         } else {

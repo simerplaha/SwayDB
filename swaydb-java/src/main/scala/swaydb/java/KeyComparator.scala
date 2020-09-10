@@ -27,13 +27,13 @@ package swaydb.java
 import java.util.Comparator
 
 import swaydb.data.order.KeyOrder
-import swaydb.java.data.slice.ByteSlice
+import swaydb.java.data.slice.{ByteSliceBuilder, Slice}
 
 object KeyComparator {
-  final val lexicographic: KeyComparator[ByteSlice] =
-    new KeyComparator[ByteSlice] {
-      override def compare(o1: ByteSlice, o2: ByteSlice): Int =
-        KeyOrder.default.compare(o1.slice.asScala, o2.slice.asScala)
+  final val lexicographic: KeyComparator[Slice[java.lang.Byte]] =
+    new KeyComparator[Slice[java.lang.Byte]] {
+      override def compare(o1: Slice[java.lang.Byte], o2: Slice[java.lang.Byte]): Int =
+        KeyOrder.default.compare(o1.asScala.cast[Byte], o2.asScala.cast[Byte])
     }
 }
 

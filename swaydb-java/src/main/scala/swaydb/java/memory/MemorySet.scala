@@ -37,7 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.java._
-import swaydb.java.data.slice.ByteSlice
+import swaydb.java.data.slice.{Slice => JavaSlice}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
@@ -61,7 +61,7 @@ object MemorySet {
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                            private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                           private var byteComparator: KeyComparator[ByteSlice] = null,
+                           private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[A] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
                            serializer: Serializer[A],
@@ -117,7 +117,7 @@ object MemorySet {
       this
     }
 
-    def setByteComparator(byteComparator: KeyComparator[ByteSlice]) = {
+    def setByteComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -146,7 +146,7 @@ object MemorySet {
     }
 
     def get(): swaydb.java.Set[A, F] = {
-      val comparator: Either[KeyComparator[ByteSlice], KeyComparator[A]] =
+      val comparator: Either[KeyComparator[JavaSlice[java.lang.Byte]], KeyComparator[A]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,
