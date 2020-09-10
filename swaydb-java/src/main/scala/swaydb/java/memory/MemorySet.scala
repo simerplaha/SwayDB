@@ -145,12 +145,6 @@ object MemorySet {
       this
     }
 
-    def removeFunction(function: F): Config[A, F] = {
-      val scalaFunction = function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]].id.asInstanceOf[Slice[Byte]]
-      functions.core.remove(scalaFunction)
-      this
-    }
-
     def get(): swaydb.java.Set[A, F] = {
       val comparator: Either[KeyComparator[ByteSlice], KeyComparator[A]] =
         Eithers.nullCheck(

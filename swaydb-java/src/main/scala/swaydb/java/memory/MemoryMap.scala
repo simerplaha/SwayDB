@@ -146,12 +146,6 @@ object MemoryMap {
       this
     }
 
-    def removeFunction(function: F): Config[K, V, F] = {
-      val scalaFunction = function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]].id.asInstanceOf[Slice[Byte]]
-      functions.core.remove(scalaFunction)
-      this
-    }
-
     def get(): swaydb.java.Map[K, V, F] = {
       val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
         Eithers.nullCheck(

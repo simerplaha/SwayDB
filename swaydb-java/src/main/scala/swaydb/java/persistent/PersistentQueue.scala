@@ -77,7 +77,7 @@ object PersistentQueue {
                         private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                         private var compactionEC: Option[ExecutionContext] = None,
-                        private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
+                        private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Queue),
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {

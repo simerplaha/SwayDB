@@ -77,7 +77,7 @@ object EventuallyPersistentQueue {
                         private var byteComparator: KeyComparator[ByteSlice] = null,
                         private var typedComparator: KeyComparator[A] = null,
                         private var compactionEC: Option[ExecutionContext] = None,
-                        private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
+                        private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Queue),
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {

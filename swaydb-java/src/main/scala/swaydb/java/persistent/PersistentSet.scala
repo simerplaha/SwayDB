@@ -87,7 +87,7 @@ object PersistentSet {
                            private var byteComparator: KeyComparator[ByteSlice] = null,
                            private var typedComparator: KeyComparator[A] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
-                           private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
+                           private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set),
                            serializer: Serializer[A],
                            functionClassTag: ClassTag[_]) {
 
@@ -255,12 +255,6 @@ object PersistentSet {
 
     def registerFunction(function: F): Config[A, F] = {
       functions.register(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
-      this
-    }
-
-    def removeFunction(function: F): Config[A, F] = {
-      val scalaFunction = function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]].id.asInstanceOf[Slice[Byte]]
-      functions.core.remove(scalaFunction)
       this
     }
 

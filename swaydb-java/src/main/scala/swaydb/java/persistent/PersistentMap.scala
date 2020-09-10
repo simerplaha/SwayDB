@@ -87,7 +87,7 @@ object PersistentMap {
                               private var byteComparator: KeyComparator[ByteSlice] = null,
                               private var typedComparator: KeyComparator[K] = null,
                               private var compactionEC: Option[ExecutionContext] = None,
-                              private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
+                              private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map),
                               keySerializer: Serializer[K],
                               valueSerializer: Serializer[V],
                               functionClassTag: ClassTag[_]) {
@@ -259,11 +259,6 @@ object PersistentMap {
       this
     }
 
-    def removeFunction(function: F): Config[K, V, F] = {
-      functions.core.remove(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]].id.asInstanceOf[Slice[Byte]])
-      this
-    }
-
     def get(): swaydb.java.Map[K, V, F] = {
       val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -306,7 +301,7 @@ object PersistentMap {
           levelSixThrottle = levelSixThrottle.asScala
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
-          functions = functions.asInstanceOf[swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]],
+          functions = functions,
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]],
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
