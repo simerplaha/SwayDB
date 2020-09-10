@@ -244,8 +244,6 @@ case class MultiMap[M, K, V, F](private val _asScala: swaydb.MultiMap[M, K, V, _
   def delete(): Unit =
     asScala.delete()
 
-  private def copy(): Unit = ()
-
   override def toString(): String =
     asScala.toString()
 }

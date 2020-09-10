@@ -30,7 +30,6 @@ import java.util.Optional
 import swaydb.Apply
 import swaydb.data.util.Java._
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
 
