@@ -41,6 +41,7 @@ import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.java._
 import swaydb.java.data.slice.ByteSlice
+import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 
@@ -272,4 +273,13 @@ object PersistentSetMap {
       swaydb.java.SetMap[K, V](scalaMap)
     }
   }
+
+  def config[K, V](dir: Path,
+                   keySerializer: JavaSerializer[K],
+                   valueSerializer: JavaSerializer[V]): Config[K, V] =
+    new Config[K, V](
+      dir = dir,
+      keySerializer = SerializerConverter.toScala(keySerializer),
+      valueSerializer = SerializerConverter.toScala(valueSerializer)
+    )
 }
