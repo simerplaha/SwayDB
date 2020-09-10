@@ -54,7 +54,7 @@ protected abstract class ScalaSetBase[A, F](db: Set[A, F, Bag.Less]) extends mut
 
 }
 
-protected abstract class ScalaSetBaseFromMap[A, F](db: SetMapT[A, _, F, Bag.Less]) extends mutable.Set[A] {
+protected abstract class ScalaSetBaseFromMap[A](db: SetMapT[A, _, Bag.Less]) extends mutable.Set[A] {
 
   override def contains(elem: A): Boolean =
     db.contains(elem)

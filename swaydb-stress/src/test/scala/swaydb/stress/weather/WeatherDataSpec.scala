@@ -38,13 +38,13 @@ import scala.concurrent.duration._
 
 trait WeatherDataSpec extends TestBase with LazyLogging {
 
-  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]
+  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.SetMapT[Int, WeatherData, IO.ApiIO]
 
   implicit val bag = Bag.apiIO
 
   val keyValueCount = 1000000
 
-  def doPut(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def doPut(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     (1 to keyValueCount) foreach {
       key =>
         if (key % 10000 == 0)
@@ -53,7 +53,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     }
 
   //batch writes all key-values inBatchesOf
-  def doBatch(inBatchesOf: Int)(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def doBatch(inBatchesOf: Int)(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     (1 to keyValueCount) foreach {
       key =>
         if (key % 10000 == 0)
@@ -69,7 +69,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
         }
     }
 
-  def doBatchRandom(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) = {
+  def doBatchRandom(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) = {
     val from = randomNextInt(keyValueCount) min (keyValueCount - 100)
     val keyValues =
       (from to from + 10) map {
@@ -81,7 +81,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     db.put(keyValues).value
   }
 
-  def doGet(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def doGet(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     (1 to keyValueCount) foreach {
       key =>
         val value = db.get(key).value
@@ -90,7 +90,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
         value should contain(WeatherData(Water(key, Direction.East, key), Wind(key, Direction.West, key, key), Location.Sydney))
     }
 
-  def doFoldLeft(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def doFoldLeft(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     db
       .stream
       .foldLeft(Option.empty[Int]) {
@@ -105,7 +105,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
           } orElse Some(key)
       }.value should contain(keyValueCount)
 
-  def doForeach(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def doForeach(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     db
       .stream
       .foreach {
@@ -115,7 +115,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
           value shouldBe WeatherData(Water(key, Direction.East, key), Wind(key, Direction.West, key, key), Location.Sydney)
       }.runRandomIO.value
 
-  def doTakeWhile(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]): Assertion = {
+  def doTakeWhile(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]): Assertion = {
     //start from anywhere but take at least 100 keyValues
     val startFrom = randomNextInt(keyValueCount) min (keyValueCount - 100)
     val took =
@@ -134,7 +134,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     took.lastOption.get.get._1 shouldBe (startFrom + 99)
   }
 
-  def doHeadAndLast(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) = {
+  def doHeadAndLast(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) = {
     val (headKey, headValue) = db.headOption.get.get
     headKey shouldBe 1
     headValue shouldBe WeatherData(Water(headKey, Direction.East, headKey), Wind(headKey, Direction.West, headKey, headKey), Location.Sydney)
@@ -146,7 +146,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     println(s"lastKey: $lastKey -> lastValue: $lastValue")
   }
 
-  def doMapRight(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) = {
+  def doMapRight(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) = {
     //start from anywhere but take at least 100 keyValues
     val startFrom = randomNextInt(keyValueCount) min (keyValueCount - 100)
     val took =
@@ -170,7 +170,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     took shouldBe expected
   }
 
-  def doTake(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) = {
+  def doTake(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) = {
     db
       .stream
       .take(100)
@@ -193,7 +193,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
       }.materialize.runRandomIO.right.value shouldBe (1 to 100)
   }
 
-  def doDrop(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def doDrop(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     db
       .stream
       .from(keyValueCount - 200)
@@ -205,7 +205,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
           key
       }.materialize.runRandomIO.right.value shouldBe (keyValueCount - 100 to keyValueCount)
 
-  def doTakeRight(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def doTakeRight(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     db
       .stream
       .fromOrBefore(Int.MaxValue)
@@ -218,10 +218,10 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
           key
       }.materialize.runRandomIO.right.value shouldBe (keyValueCount - 99 to keyValueCount).reverse
 
-  def doCount(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def doCount(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     db.stream.size.get should be >= keyValueCount
 
-  def doDeleteAll(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) = {
+  def doDeleteAll(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) = {
     (1 to keyValueCount / 2) foreach {
       key =>
         if (key % 10000 == 0)
@@ -232,13 +232,13 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     db.remove(keyValueCount / 2, keyValueCount + 1).get
   }
 
-  def putRequest(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def putRequest(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     Future(doPut)
 
-  def batchRandomRequest(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def batchRandomRequest(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     Future(doBatchRandom)
 
-  def batchRequest(inBatchesOf: Int = 100)(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]) =
+  def batchRequest(inBatchesOf: Int = 100)(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     Future(doBatch(inBatchesOf))
 
   def tryOrExit[F](f: => F) =
@@ -250,7 +250,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
         System.exit(0)
     }
 
-  def readRequests(implicit db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]): Future[Seq[Any]] =
+  def readRequests(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]): Future[Seq[Any]] =
     Future.sequence(
       Seq(
         Future(tryOrExit(doForeach)),

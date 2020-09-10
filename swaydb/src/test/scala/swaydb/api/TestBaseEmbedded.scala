@@ -75,7 +75,7 @@ trait TestBaseEmbedded extends TestBase {
     sub
   }
 
-  def doAssertEmpty[V](db: SetMapT[Int, V, Nothing, IO.ApiIO]) =
+  def doAssertEmpty[V](db: SetMapT[Int, V, IO.ApiIO]) =
     (1 to keyValueCount) foreach {
       i =>
         try
@@ -105,7 +105,7 @@ trait TestBaseEmbedded extends TestBase {
   //recursively go through all levels and assert they do no have any Segments.
   //Note: Could change this test to use Future with delays instead of blocking but the blocking code is probably more easier to read.
 
-  def assertLevelsAreEmpty(db: SetMapT[Int, String, Nothing, IO.ApiIO], submitUpdates: Boolean) = {
+  def assertLevelsAreEmpty(db: SetMapT[Int, String, IO.ApiIO], submitUpdates: Boolean) = {
     println("Checking levels are empty.")
 
     @tailrec
@@ -160,7 +160,7 @@ trait TestBaseEmbedded extends TestBase {
     Future(checkEmpty(1, false)).await(10.minutes)
   }
 
-  def doExpire(from: Int, to: Int, deadline: Deadline, db: SetMapT[Int, String, Nothing, IO.ApiIO]): Unit =
+  def doExpire(from: Int, to: Int, deadline: Deadline, db: SetMapT[Int, String, IO.ApiIO]): Unit =
     db match {
       case db @ Map(_) =>
         eitherOne(
@@ -172,7 +172,7 @@ trait TestBaseEmbedded extends TestBase {
         (from to to) foreach (i => db.expire(i, deadline).right.value)
     }
 
-  def doRemove(from: Int, to: Int, db: SetMapT[Int, String, Nothing, IO.ApiIO]): Unit =
+  def doRemove(from: Int, to: Int, db: SetMapT[Int, String, IO.ApiIO]): Unit =
     db match {
       case db @ Map(_) =>
         eitherOne(
@@ -184,7 +184,7 @@ trait TestBaseEmbedded extends TestBase {
         (from to to) foreach (i => db.remove(i).right.value)
     }
 
-  def doUpdateOrIgnore(from: Int, to: Int, value: String, db: SetMapT[Int, String, Nothing, IO.ApiIO]): Unit =
+  def doUpdateOrIgnore(from: Int, to: Int, value: String, db: SetMapT[Int, String, IO.ApiIO]): Unit =
     db match {
       case db @ Map(_) =>
         eitherOne(

@@ -43,7 +43,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
+case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) extends swaydb.java.MapT[K, V, F] {
 
   val asScala: swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less] =
     _asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less]]
@@ -152,10 +152,10 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
         Pair(key, deadline.asJava)
     }.asJava
 
-  def getKeyValueDeadline(key: K): Optional[Pair[Pair[K, V], Optional[Deadline]]] =
+  def getKeyValueDeadline(key: K): Optional[Pair[KeyVal[K, V], Optional[Deadline]]] =
     (asScala.getKeyValueDeadline(key, Bag.less): Option[((K, V), Option[duration.Deadline])]) match {
       case Some(((key, value), deadline)) =>
-        Optional.of(Pair(Pair(key, value), deadline.asJava))
+        Optional.of(Pair(KeyVal(key, value), deadline.asJava))
 
       case None =>
         Optional.empty()
@@ -176,7 +176,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def keys: Set[K, Void] =
     Set(asScala.keys)
 
-  def level0Meter: LevelZeroMeter =
+  def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter
 
   def levelMeter(levelNumber: Int): Optional[LevelMeter] =
@@ -194,7 +194,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def timeLeft(key: K): Optional[Duration] =
     asScala.timeLeft(key).asJavaMap(_.toJava)
 
-  def headOptional: Optional[KeyVal[K, V]] =
+  def head: Optional[KeyVal[K, V]] =
     asScala.headOption.asJavaMap(KeyVal(_))
 
   def stream: Source[K, KeyVal[K, V]] =
@@ -215,7 +215,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def nonEmpty: java.lang.Boolean =
     asScala.nonEmpty
 
-  def lastOptional: Optional[KeyVal[K, V]] =
+  def last: Optional[KeyVal[K, V]] =
     asScala.lastOption.asJavaMap(KeyVal(_))
 
   def clearAppliedFunctions(): lang.Iterable[String] =
@@ -224,7 +224,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def clearAppliedAndRegisteredFunctions(): lang.Iterable[String] =
     asScala.clearAppliedAndRegisteredFunctions().asJava
 
-  def isFunctionApplied(function: F): Boolean =
+  def isFunctionApplied(function: F): java.lang.Boolean =
     asScala.isFunctionApplied(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
 
   def asJava: util.Map[K, V] =
@@ -235,8 +235,6 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
 
   def delete(): Unit =
     asScala.delete()
-
-  private def copy(): Unit = ()
 
   override def toString(): String =
     asScala.toString()

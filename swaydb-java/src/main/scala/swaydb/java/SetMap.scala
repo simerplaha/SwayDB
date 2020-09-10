@@ -41,7 +41,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) {
+case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[K, V] {
 
   def path: Path =
     asScala.path
@@ -97,7 +97,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) {
   def mightContain(key: K): java.lang.Boolean =
     asScala.mightContain(key)
 
-  def level0Meter: LevelZeroMeter =
+  def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter
 
   def levelMeter(levelNumber: Int): Optional[LevelMeter] =
@@ -109,7 +109,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) {
   def timeLeft(key: K): Optional[Duration] =
     asScala.timeLeft(key).asJavaMap(_.toJava)
 
-  def headOptional: Optional[KeyVal[K, V]] =
+  def head: Optional[KeyVal[K, V]] =
     asScala.headOption.asJavaMap(KeyVal(_))
 
   def stream: Source[K, KeyVal[K, V]] =
@@ -130,7 +130,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) {
   def nonEmpty: java.lang.Boolean =
     asScala.nonEmpty
 
-  def lastOptional: Optional[KeyVal[K, V]] =
+  def last: Optional[KeyVal[K, V]] =
     asScala.lastOption.asJavaMap(KeyVal(_))
 
   def asJava: util.Map[K, V] =
@@ -146,4 +146,5 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) {
 
   override def toString(): String =
     asScala.toString()
+
 }

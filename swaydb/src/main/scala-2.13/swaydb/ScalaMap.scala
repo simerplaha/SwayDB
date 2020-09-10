@@ -32,8 +32,8 @@ import scala.collection.mutable
  */
 private[swaydb] object ScalaMap {
 
-  def apply[K, V, F](db: SetMapT[K, V, F, Bag.Less]): mutable.Map[K, V] =
-    new ScalaMapBase[K, V, F](db) {
+  def apply[K, V](db: SetMapT[K, V, Bag.Less]): mutable.Map[K, V] =
+    new ScalaMapBase[K, V](db) {
 
       override def addOne(kv: (K, V)): this.type = {
         db.put(kv._1, kv._2)

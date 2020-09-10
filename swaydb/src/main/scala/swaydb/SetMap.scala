@@ -126,7 +126,7 @@ object SetMap {
  * [[SetMap]] has limited write APIs as compared to [[swaydb.Map]]
  * and range & update operations are not supported.
  */
-case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit bag: Bag[BAG]) extends SetMapT[K, V, Nothing, BAG] { self =>
+case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit bag: Bag[BAG]) extends SetMapT[K, V, BAG] { self =>
 
   private final val nullValue: V = null.asInstanceOf[V]
 
@@ -291,10 +291,10 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
   private def copy(): Unit = ()
 
   override def asScala: mutable.Map[K, V] =
-    ScalaMap[K, V, Nothing](toBag[Bag.Less](Bag.less))
+    ScalaMap[K, V](toBag[Bag.Less](Bag.less))
 
   override private[swaydb] def keySet: mutable.Set[K] =
-    ScalaSet[K, V, Nothing](toBag[Bag.Less](Bag.less), nullValue)
+    ScalaSet[K, V](toBag[Bag.Less](Bag.less), nullValue)
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

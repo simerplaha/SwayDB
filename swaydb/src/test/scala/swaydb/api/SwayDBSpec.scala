@@ -85,7 +85,7 @@ class MultiMapSwayDBSpec5 extends SwayDBSpec {
 
 sealed trait SwayDBSpec extends TestBaseEmbedded {
 
-  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO]
+  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String,  IO.ApiIO]
 
   implicit val bag = Bag.apiIO
 

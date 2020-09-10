@@ -34,7 +34,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 /**
  * Base trait for a basic SwayDB Map type.
  */
-trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
+trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def path: Path
 

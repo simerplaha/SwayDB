@@ -71,8 +71,6 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
   def delete(): Unit =
     asScala.delete()
 
-  private def copy(): Unit = ()
-
   override def toString(): String =
     asScala.toString
 }

@@ -55,8 +55,8 @@ private[swaydb] object ScalaSet {
       }
     }
 
-  def apply[A, V, F](db: SetMapT[A, V, F, Bag.Less], nullValue: V): mutable.Set[A] =
-    new ScalaSetBaseFromMap[A, F](db) {
+  def apply[A, V](db: SetMapT[A, V, Bag.Less], nullValue: V): mutable.Set[A] =
+    new ScalaSetBaseFromMap[A](db) {
       override def addOne(elem: A): this.type = {
         db.put(elem, nullValue)
         this

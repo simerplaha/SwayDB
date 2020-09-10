@@ -60,18 +60,18 @@ class SwayDBGetSpec3 extends SwayDBGetSpec {
 }
 
 class MultiMapGetSpec4 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String,  IO.ApiIO] =
     generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
 }
 
 class MultiMapGetSpec5 extends SwayDBGetSpec {
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String,  IO.ApiIO] =
     generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
 sealed trait SwayDBGetSpec extends TestBaseEmbedded {
 
-  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO]
+  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String,  IO.ApiIO]
 
   override val keyValueCount: Int = 1000
 

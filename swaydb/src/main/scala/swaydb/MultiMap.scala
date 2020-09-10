@@ -819,7 +819,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     )
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
+    ScalaMap[K, V](toBag[Bag.Less](Bag.less))
 
   def close(): BAG[Unit] =
     bag.and(bag(counter.close)) {

@@ -35,7 +35,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 /**
  * Base trait for a basic SwayDB SetMap type.
  */
-trait SetMapT[K, V, F, BAG[_]] {
+trait SetMapT[K, V, BAG[_]] {
 
   def path: Path
 
@@ -116,7 +116,7 @@ trait SetMapT[K, V, F, BAG[_]] {
 
   def lastOption: BAG[Option[(K, V)]]
 
-  def toBag[X[_]](implicit bag: Bag[X]): SetMapT[K, V, F, X]
+  def toBag[X[_]](implicit bag: Bag[X]): SetMapT[K, V, X]
 
   def asScala: scala.collection.mutable.Map[K, V]
 
@@ -125,5 +125,5 @@ trait SetMapT[K, V, F, BAG[_]] {
   def delete(): BAG[Unit]
 
   override def toString(): String =
-    classOf[SetMapT[_, _, _, BAG]].getSimpleName
+    this.getClass.getSimpleName
 }

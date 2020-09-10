@@ -71,14 +71,14 @@ class SwayDBPutSpec3 extends SwayDBPutSpec {
 class MultiMapPutSpec4 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, IO.ApiIO] =
     generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get).sweep(_.delete().get)
 }
 
 class MultiMapPutSpec5 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO] =
+  override def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, IO.ApiIO] =
     generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get).sweep(_.delete().get)
 }
 
@@ -102,9 +102,9 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, Nothing, IO.ApiIO]
+  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, IO.ApiIO]
 
-  def doGet(db: SetMapT[Int, String, Nothing, IO.ApiIO]) = {
+  def doGet(db: SetMapT[Int, String, IO.ApiIO]) = {
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).right.value shouldBe empty
