@@ -25,65 +25,25 @@
 package swaydb.java;
 
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import swaydb.Pair;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.eventually.persistent.EventuallyPersistentSet;
 import swaydb.java.memory.MemorySet;
-import swaydb.java.persistent.PersistentSet;
 import swaydb.java.serializers.Serializer;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.Serializable;
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
-
-
-class MemorySetTest extends SetTest {
-
-  public <K> Set<K, Void> createSet(Serializer<K> keySerializer) {
-    return
-      MemorySet
-        .functionsOff(keySerializer)
-        .get();
-  }
-}
-
-class PersistentSetTest extends SetTest {
-
-  @AfterEach
-  void deleteDir() throws IOException {
-    deleteTestDir();
-  }
-
-  public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
-    return
-      PersistentSet
-        .functionsOff(testDir(), keySerializer)
-        .get();
-  }
-}
-
-class EventuallyPersistentSetTest extends SetTest {
-
-  @AfterEach
-  void deleteDir() throws IOException {
-    deleteTestDir();
-  }
-
-  public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
-    return
-      EventuallyPersistentSet
-        .functionsOff(testDir(), keySerializer)
-        .get();
-  }
-}
 
 abstract class SetTest extends TestBase implements JavaEventually {
 

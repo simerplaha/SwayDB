@@ -24,45 +24,18 @@
 
 package swaydb.java;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
-import swaydb.java.memory.MemoryQueue;
-import swaydb.java.persistent.PersistentQueue;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.stream.IntStream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static swaydb.java.serializers.Default.intSerializer;
-
-class MemoryQueueTest extends QueueTest {
-
-  public <K> Queue<K> createQueue(Serializer<K> serialiser) {
-    return
-      MemoryQueue
-        .config(serialiser)
-        .get();
-  }
-}
-
-class PersistentQueueTest extends QueueTest {
-
-  @AfterEach
-  void deleteDir() throws IOException {
-    deleteTestDir();
-  }
-
-  public <K> Queue<K> createQueue(Serializer<K> serialiser) throws IOException {
-    return
-      PersistentQueue
-        .config(testDir(), serialiser)
-        .get();
-  }
-}
 
 abstract class QueueTest extends TestBase implements JavaEventually {
 
