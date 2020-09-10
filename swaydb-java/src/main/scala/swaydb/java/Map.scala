@@ -36,7 +36,6 @@ import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 import swaydb.{Apply, Bag, KeyVal, Pair}
 
-import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration
 import scala.jdk.CollectionConverters._
@@ -133,28 +132,10 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
     commit[P](prepare.iterator())
 
   def commit[P <: Prepare.Map[K, V, F]](prepare: Stream[P]): swaydb.OK =
-    asScala.commit {
-      prepare
-        .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]]) {
-          case (scala, java) =>
-            val javaPrepare = java.asInstanceOf[Prepare.Map[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]]]
-            scala += Prepare.toScala(javaPrepare)
-        }
-    }
+    asScala.commit(Prepare.toScalaFromStream(prepare.asInstanceOf[Stream[Prepare.Map[K, V, F]]]))
 
-  def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.Iterator[P]): swaydb.OK = {
-    val prepareStatements =
-      prepare
-        .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]]) {
-          case (scala, java) =>
-            val javaPrepare = java.asInstanceOf[Prepare.Map[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]]]
-            scala += Prepare.toScala(javaPrepare)
-        }
-
-    asScala commit prepareStatements
-  }
+  def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.Iterator[P]): swaydb.OK =
+    asScala commit Prepare.toScalaFromIterator(prepare.asScala)
 
   def get(key: K): Optional[V] =
     asScala.get(key).asJava
