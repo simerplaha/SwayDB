@@ -66,7 +66,7 @@ object PureFunction {
             function.id
 
           override def apply(value: V): Apply.Map[V] =
-            Return.toScalaMap(function.apply(value))
+            Return.toScalaForMap(function.apply(value))
         }
 
       case function: PureFunction.OnKey[K, V, Return.Map[V]] =>
@@ -75,7 +75,7 @@ object PureFunction {
             function.id
 
           override def apply(key: K, deadline: Option[scala.concurrent.duration.Deadline]): Apply.Map[V] =
-            Return.toScalaMap(function.apply(key, deadline.asJavaMap(_.asJava)))
+            Return.toScalaForMap(function.apply(key, deadline.asJavaMap(_.asJava)))
         }
 
       case function: PureFunction.OnKeyValue[K, V, Return.Map[V]] =>
@@ -84,7 +84,7 @@ object PureFunction {
             function.id
 
           override def apply(key: K, value: V, deadline: Option[scala.concurrent.duration.Deadline]): Apply.Map[V] =
-            Return.toScalaMap(function.apply(key, value, deadline.asJavaMap(_.asJava)))
+            Return.toScalaForMap(function.apply(key, value, deadline.asJavaMap(_.asJava)))
         }
     }
 
@@ -94,7 +94,7 @@ object PureFunction {
         function.id
 
       override def apply(key: K, deadline: Option[duration.Deadline]): Apply.Set =
-        Return.toScalaSet(function.apply(key, deadline.asJavaMap(_.asJava)))
+        Return.toScalaForSet(function.apply(key, deadline.asJavaMap(_.asJava)))
     }
 
   @FunctionalInterface
