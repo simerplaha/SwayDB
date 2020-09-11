@@ -32,7 +32,7 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
-import swaydb.{Apply, Bag, Pair, Prepare, PureFunction}
+import swaydb.{Apply, Bag, Expiration, Pair, Prepare, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._

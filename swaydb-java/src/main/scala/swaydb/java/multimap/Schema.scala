@@ -27,10 +27,10 @@ package swaydb.java.multimap
 import java.time.Duration
 import java.util.Optional
 
-import swaydb.{Bag, PureFunction}
+import swaydb.{Bag, Expiration, PureFunction}
 import swaydb.Bag.Less
 import swaydb.java.data.util.Java._
-import swaydb.java.{Expiration, MultiMap, Stream}
+import swaydb.java.{MultiMap, Stream}
 
 import scala.compat.java8.DurationConverters._
 

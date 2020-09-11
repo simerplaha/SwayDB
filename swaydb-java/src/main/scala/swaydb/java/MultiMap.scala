@@ -35,7 +35,7 @@ import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 import swaydb.java.multimap.Schema
 import swaydb.multimap.MultiPrepare
-import swaydb.{Bag, KeyVal, OK, Pair, Prepare, PureFunction}
+import swaydb.{Bag, Expiration, KeyVal, OK, Pair, Prepare, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration

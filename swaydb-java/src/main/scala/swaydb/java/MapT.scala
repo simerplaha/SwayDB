@@ -27,7 +27,7 @@ package swaydb.java
 import java.time.Duration
 import java.util.Optional
 
-import swaydb.{KeyVal, OK, Pair, Prepare}
+import swaydb.{Expiration, KeyVal, OK, Pair, Prepare}
 
 /**
  * Base trait for a basic SwayDB Map type.

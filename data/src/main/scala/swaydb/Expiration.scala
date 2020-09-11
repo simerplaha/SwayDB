@@ -17,12 +17,12 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.java
+package swaydb
 
 import java.time.Duration
 import java.util.Optional
@@ -57,6 +57,9 @@ class Expiration(val asScala: Deadline) {
 
   def minus(time: Duration): Expiration =
     Expiration(asScala - time.toScala)
+
+  def compare(expiration: Expiration): Int =
+    asScala.compare(expiration.asScala)
 
   def hasTimeLeft: Boolean =
     asScala.hasTimeLeft()

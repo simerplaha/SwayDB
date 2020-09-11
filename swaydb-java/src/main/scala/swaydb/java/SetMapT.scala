@@ -30,7 +30,7 @@ import java.util.Optional
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.{KeyVal, OK}
+import swaydb.{Expiration, KeyVal, OK}
 
 /**
  * Base trait for a basic SwayDB SetMap type.
