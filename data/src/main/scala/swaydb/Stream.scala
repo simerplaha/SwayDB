@@ -125,6 +125,10 @@ class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val ba
   def collectFirst[B](pf: PartialFunction[A, B]): BAG[Option[B]] =
     free.collectFirst(pf)
 
+  def flatten[B](implicit bag: Bag[BAG],
+                 evd: A <:< BAG[B]): Stream[B, BAG] =
+    new Stream(free.flatten)
+
   def collectFirstOrNull[B](pf: PartialFunction[A, B]): BAG[B] =
     free.collectFirstOrNull(pf)
 

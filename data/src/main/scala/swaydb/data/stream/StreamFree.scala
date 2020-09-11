@@ -152,6 +152,10 @@ private[swaydb] trait StreamFree[A] { self =>
       pf = pf
     )
 
+  def flatten[BAG[_], B](implicit bag: Bag[BAG],
+                         evd: A <:< BAG[B]): StreamFree[B] =
+    new step.Flatten[BAG, A, B](previousStream = self)
+
   def collectFirst[B, BAG[_]](pf: PartialFunction[A, B])(implicit bag: Bag[BAG]): BAG[Option[B]] =
     bag.map(collectFirstOrNull(pf))(Option(_))
 
@@ -183,6 +187,7 @@ private[swaydb] trait StreamFree[A] { self =>
 
     bag.transform(last)(_.toOption)
   }
+
 
   /**
    * Materializes are executes the stream.
@@ -246,6 +251,7 @@ private[swaydb] trait StreamFree[A] { self =>
     implicit val listBuffer = ListBuffer.newBuilder[A]
     bag.transform(materializeBuilder)(_.result())
   }
+
 
   /**
    * A [[Streamer]] is a simple interface to a [[Stream]] instance which

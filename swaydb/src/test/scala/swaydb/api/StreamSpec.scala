@@ -383,5 +383,21 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
           exception.getMessage shouldBe "Failed at 100"
       }
     }
+
+    "flatten" when {
+      "success" in {
+        val stream: Stream[BAG[Int], BAG] = Stream(bag(1), bag(2), bag(3), bag(4))
+        val flat: Stream[Int, BAG] = stream.flatten
+
+        flat.materialize.await shouldBe List(1, 2, 3, 4)
+      }
+
+      "failed" in {
+        val stream: Stream[BAG[Int], BAG] = Stream(bag(1), bag(2), bag(3), bag(4), bag.failure(new Exception("oh no")))
+        val flat: Stream[Int, BAG] = stream.flatten
+
+        Try(flat.materialize.await).failed.get.getMessage shouldBe "oh no"
+      }
+    }
   }
 }

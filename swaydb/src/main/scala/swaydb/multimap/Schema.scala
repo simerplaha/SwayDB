@@ -26,6 +26,7 @@ package swaydb.multimap
 
 import swaydb.core.map.counter.Counter
 import swaydb.core.util.Times._
+import swaydb.data.stream.StreamFree
 import swaydb.multimap.MultiKey.Child
 import swaydb.serializers._
 import swaydb.{Apply, Bag, IO, Map, MultiMap, Prepare, PureFunction, Stream}
@@ -423,7 +424,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
     keys.map(key => get(key))
 
   private def stream[BAG[_]](bag: Bag[BAG]): Stream[BAG[Option[MultiMap[M, K, V, F, BAG]]], BAG] = {
-    val free = keys.free.map((key: M) => get[M, K, V, F, BAG](mapKey = key, bag = bag))
+    val free: StreamFree[BAG[Option[MultiMap[M, K, V, F, BAG]]]] = keys.free.map((key: M) => get[M, K, V, F, BAG](mapKey = key, bag = bag))
     new Stream(free)(bag)
   }
 
