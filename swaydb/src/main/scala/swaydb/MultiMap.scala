@@ -393,44 +393,6 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   }
 
   /**
-   * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
-   * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
-   *
-   * @see [[MultiMap.commitMultiPrepare]] to commit [[MultiPrepare]]s.
-   */
-  def toMultiPrepare(prepare: Prepare[K, V, F]*): Seq[MultiPrepare[M, K, V, F]] =
-    prepare.map(prepare => MultiPrepare(self, prepare))
-
-  /**
-   * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
-   * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
-   *
-   * @see [[MultiMap.commitMultiPrepare]] to commit [[MultiPrepare]]s.
-   */
-  def toMultiPrepare(prepare: Stream[Prepare[K, V, F], BAG]) =
-    prepare.map {
-      prepare =>
-        MultiPrepare(self, prepare)
-    }
-
-  /**
-   * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
-   * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
-   *
-   * @see [[MultiMap.commitMultiPrepare]] to commit [[MultiPrepare]]s.
-   */
-  def toMultiPrepare(prepare: Iterable[Prepare[K, V, F]]): Iterable[MultiPrepare[M, K, V, F]] =
-    prepare.map(MultiPrepare(self, _))
-
-  def toMultiPrepareFromBuilder[X[_]](prepare: Iterable[Prepare[K, V, F]])(implicit builder: mutable.Builder[MultiPrepare[M, K, V, F], X[MultiPrepare[M, K, V, F]]]): X[MultiPrepare[M, K, V, F]] = {
-    prepare.foreach {
-      prepare =>
-        builder += MultiPrepare(self, prepare)
-    }
-    builder.result()
-  }
-
-  /**
    * Commits transaction to global map.
    */
   def commitMultiPrepare(transaction: Iterable[MultiPrepare[M, K, V, F]]): BAG[OK] =

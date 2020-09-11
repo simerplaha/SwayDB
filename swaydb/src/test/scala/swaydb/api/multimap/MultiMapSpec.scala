@@ -38,6 +38,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.util.Benchmark
+import swaydb.multimap.MultiPrepare
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -187,28 +188,28 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       }
     }
 
-//    "benchmark" in {
-//      TestCaseSweeper {
-//        implicit sweeper =>
-//          val root = newDB()
-//
-//          val child = root.schema.init(2)
-//
-//          Benchmark("") {
-//            (1 to 1000000) foreach {
-//              i =>
-//                child.put(i, i.toString)
-//            }
-//          }
-//
-//          Benchmark("") {
-//            (1 to 1000000) foreach {
-//              i =>
-//                child.get(i).value shouldBe i.toString
-//            }
-//          }
-//      }
-//    }
+    //    "benchmark" in {
+    //      TestCaseSweeper {
+    //        implicit sweeper =>
+    //          val root = newDB()
+    //
+    //          val child = root.schema.init(2)
+    //
+    //          Benchmark("") {
+    //            (1 to 1000000) foreach {
+    //              i =>
+    //                child.put(i, i.toString)
+    //            }
+    //          }
+    //
+    //          Benchmark("") {
+    //            (1 to 1000000) foreach {
+    //              i =>
+    //                child.get(i).value shouldBe i.toString
+    //            }
+    //          }
+    //      }
+    //    }
 
     "put a stream to an expired map and also submit key-values with deadline later than map's deadline" in {
       TestCaseSweeper {
@@ -646,8 +647,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         child3.put(2, "two")
 
         val transaction =
-          child3.toMultiPrepare(Prepare.Put(3, "three")) ++
-            child2.toMultiPrepare(Prepare.Put(4, "four"))
+          MultiPrepare(child3, Prepare.Put(3, "three")) ++
+            MultiPrepare(child2, Prepare.Put(4, "four"))
 
         child3.commitMultiPrepare(transaction)
 

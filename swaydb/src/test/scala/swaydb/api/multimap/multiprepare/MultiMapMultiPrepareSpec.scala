@@ -32,6 +32,7 @@ import swaydb.core.TestCaseSweeper._
 import PrimaryKey._
 import Row._
 import Table._
+import swaydb.multimap.MultiPrepare
 import swaydb.{Bag, Prepare}
 
 import scala.concurrent.duration._
@@ -59,8 +60,8 @@ class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
 
           //create a transaction to write into userActivity and User
           val transaction =
-            userActivityMap.toMultiPrepare(Prepare.Put(PrimaryKey.Activity(1), Row.Activity("act1"))) ++
-              userMap.toMultiPrepare(Prepare.Put(PrimaryKey.Email("email1"), Row.User("name1", "address1")))
+            MultiPrepare(userActivityMap, Prepare.Put(PrimaryKey.Activity(1), Row.Activity("act1"))) ++
+              MultiPrepare(userMap, Prepare.Put(PrimaryKey.Email("email1"), Row.User("name1", "address1")))
 
           //commit under too UserMap
           userMap.commitMultiPrepare(transaction)
@@ -80,12 +81,12 @@ class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
 
           //crete transaction2 which uses all maps
           val transaction2 =
-            userActivityMap.toMultiPrepare(Prepare.Put(PrimaryKey.Activity(2), Row.Activity("act2"))) ++
-              userMap.toMultiPrepare(Prepare.Put(PrimaryKey.Email("email2"), Row.User("name2", "address2"))) ++
-              productMap.toMultiPrepare(Prepare.Put(PrimaryKey.SKU(1), Row.Product(1))) ++
-              productOrderMap.toMultiPrepare(Prepare.Put(PrimaryKey.Order(1), Row.Order(1, 1))) ++
+            MultiPrepare(userActivityMap, Prepare.Put(PrimaryKey.Activity(2), Row.Activity("act2"))) ++
+              MultiPrepare(userMap, Prepare.Put(PrimaryKey.Email("email2"), Row.User("name2", "address2"))) ++
+              MultiPrepare(productMap, Prepare.Put(PrimaryKey.SKU(1), Row.Product(1))) ++
+              MultiPrepare(productOrderMap, Prepare.Put(PrimaryKey.Order(1), Row.Order(1, 1))) ++
               //expire order 2 in 2.seconds
-              productOrderMap.toMultiPrepare(Prepare.Put(PrimaryKey.Order(2), Row.Order(2, 2), 2.seconds))
+              MultiPrepare(productOrderMap, Prepare.Put(PrimaryKey.Order(2), Row.Order(2, 2), 2.seconds))
 
           //all map can only committed under root map
           root.commitMultiPrepare(transaction2)

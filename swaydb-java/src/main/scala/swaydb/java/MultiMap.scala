@@ -129,11 +129,6 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   def applyFunction(from: K, to: K, function: F): swaydb.OK =
     asScala.applyFunction(from, to, function)
 
-  def toMultiPrepare(prepare: java.lang.Iterable[Prepare[K, V, F]]): java.lang.Iterable[MultiPrepare[M, K, V, F]] =
-    asScala
-      .toMultiPrepare(prepare.asScala)
-      .asJava
-
   def commitMultiPrepare(transaction: java.lang.Iterable[MultiPrepare[M, K, V, F]]): OK =
     asScala.commitMultiPrepare(transaction.asScala)
 

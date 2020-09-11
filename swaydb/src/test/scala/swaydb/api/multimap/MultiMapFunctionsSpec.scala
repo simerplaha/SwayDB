@@ -83,8 +83,8 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
       }
 
     val onValueFunction =
-      new PureFunction.OnValue[String, Apply.Map[String]] {
-        override def apply(value: String): Apply.Map[String] =
+      new PureFunction.OnKeyValue[Int, String, Apply.Map[String]] {
+        override def apply(key: Int, value: String, deadline: Option[Deadline]): Apply.Map[String] =
           Apply.Update("updated2")
       }
 

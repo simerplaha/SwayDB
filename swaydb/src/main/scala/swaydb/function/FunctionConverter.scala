@@ -37,9 +37,6 @@ object FunctionConverter {
   def toCore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: F)(implicit keySerializer: Serializer[K],
                                                                            valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction =
     function match {
-      case function: PureFunction.OnValue[V, Apply.Map[V]] =>
-        SwayDB.toCoreFunction(function)
-
       case function: PureFunction.OnKey[K, V, Apply.Map[V]] =>
         SwayDB.toCoreFunction(function)
 
@@ -113,21 +110,6 @@ object FunctionConverter {
     function match {
       //convert all MultiMap Functions to Map functions that register them since MultiMap is
       //just a parent implementation over Map.
-      case function: PureFunction.OnValue[V, Apply.Map[V]] =>
-        new PureFunction.OnValue[MultiValue[V], Apply.Map[MultiValue[V]]] {
-          //use user function's functionId
-          override val id: String =
-            function.id
-
-          override def apply(value: MultiValue[V]): Apply.Map[MultiValue[V]] =
-            validateValue(value) {
-              value =>
-                function
-                  .apply(value)
-                  .map(value => MultiValue.Their(value))
-            }
-        }
-
       case function: PureFunction.OnKey[K, V, Apply.Map[V]] =>
         new PureFunction.OnKey[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]] {
           //use user function's functionId
@@ -159,5 +141,4 @@ object FunctionConverter {
         }
     }
   }
-
 }

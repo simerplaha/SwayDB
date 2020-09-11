@@ -60,10 +60,6 @@ object PureFunction {
 
   type Set[A] = PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]
 
-  trait OnValue[V, R <: Apply[V]] extends (V => R) with PureFunction[Nothing, V, R] {
-    override def apply(value: V): R
-  }
-
   trait OnKey[K, +V, R <: Apply[V]] extends ((K, Option[Deadline]) => R) with PureFunction[K, V, R] {
     override def apply(key: K, deadline: Option[Deadline]): R
   }
@@ -78,12 +74,15 @@ object PureFunction {
   def isOn[F](implicit classTag: ClassTag[F]): Boolean =
     !isOff(classTag)
 
-  implicit class VoidToNothing[A](voidOnKey: PureFunction.OnKey[A, Void, Apply.Set[Void]]) {
+  /**
+   * Used in Java API to convert Void types to Nothing.
+   */
+  private[swaydb] implicit class VoidToNothing[A](voidOnKey: PureFunction.OnKey[A, Void, Apply.Set[Void]]) {
     def castToNothing: PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] =
       voidOnKey.asInstanceOf[PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]
   }
 
-  implicit class VoidToNothingIterable[A](voidOnKey: java.lang.Iterable[PureFunction.OnKey[A, Void, Apply.Set[Void]]]) {
+  private[swaydb] implicit class VoidToNothingIterable[A](voidOnKey: java.lang.Iterable[PureFunction.OnKey[A, Void, Apply.Set[Void]]]) {
     def castToNothing: Iterable[OnKey[A, Nothing, Apply.Set[Nothing]]] =
       voidOnKey.asScala.map(_.castToNothing)
 

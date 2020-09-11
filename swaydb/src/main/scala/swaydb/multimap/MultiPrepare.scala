@@ -26,7 +26,9 @@ package swaydb.multimap
 
 import swaydb.{MultiMap, Prepare}
 
+import scala.collection.mutable
 import scala.concurrent.duration.Deadline
+import scala.jdk.CollectionConverters._
 
 
 object MultiPrepare {
@@ -39,8 +41,22 @@ object MultiPrepare {
     prepare.map(MultiPrepare(map, _))
 
   def apply[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG],
+                                prepare: java.lang.Iterable[Prepare[K, V, F]]): java.lang.Iterable[MultiPrepare[M, K, V, F]] =
+    apply(
+      map = map,
+      prepare = prepare.asScala
+    ).asJava
+
+  def apply[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG],
                                 prepare: Prepare[K, V, F]): MultiPrepare[M, K, V, F] =
     new MultiPrepare(map.mapId, map.defaultExpiration, prepare)
+
+  def builder[M, K, V, F, BAG[_], C[_]](map: MultiMap[M, K, V, F, BAG],
+                                        prepare: Iterable[Prepare[K, V, F]])(implicit builder: mutable.Builder[MultiPrepare[M, K, V, F], C[MultiPrepare[M, K, V, F]]]): C[MultiPrepare[M, K, V, F]] =
+    prepare.foldLeft(builder) {
+      case (builder, prepare) =>
+        builder += MultiPrepare(map, prepare)
+    }.result()
 }
 
 /**
@@ -52,4 +68,10 @@ object MultiPrepare {
  */
 case class MultiPrepare[+M, +K, +V, +F](mapId: Long,
                                         defaultExpiration: Option[Deadline],
-                                        prepare: Prepare[K, V, F])
+                                        prepare: Prepare[K, V, F]) {
+  def ++[M2 >: M, K2 >: K, V2 >: V, F2 >: F](other: MultiPrepare[M2, K2, V2, F2]): List[MultiPrepare[M2, K2, V2, F2]] =
+    List(this, other)
+
+  def concatJava[M2 >: M, K2 >: K, V2 >: V, F2 >: F](other: MultiPrepare[M2, K2, V2, F2]): java.util.stream.Stream[MultiPrepare[M2, K2, V2, F2]] =
+    java.util.stream.Stream.of(this, other)
+}
