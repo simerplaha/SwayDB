@@ -172,10 +172,10 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
       prepares =>
-        commitIterable(prepares)
+        commit(prepares)
     }
 
-  def commitIterable(prepare: Iterable[Prepare[K, V, F]]): BAG[OK] =
+  def commit(prepare: Iterable[Prepare[K, V, F]]): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
   /**

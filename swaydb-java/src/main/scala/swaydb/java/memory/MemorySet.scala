@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
+import swaydb.data.Functions
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
@@ -65,7 +66,7 @@ object MemorySet {
                            private var typedComparator: KeyComparator[A] = null,
                            private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
                                                                                       serializer: Serializer[A],
-                                                                                      functions: swaydb.Set.Functions[A, F],
+                                                                                      functions: Functions[F],
                                                                                       evd: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
 
     def setMapSize(mapSize: Int) = {
@@ -133,16 +134,6 @@ object MemorySet {
       this
     }
 
-    def registerFunctions(functions: F*): Config[A, F] = {
-      functions.foreach(registerFunction(_))
-      this
-    }
-
-    def registerFunction(function: F): Config[A, F] = {
-      functions.register(function)
-      this
-    }
-
     def get(): swaydb.java.Set[A, F] = {
       val comparator: Either[KeyComparator[JavaSlice[java.lang.Byte]], KeyComparator[A]] =
         Eithers.nullCheck(
@@ -154,7 +145,7 @@ object MemorySet {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
       val scalaMap =
-        swaydb.memory.Set[A, F, Bag.Less](
+        swaydb.memory.Set[A, PureFunction.Set[A], Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -166,30 +157,29 @@ object MemorySet {
           lastLevelThrottle = lastLevelThrottle.asScala,
           threadStateCache = threadStateCache
         )(serializer = serializer,
-          functionClassTag = functionClassTag,
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Set[A]]],
           bag = Bag.less,
-          functions = functions,
+          functions = functions.asInstanceOf[Functions[PureFunction.Set[A]]],
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
-      swaydb.java.Set[A, F](scalaMap)
+      swaydb.java.Set[A, F](scalaMap.asInstanceOf[swaydb.Set[A, F, Bag.Less]])
     }
   }
 
-  def functionsOn[A](serializer: JavaSerializer[A]): Config[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] = {
+  def functionsOn[A](serializer: JavaSerializer[A],
+                     functions: Functions[PureFunction.JavaSet[A]]): Config[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] = {
 
+    implicit val scalaFunctions = functions.asInstanceOf[Functions[PureFunction.Set[A]]]
     implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
-    implicit val functions = swaydb.Set.Functions[A, swaydb.PureFunction.Set[A]]()
     val config: Config[A, PureFunction.Set[A]] = new Config()
 
     config.asInstanceOf[Config[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
   }
 
   def functionsOff[A](serializer: JavaSerializer[A]): Config[A, Void] = {
-
     implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
-    implicit val functions = swaydb.Set.Functions[A, Void]()
     implicit val evd: Void <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] = null
 
     new Config()

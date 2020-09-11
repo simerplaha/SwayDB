@@ -649,7 +649,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           child3.toMultiPrepare(Prepare.Put(3, "three")) ++
             child2.toMultiPrepare(Prepare.Put(4, "four"))
 
-        child3.commit(transaction)
+        child3.commitMulti(transaction)
 
         child3.get(3).value shouldBe "three"
         child2.get(4).value shouldBe "four"

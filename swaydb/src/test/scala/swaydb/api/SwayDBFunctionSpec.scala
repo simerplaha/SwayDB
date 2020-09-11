@@ -25,7 +25,7 @@ import swaydb.IO.ApiIO
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.data.NonEmptyList
+import swaydb.data.Functions
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -71,28 +71,28 @@ protected object Key {
 
 class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
 
-  override def newDB()(implicit functionStore: NonEmptyList[PureFunction.Map[Key, Int]],
+  override def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
                        sweeper: TestCaseSweeper): Map[Key, Int, PureFunction.Map[Key, Int], ApiIO] =
     swaydb.persistent.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
 
-  override def newDB()(implicit functionStore: NonEmptyList[PureFunction.Map[Key, Int]],
+  override def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
                        sweeper: TestCaseSweeper): Map[Key, Int, PureFunction.Map[Key, Int], ApiIO] =
     swaydb.persistent.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO](randomDir, mapSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
 
-  override def newDB()(implicit functionStore: NonEmptyList[PureFunction.Map[Key, Int]],
+  override def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
                        sweeper: TestCaseSweeper): Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO] =
     swaydb.memory.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO](mapSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
 
-  override def newDB()(implicit functionStore: NonEmptyList[PureFunction.Map[Key, Int]],
+  override def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
                        sweeper: TestCaseSweeper): Map[Key, Int, PureFunction.Map[Key, Int], ApiIO] =
     swaydb.memory.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO]().right.value.sweep(_.delete().get)
 }
@@ -110,12 +110,12 @@ class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
 
 sealed trait SwayDBFunctionSpec extends TestBase {
 
-  def newDB()(implicit functionStore: NonEmptyList[PureFunction.Map[Key, Int]],
+  def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
               sweeper: TestCaseSweeper): swaydb.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO]
 
 
   "SwayDB" should {
-    implicit val functionsMap = NonEmptyList[PureFunction.Map[Key, Int]](Key.IncrementValue, Key.DoNothing)
+    implicit val functionsMap = Functions[PureFunction.Map[Key, Int]](Key.IncrementValue, Key.DoNothing)
 
     "perform concurrent atomic updates to a single key" in {
       runThis(times = repeatTest, log = true) {
@@ -173,12 +173,12 @@ sealed trait SwayDBFunctionSpec extends TestBase {
             val puts: List[Prepare[Key.Id, Int, Nothing]] =
               (1 to 1000).map(key => Prepare.Put(Key.Id(key), key)).toList
 
-            db.commitIterable(puts).get
+            db.commit(puts).get
 
             val prepareApplyFunction: List[Prepare[Key.Id, Nothing, Key.IncrementValue.type]] =
               (1 to 1000).map(key => Prepare.ApplyFunction(Key.Id(key), Key.IncrementValue)).toList
 
-            db.commitIterable(prepareApplyFunction).get
+            db.commit(prepareApplyFunction).get
 
             (1 to 1000) foreach {
               key =>

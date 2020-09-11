@@ -26,6 +26,7 @@ package swaydb.java;
 
 import org.junit.jupiter.api.Test;
 import swaydb.*;
+import swaydb.data.Functions;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.Slice;
@@ -526,16 +527,6 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    MemoryMap.Config<Integer, Integer, PureFunction<Integer, Integer, Apply.Map<Integer>>> config =
-      MemoryMap
-        .functionsOn(intSerializer(), intSerializer());
-
-    MapT<Integer, Integer, PureFunction<Integer, Integer, Apply.Map<Integer>>> map =
-      config
-        .get();
-
-    map.put(Stream.range(1, 100).map(KeyVal::create));
-
     PureFunction.OnKey<Integer, Integer, Apply.Map<Integer>> updateValueTo10 =
       (key, deadline) ->
         Apply.update(10);
@@ -553,13 +544,18 @@ abstract class MapTest extends TestBase implements JavaEventually {
         }
       };
 
-    //this will not compile since the return type specified is a Set - expected!
-//    PureFunction.OnValue<Integer, Integer, Apply.Set<Integer>> set = null;
-//    config.registerFunction(set);
 
-    config.registerFunction(updateValueTo10);
-    config.registerFunction(incrementBy1);
-    config.registerFunction(removeMod0OrIncrementBy1);
+    //this will not compile since the return type specified is a Set - expected!
+    PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> invalidType =
+      (key, value, deadline) ->
+        Apply.update(value + 1);
+
+    Map<Integer, Integer, PureFunction<Integer, Integer, Apply.Map<Integer>>> map =
+      MemoryMap
+        .functionsOn(intSerializer(), intSerializer(), Functions.create(Arrays.asList(updateValueTo10, incrementBy1, removeMod0OrIncrementBy1)))
+        .get();
+
+    map.put(Stream.range(1, 100).map(KeyVal::create));
 
     map.applyFunction(1, updateValueTo10);
     assertEquals(10, map.get(1).get());

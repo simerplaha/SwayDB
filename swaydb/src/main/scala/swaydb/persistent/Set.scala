@@ -32,7 +32,7 @@ import swaydb.configs.level.{DefaultExecutionContext, DefaultPersistentConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
-import swaydb.data.{DataType, NonEmptyList}
+import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -81,7 +81,7 @@ object Set extends LazyLogging {
                                                  levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A],
                                                                                                                              functionClassTag: ClassTag[F],
                                                                                                                              bag: swaydb.Bag[BAG],
-                                                                                                                             functions: NonEmptyList[F],
+                                                                                                                             functions: Functions[F],
                                                                                                                              byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                              typedKeyOrder: KeyOrder[A] = null,
                                                                                                                              compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,

@@ -25,7 +25,7 @@
 package swaydb.function
 
 import swaydb.core.function.FunctionStore
-import swaydb.data.NonEmptyList
+import swaydb.data.Functions
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, MultiMap, PureFunction, SwayDB}
@@ -47,15 +47,12 @@ object FunctionConverter {
         SwayDB.toCoreFunction(function)
     }
 
-  def toCore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](functions: NonEmptyList[F])(implicit keySerializer: Serializer[K],
-                                                                                          valueSerializer: Serializer[V]): NonEmptyList[swaydb.core.data.SwayFunction] =
-    NonEmptyList(
-      head = toCore[K, V, R, F](functions.head),
-      tail = functions.tail.map(function => toCore[K, V, R, F](function)): _*
-    )
+  def toCore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](functions: Functions[F])(implicit keySerializer: Serializer[K],
+                                                                                       valueSerializer: Serializer[V]): Functions[swaydb.core.data.SwayFunction] =
+    Functions(functions.map(function => toCore[K, V, R, F](function)))
 
-  def toFunctionsStore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](functions: NonEmptyList[F])(implicit keySerializer: Serializer[K],
-                                                                                                    valueSerializer: Serializer[V]): FunctionStore = {
+  def toFunctionsStore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](functions: Functions[F])(implicit keySerializer: Serializer[K],
+                                                                                                 valueSerializer: Serializer[V]): FunctionStore = {
     val functionStore = FunctionStore.memory()
 
     functions foreach {
@@ -69,11 +66,8 @@ object FunctionConverter {
   /**
    * Register the function converting it to [[MultiMap.innerMap]]'s function type.
    */
-  def toMultiMap[M, K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: NonEmptyList[F]): NonEmptyList[swaydb.PureFunction.Map[MultiKey[M, K], MultiValue[V]]] =
-    NonEmptyList(
-      head = toMultiMap[M, K, V, R, F](function.head),
-      tail = function.tail.map(function => toMultiMap[M, K, V, R, F](function)): _*
-    )
+  def toMultiMap[M, K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: Functions[F]): Functions[swaydb.PureFunction.Map[MultiKey[M, K], MultiValue[V]]] =
+    Functions(function.map(function => toMultiMap[M, K, V, R, F](function)))
 
   def toMultiMap[M, K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: F): PureFunction.Map[MultiKey[M, K], MultiValue[V]] = {
 

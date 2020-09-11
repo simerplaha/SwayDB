@@ -28,6 +28,21 @@ import swaydb.{MultiMap, Prepare}
 
 import scala.concurrent.duration.Deadline
 
+
+object MultiPrepare {
+  def apply[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG],
+                                prepare: Prepare[K, V, F]*): Seq[MultiPrepare[M, K, V, F]] =
+    prepare.map(MultiPrepare(map, _))
+
+  def apply[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG],
+                                prepare: Iterable[Prepare[K, V, F]]): Iterable[MultiPrepare[M, K, V, F]] =
+    prepare.map(MultiPrepare(map, _))
+
+  def apply[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG],
+                                prepare: Prepare[K, V, F]): MultiPrepare[M, K, V, F] =
+    new MultiPrepare(map.mapId, map.defaultExpiration, prepare)
+}
+
 /**
  * Holds [[Prepare]] statements which than get converted to [[MultiMap.innerMap]]'s [[Prepare]] type.
  *

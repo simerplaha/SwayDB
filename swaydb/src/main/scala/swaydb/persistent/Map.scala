@@ -31,7 +31,7 @@ import swaydb.{Apply, KeyOrderConverter, PureFunction}
 import swaydb.configs.level.{DefaultExecutionContext, DefaultPersistentConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
-import swaydb.data.{DataType, NonEmptyList}
+import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -78,7 +78,7 @@ object Map extends LazyLogging {
                                                                                                                                    valueSerializer: Serializer[V],
                                                                                                                                    functionClassTag: ClassTag[F],
                                                                                                                                    bag: swaydb.Bag[BAG],
-                                                                                                                                   functions: NonEmptyList[F],
+                                                                                                                                   functions: Functions[F],
                                                                                                                                    byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                    typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                    compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,

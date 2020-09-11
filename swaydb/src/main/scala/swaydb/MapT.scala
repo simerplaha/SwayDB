@@ -98,7 +98,9 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]]
 
-  def isFunctionApplied(functionId: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean
+  //using evidence instance of defining the sub-type in type param F so that we can
+  //use void in java and provide better interop with Scala and Java conversions.
+  def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean
 
   def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK]
 
@@ -108,7 +110,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[OK]
 
-  def commitIterable(prepare: Iterable[Prepare[K, V, F]]): BAG[OK]
+  def commit(prepare: Iterable[Prepare[K, V, F]]): BAG[OK]
 
   /**
    * Returns target value for the input key.

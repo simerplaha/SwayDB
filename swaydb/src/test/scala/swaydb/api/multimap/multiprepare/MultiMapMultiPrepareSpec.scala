@@ -63,7 +63,7 @@ class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
               userMap.toMultiPrepare(Prepare.Put(PrimaryKey.Email("email1"), Row.User("name1", "address1")))
 
           //commit under too UserMap
-          userMap.commit(transaction)
+          userMap.commitMulti(transaction)
 
           //assert commit
           def assertTransaction1() = {
@@ -88,7 +88,7 @@ class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
               productOrderMap.toMultiPrepare(Prepare.Put(PrimaryKey.Order(2), Row.Order(2, 2), 2.seconds))
 
           //all map can only committed under root map
-          root.commit(transaction2)
+          root.commitMulti(transaction2)
 
           def assertTransaction2() = {
             userActivityMap.get(PrimaryKey.Activity(2)).value shouldBe Row.Activity("act2")

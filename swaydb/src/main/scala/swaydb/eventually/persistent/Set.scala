@@ -32,7 +32,7 @@ import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecution
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
-import swaydb.data.{DataType, NonEmptyList}
+import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -78,7 +78,7 @@ object Set extends LazyLogging {
                                                  threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                                                    functionClassTag: ClassTag[F],
                                                                                                                                                    bag: swaydb.Bag[BAG],
-                                                                                                                                                   functions: NonEmptyList[F],
+                                                                                                                                                   functions: Functions[F],
                                                                                                                                                    byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                    typedKeyOrder: KeyOrder[A] = null,
                                                                                                                                                    compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,

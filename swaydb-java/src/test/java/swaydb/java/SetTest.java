@@ -30,6 +30,7 @@ import swaydb.Apply;
 import swaydb.Pair;
 import swaydb.Prepare;
 import swaydb.PureFunction;
+import swaydb.data.Functions;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.Slice;
@@ -409,30 +410,22 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    MemorySet.Config<Integer, PureFunction.OnKey<Integer, Void, Apply.Set<Void>>> config =
-      MemorySet.functionsOn(intSerializer());
-
-    Set<Integer, PureFunction.OnKey<Integer, Void, Apply.Set<Void>>> set = config.get();
-
-    set.add(Stream.range(1, 100));
 
     PureFunction.OnKey<Integer, Void, Apply.Set<Void>> expire =
       (key, deadline) ->
         Apply.expireSetEntry(Duration.ZERO);
 
     //does not compile
-//    PureFunction.OnValue<Integer, Integer, Apply.Set<Integer>> incrementBy1 = null;
-//    config.registerFunction(incrementBy1);
-
-    //does not compile
-//    PureFunction.OnKeyValue<Integer, Integer, Apply.Set<Integer>> removeMod0OrIncrementBy1 = null;
-//    config.registerFunction(removeMod0OrIncrementBy1);
+    PureFunction.OnKeyValue<Integer, Integer, Apply.Set<Integer>> removeMod0OrIncrementBy1 = null;
 
     //this will not compile since the return type specified is a Set - expected!
 //    PureFunction.OnValue<Integer, Integer, Apply.Set<Integer>> function = null;
-//    config.registerFunction(function);
 
-    config.registerFunction(expire);
+    Set<Integer, PureFunction.OnKey<Integer, Void, Apply.Set<Void>>> set =
+      MemorySet.functionsOn(intSerializer(), Functions.create(expire))
+        .get();
+
+    set.add(Stream.range(1, 100));
 
     set.applyFunction(1, 100, expire);
 

@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
+import swaydb.data.Functions
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
@@ -41,7 +42,7 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.java.{KeyComparator, KeyOrderConverter, MultiMap}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag}
+import swaydb.{Apply, Bag, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
@@ -67,7 +68,7 @@ object MemoryMultiMap {
                                                                                             keySerializer: Serializer[K],
                                                                                             mapKeySerializer: Serializer[M],
                                                                                             valueSerializer: Serializer[V],
-                                                                                            functions: swaydb.MultiMap.Functions[M, K, V, F],
+                                                                                            functions: Functions[F],
                                                                                             evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
@@ -135,16 +136,6 @@ object MemoryMultiMap {
       this
     }
 
-    def registerFunctions(functions: F*): Config[M, K, V, F] = {
-      functions.foreach(registerFunction(_))
-      this
-    }
-
-    def registerFunction(function: F): Config[M, K, V, F] = {
-      functions.register(function)
-      this
-    }
-
     def get(): MultiMap[M, K, V, F] = {
       val comparator: Either[KeyComparator[JavaSlice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -156,7 +147,7 @@ object MemoryMultiMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.memory.MultiMap[M, K, V, F, Bag.Less](
+        swaydb.memory.MultiMap[M, K, V, PureFunction.Map[K, V], Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -170,24 +161,25 @@ object MemoryMultiMap {
         )(keySerializer = keySerializer,
           mapKeySerializer = mapKeySerializer,
           valueSerializer = valueSerializer,
-          functions = functions,
-          functionClassTag = functionClassTag,
+          functions = functions.asInstanceOf[Functions[PureFunction.Map[K, V]]],
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
-      swaydb.java.MultiMap[M, K, V, F](scalaMap)
+      swaydb.java.MultiMap[M, K, V, F](scalaMap.asInstanceOf[swaydb.MultiMap[M, K, V, F, Bag.Less]])
     }
   }
 
   def functionsOn[M, K, V](mapKeySerializer: JavaSerializer[M],
                            keySerializer: JavaSerializer[K],
-                           valueSerializer: JavaSerializer[V]): Config[M, K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] = {
+                           valueSerializer: JavaSerializer[V],
+                           functions: Functions[PureFunction.Map[K, V]]): Config[M, K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] = {
+    implicit val pureFunctions = functions
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaMapKeySerializer: Serializer[M] = SerializerConverter.toScala(mapKeySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
-    implicit val functions = swaydb.MultiMap.Functions[M, K, V, swaydb.PureFunction.Map[K, V]]()
 
     new Config()
   }

@@ -32,7 +32,7 @@ import java.util.concurrent.ExecutorService
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
-import swaydb.data.DataType
+import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -45,7 +45,7 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag}
+import swaydb.{Apply, Bag, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
@@ -90,7 +90,7 @@ object PersistentMap {
                               private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map))(implicit functionClassTag: ClassTag[F],
                                                                                                                                keySerializer: Serializer[K],
                                                                                                                                valueSerializer: Serializer[V],
-                                                                                                                               functions: swaydb.Map.Functions[K, V, F],
+                                                                                                                               functions: Functions[F],
                                                                                                                                evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
@@ -248,16 +248,6 @@ object PersistentMap {
       this
     }
 
-    def registerFunctions(functions: F*): Config[K, V, F] = {
-      functions.foreach(registerFunction(_))
-      this
-    }
-
-    def registerFunction(function: F): Config[K, V, F] = {
-      functions.register(function)
-      this
-    }
-
     def get(): swaydb.java.Map[K, V, F] = {
       val comparator: Either[KeyComparator[JavaSlice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -269,7 +259,7 @@ object PersistentMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.persistent.Map[K, V, F, Bag.Less](
+        swaydb.persistent.Map[K, V, PureFunction.Map[K, V], Bag.Less](
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -300,25 +290,25 @@ object PersistentMap {
           levelSixThrottle = levelSixThrottle.asScala
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
-          functions = functions,
-          functionClassTag = functionClassTag,
+          functions = functions.asInstanceOf[Functions[PureFunction.Map[K, V]]],
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
           buildValidator = buildValidator
         )
 
-      swaydb.java.Map[K, V, F](scalaMap)
+      swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Bag.Less]])
     }
   }
 
   def functionsOn[K, V](dir: Path,
                         keySerializer: JavaSerializer[K],
-                        valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]] = {
-
+                        valueSerializer: JavaSerializer[V],
+                        functions: Functions[swaydb.PureFunction[K, V, Apply.Map[V]]]): Config[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]] = {
+    implicit val pureFunctions = functions
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
-    implicit val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction.Map[K, V]]()
 
     new Config(dir = dir)
   }

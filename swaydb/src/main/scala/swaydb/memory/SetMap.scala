@@ -27,7 +27,7 @@ package swaydb.memory
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
-import swaydb.data.NonEmptyList
+import swaydb.data.Functions
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
@@ -80,7 +80,7 @@ object SetMap extends LazyLogging {
         )(serializer = serialiser,
           functionClassTag = ClassTag.Nothing,
           bag = bag,
-          functions = NonEmptyList.nothing,
+          functions = Functions.nothing,
           byteKeyOrder = ordering,
           compactionEC = compactionEC
         )

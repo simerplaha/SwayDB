@@ -135,13 +135,13 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
       .asJava
 
   def commitMultiPrepare(transaction: java.lang.Iterable[MultiPrepare[M, K, V, F]]): OK =
-    asScala.commit(transaction.asScala)
+    asScala.commitMulti(transaction.asScala)
 
   def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): swaydb.OK =
-    asScala.commitIterable(prepare.asScala)
+    asScala.commit(prepare.asScala)
 
   def commit(prepare: Stream[Prepare[K, V, F]]): swaydb.OK =
-    asScala.commitIterable(prepare.asScala)
+    asScala.commit(prepare.asScala)
 
   def get(key: K): Optional[V] =
     asScala.get(key).asJava

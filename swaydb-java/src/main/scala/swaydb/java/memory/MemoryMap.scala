@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
+import swaydb.data.Functions
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
@@ -41,7 +42,7 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag}
+import swaydb.{Apply, Bag, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
@@ -66,7 +67,7 @@ object MemoryMap {
                               private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
                                                                                          keySerializer: Serializer[K],
                                                                                          valueSerializer: Serializer[V],
-                                                                                         functions: swaydb.Map.Functions[K, V, F],
+                                                                                         functions: Functions[F],
                                                                                          evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
@@ -134,16 +135,6 @@ object MemoryMap {
       this
     }
 
-    def registerFunctions(functions: F*): Config[K, V, F] = {
-      functions.foreach(registerFunction(_))
-      this
-    }
-
-    def registerFunction(function: F): Config[K, V, F] = {
-      functions.register(function)
-      this
-    }
-
     def get(): swaydb.java.Map[K, V, F] = {
       val comparator: Either[KeyComparator[JavaSlice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -154,38 +145,38 @@ object MemoryMap {
 
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
-//      val scalaMap =
-//        swaydb.memory.Map[K, V, F, Bag.Less](
-//          mapSize = mapSize,
-//          minSegmentSize = minSegmentSize,
-//          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-//          fileCache = fileCache,
-//          deleteSegmentsEventually = deleteSegmentsEventually,
-//          shutdownTimeout = shutdownTimeout.toScala,
-//          acceleration = acceleration.asScala,
-//          levelZeroThrottle = levelZeroThrottle.asScala,
-//          lastLevelThrottle = lastLevelThrottle.asScala,
-//          threadStateCache = threadStateCache
-//        )(keySerializer = keySerializer,
-//          valueSerializer = valueSerializer,
-//          functions = functions,
-//          functionClassTag = functionClassTag,
-//          bag = Bag.less,
-//          byteKeyOrder = scalaKeyOrder,
-//          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
-//        )
-//
-//      swaydb.java.Map[K, V, F](scalaMap)
-      ???
+      val scalaMap =
+        swaydb.memory.Map[K, V, PureFunction.Map[K, V], Bag.Less](
+          mapSize = mapSize,
+          minSegmentSize = minSegmentSize,
+          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+          fileCache = fileCache,
+          deleteSegmentsEventually = deleteSegmentsEventually,
+          shutdownTimeout = shutdownTimeout.toScala,
+          acceleration = acceleration.asScala,
+          levelZeroThrottle = levelZeroThrottle.asScala,
+          lastLevelThrottle = lastLevelThrottle.asScala,
+          threadStateCache = threadStateCache
+        )(keySerializer = keySerializer,
+          valueSerializer = valueSerializer,
+          functions = functions.asInstanceOf[Functions[PureFunction.Map[K, V]]],
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
+          bag = Bag.less,
+          byteKeyOrder = scalaKeyOrder,
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+        )
+
+      swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Bag.Less]])
 
     }
   }
 
   def functionsOn[K, V](keySerializer: JavaSerializer[K],
-                        valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] = {
+                        valueSerializer: JavaSerializer[V],
+                        functions: Functions[PureFunction.Map[K, V]]): Config[K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] = {
+    implicit val pureFunctions = functions
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
-    implicit val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction.Map[K, V]]()
 
     new Config()
   }

@@ -85,7 +85,7 @@ object MultiMap {
       isEmpty =>
 
         def initialEntries: BAG[OK] =
-          rootMap.commitIterable(
+          rootMap.commit(
             Seq(
               Prepare.Put(MultiKey.Start(MultiMap.rootMapId), MultiValue.None),
               Prepare.Put(MultiKey.KeysStart(MultiMap.rootMapId), MultiValue.None),
@@ -246,7 +246,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
           Prepare.Put(MultiKey.Key(mapId, key), MultiValue.Their(value), defaultExpiration)
       }
 
-    innerMap.commitIterable(innerKeyValues)
+    innerMap.commit(innerKeyValues)
   }
 
   override def put(keyValues: Stream[(K, V), BAG]): BAG[OK] = {
@@ -266,7 +266,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
           Prepare.Put(MultiKey.Key(mapId, key), MultiValue.Their(value), defaultExpiration)
       }
 
-    innerMap.commitIterable(stream)
+    innerMap.commit(stream)
   }
 
   override def put(keyValues: Iterator[(K, V)]): BAG[OK] =
@@ -320,7 +320,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
           Prepare.Expire(MultiKey.Key(mapId, key), deadline.earlier(defaultExpiration))
       }.to(Iterable)
 
-    innerMap.commitIterable(iterable)
+    innerMap.commit(iterable)
   }
 
   def update(key: K, value: V): BAG[OK] =
@@ -336,7 +336,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
           Prepare.Update(MultiKey.Key(mapId, key), MultiValue.Their(value))
       }
 
-    innerMap.commitIterable(updates)
+    innerMap.commit(updates)
   }
 
   def update(keyValues: Stream[(K, V), BAG]): BAG[OK] =
@@ -349,7 +349,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
           Prepare.Update(MultiKey.Key(mapId, key), MultiValue.Their(value))
       }
 
-    innerMap.commitIterable(updates)
+    innerMap.commit(updates)
   }
 
   def update(keyValues: Iterator[(K, V)]): BAG[OK] =
@@ -366,7 +366,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
         Prepare.Put(entriesEnd, MultiValue.None)
       )
 
-    innerMap.commitIterable(entries)
+    innerMap.commit(entries)
   }
 
   /**
@@ -396,16 +396,16 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
    * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
    * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
    *
-   * @see [[MultiMap.commitIterable]] to commit [[MultiPrepare]]s.
+   * @see [[MultiMap.commitMulti]] to commit [[MultiPrepare]]s.
    */
   def toMultiPrepare(prepare: Prepare[K, V, F]*): Seq[MultiPrepare[M, K, V, F]] =
-    prepare.map(prepare => MultiPrepare(mapId, defaultExpiration, prepare))
+    prepare.map(prepare => MultiPrepare(self, prepare))
 
   /**
    * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
    * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
    *
-   * @see [[MultiMap.commitIterable]] to commit [[MultiPrepare]]s.
+   * @see [[MultiMap.commitMulti]] to commit [[MultiPrepare]]s.
    */
   def toMultiPrepare(prepare: Stream[Prepare[K, V, F], BAG]): BAG[Iterable[MultiPrepare[M, K, V, F]]] =
     bag.transform(prepare.materialize) {
@@ -417,16 +417,16 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
    * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
    * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
    *
-   * @see [[MultiMap.commitIterable]] to commit [[MultiPrepare]]s.
+   * @see [[MultiMap.commitMulti]] to commit [[MultiPrepare]]s.
    */
   def toMultiPrepare(prepare: Iterable[Prepare[K, V, F]]): Iterable[MultiPrepare[M, K, V, F]] =
-    prepare.map(prepare => MultiPrepare(mapId, defaultExpiration, prepare))
+    prepare.map(MultiPrepare(self, _))
 
   /**
    * Commits transaction to global map.
    */
-  def commit(transaction: Iterable[MultiPrepare[M, K, V, F]]): BAG[OK] =
-    innerMap.commitIterable {
+  def commitMulti(transaction: Iterable[MultiPrepare[M, K, V, F]]): BAG[OK] =
+    innerMap.commit {
       transaction map {
         transaction =>
           MultiMap.toInnerPrepare(transaction)
@@ -434,16 +434,16 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     }
 
   def commit(prepare: Prepare[K, V, F]*): BAG[OK] =
-    innerMap.commitIterable(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
+    innerMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
 
   def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
       prepares =>
-        commitIterable(prepares)
+        commit(prepares)
     }
 
-  def commitIterable(prepare: Iterable[Prepare[K, V, F]]): BAG[OK] =
-    innerMap.commitIterable(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
+  def commit(prepare: Iterable[Prepare[K, V, F]]): BAG[OK] =
+    innerMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
 
   def get(key: K): BAG[Option[V]] =
     bag.flatMap(innerMap.get(MultiKey.Key(mapId, key))) {

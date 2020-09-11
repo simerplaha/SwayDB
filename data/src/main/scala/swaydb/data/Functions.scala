@@ -24,32 +24,27 @@
 
 package swaydb.data
 
-import scala.jdk.CollectionConverters.IteratorHasAsJava
+import scala.jdk.CollectionConverters._
 
-object NonEmptyList {
+object Functions {
+  implicit def nothing: Functions[Nothing] = Functions[Nothing]()
+  implicit def void: Functions[Void] = Functions[Void]()
 
-  def apply[F](head: F, tail: F*): NonEmptyList[F] =
-    new NonEmptyList[F](head, tail)
+  //for java
+  def create[F](functions: java.lang.Iterable[F]): Functions[F] =
+    apply(functions.asScala)
+
+  def create[F](head: F): Functions[F] =
+    apply(Seq(head))
+
+  def apply[F](functions: F*): Functions[F] =
+    new Functions[F](functions)
 }
 
-case class NonEmptyList[F](override val head: F, override val tail: Iterable[F]) extends Iterable[F] { self =>
+case class Functions[F](functions: Iterable[F]) extends Iterable[F] {
 
   override def iterator: Iterator[F] =
-    new Iterator[F] {
-      var started = false
-      val tailIterator = self.tail.iterator
-
-      override def hasNext: Boolean =
-        head != null && (!started || tailIterator.hasNext)
-
-      override def next(): F =
-        if (!started) {
-          started = true
-          head
-        } else {
-          tailIterator.next()
-        }
-    }
+    functions.iterator
 
   def asJava: java.util.Iterator[F] =
     this.iterator.asJava

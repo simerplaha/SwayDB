@@ -27,7 +27,7 @@ package swaydb.memory
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.map.counter.Counter
-import swaydb.data.NonEmptyList
+import swaydb.data.Functions
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -69,7 +69,7 @@ object MultiMap extends LazyLogging {
                                                                                                                                                             valueSerializer: Serializer[V],
                                                                                                                                                             functionClassTag: ClassTag[F],
                                                                                                                                                             bag: swaydb.Bag[BAG],
-                                                                                                                                                            functions: NonEmptyList[F],
+                                                                                                                                                            functions: Functions[F],
                                                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[MultiMap[M, K, V, F, BAG]] =

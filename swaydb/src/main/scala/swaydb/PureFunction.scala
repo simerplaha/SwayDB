@@ -57,6 +57,8 @@ object PureFunction {
 
   type Set[A] = PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]
 
+  type JavaSet[A] = PureFunction.OnKey[A, Void, Apply.Set[Void]]
+
   trait OnValue[V, R <: Apply[V]] extends (V => R) with PureFunction[Nothing, V, R] {
     override def apply(value: V): R
   }
