@@ -29,13 +29,13 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
-import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{DataType, Functions}
 import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer

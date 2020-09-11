@@ -68,10 +68,10 @@ object MultiPrepare {
  */
 case class MultiPrepare[+M, +K, +V, +F](mapId: Long,
                                         defaultExpiration: Option[Deadline],
-                                        prepare: Prepare[K, V, F]) {
+                                        prepare: Prepare[K, V, F]) { self =>
   def ++[M2 >: M, K2 >: K, V2 >: V, F2 >: F](other: MultiPrepare[M2, K2, V2, F2]): List[MultiPrepare[M2, K2, V2, F2]] =
-    List(this, other)
+    List(self, other)
 
   def concatJava[M2 >: M, K2 >: K, V2 >: V, F2 >: F](other: MultiPrepare[M2, K2, V2, F2]): java.util.stream.Stream[MultiPrepare[M2, K2, V2, F2]] =
-    java.util.stream.Stream.of(this, other)
+    java.util.stream.Stream.of(self, other)
 }
