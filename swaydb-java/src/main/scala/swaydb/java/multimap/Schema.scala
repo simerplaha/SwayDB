@@ -137,16 +137,10 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
    * Keys of all child Maps.
    */
   def keys: Stream[M] =
-    swaydb.java.Stream.fromScala(asScala.keys)
+    Stream.fromScala(asScala.keys)
 
-  def stream: Stream[MultiMap[M, K, V, F]] = {
-    val multiMaps: swaydb.Stream[MultiMap[M, K, V, F], Less] =
-      asScala
-        .stream
-        .map(MultiMap[M, K, V, F](_))
-
-    swaydb.java.Stream.fromScala(multiMaps)
-  }
+  def stream: Stream[MultiMap[M, K, V, F]] =
+    Stream.fromScala(asScala.stream.map(MultiMap(_)))
 
   def isEmpty: Boolean =
     asScala.isEmpty

@@ -224,21 +224,15 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    *
    * Requires a [[Bag.Sync]] instead of [[Bag.Async]].
    */
-  def flatten[BAG[_]](implicit bag: Bag.Sync[BAG]): BAG[ListBuffer[MultiMap[M, K, V, F, BAG]]] =
-    stream(bag).foldLeft(ListBuffer[MultiMap[M, K, V, F, BAG]]()) {
-      case (buffer, childBag) =>
-        val child = bag.getUnsafe(childBag)
-
-        child foreach {
-          child =>
-            buffer += child
-            val children = bag.getUnsafe(child.schema.flatten[BAG])
+  def flatten: BAG[ListBuffer[MultiMap[M, K, V, F, BAG]]] =
+    stream.foldLeftBags(ListBuffer[MultiMap[M, K, V, F, BAG]]()) {
+      case (buffer, child) =>
+        buffer += child
+        bag.transform(child.schema.flatten) {
+          children =>
             buffer ++= children
         }
-
-        buffer
     }
-
 
   private def create[M2 <: M, K2 <: K, V2 <: V, F2 <: F](childKey: M2, childId: Option[Long], expireAt: Option[Deadline], forceClear: Boolean, expire: Boolean): BAG[MultiMap[M2, K2, V2, F2, BAG]] = {
     val expiration = expireAt earlier defaultExpiration
@@ -282,7 +276,6 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
                             expire: Boolean): BAG[ListBuffer[Prepare[MultiKey[M, K], MultiValue[V], Nothing]]] = {
     val buffer = ListBuffer.empty[Prepare[MultiKey[M, K], MultiValue[V], Nothing]]
 
-    //todo - use the map level BAG instead synchronous IO.ApiIO.
     if (forceClear || expire) {
       //ignore expiry if forceClear is set to true. ForceClear should remove instead of just setting a new expiry.
       val prepareRemoveExpiry =
@@ -291,17 +284,13 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
         else
           None
 
-      prepareRemove[IO.ApiIO](prepareRemoveExpiry) match {
-        case IO.Right(removes) =>
+      bag.transform(prepareRemove(prepareRemoveExpiry)) {
+        removes =>
           buffer ++= removes
-          bag.success(buffer)
-
-        case IO.Left(value) =>
-          bag.failure(value.exception)
       }
-    }
-    else
+    } else {
       bag.success(buffer)
+    }
   }
 
   /**
@@ -343,19 +332,15 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
   /**
    * Builds [[Prepare.Remove]] statements for all children of this map.
    */
-  private def prepareRemove[BAG[_]](expire: Option[Deadline])(implicit bag: Bag.Sync[BAG]): BAG[ListBuffer[Prepare.Remove[MultiKey[M, K]]]] =
-    stream(bag).foldLeft(ListBuffer.empty[Prepare.Remove[MultiKey[M, K]]]) {
-      case (buffer, childBag) =>
-        val child = bag.getUnsafe(childBag)
+  private def prepareRemove(expire: Option[Deadline]): BAG[ListBuffer[Prepare.Remove[MultiKey[M, K]]]] =
+    stream.foldLeftBags(ListBuffer.empty[Prepare.Remove[MultiKey[M, K]]]) {
+      case (buffer, child) =>
 
-        child foreach {
-          child =>
-            buffer ++= buildPrepareRemove(child.mapKey, child.mapId, expire)
-            val childPrepares = bag.getUnsafe(child.schema.prepareRemove(expire))
+        buffer ++= buildPrepareRemove(child.mapKey, child.mapId, expire)
+        bag.transform(child.schema.prepareRemove(expire)) {
+          childPrepares =>
             buffer ++= childPrepares
         }
-
-        buffer
     }
 
   /**
@@ -363,30 +348,29 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    */
 
   def get[M2 <: M](mapKey: M2): BAG[Option[MultiMap[M2, K, V, F, BAG]]] =
-    get(mapKey, bag)
+    getNarrow(mapKey)
 
   def get[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): BAG[Option[MultiMap[M2, K2, V, F, BAG]]] =
-    get(mapKey, bag)
+    getNarrow(mapKey)
 
   def get[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): BAG[Option[MultiMap[M2, K2, V2, F, BAG]]] =
-    get(mapKey, bag)
+    getNarrow(mapKey)
 
   def get[M2 <: M, K2 <: K, V2 <: V, F2 <: F](mapKey: M2, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2]): BAG[Option[MultiMap[M2, K2, V2, F2, BAG]]] =
-    get(mapKey, bag)
+    getNarrow(mapKey)
 
-  private def get[M2 <: M, K2 <: K, V2 <: V, F2 <: F, BAG[_]](mapKey: M2, bag: Bag[BAG]): BAG[Option[MultiMap[M2, K2, V2, F2, BAG]]] = {
+  private def getNarrow[M2 <: M, K2 <: K, V2 <: V, F2 <: F](mapKey: M2): BAG[Option[MultiMap[M2, K2, V2, F2, BAG]]] = {
     bag.map(innerMap.getKeyValueDeadline(Child(mapId, mapKey), bag)) {
       case Some(((key: Child[M2], value: MultiValue.MapId), deadline)) =>
-        implicit val bag2: Bag[BAG] = bag
-
-        Some(
+        val map =
           MultiMap[M, K, V, F, BAG](
-            innerMap = innerMap.toBag[BAG],
+            innerMap = innerMap,
             mapKey = key.childKey,
             mapId = value.id,
             defaultExpiration = deadline
-          ).asInstanceOf[MultiMap[M2, K2, V2, F2, BAG]]
-        )
+          )
+
+        Some(map.asInstanceOf[MultiMap[M2, K2, V2, F2, BAG]])
 
       case Some(((key, _), value)) =>
         throw new Exception(
@@ -426,11 +410,6 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
       .collect {
         case Some(map) => map
       }
-
-  private def stream[BAG[_]](bag: Bag[BAG]): Stream[BAG[Option[MultiMap[M, K, V, F, BAG]]], BAG] = {
-    val free: StreamFree[BAG[Option[MultiMap[M, K, V, F, BAG]]]] = keys.free.map((key: M) => get[M, K, V, F, BAG](mapKey = key, bag = bag))
-    new Stream(free)(bag)
-  }
 
   def isEmpty: BAG[Boolean] =
     bag.transform(keys.headOrNull) {
