@@ -572,7 +572,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
             root.schema.keys.materialize.foreach(child => root.schema.replace(child, deadline))
 
             //root's children do not contain any children of their own.
-            root.schema.stream.materialize.toList.flatten.foreach {
+            root.schema.stream.materialize.foreach {
               child =>
                 //has no children
                 child.schema.isEmpty shouldBe true

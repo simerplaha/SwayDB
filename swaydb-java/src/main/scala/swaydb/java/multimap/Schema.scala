@@ -143,10 +143,7 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
     val multiMaps: swaydb.Stream[MultiMap[M, K, V, F], Less] =
       asScala
         .stream
-        .collect {
-          case Some(map) =>
-            MultiMap[M, K, V, F](map)
-        }
+        .map(MultiMap[M, K, V, F](_))
 
     swaydb.java.Stream.fromScala(multiMaps)
   }

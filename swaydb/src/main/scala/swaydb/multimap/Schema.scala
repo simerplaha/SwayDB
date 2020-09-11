@@ -419,9 +419,13 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
           dataKey
       }
 
-  //todo - flatten Options and BAG.
-  def stream: Stream[BAG[Option[MultiMap[M, K, V, F, BAG]]], BAG] =
-    keys.map(key => get(key))
+  def stream: Stream[MultiMap[M, K, V, F, BAG], BAG] =
+    keys
+      .map(key => get(key))
+      .flatten
+      .collect {
+        case Some(map) => map
+      }
 
   private def stream[BAG[_]](bag: Bag[BAG]): Stream[BAG[Option[MultiMap[M, K, V, F, BAG]]], BAG] = {
     val free: StreamFree[BAG[Option[MultiMap[M, K, V, F, BAG]]]] = keys.free.map((key: M) => get[M, K, V, F, BAG](mapKey = key, bag = bag))
