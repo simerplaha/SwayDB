@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.api.multimap.transaction
+package swaydb.api.multimap.multiprepare
 
 import boopickle.Default.{Pickle, Unpickle}
 import swaydb.data.slice.Slice
@@ -30,25 +30,27 @@ import swaydb.serializers.Serializer
 import boopickle.Default._
 
 /**
- * All Primary Keys for [[Table]]s.
+ * All Tables for [[MultiMapMultiPrepareSpec]].
  */
-sealed trait PrimaryKey
+sealed trait Table
+object Table {
+  sealed trait UserTables extends Table
+  sealed trait User extends UserTables
+  case object User extends User
+  sealed trait Activity extends UserTables
+  case object Activity extends Activity
 
-object PrimaryKey {
+  sealed trait ProductTables extends Table
+  sealed trait Product extends ProductTables
+  case object Product extends Product
+  sealed trait Order extends ProductTables
+  case object Order extends Order
 
-  sealed trait UserPrimaryKeys extends PrimaryKey
-  case class Email(email: String) extends UserPrimaryKeys
-  case class Activity(id: Int) extends UserPrimaryKeys
-
-  sealed trait ProductPrimaryKey extends PrimaryKey
-  case class SKU(number: Int) extends ProductPrimaryKey
-  case class Order(id: Int) extends ProductPrimaryKey
-
-  implicit val serializer = new Serializer[PrimaryKey] {
-    override def write(data: PrimaryKey): Slice[Byte] =
+  implicit val serializer = new Serializer[Table] {
+    override def write(data: Table): Slice[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Slice[Byte]): PrimaryKey =
-      Unpickle[PrimaryKey].fromBytes(data.toByteBufferWrap)
+    override def read(data: Slice[Byte]): Table =
+      Unpickle[Table].fromBytes(data.toByteBufferWrap)
   }
 }

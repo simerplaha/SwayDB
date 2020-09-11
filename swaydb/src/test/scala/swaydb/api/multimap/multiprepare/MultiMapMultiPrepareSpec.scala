@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.api.multimap.transaction
+package swaydb.api.multimap.multiprepare
 
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
@@ -36,7 +36,7 @@ import swaydb.{Bag, Prepare}
 
 import scala.concurrent.duration._
 
-class MultiMapTransactionSpec extends TestBaseEmbedded {
+class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
   override val keyValueCount: Int = 1000
 
   "transaction" when {
@@ -59,8 +59,8 @@ class MultiMapTransactionSpec extends TestBaseEmbedded {
 
           //create a transaction to write into userActivity and User
           val transaction =
-            userActivityMap.toTransaction(Prepare.Put(PrimaryKey.Activity(1), Row.Activity("act1"))) ++
-              userMap.toTransaction(Prepare.Put(PrimaryKey.Email("email1"), Row.User("name1", "address1")))
+            userActivityMap.toMultiPrepare(Prepare.Put(PrimaryKey.Activity(1), Row.Activity("act1"))) ++
+              userMap.toMultiPrepare(Prepare.Put(PrimaryKey.Email("email1"), Row.User("name1", "address1")))
 
           //commit under too UserMap
           userMap.commit(transaction)
@@ -80,12 +80,12 @@ class MultiMapTransactionSpec extends TestBaseEmbedded {
 
           //crete transaction2 which uses all maps
           val transaction2 =
-            userActivityMap.toTransaction(Prepare.Put(PrimaryKey.Activity(2), Row.Activity("act2"))) ++
-              userMap.toTransaction(Prepare.Put(PrimaryKey.Email("email2"), Row.User("name2", "address2"))) ++
-              productMap.toTransaction(Prepare.Put(PrimaryKey.SKU(1), Row.Product(1))) ++
-              productOrderMap.toTransaction(Prepare.Put(PrimaryKey.Order(1), Row.Order(1, 1))) ++
+            userActivityMap.toMultiPrepare(Prepare.Put(PrimaryKey.Activity(2), Row.Activity("act2"))) ++
+              userMap.toMultiPrepare(Prepare.Put(PrimaryKey.Email("email2"), Row.User("name2", "address2"))) ++
+              productMap.toMultiPrepare(Prepare.Put(PrimaryKey.SKU(1), Row.Product(1))) ++
+              productOrderMap.toMultiPrepare(Prepare.Put(PrimaryKey.Order(1), Row.Order(1, 1))) ++
               //expire order 2 in 2.seconds
-              productOrderMap.toTransaction(Prepare.Put(PrimaryKey.Order(2), Row.Order(2, 2), 2.seconds))
+              productOrderMap.toMultiPrepare(Prepare.Put(PrimaryKey.Order(2), Row.Order(2, 2), 2.seconds))
 
           //all map can only committed under root map
           root.commit(transaction2)

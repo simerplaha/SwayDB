@@ -646,8 +646,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         child3.put(2, "two")
 
         val transaction =
-          child3.toTransaction(Prepare.Put(3, "three")) ++
-            child2.toTransaction(Prepare.Put(4, "four"))
+          child3.toMultiPrepare(Prepare.Put(3, "three")) ++
+            child2.toMultiPrepare(Prepare.Put(4, "four"))
 
         child3.commit(transaction)
 

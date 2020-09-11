@@ -34,7 +34,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 import swaydb.java.multimap.Schema
-import swaydb.multimap.Transaction
+import swaydb.multimap.MultiPrepare
 import swaydb.{Bag, KeyVal, OK, Pair, Prepare}
 
 import scala.compat.java8.DurationConverters._
@@ -129,13 +129,12 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   def applyFunction(from: K, to: K, function: F): swaydb.OK =
     asScala.applyFunction(from, to, function)
 
-  def toTransaction[P <: Prepare[K, V, F]](prepare: java.lang.Iterable[P]): java.lang.Iterable[Transaction[M, K, V, F]] =
+  def toMultiPrepare(prepare: java.lang.Iterable[Prepare[K, V, F]]): java.lang.Iterable[MultiPrepare[M, K, V, F]] =
     asScala
-      .toTransaction(prepare.asScala)
+      .toMultiPrepare(prepare.asScala)
       .asJava
-      .asInstanceOf[lang.Iterable[Transaction[M, K, V, F]]]
 
-  def commitTransaction(transaction: java.lang.Iterable[Transaction[M, K, V, F]]): OK =
+  def commitMultiPrepare(transaction: java.lang.Iterable[MultiPrepare[M, K, V, F]]): OK =
     asScala.commit(transaction.asScala)
 
   def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): swaydb.OK =

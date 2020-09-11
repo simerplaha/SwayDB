@@ -33,7 +33,7 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.data.stream.{From, SourceFree, StreamFree}
-import swaydb.multimap.{MultiKey, MultiValue, Schema, Transaction}
+import swaydb.multimap.{MultiKey, MultiValue, Schema, MultiPrepare}
 import swaydb.serializers.{Serializer, _}
 
 import scala.collection.compat._
@@ -262,7 +262,7 @@ object MultiMap {
   /**
    * Converts [[Prepare]] statements of this [[MultiMap]] to inner [[Map]]'s statements.
    */
-  def toInnerPrepare[M, K, V, F](prepare: Transaction[M, K, V, F]): Prepare[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]] =
+  def toInnerPrepare[M, K, V, F](prepare: MultiPrepare[M, K, V, F]): Prepare[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]] =
     toInnerPrepare(prepare.mapId, prepare.defaultExpiration, prepare.prepare)
 
   /**
@@ -540,39 +540,39 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
    * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
    * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
    *
-   * @see [[MultiMap.commit]] to commit [[Transaction]]s.
+   * @see [[MultiMap.commit]] to commit [[MultiPrepare]]s.
    */
-  def toTransaction[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Seq[Transaction[M, K, V, PF]] =
-    prepare.map(prepare => new Transaction(mapId, defaultExpiration, prepare))
+  def toMultiPrepare[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Seq[MultiPrepare[M, K, V, PF]] =
+    prepare.map(prepare => new MultiPrepare(mapId, defaultExpiration, prepare))
 
   /**
    * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
    * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
    *
-   * @see [[MultiMap.commit]] to commit [[Transaction]]s.
+   * @see [[MultiMap.commit]] to commit [[MultiPrepare]]s.
    */
-  def toTransaction[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Iterable[Transaction[M, K, V, PF]]] =
+  def toMultiPrepare[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Iterable[MultiPrepare[M, K, V, PF]]] =
     bag.transform(prepare.materialize) {
       prepares =>
-        toTransaction(prepares)
+        toMultiPrepare(prepares)
     }
 
   /**
    * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
    * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
    *
-   * @see [[MultiMap.commit]] to commit [[Transaction]]s.
+   * @see [[MultiMap.commit]] to commit [[MultiPrepare]]s.
    */
-  def toTransaction[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Iterable[Transaction[M, K, V, PF]] =
-    prepare.map(prepare => new Transaction(mapId, defaultExpiration, prepare))
+  def toMultiPrepare[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Iterable[MultiPrepare[M, K, V, PF]] =
+    prepare.map(prepare => MultiPrepare(mapId, defaultExpiration, prepare))
 
   /**
    * Commits transaction to global map.
    */
-  def commit[M2, K2, V2, PF <: F](transaction: Iterable[Transaction[M, K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]],
-                                                                                   evT: M2 <:< M,
-                                                                                   evK: K2 <:< K,
-                                                                                   evV: V2 <:< V): BAG[OK] =
+  def commit[M2, K2, V2, PF <: F](transaction: Iterable[MultiPrepare[M, K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]],
+                                                                                    evT: M2 <:< M,
+                                                                                    evK: K2 <:< K,
+                                                                                    evV: V2 <:< V): BAG[OK] =
     innerMap.commit {
       transaction map {
         transaction =>

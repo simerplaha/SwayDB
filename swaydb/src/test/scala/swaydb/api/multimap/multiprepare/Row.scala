@@ -22,19 +22,31 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.multimap
+package swaydb.api.multimap.multiprepare
 
-import swaydb.{MultiMap, Prepare}
-
-import scala.concurrent.duration.Deadline
+import boopickle.Default.{Pickle, Unpickle}
+import swaydb.data.slice.Slice
+import swaydb.serializers.Serializer
+import boopickle.Default._
 
 /**
- * Holds [[Prepare]] statements which than get converted to [[MultiMap.innerMap]]'s [[Prepare]] type.
- *
- * @param mapId             [[MultiMap]] key's
- * @param defaultExpiration [[MultiMap]] default expiration
- * @param prepare           The [[Prepare]] statemented created for the [[MultiMap]]
+ * All row types for [[Table]]
  */
-class Transaction[+M, +K, +V, +F](val mapId: Long,
-                                  val defaultExpiration: Option[Deadline],
-                                  val prepare: Prepare[K, V, F])
+sealed trait Row
+object Row {
+  sealed trait UserRows extends Row
+  case class User(name: String, address: String) extends UserRows
+  case class Activity(string: String) extends UserRows
+
+  sealed trait ProductRows extends Row
+  case class Product(sku: Int) extends ProductRows
+  case class Order(sku: Int, price: Double) extends ProductRows
+
+  implicit val serializer = new Serializer[Row] {
+    override def write(data: Row): Slice[Byte] =
+      Slice(Pickle.intoBytes(data).array())
+
+    override def read(data: Slice[Byte]): Row =
+      Unpickle[Row].fromBytes(data.toByteBufferWrap)
+  }
+}
