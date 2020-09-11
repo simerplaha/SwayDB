@@ -73,7 +73,7 @@ object PureFunction {
   }
 
   def isOff[F](implicit classTag: ClassTag[F]): Boolean =
-    classTag == ClassTag.Nothing || classTag == ClassTag.Unit || classTag == ClassTag.Null
+    classTag == ClassTag.Nothing || classTag == ClassTag.Unit || classTag == ClassTag.Null || classTag == ClassTag(classOf[Void])
 
   def isOn[F](implicit classTag: ClassTag[F]): Boolean =
     !isOff(classTag)
