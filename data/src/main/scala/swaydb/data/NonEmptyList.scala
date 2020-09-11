@@ -24,7 +24,7 @@
 
 package swaydb.data
 
-import scala.jdk.CollectionConverters.IteratorHasAsJava
+import scala.jdk.CollectionConverters._
 
 object NonEmptyList {
 
