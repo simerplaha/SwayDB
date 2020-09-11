@@ -113,7 +113,7 @@ private[swaydb] object FunctionStore {
       if (hashMap.putIfAbsent(functionId, function) == null)
         OK.instance
       else
-        throw new Exception("Another with the same functionId exists.")
+        throw new IllegalArgumentException(s"Duplicate functionId '${functionId.readString()}'. functionId should be unique.")
 
     override def contains(functionId: Slice[Byte]): Boolean =
       get(functionId).isDefined

@@ -104,18 +104,18 @@ private[swaydb] object Core {
         val nextEntry =
           prepare match {
             case Prepare.Put(key, value, expire) =>
-              if (key.isEmpty) throw new Exception("Key cannot be empty.")
+              if (key.isEmpty) throw new IllegalArgumentException("Key cannot be empty.")
 
               MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case Prepare.Add(key, expire) =>
-              if (key.isEmpty) throw new Exception("Key cannot be empty.")
+              if (key.isEmpty) throw new IllegalArgumentException("Key cannot be empty.")
 
               MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case Prepare.Remove(key, toKey, expire) =>
-              if (key.isEmpty) throw new Exception("Key cannot be empty.")
-              if (toKey.exists(_.isEmpty)) throw new Exception("toKey cannot be empty.")
+              if (key.isEmpty) throw new IllegalArgumentException("Key cannot be empty.")
+              if (toKey.exists(_.isEmpty)) throw new IllegalArgumentException("toKey cannot be empty.")
 
               toKey map {
                 toKey =>
@@ -126,8 +126,8 @@ private[swaydb] object Core {
               }
 
             case Prepare.Update(key, toKey, value) =>
-              if (key.isEmpty) throw new Exception("Key cannot be empty.")
-              if (toKey.exists(_.isEmpty)) throw new Exception("toKey cannot be empty.")
+              if (key.isEmpty) throw new IllegalArgumentException("Key cannot be empty.")
+              if (toKey.exists(_.isEmpty)) throw new IllegalArgumentException("toKey cannot be empty.")
 
               toKey map {
                 toKey =>
@@ -138,8 +138,8 @@ private[swaydb] object Core {
               }
 
             case Prepare.ApplyFunction(key, toKey, function) =>
-              if (key.isEmpty) throw new Exception("Key cannot be empty.")
-              if (toKey.exists(_.isEmpty)) throw new Exception("toKey cannot be empty.")
+              if (key.isEmpty) throw new IllegalArgumentException("Key cannot be empty.")
+              if (toKey.exists(_.isEmpty)) throw new IllegalArgumentException("toKey cannot be empty.")
 
               toKey map {
                 toKey =>
