@@ -27,18 +27,19 @@ package swaydb.eventually.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.KeyOrderConverter
+import swaydb.{Apply, KeyOrderConverter, PureFunction}
 import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecutionContext}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
-import swaydb.data.DataType
+import swaydb.data.{DataType, NonEmptyList}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.serializers.Serializer
+import swaydb.function.FunctionConverter
+import swaydb.serializers.{Default, Serializer}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -51,40 +52,41 @@ object Set extends LazyLogging {
    *
    *
    */
-  def apply[A, F, BAG[_]](dir: Path,
-                          mapSize: Int = 4.mb,
-                          appliedFunctionsMapSize: Int = 4.mb,
-                          clearAppliedFunctionsOnBoot: Boolean = false,
-                          maxMemoryLevelSize: Int = 100.mb,
-                          maxSegmentsToPush: Int = 5,
-                          memoryLevelSegmentSize: Int = 2.mb,
-                          memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
-                          persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
-                          otherDirs: Seq[Dir] = Seq.empty,
-                          cacheKeyValueIds: Boolean = true,
-                          mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                          deleteMemorySegmentsEventually: Boolean = true,
-                          shutdownTimeout: FiniteDuration = 30.seconds,
-                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                          persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                          persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
-                          binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
-                          mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
-                          valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
-                          segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
-                          memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
-                          threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
-                                                                                                                            functionClassTag: ClassTag[F],
-                                                                                                                            bag: swaydb.Bag[BAG],
-                                                                                                                            functions: swaydb.Set.Functions[A, F],
-                                                                                                                            byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                            typedKeyOrder: KeyOrder[A] = null,
-                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
-                                                                                                                            buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)): BAG[swaydb.Set[A, F, BAG]] =
+  def apply[A, F <: PureFunction.Set[A], BAG[_]](dir: Path,
+                                                 mapSize: Int = 4.mb,
+                                                 appliedFunctionsMapSize: Int = 4.mb,
+                                                 clearAppliedFunctionsOnBoot: Boolean = false,
+                                                 maxMemoryLevelSize: Int = 100.mb,
+                                                 maxSegmentsToPush: Int = 5,
+                                                 memoryLevelSegmentSize: Int = 2.mb,
+                                                 memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
+                                                 persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
+                                                 otherDirs: Seq[Dir] = Seq.empty,
+                                                 cacheKeyValueIds: Boolean = true,
+                                                 mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                                                 deleteMemorySegmentsEventually: Boolean = true,
+                                                 shutdownTimeout: FiniteDuration = 30.seconds,
+                                                 acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                                                 persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                                                 persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                                                 binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
+                                                 mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+                                                 valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
+                                                 segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
+                                                 fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                                                 memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
+                                                 threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
+                                                                                                                                                   functionClassTag: ClassTag[F],
+                                                                                                                                                   bag: swaydb.Bag[BAG],
+                                                                                                                                                   functions: NonEmptyList[F],
+                                                                                                                                                   byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                                                   typedKeyOrder: KeyOrder[A] = null,
+                                                                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
+                                                                                                                                                   buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
-      implicit val coreFunctions: FunctionStore.Memory = functions.core
+      implicit val unitSerializer: Serializer[Nothing] = Default.NothingSerializer
+      val functionStore: FunctionStore = FunctionConverter.toFunctionsStore[A, Nothing, Apply.Set[Nothing], F](functions)
 
       val core =
         Core(
@@ -118,7 +120,7 @@ object Set extends LazyLogging {
             )
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
-          functionStore = coreFunctions,
+          functionStore = functionStore,
           buildValidator = buildValidator
         ) map {
           db =>

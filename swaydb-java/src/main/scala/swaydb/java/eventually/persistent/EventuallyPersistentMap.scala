@@ -32,7 +32,7 @@ import java.util.concurrent.ExecutorService
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
-import swaydb.data.DataType
+import swaydb.data.{DataType, NonEmptyList}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
@@ -44,7 +44,7 @@ import swaydb.java.data.slice.{Slice => JavaSlice}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag}
+import swaydb.{Apply, Bag, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
@@ -85,7 +85,7 @@ object EventuallyPersistentMap {
                               private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map))(implicit functionClassTag: ClassTag[F],
                                                                                                                                keySerializer: Serializer[K],
                                                                                                                                valueSerializer: Serializer[V],
-                                                                                                                               functions: swaydb.Map.Functions[K, V, F],
+                                                                                                                               functions: NonEmptyList[F],
                                                                                                                                evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
@@ -218,17 +218,6 @@ object EventuallyPersistentMap {
       this
     }
 
-
-    def registerFunctions(functions: F*): Config[K, V, F] = {
-      functions.foreach(registerFunction(_))
-      this
-    }
-
-    def registerFunction(function: F): Config[K, V, F] = {
-      functions.register(function)
-      this
-    }
-
     def setBuildValidator(buildValidator: BuildValidator) = {
       this.buildValidator = buildValidator
       this
@@ -286,11 +275,12 @@ object EventuallyPersistentMap {
 
   def functionsOn[K, V](dir: Path,
                         keySerializer: JavaSerializer[K],
-                        valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]] = {
+                        valueSerializer: JavaSerializer[V],
+                        functions: NonEmptyList[swaydb.PureFunction[K, V, Apply.Map[V]]]): Config[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]] = {
 
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
-    implicit val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction.Map[K, V]]()
+    implicit val functionsList = functions
 
     new Config(dir = dir)
   }

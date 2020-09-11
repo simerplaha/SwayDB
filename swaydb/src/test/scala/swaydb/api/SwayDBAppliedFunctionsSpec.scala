@@ -25,6 +25,7 @@ import swaydb.Bag.Less
 import swaydb._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.util.Benchmark
+import swaydb.data.NonEmptyList
 import swaydb.data.RunThis.{eventual, runThis}
 import swaydb.serializers.Default._
 
@@ -62,7 +63,11 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
             implicit sweeper =>
 
               val dir = createRandomDir
-              implicit val functions = swaydb.Map.Functions[Int, String, PureFunction.Map[Int, String]]()
+
+              val function: PureFunction.OnKey[Int, String, Apply.Map[String]] =
+                (key: Int, deadline: Option[Deadline]) => fail("There is no data for this function to execute")
+
+              implicit val functions = NonEmptyList[PureFunction.Map[Int, String]](function)
               val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Less](dir)
 
               Files.exists(dir) shouldBe true
@@ -95,7 +100,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
                   fail("There is no data for this function to execute")
               }
 
-            implicit val functions = swaydb.Map.Functions[Int, String, PureFunction.Map[Int, String]](function1, function2)
+            implicit val functions = NonEmptyList[PureFunction.Map[Int, String]](function1, function2)
             val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Less](dir)
 
             map.applyFunction(1, 100, function1)
@@ -135,7 +140,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
                   Apply.Nothing
               }
 
-            implicit val functions = swaydb.Map.Functions[Int, String, PureFunction.Map[Int, String]](noDataToApply, hasData)
+            implicit val functions = NonEmptyList[PureFunction.Map[Int, String]](noDataToApply, hasData)
             val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Less](dir)
 
             (101 to 200) foreach {
@@ -196,7 +201,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
               }
 
             {
-              implicit val functions = swaydb.Map.Functions[Int, String, PureFunction.Map[Int, String]](noDataToApply, hasData)
+              implicit val functions = NonEmptyList[PureFunction.Map[Int, String]](noDataToApply, hasData)
               val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Less](dir)
 
               map.applyFunction(1, 100, noDataToApply)
@@ -209,7 +214,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
              * Reopen with missing funtions
              */
             {
-              implicit val functions = swaydb.Map.Functions[Int, String, PureFunction.Map[Int, String]](noDataToApply)
+              implicit val functions = NonEmptyList[PureFunction.Map[Int, String]](noDataToApply)
               //reopen so that flush occurs and compaction gets triggered.
               val exception = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Try](dir).failed.get
               val missingFunctions = exception.asInstanceOf[Exception.MissingFunctions]
@@ -239,7 +244,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
                 }
             }
 
-          implicit val f = swaydb.Map.Functions[Int, String, PureFunction.Map[Int, String]](functions)
+          implicit val f = NonEmptyList[PureFunction.Map[Int, String]](functions.head, functions.tail)
 
           {
             val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Less](dir)
@@ -267,8 +272,6 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
             eventual(10.seconds) {
               map.clearAppliedAndRegisteredFunctions() should have size 0
             }
-
-            f.core.hashMap.isEmpty shouldBe true
           }
       }
     }

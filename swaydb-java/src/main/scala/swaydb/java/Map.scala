@@ -125,10 +125,10 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     asScala.applyFunction(from, to, function)
 
   def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): swaydb.OK =
-    asScala.commit(prepare.asScala)
+    asScala.commitIterable(prepare.asScala)
 
   def commit(prepare: Stream[Prepare[K, V, F]]): swaydb.OK =
-    asScala.commit(prepare.asScala)
+    asScala.commitIterable(prepare.asScala)
 
   def get(key: K): Optional[V] =
     asScala.get(key).asJava

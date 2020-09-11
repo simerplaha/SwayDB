@@ -29,13 +29,14 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
-import swaydb.data.DataType
+import swaydb.data.{DataType, NonEmptyList}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, KeyOrderConverter, MultiMap, PureFunction}
@@ -56,46 +57,47 @@ object MultiMap extends LazyLogging {
    * @tparam F   Function type
    * @tparam BAG Effect type
    */
-  def apply[M, K, V, F, BAG[_]](dir: Path,
-                                mapSize: Int = 4.mb,
-                                appliedFunctionsMapSize: Int = 4.mb,
-                                clearAppliedFunctionsOnBoot: Boolean = false,
-                                mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
-                                recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                                mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                                appendixFlushCheckpointSize: Int = 2.mb,
-                                otherDirs: Seq[Dir] = Seq.empty,
-                                cacheKeyValueIds: Boolean = true,
-                                shutdownTimeout: FiniteDuration = 30.seconds,
-                                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                                threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                                sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                                randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
-                                binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
-                                mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
-                                valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
-                                segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                                fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
-                                memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
-                                levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                                levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
-                                levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
-                                levelThreeThrottle: LevelMeter => Throttle = DefaultConfigs.levelThreeThrottle,
-                                levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
-                                levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
-                                levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit keySerializer: Serializer[K],
-                                                                                                            mapKeySerializer: Serializer[M],
-                                                                                                            valueSerializer: Serializer[V],
-                                                                                                            functionClassTag: ClassTag[F],
-                                                                                                            bag: swaydb.Bag[BAG],
-                                                                                                            functions: swaydb.MultiMap.Functions[M, K, V, F],
-                                                                                                            byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                            typedKeyOrder: KeyOrder[K] = null,
-                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
-                                                                                                            buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap)): BAG[MultiMap[M, K, V, F, BAG]] =
+  def apply[M, K, V, F <: PureFunction.Map[K, V], BAG[_]](dir: Path,
+                                                          mapSize: Int = 4.mb,
+                                                          appliedFunctionsMapSize: Int = 4.mb,
+                                                          clearAppliedFunctionsOnBoot: Boolean = false,
+                                                          mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
+                                                          recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                                                          mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
+                                                          appendixFlushCheckpointSize: Int = 2.mb,
+                                                          otherDirs: Seq[Dir] = Seq.empty,
+                                                          cacheKeyValueIds: Boolean = true,
+                                                          shutdownTimeout: FiniteDuration = 30.seconds,
+                                                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                                                          threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+                                                          sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                                                          randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                                                          binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
+                                                          mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+                                                          valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
+                                                          segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
+                                                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                                                          memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
+                                                          levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
+                                                          levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
+                                                          levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
+                                                          levelThreeThrottle: LevelMeter => Throttle = DefaultConfigs.levelThreeThrottle,
+                                                          levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
+                                                          levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
+                                                          levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit keySerializer: Serializer[K],
+                                                                                                                                      mapKeySerializer: Serializer[M],
+                                                                                                                                      valueSerializer: Serializer[V],
+                                                                                                                                      functionClassTag: ClassTag[F],
+                                                                                                                                      bag: swaydb.Bag[BAG],
+                                                                                                                                      functions: NonEmptyList[F],
+                                                                                                                                      byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                                      typedKeyOrder: KeyOrder[K] = null,
+                                                                                                                                      compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
+                                                                                                                                      buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap)): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val multiKeySerializer: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, mapKeySerializer)
       implicit val multiValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)
+      val mapFunctions = FunctionConverter.toMultiMap[M, K, V, Apply.Map[V], F](functions)
 
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiKey.ordering(keyOrder)
@@ -135,7 +137,7 @@ object MultiMap extends LazyLogging {
           valueSerializer = multiValueSerializer,
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]]],
           bag = bag,
-          functions = functions.innerFunctions,
+          functions = mapFunctions,
           byteKeyOrder = internalKeyOrder,
           compactionEC = compactionEC,
           buildValidator = buildValidator and BuildValidator.MultiMapFileExists(dir.resolve(swaydb.MultiMap.folderName))

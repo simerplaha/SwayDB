@@ -25,19 +25,20 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.KeyOrderConverter
 import swaydb.configs.level.{DefaultExecutionContext, DefaultMemoryConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
-import swaydb.data.DataType
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.serializers.Serializer
+import swaydb.data.{DataType, NonEmptyList}
+import swaydb.function.FunctionConverter
+import swaydb.serializers.{Default, Serializer}
+import swaydb.{Apply, KeyOrderConverter, PureFunction}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -48,25 +49,26 @@ object Set extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[A, F, BAG[_]](mapSize: Int = 4.mb,
-                          minSegmentSize: Int = 2.mb,
-                          maxKeyValuesPerSegment: Int = Int.MaxValue,
-                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
-                          deleteSegmentsEventually: Boolean = true,
-                          shutdownTimeout: FiniteDuration = 30.seconds,
-                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                          levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                          lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
-                          threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
-                                                                                                                            functionClassTag: ClassTag[F],
-                                                                                                                            bag: swaydb.Bag[BAG],
-                                                                                                                            functions: swaydb.Set.Functions[A, F],
-                                                                                                                            byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                            typedKeyOrder: KeyOrder[A] = null,
-                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Set[A, F, BAG]] =
+  def apply[A, F <: PureFunction.Set[A], BAG[_]](mapSize: Int = 4.mb,
+                                                 minSegmentSize: Int = 2.mb,
+                                                 maxKeyValuesPerSegment: Int = Int.MaxValue,
+                                                 fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                                                 deleteSegmentsEventually: Boolean = true,
+                                                 shutdownTimeout: FiniteDuration = 30.seconds,
+                                                 acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                                                 levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
+                                                 lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
+                                                 threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
+                                                                                                                                                   functionClassTag: ClassTag[F],
+                                                                                                                                                   bag: swaydb.Bag[BAG],
+                                                                                                                                                   functions: NonEmptyList[F],
+                                                                                                                                                   byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                                                   typedKeyOrder: KeyOrder[A] = null,
+                                                                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
-      val coreFunctions: FunctionStore.Memory = functions.core
+      implicit val unitSerializer: Serializer[Nothing] = Default.NothingSerializer
+      val functionStore: FunctionStore = FunctionConverter.toFunctionsStore[A, Nothing, Apply.Set[Nothing], F](functions)
 
       val set =
         Core(
@@ -90,7 +92,7 @@ object Set extends LazyLogging {
           memoryCache = MemoryCache.Disable
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
-          functionStore = coreFunctions,
+          functionStore = functionStore,
           buildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)
         ) map {
           db =>

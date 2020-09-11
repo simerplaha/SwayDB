@@ -98,17 +98,17 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]]
 
-  def isFunctionApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Boolean
+  def isFunctionApplied(functionId: F): Boolean
 
-  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+  def applyFunction(key: K, function: F): BAG[OK]
 
-  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+  def applyFunction(from: K, to: K, function: F): BAG[OK]
 
-  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+  def commit(prepare: Prepare[K, V, F]*): BAG[OK]
 
-  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+  def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[OK]
 
-  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+  def commitIterable(prepare: Iterable[Prepare[K, V, F]]): BAG[OK]
 
   /**
    * Returns target value for the input key.
@@ -134,7 +134,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def mightContain(key: K): BAG[Boolean]
 
-  def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Boolean]
+  def mightContainFunction(function: F): BAG[Boolean]
 
   def levelZeroMeter: LevelZeroMeter
 

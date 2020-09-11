@@ -38,55 +38,13 @@ import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-object Set {
-
-  implicit def nothing[A]: Functions[A, Nothing] =
-    new Functions[A, Nothing]()(null)
-
-  implicit def void[A]: Functions[A, Void] =
-    new Functions[A, Void]()(null)
-
-  object Functions {
-    def apply[A, F](functions: F*)(implicit serializer: Serializer[A],
-                                   ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) = {
-      val f = new Functions[A, F]()
-      functions.foreach(f.register(_))
-      f
-    }
-
-    def apply[A, F](functions: Iterable[F])(implicit serializer: Serializer[A],
-                                            ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) = {
-      val f = new Functions[A, F]
-      functions.foreach(f.register(_))
-      f
-    }
-  }
-
-  /**
-   * Registered functions for [[Set]]
-   */
-  final case class Functions[A, F]()(implicit serializer: Serializer[A]) {
-
-    private[swaydb] val core = CoreFunctionStore.memory()
-
-    def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Unit =
-      functions.foreach(register(_))
-
-    def register[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Unit =
-      core.put(Slice.writeString(function.id), SwayDB.toCoreFunction(function))
-
-    def remove[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Unit =
-      core.remove(Slice.writeString(function.id))
-  }
-}
-
 /**
  * Set database API.
  *
  * For documentation check - http://swaydb.io/
  */
-case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit serializer: Serializer[A],
-                                                                          bag: Bag[BAG]) { self =>
+case class Set[A, F <: PureFunction.Set[A], BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit serializer: Serializer[A],
+                                                                                                 bag: Bag[BAG]) { self =>
 
   def path: Path =
     core.zero.path.getParent
@@ -100,7 +58,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def mightContain(elem: A): BAG[Boolean] =
     bag.suspend(core mightContainKey elem)
 
-  def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) =
+  def mightContainFunction(function: F) =
     bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def add(elem: A): BAG[OK] =
@@ -180,22 +138,22 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def clear(): BAG[OK] =
     bag.suspend(core.clear(core.readStates.get()))
 
-  def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
+  def applyFunction(from: A, to: A, function: F): BAG[OK] =
     bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
-  def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
+  def applyFunction(elem: A, function: F): BAG[OK] =
     bag.suspend(core.applyFunction(elem, Slice.writeString(function.id)))
 
-  def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
+  def commit(prepare: Prepare[A, Nothing, F]*): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
-  def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
+  def commit(prepare: Stream[Prepare[A, Nothing, F], BAG]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
       statements =>
         commit(statements)
     }
 
-  def commit[PF <: F](prepare: Iterable[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
+  def commit(prepare: Iterable[Prepare[A, Nothing, F]]): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
   def levelZeroMeter: LevelZeroMeter =
@@ -312,7 +270,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
   def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
-  def isFunctionApplied[PF <: F](functionId: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Boolean =
+  def isFunctionApplied(functionId: F): Boolean =
     core.isFunctionApplied(Slice.writeString(functionId.id))
 
   def stream: Source[A, A, BAG] =

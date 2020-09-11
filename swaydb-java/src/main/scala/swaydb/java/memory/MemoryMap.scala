@@ -154,28 +154,30 @@ object MemoryMap {
 
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
-      val scalaMap =
-        swaydb.memory.Map[K, V, F, Bag.Less](
-          mapSize = mapSize,
-          minSegmentSize = minSegmentSize,
-          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-          fileCache = fileCache,
-          deleteSegmentsEventually = deleteSegmentsEventually,
-          shutdownTimeout = shutdownTimeout.toScala,
-          acceleration = acceleration.asScala,
-          levelZeroThrottle = levelZeroThrottle.asScala,
-          lastLevelThrottle = lastLevelThrottle.asScala,
-          threadStateCache = threadStateCache
-        )(keySerializer = keySerializer,
-          valueSerializer = valueSerializer,
-          functions = functions,
-          functionClassTag = functionClassTag,
-          bag = Bag.less,
-          byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
-        )
+//      val scalaMap =
+//        swaydb.memory.Map[K, V, F, Bag.Less](
+//          mapSize = mapSize,
+//          minSegmentSize = minSegmentSize,
+//          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+//          fileCache = fileCache,
+//          deleteSegmentsEventually = deleteSegmentsEventually,
+//          shutdownTimeout = shutdownTimeout.toScala,
+//          acceleration = acceleration.asScala,
+//          levelZeroThrottle = levelZeroThrottle.asScala,
+//          lastLevelThrottle = lastLevelThrottle.asScala,
+//          threadStateCache = threadStateCache
+//        )(keySerializer = keySerializer,
+//          valueSerializer = valueSerializer,
+//          functions = functions,
+//          functionClassTag = functionClassTag,
+//          bag = Bag.less,
+//          byteKeyOrder = scalaKeyOrder,
+//          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+//        )
+//
+//      swaydb.java.Map[K, V, F](scalaMap)
+      ???
 
-      swaydb.java.Map[K, V, F](scalaMap)
     }
   }
 

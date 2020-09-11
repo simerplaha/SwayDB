@@ -43,7 +43,11 @@ import scala.jdk.CollectionConverters._
  */
 private[swaydb] abstract class FunctionStore {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
+  def get(functionId: String): Option[SwayFunction]
+
   def put(functionId: Slice[Byte], function: SwayFunction): OK
+  def put(functionId: String, function: SwayFunction): OK
+
   def remove(functionId: Slice[Byte]): SwayFunction
 
   def contains(functionId: Slice[Byte]): Boolean
@@ -96,8 +100,14 @@ private[swaydb] object FunctionStore {
 
     val hashMap = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
 
+    override def get(functionId: String): Option[SwayFunction] =
+      get(Slice.writeString(functionId))
+
     override def get(functionId: Slice[Byte]): Option[SwayFunction] =
       Option(hashMap.get(functionId))
+
+    override def put(functionId: String, function: SwayFunction): OK =
+      put(Slice.writeString(functionId), function)
 
     override def put(functionId: Slice[Byte], function: SwayFunction): OK =
       if (hashMap.putIfAbsent(functionId, function) == null)

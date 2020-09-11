@@ -64,17 +64,17 @@ object SwayDB extends LazyLogging {
    * @tparam V Type of value
    * @return Database instance
    */
-  def apply[K, V, F](fileCache: FileCache.Enable,
-                     memoryCache: MemoryCache,
-                     threadStateCache: ThreadStateCache,
-                     cacheKeyValueIds: Boolean,
-                     shutdownTimeout: FiniteDuration,
-                     config: SwayDBPersistentConfig)(implicit keySerializer: Serializer[K],
-                                                     valueSerializer: Serializer[V],
-                                                     functionClassTag: ClassTag[F],
-                                                     keyOrder: KeyOrder[Slice[Byte]],
-                                                     buildValidator: BuildValidator,
-                                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
+  def apply[K, V, F <: PureFunction.Map[K, V]](fileCache: FileCache.Enable,
+                                               memoryCache: MemoryCache,
+                                               threadStateCache: ThreadStateCache,
+                                               cacheKeyValueIds: Boolean,
+                                               shutdownTimeout: FiniteDuration,
+                                               config: SwayDBPersistentConfig)(implicit keySerializer: Serializer[K],
+                                                                               valueSerializer: Serializer[V],
+                                                                               functionClassTag: ClassTag[F],
+                                                                               keyOrder: KeyOrder[Slice[Byte]],
+                                                                               buildValidator: BuildValidator,
+                                                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
       cacheKeyValueIds = cacheKeyValueIds,
@@ -88,16 +88,16 @@ object SwayDB extends LazyLogging {
         swaydb.Map[K, V, F, Bag.Less](db)
     }
 
-  def apply[T, F](fileCache: FileCache.Enable,
-                  memoryCache: MemoryCache,
-                  threadStateCache: ThreadStateCache,
-                  cacheKeyValueIds: Boolean,
-                  shutdownTimeout: FiniteDuration,
-                  config: SwayDBPersistentConfig)(implicit serializer: Serializer[T],
-                                                  functionClassTag: ClassTag[F],
-                                                  keyOrder: KeyOrder[Slice[Byte]],
-                                                  buildValidator: BuildValidator,
-                                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
+  def apply[A, F <: PureFunction.Set[A]](fileCache: FileCache.Enable,
+                                         memoryCache: MemoryCache,
+                                         threadStateCache: ThreadStateCache,
+                                         cacheKeyValueIds: Boolean,
+                                         shutdownTimeout: FiniteDuration,
+                                         config: SwayDBPersistentConfig)(implicit serializer: Serializer[A],
+                                                                         functionClassTag: ClassTag[F],
+                                                                         keyOrder: KeyOrder[Slice[Byte]],
+                                                                         buildValidator: BuildValidator,
+                                                                         functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[A, F, Bag.Less]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
       cacheKeyValueIds = cacheKeyValueIds,
@@ -108,20 +108,20 @@ object SwayDB extends LazyLogging {
       config = config
     ) map {
       db =>
-        swaydb.Set[T, F, Bag.Less](db)
+        swaydb.Set[A, F, Bag.Less](db)
     }
 
-  def apply[K, V, F](fileCache: FileCache.Enable,
-                     memoryCache: MemoryCache,
-                     threadStateCache: ThreadStateCache,
-                     cacheKeyValueIds: Boolean,
-                     shutdownTimeout: FiniteDuration,
-                     config: SwayDBMemoryConfig)(implicit keySerializer: Serializer[K],
-                                                 valueSerializer: Serializer[V],
-                                                 functionClassTag: ClassTag[F],
-                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                 buildValidator: BuildValidator,
-                                                 functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
+  def apply[K, V, F <: PureFunction.Map[K, V]](fileCache: FileCache.Enable,
+                                               memoryCache: MemoryCache,
+                                               threadStateCache: ThreadStateCache,
+                                               cacheKeyValueIds: Boolean,
+                                               shutdownTimeout: FiniteDuration,
+                                               config: SwayDBMemoryConfig)(implicit keySerializer: Serializer[K],
+                                                                           valueSerializer: Serializer[V],
+                                                                           functionClassTag: ClassTag[F],
+                                                                           keyOrder: KeyOrder[Slice[Byte]],
+                                                                           buildValidator: BuildValidator,
+                                                                           functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
       cacheKeyValueIds = cacheKeyValueIds,
@@ -135,16 +135,16 @@ object SwayDB extends LazyLogging {
         swaydb.Map[K, V, F, Bag.Less](db)
     }
 
-  def apply[T, F](fileCache: FileCache.Enable,
-                  memoryCache: MemoryCache,
-                  threadStateCache: ThreadStateCache,
-                  cacheKeyValueIds: Boolean,
-                  shutdownTimeout: FiniteDuration,
-                  config: SwayDBMemoryConfig)(implicit serializer: Serializer[T],
-                                              functionClassTag: ClassTag[F],
-                                              keyOrder: KeyOrder[Slice[Byte]],
-                                              buildValidator: BuildValidator,
-                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
+  def apply[A, F <: PureFunction.Set[A]](fileCache: FileCache.Enable,
+                                         memoryCache: MemoryCache,
+                                         threadStateCache: ThreadStateCache,
+                                         cacheKeyValueIds: Boolean,
+                                         shutdownTimeout: FiniteDuration,
+                                         config: SwayDBMemoryConfig)(implicit serializer: Serializer[A],
+                                                                     functionClassTag: ClassTag[F],
+                                                                     keyOrder: KeyOrder[Slice[Byte]],
+                                                                     buildValidator: BuildValidator,
+                                                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[A, F, Bag.Less]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
       cacheKeyValueIds = cacheKeyValueIds,
@@ -155,7 +155,7 @@ object SwayDB extends LazyLogging {
       config = config
     ) map {
       db =>
-        swaydb.Set[T, F, Bag.Less](db)
+        swaydb.Set[A, F, Bag.Less](db)
     }
 
   private def toCoreFunctionOutput[V](output: Apply[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =

@@ -28,7 +28,6 @@ import java.nio.file.Path
 
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
-import swaydb.core.function.{FunctionStore => CoreFunctionStore}
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
@@ -40,62 +39,14 @@ import swaydb.serializers.{Serializer, _}
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-object Map {
-
-  implicit def nothing[K, V]: Functions[K, V, Nothing] =
-    new Functions[K, V, Nothing]()(null, null)
-
-  implicit def void[K, V]: Functions[K, V, Void] =
-    new Functions[K, V, Void]()(null, null)
-
-  object Functions {
-    def apply[K, V, F](functions: F*)(implicit keySerializer: Serializer[K],
-                                      valueSerializer: Serializer[V],
-                                      ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[K, V, F]()
-      functions.foreach(f.register(_))
-      f
-    }
-
-    def apply[K, V, F](functions: Iterable[F])(implicit keySerializer: Serializer[K],
-                                               valueSerializer: Serializer[V],
-                                               ev: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) = {
-      val f = new Functions[K, V, F]()
-      functions.foreach(f.register(_))
-      f
-    }
-  }
-
-  final case class Functions[K, V, F]()(implicit keySerializer: Serializer[K],
-                                        valueSerializer: Serializer[V]) {
-
-    private[swaydb] val core = CoreFunctionStore.memory()
-
-    def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
-      functions.foreach(register(_))
-
-    def register[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
-      (function: swaydb.PureFunction[K, V, Apply.Map[V]]) match {
-        case function: swaydb.PureFunction.OnValue[V, Apply.Map[V]] =>
-          core.put(Slice.writeString(function.id), SwayDB.toCoreFunction(function))
-
-        case function: swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] =>
-          core.put(Slice.writeString(function.id), SwayDB.toCoreFunction(function))
-
-        case function: swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] =>
-          core.put(Slice.writeString(function.id), SwayDB.toCoreFunction(function))
-      }
-  }
-}
-
 /**
  * Map database API.
  *
  * For documentation check - http://swaydb.io/
  */
-case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit val keySerializer: Serializer[K],
-                                                                             val valueSerializer: Serializer[V],
-                                                                             val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
+case class Map[K, V, F <: PureFunction.Map[K, V], BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit val keySerializer: Serializer[K],
+                                                                                                       val valueSerializer: Serializer[V],
+                                                                                                       val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   def path: Path =
     core.zero.path.getParent
@@ -209,22 +160,22 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def clearKeyValues(): BAG[OK] =
     bag.suspend(core.clear(core.readStates.get()))
 
-  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
+  def applyFunction(key: K, function: F): BAG[OK] =
     bag.suspend(core.applyFunction(key, Slice.writeString(function.id)))
 
-  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
+  def applyFunction(from: K, to: K, function: F): BAG[OK] =
     bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
-  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
+  def commit(prepare: Prepare[K, V, F]*): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
-  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
+  def commit(prepare: Stream[Prepare[K, V, F], BAG]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
       prepares =>
-        commit(prepares)
+        commitIterable(prepares)
     }
 
-  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
+  def commitIterable(prepare: Iterable[Prepare[K, V, F]]): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
   /**
@@ -274,11 +225,11 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def mightContain(key: K): BAG[Boolean] =
     bag.suspend(core mightContainKey key)
 
-  def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Boolean] =
+  def mightContainFunction(function: F): BAG[Boolean] =
     bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
-  def keys: Set[K, F, BAG] =
-    Set[K, F, BAG](core)
+  def keys: Set[K, Nothing, BAG] =
+    Set[K, Nothing, BAG](core)
 
   private[swaydb] def keySet: mutable.Set[K] =
     keys.asScala
@@ -426,8 +377,8 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   override def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
-  override def isFunctionApplied[PF <: F](functionId: PF)(implicit ev: PF <:< PureFunction[K, V, Apply.Map[V]]): Boolean =
-    core.isFunctionApplied(Slice.writeString(functionId.id))
+  override def isFunctionApplied(function: F): Boolean =
+    core.isFunctionApplied(Slice.writeString(function.asInstanceOf[swaydb.PureFunction.Map[K, V]].id))
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

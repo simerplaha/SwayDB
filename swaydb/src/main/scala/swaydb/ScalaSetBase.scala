@@ -26,7 +26,7 @@ package swaydb
 
 import scala.collection.mutable
 
-protected abstract class ScalaSetBase[A, F](db: Set[A, F, Bag.Less]) extends mutable.Set[A] {
+protected abstract class ScalaSetBase[A, F <: PureFunction.Set[A]](db: Set[A, F, Bag.Less]) extends mutable.Set[A] {
 
   override def contains(elem: A): Boolean =
     db.contains(elem)

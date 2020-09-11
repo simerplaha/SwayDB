@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
-import swaydb.data.DataType
+import swaydb.data.{DataType, NonEmptyList}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
@@ -104,7 +104,7 @@ object SetMap extends LazyLogging {
         )(serializer = serialiser,
           functionClassTag = ClassTag.Nothing,
           bag = bag,
-          functions = swaydb.Set.nothing,
+          functions = NonEmptyList.nothing,
           byteKeyOrder = ordering,
           compactionEC = compactionEC,
           buildValidator = buildValidator

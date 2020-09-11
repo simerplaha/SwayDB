@@ -175,7 +175,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
         if (buffer.isEmpty)
           bag.success(false)
         else
-          bag.transform(innerMap.commit(buffer)) {
+          bag.transform(innerMap.commitIterable(buffer)) {
             _ =>
               true
           }
@@ -256,7 +256,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
         buffer += Prepare.Put(MultiKey.ChildrenEnd(childIdOrNew), MultiValue.None, expiration)
         buffer += Prepare.Put(MultiKey.End(childIdOrNew), MultiValue.None, expiration)
 
-        bag.transform(innerMap.commit(buffer)) {
+        bag.transform(innerMap.commitIterable(buffer)) {
           _ =>
             MultiMap(
               innerMap = innerMap,

@@ -163,4 +163,12 @@ object Default {
     override def read(data: Slice[Byte]): Unit =
       ()
   }
+
+  implicit object NothingSerializer extends Serializer[Nothing] {
+    override def write(data: Nothing): Slice[Byte] =
+      Slice.emptyBytes
+
+    override def read(data: Slice[Byte]): Nothing =
+      ().asInstanceOf[Nothing]
+  }
 }

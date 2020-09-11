@@ -25,18 +25,19 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.KeyOrderConverter
+import swaydb.{Apply, KeyOrderConverter, PureFunction, SwayDB}
 import swaydb.configs.level.{DefaultExecutionContext, DefaultMemoryConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
-import swaydb.data.DataType
+import swaydb.data.{DataType, NonEmptyList}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
@@ -45,26 +46,26 @@ import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
 
-  def apply[K, V, F, BAG[_]](mapSize: Int = 4.mb,
-                             minSegmentSize: Int = 2.mb,
-                             maxKeyValuesPerSegment: Int = Int.MaxValue,
-                             fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
-                             deleteSegmentsEventually: Boolean = true,
-                             shutdownTimeout: FiniteDuration = 30.seconds,
-                             acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                             levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                             lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
-                             threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
-                                                                                                                               valueSerializer: Serializer[V],
-                                                                                                                               functionClassTag: ClassTag[F],
-                                                                                                                               bag: swaydb.Bag[BAG],
-                                                                                                                               functions: swaydb.Map.Functions[K, V, F],
-                                                                                                                               byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                               typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                               compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Map[K, V, F, BAG]] =
+  def apply[K, V, F <: PureFunction.Map[K, V], BAG[_]](mapSize: Int = 4.mb,
+                                                       minSegmentSize: Int = 2.mb,
+                                                       maxKeyValuesPerSegment: Int = Int.MaxValue,
+                                                       fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                                                       deleteSegmentsEventually: Boolean = true,
+                                                       shutdownTimeout: FiniteDuration = 30.seconds,
+                                                       acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                                                       levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
+                                                       lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
+                                                       threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
+                                                                                                                                                         valueSerializer: Serializer[V],
+                                                                                                                                                         functionClassTag: ClassTag[F],
+                                                                                                                                                         bag: swaydb.Bag[BAG],
+                                                                                                                                                         functions: NonEmptyList[F],
+                                                                                                                                                         byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                                                         typedKeyOrder: KeyOrder[K] = null,
+                                                                                                                                                         compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Map[K, V, F, BAG]] =
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
-      val coreFunctions: FunctionStore.Memory = functions.core
+      val functionStore = FunctionConverter.toFunctionsStore[K, V, Apply.Map[V], F](functions)
 
       val map =
         Core(
@@ -88,7 +89,7 @@ object Map extends LazyLogging {
           memoryCache = MemoryCache.Disable
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
-          functionStore = coreFunctions,
+          functionStore = functionStore,
           buildValidator = BuildValidator.DisallowOlderVersions(DataType.Map)
         ) map {
           db =>
