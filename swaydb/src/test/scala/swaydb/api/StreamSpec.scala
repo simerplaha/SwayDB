@@ -387,16 +387,22 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
     "flatten" when {
       "success" in {
         val stream: Stream[BAG[Int], BAG] = Stream(bag(1), bag(2), bag(3), bag(4))
+
         val flat: Stream[Int, BAG] = stream.flatten
 
         flat.materialize.await shouldBe List(1, 2, 3, 4)
       }
 
       "failed" in {
-        val stream: Stream[BAG[Int], BAG] = Stream(bag(1), bag(2), bag(3), bag(4), bag.failure(new Exception("oh no")))
-        val flat: Stream[Int, BAG] = stream.flatten
+        if (bag == Bag.less) {
+          cancel("Test does not apply to Bag.Less as it throws Exceptions")
+        } else {
+          val stream: Stream[BAG[Int], BAG] = Stream(bag(1), bag(2), bag(3), bag(4), bag.failure(new Exception("oh no")))
 
-        Try(flat.materialize.await).failed.get.getMessage shouldBe "oh no"
+          val flat: Stream[Int, BAG] = stream.flatten
+
+          Try(flat.materialize.await).failed.get.getMessage shouldBe "oh no"
+        }
       }
     }
 
@@ -414,18 +420,22 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
       }
 
       "failed" in {
-        val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
+        if (bag == Bag.less) {
+          cancel("Test does not apply to Bag.Less as it throws Exceptions")
+        } else {
+          val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
 
-        val fold: BAG[Int] =
-          stream.foldLeftBags(0) {
-            case (left, right) =>
-              if (right == 9)
-                throw new Exception("oh no")
-              else
-                bag(left + right)
-          }
+          val fold: BAG[Int] =
+            stream.foldLeftBags(0) {
+              case (left, right) =>
+                if (right == 9)
+                  throw new Exception("oh no")
+                else
+                  bag(left + right)
+            }
 
-        Try(fold.await).failed.get.getMessage shouldBe "oh no"
+          Try(fold.await).failed.get.getMessage shouldBe "oh no"
+        }
       }
     }
   }
