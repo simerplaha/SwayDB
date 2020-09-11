@@ -34,10 +34,10 @@ object Expiration {
   def apply(scalaDeadline: Deadline) =
     new Expiration(scalaDeadline)
 
-  def apply(scalaDeadline: Option[Deadline]): Optional[Exception] =
+  def apply(scalaDeadline: Option[Deadline]): Optional[Expiration] =
     scalaDeadline match {
       case Some(deadline) =>
-        Optional.of(Expiration(deadline))
+        Optional.of(new Expiration(deadline))
 
       case None =>
         Optional.empty()

@@ -403,6 +403,14 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
       }
     }
 
+  def commitMultiPrepare(transaction: Iterator[MultiPrepare[M, K, V, F]]): BAG[OK] =
+    innerMap.commit {
+      transaction map {
+        transaction =>
+          MultiMap.toInnerPrepare(transaction)
+      }
+    }
+
   def commit(prepare: Prepare[K, V, F]*): BAG[OK] =
     innerMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
 
@@ -413,6 +421,9 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     }
 
   def commit(prepare: Iterable[Prepare[K, V, F]]): BAG[OK] =
+    innerMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
+
+  override def commit(prepare: Iterator[Prepare[K, V, F]]): BAG[OK] =
     innerMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(mapId, defaultExpiration, prepare)))
 
   def get(key: K): BAG[Option[V]] =
@@ -653,5 +664,4 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getSimpleName
-
 }

@@ -178,6 +178,9 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def commit(prepare: Iterable[Prepare[K, V, F]]): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
 
+  def commit(prepare: Iterator[Prepare[K, V, F]]): BAG[OK] =
+    bag.suspend(core.commit(preparesToUntyped(prepare)))
+
   /**
    * Returns target value for the input key.
    */

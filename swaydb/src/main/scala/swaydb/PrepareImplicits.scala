@@ -52,6 +52,10 @@ private[swaydb] object PrepareImplicits {
                                                                                                       valueSerializer: Serializer[V]): Iterable[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
     prepare.map(batch => prepareToUntyped(batch)(keySerializer, valueSerializer))
 
+  @inline implicit def preparesToUntyped[K, V, F, R <: Apply[V]](prepare: Iterator[Prepare[K, V, F]])(implicit keySerializer: Serializer[K],
+                                                                                                      valueSerializer: Serializer[V]): Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
+    prepare.map(batch => prepareToUntyped(batch)(keySerializer, valueSerializer))
+
   @inline implicit def preparesToUnTypes[T](prepare: Iterable[Prepare[T, Nothing, Nothing]])(implicit serializer: Serializer[T]): Iterable[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
     prepare.map(batch => prepareToUntyped(batch))
 }

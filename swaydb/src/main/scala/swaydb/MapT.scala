@@ -112,6 +112,8 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def commit(prepare: Iterable[Prepare[K, V, F]]): BAG[OK]
 
+  def commit(prepare: Iterator[Prepare[K, V, F]]): BAG[OK]
+
   /**
    * Returns target value for the input key.
    */
