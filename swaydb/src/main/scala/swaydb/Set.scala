@@ -43,8 +43,8 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  *
  * For documentation check - http://swaydb.io/
  */
-case class Set[A, F <: PureFunction.Set[A], BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit serializer: Serializer[A],
-                                                                                                 bag: Bag[BAG]) { self =>
+case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit serializer: Serializer[A],
+                                                                          bag: Bag[BAG]) { self =>
 
   def path: Path =
     core.zero.path.getParent
@@ -58,7 +58,7 @@ case class Set[A, F <: PureFunction.Set[A], BAG[_]] private(private[swaydb] val 
   def mightContain(elem: A): BAG[Boolean] =
     bag.suspend(core mightContainKey elem)
 
-  def mightContainFunction(function: F) =
+  def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Set[A]) =
     bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def add(elem: A): BAG[OK] =
@@ -138,10 +138,10 @@ case class Set[A, F <: PureFunction.Set[A], BAG[_]] private(private[swaydb] val 
   def clear(): BAG[OK] =
     bag.suspend(core.clear(core.readStates.get()))
 
-  def applyFunction(from: A, to: A, function: F): BAG[OK] =
+  def applyFunction(from: A, to: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[OK] =
     bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
-  def applyFunction(elem: A, function: F): BAG[OK] =
+  def applyFunction(elem: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[OK] =
     bag.suspend(core.applyFunction(elem, Slice.writeString(function.id)))
 
   def commit(prepare: Prepare[A, Nothing, F]*): BAG[OK] =
@@ -270,8 +270,8 @@ case class Set[A, F <: PureFunction.Set[A], BAG[_]] private(private[swaydb] val 
   def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
-  def isFunctionApplied(functionId: F): Boolean =
-    core.isFunctionApplied(Slice.writeString(functionId.id))
+  def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Set[A]): Boolean =
+    core.isFunctionApplied(Slice.writeString(function.id))
 
   def stream: Source[A, A, BAG] =
     new swaydb.Source(sourceFree())

@@ -31,7 +31,7 @@ import scala.collection.mutable
  */
 private[swaydb] object ScalaSet {
 
-  def apply[A, F <: PureFunction.Set[A]](db: Set[A, F, Bag.Less]): mutable.Set[A] =
+  def apply[A, F](db: Set[A, F, Bag.Less]): mutable.Set[A] =
     new ScalaSetBase[A, F](db) {
 
       override def +=(elem: A): this.type = {

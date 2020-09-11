@@ -66,7 +66,6 @@ object FunctionConverter {
     functionStore
   }
 
-
   /**
    * Register the function converting it to [[MultiMap.innerMap]]'s function type.
    */

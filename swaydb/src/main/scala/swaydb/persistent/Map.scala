@@ -89,7 +89,7 @@ object Map extends LazyLogging {
 
       val coreIO =
         Core(
-          enableTimer = functionClassTag != ClassTag.Nothing && functionClassTag != ClassTag.Unit && functionClassTag != ClassTag.Null,
+          enableTimer = PureFunction.isOn(functionClassTag),
           cacheKeyValueIds = cacheKeyValueIds,
           threadStateCache = threadStateCache,
           shutdownTimeout = shutdownTimeout,

@@ -44,9 +44,9 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  *
  * For documentation check - http://swaydb.io/
  */
-case class Map[K, V, F <: PureFunction.Map[K, V], BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit val keySerializer: Serializer[K],
-                                                                                                       val valueSerializer: Serializer[V],
-                                                                                                       val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
+case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit val keySerializer: Serializer[K],
+                                                                             val valueSerializer: Serializer[V],
+                                                                             val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   def path: Path =
     core.zero.path.getParent
@@ -160,10 +160,10 @@ case class Map[K, V, F <: PureFunction.Map[K, V], BAG[_]] private(private[swaydb
   def clearKeyValues(): BAG[OK] =
     bag.suspend(core.clear(core.readStates.get()))
 
-  def applyFunction(key: K, function: F): BAG[OK] =
+  def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
     bag.suspend(core.applyFunction(key, Slice.writeString(function.id)))
 
-  def applyFunction(from: K, to: K, function: F): BAG[OK] =
+  def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
     bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
 
   def commit(prepare: Prepare[K, V, F]*): BAG[OK] =
@@ -225,7 +225,7 @@ case class Map[K, V, F <: PureFunction.Map[K, V], BAG[_]] private(private[swaydb
   def mightContain(key: K): BAG[Boolean] =
     bag.suspend(core mightContainKey key)
 
-  def mightContainFunction(function: F): BAG[Boolean] =
+  def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean] =
     bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def keys: Set[K, Nothing, BAG] =
@@ -377,7 +377,7 @@ case class Map[K, V, F <: PureFunction.Map[K, V], BAG[_]] private(private[swaydb
   override def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
-  override def isFunctionApplied(function: F): Boolean =
+  override def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean =
     core.isFunctionApplied(Slice.writeString(function.asInstanceOf[swaydb.PureFunction.Map[K, V]].id))
 
   /**

@@ -25,6 +25,7 @@
 package swaydb
 
 import scala.concurrent.duration.Deadline
+import scala.reflect.ClassTag
 
 sealed trait PureFunction[+K, +V, +R <: Apply[V]] {
   /**
@@ -67,4 +68,11 @@ object PureFunction {
   trait OnKeyValue[K, V, R <: Apply[V]] extends ((K, V, Option[Deadline]) => R) with PureFunction[K, V, R] {
     override def apply(key: K, value: V, deadline: Option[Deadline]): R
   }
+
+  def isOff[F](implicit classTag: ClassTag[F]): Boolean =
+    classTag == ClassTag.Nothing || classTag == ClassTag.Unit || classTag == ClassTag.Null
+
+  def isOn[F](implicit classTag: ClassTag[F]): Boolean =
+    !isOff(classTag)
+
 }

@@ -374,9 +374,9 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
    *       to get the nearest expiration. But functions does not check if the custom logic within the function expires
    *       key-values earlier than [[defaultExpiration]].
    */
-  def applyFunction(key: K, function: F): BAG[OK] = {
+  def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] = {
     val innerKey = innerMap.keySerializer.write(MultiKey.Key(mapId, key))
-    val functionId = Slice.writeString(function.asInstanceOf[PureFunction.Map[K, V]].id)
+    val functionId = Slice.writeString(function.id)
     innerMap.core.applyFunction(innerKey, functionId)
   }
 
@@ -385,10 +385,10 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
    *       to get the nearest expiration. But functions does not check if the custom logic within the function expires
    *       key-values earlier than [[defaultExpiration]].
    */
-  def applyFunction(from: K, to: K, function: F): BAG[OK] = {
+  def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] = {
     val fromKey = innerMap.keySerializer.write(MultiKey.Key(mapId, from))
     val toKey = innerMap.keySerializer.write(MultiKey.Key(mapId, to))
-    val functionId = Slice.writeString(function.asInstanceOf[PureFunction.Map[K, V]].id)
+    val functionId = Slice.writeString(function.id)
     innerMap.core.applyFunction(fromKey, toKey, functionId)
   }
 
@@ -524,8 +524,8 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   def mightContain(key: K): BAG[Boolean] =
     innerMap.mightContain(MultiKey.Key(mapId, key))
 
-  def mightContainFunction(function: F): BAG[Boolean] =
-    innerMap.core.mightContainFunction(Slice.writeString(function.asInstanceOf[PureFunction.Map[K, V]].id))
+  def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean] =
+    innerMap.core.mightContainFunction(Slice.writeString(function.id))
 
   /**
    * TODO keys function.
@@ -654,8 +654,8 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   override def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]] =
     innerMap.clearAppliedAndRegisteredFunctions()
 
-  override def isFunctionApplied(function: F): Boolean =
-    innerMap.core.isFunctionApplied(Slice.writeString(function.asInstanceOf[PureFunction.Map[K, V]].id))
+  override def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean =
+    innerMap.core.isFunctionApplied(Slice.writeString(function.id))
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

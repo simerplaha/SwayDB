@@ -98,11 +98,11 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def clearAppliedAndRegisteredFunctions(): BAG[Iterable[String]]
 
-  def isFunctionApplied(functionId: F): Boolean
+  def isFunctionApplied(functionId: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean
 
-  def applyFunction(key: K, function: F): BAG[OK]
+  def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK]
 
-  def applyFunction(from: K, to: K, function: F): BAG[OK]
+  def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK]
 
   def commit(prepare: Prepare[K, V, F]*): BAG[OK]
 
@@ -134,7 +134,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def mightContain(key: K): BAG[Boolean]
 
-  def mightContainFunction(function: F): BAG[Boolean]
+  def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean]
 
   def levelZeroMeter: LevelZeroMeter
 
