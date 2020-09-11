@@ -79,16 +79,16 @@ object PureFunction {
     !isOff(classTag)
 
   implicit class VoidToNothing[A](voidOnKey: PureFunction.OnKey[A, Void, Apply.Set[Void]]) {
-    def toNothing: PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] =
+    def castToNothing: PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] =
       voidOnKey.asInstanceOf[PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]
   }
 
   implicit class VoidToNothingIterable[A](voidOnKey: java.lang.Iterable[PureFunction.OnKey[A, Void, Apply.Set[Void]]]) {
-    def toNothing: Iterable[OnKey[A, Nothing, Apply.Set[Nothing]]] =
-      voidOnKey.asScala.map(_.toNothing)
+    def castToNothing: Iterable[OnKey[A, Nothing, Apply.Set[Nothing]]] =
+      voidOnKey.asScala.map(_.castToNothing)
 
-    def toNothingFunctions: Functions[OnKey[A, Nothing, Apply.Set[Nothing]]] =
-      Functions(voidOnKey.toNothing)
+    def castToNothingFunctions: Functions[OnKey[A, Nothing, Apply.Set[Nothing]]] =
+      Functions(voidOnKey.castToNothing)
   }
 
 }
