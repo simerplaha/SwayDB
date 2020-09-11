@@ -188,11 +188,24 @@ private[swaydb] trait StreamFree[A] { self =>
     bag.transform(last)(_.toOption)
   }
 
-
   /**
    * Materializes are executes the stream.
    */
   def foldLeft[B, BAG[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[BAG]): BAG[B] =
+    bag.safe { //safe execution of the stream to recover errors.
+      step.Step.foldLeft(
+        initial = initial,
+        afterOrNull = null.asInstanceOf[A],
+        stream = self,
+        drop = 0,
+        take = None
+      ) {
+        (b, a) =>
+          bag.success(f(b, a))
+      }
+    }
+
+  def foldLeftBags[B, BAG[_]](initial: B)(f: (B, A) => BAG[B])(implicit bag: Bag[BAG]): BAG[B] =
     bag.safe { //safe execution of the stream to recover errors.
       step.Step.foldLeft(
         initial = initial,

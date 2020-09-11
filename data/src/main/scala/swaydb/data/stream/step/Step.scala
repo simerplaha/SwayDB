@@ -31,7 +31,7 @@ import scala.annotation.tailrec
 
 private[swaydb] object Step {
 
-  def foldLeft[A, B, BAG[_]](initial: B, afterOrNull: A, stream: StreamFree[A], drop: Int, take: Option[Int])(f: (B, A) => B)(implicit bag: Bag[BAG]): BAG[B] =
+  def foldLeft[A, B, BAG[_]](initial: B, afterOrNull: A, stream: StreamFree[A], drop: Int, take: Option[Int])(f: (B, A) => BAG[B])(implicit bag: Bag[BAG]): BAG[B] =
     bag match {
       case bag: Bag.Sync[BAG] =>
         Step.foldLeftSync(initial, afterOrNull, stream, drop, take)(f)(bag)
@@ -49,7 +49,7 @@ private[swaydb] object Step {
         Step.collectFirstAsync(previous, stream, condition)(bag)
     }
 
-  private def foldLeftSync[A, U, BAG[_]](initial: U, afterOrNull: A, stream: StreamFree[A], drop: Int, take: Option[Int])(operation: (U, A) => U)(implicit bag: Bag.Sync[BAG]): BAG[U] = {
+  private def foldLeftSync[A, U, BAG[_]](initial: U, afterOrNull: A, stream: StreamFree[A], drop: Int, take: Option[Int])(operation: (U, A) => BAG[U])(implicit bag: Bag.Sync[BAG]): BAG[U] = {
     @tailrec
     def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): BAG[U] =
       if (take.contains(currentSize)) {
@@ -64,7 +64,11 @@ private[swaydb] object Step {
             fold(next, drop - 1, currentSize, previousResult)
           } else {
             val nextResult = operation(previousResult, next)
-            fold(next, drop, currentSize + 1, nextResult)
+            if (bag.isSuccess(nextResult)) {
+              fold(next, drop, currentSize + 1, bag.getUnsafe(nextResult))
+            } else {
+              nextResult
+            }
           }
         } else {
           nextBagged.asInstanceOf[BAG[U]]
@@ -87,8 +91,11 @@ private[swaydb] object Step {
         else if (drop >= 1)
           fold(first, drop - 1, 0, initial)
         else {
-          val next = operation(initial, first)
-          fold(first, drop, 1, next)
+          val nextBag = operation(initial, first)
+          if (bag.isSuccess(nextBag))
+            fold(first, drop, 1, bag.getUnsafe(nextBag))
+          else
+            nextBag
         }
       } else {
         someFirstBagged.asInstanceOf[BAG[U]]
@@ -110,7 +117,7 @@ private[swaydb] object Step {
     }
   }
 
-  private def foldLeftAsync[A, U, BAG[_]](initial: U, afterOrNull: A, stream: StreamFree[A], drop: Int, take: Option[Int], operation: (U, A) => U)(implicit bag: Bag.Async[BAG]): BAG[U] = {
+  private def foldLeftAsync[A, U, BAG[_]](initial: U, afterOrNull: A, stream: StreamFree[A], drop: Int, take: Option[Int], operation: (U, A) => BAG[U])(implicit bag: Bag.Async[BAG]): BAG[U] = {
     def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): BAG[U] =
       if (take.contains(currentSize))
         bag.success(previousResult)
@@ -120,12 +127,13 @@ private[swaydb] object Step {
             bag.success(previousResult)
 
           case next =>
-            if (drop >= 1) {
+            if (drop >= 1)
               fold(next, drop - 1, currentSize, previousResult)
-            } else {
-              val newResult = operation(previousResult, next)
-              fold(next, drop, currentSize + 1, newResult)
-            }
+            else
+              bag.flatMap(operation(previousResult, next)) {
+                newResult =>
+                  fold(next, drop, currentSize + 1, newResult)
+              }
         }
 
     if (take.contains(0)) {
@@ -142,12 +150,13 @@ private[swaydb] object Step {
           bag.success(initial)
 
         case first =>
-          if (drop >= 1) {
+          if (drop >= 1)
             fold(first, drop - 1, 0, initial)
-          } else {
-            val nextResult = operation(initial, first)
-            fold(first, drop, 1, nextResult)
-          }
+          else
+            bag.flatMap(operation(initial, first)) {
+              newResult =>
+                fold(first, drop, 1, newResult)
+            }
       }
     }
   }

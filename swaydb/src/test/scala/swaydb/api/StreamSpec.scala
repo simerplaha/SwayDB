@@ -399,5 +399,34 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
         Try(flat.materialize.await).failed.get.getMessage shouldBe "oh no"
       }
     }
+
+    "foldLeftBags" when {
+      "success" in {
+        val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
+
+        val fold: BAG[Int] =
+          stream.foldLeftBags(0) {
+            case (left, right) =>
+              bag(left + right)
+          }
+
+        fold.await shouldBe 55
+      }
+
+      "failed" in {
+        val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
+
+        val fold: BAG[Int] =
+          stream.foldLeftBags(0) {
+            case (left, right) =>
+              if (right == 9)
+                throw new Exception("oh no")
+              else
+                bag(left + right)
+          }
+
+        Try(fold.await).failed.get.getMessage shouldBe "oh no"
+      }
+    }
   }
 }

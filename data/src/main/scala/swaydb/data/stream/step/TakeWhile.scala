@@ -43,8 +43,8 @@ private[swaydb] class TakeWhile[A](previousStream: StreamFree[A],
     Step.foldLeft(null.asInstanceOf[A], previous, previousStream, 0, StreamFree.takeOne) {
       case (_, next) =>
         if (next == null || condition(next))
-          next
+          bag.success(next)
         else
-          null.asInstanceOf[A]
+          bag.success(null.asInstanceOf[A])
     }
 }

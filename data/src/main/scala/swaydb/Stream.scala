@@ -149,6 +149,9 @@ class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val ba
   def foldLeft[B](initial: B)(f: (B, A) => B): BAG[B] =
     free.foldLeft(initial)(f)
 
+  def foldLeftBags[B](initial: B)(f: (B, A) => BAG[B]): BAG[B] =
+    free.foldLeftBags(initial)(f)
+
   def foreach(f: A => Unit): BAG[Unit] =
     free.foreach(f)
 

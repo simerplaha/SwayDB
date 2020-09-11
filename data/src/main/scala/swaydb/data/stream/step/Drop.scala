@@ -43,7 +43,7 @@ private[swaydb] class Drop[A](previousStream: StreamFree[A],
         else
           Step.foldLeft(null.asInstanceOf[A], head, previousStream, drop - 1, StreamFree.takeOne) {
             case (_, next) =>
-              next
+              bag.success(next)
           }
     }
 
