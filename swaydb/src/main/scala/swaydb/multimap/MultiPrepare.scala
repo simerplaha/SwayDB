@@ -30,8 +30,8 @@ import scala.collection.mutable
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 
-
 object MultiPrepare {
+
   def apply[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG],
                                 prepare: Prepare[K, V, F]*): Seq[MultiPrepare[M, K, V, F]] =
     prepare.map(MultiPrepare(map, _))
