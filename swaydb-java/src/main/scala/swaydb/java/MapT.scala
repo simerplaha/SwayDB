@@ -68,9 +68,9 @@ trait MapT[K, V, F] extends SetMapT[K, V] { self =>
 
   def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): OK
 
-  def getKeyDeadline(key: K): Optional[Pair[K, Optional[Deadline]]]
+  def getKeyDeadline(key: K): Optional[Pair[K, Optional[Expiration]]]
 
-  def getKeyValueDeadline(key: K): Optional[Pair[KeyVal[K, V], Optional[Deadline]]]
+  def getKeyValueDeadline(key: K): Optional[Pair[KeyVal[K, V], Optional[Expiration]]]
 
   def mightContainFunction(function: F): java.lang.Boolean
 

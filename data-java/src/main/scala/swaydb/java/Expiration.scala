@@ -27,14 +27,14 @@ package swaydb.java
 import java.time.Duration
 
 import scala.compat.java8.DurationConverters._
-import scala.concurrent.duration.{Deadline => ScalaDeadline}
+import scala.concurrent.duration.Deadline
 
-object Deadline {
-  def apply(scalaDeadline: ScalaDeadline) =
-    new Deadline(scalaDeadline)
+object Expiration {
+  def apply(scalaDeadline: Deadline) =
+    new Expiration(scalaDeadline)
 }
 
-class Deadline(val asScala: ScalaDeadline) {
+class Expiration(val asScala: Deadline) {
 
   def timeLeft: Duration =
     asScala.timeLeft.toJava

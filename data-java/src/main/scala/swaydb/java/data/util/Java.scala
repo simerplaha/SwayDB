@@ -36,12 +36,12 @@ object Java {
   }
 
   implicit class DeadlineConverter(deadline: scala.concurrent.duration.Deadline) {
-    @inline final def asJava: swaydb.java.Deadline =
-      new swaydb.java.Deadline(deadline)
+    @inline final def asJava: swaydb.java.Expiration =
+      new swaydb.java.Expiration(deadline)
   }
 
   implicit class OptionDeadlineConverter(deadline: Option[scala.concurrent.duration.Deadline]) {
-    @inline final def asJava: Optional[swaydb.java.Deadline] =
+    @inline final def asJava: Optional[swaydb.java.Expiration] =
       deadline match {
         case Some(scalaDeadline) =>
           Optional.of(scalaDeadline.asJava)

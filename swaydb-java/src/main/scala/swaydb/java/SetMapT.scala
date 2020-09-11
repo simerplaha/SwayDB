@@ -77,7 +77,7 @@ trait SetMapT[K, V] {
 
   def sizeOfSegments: Long
 
-  def expiration(key: K): Optional[Deadline]
+  def expiration(key: K): Optional[Expiration]
 
   def timeLeft(key: K): Optional[Duration]
 

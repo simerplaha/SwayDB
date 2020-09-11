@@ -24,18 +24,15 @@
 
 package swaydb.data
 
+
 import scala.jdk.CollectionConverters._
 
 object Functions {
   implicit def nothing: Functions[Nothing] = Functions[Nothing]()
   implicit def void: Functions[Void] = Functions[Void]()
 
-  //for java
-  def create[F](functions: java.lang.Iterable[F]): Functions[F] =
-    apply(functions.asScala)
-
-  def create[F](head: F): Functions[F] =
-    apply(Seq(head))
+  def apply[F](functions: java.lang.Iterable[F]): Functions[F] =
+    new Functions[F](functions.asScala)
 
   def apply[F](functions: F*): Functions[F] =
     new Functions[F](functions)

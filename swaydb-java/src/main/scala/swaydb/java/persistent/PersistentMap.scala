@@ -91,7 +91,7 @@ object PersistentMap {
                                                                                                                                keySerializer: Serializer[K],
                                                                                                                                valueSerializer: Serializer[V],
                                                                                                                                functions: Functions[F],
-                                                                                                                               evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
+                                                                                                                               evd: F <:< PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -305,8 +305,8 @@ object PersistentMap {
   def functionsOn[K, V](dir: Path,
                         keySerializer: JavaSerializer[K],
                         valueSerializer: JavaSerializer[V],
-                        functions: Functions[swaydb.PureFunction[K, V, Apply.Map[V]]]): Config[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]] = {
-    implicit val pureFunctions = functions
+                        functions: java.lang.Iterable[PureFunction[K, V, Apply.Map[V]]]): Config[K, V, PureFunction[K, V, Apply.Map[V]]] = {
+    implicit val scalaFunctions = Functions(functions)
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
 
@@ -318,7 +318,7 @@ object PersistentMap {
                          valueSerializer: JavaSerializer[V]): Config[K, V, Void] = {
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
-    implicit val evidence: Void <:< swaydb.PureFunction[K, V, Apply.Map[V]] = null
+    implicit val evidence: Void <:< PureFunction[K, V, Apply.Map[V]] = null
 
     new Config[K, V, Void](dir = dir)
   }

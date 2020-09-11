@@ -92,7 +92,7 @@ object PersistentMultiMap {
                                                                                                                                        mapKeySerializer: Serializer[M],
                                                                                                                                        valueSerializer: Serializer[V],
                                                                                                                                        functions: Functions[F],
-                                                                                                                                       evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
+                                                                                                                                       evd: F <:< PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -308,8 +308,8 @@ object PersistentMultiMap {
                            mapKeySerializer: JavaSerializer[M],
                            keySerializer: JavaSerializer[K],
                            valueSerializer: JavaSerializer[V],
-                           functions: Functions[PureFunction.Map[K, V]]): Config[M, K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] = {
-    implicit val pureFunctions = functions
+                           functions: java.lang.Iterable[PureFunction.Map[K, V]]): Config[M, K, V, PureFunction[K, V, swaydb.Apply.Map[V]]] = {
+    implicit val scalaFunctions = Functions(functions)
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaMapKeySerializer: Serializer[M] = SerializerConverter.toScala(mapKeySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
@@ -324,7 +324,7 @@ object PersistentMultiMap {
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaMapKeySerializer: Serializer[M] = SerializerConverter.toScala(mapKeySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
-    implicit val evidence: Void <:< swaydb.PureFunction[K, V, Apply.Map[V]] = null
+    implicit val evidence: Void <:< PureFunction[K, V, Apply.Map[V]] = null
 
     new Config[M, K, V, Void](dir)
   }

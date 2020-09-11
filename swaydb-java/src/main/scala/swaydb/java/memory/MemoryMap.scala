@@ -68,7 +68,7 @@ object MemoryMap {
                                                                                          keySerializer: Serializer[K],
                                                                                          valueSerializer: Serializer[V],
                                                                                          functions: Functions[F],
-                                                                                         evd: F <:< swaydb.PureFunction[K, V, Apply.Map[V]]) {
+                                                                                         evd: F <:< PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -173,8 +173,8 @@ object MemoryMap {
 
   def functionsOn[K, V](keySerializer: JavaSerializer[K],
                         valueSerializer: JavaSerializer[V],
-                        functions: Functions[PureFunction.Map[K, V]]): Config[K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] = {
-    implicit val pureFunctions = functions
+                        functions: java.lang.Iterable[PureFunction.Map[K, V]]): Config[K, V, PureFunction[K, V, swaydb.Apply.Map[V]]] = {
+    implicit val pureFunctions = Functions(functions)
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
 
@@ -185,7 +185,7 @@ object MemoryMap {
                          valueSerializer: JavaSerializer[V]): Config[K, V, Void] = {
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)
-    implicit val evidence: Void <:< swaydb.PureFunction[K, V, Apply.Map[V]] = null
+    implicit val evidence: Void <:< PureFunction[K, V, Apply.Map[V]] = null
 
     new Config[K, V, Void]()
   }

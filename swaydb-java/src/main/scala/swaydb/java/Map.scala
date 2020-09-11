@@ -33,7 +33,7 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
-import swaydb.{Bag, KeyVal, Pair, Prepare}
+import swaydb.{Bag, KeyVal, Pair, Prepare, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration
@@ -42,7 +42,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F <:< swaydb.PureFunction.Map[K, V]) extends swaydb.java.MapT[K, V, F] {
+case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F <:< PureFunction.Map[K, V]) extends swaydb.java.MapT[K, V, F] {
 
   def path: Path =
     asScala.path
@@ -97,7 +97,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
   def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): swaydb.OK =
     asScala.expire(keys.asScala.map(_.asScalaDeadline))
 
-  def expiration(key: K): Optional[Deadline] =
+  def expiration(key: K): Optional[Expiration] =
     asScala.expiration(key).asJavaMap(_.asJava)
 
   def update(key: K, value: V): swaydb.OK =
@@ -139,7 +139,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
   def getKeyValue(key: K): Optional[KeyVal[K, V]] =
     asScala.getKeyValue(key).asJavaMap(KeyVal(_))
 
-  def getKeyDeadline(key: K): Optional[Pair[K, Optional[Deadline]]] =
+  def getKeyDeadline(key: K): Optional[Pair[K, Optional[Expiration]]] =
     (asScala.getKeyDeadline(key): Option[(K, Option[duration.Deadline])]) match {
       case Some((key, deadline)) =>
         Optional.of(Pair(key, deadline.asJava))
@@ -148,7 +148,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
         Optional.empty()
     }
 
-  def getKeyValueDeadline(key: K): Optional[Pair[KeyVal[K, V], Optional[Deadline]]] =
+  def getKeyValueDeadline(key: K): Optional[Pair[KeyVal[K, V], Optional[Expiration]]] =
     (asScala.getKeyValueDeadline(key, Bag.less): Option[((K, V), Option[duration.Deadline])]) match {
       case Some(((key, value), deadline)) =>
         Optional.of(Pair(KeyVal(key, value), deadline.asJava))

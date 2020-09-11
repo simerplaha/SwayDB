@@ -552,7 +552,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     Map<Integer, Integer, PureFunction<Integer, Integer, Apply.Map<Integer>>> map =
       MemoryMap
-        .functionsOn(intSerializer(), intSerializer(), Functions.create(Arrays.asList(updateValueTo10, incrementBy1, removeMod0OrIncrementBy1)))
+        .functionsOn(intSerializer(), intSerializer(), Arrays.asList(updateValueTo10, incrementBy1, removeMod0OrIncrementBy1))
         .get();
 
     map.put(Stream.range(1, 100).map(KeyVal::create));

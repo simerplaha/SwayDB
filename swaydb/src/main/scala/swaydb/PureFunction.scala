@@ -24,7 +24,10 @@
 
 package swaydb
 
+import swaydb.data.Functions
+
 import scala.concurrent.duration.Deadline
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 sealed trait PureFunction[+K, +V, +R <: Apply[V]] {
@@ -57,8 +60,6 @@ object PureFunction {
 
   type Set[A] = PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]
 
-  type JavaSet[A] = PureFunction.OnKey[A, Void, Apply.Set[Void]]
-
   trait OnValue[V, R <: Apply[V]] extends (V => R) with PureFunction[Nothing, V, R] {
     override def apply(value: V): R
   }
@@ -76,5 +77,18 @@ object PureFunction {
 
   def isOn[F](implicit classTag: ClassTag[F]): Boolean =
     !isOff(classTag)
+
+  implicit class VoidToNothing[A](voidOnKey: PureFunction.OnKey[A, Void, Apply.Set[Void]]) {
+    def toNothing: PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] =
+      voidOnKey.asInstanceOf[PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]
+  }
+
+  implicit class VoidToNothingIterable[A](voidOnKey: java.lang.Iterable[PureFunction.OnKey[A, Void, Apply.Set[Void]]]) {
+    def toNothing: Iterable[OnKey[A, Nothing, Apply.Set[Nothing]]] =
+      voidOnKey.asScala.map(_.toNothing)
+
+    def toNothingFunctions: Functions[OnKey[A, Nothing, Apply.Set[Nothing]]] =
+      Functions(voidOnKey.toNothing)
+  }
 
 }

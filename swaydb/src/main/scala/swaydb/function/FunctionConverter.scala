@@ -37,13 +37,13 @@ object FunctionConverter {
   def toCore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: F)(implicit keySerializer: Serializer[K],
                                                                            valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction =
     function match {
-      case function: swaydb.PureFunction.OnValue[V, Apply.Map[V]] =>
+      case function: PureFunction.OnValue[V, Apply.Map[V]] =>
         SwayDB.toCoreFunction(function)
 
-      case function: swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] =>
+      case function: PureFunction.OnKey[K, V, Apply.Map[V]] =>
         SwayDB.toCoreFunction(function)
 
-      case function: swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] =>
+      case function: PureFunction.OnKeyValue[K, V, Apply.Map[V]] =>
         SwayDB.toCoreFunction(function)
     }
 
@@ -66,7 +66,7 @@ object FunctionConverter {
   /**
    * Register the function converting it to [[MultiMap.innerMap]]'s function type.
    */
-  def toMultiMap[M, K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: Functions[F]): Functions[swaydb.PureFunction.Map[MultiKey[M, K], MultiValue[V]]] =
+  def toMultiMap[M, K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: Functions[F]): Functions[PureFunction.Map[MultiKey[M, K], MultiValue[V]]] =
     Functions(function.map(function => toMultiMap[M, K, V, R, F](function)))
 
   def toMultiMap[M, K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: F): PureFunction.Map[MultiKey[M, K], MultiValue[V]] = {
@@ -113,8 +113,8 @@ object FunctionConverter {
     function match {
       //convert all MultiMap Functions to Map functions that register them since MultiMap is
       //just a parent implementation over Map.
-      case function: swaydb.PureFunction.OnValue[V, Apply.Map[V]] =>
-        new swaydb.PureFunction.OnValue[MultiValue[V], Apply.Map[MultiValue[V]]] {
+      case function: PureFunction.OnValue[V, Apply.Map[V]] =>
+        new PureFunction.OnValue[MultiValue[V], Apply.Map[MultiValue[V]]] {
           //use user function's functionId
           override val id: String =
             function.id
@@ -128,8 +128,8 @@ object FunctionConverter {
             }
         }
 
-      case function: swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] =>
-        new swaydb.PureFunction.OnKey[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]] {
+      case function: PureFunction.OnKey[K, V, Apply.Map[V]] =>
+        new PureFunction.OnKey[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]] {
           //use user function's functionId
           override val id: String =
             function.id

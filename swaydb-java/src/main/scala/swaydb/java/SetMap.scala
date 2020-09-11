@@ -76,7 +76,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
   def expire(key: K, after: java.time.Duration): swaydb.OK =
     asScala.expire(key, after.toScala)
 
-  def expiration(key: K): Optional[Deadline] =
+  def expiration(key: K): Optional[Expiration] =
     asScala.expiration(key).asJavaMap(_.asJava)
 
   def clearKeyValues(): swaydb.OK =

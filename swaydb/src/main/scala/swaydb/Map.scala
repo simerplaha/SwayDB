@@ -378,7 +378,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
   override def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean =
-    core.isFunctionApplied(Slice.writeString(function.asInstanceOf[swaydb.PureFunction.Map[K, V]].id))
+    core.isFunctionApplied(Slice.writeString(function.asInstanceOf[PureFunction.Map[K, V]].id))
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

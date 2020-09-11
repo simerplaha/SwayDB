@@ -32,7 +32,7 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
-import swaydb.{Apply, Bag, Pair, Prepare}
+import swaydb.{Apply, Bag, Pair, Prepare, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
@@ -40,7 +40,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
+case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
 
   def path: Path =
     asScala.path
@@ -144,7 +144,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< sw
   def elemSize(elem: A): Int =
     asScala.elemSize(elem)
 
-  def expiration(elem: A): Optional[Deadline] =
+  def expiration(elem: A): Optional[Expiration] =
     asScala.expiration(elem).asJavaMap(_.asJava)
 
   def timeLeft(elem: A): Optional[java.time.Duration] =

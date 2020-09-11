@@ -40,10 +40,7 @@ import swaydb.java.serializers.Serializer;
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -419,10 +416,10 @@ abstract class SetTest extends TestBase implements JavaEventually {
     PureFunction.OnKeyValue<Integer, Integer, Apply.Set<Integer>> removeMod0OrIncrementBy1 = null;
 
     //this will not compile since the return type specified is a Set - expected!
-//    PureFunction.OnValue<Integer, Integer, Apply.Set<Integer>> function = null;
+    PureFunction.OnKeyValue<Integer, Integer, Apply.Set<Integer>> function = null;
 
     Set<Integer, PureFunction.OnKey<Integer, Void, Apply.Set<Void>>> set =
-      MemorySet.functionsOn(intSerializer(), Functions.create(expire))
+      MemorySet.functionsOn(intSerializer(), Collections.singletonList(expire))
         .get();
 
     set.add(Stream.range(1, 100));

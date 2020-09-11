@@ -90,7 +90,7 @@ object PersistentSet {
                            private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set))(implicit functionClassTag: ClassTag[F],
                                                                                                                             serializer: Serializer[A],
                                                                                                                             functions: Functions[F],
-                                                                                                                            evd: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
+                                                                                                                            evd: F <:< PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -302,20 +302,20 @@ object PersistentSet {
 
   def functionsOn[A](dir: Path,
                      serializer: JavaSerializer[A],
-                     functions: Functions[PureFunction.JavaSet[A]]): Config[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] = {
+                     functions: java.lang.Iterable[PureFunction.OnKey[A, Void, Apply.Set[Void]]]): Config[A, PureFunction.OnKey[A, Void, Apply.Set[Void]]] = {
 
-    implicit val scalaFunctions = functions.asInstanceOf[Functions[PureFunction.Set[A]]]
+    implicit val scalaFunctions = functions.toNothingFunctions
     implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
     val config: Config[A, PureFunction.Set[A]] = new Config(dir)
 
-    config.asInstanceOf[Config[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
+    config.asInstanceOf[Config[A, PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
   }
 
   def functionsOff[A](dir: Path,
                       serializer: JavaSerializer[A]): Config[A, Void] = {
 
     implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
-    implicit val evd: Void <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] = null
+    implicit val evd: Void <:< PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] = null
 
     new Config(dir)
   }
