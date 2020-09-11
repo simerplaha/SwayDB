@@ -25,6 +25,7 @@
 package swaydb.java
 
 import java.time.Duration
+import java.util.Optional
 
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration.Deadline
@@ -32,6 +33,15 @@ import scala.concurrent.duration.Deadline
 object Expiration {
   def apply(scalaDeadline: Deadline) =
     new Expiration(scalaDeadline)
+
+  def apply(scalaDeadline: Option[Deadline]): Optional[Exception] =
+    scalaDeadline match {
+      case Some(deadline) =>
+        Optional.of(Expiration(deadline))
+
+      case None =>
+        Optional.empty()
+    }
 }
 
 class Expiration(val asScala: Deadline) {
@@ -41,6 +51,12 @@ class Expiration(val asScala: Deadline) {
 
   def time: Duration =
     asScala.time.toJava
+
+  def plus(time: Duration): Expiration =
+    Expiration(asScala + time.toScala)
+
+  def minus(time: Duration): Expiration =
+    Expiration(asScala - time.toScala)
 
   def hasTimeLeft: Boolean =
     asScala.hasTimeLeft()

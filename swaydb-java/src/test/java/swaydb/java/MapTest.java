@@ -26,7 +26,6 @@ package swaydb.java;
 
 import org.junit.jupiter.api.Test;
 import swaydb.*;
-import swaydb.data.Functions;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.Slice;
@@ -63,7 +62,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
     map.put(Arrays.asList(KeyVal.create(6, 6), KeyVal.create(7, 7)).iterator());
     map.put(Stream.create(Arrays.asList(KeyVal.create(8, 8), KeyVal.create(9, 9))));
 
-    map.commit(Arrays.asList(Prepare.putForMap(10, 10), Prepare.putForMap(11, 11)));
+    map.commit(Arrays.asList(Prepare.put(10, 10), Prepare.put(11, 11)));
 
     HashMap<Integer, Integer> actualKeyValues = new HashMap<>();
 
@@ -168,7 +167,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
       );
 
     //remove range
-    map.commit(Stream.range(51, 100).map(Prepare::removeForMap));
+    map.commit(Stream.range(51, 100).map(Prepare::removeFromMap));
 
     //non exist
     IntStream
@@ -204,8 +203,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     map.commit(
       Arrays.asList(
-        Prepare.putForMap(7, 7),
-        Prepare.putForMap(8, 8),
+        Prepare.put(7, 7),
+        Prepare.put(8, 8),
         Prepare.expireFromMap(7, Duration.ofSeconds(2)),
         Prepare.expireFromMap(8, Duration.ofSeconds(2))
       )
@@ -320,7 +319,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
     //update via range.
     map.update(81, 90, 0);
 
-    map.commit(Collections.singletonList(Prepare.updateForMap(91, 100, 0)));
+    map.commit(Collections.singletonList(Prepare.update(91, 100, 0)));
 
     IntStream
       .rangeClosed(1, 80)
@@ -369,13 +368,13 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     map.commit(
       Arrays.asList(
-        Prepare.putForMap(1, 11),
-        Prepare.putForMap(2, 22),
-        Prepare.putForMap(10, 100, Duration.ofSeconds(3)),
-        Prepare.removeForMap(3, 3),
-        Prepare.putForMap(4, 44),
-        Prepare.updateForMap(50, 1000),
-        Prepare.updateForMap(51, 60, Integer.MAX_VALUE),
+        Prepare.put(1, 11),
+        Prepare.put(2, 22),
+        Prepare.put(10, 100, Duration.ofSeconds(3)),
+        Prepare.removeFromMap(3, 3),
+        Prepare.put(4, 44),
+        Prepare.update(50, 1000),
+        Prepare.update(51, 60, Integer.MAX_VALUE),
         Prepare.expireFromMap(2, Duration.ofSeconds(3)),
         Prepare.expireFromMap(61, 70, Duration.ofSeconds(3))
       )
@@ -538,12 +537,11 @@ abstract class MapTest extends TestBase implements JavaEventually {
     PureFunction.OnKeyValue<Integer, Integer, Apply.Map<Integer>> removeMod0OrIncrementBy1 =
       (key, value, deadline) -> {
         if (key % 10 == 0) {
-          return Apply.removeMapEntry();
+          return Apply.removeFromMap();
         } else {
           return Apply.update(value + 1);
         }
       };
-
 
     //this will not compile since the return type specified is a Set - expected!
     PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> invalidType =
@@ -584,10 +582,10 @@ abstract class MapTest extends TestBase implements JavaEventually {
     //untouched 51 - 100. Overlapping functions executions.
     map.commit(
       Arrays.asList(
-        Prepare.applyFunctionForMap(51, updateValueTo10),
-        Prepare.applyFunctionForMap(52, 100, updateValueTo10),
-        Prepare.applyFunctionForMap(51, 100, incrementBy1),
-        Prepare.applyFunctionForMap(51, 100, removeMod0OrIncrementBy1)
+        Prepare.applyMapFunction(51, updateValueTo10),
+        Prepare.applyMapFunction(52, 100, updateValueTo10),
+        Prepare.applyMapFunction(51, 100, incrementBy1),
+        Prepare.applyMapFunction(51, 100, removeMod0OrIncrementBy1)
       )
     );
 

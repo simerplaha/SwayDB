@@ -30,7 +30,6 @@ import swaydb.Apply;
 import swaydb.Pair;
 import swaydb.Prepare;
 import swaydb.PureFunction;
-import swaydb.data.Functions;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.Slice;
@@ -152,7 +151,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
       );
 
     //remove range
-    set.commit(Stream.range(51, 100).map(Prepare::removeForSet));
+    set.commit(Stream.range(51, 100).map(Prepare::removeFromSet));
 
     //non exist
     IntStream
@@ -297,8 +296,8 @@ abstract class SetTest extends TestBase implements JavaEventually {
       Arrays.asList(
         Prepare.add(1),
         Prepare.add(2),
-        Prepare.addAndExpire(10, Duration.ofSeconds(3)),
-        Prepare.removeForSet(3, 3),
+        Prepare.add(10, Duration.ofSeconds(3)),
+        Prepare.removeFromSet(3, 3),
         Prepare.expireFromSet(2, Duration.ofSeconds(3)),
         Prepare.expireFromSet(61, 70, Duration.ofSeconds(3))
       )
@@ -410,7 +409,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     PureFunction.OnKey<Integer, Void, Apply.Set<Void>> expire =
       (key, deadline) ->
-        Apply.expireSetEntry(Duration.ZERO);
+        Apply.expireFromSet(Duration.ZERO);
 
     //does not compile
     PureFunction.OnKeyValue<Integer, Integer, Apply.Set<Integer>> removeMod0OrIncrementBy1 = null;

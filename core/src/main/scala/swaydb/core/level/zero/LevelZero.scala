@@ -29,6 +29,7 @@ import java.nio.file.{Path, Paths, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
+import swaydb.Exception.FunctionNotFound
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data.KeyValue.{Put, PutOption}
@@ -547,7 +548,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): OK =
     if (functionStore.notContains(function)) {
-      throw new IllegalArgumentException(s"Cannot apply unregistered function '${function.readString()}'. Please make sure the function is registered. See http://swaydb.io/api/write/registerFunction.")
+      throw FunctionNotFound(function.readString())
     } else {
       validateInput(key)
 
@@ -566,7 +567,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): OK =
     if (functionStore.notContains(function)) {
-      throw new IllegalArgumentException(s"Cannot apply unregistered function '${function.readString()}'. Please make sure the function is registered. See http://swaydb.io/api/write/registerFunction.")
+      throw FunctionNotFound(function.readString())
     } else {
       validateInput(fromKey, toKey)
 

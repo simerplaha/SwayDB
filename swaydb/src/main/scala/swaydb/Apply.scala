@@ -36,7 +36,7 @@ object Apply {
   def nothingOnMap[V]: Apply.Map[V] =
     Nothing
 
-  def removeMapEntry[V]: Apply.Map[V] =
+  def removeFromMap[V]: Apply.Map[V] =
     Remove
 
   def update[V](value: V): Apply.Update[V] =
@@ -45,16 +45,16 @@ object Apply {
   def update[V](value: V, expire: java.time.Duration): Apply.Update[V] =
     Apply.Update(value, expire.toScala)
 
-  def expireMapEntry[V](expire: java.time.Duration): Apply.Map[V] =
+  def expireFromMap[V](expire: java.time.Duration): Apply.Map[V] =
     Expire(expire.toScala)
 
   def nothingOnSet[V]: Apply.Set[V] =
     Nothing.asInstanceOf[Apply.Set[V]]
 
-  def removeSetEntry[V]: Apply.Set[V] =
+  def removeFromSet[V]: Apply.Set[V] =
     Remove.asInstanceOf[Apply.Set[V]]
 
-  def expireSetEntry[V](expire: java.time.Duration): Apply.Set[V] =
+  def expireFromSet[V](expire: java.time.Duration): Apply.Set[V] =
     Expire(expire.toScala).asInstanceOf[Apply.Set[V]]
 
   /**

@@ -33,16 +33,19 @@ sealed trait Prepare[+K, +V, +F]
 
 object Prepare {
 
-  def putForMap[K, V, F](key: K, value: V): Prepare[K, V, F] =
+  /**
+   * Map [[Prepare]] statements to be used from Java.
+   */
+  def put[K, V, F](key: K, value: V): Prepare[K, V, F] =
     swaydb.Prepare.Put(key, value)
 
-  def putForMap[K, V, F](key: K, value: V, expireAfter: Duration): Prepare[K, V, F] =
+  def put[K, V, F](key: K, value: V, expireAfter: Duration): Prepare[K, V, F] =
     swaydb.Prepare.Put(key, value, expireAfter.toScala)
 
-  def removeForMap[K, V, F](key: K): Prepare[K, V, F] =
+  def removeFromMap[K, V, F](key: K): Prepare[K, V, F] =
     swaydb.Prepare.Remove(key)
 
-  def removeForMap[K, V, F](fromKey: K, toKey: K): Prepare[K, V, F] =
+  def removeFromMap[K, V, F](fromKey: K, toKey: K): Prepare[K, V, F] =
     swaydb.Prepare.Remove(fromKey, toKey)
 
   def expireFromMap[K, V, F](key: K, after: Duration): Prepare[K, V, F] =
@@ -51,28 +54,31 @@ object Prepare {
   def expireFromMap[K, V, F](fromKey: K, toKey: K, after: Duration): Prepare[K, V, F] =
     swaydb.Prepare.Expire(fromKey, toKey, after.toScala)
 
-  def updateForMap[K, V, F](key: K, value: V): Prepare[K, V, F] =
+  def update[K, V, F](key: K, value: V): Prepare[K, V, F] =
     swaydb.Prepare.Update(key, value)
 
-  def updateForMap[K, V, F](fromKey: K, toKey: K, value: V): Prepare[K, V, F] =
+  def update[K, V, F](fromKey: K, toKey: K, value: V): Prepare[K, V, F] =
     swaydb.Prepare.Update(fromKey, toKey, value)
 
-  def applyFunctionForMap[K, V, F](key: K, function: F): Prepare[K, V, F] =
+  def applyMapFunction[K, V, F](key: K, function: F): Prepare[K, V, F] =
     swaydb.Prepare.ApplyFunction(key, function)
 
-  def applyFunctionForMap[K, V, F](fromKey: K, toKey: K, function: F): Prepare[K, V, F] =
+  def applyMapFunction[K, V, F](fromKey: K, toKey: K, function: F): Prepare[K, V, F] =
     swaydb.Prepare.ApplyFunction(fromKey, toKey, function)
 
+  /**
+   * Set [[Prepare]] statements to be used from Java.
+   */
   def add[T, F](elem: T): Prepare[T, Void, F] =
     swaydb.Prepare.Add(elem)
 
-  def addAndExpire[T, F](elem: T, expireAfter: Duration): Prepare[T, Void, F] =
+  def add[T, F](elem: T, expireAfter: Duration): Prepare[T, Void, F] =
     swaydb.Prepare.Add(elem, expireAfter.toScala)
 
-  def removeForSet[T, F](elem: T): Prepare[T, Void, F] =
+  def removeFromSet[T, F](elem: T): Prepare[T, Void, F] =
     swaydb.Prepare.Remove(elem)
 
-  def removeForSet[T, F](fromElem: T, toElem: T): Prepare[T, Void, F] =
+  def removeFromSet[T, F](fromElem: T, toElem: T): Prepare[T, Void, F] =
     swaydb.Prepare.Remove(fromElem, toElem)
 
   def expireFromSet[T, F](elem: T, after: Duration): Prepare[T, Void, F] =
@@ -81,10 +87,10 @@ object Prepare {
   def expireFromSet[T, F](fromElem: T, toElem: T, after: Duration): Prepare[T, Void, F] =
     swaydb.Prepare.Expire(fromElem, toElem, after.toScala)
 
-  def applyFunctionForSet[T, F](elem: T, function: F): Prepare[T, Void, F] =
+  def applySetFunction[T, F](elem: T, function: F): Prepare[T, Void, F] =
     swaydb.Prepare.ApplyFunction(elem, function)
 
-  def applyFunctionForSet[T, F](fromElem: T, toElem: T, function: F): Prepare[T, Void, F] =
+  def applySetFunction[T, F](fromElem: T, toElem: T, function: F): Prepare[T, Void, F] =
     swaydb.Prepare.ApplyFunction(fromElem, toElem, function)
 
   object Put {
@@ -98,6 +104,9 @@ object Prepare {
       new Put(key, value, Some(expireAt))
   }
 
+  /**
+   * Scala API for creating [[Prepare]] statements.
+   */
   object Remove {
     def apply[K](key: K): Remove[K] =
       new Remove(key, None, None)
