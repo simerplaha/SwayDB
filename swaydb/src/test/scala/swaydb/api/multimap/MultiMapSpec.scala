@@ -460,6 +460,24 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
   }
 
   "children" should {
+    "can be flatten into a single stream" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          val root = newDB()
+
+          root
+            .schema.init(1)
+            .schema.init(2)
+            .schema.init(3)
+            .schema.init(4)
+
+          root.schema.flatten.materialize.toList should have size 4
+
+          root.schema.flatten.map(_.mapKey).materialize.toList shouldBe (1 to 4)
+      }
+    }
+
+
     "replace" in {
       TestCaseSweeper {
         implicit sweeper =>

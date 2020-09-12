@@ -27,10 +27,10 @@ package swaydb.java.multimap
 import java.time.Duration
 import java.util.Optional
 
-import swaydb.{Bag, Expiration, PureFunction}
 import swaydb.Bag.Less
 import swaydb.java.data.util.Java._
 import swaydb.java.{MultiMap, Stream}
+import swaydb.{Bag, Expiration, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 
@@ -44,25 +44,25 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
   /**
    * Creates new or initialises the existing map.
    */
-  def init[M2 <: M](mapKey: M2): MultiMap[M2, K, V, F] =
+  def init(mapKey: M): MultiMap[M, K, V, F] =
     MultiMap(asScala.init(mapKey))
 
-  def init[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): MultiMap[M2, K2, V, F] =
+  def init[K2 <: K](mapKey: M, keyType: Class[K2]): MultiMap[M, K2, V, F] =
     MultiMap(asScala.init(mapKey, keyType))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]])
 
-  def init[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): MultiMap[M2, K2, V2, F] =
+  def init[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2]): MultiMap[M, K2, V2, F] =
     MultiMap(asScala.init(mapKey, keyType, valueType))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]])
 
   /**
    * Creates new or initialises the existing map.
    */
-  def init[M2 <: M](mapKey: M2, expireAfter: Duration): MultiMap[M2, K, V, F] =
+  def init(mapKey: M, expireAfter: Duration): MultiMap[M, K, V, F] =
     MultiMap(asScala.init(mapKey, expireAfter.toScala))
 
-  def init[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2], expireAfter: Duration): MultiMap[M2, K2, V, F] =
+  def init[K2 <: K](mapKey: M, keyType: Class[K2], expireAfter: Duration): MultiMap[M, K2, V, F] =
     MultiMap(asScala.init(mapKey, keyType, expireAfter.toScala))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]])
 
-  def init[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M2, K2, V2, F] =
+  def init[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M, K2, V2, F] =
     MultiMap(asScala.init(mapKey, keyType, valueType, expireAfter.toScala))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]])
 
 
@@ -72,13 +72,13 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
    * @note Put has slower immediate write performance for preceding key-value entries.
    *       Always use [[init]] if clearing existing entries is not required.
    */
-  def replace[M2 <: M](mapKey: M2): MultiMap[M2, K, V, F] =
+  def replace(mapKey: M): MultiMap[M, K, V, F] =
     MultiMap(asScala.replace(mapKey))
 
-  def replace[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): MultiMap[M2, K2, V, F] =
+  def replace[K2 <: K](mapKey: M, keyType: Class[K2]): MultiMap[M, K2, V, F] =
     MultiMap(asScala.replace(mapKey, keyType))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]])
 
-  def replace[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): MultiMap[M2, K2, V2, F] =
+  def replace[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2]): MultiMap[M, K2, V2, F] =
     MultiMap(asScala.replace(mapKey, keyType, valueType))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]])
 
 
@@ -88,13 +88,13 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
    * @note Put has slower immediate write performance for preceding key-value entries.
    *       Always use [[init]] if clearing existing entries is not required.
    */
-  def replace[M2 <: M](mapKey: M2, expireAfter: Duration): MultiMap[M2, K, V, F] =
+  def replace(mapKey: M, expireAfter: Duration): MultiMap[M, K, V, F] =
     MultiMap(asScala.replace(mapKey, expireAfter.toScala))
 
-  def replace[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2], expireAfter: Duration): MultiMap[M2, K2, V, F] =
+  def replace[K2 <: K](mapKey: M, keyType: Class[K2], expireAfter: Duration): MultiMap[M, K2, V, F] =
     MultiMap(asScala.replace(mapKey, keyType, expireAfter.toScala))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]])
 
-  def replace[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M2, K2, V2, F] =
+  def replace[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M, K2, V2, F] =
     MultiMap(asScala.replace(mapKey, keyType, valueType, expireAfter.toScala))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]])
 
   /**
@@ -106,7 +106,7 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
   /**
    * Returns the child Map
    */
-  def get[M2 <: M](mapKey: M2): Optional[MultiMap[M2, K, V, F]] =
+  def get(mapKey: M): Optional[MultiMap[M, K, V, F]] =
     asScala.get(mapKey) match {
       case Some(map) =>
         Optional.of(MultiMap(map))
@@ -115,7 +115,7 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
         Optional.empty()
     }
 
-  def get[M2 <: M, K2 <: K](mapKey: M2, keyType: Class[K2]): Optional[MultiMap[M2, K2, V, F]] =
+  def get[K2 <: K](mapKey: M, keyType: Class[K2]): Optional[MultiMap[M, K2, V, F]] =
     asScala.get(mapKey, keyType) match {
       case Some(map) =>
         Optional.of(MultiMap(map)(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]]))
@@ -124,7 +124,7 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
         Optional.empty()
     }
 
-  def get[M2 <: M, K2 <: K, V2 <: V](mapKey: M2, keyType: Class[K2], valueType: Class[V2]): Optional[MultiMap[M2, K2, V2, F]] =
+  def get[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2]): Optional[MultiMap[M, K2, V2, F]] =
     asScala.get(mapKey, keyType, valueType) match {
       case Some(map) =>
         Optional.of(MultiMap(map)(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]]))
@@ -138,6 +138,9 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
    */
   def keys: Stream[M] =
     Stream.fromScala(asScala.keys)
+
+  def flatten: Stream[swaydb.MultiMap[M, K, V, F, Less]] =
+    new Stream(asScala.flatten)
 
   def stream: Stream[MultiMap[M, K, V, F]] =
     Stream.fromScala(asScala.stream.map(MultiMap(_)))

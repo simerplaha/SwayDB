@@ -68,6 +68,9 @@ object Stream {
 
   def apply[A, BAG[_]](it: Iterator[A])(implicit bag: Bag[BAG]): Stream[A, BAG] =
     new Stream(StreamFree(it))
+
+  def join[A, B >: A, BAG[_]](head: A, tail: Stream[B, BAG])(implicit bag: Bag[BAG]): Stream[B, BAG] =
+    new Stream(StreamFree.join(head, tail.free))
 }
 
 /**
@@ -92,6 +95,9 @@ class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val ba
 
   def map[B](f: A => B): Stream[B, BAG] =
     new Stream(free.map(f))
+
+  def mapBags[B](f: A => BAG[B]): Stream[B, BAG] =
+    new Stream(free.mapBags(f))
 
   def flatMap[B](f: A => Stream[B, BAG]): Stream[B, BAG] =
     new Stream(

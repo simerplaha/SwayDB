@@ -438,5 +438,38 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
         }
       }
     }
+
+    "mapBags" when {
+      "success" in {
+        val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
+
+        val fold: Stream[Int, BAG] =
+          stream.mapBags {
+            int =>
+              bag(int)
+          }
+
+        fold.materialize.await.toList shouldBe (1 to 10).toList
+      }
+
+      "failed" in {
+        if (bag == Bag.less) {
+          cancel("Test does not apply to Bag.Less as it throws Exceptions")
+        } else {
+          val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
+
+          val fold: Stream[BAG[Int], BAG] =
+            stream.map {
+              int =>
+                if (int == 9)
+                  throw new Exception("oh no")
+                else
+                  bag(int)
+            }
+
+          Try(fold.materialize.await).failed.get.getMessage shouldBe "oh no"
+        }
+      }
+    }
   }
 }

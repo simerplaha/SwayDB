@@ -84,6 +84,24 @@ private[swaydb] object StreamFree {
       override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) =
         step(bag)
     }
+
+  def join[A, B >: A](head: A, tail: StreamFree[B]): StreamFree[B] =
+    new StreamFree[B]() {
+      var processHead = false
+
+      override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[B] =
+        bag.success(head)
+
+      override private[swaydb] def nextOrNull[BAG[_]](previous: B)(implicit bag: Bag[BAG]) =
+        if (!processHead)
+          bag.transform(tail.headOrNull) {
+            head =>
+              processHead = true
+              head
+          }
+        else
+          tail.nextOrNull(previous)
+    }
 }
 
 /**
@@ -100,6 +118,12 @@ private[swaydb] trait StreamFree[A] { self =>
 
   def map[B](f: A => B): StreamFree[B] =
     new step.Map(
+      previousStream = self,
+      f = f
+    )
+
+  def mapBags[B, BAG[_]](f: A => BAG[B]): StreamFree[B] =
+    new step.MapBags(
       previousStream = self,
       f = f
     )
@@ -154,7 +178,7 @@ private[swaydb] trait StreamFree[A] { self =>
 
   def flatten[BAG[_], B](implicit bag: Bag[BAG],
                          evd: A <:< BAG[B]): StreamFree[B] =
-    new step.Flatten[BAG, A, B](previousStream = self)
+    new step.Flatten[A, B](previousStream = self)
 
   def collectFirst[B, BAG[_]](pf: PartialFunction[A, B])(implicit bag: Bag[BAG]): BAG[Option[B]] =
     bag.map(collectFirstOrNull(pf))(Option(_))

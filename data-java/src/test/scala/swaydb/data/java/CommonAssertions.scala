@@ -117,6 +117,9 @@ object CommonAssertions {
   def shouldBe[T](actual: swaydb.java.Stream[T], expected: swaydb.java.Stream[T]): Unit =
     actual.materialize shouldBe expected.materialize
 
+  def shouldContainOnly[T](actual: swaydb.java.Stream[T], expected: T): Unit =
+    actual.materialize should contain only expected
+
   def shouldBeFalse(actual: Boolean): Unit =
     actual shouldBe false
 

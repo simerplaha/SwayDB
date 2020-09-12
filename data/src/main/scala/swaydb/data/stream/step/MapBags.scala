@@ -27,33 +27,31 @@ package swaydb.data.stream.step
 import swaydb.Bag
 import swaydb.data.stream.StreamFree
 
-private[swaydb] class Flatten[A, B](previousStream: StreamFree[A]) extends StreamFree[B] {
+private[swaydb] class MapBags[X[_], A, B](previousStream: StreamFree[A],
+                                          f: A => X[B]) extends StreamFree[B] {
 
   var previousA: A = _
 
   override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[B] =
-    bag.flatMap(previousStream.headOrNull.asInstanceOf[BAG[BAG[A]]]) {
-      case null =>
-        bag.success(null.asInstanceOf[B])
-
-      case previousBag: BAG[A] =>
-        bag.transform(previousBag) {
-          previous =>
-            this.previousA = previousBag.asInstanceOf[A]
-            previous.asInstanceOf[B]
-        }
+    bag.flatMap(previousStream.headOrNull) {
+      previousAOrNull =>
+        previousA = previousAOrNull
+        if (previousAOrNull == null)
+          bag.success(null.asInstanceOf[B])
+        else
+          f(previousAOrNull).asInstanceOf[BAG[B]]
     }
 
-  override private[swaydb] def nextOrNull[BAG[_]](previous: B)(implicit bag: Bag[BAG]) =
-    bag.flatMap(previousStream.nextOrNull(previousA).asInstanceOf[BAG[BAG[A]]]) {
-      case null =>
-        bag.success(null.asInstanceOf[B])
-
-      case previousBag: BAG[A] =>
-        bag.transform(previousBag) {
-          previous: A =>
-            this.previousA = previousBag.asInstanceOf[A]
-            previous.asInstanceOf[B]
-        }
-    }
+  override private[swaydb] def nextOrNull[BAG[_]](previous: B)(implicit bag: Bag[BAG]): BAG[B] =
+    if (previousA == null)
+      bag.success(null.asInstanceOf[B])
+    else
+      bag.flatMap(previousStream.nextOrNull(previousA)) {
+        nextA =>
+          previousA = nextA
+          if (nextA == null)
+            bag.success(null.asInstanceOf[B])
+          else
+            f(nextA).asInstanceOf[BAG[B]]
+      }
 }
