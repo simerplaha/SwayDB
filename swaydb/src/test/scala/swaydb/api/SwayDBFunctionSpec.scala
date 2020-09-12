@@ -28,6 +28,7 @@ import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.Functions
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
+import swaydb.macros.Sealed
 import swaydb.serializers.Default._
 import swaydb.{Apply, IO, Map, Prepare, PureFunction, StorageIntImplicits}
 
@@ -115,7 +116,8 @@ sealed trait SwayDBFunctionSpec extends TestBase {
 
 
   "SwayDB" should {
-    implicit val functionsMap = Functions[PureFunction.Map[Key, Int]](Key.IncrementValue, Key.DoNothing)
+    val functions = Sealed.list[Key.Function].collect { case function: PureFunction.Map[Key, Int] => function }
+    implicit val functionsMap = Functions[PureFunction.Map[Key, Int]](functions)
 
     "perform concurrent atomic updates to a single key" in {
       runThis(times = repeatTest, log = true) {
