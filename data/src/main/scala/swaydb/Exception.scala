@@ -24,10 +24,13 @@
 
 package swaydb
 
+import java.lang
 import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Path
 
 import swaydb.data.Reserve
+
+import scala.jdk.CollectionConverters._
 
 /**
  * Exception types for all known [[Error]]s that can occur. Each [[Error]] can be converted to
@@ -48,7 +51,10 @@ object Exception {
   case object NoSegmentsRemoved extends Exception("No Segments Removed")
   case object NotSentToNextLevel extends Exception("Not sent to next Level")
   case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
-  case class MissingFunctions(functions: Iterable[String]) extends Exception(s"Missing ${functions.size} functions. See this exception's functions value to see a list of missing functions.")
+  case class MissingFunctions(functions: Iterable[String]) extends Exception(s"Missing ${functions.size} functions. See this exception's functions value to see a list of missing functions.") {
+    def functionsAsJava: lang.Iterable[String] =
+      functions.asJava
+  }
 
   /**
    * [[functionId]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception

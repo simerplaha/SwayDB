@@ -26,20 +26,26 @@ package swaydb.java;
 
 import org.junit.jupiter.api.Test;
 import swaydb.*;
-import swaydb.data.java.JavaEventually;
+import swaydb.Exception;
+import swaydb.core.Core;
 import swaydb.data.java.TestBase;
-import swaydb.java.memory.MemoryMap;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.IntStream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.*;
+import static swaydb.data.java.CommonAssertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
+import static swaydb.java.serializers.Default.stringSerializer;
 
 abstract class MapFunctionsOnTest extends TestBase {
+
+  public abstract boolean isPersistent();
 
   public abstract <K, V> MapT<K, V, PureFunction<K, V, Apply.Map<V>>> createMap(Serializer<K> keySerializer,
                                                                                 Serializer<V> valueSerializer,
@@ -51,75 +57,126 @@ abstract class MapFunctionsOnTest extends TestBase {
                                                                                 KeyComparator<K> keyComparator) throws IOException;
 
 
+  PureFunction.OnKey<Integer, String, Apply.Map<String>> appendUpdated =
+    (key, deadline) ->
+      Apply.update(key + " updated");
+
+  PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> incrementBy1 =
+    (key, value, deadline) ->
+      Apply.update(key + 1 + "");
+
+  PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> removeMod0OrIncrementBy1 =
+    (key, value, deadline) -> {
+      if (key % 10 == 0) {
+        return Apply.removeFromMap();
+      } else {
+        return Apply.update(key + 1 + "");
+      }
+    };
+
+  //add this function will not compile - invalid types!
+  PureFunction.OnKeyValue<String, String, Apply.Map<String>> invalidType1 =
+    (key, value, deadline) ->
+      Apply.update(value + 1);
+
+  //add this function will not compile - invalid types!
+  PureFunction.OnKeyValue<String, Integer, Apply.Map<Integer>> invalidType2 =
+    (key, value, deadline) ->
+      Apply.update(value + 1);
+
+  @Test
+  void reportMissingFunction() throws IOException {
+    assumeTrue(this::isPersistent, "IGNORED! Test not needed for memory databases");
+
+    MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
+      createMap(intSerializer(), stringSerializer(), Collections.emptyList());
+
+    PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> missingFunction =
+      (key, value, deadline) ->
+        Apply.update(value + 1);
+
+    Exception.FunctionNotFound functionNotFound = assertThrows(Exception.FunctionNotFound.class, () -> map.applyFunction(1, missingFunction));
+    shouldInclude(functionNotFound.getMessage(), missingFunction.id());
+    shouldIncludeIgnoreCase(functionNotFound.getMessage(), "not found");
+  }
+
+  @Test
+  void reportMissingFunctionOnReboot() throws IOException {
+    assumeTrue(this::isPersistent, "IGNORED! Test not needed for memory databases");
+
+    MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
+      createMap(intSerializer(), stringSerializer(), Arrays.asList(appendUpdated, incrementBy1, removeMod0OrIncrementBy1));
+
+    map.applyFunction(1, appendUpdated);
+    map.applyFunction(2, removeMod0OrIncrementBy1);
+
+    map.close();
+
+    Exception.MissingFunctions exception = assertThrows(Exception.MissingFunctions.class, () -> createMap(intSerializer(), stringSerializer(), Collections.emptyList()));
+
+    shouldContainTheSameElementsAs(exception.functionsAsJava(), Arrays.asList(appendUpdated.id(), removeMod0OrIncrementBy1.id()));
+  }
+
+  @Test
+  void notReportUnAppliedMissingFunctionOnReboot() throws IOException {
+    assumeTrue(this::isPersistent, "IGNORED! Test not needed for memory databases");
+
+    MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
+      createMap(intSerializer(), stringSerializer(), Arrays.asList(appendUpdated, incrementBy1, removeMod0OrIncrementBy1));
+
+    map.close();
+
+    MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> reopened =
+      assertDoesNotThrow(() -> createMap(intSerializer(), stringSerializer(), Collections.emptyList()));
+
+    reopened.put(1, "one");
+    shouldContain(reopened.get(1), "one");
+
+    //closed databases cannot process messages
+    IllegalAccessException illegalAccessException = assertThrows(IllegalAccessException.class, () -> map.get(1));
+    shouldBe(illegalAccessException.getMessage(), Core.closedMessage());
+  }
+
   @Test
   void registerAndApplyFunction() throws IOException {
-    PureFunction.OnKey<Integer, Integer, Apply.Map<Integer>> updateValueTo10 =
-      (key, deadline) ->
-        Apply.update(10);
+    MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
+      createMap(intSerializer(), stringSerializer(), Arrays.asList(appendUpdated, incrementBy1, removeMod0OrIncrementBy1));
 
-    PureFunction.OnKeyValue<Integer, Integer, Apply.Map<Integer>> incrementBy1 =
-      (key, value, deadline) ->
-        Apply.update(value + 1);
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + "")));
 
-    PureFunction.OnKeyValue<Integer, Integer, Apply.Map<Integer>> removeMod0OrIncrementBy1 =
-      (key, value, deadline) -> {
-        if (key % 10 == 0) {
-          return Apply.removeFromMap();
-        } else {
-          return Apply.update(value + 1);
-        }
-      };
-
-    //this will not compile since the return type specified is a Set - expected!
-    PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> invalidType =
-      (key, value, deadline) ->
-        Apply.update(value + 1);
-
-    MapT<Integer, Integer, PureFunction<Integer, Integer, Apply.Map<Integer>>> map =
-      createMap(intSerializer(), intSerializer(), Arrays.asList(updateValueTo10, incrementBy1, removeMod0OrIncrementBy1));
-
-    map.put(Stream.range(1, 100).map(KeyVal::create));
-
-    map.applyFunction(1, updateValueTo10);
-    assertEquals(10, map.get(1).get());
+    map.applyFunction(1, appendUpdated);
+    shouldContain(map.get(1), "1 updated");
 
     map.applyFunction(10, 20, incrementBy1);
-    IntStream
-      .rangeClosed(10, 20)
-      .forEach(
-        integer ->
-          assertEquals(integer + 1, map.get(integer).get())
-      );
+    foreachRange(10, 20, key -> shouldContain(map.get(key), key + 1 + ""));
+
 
     map.applyFunction(21, 50, removeMod0OrIncrementBy1);
-    IntStream
-      .rangeClosed(21, 50)
-      .forEach(
-        integer -> {
-          if (integer % 10 == 0) {
-            assertFalse(map.get(integer).isPresent());
-          } else {
-            assertEquals(integer + 1, map.get(integer).get());
-          }
+
+    foreachRange(
+      21,
+      50,
+      key -> {
+        if (key % 10 == 0) {
+          shouldBeEmpty(map.get(key));
+        } else {
+          shouldContain(map.get(key), key + 1 + "");
         }
-      );
+      }
+    );
 
     //untouched 51 - 100. Overlapping functions executions.
     map.commit(
       Arrays.asList(
-        Prepare.applyMapFunction(51, updateValueTo10),
-        Prepare.applyMapFunction(52, 100, updateValueTo10),
-        Prepare.applyMapFunction(51, 100, incrementBy1),
-        Prepare.applyMapFunction(51, 100, removeMod0OrIncrementBy1)
+        Prepare.applyMapFunction(51, appendUpdated),
+        Prepare.applyMapFunction(52, 60, appendUpdated),
+        Prepare.applyMapFunction(61, 80, incrementBy1)
       )
     );
 
-    assertEquals(12, map.get(51).get());
-    assertFalse(map.get(60).isPresent());
-    assertFalse(map.get(70).isPresent());
-    assertFalse(map.get(80).isPresent());
-    assertFalse(map.get(90).isPresent());
-    assertFalse(map.get(100).isPresent());
+    shouldContain(map.get(51), "51 updated");
+    foreachRange(51, 60, key -> shouldContain(map.get(key), key + " updated"));
+    foreachRange(61, 80, key -> shouldContain(map.get(key), key + 1 + ""));
 
     map.delete();
   }

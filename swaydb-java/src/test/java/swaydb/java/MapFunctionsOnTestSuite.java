@@ -43,6 +43,11 @@ import java.util.List;
  */
 class MemoryMapFunctionsOnTest extends MapFunctionsOnTest {
 
+  @Override
+  public boolean isPersistent() {
+    return false;
+  }
+
   public <K, V> Map<K, V, PureFunction<K, V, Apply.Map<V>>> createMap(Serializer<K> keySerializer,
                                                                       Serializer<V> valueSerializer,
                                                                       List<PureFunction<K, V, Apply.Map<V>>> functions) {
@@ -72,6 +77,11 @@ class PersistentMapFunctionsOnTest extends MapFunctionsOnTest {
     deleteTestDir();
   }
 
+  @Override
+  public boolean isPersistent() {
+    return true;
+  }
+
   public <K, V> Map<K, V, PureFunction<K, V, Apply.Map<V>>> createMap(Serializer<K> keySerializer,
                                                                       Serializer<V> valueSerializer,
                                                                       List<PureFunction<K, V, Apply.Map<V>>> functions) throws IOException {
@@ -96,6 +106,11 @@ class PersistentMapFunctionsOnTest extends MapFunctionsOnTest {
 }
 
 class EventuallyPersistentMapFunctionsOnTest extends MapFunctionsOnTest {
+
+  @Override
+  public boolean isPersistent() {
+    return true;
+  }
 
   @AfterEach
   void deleteDir() throws IOException {
@@ -131,6 +146,11 @@ class EventuallyPersistentMapFunctionsOnTest extends MapFunctionsOnTest {
  */
 class MemoryMultiMapFunctionsOnTest extends MapFunctionsOnTest {
 
+  @Override
+  public boolean isPersistent() {
+    return false;
+  }
+
   public <K, V> MapT<K, V, PureFunction<K, V, Apply.Map<V>>> createMap(Serializer<K> keySerializer,
                                                                        Serializer<V> valueSerializer,
                                                                        List<PureFunction<K, V, Apply.Map<V>>> functions) {
@@ -155,6 +175,11 @@ class MemoryMultiMapFunctionsOnTest extends MapFunctionsOnTest {
 }
 
 class PersistentMultiMapFunctionsOnTest extends MapFunctionsOnTest {
+
+  @Override
+  public boolean isPersistent() {
+    return true;
+  }
 
   @AfterEach
   void deleteDir() throws IOException {
@@ -185,6 +210,11 @@ class PersistentMultiMapFunctionsOnTest extends MapFunctionsOnTest {
 }
 
 class EventuallyPersistentMultiMapFunctionsOnTest extends MapFunctionsOnTest {
+
+  @Override
+  public boolean isPersistent() {
+    return true;
+  }
 
   @AfterEach
   void deleteDir() throws IOException {

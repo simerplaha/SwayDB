@@ -99,8 +99,14 @@ object CommonAssertions {
   def shouldContainSameInOrder[T](actual: java.lang.Iterable[T], expected: java.lang.Iterable[T]): Unit =
     actual.asScala.toList should contain theSameElementsInOrderAs expected.asScala
 
-  def shouldContainSame[T](actual: java.lang.Iterable[T], expected: java.lang.Iterable[T]): Unit =
+  def shouldContainTheSameElementsAs[T](actual: java.lang.Iterable[T], expected: java.lang.Iterable[T]): Unit =
     actual.asScala should contain theSameElementsAs expected.asScala
+
+  def shouldInclude(string: String, contain: String): Unit =
+    string should include(contain)
+
+  def shouldIncludeIgnoreCase(string: String, contain: String): Unit =
+    string.toLowerCase should include(contain.toLowerCase)
 
   def shouldBe[T](actual: java.lang.Iterable[T], expected: java.lang.Iterable[T]): Unit =
     actual.asScala shouldBe expected.asScala
