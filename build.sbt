@@ -127,7 +127,10 @@ def testDependencies(scalaVersion: String) =
 
 val commonJavaDependencies =
   Seq(
-    "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion % Test
+    "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion % Test,
+    "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
+    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompact % Test,
+    "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion % Test
   )
 
 def commonDependencies(scalaVersion: String) =

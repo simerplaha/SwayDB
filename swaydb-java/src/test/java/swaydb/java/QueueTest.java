@@ -25,7 +25,6 @@
 package swaydb.java;
 
 import org.junit.jupiter.api.Test;
-import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.serializers.Serializer;
 
@@ -37,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static swaydb.java.serializers.Default.intSerializer;
 
-abstract class QueueTest extends TestBase implements JavaEventually {
+abstract class QueueTest extends TestBase {
 
   public abstract <K> Queue<K> createQueue(Serializer<K> keySerializer) throws IOException;
 

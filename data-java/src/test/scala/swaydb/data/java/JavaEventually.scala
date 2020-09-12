@@ -24,36 +24,52 @@
 
 package swaydb.data.java
 
-import java.util.function.Supplier
+import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
 
 import scala.concurrent.TimeoutException
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.{Failure, Success, Try}
-import scala.concurrent.duration._
+import scala.jdk.DurationConverters._
 
-trait JavaEventually {
-
-  private def sleep(time: FiniteDuration): Unit =
+object JavaEventually {
+  def sleep(time: FiniteDuration): Unit = {
+    println(s"Sleeping: ${time.asString}")
     Thread.sleep(time.toMillis)
+  }
 
-  def eventually[T](test: Supplier[T]): T =
+  def sleep(time: java.time.Duration): Unit = {
+    println(s"Sleeping: ${time.toScala.asString}")
+    Thread.sleep(time.toMillis)
+  }
+
+  def eventually[T](test: Test): Unit =
     eventually(
       timeoutDuration = 2.seconds,
-      interval = (2 / 5).seconds,
+      interval = 0.5.seconds,
       test = test
     )
 
-  def eventuallyInSeconds[T](timeout: Int,
-                             test: Supplier[T]): T =
+  def eventually[T](timeout: Int,
+                    test: Test): Unit =
+
     eventually(
       timeoutDuration = timeout.seconds,
-      interval = (timeout / 5).seconds,
+      interval = (timeout.seconds.toMillis / 5).millisecond,
       test = test
     )
 
-  def eventuallyInSeconds[T](timeout: Int,
-                             interval: Int,
-                             test: Supplier[T]): T =
+  def eventually[T](timeout: FiniteDuration,
+                    test: Test): Unit =
+
+    eventually(
+      timeoutDuration = timeout,
+      interval = (timeout.toMillis / 5).millisecond,
+      test = test
+    )
+
+  def eventually[T](timeout: Int,
+                    interval: Int,
+                    test: Test): Unit =
     eventually(
       timeoutDuration = timeout.seconds,
       interval = interval.seconds,
@@ -62,31 +78,28 @@ trait JavaEventually {
 
   def eventually[T](timeoutDuration: FiniteDuration,
                     interval: FiniteDuration,
-                    test: Supplier[T]): T = {
+                    test: Test): Unit = {
     val deadline = timeoutDuration.fromNow
     var keepTrying: Boolean = true
-    var result: Either[Throwable, T] = Left(new TimeoutException("Test timed-out!"))
+    var result: Option[Throwable] = Some(new TimeoutException("Test timed-out!"))
 
     while (keepTrying)
-      Try(test.get()) match {
+      Try(test.assert()) match {
         case Failure(exception) =>
           if (deadline.isOverdue()) {
-            result = Left(exception)
+            result = Some(exception)
             keepTrying = false
           } else {
             sleep(interval)
           }
         case Success(value) =>
-          result = Right(value)
+          result = None
           keepTrying = false
       }
 
-    result match {
-      case Right(success) =>
-        success
-
-      case Left(failure) =>
-        throw failure
+    result foreach {
+      error =>
+        throw error
     }
   }
 }

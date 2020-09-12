@@ -39,7 +39,7 @@ import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
-abstract class MapFunctionsOnTest extends TestBase implements JavaEventually {
+abstract class MapFunctionsOnTest extends TestBase {
 
   public abstract <K, V> MapT<K, V, PureFunction<K, V, Apply.Map<V>>> createMap(Serializer<K> keySerializer,
                                                                                 Serializer<V> valueSerializer,

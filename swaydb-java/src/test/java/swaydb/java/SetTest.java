@@ -30,7 +30,6 @@ import swaydb.Apply;
 import swaydb.Pair;
 import swaydb.Prepare;
 import swaydb.PureFunction;
-import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.Slice;
 import swaydb.java.memory.MemorySet;
@@ -43,9 +42,10 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static swaydb.data.java.JavaEventually.eventually;
 import static swaydb.java.serializers.Default.intSerializer;
 
-abstract class SetTest extends TestBase implements JavaEventually {
+abstract class SetTest extends TestBase {
 
   public abstract <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException;
 
@@ -89,12 +89,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
     assertEquals(11, actualKeyValues.size());
     assertEquals(expectedKeyValues, actualKeyValues);
 
-    eventuallyInSeconds(3,
-      () -> {
-        boolean present = set.get(3).isPresent();
-        assertFalse(present);
-        return present;
-      });
+    eventually(3, () -> assertEquals(set.get(3), Optional.empty()));
 
     set.delete();
   }
@@ -203,7 +198,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
           assertTrue(set.get(integer).isPresent())
       );
 
-    eventuallyInSeconds(
+    eventually(
       3,
       () -> {
         assertTrue(set.isEmpty());
@@ -215,8 +210,6 @@ abstract class SetTest extends TestBase implements JavaEventually {
             integer ->
               assertFalse(set.get(integer).isPresent())
           );
-
-        return true;
       });
 
     set.delete();
@@ -255,12 +248,11 @@ abstract class SetTest extends TestBase implements JavaEventually {
     //expire range.
     set.expire(maxKeyValues / 2, maxKeyValues, Duration.ofSeconds(1));
 
-    eventuallyInSeconds(
+    eventually(
       2,
       () -> {
         assertEquals(0, set.stream().size());
         assertTrue(set.isEmpty());
-        return true;
       }
     );
 
@@ -310,7 +302,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
     assertEquals(10, set.get(10).get());
     assertFalse(set.get(3).isPresent());
 
-    eventuallyInSeconds(
+    eventually(
       4,
       () -> {
         assertFalse(set.get(2).isPresent());
@@ -321,7 +313,6 @@ abstract class SetTest extends TestBase implements JavaEventually {
             integer ->
               assertFalse(set.get(integer).isPresent())
           );
-        return false;
       }
     );
 
