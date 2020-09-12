@@ -188,12 +188,12 @@ object EventuallyPersistentSetMap {
       this
     }
 
-    def setByteComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
 
-    def setTypedComparator(typedComparator: KeyComparator[K]) = {
+    def setTypedKeyComparator(typedComparator: KeyComparator[K]) = {
       this.typedComparator = typedComparator
       this
     }

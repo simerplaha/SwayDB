@@ -227,12 +227,12 @@ object PersistentSet {
       this
     }
 
-    def setByteComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
 
-    def setTypedComparator(typedComparator: KeyComparator[A]) = {
+    def setTypedKeyComparator(typedComparator: KeyComparator[A]) = {
       this.typedComparator = typedComparator
       this
     }

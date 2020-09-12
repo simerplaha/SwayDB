@@ -184,12 +184,12 @@ object EventuallyPersistentQueue {
       this
     }
 
-    def setByteComparator(byteComparator: KeyComparator[ByteSliceBuilder]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[ByteSliceBuilder]) = {
       this.byteComparator = byteComparator
       this
     }
 
-    def setTypedComparator(typedComparator: KeyComparator[A]) = {
+    def setTypedKeyComparator(typedComparator: KeyComparator[A]) = {
       this.typedComparator = typedComparator
       this
     }

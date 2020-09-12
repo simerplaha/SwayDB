@@ -333,7 +333,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
     Set<Integer, Void> set =
       MemorySet
         .functionsOff(intSerializer())
-        .setTypedComparator((left, right) -> left.compareTo(right) * -1)
+        .setTypedKeyComparator((left, right) -> left.compareTo(right) * -1)
         .get();
 
     assertDoesNotThrow(() -> set.add(1));

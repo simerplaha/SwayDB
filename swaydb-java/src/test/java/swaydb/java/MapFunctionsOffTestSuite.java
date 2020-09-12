@@ -55,7 +55,7 @@ class MemoryMapFunctionsOffTest extends MapFunctionsOffTest {
     return
       MemoryMap
         .functionsOff(keySerializer, valueSerializer)
-        .setTypedComparator(keyComparator)
+        .setTypedKeyComparator(keyComparator)
         .get();
   }
 }
@@ -83,7 +83,7 @@ class PersistentMapFunctionsOffTest extends MapFunctionsOffTest {
     return
       PersistentMap
         .functionsOff(testDir(), keySerializer, valueSerializer)
-        .setTypedComparator(keyComparator)
+        .setTypedKeyComparator(keyComparator)
         .get();
   }
 }
@@ -111,7 +111,7 @@ class EventuallyPersistentMapFunctionsOffTest extends MapFunctionsOffTest {
     return
       EventuallyPersistentMap
         .functionsOff(testDir(), keySerializer, valueSerializer)
-        .setTypedComparator(keyComparator)
+        .setTypedKeyComparator(keyComparator)
         .get();
   }
 }
@@ -138,7 +138,7 @@ class MemoryMultiMapFunctionsOffTest extends MapFunctionsOffTest {
     return
       MemoryMultiMap
         .functionsOff(keySerializer, keySerializer, valueSerializer)
-        .setTypedComparator(keyComparator)
+        .setTypedKeyComparator(keyComparator)
         .get();
   }
 }
@@ -166,7 +166,7 @@ class PersistentMultiMapFunctionsOffTest extends MapFunctionsOffTest {
     return
       PersistentMultiMap
         .functionsOff(testDir(), keySerializer, keySerializer, valueSerializer)
-        .setTypedComparator(keyComparator)
+        .setTypedKeyComparator(keyComparator)
         .get();
   }
 }
@@ -194,7 +194,7 @@ class EventuallyPersistentMultiMapFunctionsOffTest extends MapFunctionsOffTest {
     return
       EventuallyPersistentMultiMap
         .functionsOff(testDir(), keySerializer, keySerializer, valueSerializer)
-        .setTypedComparator(keyComparator)
+        .setTypedKeyComparator(keyComparator)
         .get();
   }
 }
