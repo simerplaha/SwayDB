@@ -173,9 +173,9 @@ object Slice {
                                   range2: (Sliced[T], Sliced[T]))(implicit ordering: Ordering[Sliced[T]]): Boolean =
     intersects((range1._1, range1._2, true), (range2._1, range2._2, true))
 
-  def within(key: Sliced[Byte],
-             minKey: Sliced[Byte],
-             maxKey: MaxKey[Sliced[Byte]])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Boolean = {
+  def within[T](key: Sliced[T],
+                minKey: Sliced[T],
+                maxKey: MaxKey[Sliced[T]])(implicit keyOrder: KeyOrder[Sliced[T]]): Boolean = {
     import keyOrder._
     key >= minKey && {
       maxKey match {
@@ -187,16 +187,16 @@ object Slice {
     }
   }
 
-  def minMax(left: Option[(Sliced[Byte], Sliced[Byte], Boolean)],
-             right: Option[(Sliced[Byte], Sliced[Byte], Boolean)])(implicit keyOrder: Ordering[Sliced[Byte]]): Option[(Sliced[Byte], Sliced[Byte], Boolean)] = {
+  def minMax[T](left: Option[(Sliced[T], Sliced[T], Boolean)],
+                right: Option[(Sliced[T], Sliced[T], Boolean)])(implicit keyOrder: Ordering[Sliced[T]]): Option[(Sliced[T], Sliced[T], Boolean)] = {
     for {
       lft <- left
       rht <- right
     } yield minMax(lft, rht)
   } orElse left.orElse(right)
 
-  def minMax(left: (Sliced[Byte], Sliced[Byte], Boolean),
-             right: (Sliced[Byte], Sliced[Byte], Boolean))(implicit keyOrder: Ordering[Sliced[Byte]]): (Sliced[Byte], Sliced[Byte], Boolean) = {
+  def minMax[T](left: (Sliced[T], Sliced[T], Boolean),
+                right: (Sliced[T], Sliced[T], Boolean))(implicit keyOrder: Ordering[Sliced[T]]): (Sliced[T], Sliced[T], Boolean) = {
     val min = keyOrder.min(left._1, right._1)
     val maxCompare = keyOrder.compare(left._2, right._2)
     if (maxCompare == 0)

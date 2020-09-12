@@ -466,6 +466,8 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
   "within" when {
     implicit def toSlice(int: Int): Sliced[Byte] = Slice.writeInt(int)
+    implicit def toSliceMaxKey(int: MaxKey.Fixed[Int]): MaxKey[Sliced[Byte]] = MaxKey.Fixed(Slice.writeInt(int.maxKey))
+    implicit def toSliceMaxKeyRange(int: MaxKey.Range[Int]): MaxKey[Sliced[Byte]] = MaxKey.Range(Slice.writeInt(int.fromKey), Slice.writeInt(int.maxKey))
 
     "max key is Fixed" in {
       //0
