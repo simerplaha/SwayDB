@@ -79,20 +79,6 @@ class StreamTest {
   }
 
   @Test
-  void collect() {
-
-    Stream<Integer> stream = Stream.create(source.iterator());
-
-    List<Optional<Integer>> streamIntegers =
-      stream
-        .collect(Optional::of)
-        .take(2)
-        .materialize();
-
-    assertEquals(Arrays.asList(Optional.of(1), Optional.of(2)), streamIntegers);
-  }
-
-  @Test
   void partition() {
 
     Stream<Integer> stream = Stream.create(source.iterator());

@@ -94,13 +94,6 @@ class Stream[A](val asScala: swaydb.Stream[A, Bag.Less]) {
   def filterNot(predicate: Predicate[A]): Stream[A] =
     Stream.fromScala(asScala.filterNot(predicate.test))
 
-  def collect[B](function: JavaFunction[A, B]): Stream[B] =
-    Stream.fromScala {
-      asScala.collect {
-        case item => function(item)
-      }
-    }
-
   def partition[B](predicate: Predicate[A]): Pair[util.List[A], util.List[A]] = {
     val (left, right) = asScala.partition(predicate.test)
     Pair(left.asJava, right.asJava)
