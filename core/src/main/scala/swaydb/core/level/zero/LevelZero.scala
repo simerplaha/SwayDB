@@ -492,7 +492,7 @@ private[swaydb] case class LevelZero(path: Path,
 
     clearedFunctions foreach {
       removedFunctions =>
-        functionStore.remove(Slice.writeString(removedFunctions))
+        functionStore.remove(Slice.writeString[Byte](removedFunctions))
     }
 
     val cleared =

@@ -30,10 +30,9 @@ import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
+import swaydb.data.util.ScalaByteOps
 
-import swaydb.data.util.Bytez
-
-private[swaydb] object Bytes extends Bytez {
+private[swaydb] object Bytes extends ScalaByteOps {
 
   val zero = 0.toByte
   val one = 1.toByte
@@ -197,7 +196,7 @@ private[swaydb] object Bytes extends Bytez {
       val compressedSlice = Slice.create[Byte](left.size + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(left.size) + tail.size)
       compressedSlice addAll left
       compressedSlice addUnsignedInt commonBytes
-      compressedSlice addAll Bytez.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
+      compressedSlice addAll ScalaByteOps.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
     } else {
       val size =
@@ -213,7 +212,7 @@ private[swaydb] object Bytes extends Bytez {
       compressedSlice addUnsignedInt commonBytes
       compressedSlice addUnsignedInt rightWithoutCommonBytes.size
       compressedSlice addAll rightWithoutCommonBytes
-      compressedSlice addAll Bytez.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
+      compressedSlice addAll ScalaByteOps.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
     }
   }
@@ -221,7 +220,7 @@ private[swaydb] object Bytes extends Bytez {
   def decompressJoin(bytes: Sliced[Byte]): (Sliced[Byte], Sliced[Byte]) = {
 
     val reader = Reader(bytes)
-    val (leftBytesSize, lastBytesRead) = Bytez.readLastUnsignedInt(bytes)
+    val (leftBytesSize, lastBytesRead) = ScalaByteOps.readLastUnsignedInt(bytes)
     val left = reader.read(leftBytesSize)
     val commonBytes = reader.readUnsignedInt()
     val hasMore = reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.

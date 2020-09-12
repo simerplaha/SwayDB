@@ -31,7 +31,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 import swaydb.Aggregator
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice.Sliced
-import swaydb.data.util.{ByteSizeOf, Bytez, SomeOrNoneCovariant}
+import swaydb.data.util.{ByteOps, ByteSizeOf, SomeOrNoneCovariant}
 import swaydb.data.{MaxKey, slice}
 
 import scala.annotation.tailrec
@@ -151,23 +151,23 @@ object Slice {
   @inline final def apply[T: ClassTag](data: T*): Sliced[T] =
     Slice(data.toArray)
 
-  @inline final def writeInt(integer: Int): Sliced[Byte] =
-    Slice.create[Byte](ByteSizeOf.int).addInt(integer)
+  @inline final def writeInt[B: ClassTag](integer: Int)(implicit byteOps: ByteOps[B]): Sliced[B] =
+    Slice.create[B](ByteSizeOf.int).addInt(integer)
 
-  @inline final def writeBoolean(bool: Boolean): Sliced[Byte] =
-    Slice.create[Byte](1).addBoolean(bool)
+  @inline final def writeBoolean[B: ClassTag](bool: Boolean)(implicit byteOps: ByteOps[B]): Sliced[B] =
+    Slice.create[B](1).addBoolean(bool)
 
-  @inline final def writeUnsignedInt(integer: Int): Sliced[Byte] =
-    Slice.create[Byte](ByteSizeOf.varInt).addUnsignedInt(integer).close()
+  @inline final def writeUnsignedInt[B: ClassTag](integer: Int)(implicit byteOps: ByteOps[B]): Sliced[B] =
+    Slice.create[B](ByteSizeOf.varInt).addUnsignedInt(integer).close()
 
-  @inline final def writeLong(num: Long): Sliced[Byte] =
-    Slice.create[Byte](ByteSizeOf.long).addLong(num)
+  @inline final def writeLong[B: ClassTag](num: Long)(implicit byteOps: ByteOps[B]): Sliced[B] =
+    Slice.create[B](ByteSizeOf.long).addLong(num)
 
-  @inline final def writeUnsignedLong(num: Long): Sliced[Byte] =
-    Slice.create[Byte](ByteSizeOf.varLong).addUnsignedLong(num).close()
+  @inline final def writeUnsignedLong[B: ClassTag](num: Long)(implicit byteOps: ByteOps[B]): Sliced[B] =
+    Slice.create[B](ByteSizeOf.varLong).addUnsignedLong(num).close()
 
-  @inline final def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Sliced[Byte] =
-    Slice(string.getBytes(charsets))
+  @inline final def writeString[B](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Sliced[B] =
+    byteOps.writeString(string, charsets)
 
   @inline final def intersects[T](range1: (Sliced[T], Sliced[T]),
                                   range2: (Sliced[T], Sliced[T]))(implicit ordering: Ordering[Sliced[T]]): Boolean =
@@ -271,103 +271,108 @@ object Slice {
   /**
    * http://www.swaydb.io/slice/byte-slice
    */
-  implicit class ByteSliceImplicits(slice: Sliced[Byte]) extends ByteSlice {
+  implicit class ByteSliceImplicits[B](slice: Sliced[B])(implicit byteOps: ByteOps[B]) extends ByteSlice[B] {
 
-    @inline final def addByte(value: Byte): Sliced[Byte] = {
+    @inline final def addByte(value: B): Sliced[B] = {
       slice insert value
       slice
     }
 
-    @inline final def addBytes(anotherSlice: Sliced[Byte]): Sliced[Byte] = {
+    @inline final def addBytes(anotherSlice: Sliced[B]): Sliced[B] = {
       slice.addAll(anotherSlice)
       slice
     }
 
-    @inline final def addBoolean(bool: Boolean): Sliced[Byte] = {
-      slice insert (if (bool) 1.toByte else 0.toByte)
+    @inline final def addBoolean(bool: Boolean): Sliced[B] = {
+      byteOps.writeBoolean(bool, slice)
       slice
     }
 
     @inline final def readBoolean(): Boolean =
       slice.get(0) == 1
 
-    @inline final def addInt(integer: Int): Sliced[Byte] = {
-      Bytez.writeInt(integer, slice)
+    @inline final def addInt(integer: Int): Sliced[B] = {
+      byteOps.writeInt(integer, slice)
       slice
     }
 
     @inline final def readInt(): Int =
-      Bytez.readInt(slice)
+      byteOps.readInt(slice)
 
-    @inline final def dropUnsignedInt(): Sliced[Byte] = {
+    @inline final def dropUnsignedInt(): Sliced[B] = {
       val (_, byteSize) = readUnsignedIntWithByteSize()
       slice drop byteSize
     }
 
-    @inline final def addSignedInt(integer: Int): Sliced[Byte] = {
-      Bytez.writeSignedInt(integer, slice)
+    @inline final def addSignedInt(integer: Int): Sliced[B] = {
+      byteOps.writeSignedInt(integer, slice)
       slice
     }
 
     @inline final def readSignedInt(): Int =
-      Bytez.readSignedInt(slice)
+      byteOps.readSignedInt(slice)
 
-    @inline final def addUnsignedInt(integer: Int): Sliced[Byte] = {
-      Bytez.writeUnsignedInt(integer, slice)
+    @inline final def addUnsignedInt(integer: Int): Sliced[B] = {
+      byteOps.writeUnsignedInt(integer, slice)
       slice
     }
 
-    @inline final def addNonZeroUnsignedInt(integer: Int): Sliced[Byte] = {
-      Bytez.writeUnsignedIntNonZero(integer, slice)
+    @inline final def addNonZeroUnsignedInt(integer: Int): Sliced[B] = {
+      byteOps.writeUnsignedIntNonZero(integer, slice)
       slice
     }
 
     @inline final def readUnsignedInt(): Int =
-      Bytez.readUnsignedInt(slice)
+      byteOps.readUnsignedInt(slice)
 
     @inline final def readUnsignedIntWithByteSize(): (Int, Int) =
-      Bytez.readUnsignedIntWithByteSize(slice)
+      byteOps.readUnsignedIntWithByteSize(slice)
 
     @inline final def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
-      Bytez.readUnsignedIntNonZeroWithByteSize(slice)
+      byteOps.readUnsignedIntNonZeroWithByteSize(slice)
 
-    @inline final def addLong(num: Long): Sliced[Byte] = {
-      Bytez.writeLong(num, slice)
+    @inline final def addLong(num: Long): Sliced[B] = {
+      byteOps.writeLong(num, slice)
       slice
     }
 
     @inline final def readLong(): Long =
-      Bytez.readLong(slice)
+      byteOps.readLong(slice)
 
-    @inline final def addUnsignedLong(num: Long): Sliced[Byte] = {
-      Bytez.writeUnsignedLong(num, slice)
+    @inline final def addUnsignedLong(num: Long): Sliced[B] = {
+      byteOps.writeUnsignedLong(num, slice)
       slice
     }
 
     @inline final def readUnsignedLong(): Long =
-      Bytez.readUnsignedLong(slice)
+      byteOps.readUnsignedLong(slice)
 
     @inline final def readUnsignedLongWithByteSize(): (Long, Int) =
-      Bytez.readUnsignedLongWithByteSize(slice)
+      byteOps.readUnsignedLongWithByteSize(slice)
 
     @inline final def readUnsignedLongByteSize(): Int =
-      Bytez.readUnsignedLongByteSize(slice)
+      byteOps.readUnsignedLongByteSize(slice)
 
-    @inline final def addSignedLong(num: Long): Sliced[Byte] = {
-      Bytez.writeSignedLong(num, slice)
+    @inline final def addSignedLong(num: Long): Sliced[B] = {
+      byteOps.writeSignedLong(num, slice)
       slice
     }
 
     @inline final def readSignedLong(): Long =
-      Bytez.readSignedLong(slice)
+      byteOps.readSignedLong(slice)
 
-    @inline final def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Sliced[Byte] = {
-      string.getBytes(charsets) foreach slice.add
+    @inline final def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Sliced[B] = {
+      byteOps.writeString(string, slice, charsets)
+      slice
+    }
+
+    @inline final def addStringUTF8(string: String): Sliced[B] = {
+      byteOps.writeString(string, slice, StandardCharsets.UTF_8)
       slice
     }
 
     @inline final def readString(charset: Charset = StandardCharsets.UTF_8): String =
-      Bytez.readString(slice, charset)
+      byteOps.readString(slice, charset)
 
     @inline final def toByteBufferWrap: ByteBuffer =
       slice.toByteBufferWrap
@@ -378,16 +383,18 @@ object Slice {
     @inline final def toByteArrayOutputStream: ByteArrayInputStream =
       slice.toByteArrayInputStream
 
-    @inline final def createReader(): SliceReader =
+    @inline final def createReader(): SliceReader[B] =
       SliceReader(slice)
-
-    @inline final def cast: Sliced[java.lang.Byte] =
-      slice.asInstanceOf[Sliced[java.lang.Byte]]
   }
 
   implicit class JavaByteSliced(sliced: Sliced[java.lang.Byte]) {
     def cast: Sliced[Byte] =
       sliced.asInstanceOf[Sliced[Byte]]
+  }
+
+  implicit class ScalaByteSliced(sliced: Sliced[Byte]) {
+    def cast: Sliced[java.lang.Byte] =
+      sliced.asInstanceOf[Sliced[java.lang.Byte]]
   }
 
   implicit class SliceImplicit[T](slice: Sliced[T]) {

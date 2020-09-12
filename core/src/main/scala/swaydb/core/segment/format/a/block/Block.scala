@@ -71,7 +71,7 @@ private[core] object Block extends LazyLogging {
                         val decompressedLength: Int)
 
   class Header[O](val compressionInfo: Option[CompressionInfo],
-                  val headerReader: ReaderBase,
+                  val headerReader: ReaderBase[Byte],
                   val headerSize: Int,
                   val offset: O)
 
@@ -215,7 +215,7 @@ private[core] object Block extends LazyLogging {
 
   private def readCompressionInfo(formatID: Int,
                                   headerSize: Int,
-                                  reader: ReaderBase): Option[CompressionInfo] =
+                                  reader: ReaderBase[Byte]): Option[CompressionInfo] =
     if (formatID == compressedBlockID) {
       val decompressor = DecompressorInternal(reader.readUnsignedInt())
       val decompressedLength = reader.readUnsignedInt()

@@ -72,7 +72,7 @@ private[core] object PersistentCounter extends LazyLogging {
         map.head() match {
           case userId: Sliced[Byte] =>
             val startId = userId.readLong()
-            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong(startId + mod))) flatMap {
+            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](startId + mod))) flatMap {
               wrote =>
                 if (wrote)
                   IO {
@@ -87,7 +87,7 @@ private[core] object PersistentCounter extends LazyLogging {
             }
 
           case Slice.Null =>
-            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong(mod))) flatMap {
+            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](mod))) flatMap {
               wrote =>
                 if (wrote)
                   IO {
@@ -128,7 +128,7 @@ private[core] class PersistentCounter(mod: Long,
        * it would be due to file system permission issue.
        */
       if (count % mod == 0)
-        if (!map.writeNoSync(MapEntry.Put(Counter.defaultKey, Slice.writeLong(count + mod)))) {
+        if (!map.writeNoSync(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](count + mod)))) {
           val message = s"Failed to write counter entry: $count"
           logger.error(message)
           throw IO.throwable(message) //:O see note above

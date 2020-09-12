@@ -30,13 +30,14 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice._
-import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.{ScalaByteOps, ByteSizeOf}
 
 import scala.util.Random
 
 class SliceSpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
+  implicit val scalaByte = ScalaByteOps
 
   def randomByte() = (Random.nextInt(256) - 128).toByte
 
@@ -376,7 +377,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
     "write and read String" in {
       val slice = Slice.create[Byte](10000)
-      slice addString "This is a string"
+      slice addStringUTF8 "This is a string"
       slice.close().createReader().readRemainingAsString() shouldBe "This is a string"
     }
 
@@ -389,7 +390,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
       slice addUnsignedLong 4L
       slice addSignedInt -3
       slice addSignedLong -4L
-      slice addString "This is a string"
+      slice addStringUTF8 "This is a string"
 
       val reader = slice.close().createReader()
       reader.readInt() shouldBe 1
@@ -403,7 +404,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
     "write and read String of specified size" in {
       val slice = Slice.create[Byte](10000)
-      slice addString "This is a string"
+      slice addStringUTF8 "This is a string"
 
       val reader = slice.close().createReader()
       reader.readString(8) shouldBe "This is "

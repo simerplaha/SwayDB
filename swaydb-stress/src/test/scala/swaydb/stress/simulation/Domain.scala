@@ -26,10 +26,12 @@ package swaydb.stress.simulation
 
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.{Sliced, _}
+import swaydb.data.util.ScalaByteOps
 import swaydb.serializers.Serializer
 
 sealed trait Domain
 object Domain {
+
   case class User(name: String) extends Domain
   case class Product(name: String) extends Domain
 
@@ -38,16 +40,16 @@ object Domain {
       data match {
         case User(name) =>
           Slice
-            .create(1000)
+            .create[Byte](1000)
             .addInt(1)
-            .addString(name)
+            .addStringUTF8(name)
             .close()
 
         case Product(name) =>
           Slice
-            .create(1000)
+            .create[Byte](1000)
             .addInt(2)
-            .addString(name)
+            .addStringUTF8(name)
             .close()
       }
 

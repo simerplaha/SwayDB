@@ -32,9 +32,9 @@ import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceOption}
 /**
  * Defers [[ReaderBase]] related operations to [[BlockReader]].
  */
-private[block] trait BlockReaderBase extends ReaderBase with LazyLogging {
+private[block] trait BlockReaderBase extends ReaderBase[Byte] with LazyLogging {
 
-  private[reader] val reader: Reader
+  private[reader] val reader: Reader[Byte]
 
   override val isFile: Boolean = reader.isFile
 

@@ -36,19 +36,19 @@ import scala.annotation.implicitNotFound
 sealed trait ValueLengthReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: ReaderBase,
+  def read(indexReader: ReaderBase[Byte],
            previous: PersistentOption): Int
 }
 
 object ValueLengthReader {
 
-  private def readLength(indexReader: ReaderBase,
+  private def readLength(indexReader: ReaderBase[Byte],
                          previous: PersistentOption,
                          commonBytes: Int): Int =
     previous match {
       case previous: Persistent =>
         Bytes.decompress(
-          previous = Slice.writeInt(previous.valueLength),
+          previous = Slice.writeInt[Byte](previous.valueLength),
           next = indexReader.read(ByteSizeOf.int - commonBytes),
           commonBytes = commonBytes
         ).readInt()
@@ -60,7 +60,7 @@ object ValueLengthReader {
   implicit object ValueLengthOneCompressed extends ValueLengthReader[BaseEntryId.ValueLength.OneCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: ReaderBase,
+    override def read(indexReader: ReaderBase[Byte],
                       previous: PersistentOption): Int =
       readLength(indexReader, previous, 1)
   }
@@ -68,7 +68,7 @@ object ValueLengthReader {
   implicit object ValueLengthTwoCompressed extends ValueLengthReader[BaseEntryId.ValueLength.TwoCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: ReaderBase,
+    override def read(indexReader: ReaderBase[Byte],
                       previous: PersistentOption): Int =
       readLength(indexReader, previous, 2)
   }
@@ -76,7 +76,7 @@ object ValueLengthReader {
   implicit object ValueLengthThreeCompressed extends ValueLengthReader[BaseEntryId.ValueLength.ThreeCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: ReaderBase,
+    override def read(indexReader: ReaderBase[Byte],
                       previous: PersistentOption): Int =
       readLength(indexReader, previous, 3)
   }
@@ -84,7 +84,7 @@ object ValueLengthReader {
   implicit object ValueLengthFullyCompressed extends ValueLengthReader[BaseEntryId.ValueLength.FullyCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: ReaderBase,
+    override def read(indexReader: ReaderBase[Byte],
                       previous: PersistentOption): Int =
       previous match {
         case previous: Persistent =>
@@ -98,7 +98,7 @@ object ValueLengthReader {
   implicit object ValueLengthUncompressed extends ValueLengthReader[BaseEntryId.ValueLength.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: ReaderBase,
+    override def read(indexReader: ReaderBase[Byte],
                       previous: PersistentOption): Int =
       indexReader.readUnsignedInt()
   }
@@ -106,7 +106,7 @@ object ValueLengthReader {
   implicit object NoValue extends ValueLengthReader[BaseEntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: ReaderBase,
+    override def read(indexReader: ReaderBase[Byte],
                       previous: PersistentOption): Int =
       0
   }

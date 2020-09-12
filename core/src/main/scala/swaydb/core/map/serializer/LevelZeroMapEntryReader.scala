@@ -37,7 +37,7 @@ private[core] object LevelZeroMapEntryReader {
 
   implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Remove]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Remove] = {
+    override def read(reader: ReaderBase[Byte]): MapEntry.Put[Sliced[Byte], Memory.Remove] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
@@ -50,7 +50,7 @@ private[core] object LevelZeroMapEntryReader {
 
   implicit object Level0PutReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Put]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Put] = {
+    override def read(reader: ReaderBase[Byte]): MapEntry.Put[Sliced[Byte], Memory.Put] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
@@ -66,7 +66,7 @@ private[core] object LevelZeroMapEntryReader {
 
   implicit object Level0UpdateReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Update]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Update] = {
+    override def read(reader: ReaderBase[Byte]): MapEntry.Put[Sliced[Byte], Memory.Update] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
@@ -82,7 +82,7 @@ private[core] object LevelZeroMapEntryReader {
 
   implicit object Level0FunctionReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Function]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Function] = {
+    override def read(reader: ReaderBase[Byte]): MapEntry.Put[Sliced[Byte], Memory.Function] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
@@ -96,7 +96,7 @@ private[core] object LevelZeroMapEntryReader {
 
   implicit object Level0RangeReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Range]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Range] = {
+    override def read(reader: ReaderBase[Byte]): MapEntry.Put[Sliced[Byte], Memory.Range] = {
       val fromKeyLength = reader.readUnsignedInt()
       val fromKey = reader.read(fromKeyLength).unslice()
       val toKeyLength = reader.readUnsignedInt()
@@ -111,7 +111,7 @@ private[core] object LevelZeroMapEntryReader {
 
   implicit object Level0PendingApplyReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.PendingApply]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.PendingApply] = {
+    override def read(reader: ReaderBase[Byte]): MapEntry.Put[Sliced[Byte], Memory.PendingApply] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val valueLength = reader.readUnsignedInt()
@@ -130,7 +130,7 @@ private[core] object LevelZeroMapEntryReader {
       else
         previousEntryOrNull ++ nextEntry
 
-    override def read(reader: ReaderBase): MapEntry[Sliced[Byte], Memory] =
+    override def read(reader: ReaderBase[Byte]): MapEntry[Sliced[Byte], Memory] =
       reader.foldLeft(null: MapEntry[Sliced[Byte], Memory]) {
         case (previousEntry, reader) => {
           val entryId = reader.get()

@@ -31,29 +31,29 @@ import java.nio.charset.{Charset, StandardCharsets}
 import swaydb.Pair
 import swaydb.data.slice.Slice.Sliced
 
-trait ByteSlice {
+trait ByteSlice[B] {
 
-  @inline def addByte(value: Byte): Sliced[Byte]
+  @inline def addByte(value: B): Sliced[B]
 
-  @inline def addBytes(anotherSlice: Sliced[Byte]): Sliced[Byte]
+  @inline def addBytes(anotherSlice: Sliced[B]): Sliced[B]
 
-  @inline def addBoolean(bool: Boolean): Sliced[Byte]
+  @inline def addBoolean(bool: Boolean): Sliced[B]
 
   @inline def readBoolean(): Boolean
 
-  @inline def addInt(integer: Int): Sliced[Byte]
+  @inline def addInt(integer: Int): Sliced[B]
 
   @inline def readInt(): Int
 
-  @inline def dropUnsignedInt(): Sliced[Byte]
+  @inline def dropUnsignedInt(): Sliced[B]
 
-  @inline def addSignedInt(integer: Int): Sliced[Byte]
+  @inline def addSignedInt(integer: Int): Sliced[B]
 
   @inline def readSignedInt(): Int
 
-  @inline def addUnsignedInt(integer: Int): Sliced[Byte]
+  @inline def addUnsignedInt(integer: Int): Sliced[B]
 
-  @inline def addNonZeroUnsignedInt(integer: Int): Sliced[Byte]
+  @inline def addNonZeroUnsignedInt(integer: Int): Sliced[B]
 
   @inline def readUnsignedInt(): Int
 
@@ -67,11 +67,11 @@ trait ByteSlice {
   @inline def readNonZeroUnsignedIntWithByteSizePair(): Pair[Int, Int] =
     Pair(readNonZeroUnsignedIntWithByteSize())
 
-  @inline def addLong(num: Long): Sliced[Byte]
+  @inline def addLong(num: Long): Sliced[B]
 
   @inline def readLong(): Long
 
-  @inline def addUnsignedLong(num: Long): Sliced[Byte]
+  @inline def addUnsignedLong(num: Long): Sliced[B]
 
   @inline def readUnsignedLong(): Long
 
@@ -82,14 +82,13 @@ trait ByteSlice {
 
   @inline def readUnsignedLongByteSize(): Int
 
-  @inline def addSignedLong(num: Long): Sliced[Byte]
+  @inline def addSignedLong(num: Long): Sliced[B]
 
   @inline def readSignedLong(): Long
 
-  @inline def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Sliced[Byte]
+  @inline def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Sliced[B]
 
-  @inline def addStringUTF8(string: String): Sliced[Byte] =
-    addString(string, StandardCharsets.UTF_8)
+  @inline def addStringUTF8(string: String): Sliced[B]
 
   @inline def readString(charset: Charset = StandardCharsets.UTF_8): String
 
@@ -102,5 +101,5 @@ trait ByteSlice {
 
   @inline def toByteArrayOutputStream: ByteArrayInputStream
 
-  @inline def createReader(): Reader
+  @inline def createReader(): Reader[B]
 }

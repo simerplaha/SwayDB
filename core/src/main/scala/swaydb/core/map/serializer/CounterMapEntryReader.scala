@@ -31,7 +31,7 @@ import swaydb.data.slice.Slice.Sliced
 private[swaydb] object CounterMapEntryReader {
 
   implicit object CounterPutMapEntryReader extends MapEntryReader[MapEntry[Sliced[Byte], Sliced[Byte]]] {
-    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Sliced[Byte]] = {
+    override def read(reader: ReaderBase[Byte]): MapEntry.Put[Sliced[Byte], Sliced[Byte]] = {
       val _ = reader.get()
       val keySize = reader.readUnsignedInt()
 

@@ -48,7 +48,7 @@ private[core] sealed trait SegmentSerialiser {
 
   def write(value: Segment, bytes: Sliced[Byte]): Unit
 
-  def read(reader: ReaderBase,
+  def read(reader: ReaderBase[Byte],
            mmapSegment: MMAP.Segment,
            checkExists: Boolean)(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                  timeOrder: TimeOrder[Sliced[Byte]],
@@ -113,7 +113,7 @@ private[core] object SegmentSerialiser {
       }
     }
 
-    def read(reader: ReaderBase,
+    def read(reader: ReaderBase[Byte],
              mmapSegment: MMAP.Segment,
              checkExists: Boolean)(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                    timeOrder: TimeOrder[Sliced[Byte]],

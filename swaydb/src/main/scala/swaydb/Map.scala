@@ -163,10 +163,10 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     bag.suspend(core.clear(core.readStates.get()))
 
   def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
-    bag.suspend(core.applyFunction(key, Slice.writeString(function.id)))
+    bag.suspend(core.applyFunction(key, Slice.writeString[Byte](function.id)))
 
   def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
-    bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
+    bag.suspend(core.applyFunction(from, to, Slice.writeString[Byte](function.id)))
 
   def commit(prepare: Prepare[K, V, F]*): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
@@ -231,7 +231,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     bag.suspend(core mightContainKey key)
 
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean] =
-    bag.suspend(core mightContainFunction Slice.writeString(function.id))
+    bag.suspend(core mightContainFunction Slice.writeString[Byte](function.id))
 
   def keys: Stream[K, BAG] =
     stream.map(_._1)
@@ -389,7 +389,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
   override def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean =
-    core.isFunctionApplied(Slice.writeString(function.asInstanceOf[PureFunction.Map[K, V]].id))
+    core.isFunctionApplied(Slice.writeString[Byte](function.asInstanceOf[PureFunction.Map[K, V]].id))
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

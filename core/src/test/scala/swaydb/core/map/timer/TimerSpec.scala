@@ -36,7 +36,7 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSa
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice._
-import swaydb.data.util.{Bytez, OperatingSystem}
+import swaydb.data.util.{ScalaByteOps, OperatingSystem}
 
 import scala.concurrent.ExecutionContext
 import swaydb.data.util.StorageUnits._
@@ -96,7 +96,7 @@ sealed trait TimerSpec extends TestBase {
             range foreach {
               i =>
                 val nextTime = timer.next.time
-                val nextTimeLong = Bytez.readUnsignedLong(nextTime)
+                val nextTimeLong = ScalaByteOps.readUnsignedLong(nextTime)
                 nextTimeLong shouldBe i
             }
 

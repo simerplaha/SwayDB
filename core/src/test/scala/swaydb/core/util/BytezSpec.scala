@@ -8,7 +8,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice._
-import swaydb.data.util.{ByteSizeOf, Bytez}
+import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
 
 import scala.util.Random
 import swaydb.data.slice.Slice
@@ -125,7 +125,7 @@ class BytezSpec extends AnyWordSpec with Matchers {
         range =>
           range foreach {
             int =>
-              val unsignedBytes = Slice.writeUnsignedInt(int)
+              val unsignedBytes = Slice.writeUnsignedInt[Byte](int)
               unsignedBytes.readUnsignedInt() shouldBe int
               val actualByteSize = Bytes.sizeOfUnsignedInt(int)
               actualByteSize shouldBe unsignedBytes.size
@@ -144,7 +144,7 @@ class BytezSpec extends AnyWordSpec with Matchers {
         range =>
           range foreach {
             long =>
-              val unsignedBytes = Slice.writeUnsignedLong(long)
+              val unsignedBytes = Slice.writeUnsignedLong[Byte](long)
               unsignedBytes.readUnsignedLong() shouldBe long
               val actualByteSize = Bytes.sizeOfUnsignedLong(long)
               actualByteSize shouldBe unsignedBytes.size
@@ -251,7 +251,7 @@ class BytezSpec extends AnyWordSpec with Matchers {
               val slice = Slice.create[Byte](ByteSizeOf.varLong)
               Bytes.writeUnsignedLong(long, slice)
 
-              Bytez.readUnsignedLongByteSize(slice) shouldBe slice.size
+              ScalaByteOps.readUnsignedLongByteSize(slice) shouldBe slice.size
           }
       }
     }

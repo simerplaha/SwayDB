@@ -26,14 +26,14 @@ package swaydb.data.slice
 
 import java.nio.file.Paths
 
-import swaydb.data.util.Bytez
 import swaydb.data.slice.Slice._
+import swaydb.data.util.ByteOps
 
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-private[swaydb] case class SliceReader(slice: Sliced[Byte],
-                                       private var position: Int = 0) extends Reader {
+private[swaydb] case class SliceReader[B](slice: Sliced[B],
+                                          private var position: Int = 0)(implicit val byteOps: ByteOps[B]) extends Reader[B] {
 
   def path = Paths.get(this.getClass.getSimpleName)
 
@@ -43,9 +43,9 @@ private[swaydb] case class SliceReader(slice: Sliced[Byte],
   def hasAtLeast(size: Long): Boolean =
     (slice.size - position) >= size
 
-  def read(size: Int): Sliced[Byte] = {
+  def read(size: Int): Sliced[B] = {
     if (size <= 0)
-      Slice.emptyBytes
+      Slice.empty
     else {
       val bytes = slice.take(position, size)
       position += size
@@ -53,27 +53,27 @@ private[swaydb] case class SliceReader(slice: Sliced[Byte],
     }
   }
 
-  def moveTo(newPosition: Long): SliceReader = {
+  def moveTo(newPosition: Long): SliceReader[B] = {
     position = newPosition.toInt max 0
     this
   }
 
-  def moveTo(newPosition: Int): SliceReader = {
+  def moveTo(newPosition: Int): SliceReader[B] = {
     position = newPosition max 0
     this
   }
 
-  def get(): Byte = {
+  def get(): B = {
     val byte = slice get position
     position += 1
     byte
   }
 
   override def readUnsignedInt(): Int =
-    Bytez.readUnsignedInt(this)
+    byteOps.readUnsignedInt(this)
 
   override def readUnsignedIntWithByteSize(): (Int, Int) =
-    Bytez.readUnsignedIntWithByteSize(this)
+    byteOps.readUnsignedIntWithByteSize(this)
 
   def hasMore =
     position < slice.size
@@ -81,10 +81,10 @@ private[swaydb] case class SliceReader(slice: Sliced[Byte],
   override def getPosition: Int =
     position
 
-  override def copy(): SliceReader =
+  override def copy(): SliceReader[B] =
     SliceReader(slice)
 
-  override def readRemaining(): Sliced[Byte] =
+  override def readRemaining(): Sliced[B] =
     read(remaining)
 
   override def isFile: Boolean = false

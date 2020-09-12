@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice.Sliced
 private[reader] object BlockReader {
 
   def apply(offset: BlockOffset,
-            reader: Reader): BlockReader.State =
+            reader: Reader[Byte]): BlockReader.State =
     new State(
       offset = offset,
       position = 0,
@@ -40,7 +40,7 @@ private[reader] object BlockReader {
     )
 
   class State(val offset: BlockOffset,
-              val reader: Reader,
+              val reader: Reader[Byte],
               var position: Int) {
 
     def remaining: Int =

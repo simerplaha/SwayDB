@@ -35,7 +35,7 @@ import scala.annotation.implicitNotFound
 sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: ReaderBase,
+  def read(indexReader: ReaderBase[Byte],
            previous: PersistentOption): Time
 }
 
@@ -48,7 +48,7 @@ object TimeReader {
   implicit object NoTimeReader extends TimeReader[BaseEntryId.Time.NoTime] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: ReaderBase,
+    override def read(indexReader: ReaderBase[Byte],
                       previous: PersistentOption): Time =
       Time.empty
   }
@@ -56,7 +56,7 @@ object TimeReader {
   implicit object UnCompressedTimeReader extends TimeReader[BaseEntryId.Time.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: ReaderBase,
+    override def read(indexReader: ReaderBase[Byte],
                       previous: PersistentOption): Time = {
       val timeSize = indexReader.readUnsignedInt()
       val time = indexReader.read(timeSize)
@@ -68,7 +68,7 @@ object TimeReader {
 
     override def isPrefixCompressed: Boolean = true
 
-    def readTime(indexReader: ReaderBase,
+    def readTime(indexReader: ReaderBase[Byte],
                  previousTime: Time): Time = {
       val commonBytes = indexReader.readUnsignedInt()
       val uncompressedBytes = indexReader.readUnsignedInt()
@@ -77,7 +77,7 @@ object TimeReader {
       Time(timeBytes)
     }
 
-    override def read(indexReader: ReaderBase,
+    override def read(indexReader: ReaderBase[Byte],
                       previous: PersistentOption): Time =
       previous match {
         case previous: Persistent =>

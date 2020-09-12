@@ -52,8 +52,8 @@ class TimesSpec extends AnyWordSpec with Matchers {
     "convert deadline long bytes" in {
       val duration = 10.seconds
       val deadline = Deadline(duration)
-      deadline.toUnsignedBytes shouldBe Slice.writeUnsignedLong(duration.toNanos)
-      deadline.toBytes shouldBe Slice.writeLong(duration.toNanos)
+      deadline.toUnsignedBytes shouldBe Slice.writeUnsignedLong[Byte](duration.toNanos)
+      deadline.toBytes shouldBe Slice.writeLong[Byte](duration.toNanos)
     }
   }
 

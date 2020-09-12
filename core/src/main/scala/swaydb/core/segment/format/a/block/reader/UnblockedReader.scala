@@ -28,6 +28,7 @@ import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.data.slice.Slice.Sliced
 import swaydb.data.slice.{Reader, SliceReader}
+import swaydb.data.util.ByteOps
 
 /**
  * A typed object that indicates that block is already decompressed and now is reading data bytes.
@@ -79,7 +80,7 @@ private[core] object UnblockedReader {
 }
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
-                                                                             private[reader] val reader: Reader) extends BlockReaderBase with UnblockedReaderOption[O, B] {
+                                                                             private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase with UnblockedReaderOption[O, B] {
 
   val offset = block.offset
 

@@ -28,22 +28,24 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
 
 import swaydb.{IO, Pair}
-import swaydb.data.util.Bytez
+import swaydb.data.util.{ByteOps, ScalaByteOps}
 import swaydb.data.util.Maybe.Maybe
 import swaydb.data.slice.Slice._
 
 import scala.annotation.tailrec
 
-private[swaydb] trait ReaderBase { self =>
+private[swaydb] trait ReaderBase[B] { self =>
+
+  def byteOps: ByteOps[B]
 
   def path: Path
 
-  def get(): Byte
+  def get(): B
 
-  def read(size: Long): Sliced[Byte] =
+  def read(size: Long): Sliced[B] =
     read(size.toInt)
 
-  def read(size: Int): Sliced[Byte]
+  def read(size: Int): Sliced[B]
 
   def size: Long
 
@@ -53,22 +55,22 @@ private[swaydb] trait ReaderBase { self =>
 
   def getPosition: Int
 
-  def moveTo(position: Long): ReaderBase
+  def moveTo(position: Long): ReaderBase[B]
 
-  def moveTo(position: Int): ReaderBase
+  def moveTo(position: Int): ReaderBase[B]
 
-  def readRemaining(): Sliced[Byte]
+  def readRemaining(): Sliced[B]
 
   def isFile: Boolean
 
-  def skip(skip: Long): ReaderBase =
+  def skip(skip: Long): ReaderBase[B] =
     moveTo(getPosition + skip)
 
   def readBoolean(): Boolean =
-    Bytez.readBoolean(self)
+    byteOps.readBoolean(self)
 
   def readInt(): Int =
-    Bytez.readInt(self)
+    byteOps.readInt(self)
 
   def readInt(unsigned: Boolean): Int =
     if (unsigned)
@@ -77,57 +79,57 @@ private[swaydb] trait ReaderBase { self =>
       readInt()
 
   def readUnsignedInt(): Int =
-    Bytez.readUnsignedInt(self)
+    byteOps.readUnsignedInt(self)
 
   def readUnsignedIntWithByteSize(): (Int, Int) =
-    Bytez.readUnsignedIntWithByteSize(self)
+    byteOps.readUnsignedIntWithByteSize(self)
 
   def readUnsignedIntWithByteSizePair(): Pair[Int, Int] =
     Pair(readUnsignedIntWithByteSize())
 
   def readNonZeroUnsignedInt(): Int =
-    Bytez.readUnsignedIntNonZero(self)
+    byteOps.readUnsignedIntNonZero(self)
 
   def readNonZeroStrictUnsignedInt(): Maybe[Int] =
-    Bytez.readUnsignedIntNonZeroStrict(self)
+    byteOps.readUnsignedIntNonZeroStrict(self)
 
   def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
-    Bytez.readUnsignedIntNonZeroWithByteSize(self)
+    byteOps.readUnsignedIntNonZeroWithByteSize(self)
 
   def readNonZeroUnsignedIntWithByteSizePair(): Pair[Int, Int] =
     Pair(readNonZeroUnsignedIntWithByteSize())
 
-  def readUnsignedIntSized(): Sliced[Byte] =
-    read(Bytez.readUnsignedInt(self))
+  def readUnsignedIntSized(): Sliced[B] =
+    read(byteOps.readUnsignedInt(self))
 
   def readSignedInt(): Int =
-    Bytez.readSignedInt(self)
+    byteOps.readSignedInt(self)
 
   def readLong(): Long =
-    Bytez.readLong(self)
+    byteOps.readLong(self)
 
   def readUnsignedLong(): Long =
-    Bytez.readUnsignedLong(self)
+    byteOps.readUnsignedLong(self)
 
   def readSignedLong(): Long =
-    Bytez.readSignedLong(self)
+    byteOps.readSignedLong(self)
 
   def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): String =
-    Bytez.readString(self, charset)
+    byteOps.readString(self, charset)
 
   def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
-    Bytez.readString(size, self, charset)
+    byteOps.readString(size, self, charset)
 
   def remaining: Long =
     size - getPosition
 
-  def copy(): ReaderBase
+  def copy(): ReaderBase[B]
 
-  def reset(): ReaderBase =
+  def reset(): ReaderBase[B] =
     this moveTo 0
 
   @tailrec
-  final def foldLeftIO[E: IO.ExceptionHandler, R](result: R)(f: (R, ReaderBase) => IO[E, R]): IO[E, R] =
+  final def foldLeftIO[E: IO.ExceptionHandler, R](result: R)(f: (R, ReaderBase[B]) => IO[E, R]): IO[E, R] =
     IO(hasMore) match {
       case IO.Left(error) =>
         IO.Left(error)
@@ -146,7 +148,7 @@ private[swaydb] trait ReaderBase { self =>
     }
 
   @tailrec
-  final def foldLeft[R](result: R)(f: (R, ReaderBase) => R): R =
+  final def foldLeft[R](result: R)(f: (R, ReaderBase[B]) => R): R =
     if (hasMore)
       foldLeft(f(result, self))(f)
     else

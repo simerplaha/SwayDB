@@ -61,7 +61,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     bag.suspend(core mightContainKey elem)
 
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Set[A]) =
-    bag.suspend(core mightContainFunction Slice.writeString(function.id))
+    bag.suspend(core mightContainFunction Slice.writeString[Byte](function.id))
 
   def add(elem: A): BAG[OK] =
     bag.suspend(core.put(key = elem))
@@ -141,10 +141,10 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     bag.suspend(core.clear(core.readStates.get()))
 
   def applyFunction(from: A, to: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[OK] =
-    bag.suspend(core.applyFunction(from, to, Slice.writeString(function.id)))
+    bag.suspend(core.applyFunction(from, to, Slice.writeString[Byte](function.id)))
 
   def applyFunction(elem: A, function: F)(implicit evd: F <:< PureFunction.Set[A]): BAG[OK] =
-    bag.suspend(core.applyFunction(elem, Slice.writeString(function.id)))
+    bag.suspend(core.applyFunction(elem, Slice.writeString[Byte](function.id)))
 
   def commit(prepare: Prepare[A, Nothing, F]*): BAG[OK] =
     bag.suspend(core.commit(preparesToUntyped(prepare).iterator))
@@ -273,7 +273,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     bag.suspend(core.clearAppliedAndRegisteredFunctions())
 
   def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Set[A]): Boolean =
-    core.isFunctionApplied(Slice.writeString(function.id))
+    core.isFunctionApplied(Slice.writeString[Byte](function.id))
 
   def stream: Source[A, A, BAG] =
     new swaydb.Source(sourceFree())

@@ -135,7 +135,7 @@ trait TestBaseEmbedded extends TestBase {
                       map.update(1, 1000000, value = "just triggering update to assert remove").right.value
 
                     case SetMap(set) =>
-                      set.core.update(fromKey = Slice.writeInt(1), to = Slice.writeInt(1000000), value = Slice.Null).right.value
+                      set.core.update(fromKey = Slice.writeInt[Byte](1), to = Slice.writeInt[Byte](1000000), value = Slice.Null).right.value
                   }
 
                   if (i == 100000) sleep(2.seconds)

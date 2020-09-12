@@ -36,7 +36,7 @@ sealed trait ValueReader[-T] {
 
   def isPrefixCompressed: Boolean
 
-  def read[V](indexReader: ReaderBase,
+  def read[V](indexReader: ReaderBase[Byte],
               previous: PersistentOption,
               valueOffsetReader: ValueOffsetReader[V],
               valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int]
@@ -46,7 +46,7 @@ object ValueReader {
   implicit object NoValueReader extends ValueReader[BaseEntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read[V](indexReader: ReaderBase,
+    override def read[V](indexReader: ReaderBase[Byte],
                          previous: PersistentOption,
                          valueOffsetReader: ValueOffsetReader[V],
                          valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int] =
@@ -55,7 +55,7 @@ object ValueReader {
 
   implicit object ValueUncompressedReader extends ValueReader[BaseEntryId.Value.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
-    override def read[V](indexReader: ReaderBase,
+    override def read[V](indexReader: ReaderBase[Byte],
                          previous: PersistentOption,
                          valueOffsetReader: ValueOffsetReader[V],
                          valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int] = {
@@ -70,7 +70,7 @@ object ValueReader {
     //A value is considered prefix compressed only if it's valueOffset and valueLength are prefix compressed.
     override def isPrefixCompressed: Boolean = false
 
-    override def read[V](indexReader: ReaderBase,
+    override def read[V](indexReader: ReaderBase[Byte],
                          previous: PersistentOption,
                          valueOffsetReader: ValueOffsetReader[V],
                          valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int] =

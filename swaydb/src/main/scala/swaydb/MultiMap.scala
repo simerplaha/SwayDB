@@ -378,7 +378,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
    */
   def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] = {
     val innerKey = innerMap.keySerializer.write(MultiKey.Key(mapId, key))
-    val functionId = Slice.writeString(function.id)
+    val functionId = Slice.writeString[Byte](function.id)
     innerMap.core.applyFunction(innerKey, functionId)
   }
 
@@ -390,7 +390,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] = {
     val fromKey = innerMap.keySerializer.write(MultiKey.Key(mapId, from))
     val toKey = innerMap.keySerializer.write(MultiKey.Key(mapId, to))
-    val functionId = Slice.writeString(function.id)
+    val functionId = Slice.writeString[Byte](function.id)
     innerMap.core.applyFunction(fromKey, toKey, functionId)
   }
 
@@ -508,7 +508,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     innerMap.mightContain(MultiKey.Key(mapId, key))
 
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean] =
-    innerMap.core.mightContainFunction(Slice.writeString(function.id))
+    innerMap.core.mightContainFunction(Slice.writeString[Byte](function.id))
 
   /**
    * TODO toSet function.
@@ -644,7 +644,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     innerMap.clearAppliedAndRegisteredFunctions()
 
   override def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean =
-    innerMap.core.isFunctionApplied(Slice.writeString(function.id))
+    innerMap.core.isFunctionApplied(Slice.writeString[Byte](function.id))
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.
