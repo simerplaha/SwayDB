@@ -32,8 +32,8 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader,
 import swaydb.core.segment.format.a.block.segment.data.{ClosedBlocksWithFooter, TransientSegment}
 import swaydb.core.util.Collections._
 import swaydb.data.config.IOAction
-import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
 
 /**
@@ -162,7 +162,7 @@ private[core] object Block extends LazyLogging {
       blocks.segmentHeader addUnsignedInt 1
       blocks.segmentHeader add uncompressedBlockId
 
-      val segmentBytes =
+      val segmentBytes: Sliced[Sliced[Byte]] =
         blocks.segmentBytes.collect {
           case bytes if bytes.nonEmpty => bytes.close()
         }

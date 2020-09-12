@@ -888,7 +888,7 @@ object CommonAssertions {
     Seq(s"Segments: ${segments.size}") ++ {
       segments map {
         segment =>
-          val stringInfos =
+          val stringInfos: Sliced[String] =
             segment.toSlice() map {
               keyValue =>
                 keyValue.toMemory match {
@@ -1458,7 +1458,7 @@ object CommonAssertions {
                            hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                            keyOrder: KeyOrder[Sliced[Byte]]): Iterable[SegmentBlockCache] =
+                                                                                            keyOrder: KeyOrder[Sliced[Byte]]): Sliced[SegmentBlockCache] =
     SegmentBlock.writeOnes(
       mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
       createdInLevel = Int.MaxValue,

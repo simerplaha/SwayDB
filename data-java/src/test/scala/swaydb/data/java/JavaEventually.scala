@@ -26,10 +26,10 @@ package swaydb.data.java
 
 import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
 
+import scala.compat.java8.DurationConverters._
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.{Failure, Success, Try}
-import scala.jdk.DurationConverters._
 
 object JavaEventually {
   def sleep(time: FiniteDuration): Unit = {

@@ -41,6 +41,7 @@ import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.data.config.{IOStrategy, MMAP}
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice.Sliced
 
 import scala.annotation.tailrec
 
@@ -225,7 +226,7 @@ private[map] object PersistentMap extends LazyLogging {
    *
    * oldFiles value deleted after the recovery is successful. In case of a failure an error message is logged.
    */
-  private[map] def nextFile[OK, OV, K <: OK, V <: OV](oldFiles: Iterable[DBFile],
+  private[map] def nextFile[OK, OV, K <: OK, V <: OV](oldFiles: Sliced[DBFile],
                                                       mmap: MMAP.Map,
                                                       fileSize: Long,
                                                       skipList: SkipListConcurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],

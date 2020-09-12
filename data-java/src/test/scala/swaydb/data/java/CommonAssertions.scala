@@ -27,14 +27,14 @@ package swaydb.data.java
 import java.util.Optional
 import java.util.function.{Consumer, Supplier}
 
-import org.scalatest.OptionValues.convertOptionToValuable
+import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers._
 import swaydb.data.java.JavaEventually._
+import swaydb.data.util.Java._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
 
 object CommonAssertions {
 
@@ -60,7 +60,7 @@ object CommonAssertions {
     )
 
   def shouldContain[T](actual: Optional[T], expected: T): Unit =
-    actual.toScala.value shouldBe expected
+    actual.asScala.value shouldBe expected
 
   def shouldBe[T](actual: T, expected: T): Unit =
     actual shouldBe expected
