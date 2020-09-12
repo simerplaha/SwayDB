@@ -26,6 +26,7 @@ package swaydb.serializers
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
+import java.util.Optional
 
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
@@ -38,9 +39,6 @@ import swaydb.data.util.ByteSizeOf
  */
 object Default {
 
-  def javaIntSerializer(): Serializer[Integer] =
-    IntSerializer.asInstanceOf[Serializer[java.lang.Integer]]
-
   implicit object IntSerializer extends Serializer[Int] {
     override def write(data: Int): Sliced[Byte] =
       Slice.writeInt(data)
@@ -49,9 +47,6 @@ object Default {
       data.readInt()
   }
 
-  def javaLongSerializer(): Serializer[java.lang.Long] =
-    LongSerializer.asInstanceOf[Serializer[java.lang.Long]]
-
   implicit object LongSerializer extends Serializer[Long] {
     override def write(data: Long): Sliced[Byte] =
       Slice.writeLong(data)
@@ -59,9 +54,6 @@ object Default {
     override def read(data: Sliced[Byte]): Long =
       data.readLong()
   }
-
-  def javaCharSerializer(): Serializer[java.lang.Character] =
-    CharSerializer.asInstanceOf[Serializer[java.lang.Character]]
 
   implicit object CharSerializer extends Serializer[Char] {
     override def write(data: Char): Sliced[Byte] = {
@@ -72,32 +64,21 @@ object Default {
       data.toByteBufferWrap.getChar
   }
 
-  def javaDoubleSerializer(): Serializer[java.lang.Double] =
-    DoubleSerializer.asInstanceOf[Serializer[java.lang.Double]]
-
   implicit object DoubleSerializer extends Serializer[Double] {
-    override def write(data: Double): Sliced[Byte] = {
+    override def write(data: Double): Sliced[Byte] =
       Slice(ByteBuffer.allocate(ByteSizeOf.double).putDouble(data).array())
-    }
 
     override def read(data: Sliced[Byte]): Double =
       data.toByteBufferWrap.getDouble
   }
 
-  def javaFloatSerializer(): Serializer[java.lang.Float] =
-    FloatSerializer.asInstanceOf[Serializer[java.lang.Float]]
-
   implicit object FloatSerializer extends Serializer[Float] {
-    override def write(data: Float): Sliced[Byte] = {
+    override def write(data: Float): Sliced[Byte] =
       Slice(ByteBuffer.allocate(ByteSizeOf.float).putFloat(data).array())
-    }
 
     override def read(data: Sliced[Byte]): Float =
       data.toByteBufferWrap.getFloat
   }
-
-  def javaShortSerializer(): Serializer[java.lang.Short] =
-    ShortSerializer.asInstanceOf[Serializer[java.lang.Short]]
 
   implicit object ShortSerializer extends Serializer[Short] {
     override def write(data: Short): Sliced[Byte] = {
@@ -107,9 +88,6 @@ object Default {
     override def read(data: Sliced[Byte]): Short =
       data.toByteBufferWrap.getShort
   }
-
-  def javaStringSerializer(): Serializer[java.lang.String] =
-    StringSerializer
 
   implicit object StringSerializer extends Serializer[String] {
     override def write(data: String): Sliced[Byte] =
@@ -130,7 +108,7 @@ object Default {
         Some(data.readString(StandardCharsets.UTF_8))
   }
 
-  implicit object SliceSerializer extends Serializer[Sliced[Byte]] {
+  implicit object ByteSliceSerializer extends Serializer[Sliced[Byte]] {
     override def write(data: Sliced[Byte]): Sliced[Byte] =
       data
 
@@ -138,7 +116,7 @@ object Default {
       data
   }
 
-  implicit object SliceOptionSerializer extends Serializer[Option[Sliced[Byte]]] {
+  implicit object ByteSliceOptionalSerializer extends Serializer[Option[Sliced[Byte]]] {
     override def write(data: Option[Sliced[Byte]]): Sliced[Byte] =
       data.getOrElse(Slice.emptyBytes)
 
@@ -149,7 +127,7 @@ object Default {
         Some(data)
   }
 
-  implicit object ArraySerializer extends Serializer[Array[Byte]] {
+  implicit object ByteArraySerializer extends Serializer[Array[Byte]] {
     override def write(data: Array[Byte]): Sliced[Byte] =
       Slice(data)
 

@@ -37,7 +37,6 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice._
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
-import swaydb.java.data.slice.ByteSlice
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.memory.DefaultConfigs
@@ -62,7 +61,7 @@ object MemoryMap {
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                               private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                               private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                              private var byteComparator: KeyComparator[ByteSlice] = null,
+                              private var byteComparator: KeyComparator[Sliced[java.lang.Byte]] = null,
                               private var typedComparator: KeyComparator[K] = null,
                               private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
                                                                                          keySerializer: Serializer[K],
@@ -120,7 +119,7 @@ object MemoryMap {
       this
     }
 
-    def setByteKeyComparator(byteComparator: KeyComparator[ByteSlice]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[Sliced[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -136,7 +135,7 @@ object MemoryMap {
     }
 
     def get(): swaydb.java.Map[K, V, F] = {
-      val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
+      val comparator: Either[KeyComparator[Sliced[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,

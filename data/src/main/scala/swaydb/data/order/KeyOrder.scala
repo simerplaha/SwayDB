@@ -25,6 +25,7 @@
 package swaydb.data.order
 
 import swaydb.data.slice.Slice._
+
 object KeyOrder {
 
   /**
@@ -44,7 +45,28 @@ object KeyOrder {
         )
     }
 
+  val lexicographicJava: KeyOrder[Sliced[java.lang.Byte]] =
+    new KeyOrder[Sliced[java.lang.Byte]] {
+      def compare(a: Sliced[java.lang.Byte], b: Sliced[java.lang.Byte]): Int =
+        KeyOrder.defaultCompareJava(
+          a = a,
+          b = b,
+          maxBytes = Math.min(a.size, b.size)
+        )
+    }
+
   @inline def defaultCompare(a: Sliced[Byte], b: Sliced[Byte], maxBytes: Int): Int = {
+    var i = 0
+    while (i < maxBytes) {
+      val aB = a.getC(i) & 0xFF
+      val bB = b.getC(i) & 0xFF
+      if (aB != bB) return aB - bB
+      i += 1
+    }
+    a.size - b.size
+  }
+
+  @inline def defaultCompareJava(a: Sliced[java.lang.Byte], b: Sliced[java.lang.Byte], maxBytes: Int): Int = {
     var i = 0
     while (i < maxBytes) {
       val aB = a.getC(i) & 0xFF

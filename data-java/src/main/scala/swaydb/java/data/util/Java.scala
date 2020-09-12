@@ -24,17 +24,11 @@
 
 package swaydb.java.data.util
 
-import java.util.{Comparator, Optional}
+import java.util.Optional
 
 import swaydb.Expiration
-import swaydb.java.data.slice.ByteSliceBuilder
 
 object Java {
-
-  implicit class ComparatorByteSliceImplicit(comparator: Comparator[ByteSliceBuilder]) {
-    @inline final def asScala: Ordering[ByteSliceBuilder] =
-      Ordering.comparatorToOrdering(comparator)
-  }
 
   implicit class DeadlineConverter(deadline: scala.concurrent.duration.Deadline) {
     @inline final def asJava: Expiration =

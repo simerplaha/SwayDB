@@ -28,12 +28,11 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
-import sun.security.util.Length
 import swaydb.Aggregator
-import swaydb.data.{MaxKey, slice}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.{ByteSizeOf, Bytez, SomeOrNoneCovariant}
+import swaydb.data.{MaxKey, slice}
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
@@ -60,6 +59,8 @@ sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Sliced[
 object Slice {
 
   val emptyBytes = Slice.create[Byte](0)
+
+  val emptyJavaBytes = Slice.create[java.lang.Byte](0)
 
   val someEmptyBytes = Some(emptyBytes)
 
@@ -379,6 +380,14 @@ object Slice {
 
     @inline final def createReader(): SliceReader =
       SliceReader(slice)
+
+    @inline final def cast: Sliced[java.lang.Byte] =
+      slice.asInstanceOf[Sliced[java.lang.Byte]]
+  }
+
+  implicit class JavaByteSliced(sliced: Sliced[java.lang.Byte]) {
+    def cast: Sliced[Byte] =
+      sliced.asInstanceOf[Sliced[Byte]]
   }
 
   implicit class SliceImplicit[T](slice: Sliced[T]) {

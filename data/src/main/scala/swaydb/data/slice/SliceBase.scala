@@ -28,13 +28,13 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 
 import swaydb.IO
+import swaydb.data.slice.Slice._
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
-import swaydb.data.slice.Slice._
 
 /**
  * Base implementation for both Scala 2.12 and 2.13.
@@ -509,15 +509,6 @@ abstract class SliceBase[+T](array: Array[T],
       toOffset = toOffset,
       written = written
     )
-
-  /**
-   * Used to convert Java primitive types to Scala and vice versa.
-   */
-  def cast[B]: Sliced[B] =
-    this.asInstanceOf[Sliced[B]]
-
-  def toByteSlice: ByteSlice =
-    new ByteSliceImplicits(selfSlice.cast[Byte])
 
   override def equals(that: Any): Boolean =
     that match {

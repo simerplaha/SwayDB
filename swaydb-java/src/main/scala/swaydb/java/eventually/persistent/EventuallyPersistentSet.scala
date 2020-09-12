@@ -40,7 +40,6 @@ import swaydb.data.slice.Slice._
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.java._
-import swaydb.java.data.slice.ByteSlice
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
@@ -79,7 +78,7 @@ object EventuallyPersistentSet {
                            private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                           private var byteComparator: KeyComparator[ByteSlice] = null,
+                           private var byteComparator: KeyComparator[Sliced[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[A] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
                            private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set))(implicit functionClassTag: ClassTag[F],
@@ -202,7 +201,7 @@ object EventuallyPersistentSet {
       this
     }
 
-    def setByteKeyComparator(byteComparator: KeyComparator[ByteSlice]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[Sliced[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -223,7 +222,7 @@ object EventuallyPersistentSet {
     }
 
     def get(): swaydb.java.Set[A, F] = {
-      val comparator: Either[KeyComparator[ByteSlice], KeyComparator[A]] =
+      val comparator: Either[KeyComparator[Sliced[java.lang.Byte]], KeyComparator[A]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,
