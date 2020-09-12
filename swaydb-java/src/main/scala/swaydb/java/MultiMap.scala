@@ -46,6 +46,12 @@ import scala.jdk.CollectionConverters._
  */
 case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(implicit evd: F <:< PureFunction.Map[K, V]) extends MapT[K, V, F] {
 
+  def mapKey = asScala.mapKey
+
+  def mapId = asScala.mapId
+
+  def defaultExpiration: Optional[Expiration] = Expiration(asScala.defaultExpiration)
+
   def path: Path =
     asScala.path
 

@@ -90,4 +90,25 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
     shouldContain(root.get(1), "root value");
     shouldBeTrue(child1.isEmpty());
   }
+
+  @Test
+  void removeChildren() throws IOException {
+    MultiMap<String, Integer, String, Void> root = createMap(stringSerializer(), intSerializer(), stringSerializer());
+    root.put(1, "root value");
+
+    MultiMap<String, Integer, String, Void> child1 = root.schema().init("child1");
+    MultiMap<String, Integer, String, Void> child2 = root.schema().init("child2");
+    MultiMap<String, Integer, String, Void> child3 = root.schema().init("child3");
+
+    shouldBe(root.schema().flatten().map(swaydb.MultiMap::mapKey), asList("child1", "child2", "child3"));
+
+    root.schema().remove(child1.mapKey());
+    shouldBe(root.schema().flatten().map(swaydb.MultiMap::mapKey), asList("child2", "child3"));
+
+    root.schema().remove(child2.mapKey());
+    shouldBe(root.schema().flatten().map(swaydb.MultiMap::mapKey), asList("child3"));
+
+    root.schema().remove(child3.mapKey());
+    shouldBeEmpty(root.schema().flatten());
+  }
 }
