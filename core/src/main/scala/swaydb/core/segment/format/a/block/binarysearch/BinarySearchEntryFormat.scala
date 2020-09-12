@@ -32,7 +32,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Bytes
 import swaydb.data.config.IndexFormat
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.macros.Sealed
 import swaydb.data.util.ByteOps._
@@ -48,9 +48,9 @@ private[core] sealed trait BinarySearchEntryFormat {
                               largestMergedKeySize: Int): Int
 
   def write(indexOffset: Int,
-            mergedKey: Sliced[Byte],
+            mergedKey: Slice[Byte],
             keyType: Byte,
-            bytes: Sliced[Byte]): Unit
+            bytes: Slice[Byte]): Unit
 
   def read(offset: Int,
            seekSize: Int,
@@ -81,9 +81,9 @@ private[core] object BinarySearchEntryFormat {
       Bytes sizeOfUnsignedInt largestIndexOffset
 
     override def write(indexOffset: Int,
-                       mergedKey: Sliced[Byte],
+                       mergedKey: Slice[Byte],
                        keyType: Byte,
-                       bytes: Sliced[Byte]): Unit =
+                       bytes: Slice[Byte]): Unit =
       bytes addUnsignedInt indexOffset
 
     override def read(offset: Int,
@@ -117,9 +117,9 @@ private[core] object BinarySearchEntryFormat {
     }
 
     override def write(indexOffset: Int,
-                       mergedKey: Sliced[Byte],
+                       mergedKey: Slice[Byte],
                        keyType: Byte,
-                       bytes: Sliced[Byte]): Unit = {
+                       bytes: Slice[Byte]): Unit = {
       bytes addUnsignedInt mergedKey.size
       bytes addAll mergedKey
       bytes add keyType
@@ -166,7 +166,7 @@ private[core] object BinarySearchEntryFormat {
           override def indexOffset: Int =
             parseIndexOffset
 
-          override def key: Sliced[Byte] =
+          override def key: Slice[Byte] =
             fromKey
 
           override def toPersistent: Persistent =
@@ -177,7 +177,7 @@ private[core] object BinarySearchEntryFormat {
           override def indexOffset: Int =
             parseIndexOffset
 
-          override def key: Sliced[Byte] =
+          override def key: Slice[Byte] =
             entryKey
 
           override def toPersistent: Persistent =

@@ -46,7 +46,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.{ActorRef, ActorWire, Bag, Error, IO}
 
@@ -139,8 +139,8 @@ private[core] object CoreInitializer extends LazyLogging {
             fileCache: FileCache.Enable,
             threadStateCache: ThreadStateCache,
             memoryCache: MemoryCache,
-            shutdownTimeout: FiniteDuration)(implicit keyOrder: KeyOrder[Sliced[Byte]],
-                                             timeOrder: TimeOrder[Sliced[Byte]],
+            shutdownTimeout: FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                             timeOrder: TimeOrder[Slice[Byte]],
                                              functionStore: FunctionStore,
                                              buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
     val validationResult =

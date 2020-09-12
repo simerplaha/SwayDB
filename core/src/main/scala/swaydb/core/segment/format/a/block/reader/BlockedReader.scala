@@ -28,13 +28,13 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.data.slice.Reader
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps
 
 private[core] object BlockedReader {
 
   def apply[O <: BlockOffset, B <: Block[O]](block: B,
-                                             bytes: Sliced[Byte]) =
+                                             bytes: Slice[Byte]) =
     new BlockedReader[O, B](
       reader = Reader(bytes),
       block = block

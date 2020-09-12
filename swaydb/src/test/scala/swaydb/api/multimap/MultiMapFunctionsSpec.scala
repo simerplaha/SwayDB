@@ -30,7 +30,7 @@ import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.data.Functions
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{Apply, Bag, MultiMap, Prepare, PureFunction}
@@ -71,7 +71,7 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
   implicit val bag = Bag.less
 
   //  implicit val mapKeySerializer = Key.serializer(IntSerializer)
-  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
 
   "apply and register function" when {

@@ -26,39 +26,38 @@ package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteSizeOf
 
 private[swaydb] object FunctionsMapEntryWriter {
 
-  implicit object FunctionsPutMapEntryWriter extends MapEntryWriter[MapEntry.Put[Sliced[Byte], Slice.Null.type]] {
+  implicit object FunctionsPutMapEntryWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Slice.Null.type]] {
     val id: Byte = 0
 
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: MapEntry.Put[Sliced[Byte], Slice.Null.type], bytes: Sliced[Byte]): Unit =
+    override def write(entry: MapEntry.Put[Slice[Byte], Slice.Null.type], bytes: Slice[Byte]): Unit =
       bytes
         .add(id)
         .addAll(entry.key)
 
-    override def bytesRequired(entry: MapEntry.Put[Sliced[Byte], Slice.Null.type]): Int =
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Slice.Null.type]): Int =
       ByteSizeOf.byte +
         entry.key.size
   }
 
-  implicit object FunctionsRemoveMapEntryWriter extends MapEntryWriter[MapEntry.Remove[Sliced[Byte]]] {
+  implicit object FunctionsRemoveMapEntryWriter extends MapEntryWriter[MapEntry.Remove[Slice[Byte]]] {
     val id: Byte = 1
 
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: MapEntry.Remove[Sliced[Byte]], bytes: Sliced[Byte]): Unit =
+    override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
       bytes
         .add(id)
         .addAll(entry.key)
 
-    override def bytesRequired(entry: MapEntry.Remove[Sliced[Byte]]): Int =
+    override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
       ByteSizeOf.byte +
         entry.key.size
   }

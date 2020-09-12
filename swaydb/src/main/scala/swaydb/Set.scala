@@ -33,7 +33,7 @@ import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.serializers.{Serializer, _}
@@ -168,7 +168,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     core.sizeOfSegments
 
   def elemSize(elem: A): Int =
-    (elem: Sliced[Byte]).size
+    (elem: Slice[Byte]).size
 
   def expiration(elem: A): BAG[Option[Deadline]] =
     bag.suspend(core.deadline(elem, core.readStates.get()))
@@ -202,7 +202,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
       case Slice.Null =>
         null.asInstanceOf[A]
 
-      case slice: Sliced[Byte] =>
+      case slice: Slice[Byte] =>
         serializer.read(slice)
     }
 
@@ -211,7 +211,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
                                       readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
     from match {
       case Some(from) =>
-        val fromKeyBytes: Sliced[Byte] = from.key
+        val fromKeyBytes: Slice[Byte] = from.key
         if (from.before)
           core.beforeKey(fromKeyBytes, readState)
         else if (from.after)
@@ -226,7 +226,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
               else
                 bag.success(Slice.Null)
 
-            case slice: Sliced[Byte] =>
+            case slice: Slice[Byte] =>
               bag.success(slice)
           }
 
@@ -261,7 +261,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
           case Slice.Null =>
             null.asInstanceOf[A]
 
-          case slice: Sliced[Byte] =>
+          case slice: Slice[Byte] =>
             serializer.read(slice)
         }
     }

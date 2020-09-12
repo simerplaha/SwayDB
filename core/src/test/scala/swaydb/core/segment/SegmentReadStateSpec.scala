@@ -32,12 +32,11 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.data.RunThis._
 import swaydb.core.data.{Persistent, Time}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.TupleOrNone
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class SegmentReadStateSpec extends AnyWordSpec with Matchers {
 

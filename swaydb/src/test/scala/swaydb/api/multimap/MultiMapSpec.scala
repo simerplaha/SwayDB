@@ -29,7 +29,7 @@ import swaydb.Bag.Less
 import swaydb.api.{TestBaseEmbedded, repeatTest}
 import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{Bag, IO, MultiMap, Prepare}
@@ -80,7 +80,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
   implicit val bag = Bag.less
 
   //  implicit val mapKeySerializer = Key.serializer(IntSerializer)
-  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   /**
    * The following displays the MultiMap hierarchy existing for the Map.

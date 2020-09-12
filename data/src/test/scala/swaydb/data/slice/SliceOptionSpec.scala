@@ -28,7 +28,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 import scala.util.Random
 
@@ -37,7 +36,7 @@ class SliceOptionSpec extends AnyWordSpec with Matchers {
   implicit val keyOrder = KeyOrder.default
 
   def randomByte() = (Random.nextInt(256) - 128).toByte
-  val slice: Sliced[Int] = Slice(1, 2, 3)
+  val slice: Slice[Int] = Slice(1, 2, 3)
 
   "getOrElse" in {
     (Slice.Null getOrElseC slice) shouldBe slice

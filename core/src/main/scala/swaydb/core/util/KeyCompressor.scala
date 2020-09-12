@@ -28,7 +28,6 @@ import swaydb.IO
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 
 private[core] object KeyCompressor {
@@ -37,7 +36,7 @@ private[core] object KeyCompressor {
    * @return (minKey, maxKey, fullKey)
    */
   def compress(head: MemoryOption,
-               last: Memory): (Sliced[Byte], MaxKey[Sliced[Byte]], Sliced[Byte]) =
+               last: Memory): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     (head, last) match {
       case (keyValue: Memory, fixed: Memory.Fixed) =>
         val fullKey = Bytes.compressJoin(keyValue.key, fixed.key, 0.toByte)
@@ -56,7 +55,7 @@ private[core] object KeyCompressor {
         (range.fromKey, MaxKey.Range(range.fromKey, range.toKey), mergedKey)
     }
 
-  def decompress(key: Sliced[Byte]): (Sliced[Byte], MaxKey[Sliced[Byte]]) =
+  def decompress(key: Slice[Byte]): (Slice[Byte], MaxKey[Slice[Byte]]) =
     key.lastOption match {
       case Some(byte) =>
         if (byte == 0) {

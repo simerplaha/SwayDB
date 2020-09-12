@@ -28,7 +28,7 @@
 //import swaydb.core.segment.format.a.block.{Block, KeyMatcher}
 //import swaydb.core.util.Bytes
 //import swaydb.data.order.KeyOrder
-//import swaydb.data.slice.Slice._
+//import swaydb.data.slice.Slice
 //
 //class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
 //

@@ -29,7 +29,7 @@ import swaydb.core.data.Value.{Put, Remove, Update}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.data.slice.ReaderBase
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps._
 
 import scala.annotation.implicitNotFound
@@ -37,7 +37,7 @@ import scala.annotation.implicitNotFound
 @implicitNotFound("Type class implementation not found for RangeValueSerializer of type [${F}, ${R}]")
 private[core] sealed trait RangeValueSerializer[F, R] {
 
-  def write(fromValue: F, rangeValue: R, bytes: Sliced[Byte]): Unit
+  def write(fromValue: F, rangeValue: R, bytes: Slice[Byte]): Unit
 
   def bytesRequired(fromValue: F, rangeValue: R): Int
 }
@@ -52,7 +52,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.RemoveRange.id
 
-    override def write(fromValue: Unit, rangeValue: Value.Remove, bytes: Sliced[Byte]): Unit =
+    override def write(fromValue: Unit, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit =
       ValueSerializer.write[Value.Remove](rangeValue)(bytes.addUnsignedInt(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Remove): Int =
@@ -66,7 +66,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.UpdateRange.id
 
-    override def write(fromValue: Unit, rangeValue: Value.Update, bytes: Sliced[Byte]): Unit =
+    override def write(fromValue: Unit, rangeValue: Value.Update, bytes: Slice[Byte]): Unit =
       ValueSerializer.write[Value.Update](rangeValue)(bytes.addUnsignedInt(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Update): Int =
@@ -80,7 +80,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.FunctionRange.id
 
-    override def write(fromValue: Unit, rangeValue: Value.Function, bytes: Sliced[Byte]): Unit =
+    override def write(fromValue: Unit, rangeValue: Value.Function, bytes: Slice[Byte]): Unit =
       ValueSerializer.write[Value.Function](rangeValue)(bytes.addUnsignedInt(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Function): Int =
@@ -94,7 +94,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.PendingApplyRange.id
 
-    override def write(fromValue: Unit, rangeValue: Value.PendingApply, bytes: Sliced[Byte]): Unit =
+    override def write(fromValue: Unit, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit =
       ValueSerializer.write[Value.PendingApply](rangeValue)(bytes.addUnsignedInt(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.PendingApply): Int =
@@ -111,7 +111,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.RemoveRemoveRange.id
 
-    override def write(fromValue: Value.Remove, rangeValue: Value.Remove, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Remove, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -140,7 +140,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.RemoveUpdateRange.id
 
-    override def write(fromValue: Value.Remove, rangeValue: Value.Update, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Remove, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -169,7 +169,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.RemoveFunctionRange.id
 
-    override def write(fromValue: Value.Remove, rangeValue: Value.Function, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Remove, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -198,7 +198,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.RemovePendingApplyRange.id
 
-    override def write(fromValue: Value.Remove, rangeValue: Value.PendingApply, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Remove, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -231,7 +231,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.PutRemoveRange.id
 
-    override def write(fromValue: Value.Put, rangeValue: Value.Remove, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Put, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -260,7 +260,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.PutUpdateRange.id
 
-    override def write(fromValue: Value.Put, rangeValue: Value.Update, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Put, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -289,7 +289,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.PutFunctionRange.id
 
-    override def write(fromValue: Value.Put, rangeValue: Value.Function, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Put, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -318,7 +318,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.PutPendingApplyRange.id
 
-    override def write(fromValue: Value.Put, rangeValue: Value.PendingApply, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Put, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -349,7 +349,7 @@ private[core] object RangeValueSerializer {
   implicit object UpdateRemoveSerializer extends RangeValueSerializer[Value.Update, Value.Remove] {
     val id = swaydb.core.map.serializer.UpdateRemoveRange.id
 
-    override def write(fromValue: Value.Update, rangeValue: Value.Remove, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Update, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -378,7 +378,7 @@ private[core] object RangeValueSerializer {
 
     val id = swaydb.core.map.serializer.UpdateUpdateRange.id
 
-    override def write(fromValue: Value.Update, rangeValue: Value.Update, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Update, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -406,7 +406,7 @@ private[core] object RangeValueSerializer {
   implicit object UpdateFunctionSerializer extends RangeValueSerializer[Value.Update, Value.Function] {
     val id = swaydb.core.map.serializer.UpdateFunctionRange.id
 
-    override def write(fromValue: Value.Update, rangeValue: Value.Function, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Update, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -434,7 +434,7 @@ private[core] object RangeValueSerializer {
   implicit object UpdatePendingApplySerializer extends RangeValueSerializer[Value.Update, Value.PendingApply] {
     val id = swaydb.core.map.serializer.UpdatePendingApplyRange.id
 
-    override def write(fromValue: Value.Update, rangeValue: Value.PendingApply, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Update, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -465,7 +465,7 @@ private[core] object RangeValueSerializer {
   implicit object FunctionRemoveSerializer extends RangeValueSerializer[Value.Function, Value.Remove] {
     val id = swaydb.core.map.serializer.FunctionRemoveRange.id
 
-    override def write(fromValue: Value.Function, rangeValue: Value.Remove, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Function, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -493,7 +493,7 @@ private[core] object RangeValueSerializer {
   implicit object FunctionUpdateSerializer extends RangeValueSerializer[Value.Function, Value.Update] {
     val id = swaydb.core.map.serializer.FunctionUpdateRange.id
 
-    override def write(fromValue: Value.Function, rangeValue: Value.Update, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Function, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -521,7 +521,7 @@ private[core] object RangeValueSerializer {
   implicit object FunctionFunctionSerializer extends RangeValueSerializer[Value.Function, Value.Function] {
     val id = swaydb.core.map.serializer.FunctionFunctionRange.id
 
-    override def write(fromValue: Value.Function, rangeValue: Value.Function, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Function, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -549,7 +549,7 @@ private[core] object RangeValueSerializer {
   implicit object FunctionPendingApplySerializer extends RangeValueSerializer[Value.Function, Value.PendingApply] {
     val id = swaydb.core.map.serializer.FunctionPendingApplyRange.id
 
-    override def write(fromValue: Value.Function, rangeValue: Value.PendingApply, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.Function, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -579,7 +579,7 @@ private[core] object RangeValueSerializer {
   implicit object PendingApplyRemoveSerializer extends RangeValueSerializer[Value.PendingApply, Value.Remove] {
     val id = swaydb.core.map.serializer.PendingApplyRemoveRange.id
 
-    override def write(fromValue: Value.PendingApply, rangeValue: Value.Remove, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.PendingApply, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -607,7 +607,7 @@ private[core] object RangeValueSerializer {
   implicit object PendingApplyUpdateSerializer extends RangeValueSerializer[Value.PendingApply, Value.Update] {
     val id = swaydb.core.map.serializer.PendingApplyUpdateRange.id
 
-    override def write(fromValue: Value.PendingApply, rangeValue: Value.Update, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.PendingApply, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -635,7 +635,7 @@ private[core] object RangeValueSerializer {
   implicit object PendingApplyFunctionSerializer extends RangeValueSerializer[Value.PendingApply, Value.Function] {
     val id = swaydb.core.map.serializer.PendingApplyFunctionRange.id
 
-    override def write(fromValue: Value.PendingApply, rangeValue: Value.Function, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.PendingApply, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -663,7 +663,7 @@ private[core] object RangeValueSerializer {
   implicit object PendingApplyPendingApplySerializer extends RangeValueSerializer[Value.PendingApply, Value.PendingApply] {
     val id = swaydb.core.map.serializer.PendingApplyPendingApplyRange.id
 
-    override def write(fromValue: Value.PendingApply, rangeValue: Value.PendingApply, bytes: Sliced[Byte]): Unit = {
+    override def write(fromValue: Value.PendingApply, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
           .addUnsignedInt(id)
@@ -688,7 +688,7 @@ private[core] object RangeValueSerializer {
     }
   }
 
-  def write[F, R](fromValue: F, rangeValue: R)(bytes: Sliced[Byte])(implicit serializer: RangeValueSerializer[F, R]): Unit =
+  def write[F, R](fromValue: F, rangeValue: R)(bytes: Slice[Byte])(implicit serializer: RangeValueSerializer[F, R]): Unit =
     serializer.write(fromValue, rangeValue, bytes)
 
   def bytesRequired[F, R](fromValue: F, rangeValue: R)(implicit serializer: RangeValueSerializer[F, R]): Int =
@@ -696,7 +696,7 @@ private[core] object RangeValueSerializer {
 
   implicit object OptionRangeValueSerializer extends RangeValueSerializer[Value.FromValueOption, Value.RangeValue] {
 
-    override def write(fromValue: Value.FromValueOption, rangeValue: Value.RangeValue, bytes: Sliced[Byte]): Unit =
+    override def write(fromValue: Value.FromValueOption, rangeValue: Value.RangeValue, bytes: Slice[Byte]): Unit =
       (fromValue, rangeValue) match {
 
         case (Value.FromValue.Null, rangeValue: Value.Remove) =>
@@ -874,7 +874,7 @@ private[core] object RangeValueSerializer {
         UnitPendingApplySerializer.read(reader)
     }
 
-  def read(bytes: Sliced[Byte]): (Value.FromValueOption, Value.RangeValue) = {
+  def read(bytes: Slice[Byte]): (Value.FromValueOption, Value.RangeValue) = {
     val reader = Reader(bytes)
     val rangeId = reader.readUnsignedInt()
     read(rangeId, reader)

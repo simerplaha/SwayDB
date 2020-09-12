@@ -29,7 +29,6 @@ import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 
 import scala.collection.compat._
@@ -37,7 +36,7 @@ import scala.collection.compat._
 private[core] object FixedMerger {
 
   def apply(newer: KeyValue.Fixed,
-            older: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Sliced[Byte]],
+            older: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore): KeyValue.Fixed =
     FixedMerger(
       newer = newer,
@@ -45,8 +44,8 @@ private[core] object FixedMerger {
     )
 
   def apply(newer: KeyValue.Fixed,
-            oldApplies: Sliced[Value.Apply])(implicit timeOrder: TimeOrder[Sliced[Byte]],
-                                             functionStore: FunctionStore): KeyValue.Fixed =
+            oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]],
+                                            functionStore: FunctionStore): KeyValue.Fixed =
     oldApplies.reverse.foldLeft((newer, 0)) {
       case ((newerMerged, count), olderApply) =>
         newerMerged match {
@@ -79,7 +78,7 @@ private[core] object FixedMerger {
     }._1
 
   def apply(newKeyValue: KeyValue.Fixed,
-            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Sliced[Byte]],
+            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore): KeyValue.Fixed =
     newKeyValue match {
       case newKeyValue: KeyValue.Put =>

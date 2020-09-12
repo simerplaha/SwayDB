@@ -26,12 +26,12 @@ package swaydb
 
 import swaydb.core.util.Eithers
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 protected object KeyOrderConverter {
 
-  def typedToBytesNullCheck[K](byteKeyOrder: KeyOrder[Sliced[Byte]], typedKeyOrder: KeyOrder[K])(implicit serializer: Serializer[K]): KeyOrder[Sliced[Byte]] =
+  def typedToBytesNullCheck[K](byteKeyOrder: KeyOrder[Slice[Byte]], typedKeyOrder: KeyOrder[K])(implicit serializer: Serializer[K]): KeyOrder[Slice[Byte]] =
     typedToBytes(
       Eithers.nullCheck(
         left = byteKeyOrder,
@@ -40,20 +40,20 @@ protected object KeyOrderConverter {
       )
     )
 
-  def typedToBytes[K](keyOrder: Either[KeyOrder[Sliced[Byte]], KeyOrder[K]])(implicit serializer: Serializer[K]): KeyOrder[Sliced[Byte]] =
+  def typedToBytes[K](keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]])(implicit serializer: Serializer[K]): KeyOrder[Slice[Byte]] =
     keyOrder match {
       case Left(bytesKeyOrder) =>
         bytesKeyOrder
 
       case Right(typedKeyOrder) =>
-        new KeyOrder[Sliced[Byte]] {
-          override def compare(key1: Sliced[Byte], key2: Sliced[Byte]): Int = {
+        new KeyOrder[Slice[Byte]] {
+          override def compare(key1: Slice[Byte], key2: Slice[Byte]): Int = {
             val typedKey1 = serializer.read(key1)
             val typedKey2 = serializer.read(key2)
             typedKeyOrder.compare(typedKey1, typedKey2)
           }
 
-          private[swaydb] override def comparableKey(key: Sliced[Byte]): Sliced[Byte] = {
+          private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
             val typedData = serializer.read(key)
             val comparableKeyTyped = typedKeyOrder.comparableKey(typedData)
             serializer.write(comparableKeyTyped)

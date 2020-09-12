@@ -31,7 +31,7 @@ import swaydb.core.level.LevelSeek
 import swaydb.core.merge._
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import scala.annotation.tailrec
 
 private[core] object Lower {
@@ -39,9 +39,9 @@ private[core] object Lower {
   /**
    * Check and returns the FromValue if it's a valid lower key-value for the input key.
    */
-  def lowerFromValue(key: Sliced[Byte],
-                     fromKey: Sliced[Byte],
-                     fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Sliced[Byte]]): KeyValue.PutOption =
+  def lowerFromValue(key: Slice[Byte],
+                     fromKey: Slice[Byte],
+                     fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyValue.PutOption =
     fromValue.flatMapSomeS(KeyValue.Put.Null: KeyValue.PutOption) {
       fromValue =>
         if (keyOrder.lt(fromKey, key))
@@ -56,22 +56,22 @@ private[core] object Lower {
           KeyValue.Put.Null
     }
 
-  def seek(key: Sliced[Byte],
+  def seek(key: Slice[Byte],
            readState: ThreadReadState,
            currentSeek: Seek.Current,
            nextSeek: Seek.Next,
-           keyOrder: KeyOrder[Sliced[Byte]],
-           timeOrder: TimeOrder[Sliced[Byte]],
+           keyOrder: KeyOrder[Slice[Byte]],
+           timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
            functionStore: FunctionStore): KeyValue.PutOption =
     Lower(key, readState, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
-  def seeker(key: Sliced[Byte],
+  def seeker(key: Slice[Byte],
              readState: ThreadReadState,
              currentSeek: Seek.Current,
-             nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Sliced[Byte]],
-                                  timeOrder: TimeOrder[Sliced[Byte]],
+             nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
                                   currentWalker: CurrentWalker,
                                   nextWalker: NextWalker,
                                   functionStore: FunctionStore): KeyValue.PutOption =
@@ -85,11 +85,11 @@ private[core] object Lower {
    * could help share this code and removing duplicates but only if there is no performance penalty.
    */
   @tailrec
-  def apply(key: Sliced[Byte],
+  def apply(key: Slice[Byte],
             readState: ThreadReadState,
             currentSeek: Seek.Current,
-            nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Sliced[Byte]],
-                                 timeOrder: TimeOrder[Sliced[Byte]],
+            nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                 timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
                                  functionStore: FunctionStore): KeyValue.PutOption = {

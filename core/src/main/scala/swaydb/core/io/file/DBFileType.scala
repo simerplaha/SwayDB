@@ -27,7 +27,7 @@ package swaydb.core.io.file
 import java.nio.file.Path
 
 import swaydb.core.actor.FileSweeperItem
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 private[file] trait DBFileType extends FileSweeperItem {
 
   val path: Path
@@ -48,15 +48,15 @@ private[file] trait DBFileType extends FileSweeperItem {
 
   def forceSave(): Unit
 
-  def readAll: Sliced[Byte]
+  def readAll: Slice[Byte]
 
   def fileSize: Long
 
-  def append(slice: Sliced[Byte]): Unit
+  def append(slice: Slice[Byte]): Unit
 
-  def append(slice: Iterable[Sliced[Byte]]): Unit
+  def append(slice: Iterable[Slice[Byte]]): Unit
 
-  def read(position: Int, size: Int): Sliced[Byte]
+  def read(position: Int, size: Int): Slice[Byte]
 
   def get(position: Int): Byte
 }

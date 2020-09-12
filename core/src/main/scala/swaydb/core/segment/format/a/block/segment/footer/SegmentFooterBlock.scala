@@ -39,7 +39,6 @@ import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.ByteOps._
 
@@ -78,7 +77,7 @@ object SegmentFooterBlock {
 
   case class State(footerSize: Int,
                    createdInLevel: Int,
-                   var bytes: Sliced[Byte],
+                   var bytes: Slice[Byte],
                    keyValuesCount: Int,
                    numberOfRanges: Int,
                    hasPut: Boolean)
@@ -207,7 +206,7 @@ object SegmentFooterBlock {
       )
   }
 
-  def readCRCPassed(footerStartOffset: Int, footerSize: Int, footerBytes: Sliced[Byte]) = {
+  def readCRCPassed(footerStartOffset: Int, footerSize: Int, footerBytes: Slice[Byte]) = {
     val footerReader = Reader(footerBytes)
     val formatId = footerReader.readUnsignedInt()
     if (formatId != SegmentBlock.formatId) {

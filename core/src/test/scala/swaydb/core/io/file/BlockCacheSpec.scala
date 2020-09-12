@@ -30,10 +30,9 @@ import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.io.file.BlockCache.Key
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class BlockCacheSpec extends TestBase {
 
@@ -128,7 +127,7 @@ class BlockCacheSpec extends TestBase {
     "getOrSeek" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val bytes: Sliced[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
+          val bytes: Slice[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
           val file = createRandomFileReader(bytes).file.file
 
           val blockSize = 10
@@ -195,7 +194,7 @@ class BlockCacheSpec extends TestBase {
   "randomAccess" in {
     TestCaseSweeper {
       implicit sweeper =>
-        val bytes: Sliced[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
+        val bytes: Slice[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
         val file = createRandomFileReader(bytes).file.file
         runThis(500.times, log = true) {
           val blockSize = randomIntMax(bytes.size * 2)

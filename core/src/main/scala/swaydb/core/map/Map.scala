@@ -38,7 +38,7 @@ import swaydb.core.util.IDGenerator
 import swaydb.core.util.skiplist.{SkipList, SkipListBase}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
 private[core] object Map extends LazyLogging {

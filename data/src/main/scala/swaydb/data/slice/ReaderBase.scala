@@ -30,7 +30,7 @@ import java.nio.file.Path
 import swaydb.{IO, Pair}
 import swaydb.data.util.{ByteOps, ScalaByteOps}
 import swaydb.data.util.Maybe.Maybe
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 
@@ -42,10 +42,10 @@ private[swaydb] trait ReaderBase[B] { self =>
 
   def get(): B
 
-  def read(size: Long): Sliced[B] =
+  def read(size: Long): Slice[B] =
     read(size.toInt)
 
-  def read(size: Int): Sliced[B]
+  def read(size: Int): Slice[B]
 
   def size: Long
 
@@ -59,7 +59,7 @@ private[swaydb] trait ReaderBase[B] { self =>
 
   def moveTo(position: Int): ReaderBase[B]
 
-  def readRemaining(): Sliced[B]
+  def readRemaining(): Slice[B]
 
   def isFile: Boolean
 
@@ -99,7 +99,7 @@ private[swaydb] trait ReaderBase[B] { self =>
   def readNonZeroUnsignedIntWithByteSizePair(): Pair[Int, Int] =
     Pair(readNonZeroUnsignedIntWithByteSize())
 
-  def readUnsignedIntSized(): Sliced[B] =
+  def readUnsignedIntSized(): Slice[B] =
     read(byteOps.readUnsignedInt(self))
 
   def readSignedInt(): Int =

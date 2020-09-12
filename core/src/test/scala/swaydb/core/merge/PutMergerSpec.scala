@@ -31,14 +31,14 @@ import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 class PutMergerSpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   "Merging put into any other fixed key-value" when {
     "times are in order" should {
       "always return new key-value" in {

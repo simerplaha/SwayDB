@@ -24,7 +24,7 @@
 
 package swaydb.data.order
 
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps._
 
 object KeyOrder {
@@ -36,9 +36,9 @@ object KeyOrder {
    * Documentation: http://www.swaydb.io/custom-key-ordering
    *
    */
-  val default, lexicographic: KeyOrder[Sliced[Byte]] =
-    new KeyOrder[Sliced[Byte]] {
-      def compare(a: Sliced[Byte], b: Sliced[Byte]): Int =
+  val default, lexicographic: KeyOrder[Slice[Byte]] =
+    new KeyOrder[Slice[Byte]] {
+      def compare(a: Slice[Byte], b: Slice[Byte]): Int =
         KeyOrder.defaultCompare(
           a = a,
           b = b,
@@ -46,9 +46,9 @@ object KeyOrder {
         )
     }
 
-  val lexicographicJava: KeyOrder[Sliced[java.lang.Byte]] =
-    new KeyOrder[Sliced[java.lang.Byte]] {
-      def compare(a: Sliced[java.lang.Byte], b: Sliced[java.lang.Byte]): Int =
+  val lexicographicJava: KeyOrder[Slice[java.lang.Byte]] =
+    new KeyOrder[Slice[java.lang.Byte]] {
+      def compare(a: Slice[java.lang.Byte], b: Slice[java.lang.Byte]): Int =
         KeyOrder.defaultCompareJava(
           a = a,
           b = b,
@@ -56,7 +56,7 @@ object KeyOrder {
         )
     }
 
-  @inline def defaultCompare(a: Sliced[Byte], b: Sliced[Byte], maxBytes: Int): Int = {
+  @inline def defaultCompare(a: Slice[Byte], b: Slice[Byte], maxBytes: Int): Int = {
     var i = 0
     while (i < maxBytes) {
       val aB = a.getC(i) & 0xFF
@@ -67,7 +67,7 @@ object KeyOrder {
     a.size - b.size
   }
 
-  @inline def defaultCompareJava(a: Sliced[java.lang.Byte], b: Sliced[java.lang.Byte], maxBytes: Int): Int = {
+  @inline def defaultCompareJava(a: Slice[java.lang.Byte], b: Slice[java.lang.Byte], maxBytes: Int): Int = {
     var i = 0
     while (i < maxBytes) {
       val aB = a.getC(i) & 0xFF
@@ -81,9 +81,9 @@ object KeyOrder {
   /**
    * Provides the default reverse ordering.
    */
-  val reverse: KeyOrder[Sliced[Byte]] =
-    new KeyOrder[Sliced[Byte]] {
-      def compare(a: Sliced[Byte], b: Sliced[Byte]): Int =
+  val reverse: KeyOrder[Slice[Byte]] =
+    new KeyOrder[Slice[Byte]] {
+      def compare(a: Slice[Byte], b: Slice[Byte]): Int =
         default.compare(a, b) * -1
     }
 
@@ -93,15 +93,15 @@ object KeyOrder {
         ordering.compare(x, y)
     }
 
-  val integer: KeyOrder[Sliced[Byte]] =
-    new KeyOrder[Sliced[Byte]] {
-      override def compare(x: Sliced[Byte], y: Sliced[Byte]): Int =
+  val integer: KeyOrder[Slice[Byte]] =
+    new KeyOrder[Slice[Byte]] {
+      override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readInt() compare y.readInt()
     }
 
-  val long: KeyOrder[Sliced[Byte]] =
-    new KeyOrder[Sliced[Byte]] {
-      override def compare(x: Sliced[Byte], y: Sliced[Byte]): Int =
+  val long: KeyOrder[Slice[Byte]] =
+    new KeyOrder[Slice[Byte]] {
+      override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readLong() compare y.readLong()
     }
 }

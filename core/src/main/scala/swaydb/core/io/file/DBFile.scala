@@ -35,7 +35,6 @@ import swaydb.data.Reserve
 import swaydb.data.cache.Cache
 import swaydb.data.config.{ForceSave, IOStrategy}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 import swaydb.{Error, IO}
 
 import scala.util.hashing.MurmurHash3
@@ -188,10 +187,10 @@ object DBFile extends LazyLogging {
                        deleteAfterClean: Boolean,
                        forceSave: ForceSave.MMAPFiles,
                        blockCacheFileId: Long,
-                       bytes: Iterable[Sliced[Byte]])(implicit fileSweeper: FileSweeperActor,
-                                                      blockCache: Option[BlockCache.State],
-                                                      bufferCleaner: ByteBufferSweeperActor,
-                                                      forceSaveApplier: ForceSaveApplier): DBFile = {
+                       bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeperActor,
+                                                     blockCache: Option[BlockCache.State],
+                                                     bufferCleaner: ByteBufferSweeperActor,
+                                                     forceSaveApplier: ForceSaveApplier): DBFile = {
     val totalWritten =
       bytes.foldLeft(0) { //do not write bytes if the Slice has empty bytes.
         case (written, bytes) =>
@@ -222,10 +221,10 @@ object DBFile extends LazyLogging {
                        deleteAfterClean: Boolean,
                        forceSave: ForceSave.MMAPFiles,
                        blockCacheFileId: Long,
-                       bytes: Sliced[Byte])(implicit fileSweeper: FileSweeperActor,
-                                            blockCache: Option[BlockCache.State],
-                                            bufferCleaner: ByteBufferSweeperActor,
-                                            forceSaveApplier: ForceSaveApplier): DBFile =
+                       bytes: Slice[Byte])(implicit fileSweeper: FileSweeperActor,
+                                           blockCache: Option[BlockCache.State],
+                                           bufferCleaner: ByteBufferSweeperActor,
+                                           forceSaveApplier: ForceSaveApplier): DBFile =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull) {
       throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size)
@@ -381,13 +380,13 @@ class DBFile(val path: Path,
     copiedPath
   }
 
-  def append(slice: Sliced[Byte]) =
+  def append(slice: Slice[Byte]) =
     fileCache.value(()).get.append(slice)
 
-  def append(slice: Iterable[Sliced[Byte]]) =
+  def append(slice: Iterable[Slice[Byte]]) =
     fileCache.value(()).get.append(slice)
 
-  def readBlock(position: Int): Option[Sliced[Byte]] =
+  def readBlock(position: Int): Option[Slice[Byte]] =
     blockCache map {
       blockCache =>
         read(
@@ -397,7 +396,7 @@ class DBFile(val path: Path,
         )
     }
 
-  def read(position: Int, size: Int): Sliced[Byte] =
+  def read(position: Int, size: Int): Slice[Byte] =
     if (size == 0)
       Slice.emptyBytes
     else
@@ -415,7 +414,7 @@ class DBFile(val path: Path,
 
   def read(position: Int,
            size: Int,
-           blockCache: BlockCache.State): Sliced[Byte] =
+           blockCache: BlockCache.State): Slice[Byte] =
     if (size == 0)
       Slice.emptyBytes
     else
@@ -432,7 +431,7 @@ class DBFile(val path: Path,
     else
       fileCache.value(()).get.get(position)
 
-  def readAll: Sliced[Byte] =
+  def readAll: Slice[Byte] =
     fileCache.value(()).get.readAll
 
   def fileSize: Long =

@@ -31,11 +31,11 @@ import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 class FunctionMerger_Function_Spec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   "Merging Function into function" when {
 

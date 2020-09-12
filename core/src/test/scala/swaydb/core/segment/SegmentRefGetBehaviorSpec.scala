@@ -41,17 +41,16 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Sliced[Byte]](_.key)(keyOrder))
-  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Sliced[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
 
   implicit val cacheMemorySweeper: Option[MemorySweeper.Cache] = None
   implicit val blockMemorySweeper: Option[MemorySweeper.Block] = None
@@ -62,7 +61,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
     "key is > MaxKey.Fixed" should {
       "return none" in {
         implicit val segmentSearcher = mock[SegmentSearcher]
-        implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Fixed[Sliced[Byte]](100), minKey = 0, None, null)
+        implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Fixed[Slice[Byte]](100), minKey = 0, None, null)
         SegmentRef.get(key = 101, threadState = null) shouldBe Persistent.Null
 
       }
@@ -71,7 +70,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
     "key is > MaxKey.Range" should {
       "return none" in {
         implicit val segmentSearcher = mock[SegmentSearcher]
-        implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Range[Sliced[Byte]](90, 100), minKey = 0, None, null)
+        implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Range[Slice[Byte]](90, 100), minKey = 0, None, null)
         SegmentRef.get(key = 100, threadState = null) shouldBe Persistent.Null
         SegmentRef.get(key = 101, threadState = null) shouldBe Persistent.Null
 
@@ -96,7 +95,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
           implicit val segmentRef: SegmentRef =
             new SegmentRef(
               path = path,
-              maxKey = MaxKey.Fixed[Sliced[Byte]](Int.MaxValue),
+              maxKey = MaxKey.Fixed[Slice[Byte]](Int.MaxValue),
               minKey = 0,
               skipList = None,
               segmentBlockCache = segmentBlockCache.head
@@ -106,7 +105,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
 
           threadState.getSegmentState(path).isNoneS shouldBe true
 
-          def testKeyValue(key: Sliced[Byte], indexOffset: Int, nextIndexOffset: Int) =
+          def testKeyValue(key: Slice[Byte], indexOffset: Int, nextIndexOffset: Int) =
             Persistent.Remove(
               _key =
                 eitherOne(
@@ -135,14 +134,14 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
           {
             (segmentSearcher
               .searchSequential(
-                _: Sliced[Byte],
+                _: Slice[Byte],
                 _: PersistentOption,
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Sliced[Byte]], _: KeyOrder[Persistent.Partial])
+                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
               )
               .expects(*, *, *, *, *, *)
               .onCall {
-                (key: Sliced[Byte], startFrom: PersistentOption, _, _, _, _) =>
+                (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _) =>
                   key shouldBe keyValue1.key
                   startFrom.isNoneS shouldBe true
                   keyValue1
@@ -162,14 +161,14 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
           {
             (segmentSearcher
               .searchSequential(
-                _: Sliced[Byte],
+                _: Slice[Byte],
                 _: PersistentOption,
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Sliced[Byte]], _: KeyOrder[Persistent.Partial])
+                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
               )
               .expects(*, *, *, *, *, *)
               .onCall {
-                (key: Sliced[Byte], startFrom: PersistentOption, _, _, _, _) =>
+                (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _) =>
                   key shouldBe keyValue2.key
                   startFrom shouldBe keyValue1
                   keyValue2
@@ -189,14 +188,14 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
           {
             (segmentSearcher
               .searchSequential(
-                _: Sliced[Byte],
+                _: Slice[Byte],
                 _: PersistentOption,
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Sliced[Byte]], _: KeyOrder[Persistent.Partial])
+                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
               )
               .expects(*, *, *, *, *, *)
               .onCall {
-                (key: Sliced[Byte], startFrom: PersistentOption, _, _, _, _) =>
+                (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _) =>
                   key shouldBe keyValue100.key
                   startFrom shouldBe keyValue2
                   Persistent.Null
@@ -204,7 +203,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
 
             (segmentSearcher
               .searchRandom(
-                _: Sliced[Byte],
+                _: Slice[Byte],
                 _: PersistentOption,
                 _: PersistentOption,
                 _: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
@@ -212,12 +211,12 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                 _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                 _: Boolean,
-                _: Int)(_: KeyOrder[Sliced[Byte]], _: KeyOrder[Persistent.Partial]))
+                _: Int)(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial]))
               .expects(*, *, *, *, *, *, *, *, *, *, *)
               .onCall {
                 result =>
                   result match {
-                    case (key: Sliced[Byte], startFrom: PersistentOption, _, _, _, _, _, hasRange: Boolean, keyValueCount: Function0[Int], _, _) =>
+                    case (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _, _, hasRange: Boolean, keyValueCount: Function0[Int], _, _) =>
                       key shouldBe keyValue100.key
                       startFrom shouldBe keyValue2
                       hasRange shouldBe keyValues.exists(_.isRange)
@@ -240,7 +239,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
             //101 is sequential to 100 - isSequential will be true.
             (segmentSearcher
               .searchRandom(
-                _: Sliced[Byte],
+                _: Slice[Byte],
                 _: PersistentOption,
                 _: PersistentOption,
                 _: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
@@ -248,12 +247,12 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                 _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                 _: Boolean,
-                _: Int)(_: KeyOrder[Sliced[Byte]], _: KeyOrder[Persistent.Partial]))
+                _: Int)(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial]))
               .expects(*, *, *, *, *, *, *, *, *, *, *)
               .onCall {
                 result =>
                   result match {
-                    case (key: Sliced[Byte], startFrom: PersistentOption, _, _, _, _, _, hasRange: Boolean, keyValueCount: Function0[Int], _, _) =>
+                    case (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _, _, hasRange: Boolean, keyValueCount: Function0[Int], _, _) =>
                       key shouldBe keyValue101.key
                       startFrom shouldBe keyValue100
                       hasRange shouldBe keyValues.exists(_.isRange)
@@ -275,14 +274,14 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
           {
             (segmentSearcher
               .searchSequential(
-                _: Sliced[Byte],
+                _: Slice[Byte],
                 _: PersistentOption,
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Sliced[Byte]], _: KeyOrder[Persistent.Partial])
+                _: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial])
               )
               .expects(*, *, *, *, *, *)
               .onCall {
-                (key: Sliced[Byte], startFrom: PersistentOption, _, _, _, _) =>
+                (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _) =>
                   key shouldBe keyValue3.key
                   //start from is None because cached keyValue10's key > keyValue3's key
                   startFrom.isNoneS shouldBe true
@@ -291,7 +290,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
 
             (segmentSearcher
               .searchRandom(
-                _: Sliced[Byte],
+                _: Slice[Byte],
                 _: PersistentOption,
                 _: PersistentOption,
                 _: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
@@ -299,12 +298,12 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
                 _: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                 _: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                 _: Boolean,
-                _: Int)(_: KeyOrder[Sliced[Byte]], _: KeyOrder[Persistent.Partial]))
+                _: Int)(_: KeyOrder[Slice[Byte]], _: KeyOrder[Persistent.Partial]))
               .expects(*, *, *, *, *, *, *, *, *, *, *)
               .onCall {
                 result =>
                   result match {
-                    case (key: Sliced[Byte], startFrom: PersistentOption, _, _, _, _, _, hasRange: Boolean, keyValueCount: Function0[Int], _, _) =>
+                    case (key: Slice[Byte], startFrom: PersistentOption, _, _, _, _, _, hasRange: Boolean, keyValueCount: Function0[Int], _, _) =>
                       key shouldBe keyValue3.key
                       //start from is None because cached keyValue10's key > keyValue3's key
                       startFrom.isNoneS shouldBe true

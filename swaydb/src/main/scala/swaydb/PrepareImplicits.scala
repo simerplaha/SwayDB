@@ -25,39 +25,39 @@
 package swaydb
 
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 import swaydb.serializers._
 
 private[swaydb] object PrepareImplicits {
 
   implicit def prepareToUntyped[K, V, F, R <: Apply[V]](prepare: Prepare[K, V, F])(implicit keySerializer: Serializer[K],
-                                                                                   valueSerializer: Serializer[V]): Prepare[Sliced[Byte], SliceOption[Byte], Sliced[Byte]] =
+                                                                                   valueSerializer: Serializer[V]): Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]] =
     prepare match {
       case Prepare.Put(key, value, deadline) =>
-        Prepare.Put[Sliced[Byte], SliceOption[Byte]](key, value, deadline)
+        Prepare.Put[Slice[Byte], SliceOption[Byte]](key, value, deadline)
 
       case Prepare.Remove(from, to, deadline) =>
-        Prepare.Remove[Sliced[Byte]](from, to, deadline)
+        Prepare.Remove[Slice[Byte]](from, to, deadline)
 
       case Prepare.ApplyFunction(from, to, function) =>
-        Prepare.ApplyFunction[Sliced[Byte], Sliced[Byte]](from, to, Slice.writeString[Byte](function.asInstanceOf[PureFunction[K, V, _]].id))
+        Prepare.ApplyFunction[Slice[Byte], Slice[Byte]](from, to, Slice.writeString[Byte](function.asInstanceOf[PureFunction[K, V, _]].id))
 
       case Prepare.Update(from, to, value) =>
-        Prepare.Update[Sliced[Byte], SliceOption[Byte]](from, to, value)
+        Prepare.Update[Slice[Byte], SliceOption[Byte]](from, to, value)
 
       case Prepare.Add(key, deadline) =>
-        Prepare.Add[Sliced[Byte]](key, deadline)
+        Prepare.Add[Slice[Byte]](key, deadline)
     }
 
   @inline implicit def preparesToUntyped[K, V, F, R <: Apply[V]](prepare: Iterable[Prepare[K, V, F]])(implicit keySerializer: Serializer[K],
-                                                                                                      valueSerializer: Serializer[V]): Iterable[Prepare[Sliced[Byte], SliceOption[Byte], Sliced[Byte]]] =
+                                                                                                      valueSerializer: Serializer[V]): Iterable[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
     prepare.map(batch => prepareToUntyped(batch)(keySerializer, valueSerializer))
 
   @inline implicit def preparesToUntyped[K, V, F, R <: Apply[V]](prepare: Iterator[Prepare[K, V, F]])(implicit keySerializer: Serializer[K],
-                                                                                                      valueSerializer: Serializer[V]): Iterator[Prepare[Sliced[Byte], SliceOption[Byte], Sliced[Byte]]] =
+                                                                                                      valueSerializer: Serializer[V]): Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
     prepare.map(batch => prepareToUntyped(batch)(keySerializer, valueSerializer))
 
-  @inline implicit def preparesToUnTypes[T](prepare: Iterable[Prepare[T, Nothing, Nothing]])(implicit serializer: Serializer[T]): Iterable[Prepare[Sliced[Byte], SliceOption[Byte], Sliced[Byte]]] =
+  @inline implicit def preparesToUnTypes[T](prepare: Iterable[Prepare[T, Nothing, Nothing]])(implicit serializer: Serializer[T]): Iterable[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]] =
     prepare.map(batch => prepareToUntyped(batch))
 }

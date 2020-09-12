@@ -31,28 +31,27 @@ import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Time, Value}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteOps._
 
 class MinMaxSpec extends AnyWordSpec with Matchers {
 
   "min" should {
     "return minimum of two" in {
-      MinMax.minFavourLeft(Some(1: Sliced[Byte]), Some(2: Sliced[Byte]))(KeyOrder.default) should contain(1: Sliced[Byte])
-      MinMax.minFavourLeft(Some(2: Sliced[Byte]), Some(1: Sliced[Byte]))(KeyOrder.default) should contain(1: Sliced[Byte])
+      MinMax.minFavourLeft(Some(1: Slice[Byte]), Some(2: Slice[Byte]))(KeyOrder.default) should contain(1: Slice[Byte])
+      MinMax.minFavourLeft(Some(2: Slice[Byte]), Some(1: Slice[Byte]))(KeyOrder.default) should contain(1: Slice[Byte])
 
-      MinMax.minFavourLeft(Some(Int.MinValue: Sliced[Byte]), Some(Int.MaxValue: Sliced[Byte]))(Ordering.Int.on[Sliced[Byte]](_.readInt())) should contain(Int.MinValue: Sliced[Byte])
-      MinMax.minFavourLeft(Some(Int.MaxValue: Sliced[Byte]), Some(Int.MinValue: Sliced[Byte]))(Ordering.Int.on[Sliced[Byte]](_.readInt())) should contain(Int.MinValue: Sliced[Byte])
+      MinMax.minFavourLeft(Some(Int.MinValue: Slice[Byte]), Some(Int.MaxValue: Slice[Byte]))(Ordering.Int.on[Slice[Byte]](_.readInt())) should contain(Int.MinValue: Slice[Byte])
+      MinMax.minFavourLeft(Some(Int.MaxValue: Slice[Byte]), Some(Int.MinValue: Slice[Byte]))(Ordering.Int.on[Slice[Byte]](_.readInt())) should contain(Int.MinValue: Slice[Byte])
 
-      MinMax.minFavourLeft(Some(Long.MinValue: Sliced[Byte]), Some(Long.MaxValue: Sliced[Byte]))(Ordering.Long.on[Sliced[Byte]](_.readLong())) should contain(Long.MinValue: Sliced[Byte])
-      MinMax.minFavourLeft(Some(Long.MaxValue: Sliced[Byte]), Some(Long.MinValue: Sliced[Byte]))(Ordering.Long.on[Sliced[Byte]](_.readLong())) should contain(Long.MinValue: Sliced[Byte])
+      MinMax.minFavourLeft(Some(Long.MinValue: Slice[Byte]), Some(Long.MaxValue: Slice[Byte]))(Ordering.Long.on[Slice[Byte]](_.readLong())) should contain(Long.MinValue: Slice[Byte])
+      MinMax.minFavourLeft(Some(Long.MaxValue: Slice[Byte]), Some(Long.MinValue: Slice[Byte]))(Ordering.Long.on[Slice[Byte]](_.readLong())) should contain(Long.MinValue: Slice[Byte])
 
       MinMax.minFavourLeft(Some(Int.MinValue), Some(Int.MaxValue))(Ordering.Int) should contain(Int.MinValue)
       MinMax.minFavourLeft(Some(Int.MaxValue), Some(Int.MinValue))(Ordering.Int) should contain(Int.MinValue)
@@ -62,7 +61,7 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
       val left = (Slice.writeInt[Byte](1) ++ Slice.writeInt[Byte](2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
-      val min = MinMax.minFavourLeft(Some(left), Some(1: Sliced[Byte]))(KeyOrder.default).value
+      val min = MinMax.minFavourLeft(Some(left), Some(1: Slice[Byte]))(KeyOrder.default).value
 
       min shouldBe left
       min.underlyingArraySize shouldBe left.underlyingArraySize
@@ -95,14 +94,14 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
 
   "max" should {
     "return maximum of two" in {
-      MinMax.maxFavourLeft(Some(1L: Sliced[Byte]), Some(2L: Sliced[Byte]))(KeyOrder.default) should contain(2L: Sliced[Byte])
-      MinMax.maxFavourLeft(Some(2L: Sliced[Byte]), Some(1L: Sliced[Byte]))(KeyOrder.default) should contain(2L: Sliced[Byte])
+      MinMax.maxFavourLeft(Some(1L: Slice[Byte]), Some(2L: Slice[Byte]))(KeyOrder.default) should contain(2L: Slice[Byte])
+      MinMax.maxFavourLeft(Some(2L: Slice[Byte]), Some(1L: Slice[Byte]))(KeyOrder.default) should contain(2L: Slice[Byte])
 
-      MinMax.maxFavourLeft(Some(Long.MinValue: Sliced[Byte]), Some(Long.MaxValue: Sliced[Byte]))(Ordering.Long.on[Sliced[Byte]](_.readLong())) should contain(Long.MaxValue: Sliced[Byte])
-      MinMax.maxFavourLeft(Some(Long.MaxValue: Sliced[Byte]), Some(Long.MinValue: Sliced[Byte]))(Ordering.Long.on[Sliced[Byte]](_.readLong())) should contain(Long.MaxValue: Sliced[Byte])
+      MinMax.maxFavourLeft(Some(Long.MinValue: Slice[Byte]), Some(Long.MaxValue: Slice[Byte]))(Ordering.Long.on[Slice[Byte]](_.readLong())) should contain(Long.MaxValue: Slice[Byte])
+      MinMax.maxFavourLeft(Some(Long.MaxValue: Slice[Byte]), Some(Long.MinValue: Slice[Byte]))(Ordering.Long.on[Slice[Byte]](_.readLong())) should contain(Long.MaxValue: Slice[Byte])
 
-      MinMax.maxFavourLeft(Some(Long.MinValue: Sliced[Byte]), Some(Long.MaxValue: Sliced[Byte]))(Ordering.Long.on[Sliced[Byte]](_.readLong())) should contain(Long.MaxValue: Sliced[Byte])
-      MinMax.maxFavourLeft(Some(Long.MaxValue: Sliced[Byte]), Some(Long.MinValue: Sliced[Byte]))(Ordering.Long.on[Sliced[Byte]](_.readLong())) should contain(Long.MaxValue: Sliced[Byte])
+      MinMax.maxFavourLeft(Some(Long.MinValue: Slice[Byte]), Some(Long.MaxValue: Slice[Byte]))(Ordering.Long.on[Slice[Byte]](_.readLong())) should contain(Long.MaxValue: Slice[Byte])
+      MinMax.maxFavourLeft(Some(Long.MaxValue: Slice[Byte]), Some(Long.MinValue: Slice[Byte]))(Ordering.Long.on[Slice[Byte]](_.readLong())) should contain(Long.MaxValue: Slice[Byte])
 
       MinMax.maxFavourLeft(Some(Long.MinValue), Some(Long.MaxValue))(Ordering.Long) should contain(Long.MaxValue)
       MinMax.maxFavourLeft(Some(Long.MaxValue), Some(Long.MinValue))(Ordering.Long) should contain(Long.MaxValue)
@@ -112,7 +111,7 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
       val left = (Slice.writeInt[Byte](1) ++ Slice.writeInt[Byte](2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
-      val max = MinMax.maxFavourLeft(Some(left), Some(1: Sliced[Byte]))(KeyOrder.default).value
+      val max = MinMax.maxFavourLeft(Some(left), Some(1: Slice[Byte]))(KeyOrder.default).value
 
       max shouldBe left
       max.underlyingArraySize shouldBe left.underlyingArraySize
@@ -184,77 +183,77 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
       MinMax.minMaxFunction(
         function = Some(Value.Function(0, Time.empty): Value),
         current = None
-      ) should contain(MinMax(0: Sliced[Byte], None))
+      ) should contain(MinMax(0: Slice[Byte], None))
 
       //0
       //  1
       MinMax.minMaxFunction(
         function = Some(Value.Function(0, Time.empty): Value),
-        current = Some(MinMax(1: Sliced[Byte], None))
-      ) should contain(MinMax(0: Sliced[Byte], Some(1: Sliced[Byte])))
+        current = Some(MinMax(1: Slice[Byte], None))
+      ) should contain(MinMax(0: Slice[Byte], Some(1: Slice[Byte])))
 
       //0
       //  1 - 1
       MinMax.minMaxFunction(
         function = Some(Value.Function(0, Time.empty): Value),
-        current = Some(MinMax(1: Sliced[Byte], Some(1: Sliced[Byte])))
-      ) should contain(MinMax(0: Sliced[Byte], Some(1: Sliced[Byte])))
+        current = Some(MinMax(1: Slice[Byte], Some(1: Slice[Byte])))
+      ) should contain(MinMax(0: Slice[Byte], Some(1: Slice[Byte])))
 
       //0
       //  1 - 3
       MinMax.minMaxFunction(
         function = Some(Value.Function(0, Time.empty): Value),
-        current = Some(MinMax(1: Sliced[Byte], Some(3: Sliced[Byte])))
-      ) should contain(MinMax(0: Sliced[Byte], Some(3: Sliced[Byte])))
+        current = Some(MinMax(1: Slice[Byte], Some(3: Slice[Byte])))
+      ) should contain(MinMax(0: Slice[Byte], Some(3: Slice[Byte])))
 
       //  1
       //  None
       MinMax.minMaxFunction(
         function = Some(Value.Function(1, Time.empty): Value),
         current = None
-      ) should contain(MinMax(1: Sliced[Byte], None))
+      ) should contain(MinMax(1: Slice[Byte], None))
 
       //  1
       //  1
       MinMax.minMaxFunction(
         function = Some(Value.Function(1, Time.empty): Value),
-        current = Some(MinMax(1: Sliced[Byte], None))
-      ) should contain(MinMax(1: Sliced[Byte], None))
+        current = Some(MinMax(1: Slice[Byte], None))
+      ) should contain(MinMax(1: Slice[Byte], None))
 
       //  1
       //  1 - 1
       MinMax.minMaxFunction(
         function = Some(Value.Function(1, Time.empty): Value),
-        current = Some(MinMax(1: Sliced[Byte], Some(1: Sliced[Byte])))
-      ) should contain(MinMax(1: Sliced[Byte], Some(1: Sliced[Byte])))
+        current = Some(MinMax(1: Slice[Byte], Some(1: Slice[Byte])))
+      ) should contain(MinMax(1: Slice[Byte], Some(1: Slice[Byte])))
 
       //  1
       //  1 - 3
       MinMax.minMaxFunction(
         function = Some(Value.Function(1, Time.empty): Value),
-        current = Some(MinMax(1: Sliced[Byte], Some(3: Sliced[Byte])))
-      ) should contain(MinMax(1: Sliced[Byte], Some(3: Sliced[Byte])))
+        current = Some(MinMax(1: Slice[Byte], Some(3: Slice[Byte])))
+      ) should contain(MinMax(1: Slice[Byte], Some(3: Slice[Byte])))
 
       //    2
       //  1 - 3
       MinMax.minMaxFunction(
         function = Some(Value.Function(2, Time.empty): Value),
-        current = Some(MinMax(1: Sliced[Byte], Some(3: Sliced[Byte])))
-      ) should contain(MinMax(1: Sliced[Byte], Some(3: Sliced[Byte])))
+        current = Some(MinMax(1: Slice[Byte], Some(3: Slice[Byte])))
+      ) should contain(MinMax(1: Slice[Byte], Some(3: Slice[Byte])))
 
       //      3
       //  1 - 3
       MinMax.minMaxFunction(
         function = Some(Value.Function(3, Time.empty): Value),
-        current = Some(MinMax(1: Sliced[Byte], Some(3: Sliced[Byte])))
-      ) should contain(MinMax(1: Sliced[Byte], Some(3: Sliced[Byte])))
+        current = Some(MinMax(1: Slice[Byte], Some(3: Slice[Byte])))
+      ) should contain(MinMax(1: Slice[Byte], Some(3: Slice[Byte])))
 
       //        4
       //  1 - 3
       MinMax.minMaxFunction(
         function = Some(Value.Function(4, Time.empty): Value),
-        current = Some(MinMax(1: Sliced[Byte], Some(3: Sliced[Byte])))
-      ) should contain(MinMax(1: Sliced[Byte], Some(4: Sliced[Byte])))
+        current = Some(MinMax(1: Slice[Byte], Some(3: Slice[Byte])))
+      ) should contain(MinMax(1: Slice[Byte], Some(4: Slice[Byte])))
     }
   }
 
@@ -280,7 +279,7 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
           )
         )
 
-      MinMax.minMaxFunction(values, None) should contain(MinMax(1: Sliced[Byte], Some(3: Sliced[Byte])))
+      MinMax.minMaxFunction(values, None) should contain(MinMax(1: Slice[Byte], Some(3: Slice[Byte])))
     }
   }
 

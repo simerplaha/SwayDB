@@ -29,7 +29,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps._
 import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
 
@@ -430,13 +430,13 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "None ++ Some(Slice[T](...))" in {
-    val merged: Iterable[Sliced[Int]] = Some(Slice[Int](1, 2, 3)) ++ None
+    val merged: Iterable[Slice[Int]] = Some(Slice[Int](1, 2, 3)) ++ None
     merged.flatten
       .toList should contain inOrderOnly(1, 2, 3)
   }
 
   "++ empty slices" in {
-    val merged: Sliced[Int] = Slice.empty[Int] ++ Slice.empty[Int]
+    val merged: Slice[Int] = Slice.empty[Int] ++ Slice.empty[Int]
     merged shouldBe empty
     merged.size shouldBe 0
     merged.isEmpty shouldBe true
@@ -444,7 +444,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "++ empty and non empty slices" in {
-    val merged: Sliced[Int] = Slice.empty[Int] ++ Slice(1)
+    val merged: Slice[Int] = Slice.empty[Int] ++ Slice(1)
     merged should contain only 1
     merged.size shouldBe 1
     merged.isEmpty shouldBe false
@@ -452,7 +452,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "++ non empty and empty slices" in {
-    val merged: Sliced[Int] = Slice(1) ++ Slice.empty[Int]
+    val merged: Slice[Int] = Slice(1) ++ Slice.empty[Int]
     merged should contain only 1
     merged.size shouldBe 1
     merged.isEmpty shouldBe false
@@ -460,18 +460,18 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "++ non empty" in {
-    val merged: Sliced[Int] = Slice(1, 2, 3) ++ Slice(4, 5, 6)
+    val merged: Slice[Int] = Slice(1, 2, 3) ++ Slice(4, 5, 6)
     merged.isEmpty shouldBe false
     merged.isFull shouldBe true
     merged.toList should contain inOrderOnly(1, 2, 3, 4, 5, 6)
   }
 
   "within" when {
-    implicit def toSlice(int: Int): Sliced[Byte] = Slice.writeInt[Byte](int)
+    implicit def toSlice(int: Int): Slice[Byte] = Slice.writeInt[Byte](int)
 
-    implicit def toSliceMaxKey(int: MaxKey.Fixed[Int]): MaxKey[Sliced[Byte]] = MaxKey.Fixed(Slice.writeInt[Byte](int.maxKey))
+    implicit def toSliceMaxKey(int: MaxKey.Fixed[Int]): MaxKey[Slice[Byte]] = MaxKey.Fixed(Slice.writeInt[Byte](int.maxKey))
 
-    implicit def toSliceMaxKeyRange(int: MaxKey.Range[Int]): MaxKey[Sliced[Byte]] = MaxKey.Range(Slice.writeInt[Byte](int.fromKey), Slice.writeInt[Byte](int.maxKey))
+    implicit def toSliceMaxKeyRange(int: MaxKey.Range[Int]): MaxKey[Slice[Byte]] = MaxKey.Range(Slice.writeInt[Byte](int.fromKey), Slice.writeInt[Byte](int.maxKey))
 
     "max key is Fixed" in {
       //0

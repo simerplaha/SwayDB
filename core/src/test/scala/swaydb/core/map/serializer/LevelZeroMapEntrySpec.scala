@@ -38,7 +38,7 @@ import swaydb.core.util.skiplist.SkipList
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
@@ -57,26 +57,26 @@ class LevelZeroMapEntrySpec extends TestBase {
         val put = Memory.put(1, randomStringOption, randomDeadlineOption)
 
         import LevelZeroMapEntryWriter.Level0PutWriter
-        val addEntry = MapEntry.Put[Sliced[Byte], Memory.Put](1, put)
+        val addEntry = MapEntry.Put[Slice[Byte], Memory.Put](1, put)
 
         val slice = Slice.create[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroMapEntryReader.Level0PutReader
-        MapEntryReader.read[MapEntry.Put[Sliced[Byte], Memory.Put]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Put]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroMapEntryReader.Level0Reader
-        val readEntry = MapEntryReader.read[MapEntry[Sliced[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
-        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
         scalaSkipList should have size 1
         val (headKey, headValue) = scalaSkipList.head
-        headKey shouldBe (1: Sliced[Byte])
+        headKey shouldBe (1: Slice[Byte])
         headValue shouldBe put
       }
     }
@@ -86,26 +86,26 @@ class LevelZeroMapEntrySpec extends TestBase {
         val remove = Memory.remove(1, randomDeadlineOption)
 
         import LevelZeroMapEntryWriter.Level0RemoveWriter
-        val entry = MapEntry.Put[Sliced[Byte], Memory.Remove](1, remove)
+        val entry = MapEntry.Put[Slice[Byte], Memory.Remove](1, remove)
 
         val slice = Slice.create[Byte](entry.entryBytesSize)
         entry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroMapEntryReader.Level0RemoveReader
-        MapEntryReader.read[MapEntry.Put[Sliced[Byte], Memory.Remove]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
+        MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Remove]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
 
         import LevelZeroMapEntryReader.Level0Reader
-        val readEntry = MapEntryReader.read[MapEntry[Sliced[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
         readEntry shouldBe entry
 
-        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
         scalaSkipList should have size 1
         val (headKey, headValue) = scalaSkipList.head
-        headKey shouldBe (1: Sliced[Byte])
+        headKey shouldBe (1: Slice[Byte])
         headValue shouldBe remove
       }
     }
@@ -115,26 +115,26 @@ class LevelZeroMapEntrySpec extends TestBase {
         val update = Memory.update(1, randomStringOption, randomDeadlineOption)
 
         import LevelZeroMapEntryWriter.Level0UpdateWriter
-        val addEntry = MapEntry.Put[Sliced[Byte], Memory.Update](1, update)
+        val addEntry = MapEntry.Put[Slice[Byte], Memory.Update](1, update)
 
         val slice = Slice.create[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroMapEntryReader.Level0UpdateReader
-        MapEntryReader.read[MapEntry.Put[Sliced[Byte], Memory.Update]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Update]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroMapEntryReader.Level0Reader
-        val readEntry = MapEntryReader.read[MapEntry[Sliced[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
-        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
         scalaSkipList should have size 1
         val (headKey, headValue) = scalaSkipList.head
-        headKey shouldBe (1: Sliced[Byte])
+        headKey shouldBe (1: Slice[Byte])
         headValue shouldBe update
       }
     }
@@ -144,26 +144,26 @@ class LevelZeroMapEntrySpec extends TestBase {
         val function = randomFunctionKeyValue(1)
 
         import LevelZeroMapEntryWriter.Level0FunctionWriter
-        val addEntry = MapEntry.Put[Sliced[Byte], Memory.Function](1, function)
+        val addEntry = MapEntry.Put[Slice[Byte], Memory.Function](1, function)
 
         val slice = Slice.create[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroMapEntryReader.Level0FunctionReader
-        MapEntryReader.read[MapEntry.Put[Sliced[Byte], Memory.Function]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Function]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroMapEntryReader.Level0Reader
-        val readEntry = MapEntryReader.read[MapEntry[Sliced[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
-        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
         scalaSkipList should have size 1
         val (headKey, headValue) = scalaSkipList.head
-        headKey shouldBe (1: Sliced[Byte])
+        headKey shouldBe (1: Slice[Byte])
         headValue shouldBe function
       }
     }
@@ -174,26 +174,26 @@ class LevelZeroMapEntrySpec extends TestBase {
       runThis(100.times) {
         val inputRange = randomRangeKeyValue(0, 1)
 
-        val entry = MapEntry.Put[Sliced[Byte], Memory.Range](0, inputRange)
+        val entry = MapEntry.Put[Slice[Byte], Memory.Range](0, inputRange)
 
         val slice = Slice.create[Byte](entry.entryBytesSize)
         entry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroMapEntryReader.Level0RangeReader
-        MapEntryReader.read[MapEntry.Put[Sliced[Byte], Memory.Range]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
+        MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Range]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe entry
 
         import LevelZeroMapEntryReader.Level0Reader
-        val readEntry = MapEntryReader.read[MapEntry[Sliced[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
         readEntry shouldBe entry
 
-        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
         scalaSkipList should have size 1
         val (headKey, headValue) = scalaSkipList.head
-        headKey shouldBe (0: Sliced[Byte])
+        headKey shouldBe (0: Slice[Byte])
         headValue shouldBe inputRange
       }
     }
@@ -203,26 +203,26 @@ class LevelZeroMapEntrySpec extends TestBase {
         val pendingApply = randomPendingApplyKeyValue(1)
 
         import LevelZeroMapEntryWriter.Level0PendingApplyWriter
-        val addEntry = MapEntry.Put[Sliced[Byte], Memory.PendingApply](1, pendingApply)
+        val addEntry = MapEntry.Put[Slice[Byte], Memory.PendingApply](1, pendingApply)
 
         val slice = Slice.create[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroMapEntryReader.Level0PendingApplyReader
-        MapEntryReader.read[MapEntry.Put[Sliced[Byte], Memory.PendingApply]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
+        MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.PendingApply]](Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroMapEntryReader.Level0Reader
-        val readEntry = MapEntryReader.read[MapEntry[Sliced[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
-        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
         scalaSkipList should have size 1
         val (headKey, headValue) = scalaSkipList.head
-        headKey shouldBe (1: Sliced[Byte])
+        headKey shouldBe (1: Slice[Byte])
         headValue shouldBe pendingApply
       }
     }
@@ -249,31 +249,31 @@ class LevelZeroMapEntrySpec extends TestBase {
         val range5 = randomRangeKeyValue(10, 11)
         val range6 = randomRangeKeyValue(11, 12)
 
-        val entry: MapEntry[Sliced[Byte], Memory] =
-          (MapEntry.Put[Sliced[Byte], Memory.Put](1, put1): MapEntry[Sliced[Byte], Memory]) ++
-            MapEntry.Put[Sliced[Byte], Memory.Put](2, put2) ++
-            MapEntry.Put[Sliced[Byte], Memory.Remove](1, remove1) ++
-            MapEntry.Put[Sliced[Byte], Memory.Put](3, put3) ++
-            MapEntry.Put[Sliced[Byte], Memory.Remove](2, remove2) ++
-            MapEntry.Put[Sliced[Byte], Memory.Put](4, put4) ++
-            MapEntry.Put[Sliced[Byte], Memory.Put](5, put5) ++
-            MapEntry.Put[Sliced[Byte], Memory.Update](3, update1) ++
-            MapEntry.Put[Sliced[Byte], Memory.Range](6, range1) ++
-            MapEntry.Put[Sliced[Byte], Memory.Range](7, range2) ++
-            MapEntry.Put[Sliced[Byte], Memory.Range](8, range3) ++
-            MapEntry.Put[Sliced[Byte], Memory.Range](9, range4) ++
-            MapEntry.Put[Sliced[Byte], Memory.Range](10, range5) ++
-            MapEntry.Put[Sliced[Byte], Memory.Range](11, range6)
+        val entry: MapEntry[Slice[Byte], Memory] =
+          (MapEntry.Put[Slice[Byte], Memory.Put](1, put1): MapEntry[Slice[Byte], Memory]) ++
+            MapEntry.Put[Slice[Byte], Memory.Put](2, put2) ++
+            MapEntry.Put[Slice[Byte], Memory.Remove](1, remove1) ++
+            MapEntry.Put[Slice[Byte], Memory.Put](3, put3) ++
+            MapEntry.Put[Slice[Byte], Memory.Remove](2, remove2) ++
+            MapEntry.Put[Slice[Byte], Memory.Put](4, put4) ++
+            MapEntry.Put[Slice[Byte], Memory.Put](5, put5) ++
+            MapEntry.Put[Slice[Byte], Memory.Update](3, update1) ++
+            MapEntry.Put[Slice[Byte], Memory.Range](6, range1) ++
+            MapEntry.Put[Slice[Byte], Memory.Range](7, range2) ++
+            MapEntry.Put[Slice[Byte], Memory.Range](8, range3) ++
+            MapEntry.Put[Slice[Byte], Memory.Range](9, range4) ++
+            MapEntry.Put[Slice[Byte], Memory.Range](10, range5) ++
+            MapEntry.Put[Slice[Byte], Memory.Range](11, range6)
 
         val slice = Slice.create[Byte](entry.entryBytesSize)
         entry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
         import LevelZeroMapEntryReader.Level0Reader
-        val readEntry = MapEntryReader.read[MapEntry[Sliced[Byte], Memory]](Reader(slice)).runRandomIO.right.value
+        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
         readEntry shouldBe entry
 
-        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         readEntry applyTo skipList
         def scalaSkipList = skipList.asScala
         assertSkipList()
@@ -294,8 +294,8 @@ class LevelZeroMapEntrySpec extends TestBase {
         }
         //write skip list to bytes should result in the same skip list as before
         import LevelZeroMapEntryWriter.Level0MapEntryPutWriter
-        val bytes = MapCodec.write[Sliced[Byte], Memory](skipList)
-        val recoveryResult = MapCodec.read[Sliced[Byte], Memory](bytes, false).runRandomIO.right.value
+        val bytes = MapCodec.write[Slice[Byte], Memory](skipList)
+        val recoveryResult = MapCodec.read[Slice[Byte], Memory](bytes, false).runRandomIO.right.value
         recoveryResult.result shouldBe IO.unit
 
         val readEntries = recoveryResult.item.value

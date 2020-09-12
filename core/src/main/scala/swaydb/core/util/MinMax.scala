@@ -28,7 +28,6 @@ import swaydb.core.data.Value.{FromValue, FromValueOption}
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 
 import swaydb.data.util.{SomeOrNone, SomeOrNoneCovariant}
@@ -37,8 +36,8 @@ import scala.annotation.tailrec
 
 private[core] object MinMax {
 
-  implicit class MinMaxByteImplicits(minMax: MinMax[Sliced[Byte]]) {
-    def unslice(): MinMax[Sliced[Byte]] =
+  implicit class MinMaxByteImplicits(minMax: MinMax[Slice[Byte]]) {
+    def unslice(): MinMax[Slice[Byte]] =
       MinMax(
         min = minMax.min.unslice(),
         max = minMax.max.unslice()
@@ -165,7 +164,7 @@ private[core] object MinMax {
     }
 
   def minMaxFunction(function: Option[Value],
-                     current: Option[MinMax[Sliced[Byte]]]): Option[MinMax[Sliced[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     function flatMap {
       function =>
         minMaxFunction(
@@ -175,7 +174,7 @@ private[core] object MinMax {
     } orElse current
 
   def minMaxFunction(function: Value,
-                     current: Option[MinMax[Sliced[Byte]]]): Option[MinMax[Sliced[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     function match {
       case _: Value.Remove | _: Value.Update | _: Value.Put =>
         current
@@ -196,28 +195,28 @@ private[core] object MinMax {
     }
 
   def minMaxFunction(function: Value.Function,
-                     current: Option[MinMax[Sliced[Byte]]]): MinMax[Sliced[Byte]] =
+                     current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
     minMax(
       current = current,
       next = function.function
     )(FunctionStore.order)
 
   def minMaxFunction(function: Memory.Function,
-                     current: Option[MinMax[Sliced[Byte]]]): MinMax[Sliced[Byte]] =
+                     current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
     minMax(
       current = current,
       next = function.function
     )(FunctionStore.order)
 
   def minMaxFunction(function: KeyValue.Function,
-                     current: Option[MinMax[Sliced[Byte]]]): MinMax[Sliced[Byte]] =
+                     current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
     minMax(
       current = current,
       next = function.getOrFetchFunction
     )(FunctionStore.order)
 
   def minMaxFunction(range: Memory.Range,
-                     current: Option[MinMax[Sliced[Byte]]]): Option[MinMax[Sliced[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     minMaxFunction(
       fromValue = range.fromValue,
       rangeValue = range.rangeValue,
@@ -226,7 +225,7 @@ private[core] object MinMax {
 
   def minMaxFunction(fromValue: FromValueOption,
                      rangeValue: Value.RangeValue,
-                     current: Option[MinMax[Sliced[Byte]]]): Option[MinMax[Sliced[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     minMaxFunction(
       function = rangeValue,
       current =
@@ -243,7 +242,7 @@ private[core] object MinMax {
     )
 
   def minMaxFunction(range: KeyValue.Range,
-                     current: Option[MinMax[Sliced[Byte]]]): Option[MinMax[Sliced[Byte]]] = {
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] = {
     val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe
     minMaxFunction(
       fromValue = fromValue,
@@ -253,8 +252,8 @@ private[core] object MinMax {
   }
 
   @tailrec
-  def minMaxFunction(functions: Sliced[Value],
-                     current: Option[MinMax[Sliced[Byte]]]): Option[MinMax[Sliced[Byte]]] =
+  def minMaxFunction(functions: Slice[Value],
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     functions.headOption match {
       case Some(function) =>
         minMaxFunction(

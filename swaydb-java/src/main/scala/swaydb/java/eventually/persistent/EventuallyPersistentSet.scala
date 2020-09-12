@@ -36,7 +36,7 @@ import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.java._
@@ -78,7 +78,7 @@ object EventuallyPersistentSet {
                            private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                           private var byteComparator: KeyComparator[Sliced[java.lang.Byte]] = null,
+                           private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[A] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
                            private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set))(implicit functionClassTag: ClassTag[F],
@@ -201,7 +201,7 @@ object EventuallyPersistentSet {
       this
     }
 
-    def setByteKeyComparator(byteComparator: KeyComparator[Sliced[java.lang.Byte]]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[Slice[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -222,14 +222,14 @@ object EventuallyPersistentSet {
     }
 
     def get(): swaydb.java.Set[A, F] = {
-      val comparator: Either[KeyComparator[Sliced[java.lang.Byte]], KeyComparator[A]] =
+      val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[A]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,
           default = KeyComparator.lexicographic
         )
 
-      val scalaKeyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
+      val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
       val scalaMap =
         swaydb.eventually.persistent.Set[A, PureFunction.Set[A], Bag.Less](

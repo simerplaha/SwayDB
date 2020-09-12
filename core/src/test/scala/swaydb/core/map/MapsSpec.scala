@@ -41,7 +41,7 @@ import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
@@ -56,7 +56,7 @@ class MapsSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
 
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   implicit def testTimer: TestTimer = TestTimer.Empty
 
@@ -73,8 +73,8 @@ class MapsSpec extends TestBase {
             import sweeper._
 
             val path = createRandomDir
-            val maps: Maps[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+            val maps: Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -86,7 +86,7 @@ class MapsSpec extends TestBase {
 
             maps.write(_ => MapEntry.Put(1, Memory.put(1)))
             maps.write(_ => MapEntry.Put(2, Memory.put(2)))
-            maps.write(_ => MapEntry.Put[Sliced[Byte], Memory.Remove](1, Memory.remove(1)))
+            maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1)))
 
             maps.get(1) shouldBe Memory.remove(1)
             maps.get(2) shouldBe Memory.put(2)
@@ -100,7 +100,7 @@ class MapsSpec extends TestBase {
 
             //reopen and it should contain the same entries as above and old map should value delete
             val reopen =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -133,7 +133,7 @@ class MapsSpec extends TestBase {
             import sweeper._
             val path = createRandomDir
             val maps =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -149,12 +149,12 @@ class MapsSpec extends TestBase {
             }
 
             maps.queuedMapsCountWithCurrent shouldBe 1
-            val currentMapsPath = maps.map.asInstanceOf[PersistentMap[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]].path
+            val currentMapsPath = maps.map.asInstanceOf[PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]].path
             //above creates a map without any entries
 
             //reopen should create a new map, delete the previous maps current map as it's empty
             val reopen =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -181,8 +181,8 @@ class MapsSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
-          val map: Maps[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] =
-            Maps.memory[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+          val map: Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
+            Maps.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               fileSize = 1.mb,
@@ -191,7 +191,7 @@ class MapsSpec extends TestBase {
 
           map.write(_ => MapEntry.Put(1, Memory.put(1)))
           map.write(_ => MapEntry.Put(2, Memory.put(2)))
-          map.write(_ => MapEntry.Put[Sliced[Byte], Memory](1, Memory.remove(1)))
+          map.write(_ => MapEntry.Put[Slice[Byte], Memory](1, Memory.remove(1)))
 
           map.get(1) shouldBe Memory.remove(1)
           map.get(2) shouldBe Memory.put(2)
@@ -204,13 +204,13 @@ class MapsSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
-          def test(maps: Maps[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]) = {
+          def test(maps: Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) = {
             maps.write(_ => MapEntry.Put(1, Memory.put(1))) //entry size is 21.bytes
-            maps.write(_ => MapEntry.Put(2: Sliced[Byte], Memory.Range(2, 2, Value.FromValue.Null, Value.update(2)))) //another 31.bytes
+            maps.write(_ => MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, Value.FromValue.Null, Value.update(2)))) //another 31.bytes
             maps.queuedMapsCountWithCurrent shouldBe 1
             //another 32.bytes but map has total size of 82.bytes.
             //now since the Map is overflow a new should value created.
-            maps.write(_ => MapEntry.Put[Sliced[Byte], Memory](3, Memory.remove(3)))
+            maps.write(_ => MapEntry.Put[Slice[Byte], Memory](3, Memory.remove(3)))
             maps.queuedMapsCount shouldBe 1
             maps.queuedMapsCountWithCurrent shouldBe 2
           }
@@ -218,7 +218,7 @@ class MapsSpec extends TestBase {
           //persistent
           val path = createRandomDir
           val maps =
-            Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+            Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               path = path,
@@ -244,7 +244,7 @@ class MapsSpec extends TestBase {
             import sweeper._
             val largeValue = randomBytesSlice(1.mb)
 
-            def test(maps: Maps[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): Maps[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] = {
+            def test(maps: Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
               //adding 1.mb key-value to map, the file size is 500.bytes, since this is the first entry in the map and the map is empty,
               // the entry will value added.
               maps.write(_ => MapEntry.Put(1, Memory.put(1, largeValue))) //large entry
@@ -258,7 +258,7 @@ class MapsSpec extends TestBase {
               maps.queuedMapsCountWithCurrent shouldBe 2
 
               //a small entry of 24.bytes gets written to the same Map since the total size is 500.bytes
-              maps.write(_ => MapEntry.Put[Sliced[Byte], Memory.Remove](3, Memory.remove(3)))
+              maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](3, Memory.remove(3)))
               maps.get(3) shouldBe Memory.remove(3)
               maps.queuedMapsCount shouldBe 1
               maps.queuedMapsCountWithCurrent shouldBe 2
@@ -270,7 +270,7 @@ class MapsSpec extends TestBase {
               maps.queuedMapsCountWithCurrent shouldBe 3
 
               //now again the map is overflown. Adding any other entry will create a new map
-              maps.write(_ => MapEntry.Put[Sliced[Byte], Memory](4, Memory.remove(4)))
+              maps.write(_ => MapEntry.Put[Slice[Byte], Memory](4, Memory.remove(4)))
               maps.queuedMapsCount shouldBe 3
               maps.queuedMapsCountWithCurrent shouldBe 4
               maps
@@ -281,7 +281,7 @@ class MapsSpec extends TestBase {
 
             val originalMaps =
               test(
-                Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+                Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                   nullKey = Slice.Null,
                   nullValue = Memory.Null,
                   path = path,
@@ -302,7 +302,7 @@ class MapsSpec extends TestBase {
 
             //reopen start in recovery mode and existing maps are cached
             val maps =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -330,7 +330,7 @@ class MapsSpec extends TestBase {
 
             val path = createRandomDir
             val maps =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -341,9 +341,9 @@ class MapsSpec extends TestBase {
               ).value
 
             maps.write(_ => MapEntry.Put(1, Memory.put(1)))
-            maps.write(_ => MapEntry.Put[Sliced[Byte], Memory.Remove](2, Memory.remove(2)))
+            maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2)))
             maps.write(_ => MapEntry.Put(3, Memory.put(3)))
-            maps.write(_ => MapEntry.Put[Sliced[Byte], Memory.Remove](4, Memory.remove(2)))
+            maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](4, Memory.remove(2)))
             maps.write(_ => MapEntry.Put(5, Memory.put(5)))
 
             maps.queuedMapsCountWithCurrent shouldBe 5
@@ -357,7 +357,7 @@ class MapsSpec extends TestBase {
             }
 
             val recovered1 =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -369,7 +369,7 @@ class MapsSpec extends TestBase {
 
             recovered1.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
             recovered1.map.pathOption.value.folderId shouldBe 5
-            recovered1.write(_ => MapEntry.Put[Sliced[Byte], Memory.Remove](6, Memory.remove(6)))
+            recovered1.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
             recovered1.lastOption().value.pathOption.value.folderId shouldBe 0
 
             if (recovered1.mmap.hasMMAP && OperatingSystem.isWindows) {
@@ -378,7 +378,7 @@ class MapsSpec extends TestBase {
             }
 
             val recovered2 =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -403,7 +403,7 @@ class MapsSpec extends TestBase {
 
             val path = createRandomDir
             val maps =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -415,7 +415,7 @@ class MapsSpec extends TestBase {
 
             maps.write(_ => MapEntry.Put(1, Memory.put(1)))
             maps.write(_ => MapEntry.Put(2, Memory.put(2)))
-            maps.write(_ => MapEntry.Put[Sliced[Byte], Memory](1, Memory.remove(1)))
+            maps.write(_ => MapEntry.Put[Slice[Byte], Memory](1, Memory.remove(1)))
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
               maps.close().value
@@ -423,7 +423,7 @@ class MapsSpec extends TestBase {
             }
 
             val recoveredMaps =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -451,7 +451,7 @@ class MapsSpec extends TestBase {
             import sweeper._
             val path = createRandomDir
             val maps =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -463,7 +463,7 @@ class MapsSpec extends TestBase {
 
             maps.write(_ => MapEntry.Put(1, Memory.put(1)))
             maps.write(_ => MapEntry.Put(2, Memory.put(2)))
-            maps.write(_ => MapEntry.Put[Sliced[Byte], Memory](3, Memory.remove(3)))
+            maps.write(_ => MapEntry.Put[Slice[Byte], Memory](3, Memory.remove(3)))
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
               maps.close().value
@@ -474,7 +474,7 @@ class MapsSpec extends TestBase {
             val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
             Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
-            Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+            Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               path = path,
@@ -494,7 +494,7 @@ class MapsSpec extends TestBase {
             import sweeper._
             val path = createRandomDir
             val maps =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -516,7 +516,7 @@ class MapsSpec extends TestBase {
             Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
             val recovered =
-              Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+              Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 path = path,
@@ -552,7 +552,7 @@ class MapsSpec extends TestBase {
           import sweeper._
           val path = createRandomDir
           val maps =
-            Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+            Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               path = path,
@@ -574,7 +574,7 @@ class MapsSpec extends TestBase {
           Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
           val recoveredMaps =
-            Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+            Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               path = path,
@@ -606,7 +606,7 @@ class MapsSpec extends TestBase {
           import sweeper._
           val path = createRandomDir
           val maps =
-            Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+            Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               path = path,
@@ -637,7 +637,7 @@ class MapsSpec extends TestBase {
     def genMaps(max: Int) =
       (1 to max) map {
         _ =>
-          Map.memory[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+          Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
             nullKey = Slice.Null,
             nullValue = Memory.Null,
             fileSize = 1.mb
@@ -647,7 +647,7 @@ class MapsSpec extends TestBase {
     "return slice" when {
       "currentMap is the newest Map" in {
         runThis(100.times, log = true) {
-          val queue = new ConcurrentLinkedDeque[Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]()
+          val queue = new ConcurrentLinkedDeque[Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]()
           val maps = genMaps(10)
 
           maps.drop(1).foreach(queue.add)
@@ -661,7 +661,7 @@ class MapsSpec extends TestBase {
 
       "currentMap is an old map" in {
         runThis(100.times, log = true) {
-          val queue = new ConcurrentLinkedDeque[Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]()
+          val queue = new ConcurrentLinkedDeque[Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]()
           val maps = genMaps(10)
 
           //add all maps to the queued map

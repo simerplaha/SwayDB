@@ -32,7 +32,7 @@ import swaydb.core.segment.{SegmentIO, SegmentSearcher}
 import swaydb.core.util.Benchmark
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import org.scalatest.OptionValues._
@@ -41,21 +41,20 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 
 import scala.util.Try
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteOps._
 
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Sliced[Byte]](_.key)(order))
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(order))
   implicit def segmentIO = SegmentIO.random
 
-  def randomlySelectHigher(index: Int, keyValues: Sliced[Persistent]): PersistentOption =
+  def randomlySelectHigher(index: Int, keyValues: Slice[Persistent]): PersistentOption =
     eitherOne(Persistent.Null, Try(keyValues(index + (randomIntMax(keyValues.size) max 1))).toOption.getOrElse(Persistent.Null))
 
-  def randomlySelectLower(index: Int, keyValues: Sliced[Persistent]): PersistentOption =
+  def randomlySelectLower(index: Int, keyValues: Slice[Persistent]): PersistentOption =
     eitherOne(Persistent.Null, Try(keyValues(index - (randomIntMax(keyValues.size) max 1))).toOption.getOrElse(Persistent.Null))
 
-  def runSearchTest(keyValues: Sliced[Memory], blocks: SegmentBlocks): Sliced[Persistent] = {
+  def runSearchTest(keyValues: Slice[Memory], blocks: SegmentBlocks): Slice[Persistent] = {
     val persistentKeyValues = Slice.create[Persistent](keyValues.size)
 
     //TEST - hashIndexSearchOnly == false
@@ -146,12 +145,12 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
     persistentKeyValues
   }
 
-  def runSearchHigherTest(keyValues: Sliced[Persistent], blocks: SegmentBlocks) = {
+  def runSearchHigherTest(keyValues: Slice[Persistent], blocks: SegmentBlocks) = {
     //TEST - basic search.
 
     import order._
 
-    def assertHigher(index: Int, key: Sliced[Byte], expectedHigher: PersistentOption): Unit = {
+    def assertHigher(index: Int, key: Slice[Byte], expectedHigher: PersistentOption): Unit = {
       val randomStart = randomlySelectLower(index, keyValues)
       val randomEnd = randomlySelectHigher(index, keyValues)
       val randomBinarySearchIndex = eitherOne(None, blocks.binarySearchIndexReader)
@@ -212,10 +211,10 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
     }
   }
 
-  def runSearchLowerTest(keyValues: Sliced[Persistent], blocks: SegmentBlocks) = {
+  def runSearchLowerTest(keyValues: Slice[Persistent], blocks: SegmentBlocks) = {
     //TEST - basic search.
 
-    def assertLower(index: Int, key: Sliced[Byte], expectedLower: PersistentOption): Unit = {
+    def assertLower(index: Int, key: Slice[Byte], expectedLower: PersistentOption): Unit = {
       val randomStart = randomlySelectLower(index, keyValues)
       val randomEnd = randomlySelectHigher(index, keyValues)
       val randomBinarySearchIndex = eitherOne(None, blocks.binarySearchIndexReader)
@@ -264,7 +263,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               randomizedKeyValues(startId = Some(100), count = randomIntMax(100) max 1)
             }
 
-          val segments: Sliced[SegmentBlocks] =
+          val segments: Slice[SegmentBlocks] =
             Benchmark(s"Creating Segment for ${keyValues.size}") {
               getBlocks(
                 keyValues = keyValues,

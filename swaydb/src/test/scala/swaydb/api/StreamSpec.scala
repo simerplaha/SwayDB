@@ -25,7 +25,7 @@ import swaydb.Bag._
 import swaydb.IO.ApiIO
 import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.{Bag, IO, Stream}
 
 import scala.collection.mutable.ListBuffer
@@ -33,7 +33,6 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class StreamFutureSpec extends StreamSpec[Future]()(Bag.future(TestExecutionContext.executionContext)) {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)
@@ -207,7 +206,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
         .await shouldBe (1 to 1000).map(_ + " one two three")
 
       mapStream
-        .materialize(Slice.newBuilder(1)).await shouldBe a[Sliced[Int]]
+        .materialize(Slice.newBuilder(1)).await shouldBe a[Slice[Int]]
 
       mapStream
         .materialize(List.newBuilder)
@@ -251,7 +250,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
       val sliceBuilder = stream.materialize(Slice.newBuilder(20))
 
       sliceBuilder
-        .await shouldBe a[Sliced[Int]]
+        .await shouldBe a[Slice[Int]]
 
       sliceBuilder
         .await should contain only 13

@@ -27,7 +27,7 @@ package swaydb.core.segment.format.a.block.reader
 import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 
 private[reader] object BlockReader {
 
@@ -73,7 +73,7 @@ private[reader] object BlockReader {
       throw IO.throwable(s"Has no more bytes. Position: ${state.position}")
     }
 
-  def read(size: Int, state: State): Sliced[Byte] = {
+  def read(size: Int, state: State): Slice[Byte] = {
     val remaining = state.remaining
     if (remaining <= 0) {
       Slice.emptyBytes
@@ -91,7 +91,7 @@ private[reader] object BlockReader {
     }
   }
 
-  def readFullBlock(state: State): Sliced[Byte] =
+  def readFullBlock(state: State): Slice[Byte] =
     state.
       reader
       .moveTo(state.offset.start)

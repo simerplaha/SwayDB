@@ -25,7 +25,6 @@
 package swaydb.core.util
 
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 object UUIDs {
 
@@ -35,6 +34,6 @@ object UUIDs {
   def randomIdNoHyphen(): String =
     randomId().replace("-", "")
 
-  def randomIdNoHyphenBytes(): Sliced[Byte] =
+  def randomIdNoHyphenBytes(): Slice[Byte] =
     Slice.writeString[Byte](randomIdNoHyphen())
 }

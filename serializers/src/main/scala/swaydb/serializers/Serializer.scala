@@ -25,7 +25,6 @@
 package swaydb.serializers
 
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 object Serializer {
   private val one = Slice(1.toByte)
 
@@ -38,7 +37,7 @@ object Serializer {
   def toNestedOption[A](serializer: Serializer[A]) =
     new Serializer[Option[A]] {
 
-      override def write(data: Option[A]): Sliced[Byte] =
+      override def write(data: Option[A]): Slice[Byte] =
         data match {
           case Some(value) =>
             //if value is defined serialise the value with prefix 1.byte indicating value exists.
@@ -55,7 +54,7 @@ object Serializer {
             Slice.emptyBytes
         }
 
-      override def read(data: Sliced[Byte]): Option[A] =
+      override def read(data: Slice[Byte]): Option[A] =
         if (data.isEmpty)
           None
         else
@@ -64,7 +63,7 @@ object Serializer {
 }
 
 trait Serializer[A] {
-  def write(data: A): Sliced[Byte]
+  def write(data: A): Slice[Byte]
 
-  def read(data: Sliced[Byte]): A
+  def read(data: Slice[Byte]): A
 }

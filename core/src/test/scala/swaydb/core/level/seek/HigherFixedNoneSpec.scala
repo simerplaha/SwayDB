@@ -35,7 +35,7 @@ import swaydb.core.data.KeyValue
 import swaydb.core.level.LevelSeek
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -58,11 +58,11 @@ class HigherFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory wit
 
       inSequence {
         //@formatter:off
-        current.higher        _ expects (0: Sliced[Byte], *)  returning LevelSeek.None
-        next.higher           _ expects (0: Sliced[Byte], *)  returning KeyValue.Put.Null
+        current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.None
+        next.higher           _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
         //@formatter:on
       }
-      Higher(0: Sliced[Byte]).right.value shouldBe empty
+      Higher(0: Slice[Byte]).right.value shouldBe empty
     }
 
     //   0
@@ -75,12 +75,12 @@ class HigherFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory wit
 
         inSequence {
           //@formatter:off
-          current.higher        _ expects (0: Sliced[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(1))
-          next.higher           _ expects (0: Sliced[Byte], *)  returning KeyValue.Put.Null
-          current.higher        _ expects (1: Sliced[Byte], *)  returning LevelSeek.None
+          current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(1))
+          next.higher           _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
+          current.higher        _ expects (1: Slice[Byte], *)  returning LevelSeek.None
           //@formatter:on
         }
-        Higher(0: Sliced[Byte]).right.value shouldBe empty
+        Higher(0: Slice[Byte]).right.value shouldBe empty
       }
     }
 
@@ -96,13 +96,13 @@ class HigherFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory wit
 
         inSequence {
           //@formatter:off
-          current.higher        _ expects (0: Sliced[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(1))
-          next.higher           _ expects (0: Sliced[Byte], *)  returning randomPutKeyValue(1)
-          current.higher        _ expects (1: Sliced[Byte], *)  returning LevelSeek.None
-          next.higher           _ expects (1: Sliced[Byte], *)  returning KeyValue.Put.Null
+          current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(1))
+          next.higher           _ expects (0: Slice[Byte], *)  returning randomPutKeyValue(1)
+          current.higher        _ expects (1: Slice[Byte], *)  returning LevelSeek.None
+          next.higher           _ expects (1: Slice[Byte], *)  returning KeyValue.Put.Null
           //@formatter:on
         }
-        Higher(0: Sliced[Byte]).right.value shouldBe empty
+        Higher(0: Slice[Byte]).right.value shouldBe empty
       }
     }
 
@@ -120,14 +120,14 @@ class HigherFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory wit
 
         inSequence {
           //@formatter:off
-          current.higher        _ expects (0: Sliced[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(1))
-          next.higher           _ expects (0: Sliced[Byte], *)  returning randomPutKeyValue(2)
-          current.higher        _ expects (1: Sliced[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(2))
-          current.higher        _ expects (2: Sliced[Byte], *)  returning LevelSeek.None
-          next.higher           _ expects (2: Sliced[Byte], *)  returning KeyValue.Put.Null
+          current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(1))
+          next.higher           _ expects (0: Slice[Byte], *)  returning randomPutKeyValue(2)
+          current.higher        _ expects (1: Slice[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(2))
+          current.higher        _ expects (2: Slice[Byte], *)  returning LevelSeek.None
+          next.higher           _ expects (2: Slice[Byte], *)  returning KeyValue.Put.Null
           //@formatter:on
         }
-        Higher(0: Sliced[Byte]).right.value shouldBe empty
+        Higher(0: Slice[Byte]).right.value shouldBe empty
       }
     }
 

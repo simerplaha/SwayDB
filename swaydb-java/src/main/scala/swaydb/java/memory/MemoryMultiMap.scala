@@ -34,7 +34,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
@@ -61,7 +61,7 @@ object MemoryMultiMap {
                                  private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                  private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                                  private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                                 private var byteComparator: KeyComparator[Sliced[java.lang.Byte]] = null,
+                                 private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                                  private var typedComparator: KeyComparator[K] = null,
                                  private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
                                                                                             keySerializer: Serializer[K],
@@ -120,7 +120,7 @@ object MemoryMultiMap {
       this
     }
 
-    def setByteKeyComparator(byteComparator: KeyComparator[Sliced[java.lang.Byte]]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[Slice[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -136,14 +136,14 @@ object MemoryMultiMap {
     }
 
     def get(): MultiMap[M, K, V, F] = {
-      val comparator: Either[KeyComparator[Sliced[java.lang.Byte]], KeyComparator[K]] =
+      val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,
           default = KeyComparator.lexicographic
         )
 
-      val scalaKeyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
+      val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
         swaydb.memory.MultiMap[M, K, V, PureFunction.Map[K, V], Bag.Less](

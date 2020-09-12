@@ -30,14 +30,13 @@ import swaydb.core.util.Bytes
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.serializers.Serializer
 
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteOps._
 
 object SetMap {
@@ -47,7 +46,7 @@ object SetMap {
   def serialiser[A, B](aSerializer: Serializer[A],
                        bSerializer: Serializer[B]): Serializer[(A, B)] =
     new Serializer[(A, B)] {
-      override def write(data: (A, B)): Sliced[Byte] = {
+      override def write(data: (A, B)): Slice[Byte] = {
         val keyBytes = aSerializer.write(data._1)
 
         val valueBytes =
@@ -64,7 +63,7 @@ object SetMap {
           .addAll(valueBytes)
       }
 
-      override def read(data: Sliced[Byte]): (A, B) = {
+      override def read(data: Slice[Byte]): (A, B) = {
         val reader = data.createReader()
 
         val keyBytes = reader.read(reader.readUnsignedInt())
@@ -79,11 +78,11 @@ object SetMap {
   /**
    * Partial ordering based on [[SetMap.serialiser]].
    */
-  def ordering[K](defaultOrdering: Either[KeyOrder[Sliced[Byte]], KeyOrder[K]])(implicit keySerializer: Serializer[K]): KeyOrder[Sliced[Byte]] =
+  def ordering[K](defaultOrdering: Either[KeyOrder[Slice[Byte]], KeyOrder[K]])(implicit keySerializer: Serializer[K]): KeyOrder[Slice[Byte]] =
     defaultOrdering match {
       case Left(untypedOrdering) =>
-        new KeyOrder[Sliced[Byte]] {
-          override def compare(left: Sliced[Byte], right: Sliced[Byte]): Int = {
+        new KeyOrder[Slice[Byte]] {
+          override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
             val readerLeft = left.createReader()
             val readerRight = right.createReader()
 
@@ -93,15 +92,15 @@ object SetMap {
             untypedOrdering.compare(leftKey, rightKey)
           }
 
-          private[swaydb] override def comparableKey(key: Sliced[Byte]): Sliced[Byte] = {
+          private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
             val reader = key.createReader()
             reader.read(reader.readUnsignedInt())
           }
         }
 
       case Right(typedOrdering) =>
-        new KeyOrder[Sliced[Byte]] {
-          override def compare(left: Sliced[Byte], right: Sliced[Byte]): Int = {
+        new KeyOrder[Slice[Byte]] {
+          override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
             val readerLeft = left.createReader()
             val readerRight = right.createReader()
 
@@ -114,7 +113,7 @@ object SetMap {
             typedOrdering.compare(leftTypedKey, rightTypedKey)
           }
 
-          private[swaydb] override def comparableKey(key: Sliced[Byte]): Sliced[Byte] = {
+          private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
             val reader = key.createReader()
             reader.read(reader.readUnsignedInt())
           }

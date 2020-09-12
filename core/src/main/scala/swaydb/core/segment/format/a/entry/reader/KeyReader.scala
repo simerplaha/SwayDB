@@ -29,15 +29,15 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 
 object KeyReader {
 
-  private def compressed(headerKeyBytes: Sliced[Byte],
-                         previousKey: SliceOption[Byte]): Sliced[Byte] =
+  private def compressed(headerKeyBytes: Slice[Byte],
+                         previousKey: SliceOption[Byte]): Slice[Byte] =
     previousKey match {
-      case previousKey: Sliced[Byte] =>
+      case previousKey: Slice[Byte] =>
         val reader = Reader(headerKeyBytes)
         val commonBytes = reader.readUnsignedInt()
         val rightBytes = reader.readRemaining()
@@ -48,9 +48,9 @@ object KeyReader {
     }
 
   def read(keyValueIdInt: Int,
-           keyBytes: Sliced[Byte],
+           keyBytes: Slice[Byte],
            previousKey: SliceOption[Byte],
-           keyValueId: KeyValueId): Sliced[Byte] =
+           keyValueId: KeyValueId): Slice[Byte] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(keyBytes, previousKey)
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))

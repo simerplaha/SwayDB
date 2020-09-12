@@ -32,7 +32,7 @@
 //import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 //import swaydb.data.config.RecoveryMode
 //import swaydb.data.order.{KeyOrder, TimeOrder}
-//import swaydb.data.slice.Slice._
+//import swaydb.data.slice.Slice
 //import swaydb.data.util.StorageUnits._
 //
 //class MapsStressSpec extends TestBase {

@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.Bagged
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 
 import scala.collection.mutable
@@ -74,7 +73,7 @@ private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: 
   def headKeyValue: Option[(Key, Value)]
   def values(): util.Collection[Value]
   def keys(): util.NavigableSet[Key]
-  def take(count: Int): Sliced[Value]
+  def take(count: Int): Slice[Value]
   def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R
   def foreach[R](f: (Key, Value) => R): Unit
   def subMap(from: Key, to: Key): util.NavigableMap[Key, Value]

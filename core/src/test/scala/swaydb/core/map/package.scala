@@ -38,7 +38,7 @@ import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 import swaydb.data.util.StorageUnits._
 
@@ -49,19 +49,19 @@ import scala.util.Random
 package object map {
 
   //cannot be added to TestBase because PersistentMap cannot leave the map package.
-  implicit class ReopenMap(map: PersistentMap[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]) {
-    def reopen(implicit keyOrder: KeyOrder[Sliced[Byte]],
-               timeOrder: TimeOrder[Sliced[Byte]],
+  implicit class ReopenMap(map: PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) {
+    def reopen(implicit keyOrder: KeyOrder[Slice[Byte]],
+               timeOrder: TimeOrder[Slice[Byte]],
                functionStore: FunctionStore,
                fileSweeper: FileSweeperActor,
                bufferCleaner: ByteBufferSweeperActor,
                forceSaveApplier: ForceSaveApplier,
                ec: ExecutionContext,
-               writer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Memory]],
-               reader: MapEntryReader[MapEntry[Sliced[Byte], Memory]],
-               skipListMerge: SkipListMerger[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]) = {
+               writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]],
+               reader: MapEntryReader[MapEntry[Slice[Byte], Memory]],
+               skipListMerge: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) = {
       map.close().runRandomIO.right.value
-      Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
+      Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
         folder = map.path,
         mmap = MMAP.randomForMap(),
         flushOnOverflow = Random.nextBoolean(),

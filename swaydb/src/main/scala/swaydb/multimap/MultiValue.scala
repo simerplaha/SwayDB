@@ -25,10 +25,9 @@
 package swaydb.multimap
 
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteOps._
 
 private[swaydb] sealed trait MultiValue[+V]
@@ -39,7 +38,7 @@ private[swaydb] object MultiValue {
   def serialiser[A](serializer: Serializer[A]): Serializer[MultiValue[A]] =
     new Serializer[MultiValue[A]] {
 
-      override def write(data: MultiValue[A]): Sliced[Byte] =
+      override def write(data: MultiValue[A]): Slice[Byte] =
         data match {
           case our: Our =>
             our match {
@@ -63,7 +62,7 @@ private[swaydb] object MultiValue {
             }
         }
 
-      override def read(data: Sliced[Byte]): MultiValue[A] =
+      override def read(data: Slice[Byte]): MultiValue[A] =
         if (data.isEmpty) {
           MultiValue.None
         } else if (data.head == 1) {

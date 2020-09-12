@@ -26,7 +26,7 @@ package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.DBFile
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteOps
 
@@ -79,7 +79,7 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
   def path =
     file.path
 
-  override def readRemaining(): Sliced[Byte] =
+  override def readRemaining(): Slice[Byte] =
     read(remaining)
 
   final override val isFile: Boolean =

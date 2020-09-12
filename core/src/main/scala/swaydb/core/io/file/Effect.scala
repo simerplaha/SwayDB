@@ -36,7 +36,6 @@ import swaydb.IO
 import swaydb.core.util.Extension
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 import swaydb.data.util.Maths
 
 import scala.jdk.CollectionConverters._
@@ -68,11 +67,11 @@ private[core] object Effect extends LazyLogging {
   }
 
   def overwrite(to: Path,
-                bytes: Sliced[Byte]): Path =
+                bytes: Slice[Byte]): Path =
     Files.write(to, bytes.toArray)
 
   def write(to: Path,
-            bytes: Sliced[Byte]): Path = {
+            bytes: Slice[Byte]): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     try {
       writeUnclosed(channel, bytes)
@@ -83,7 +82,7 @@ private[core] object Effect extends LazyLogging {
   }
 
   def write(to: Path,
-            bytes: Iterable[Sliced[Byte]]): Path = {
+            bytes: Iterable[Slice[Byte]]): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     try {
       writeUnclosed(channel, bytes)
@@ -93,7 +92,7 @@ private[core] object Effect extends LazyLogging {
     }
   }
 
-  def replace(bytes: Sliced[Byte],
+  def replace(bytes: Slice[Byte],
               to: Path): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)
     try {
@@ -105,14 +104,14 @@ private[core] object Effect extends LazyLogging {
   }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Iterable[Sliced[Byte]]): Unit =
+                    bytes: Iterable[Slice[Byte]]): Unit =
     bytes foreach {
       bytes =>
         writeUnclosed(channel, bytes)
     }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Sliced[Byte]): Unit = {
+                    bytes: Slice[Byte]): Unit = {
     val written = channel write bytes.toByteBufferWrap
 
     // toByteBuffer uses size of Slice instead of written,
@@ -270,7 +269,7 @@ private[core] object Effect extends LazyLogging {
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId._1)
 
-  def readAllBytes(path: Path): Sliced[Byte] =
+  def readAllBytes(path: Path): Slice[Byte] =
     Slice(Files.readAllBytes(path))
 
   def readAllLines(path: Path): util.List[String] =

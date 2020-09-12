@@ -36,7 +36,7 @@ import swaydb.core.segment.format.a.entry.id.MemoryToKeyValueIdBinder
 import swaydb.core.segment.format.a.entry.reader.PersistentParser
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -45,7 +45,7 @@ import swaydb.data.util.ByteOps._
 
 class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
 
-  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeWriter: TimeWriter = TimeWriter
   implicit val valueWriter: ValueWriter = ValueWriter
   implicit val deadlineWriter: DeadlineWriter = DeadlineWriter
@@ -151,7 +151,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
         )
 
         val sortedIndexReader = Reader(builder.bytes.close())
-        val valueBytes: Sliced[Byte] = previous.value.toOptionC ++ next.value.toOptionC
+        val valueBytes: Slice[Byte] = previous.value.toOptionC ++ next.value.toOptionC
         val valuesReaderOrNull = if (valueBytes.isEmpty) null else buildSingleValueReader(valueBytes)
 
         val previousParsedKeyValue =

@@ -27,11 +27,11 @@ package swaydb.core.level
 import swaydb.core.map.SkipListMerger
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 
 /**
  * Default [[SkipListMerger]] implementation for Level's Appendix. Currently appendix does not implement
  * Range APIs so merger should never be used.
  */
-object AppendixSkipListMerger extends SkipListMerger.Disabled[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment]("AppendixSkipListMerger")
+object AppendixSkipListMerger extends SkipListMerger.Disabled[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]("AppendixSkipListMerger")

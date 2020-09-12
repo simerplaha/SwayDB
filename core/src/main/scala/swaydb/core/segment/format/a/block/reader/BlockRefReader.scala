@@ -29,7 +29,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.data.slice.Reader
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps
 
 private[core] object BlockRefReader {
@@ -64,7 +64,7 @@ private[core] object BlockRefReader {
       reader = ref.reader
     )
 
-  def apply[O <: BlockOffset](bytes: Sliced[Byte])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+  def apply[O <: BlockOffset](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
       offset = blockOps.createOffset(0, bytes.size),
       reader = Reader(bytes)

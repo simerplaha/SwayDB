@@ -32,7 +32,7 @@ import swaydb.core.TestTimer
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.merge.FixedMerger
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.util.SomeOrNone._
@@ -40,12 +40,11 @@ import swaydb.data.util.SomeOrNone._
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   "Single into Range" when {
 
@@ -56,7 +55,7 @@ class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
         val newKeyValue = randomFixedKeyValue(0)
 
         val expectedKeyValue = Slice(newKeyValue, oldKeyValue)
-        val expectedLastLevel: Sliced[Memory.Fixed] = expectedKeyValue.flatMap(_.toLastLevelExpected).toSlice
+        val expectedLastLevel: Slice[Memory.Fixed] = expectedKeyValue.flatMap(_.toLastLevelExpected).toSlice
 
         //        println
         //        println("newKeyValue: " + newKeyValue)
@@ -160,7 +159,7 @@ class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
 
       //9, 10, 11, 15, 18,    23,      27,  30
       //   10      -     20        25   -   30
-      val newKeyValues: Sliced[Memory] =
+      val newKeyValues: Slice[Memory] =
       Slice(
         Memory.put(9, 9),
         Memory.put(10, 10),
@@ -174,13 +173,13 @@ class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
         Memory.put(30, 30)
       )
 
-      val oldKeyValues: Sliced[Memory] =
+      val oldKeyValues: Slice[Memory] =
         Slice(
           Memory.Range(10, 20, Value.FromValue.Null, Value.update("ranges value 1")),
           Memory.Range(25, 30, Value.put(25), Value.update("ranges value 2", deadline2))
         )
 
-      val expected: Sliced[Memory] =
+      val expected: Slice[Memory] =
         Slice(
           Memory.put(9, 9),
           Memory.Range(10, 11, Value.put(10), Value.update("ranges value 1")),
@@ -195,7 +194,7 @@ class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
         )
 
       //last level check
-      val expectedInLastLevel: Sliced[Memory] =
+      val expectedInLastLevel: Slice[Memory] =
         Slice(
           Memory.put(9, 9),
           Memory.put(10, 10),

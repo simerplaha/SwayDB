@@ -24,7 +24,7 @@
 
 package swaydb.java.serializers
 
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 
 trait Serializer[T] {
 
@@ -32,7 +32,7 @@ trait Serializer[T] {
    * You can also use ByteSliceBuilder to build
    * custom serialisation.
    */
-  def write(data: T): Sliced[java.lang.Byte]
+  def write(data: T): Slice[java.lang.Byte]
 
   /**
    * A Slice is a section of Segment's byte array so this
@@ -40,6 +40,6 @@ trait Serializer[T] {
    *
    * Do not mutate this byte array, just read its content build your object.
    */
-  def read(data: Sliced[java.lang.Byte]): T
+  def read(data: Slice[java.lang.Byte]): T
 
 }

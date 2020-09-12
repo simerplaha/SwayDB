@@ -28,14 +28,14 @@ import swaydb.core.data.KeyValue
 import swaydb.core.data.Value
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 private[core] object PendingApplyMerger {
 
   /**
    * PendingApply
    */
   def apply(newKeyValue: KeyValue.PendingApply,
-            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Sliced[Byte]],
+            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
@@ -52,7 +52,7 @@ private[core] object PendingApplyMerger {
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.PendingApply,
-            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Sliced[Byte]],
+            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue.deadline match {
@@ -66,7 +66,7 @@ private[core] object PendingApplyMerger {
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.PendingApply,
-            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Sliced[Byte]],
+            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                       functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       PendingApplyMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key))

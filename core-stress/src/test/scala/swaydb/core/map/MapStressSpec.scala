@@ -29,7 +29,7 @@
 //import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutWriter
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
 //import swaydb.data.order.{KeyOrder, TimeOrder}
-//import swaydb.data.slice.Slice._
+//import swaydb.data.slice.Slice
 //import swaydb.data.util.StorageUnits._
 //
 //class MapStressSpec extends TestBase {

@@ -28,20 +28,19 @@ import java.nio.file.Path
 import swaydb.core.util.CRC32
 import swaydb.data.DataType
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 import swaydb.data.util.ByteOps._
 import swaydb.data.util.ByteSizeOf
 
 sealed trait BuildSerialiser {
 
-  def write(build: Build.Info): Sliced[Byte]
+  def write(build: Build.Info): Slice[Byte]
 
-  def read(bytes: Sliced[Byte], file: Path): Build.Info
+  def read(bytes: Slice[Byte], file: Path): Build.Info
 
 }
 
 object BuildSerialiser extends BuildSerialiser {
-  override def write(buildInfo: Build.Info): Sliced[Byte] = {
+  override def write(buildInfo: Build.Info): Slice[Byte] = {
     val versionBytes = Slice.create[Byte](1 + 1 + ByteSizeOf.int * 3)
 
     versionBytes add Build.formatId
@@ -60,7 +59,7 @@ object BuildSerialiser extends BuildSerialiser {
   }
 
 
-  override def read(bytes: Sliced[Byte], file: Path): Build.Info = {
+  override def read(bytes: Slice[Byte], file: Path): Build.Info = {
     val crc = bytes.readLong()
     val versionBytes = bytes.drop(ByteSizeOf.long)
     val versionBytesCRC = CRC32.forBytes(versionBytes)

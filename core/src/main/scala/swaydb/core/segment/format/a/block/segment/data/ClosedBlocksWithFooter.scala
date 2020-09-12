@@ -34,42 +34,41 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 import scala.concurrent.duration.Deadline
 
-class ClosedBlocksWithFooter(val minKey: Sliced[Byte],
-                             val maxKey: MaxKey[Sliced[Byte]],
-                             val functionMinMax: Option[MinMax[Sliced[Byte]]],
+class ClosedBlocksWithFooter(val minKey: Slice[Byte],
+                             val maxKey: MaxKey[Slice[Byte]],
+                             val functionMinMax: Option[MinMax[Slice[Byte]]],
                              val nearestDeadline: Option[Deadline],
                              //values
-                             val valuesBlockHeader: Option[Sliced[Byte]],
-                             val valuesBlock: Option[Sliced[Byte]],
+                             val valuesBlockHeader: Option[Slice[Byte]],
+                             val valuesBlock: Option[Slice[Byte]],
                              val valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                              //sortedIndex
                              val sortedIndexClosedState: SortedIndexBlock.State,
-                             val sortedIndexBlockHeader: Sliced[Byte],
-                             val sortedIndexBlock: Sliced[Byte],
+                             val sortedIndexBlockHeader: Slice[Byte],
+                             val sortedIndexBlock: Slice[Byte],
                              val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
                              //hashIndex
-                             val hashIndexBlockHeader: Option[Sliced[Byte]],
-                             val hashIndexBlock: Option[Sliced[Byte]],
+                             val hashIndexBlockHeader: Option[Slice[Byte]],
+                             val hashIndexBlock: Option[Slice[Byte]],
                              val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                              //binarySearch
-                             val binarySearchIndexBlockHeader: Option[Sliced[Byte]],
-                             val binarySearchIndexBlock: Option[Sliced[Byte]],
+                             val binarySearchIndexBlockHeader: Option[Slice[Byte]],
+                             val binarySearchIndexBlock: Option[Slice[Byte]],
                              val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                              //bloomFilter
-                             val bloomFilterBlockHeader: Option[Sliced[Byte]],
-                             val bloomFilterBlock: Option[Sliced[Byte]],
+                             val bloomFilterBlockHeader: Option[Slice[Byte]],
+                             val bloomFilterBlock: Option[Slice[Byte]],
                              val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
                              //footer
-                             val footerBlock: Sliced[Byte]) {
+                             val footerBlock: Slice[Byte]) {
 
-  val segmentHeader: Sliced[Byte] = Slice.create[Byte](Byte.MaxValue)
+  val segmentHeader: Slice[Byte] = Slice.create[Byte](Byte.MaxValue)
 
-  val segmentBytes: Sliced[Sliced[Byte]] = {
-    val allBytes = Slice.create[Sliced[Byte]](13)
+  val segmentBytes: Slice[Slice[Byte]] = {
+    val allBytes = Slice.create[Slice[Byte]](13)
     allBytes add segmentHeader
 
     valuesBlockHeader foreach (allBytes add _)
@@ -111,7 +110,7 @@ class ClosedBlocksWithFooter(val minKey: Sliced[Byte],
   def segmentSize =
     segmentBytes.foldLeft(0)(_ + _.size)
 
-  def flattenSegmentBytes: Sliced[Byte] = {
+  def flattenSegmentBytes: Slice[Byte] = {
     val size = segmentBytes.foldLeft(0)(_ + _.size)
     val slice = Slice.create[Byte](size)
     segmentBytes foreach (slice addAll _)

@@ -27,10 +27,9 @@ package swaydb.core.segment.format.a.block.binarysearch
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteOps._
 
 class BinarySearchEntryFormatSpec extends TestBase {

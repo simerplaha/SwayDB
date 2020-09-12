@@ -32,7 +32,7 @@ import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.data.util.TupleOrNone
@@ -255,10 +255,10 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     core.sizeOfSegments
 
   def keySize(key: K): Int =
-    (key: Sliced[Byte]).size
+    (key: Slice[Byte]).size
 
   def valueSize(value: V): Int =
-    (value: Sliced[Byte]).size
+    (value: Slice[Byte]).size
 
   def expiration(key: K): BAG[Option[Deadline]] =
     bag.suspend(core.deadline(key, core.readStates.get()))
@@ -296,10 +296,10 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
 
   private def headOptionTupleOrNull[BAG[_]](from: Option[From[K]],
                                             reverseIteration: Boolean,
-                                            readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Sliced[Byte], SliceOption[Byte]]] =
+                                            readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     from match {
       case Some(from) =>
-        val fromKeyBytes: Sliced[Byte] = from.key
+        val fromKeyBytes: Slice[Byte] = from.key
 
         if (from.before)
           core.before(fromKeyBytes, readState)
@@ -328,7 +328,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
 
   private def nextTupleOrNone[BAG[_]](previousKey: K,
                                       reverseIteration: Boolean,
-                                      readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Sliced[Byte], SliceOption[Byte]]] =
+                                      readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     if (reverseIteration)
       core.before(keySerializer.write(previousKey), readState)
     else

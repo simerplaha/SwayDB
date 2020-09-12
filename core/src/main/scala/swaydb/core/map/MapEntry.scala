@@ -29,7 +29,7 @@ import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer.{MapCodec, MapEntryWriter}
 import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -64,7 +64,7 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
   def totalByteSize: Int =
     entryBytesSize + MapCodec.headerSize
 
-  def writeTo(slice: Sliced[Byte]): Unit
+  def writeTo(slice: Slice[Byte]): Unit
 
   protected val _entries = ListBuffer[MapEntry[K, _]](this)
 
@@ -91,8 +91,8 @@ private[swaydb] object MapEntry {
   /**
    * Returns a combined Entry with duplicates removed from oldEntry, favouring newer duplicate entries.
    */
-  def distinct[V](newEntry: MapEntry[Sliced[Byte], V],
-                  oldEntry: MapEntry[Sliced[Byte], V])(implicit keyOrder: KeyOrder[Sliced[Byte]]): MapEntry[Sliced[Byte], V] = {
+  def distinct[V](newEntry: MapEntry[Slice[Byte], V],
+                  oldEntry: MapEntry[Slice[Byte], V])(implicit keyOrder: KeyOrder[Slice[Byte]]): MapEntry[Slice[Byte], V] = {
     import keyOrder._
     (oldEntry.entries filterNot {
       case MapEntry.Put(oldKey, _) =>
@@ -132,7 +132,7 @@ private[swaydb] object MapEntry {
         override val entryBytesSize: Int =
           left.entryBytesSize + right.entryBytesSize
 
-        override def writeTo(slice: Sliced[Byte]): Unit =
+        override def writeTo(slice: Slice[Byte]): Unit =
           _entries foreach (_.writeTo(slice))
 
         override def asString(keyParser: K => String, valueParser: V => String): String =
@@ -193,7 +193,7 @@ private[swaydb] object MapEntry {
       calculatedEntriesByteSize
     }
 
-    override def writeTo(slice: Sliced[Byte]): Unit =
+    override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
 
     override def applyTo[T >: V](skipList: SkipListConcurrent[_, _, K, T]): Unit =
@@ -225,7 +225,7 @@ private[swaydb] object MapEntry {
       calculatedEntriesByteSize
     }
 
-    override def writeTo(slice: Sliced[Byte]): Unit =
+    override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
 
     override def applyTo[T >: Nothing](skipList: SkipListConcurrent[_, _, K, T]): Unit =

@@ -33,7 +33,6 @@ import swaydb.core.merge.FixedMerger
 import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -42,7 +41,7 @@ import scala.util.Random
 class SegmentMerger_Range_Into_Fixed extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val testTimer = TestTimer.Empty
 
   "Range into Single" when {
@@ -155,7 +154,7 @@ class SegmentMerger_Range_Into_Fixed extends AnyWordSpec {
       //    2, 7, 10, 20
       val newKeyValues = Slice(Memory.Range(0, 25, Value.remove(None), Value.remove(None)))
 
-      val oldKeyValues: Sliced[Memory] =
+      val oldKeyValues: Slice[Memory] =
         Slice(
           Memory.put(2, "new value value"),
           Memory.put(7, "new value value"),

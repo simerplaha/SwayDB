@@ -34,7 +34,7 @@ import swaydb.core.data.KeyValue
 import swaydb.core.level.LevelSeek
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -63,12 +63,12 @@ class LowerRangeNoneSpec extends AnyWordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.lower         _ expects (key: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, randomFromValueOption(addPut = false), rangeValue = randomUpdateRangeValue()))
-                next.lower            _ expects (key: Sliced[Byte], *)  returning KeyValue.Put.Null
-                current.lower         _ expects (0: Sliced[Byte], *)    returning LevelSeek.None
+                current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, randomFromValueOption(addPut = false), rangeValue = randomUpdateRangeValue()))
+                next.lower            _ expects (key: Slice[Byte], *)  returning KeyValue.Put.Null
+                current.lower         _ expects (0: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
               }
-              Lower(key: Sliced[Byte]).runRandomIO.right.value shouldBe empty
+              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
           }
         }
       }
@@ -89,12 +89,12 @@ class LowerRangeNoneSpec extends AnyWordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.lower         _ expects (key: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
-                next.lower            _ expects (key: Sliced[Byte], *)  returning KeyValue.Put.Null
-                current.lower         _ expects (0: Sliced[Byte], *)    returning LevelSeek.None
+                current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
+                next.lower            _ expects (key: Slice[Byte], *)  returning KeyValue.Put.Null
+                current.lower         _ expects (0: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
               }
-              Lower(key: Sliced[Byte]).runRandomIO.right.value shouldBe empty
+              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
           }
         }
       }
@@ -117,12 +117,12 @@ class LowerRangeNoneSpec extends AnyWordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.lower         _ expects (key: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue()))
-                next.lower            _ expects (key: Sliced[Byte], *)  returning KeyValue.Put.Null
-                current.lower         _ expects (1: Sliced[Byte], *)    returning LevelSeek.None
+                current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue()))
+                next.lower            _ expects (key: Slice[Byte], *)  returning KeyValue.Put.Null
+                current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
               }
-              Lower(key: Sliced[Byte]).runRandomIO.right.value shouldBe empty
+              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
           }
         }
       }
@@ -141,12 +141,12 @@ class LowerRangeNoneSpec extends AnyWordSpec with Matchers with MockFactory {
               implicit val next = mock[NextWalker]
               inSequence {
                 //@formatter:off
-                current.lower         _ expects (key: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValue(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
-                next.lower            _ expects (key: Sliced[Byte], *)  returning KeyValue.Put.Null
-                current.lower         _ expects (1: Sliced[Byte], *)    returning LevelSeek.None
+                current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValue(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
+                next.lower            _ expects (key: Slice[Byte], *)  returning KeyValue.Put.Null
+                current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
               }
-              Lower(key: Sliced[Byte]).runRandomIO.right.value shouldBe empty
+              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
           }
         }
       }
@@ -163,12 +163,12 @@ class LowerRangeNoneSpec extends AnyWordSpec with Matchers with MockFactory {
           implicit val next = mock[NextWalker]
           inSequence {
             //@formatter:off
-            current.lower         _ expects (12: Sliced[Byte], *)   returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValue(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
-            next.lower            _ expects (12: Sliced[Byte], *)   returning KeyValue.Put.Null
-            current.lower         _ expects (1: Sliced[Byte], *)    returning LevelSeek.None
+            current.lower         _ expects (12: Slice[Byte], *)   returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValue(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
+            next.lower            _ expects (12: Slice[Byte], *)   returning KeyValue.Put.Null
+            current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
             //@formatter:on
           }
-          Lower(12: Sliced[Byte]).runRandomIO.right.value shouldBe empty
+          Lower(12: Slice[Byte]).runRandomIO.right.value shouldBe empty
         }
       }
     }

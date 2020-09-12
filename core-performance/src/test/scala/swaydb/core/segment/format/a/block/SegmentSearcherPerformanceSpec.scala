@@ -26,7 +26,7 @@
 //import swaydb.core.util.Benchmark
 //import swaydb.data.config.IOStrategy
 //import swaydb.data.order.KeyOrder
-//import swaydb.data.slice.Slice._
+//import swaydb.data.slice.Slice
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
 //

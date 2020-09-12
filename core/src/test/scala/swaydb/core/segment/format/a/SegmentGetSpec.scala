@@ -36,14 +36,13 @@ import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class SegmentGetSpec0 extends SegmentGetSpec {
   val keyValuesCount = 1000

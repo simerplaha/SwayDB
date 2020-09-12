@@ -34,16 +34,15 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data._
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   "Merging SwayFunction Key/Value/KeyValue into Update" when {
     "times are in order" should {
       "always return new key-value" in {
@@ -199,7 +198,7 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
         runThis(100.times) {
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
-          val output = SwayFunctionOutput.Update((randomStringOption: Sliced[Byte]).asSliceOption(), Some(randomDeadline()))
+          val output = SwayFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), Some(randomDeadline()))
 
           Seq(
             SwayFunction.Key(_ => output),

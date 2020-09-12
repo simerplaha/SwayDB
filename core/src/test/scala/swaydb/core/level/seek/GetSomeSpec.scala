@@ -37,11 +37,10 @@ import swaydb.core.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with OptionValues {
 
@@ -58,7 +57,7 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
         implicit val getFromNextLevel = mock[NextGetter]
 
         val keyValue = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
-        getFromCurrentLevel.get _ expects (1: Sliced[Byte], *) returning keyValue
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning keyValue
 
         Get(1, ThreadReadState.random) shouldBe keyValue
       }
@@ -75,8 +74,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val expect = put.copy(deadline = remove.deadline.orElse(put.deadline), time = remove.time)
 
-        getFromCurrentLevel.get _ expects (1: Sliced[Byte], *) returning remove
-        getFromNextLevel.get _ expects (1: Sliced[Byte], *) returning put
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning remove
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
         Get(1, ThreadReadState.random) shouldBe expect
       }
@@ -93,8 +92,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val expect = put.copy(deadline = update.deadline.orElse(put.deadline), value = update.value, time = update.time)
 
-        getFromCurrentLevel.get _ expects (1: Sliced[Byte], *) returning update
-        getFromNextLevel.get _ expects (1: Sliced[Byte], *) returning put
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning update
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
         Get(1, ThreadReadState.random) shouldBe expect
       }
@@ -120,8 +119,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val expect = FunctionMerger(function, put).runRandomIO.right.value
 
-        getFromCurrentLevel.get _ expects (1: Sliced[Byte], *) returning function
-        getFromNextLevel.get _ expects (1: Sliced[Byte], *) returning put
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning function
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
         Get(1, ThreadReadState.random) shouldBe expect
       }
@@ -150,8 +149,8 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
 
         val expected = PendingApplyMerger(pendingApply, put).runRandomIO.right.value
 
-        getFromCurrentLevel.get _ expects (1: Sliced[Byte], *) returning pendingApply
-        getFromNextLevel.get _ expects (1: Sliced[Byte], *) returning put
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning pendingApply
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
         Get(1, ThreadReadState.random) shouldBe expected
       }
@@ -168,7 +167,7 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
 
         val range = randomRangeKeyValue(1, 10, fromValue)
 
-        getFromCurrentLevel.get _ expects (1: Sliced[Byte], *) returning range
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning range
 
         Get(1, ThreadReadState.random) shouldBe fromValue.toMemory(1)
       }
@@ -196,9 +195,9 @@ class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with Option
 
         val expected = FixedMerger(functionValue, put).runRandomIO.right.value
 
-        getFromCurrentLevel.get _ expects (1: Sliced[Byte], *) returning range
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning range
         //next level can return anything it will be removed.
-        getFromNextLevel.get _ expects (1: Sliced[Byte], *) returning put
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
         Get(1, ThreadReadState.random) shouldBe expected
       }

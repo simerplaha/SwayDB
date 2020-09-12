@@ -34,7 +34,6 @@ import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.{Sliced, _}
 import swaydb.data.util.Functions
 
 private[core] object ValuesBlock {
@@ -81,9 +80,9 @@ private[core] object ValuesBlock {
   def valuesBlockNotInitialised: IO.Left[swaydb.Error.Segment, Nothing] =
     IO.Left(swaydb.Error.Fatal("Value block not initialised."))
 
-  class State(var compressibleBytes: Sliced[Byte],
-              val cacheableBytes: Sliced[Byte],
-              var header: Sliced[Byte],
+  class State(var compressibleBytes: Slice[Byte],
+              val cacheableBytes: Slice[Byte],
+              var header: Slice[Byte],
               val compressions: UncompressedBlockInfo => Iterable[CompressionInternal],
               val builder: EntryWriter.Builder) {
     def blockSize: Int =
@@ -126,7 +125,7 @@ private[core] object ValuesBlock {
       None
   }
 
-  def init(bytes: Sliced[Byte],
+  def init(bytes: Slice[Byte],
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): ValuesBlock.State =
@@ -185,7 +184,7 @@ private[core] object ValuesBlock {
       compressionInfo = header.compressionInfo
     )
 
-  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Option[Sliced[Byte]] =
+  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Option[Slice[Byte]] =
   //    reader
   //      .moveTo(fromOffset)
   //      .read(length)

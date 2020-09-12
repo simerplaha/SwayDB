@@ -35,28 +35,27 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 import scala.concurrent.duration.Deadline
 
 sealed trait TransientSegment {
   def isEmpty: Boolean
-  def minKey: Sliced[Byte]
-  def maxKey: MaxKey[Sliced[Byte]]
+  def minKey: Slice[Byte]
+  def maxKey: MaxKey[Slice[Byte]]
   def segmentSize: Int
-  def segmentBytes: Sliced[Sliced[Byte]]
-  def minMaxFunctionId: Option[MinMax[Sliced[Byte]]]
+  def segmentBytes: Slice[Slice[Byte]]
+  def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
   def nearestPutDeadline: Option[Deadline]
-  def flattenSegmentBytes: Sliced[Byte]
-  def flattenSegment: (Sliced[Byte], Option[Deadline])
+  def flattenSegmentBytes: Slice[Byte]
+  def flattenSegment: (Slice[Byte], Option[Deadline])
 }
 
 object TransientSegment {
 
-  case class One(minKey: Sliced[Byte],
-                 maxKey: MaxKey[Sliced[Byte]],
-                 segmentBytes: Sliced[Sliced[Byte]],
-                 minMaxFunctionId: Option[MinMax[Sliced[Byte]]],
+  case class One(minKey: Slice[Byte],
+                 maxKey: MaxKey[Slice[Byte]],
+                 segmentBytes: Slice[Slice[Byte]],
+                 minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                  nearestPutDeadline: Option[Deadline],
                  valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                  sortedIndexClosedState: SortedIndexBlock.State,
@@ -72,7 +71,7 @@ object TransientSegment {
     override def segmentSize =
       segmentBytes.foldLeft(0)(_ + _.size)
 
-    override def flattenSegmentBytes: Sliced[Byte] = {
+    override def flattenSegmentBytes: Slice[Byte] = {
       val size = segmentBytes.foldLeft(0)(_ + _.size)
       val slice = Slice.create[Byte](size)
       segmentBytes foreach (slice addAll _)
@@ -80,13 +79,13 @@ object TransientSegment {
       slice
     }
 
-    override def flattenSegment: (Sliced[Byte], Option[Deadline]) =
+    override def flattenSegment: (Slice[Byte], Option[Deadline]) =
       (flattenSegmentBytes, nearestPutDeadline)
 
     override def toString: String =
       s"TransientSegment Segment. Size: ${segmentSize}"
 
-    def toKeyValue(offset: Int, size: Int): Sliced[Memory] =
+    def toKeyValue(offset: Int, size: Int): Slice[Memory] =
       TransientSegmentSerialiser.toKeyValue(
         one = this,
         offset = offset,
@@ -94,13 +93,13 @@ object TransientSegment {
       )
   }
 
-  case class Many(minKey: Sliced[Byte],
-                  maxKey: MaxKey[Sliced[Byte]],
+  case class Many(minKey: Slice[Byte],
+                  maxKey: MaxKey[Slice[Byte]],
                   headerSize: Int,
-                  minMaxFunctionId: Option[MinMax[Sliced[Byte]]],
+                  minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                   nearestPutDeadline: Option[Deadline],
-                  segments: Sliced[TransientSegment.One],
-                  segmentBytes: Sliced[Sliced[Byte]]) extends TransientSegment {
+                  segments: Slice[TransientSegment.One],
+                  segmentBytes: Slice[Slice[Byte]]) extends TransientSegment {
 
     override def isEmpty: Boolean =
       segmentBytes.exists(_.isEmpty)
@@ -108,7 +107,7 @@ object TransientSegment {
     override def segmentSize: Int =
       segmentBytes.foldLeft(0)(_ + _.size)
 
-    override def flattenSegmentBytes: Sliced[Byte] = {
+    override def flattenSegmentBytes: Slice[Byte] = {
       val size = segmentBytes.foldLeft(0)(_ + _.size)
       val slice = Slice.create[Byte](size)
       segmentBytes foreach (slice addAll _)
@@ -116,7 +115,7 @@ object TransientSegment {
       slice
     }
 
-    override def flattenSegment: (Sliced[Byte], Option[Deadline]) =
+    override def flattenSegment: (Slice[Byte], Option[Deadline]) =
       (flattenSegmentBytes, nearestPutDeadline)
 
     override def toString: String =

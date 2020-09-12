@@ -32,7 +32,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.IndexFormat
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.macros.Sealed
 import swaydb.data.util.ByteOps._
@@ -47,7 +47,7 @@ private[core] sealed trait HashIndexEntryFormat {
   def bytesToAllocatePerEntry(largestIndexOffset: Int,
                               largestMergedKeySize: Int): Int
 
-  def readOrNull(entry: Sliced[Byte],
+  def readOrNull(entry: Slice[Byte],
                  hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                  sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                  valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
@@ -75,12 +75,12 @@ private[core] object HashIndexEntryFormat {
       Bytes sizeOfUnsignedInt (largestIndexOffset + 1)
 
     def write(indexOffset: Int,
-              mergedKey: Sliced[Byte],
+              mergedKey: Slice[Byte],
               keyType: Byte,
-              bytes: Sliced[Byte]): Unit =
+              bytes: Slice[Byte]): Unit =
       bytes addNonZeroUnsignedInt (indexOffset + 1)
 
-    override def readOrNull(entry: Sliced[Byte],
+    override def readOrNull(entry: Slice[Byte],
                             hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                             valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
@@ -112,9 +112,9 @@ private[core] object HashIndexEntryFormat {
     }
 
     def write(indexOffset: Int,
-              mergedKey: Sliced[Byte],
+              mergedKey: Slice[Byte],
               keyType: Byte,
-              bytes: Sliced[Byte]): Long = {
+              bytes: Slice[Byte]): Long = {
       val position = bytes.currentWritePosition
       bytes addUnsignedInt mergedKey.size
       bytes addAll mergedKey
@@ -130,7 +130,7 @@ private[core] object HashIndexEntryFormat {
       crc
     }
 
-    override def readOrNull(entry: Sliced[Byte],
+    override def readOrNull(entry: Slice[Byte],
                             hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                             valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
@@ -169,7 +169,7 @@ private[core] object HashIndexEntryFormat {
               override def indexOffset: Int =
                 indexOffset_
 
-              override def key: Sliced[Byte] =
+              override def key: Slice[Byte] =
                 fromKey
 
               override def toPersistent: Persistent =
@@ -180,7 +180,7 @@ private[core] object HashIndexEntryFormat {
               override def indexOffset: Int =
                 indexOffset_
 
-              override def key: Sliced[Byte] =
+              override def key: Slice[Byte] =
                 entryKey
 
               override def toPersistent: Persistent =

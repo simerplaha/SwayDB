@@ -33,7 +33,7 @@ import swaydb.core.segment.KeyMatcher
 import swaydb.core.segment.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -41,9 +41,9 @@ import scala.util.Random
 
 class KeyMatcherSpec extends TestBase {
 
-  implicit val integer: KeyOrder[Sliced[Byte]] =
-    new KeyOrder[Sliced[Byte]] {
-      override def compare(a: Sliced[Byte], b: Sliced[Byte]): Int =
+  implicit val integer: KeyOrder[Slice[Byte]] =
+    new KeyOrder[Slice[Byte]] {
+      override def compare(a: Slice[Byte], b: Slice[Byte]): Int =
         IntSerializer.read(a) compareTo IntSerializer.read(b)
     }
 

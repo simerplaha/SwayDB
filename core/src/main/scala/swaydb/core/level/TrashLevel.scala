@@ -31,7 +31,7 @@ import swaydb.core.data.{KeyValue, Memory, MemoryOption}
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 import swaydb.data.util.Futures
 import swaydb.{Error, IO}
@@ -68,16 +68,16 @@ private[core] object TrashLevel extends NextLevel {
   override val segmentFilesOnDisk: List[Path] =
     List.empty
 
-  override def take(count: Int): Sliced[Segment] =
+  override def take(count: Int): Slice[Segment] =
     Slice.create[Segment](0)
 
-  override def foreachSegment[T](f: (Sliced[Byte], Segment) => T): Unit =
+  override def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
     ()
 
-  override def containsSegmentWithMinKey(minKey: Sliced[Byte]): Boolean =
+  override def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
     false
 
-  override def getSegment(minKey: Sliced[Byte]): SegmentOption =
+  override def getSegment(minKey: Slice[Byte]): SegmentOption =
     Segment.Null
 
   override val existsOnDisk =
@@ -92,13 +92,13 @@ private[core] object TrashLevel extends NextLevel {
   override def last(readState: ThreadReadState) =
     KeyValue.Put.Null
 
-  override def get(key: Sliced[Byte], readState: ThreadReadState) =
+  override def get(key: Slice[Byte], readState: ThreadReadState) =
     KeyValue.Put.Null
 
-  override def lower(key: Sliced[Byte], readState: ThreadReadState) =
+  override def lower(key: Slice[Byte], readState: ThreadReadState) =
     KeyValue.Put.Null
 
-  override def higher(key: Sliced[Byte], readState: ThreadReadState) =
+  override def higher(key: Slice[Byte], readState: ThreadReadState) =
     KeyValue.Put.Null
 
   override val isEmpty: Boolean =
@@ -125,18 +125,18 @@ private[core] object TrashLevel extends NextLevel {
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     None
 
-  override def mightContainKey(key: Sliced[Byte]): Boolean =
+  override def mightContainKey(key: Slice[Byte]): Boolean =
     false
 
-  override def mightContainFunction(key: Sliced[Byte]): Boolean =
+  override def mightContainFunction(key: Slice[Byte]): Boolean =
     false
 
   override val isTrash: Boolean = true
 
-  override def ceiling(key: Sliced[Byte], readState: ThreadReadState): KeyValue.PutOption =
+  override def ceiling(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
     KeyValue.Put.Null
 
-  override def floor(key: Sliced[Byte], readState: ThreadReadState): KeyValue.PutOption =
+  override def floor(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
     KeyValue.Put.Null
 
   override def headKey(readState: ThreadReadState): SliceOption[Byte] =
@@ -152,7 +152,7 @@ private[core] object TrashLevel extends NextLevel {
 
   override def inMemory: Boolean = true
 
-  override def isCopyable(map: swaydb.core.map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): Boolean =
+  override def isCopyable(map: swaydb.core.map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Boolean =
     true
 
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
@@ -164,7 +164,7 @@ private[core] object TrashLevel extends NextLevel {
   override def put(segment: Segment): IO[Nothing, IO.Right[Nothing, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
-  override def put(map: swaydb.core.map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+  override def put(map: swaydb.core.map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
   override def put(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
@@ -210,13 +210,13 @@ private[core] object TrashLevel extends NextLevel {
   override def stateId: Long =
     0
 
-  override def isUnreserved(minKey: Sliced[Byte], maxKey: Sliced[Byte], maxKeyInclusive: Boolean): Boolean =
+  override def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true
 
   override def isUnreserved(segment: Segment): Boolean =
     true
 
-  override def isCopyable(minKey: Sliced[Byte], maxKey: Sliced[Byte], maxKeyInclusive: Boolean): Boolean =
+  override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true
 
   override def deleteNoSweep: IO[swaydb.Error.Delete, Unit] = IO.unit

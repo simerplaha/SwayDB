@@ -25,7 +25,7 @@
 package swaydb.core.data
 
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 
 import scala.concurrent.duration.Deadline
@@ -37,11 +37,11 @@ private[swaydb] object SwayFunction {
   sealed trait RequiresValue extends SwayFunction
   sealed trait RequiresDeadline extends SwayFunction
 
-  case class Key(f: Sliced[Byte] => SwayFunctionOutput) extends RequiresKey
-  case class KeyDeadline(f: (Sliced[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresDeadline
-  case class KeyValue(f: (Sliced[Byte], SliceOption[Byte]) => SwayFunctionOutput) extends RequiresKey with RequiresValue
+  case class Key(f: Slice[Byte] => SwayFunctionOutput) extends RequiresKey
+  case class KeyDeadline(f: (Slice[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresDeadline
+  case class KeyValue(f: (Slice[Byte], SliceOption[Byte]) => SwayFunctionOutput) extends RequiresKey with RequiresValue
 
-  case class KeyValueDeadline(f: (Sliced[Byte], SliceOption[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresValue with RequiresDeadline
+  case class KeyValueDeadline(f: (Slice[Byte], SliceOption[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresValue with RequiresDeadline
   case class Value(f: SliceOption[Byte] => SwayFunctionOutput) extends RequiresValue
   case class ValueDeadline(f: (SliceOption[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresValue with RequiresDeadline
 }

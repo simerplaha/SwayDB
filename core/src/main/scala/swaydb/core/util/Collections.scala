@@ -25,7 +25,6 @@
 package swaydb.core.util
 
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 
 import scala.reflect.ClassTag
@@ -104,13 +103,13 @@ private[swaydb] object Collections {
 
   def groupedBySize[T: ClassTag](minGroupSize: Int,
                                  itemSize: T => Int,
-                                 items: Sliced[T]): Sliced[Sliced[T]] =
+                                 items: Slice[T]): Slice[Slice[T]] =
     if (minGroupSize <= 0) {
       Slice(items)
     } else {
       val allGroups =
         Slice
-          .create[Sliced[T]](items.size)
+          .create[Slice[T]](items.size)
           .add(Slice.create[T](items.size))
 
       var currentGroupSize = 0

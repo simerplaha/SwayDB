@@ -25,12 +25,12 @@ import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import TestCaseSweeper._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb._
 
 class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
-  implicit val order: KeyOrder[Sliced[Byte]] = KeyOrder.reverse
+  implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverse
 
   val keyValueCount: Int = 10000
 
@@ -39,7 +39,7 @@ class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
 }
 
 class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
-  implicit val order: KeyOrder[Sliced[Byte]] = KeyOrder.reverse
+  implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverse
 
   val keyValueCount: Int = 100000
 

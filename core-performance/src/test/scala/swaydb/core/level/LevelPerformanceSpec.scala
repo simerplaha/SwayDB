@@ -31,7 +31,7 @@
 //import swaydb.core.util.Benchmark
 //import swaydb.data.config.{IOAction, IOStrategy}
 //import swaydb.data.order.KeyOrder
-//import swaydb.data.slice.Slice._
+//import swaydb.data.slice.Slice
 //import swaydb.data.util.StorageUnits._
 //import swaydb.core.CommonAssertions._
 //import scala.util.Random

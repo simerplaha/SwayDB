@@ -26,13 +26,13 @@ package swaydb.data.slice
 
 import java.nio.file.Paths
 
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps
 
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-private[swaydb] case class SliceReader[B](slice: Sliced[B],
+private[swaydb] case class SliceReader[B](slice: Slice[B],
                                           private var position: Int = 0)(implicit val byteOps: ByteOps[B]) extends Reader[B] {
 
   def path = Paths.get(this.getClass.getSimpleName)
@@ -43,7 +43,7 @@ private[swaydb] case class SliceReader[B](slice: Sliced[B],
   def hasAtLeast(size: Long): Boolean =
     (slice.size - position) >= size
 
-  def read(size: Int): Sliced[B] = {
+  def read(size: Int): Slice[B] = {
     if (size <= 0)
       Slice.empty
     else {
@@ -84,7 +84,7 @@ private[swaydb] case class SliceReader[B](slice: Sliced[B],
   override def copy(): SliceReader[B] =
     SliceReader(slice)
 
-  override def readRemaining(): Sliced[B] =
+  override def readRemaining(): Slice[B] =
     read(remaining)
 
   override def isFile: Boolean = false

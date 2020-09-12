@@ -37,7 +37,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.Dir
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 trait PersistentSegment extends Segment {
   def file: DBFile
 
@@ -46,7 +46,7 @@ trait PersistentSegment extends Segment {
   def isMMAP =
     file.isMemoryMapped
 
-  def put(newKeyValues: Sliced[KeyValue],
+  def put(newKeyValues: Slice[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -55,7 +55,7 @@ trait PersistentSegment extends Segment {
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Sliced[PersistentSegment]
+          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -65,5 +65,5 @@ trait PersistentSegment extends Segment {
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Sliced[PersistentSegment]
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment]
 }

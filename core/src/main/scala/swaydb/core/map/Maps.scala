@@ -42,7 +42,6 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
@@ -314,7 +313,7 @@ private[core] object Maps extends LazyLogging {
    */
   @inline def snapshot[OK, OV, K <: OK, V <: OV](minimumSize: Int,
                                                  currentMap: Map[OK, OV, K, V],
-                                                 queue: ConcurrentLinkedDeque[Map[OK, OV, K, V]]): Sliced[Map[OK, OV, K, V]] = {
+                                                 queue: ConcurrentLinkedDeque[Map[OK, OV, K, V]]): Slice[Map[OK, OV, K, V]] = {
     var slice = Slice.create[Map[OK, OV, K, V]](minimumSize + 2)
     slice add currentMap
 
@@ -386,7 +385,7 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   private[core] def onNextMapCallback(event: () => Unit): Unit =
     onNextMapListener = event
 
-  def snapshot(): Sliced[Map[OK, OV, K, V]] =
+  def snapshot(): Slice[Map[OK, OV, K, V]] =
     Maps.snapshot(
       minimumSize = currentMapsCount,
       currentMap = currentMap,

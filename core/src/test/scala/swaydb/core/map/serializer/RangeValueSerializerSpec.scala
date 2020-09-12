@@ -31,9 +31,8 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
-import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 
 class RangeValueSerializerSpec extends AnyWordSpec with Matchers {
 

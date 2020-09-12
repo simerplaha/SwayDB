@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
 
@@ -66,7 +66,7 @@ object PersistentReader extends LazyLogging {
 
   def read[T <: Persistent](indexOffset: Int,
                             headerInteger: Int,
-                            tailIndexEntry: Sliced[Byte],
+                            tailIndexEntry: Slice[Byte],
                             previous: PersistentOption,
                             //sorted index stats
                             mightBeCompressed: Boolean,
@@ -100,7 +100,7 @@ object PersistentReader extends LazyLogging {
 
   def read[T <: Persistent](indexOffset: Int,
                             headerInteger: Int,
-                            headerKeyBytes: Sliced[Byte],
+                            headerKeyBytes: Slice[Byte],
                             keyValueId: Int,
                             tailReader: ReaderBase[Byte],
                             previous: PersistentOption,
@@ -207,7 +207,7 @@ object PersistentReader extends LazyLogging {
    * @return [[Tuple2]] that contains the indexOffset of next key-value and next key-values size.
    */
   def calculateNextKeyValueOffsetAndSize(sortedIndexEndOffset: Int,
-                                         previousKeyValueHeaderKeyBytes: Sliced[Byte],
+                                         previousKeyValueHeaderKeyBytes: Slice[Byte],
                                          previousKeyValueIndexReader: ReaderBase[Byte],
                                          previousKeyValueIndexOffset: Int,
                                          normalisedByteSize: Int): (Int, Int) = {

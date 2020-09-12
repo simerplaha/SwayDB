@@ -39,7 +39,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 import swaydb.serializers.Serializer
 
@@ -51,7 +51,7 @@ import scala.reflect.ClassTag
  */
 object SwayDB extends LazyLogging {
 
-  private implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   final def version: Build.Version = Build.thisVersion()
 
@@ -74,7 +74,7 @@ object SwayDB extends LazyLogging {
                      config: SwayDBPersistentConfig)(implicit keySerializer: Serializer[K],
                                                      valueSerializer: Serializer[V],
                                                      functionClassTag: ClassTag[F],
-                                                     keyOrder: KeyOrder[Sliced[Byte]],
+                                                     keyOrder: KeyOrder[Slice[Byte]],
                                                      buildValidator: BuildValidator,
                                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
@@ -97,7 +97,7 @@ object SwayDB extends LazyLogging {
                   shutdownTimeout: FiniteDuration,
                   config: SwayDBPersistentConfig)(implicit serializer: Serializer[A],
                                                   functionClassTag: ClassTag[F],
-                                                  keyOrder: KeyOrder[Sliced[Byte]],
+                                                  keyOrder: KeyOrder[Slice[Byte]],
                                                   buildValidator: BuildValidator,
                                                   functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[A, F, Bag.Less]] =
     Core(
@@ -121,7 +121,7 @@ object SwayDB extends LazyLogging {
                      config: SwayDBMemoryConfig)(implicit keySerializer: Serializer[K],
                                                  valueSerializer: Serializer[V],
                                                  functionClassTag: ClassTag[F],
-                                                 keyOrder: KeyOrder[Sliced[Byte]],
+                                                 keyOrder: KeyOrder[Slice[Byte]],
                                                  buildValidator: BuildValidator,
                                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
     Core(
@@ -144,7 +144,7 @@ object SwayDB extends LazyLogging {
                   shutdownTimeout: FiniteDuration,
                   config: SwayDBMemoryConfig)(implicit serializer: Serializer[A],
                                               functionClassTag: ClassTag[F],
-                                              keyOrder: KeyOrder[Sliced[Byte]],
+                                              keyOrder: KeyOrder[Slice[Byte]],
                                               buildValidator: BuildValidator,
                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[A, F, Bag.Less]] =
     Core(
@@ -172,7 +172,7 @@ object SwayDB extends LazyLogging {
         SwayFunctionOutput.Expire(deadline)
 
       case update: Apply.Update[V] =>
-        val untypedValue: Sliced[Byte] = valueSerializer.write(update.value)
+        val untypedValue: Slice[Byte] = valueSerializer.write(update.value)
         SwayFunctionOutput.Update(untypedValue, update.deadline)
     }
 
@@ -180,7 +180,7 @@ object SwayDB extends LazyLogging {
                                                                                  valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
 
-    def function(key: Sliced[Byte], deadline: Option[Deadline]) =
+    def function(key: Slice[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(key.read[K], deadline))
 
     swaydb.core.data.SwayFunction.KeyDeadline(function)
@@ -190,7 +190,7 @@ object SwayDB extends LazyLogging {
                                                                                     valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
 
-    def function(key: Sliced[Byte], value: SliceOption[Byte], deadline: Option[Deadline]) =
+    def function(key: Slice[Byte], value: SliceOption[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(key.read[K], value.read[V], deadline))
 
     swaydb.core.data.SwayFunction.KeyValueDeadline(function)
@@ -211,7 +211,7 @@ object SwayDB extends LazyLogging {
   def repairAppendix[K](levelPath: Path,
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
                                                                 fileSweeper: FileSweeperActor,
-                                                                keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default): IO[swaydb.Error.Level, RepairResult[K]] =
+                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[swaydb.Error.Level, RepairResult[K]] =
   //convert to typed result.
     AppendixRepairer(levelPath, repairStrategy) match {
       case IO.Left(swaydb.Error.Fatal(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo))) =>

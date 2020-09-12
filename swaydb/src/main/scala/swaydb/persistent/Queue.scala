@@ -35,7 +35,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
@@ -80,7 +80,7 @@ object Queue extends LazyLogging {
       implicit val queueSerialiser: Serializer[(Long, A)] =
         swaydb.Queue.serialiser[A](serializer)
 
-      implicit val keyOrder: KeyOrder[Sliced[Byte]] =
+      implicit val keyOrder: KeyOrder[Slice[Byte]] =
         swaydb.Queue.ordering
 
       val set =

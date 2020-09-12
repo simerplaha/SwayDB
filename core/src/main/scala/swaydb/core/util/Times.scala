@@ -27,7 +27,6 @@ package swaydb.core.util
 import java.util.concurrent.TimeUnit
 
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 
 import scala.concurrent.duration.Deadline
@@ -72,10 +71,10 @@ private[swaydb] object Times {
     @inline final def toNanos: Long =
       deadline.time.toNanos
 
-    @inline final def toUnsignedBytes: Sliced[Byte] =
+    @inline final def toUnsignedBytes: Slice[Byte] =
       Slice.writeUnsignedLong[Byte](toNanos)
 
-    @inline final def toBytes: Sliced[Byte] =
+    @inline final def toBytes: Slice[Byte] =
       Slice.writeLong[Byte](toNanos)
 
     @inline def earlier(other: Deadline): Deadline =

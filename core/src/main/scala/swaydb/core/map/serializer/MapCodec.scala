@@ -32,9 +32,8 @@ import swaydb.core.map.{MapEntry, RecoveryResult}
 import swaydb.core.util.CRC32
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps._
 
 private[core] object MapCodec extends LazyLogging {
@@ -50,10 +49,10 @@ private[core] object MapCodec extends LazyLogging {
         mapEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
     }
 
-  def write[K, V](map: SkipList[_, _, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Sliced[Byte] =
+  def write[K, V](map: SkipList[_, _, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Slice[Byte] =
     toMapEntry(map).map(write[K, V]) getOrElse Slice.emptyBytes
 
-  def write[K, V](mapEntries: MapEntry[K, V]): Sliced[Byte] = {
+  def write[K, V](mapEntries: MapEntry[K, V]): Slice[Byte] = {
     val totalEntrySize = headerSize + mapEntries.entryBytesSize
 
     val slice = Slice.create[Byte](totalEntrySize)
@@ -74,7 +73,7 @@ private[core] object MapCodec extends LazyLogging {
   /**
    * THIS FUNCTION NEED REFACTORING.
    */
-  def read[K, V](bytes: Sliced[Byte],
+  def read[K, V](bytes: Slice[Byte],
                  dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[swaydb.Error.Map, RecoveryResult[Option[MapEntry[K, V]]]] =
     Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>

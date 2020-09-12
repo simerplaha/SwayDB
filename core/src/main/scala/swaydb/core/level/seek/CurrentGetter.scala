@@ -26,9 +26,9 @@ package swaydb.core.level.seek
 
 import swaydb.core.data.KeyValueOption
 import swaydb.core.segment.ThreadReadState
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 trait CurrentGetter {
 
-  def get(key: Sliced[Byte],
+  def get(key: Slice[Byte],
           readState: ThreadReadState): KeyValueOption
 }

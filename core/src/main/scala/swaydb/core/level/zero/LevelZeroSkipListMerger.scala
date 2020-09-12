@@ -34,7 +34,7 @@ import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 
 import scala.collection.mutable.ListBuffer
@@ -45,16 +45,16 @@ import scala.collection.mutable.ListBuffer
  *
  * reverse on the merge results ensures that changes happen atomically.
  */
-case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Sliced[Byte]],
-                                     timeOrder: TimeOrder[Sliced[Byte]],
-                                     functionStore: FunctionStore) extends SkipListMerger[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] {
+case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                     timeOrder: TimeOrder[Slice[Byte]],
+                                     functionStore: FunctionStore) extends SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] {
 
   import keyOrder._
 
   //.get is no good. Memory key-values will never result in failure since they do not perform IO (no side-effects).
   //But this is a temporary solution until applyValue is updated to accept type classes to perform side effect.
   def applyValue(newKeyValue: Memory.Fixed,
-                 oldKeyValue: Memory.Fixed)(implicit timeOrder: TimeOrder[Sliced[Byte]],
+                 oldKeyValue: Memory.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore): Memory.Fixed =
     FixedMerger(
       newKeyValue = newKeyValue,
@@ -65,7 +65,7 @@ case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Sliced[Byte]],
    * Inserts a [[Memory.Fixed]] key-value into skipList.
    */
   def insert(insert: Memory.Fixed,
-             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): Unit =
+             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit =
     skipList.floor(insert.key) match {
       case floorEntry: Memory =>
         floorEntry match {
@@ -105,7 +105,7 @@ case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Sliced[Byte]],
    * the skipList before applying the new state so that all read queries read the latest write.
    */
   def insert(insert: Memory.Range,
-             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): Unit = {
+             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit = {
     //value the start position of this range to fetch the range's start and end key-values for the skipList.
     val startKey =
       skipList.floor(insert.fromKey) mapS {
@@ -138,7 +138,7 @@ case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Sliced[Byte]],
         isLastLevel = false
       )
 
-      val batches = ListBuffer.empty[SkipList.Batch[Sliced[Byte], Memory]]
+      val batches = ListBuffer.empty[SkipList.Batch[Slice[Byte], Memory]]
 
       oldKeyValues foreach {
         oldKeyValue =>
@@ -165,9 +165,9 @@ case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Sliced[Byte]],
     }
   }
 
-  override def insert(insertKey: Sliced[Byte],
+  override def insert(insertKey: Slice[Byte],
                       insertValue: Memory,
-                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): Unit =
+                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit =
     insertValue match {
       //if insert value is fixed, check the floor entry
       case insertValue: Memory.Fixed =>
@@ -180,8 +180,8 @@ case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Sliced[Byte]],
         insert(insertRange, skipList)
     }
 
-  override def insert(entry: MapEntry[Sliced[Byte], Memory],
-                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): Unit =
+  override def insert(entry: MapEntry[Slice[Byte], Memory],
+                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit =
     entry match {
       case MapEntry.Put(key, value: Memory) =>
         insert(key, value, skipList)

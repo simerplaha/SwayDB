@@ -27,7 +27,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.Functions
 import swaydb.data.RunThis._
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.macros.Sealed
 import swaydb.serializers.Default._
 import swaydb.{Apply, IO, Map, Prepare, PureFunction, StorageIntImplicits}
@@ -35,7 +35,6 @@ import swaydb.{Apply, IO, Map, Prepare, PureFunction, StorageIntImplicits}
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Deadline
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 protected sealed trait Key
 protected object Key {
@@ -64,10 +63,10 @@ protected object Key {
   implicit val deadlinePickler = transformPickler((nano: Long) => Deadline((nano, TimeUnit.NANOSECONDS)))(_.time.toNanos)
 
   implicit object KeySerializer extends swaydb.serializers.Serializer[Key] {
-    override def write(data: Key): Sliced[Byte] =
+    override def write(data: Key): Slice[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Sliced[Byte]): Key =
+    override def read(data: Slice[Byte]): Key =
       Unpickle[Key].fromBytes(data.toByteBufferWrap)
   }
 }

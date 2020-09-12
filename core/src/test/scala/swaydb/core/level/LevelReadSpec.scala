@@ -39,7 +39,7 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -69,7 +69,7 @@ class LevelReadSpec3 extends LevelReadSpec {
 
 sealed trait LevelReadSpec extends TestBase with MockFactory {
 
-  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
   val keyValuesCount = 100
 

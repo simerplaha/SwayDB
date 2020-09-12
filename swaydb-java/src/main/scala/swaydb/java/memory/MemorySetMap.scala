@@ -34,7 +34,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.java._
@@ -59,7 +59,7 @@ object MemorySetMap {
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                            private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                           private var byteComparator: KeyComparator[Sliced[java.lang.Byte]] = null,
+                           private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[K] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
                            keySerializer: Serializer[K],
@@ -115,7 +115,7 @@ object MemorySetMap {
       this
     }
 
-    def setByteKeyComparator(byteComparator: KeyComparator[Sliced[java.lang.Byte]]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[Slice[java.lang.Byte]]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -131,14 +131,14 @@ object MemorySetMap {
     }
 
     def get(): swaydb.java.SetMap[K, V] = {
-      val comparator: Either[KeyComparator[Sliced[java.lang.Byte]], KeyComparator[K]] =
+      val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,
           default = KeyComparator.lexicographic
         )
 
-      val scalaKeyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
+      val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
         swaydb.memory.SetMap[K, V, Bag.Less](

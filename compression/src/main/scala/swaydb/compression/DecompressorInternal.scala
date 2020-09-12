@@ -28,7 +28,6 @@ import net.jpountz.lz4.{LZ4Factory, LZ4FastDecompressor, LZ4SafeDecompressor}
 import org.xerial.snappy
 import swaydb.data.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 /**
  * Internal types that have 1 to 1 mapping with the more configurable swaydb.Decompressor types.
  */
@@ -36,8 +35,8 @@ private[swaydb] sealed trait DecompressorInternal {
 
   val id: Int
 
-  def decompress(slice: Sliced[Byte],
-                 decompressLength: Int): Sliced[Byte]
+  def decompress(slice: Slice[Byte],
+                 decompressLength: Int): Slice[Byte]
 }
 
 private[swaydb] object DecompressorInternal {
@@ -108,16 +107,16 @@ private[swaydb] object DecompressorInternal {
   private[swaydb] case class LZ4Fast(id: Int,
                                      decompressor: LZ4FastDecompressor) extends DecompressorInternal.LZ4 {
 
-    override def decompress(slice: Sliced[Byte],
-                            decompressLength: Int): Sliced[Byte] =
+    override def decompress(slice: Slice[Byte],
+                            decompressLength: Int): Slice[Byte] =
       Slice(decompressor.decompress(slice.toArray, decompressLength))
   }
 
   private[swaydb] case class LZ4Safe(id: Int,
                                      decompressor: LZ4SafeDecompressor) extends DecompressorInternal.LZ4 {
 
-    override def decompress(slice: Sliced[Byte],
-                            decompressLength: Int): Sliced[Byte] =
+    override def decompress(slice: Slice[Byte],
+                            decompressLength: Int): Slice[Byte] =
       Slice(decompressor.decompress(slice.toArray, decompressLength))
   }
 
@@ -125,8 +124,8 @@ private[swaydb] object DecompressorInternal {
 
     override val id: Int = DecompressorId.UnCompressed.id
 
-    override def decompress(slice: Sliced[Byte],
-                            decompressLength: Int): Sliced[Byte] =
+    override def decompress(slice: Slice[Byte],
+                            decompressLength: Int): Slice[Byte] =
       slice
   }
 
@@ -134,8 +133,8 @@ private[swaydb] object DecompressorInternal {
 
     override val id: Int = DecompressorId.Snappy.Default.id
 
-    override def decompress(slice: Sliced[Byte],
-                            decompressLength: Int): Sliced[Byte] =
+    override def decompress(slice: Slice[Byte],
+                            decompressLength: Int): Slice[Byte] =
       Slice(snappy.Snappy.uncompress(slice.toArray))
   }
 

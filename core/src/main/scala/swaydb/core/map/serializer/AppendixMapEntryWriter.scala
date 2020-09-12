@@ -27,42 +27,42 @@ package swaydb.core.map.serializer
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps._
 
 private[core] object AppendixMapEntryWriter {
 
-  implicit object AppendixRemoveWriter extends MapEntryWriter[MapEntry.Remove[Sliced[Byte]]] {
+  implicit object AppendixRemoveWriter extends MapEntryWriter[MapEntry.Remove[Slice[Byte]]] {
     val id: Int = 0
 
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: MapEntry.Remove[Sliced[Byte]], bytes: Sliced[Byte]): Unit =
+    override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
       bytes
         .addUnsignedInt(this.id)
         .addUnsignedInt(entry.key.size)
         .addAll(entry.key)
 
-    override def bytesRequired(entry: MapEntry.Remove[Sliced[Byte]]): Int =
+    override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
       Bytes.sizeOfUnsignedInt(this.id) +
         Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size
   }
 
-  implicit object AppendixPutWriter extends MapEntryWriter[MapEntry.Put[Sliced[Byte], Segment]] {
+  implicit object AppendixPutWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]] {
     val id: Int = 1
 
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: MapEntry.Put[Sliced[Byte], Segment], bytes: Sliced[Byte]): Unit =
+    override def write(entry: MapEntry.Put[Slice[Byte], Segment], bytes: Slice[Byte]): Unit =
       SegmentSerialiser.FormatA.write(
         segment = entry.value,
         bytes = bytes.addUnsignedInt(this.id)
       )
 
-    override def bytesRequired(entry: MapEntry.Put[Sliced[Byte], Segment]): Int =
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Segment]): Int =
       Bytes.sizeOfUnsignedInt(this.id) +
         SegmentSerialiser.FormatA.bytesRequired(entry.value)
   }

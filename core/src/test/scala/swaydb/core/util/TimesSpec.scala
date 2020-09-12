@@ -27,10 +27,9 @@ package swaydb.core.util
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.util.Times._
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class TimesSpec extends AnyWordSpec with Matchers {
 

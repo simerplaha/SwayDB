@@ -26,14 +26,14 @@ package swaydb.data.util
 
 import java.nio.charset.Charset
 
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.slice.{ReaderBase, Slice, SliceReader}
 import swaydb.data.util.Maybe.Maybe
 
 
 object JavaByteOps extends ByteOps[java.lang.Byte] {
 
-  def writeInt(int: Int, slice: Sliced[java.lang.Byte]): Unit = {
+  def writeInt(int: Int, slice: Slice[java.lang.Byte]): Unit = {
     slice add (int >>> 24).toByte
     slice add (int >>> 16).toByte
     slice add (int >>> 8).toByte
@@ -43,13 +43,13 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
   def readInt(reader: ReaderBase[java.lang.Byte]): Int =
     readInt(reader.read(ByteSizeOf.int))
 
-  def readInt(bytes: Sliced[java.lang.Byte]): Int =
+  def readInt(bytes: Slice[java.lang.Byte]): Int =
     bytes.get(0).toInt << 24 |
       (bytes.get(1) & 0xff) << 16 |
       (bytes.get(2) & 0xff) << 8 |
       bytes.get(3) & 0xff
 
-  def writeLong(long: Long, slice: Sliced[java.lang.Byte]): Unit = {
+  def writeLong(long: Long, slice: Slice[java.lang.Byte]): Unit = {
     slice add (long >>> 56).toByte
     slice add (long >>> 48).toByte
     slice add (long >>> 40).toByte
@@ -60,7 +60,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     slice add long.toByte
   }
 
-  def readLong(bytes: Sliced[java.lang.Byte]): Long =
+  def readLong(bytes: Slice[java.lang.Byte]): Long =
     (bytes.get(0).toLong << 56) |
       ((bytes.get(1) & 0xffL) << 48) |
       ((bytes.get(2) & 0xffL) << 40) |
@@ -90,19 +90,19 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
   }
 
   //TODO - readString is expensive. If the slice bytes are a sub-slice of another other Slice a copy of the array will be created.
-  def readString(slice: Sliced[java.lang.Byte], charset: Charset): String =
+  def readString(slice: Slice[java.lang.Byte], charset: Charset): String =
     new String(slice.cast.toArray, charset)
 
   def writeString(string: String,
-                  bytes: Sliced[java.lang.Byte],
-                  charsets: Charset): Sliced[java.lang.Byte] =
+                  bytes: Slice[java.lang.Byte],
+                  charsets: Charset): Slice[java.lang.Byte] =
     bytes addAll string.getBytes(charsets).asInstanceOf[Array[java.lang.Byte]]
 
   def writeString(string: String,
-                  charsets: Charset): Sliced[java.lang.Byte] =
+                  charsets: Charset): Slice[java.lang.Byte] =
     Slice(string.getBytes(charsets)).cast
 
-  def writeBoolean(bool: Boolean, slice: Sliced[java.lang.Byte]): Sliced[java.lang.Byte] = {
+  def writeBoolean(bool: Boolean, slice: Slice[java.lang.Byte]): Slice[java.lang.Byte] = {
     slice add (if (bool) 1.toByte else 0.toByte)
     slice
   }
@@ -116,7 +116,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
    * Need to re-evaluate this code and see if abstract functions can be used.
    * *********************************************** */
 
-  def writeSignedInt(x: Int, slice: Sliced[java.lang.Byte]): Unit =
+  def writeSignedInt(x: Int, slice: Slice[java.lang.Byte]): Unit =
     writeUnsignedInt((x << 1) ^ (x >> 31), slice)
 
   def readSignedInt(reader: ReaderBase[java.lang.Byte]): Int = {
@@ -128,7 +128,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     tmp ^ (unsigned & (1 << 31))
   }
 
-  def readSignedInt(slice: Sliced[java.lang.Byte]): Int = {
+  def readSignedInt(slice: Slice[java.lang.Byte]): Int = {
     val unsigned = readUnsignedInt(slice)
     //Credit - https://github.com/larroy/varint-scala
     // undo even odd mapping
@@ -137,7 +137,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     tmp ^ (unsigned & (1 << 31))
   }
 
-  def writeUnsignedInt(int: Int, slice: Sliced[java.lang.Byte]): Unit = {
+  def writeUnsignedInt(int: Int, slice: Slice[java.lang.Byte]): Unit = {
     if (int > 0x0FFFFFFF || int < 0) slice.add((0x80 | int >>> 28).asInstanceOf[java.lang.Byte])
     if (int > 0x1FFFFF || int < 0) slice.add((0x80 | ((int >>> 21) & 0x7F)).asInstanceOf[java.lang.Byte])
     if (int > 0x3FFF || int < 0) slice.add((0x80 | ((int >>> 14) & 0x7F)).asInstanceOf[java.lang.Byte])
@@ -146,13 +146,13 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     slice.add((int & 0x7F).asInstanceOf[java.lang.Byte])
   }
 
-  private[swaydb] def writeUnsignedIntNonZero(int: Int): Sliced[java.lang.Byte] = {
+  private[swaydb] def writeUnsignedIntNonZero(int: Int): Slice[java.lang.Byte] = {
     val slice = Slice.create[java.lang.Byte](ByteSizeOf.varInt)
     writeUnsignedIntNonZero(int, slice)
     slice.close()
   }
 
-  private[swaydb] def writeUnsignedIntNonZero(int: Int, slice: Sliced[java.lang.Byte]): Unit = {
+  private[swaydb] def writeUnsignedIntNonZero(int: Int, slice: Slice[java.lang.Byte]): Unit = {
     var x = int
     while ((x & 0xFFFFFF80) != 0L) {
       slice add ((x & 0x7F) | 0x80).toByte
@@ -161,7 +161,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     slice add (x & 0x7F).toByte
   }
 
-  private[swaydb] def readUnsignedIntNonZero(slice: Sliced[java.lang.Byte]): Int = {
+  private[swaydb] def readUnsignedIntNonZero(slice: Slice[java.lang.Byte]): Int = {
     var index = 0
     var i = 0
     var int = 0
@@ -217,7 +217,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     Maybe.some(int)
   }
 
-  private[swaydb] def readUnsignedIntNonZeroWithByteSize(slice: Sliced[java.lang.Byte]): (Int, Int) = {
+  private[swaydb] def readUnsignedIntNonZeroWithByteSize(slice: Slice[java.lang.Byte]): (Int, Int) = {
     var index = 0
     var i = 0
     var int = 0
@@ -252,7 +252,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     (int, index)
   }
 
-  def writeUnsignedIntReversed(int: Int): Sliced[java.lang.Byte] = {
+  def writeUnsignedIntReversed(int: Int): Slice[java.lang.Byte] = {
     val slice = Slice.create[java.lang.Byte](ByteSizeOf.varInt)
 
     slice.add((int & 0x7F).asInstanceOf[java.lang.Byte])
@@ -299,7 +299,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     int
   }
 
-  def readUnsignedInt(slice: Sliced[java.lang.Byte]): Int = {
+  def readUnsignedInt(slice: Slice[java.lang.Byte]): Int = {
     var index = 0
     var byte = slice.get(index)
     var int: Int = byte & 0x7F
@@ -313,7 +313,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     int
   }
 
-  def readUnsignedIntWithByteSize(slice: Sliced[java.lang.Byte]): (Int, Int) = {
+  def readUnsignedIntWithByteSize(slice: Slice[java.lang.Byte]): (Int, Int) = {
     var index = 0
     var byte = slice.get(index)
     var int: Int = byte & 0x7F
@@ -367,7 +367,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
   /**
    * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
    */
-  def readLastUnsignedInt(slice: Sliced[java.lang.Byte]): (Int, Int) = {
+  def readLastUnsignedInt(slice: Slice[java.lang.Byte]): (Int, Int) = {
     var index = slice.size - 1
     var byte = slice.get(index)
     var int: Int = byte & 0x7F
@@ -383,7 +383,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     (int, slice.size - index)
   }
 
-  def writeSignedLong(long: Long, slice: Sliced[java.lang.Byte]): Unit =
+  def writeSignedLong(long: Long, slice: Slice[java.lang.Byte]): Unit =
     writeUnsignedLong((long << 1) ^ (long >> 63), slice)
 
   def readSignedLong(reader: ReaderBase[java.lang.Byte]): Long = {
@@ -394,7 +394,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     tmp ^ (unsigned & (1L << 63))
   }
 
-  def readSignedLong(slice: Sliced[java.lang.Byte]): Long = {
+  def readSignedLong(slice: Slice[java.lang.Byte]): Long = {
     val unsigned = readUnsignedLong(slice)
     // undo even odd mapping
     val tmp = (((unsigned << 63) >> 63) ^ unsigned) >> 1
@@ -402,7 +402,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     tmp ^ (unsigned & (1L << 63))
   }
 
-  def writeUnsignedLong(long: Long, slice: Sliced[java.lang.Byte]): Unit = {
+  def writeUnsignedLong(long: Long, slice: Slice[java.lang.Byte]): Unit = {
     if (long < 0) slice.add(0x81.toByte)
     if (long > 0xFFFFFFFFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 56) & 0x7FL)).asInstanceOf[java.lang.Byte])
     if (long > 0x1FFFFFFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 49) & 0x7FL)).asInstanceOf[java.lang.Byte])
@@ -435,7 +435,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     long
   }
 
-  def readUnsignedLong(slice: Sliced[java.lang.Byte]): Long = {
+  def readUnsignedLong(slice: Slice[java.lang.Byte]): Long = {
     var index = 0
     var byte = slice.get(index)
     var long: Long = byte & 0x7F
@@ -451,7 +451,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     long
   }
 
-  def readUnsignedLongWithByteSize(slice: Sliced[java.lang.Byte]): (Long, Int) = {
+  def readUnsignedLongWithByteSize(slice: Slice[java.lang.Byte]): (Long, Int) = {
     var index = 0
     var byte = slice.get(index)
     var long: Long = byte & 0x7F
@@ -467,7 +467,7 @@ object JavaByteOps extends ByteOps[java.lang.Byte] {
     (long, index + 1)
   }
 
-  def readUnsignedLongByteSize(slice: Sliced[java.lang.Byte]): Int = {
+  def readUnsignedLongByteSize(slice: Slice[java.lang.Byte]): Int = {
     var index = 0
     var byte = slice.get(index)
 

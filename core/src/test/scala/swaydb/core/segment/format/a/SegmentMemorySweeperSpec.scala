@@ -35,7 +35,7 @@ import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestSweeper}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import scala.concurrent.duration._
 import TestCaseSweeper._
 
@@ -47,7 +47,7 @@ class SegmentMemorySweeperSpec extends TestBase {
   val keyValuesCount = 100
 
   implicit val ec = TestExecutionContext.executionContext
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   //  override def deleteFiles = false
 

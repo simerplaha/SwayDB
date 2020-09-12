@@ -45,7 +45,7 @@ import swaydb.core.util.skiplist.SkipListMap
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 
 import scala.collection.mutable.ListBuffer
@@ -54,16 +54,16 @@ import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
 protected case class MemorySegment(path: Path,
-                                   minKey: Sliced[Byte],
-                                   maxKey: MaxKey[Sliced[Byte]],
-                                   minMaxFunctionId: Option[MinMax[Sliced[Byte]]],
+                                   minKey: Slice[Byte],
+                                   maxKey: MaxKey[Slice[Byte]],
+                                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                    segmentSize: Int,
                                    hasRange: Boolean,
                                    hasPut: Boolean,
                                    createdInLevel: Int,
-                                   private[segment] val skipList: SkipListMap[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory],
-                                   nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Sliced[Byte]],
-                                                                         timeOrder: TimeOrder[Sliced[Byte]],
+                                   private[segment] val skipList: SkipListMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                                   nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                                          functionStore: FunctionStore,
                                                                          fileSweeper: FileSweeperActor) extends Segment with LazyLogging {
 
@@ -73,7 +73,7 @@ protected case class MemorySegment(path: Path,
 
   override def formatId: Byte = 0
 
-  override def put(newKeyValues: Sliced[KeyValue],
+  override def put(newKeyValues: Slice[KeyValue],
                    removeDeletes: Boolean,
                    createdInLevel: Int,
                    valuesConfig: ValuesBlock.Config,
@@ -82,7 +82,7 @@ protected case class MemorySegment(path: Path,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config,
-                   pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Sliced[Segment] =
+                   pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -116,7 +116,7 @@ protected case class MemorySegment(path: Path,
                        hashIndexConfig: HashIndexBlock.Config,
                        bloomFilterConfig: BloomFilterBlock.Config,
                        segmentConfig: SegmentBlock.Config,
-                       pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Sliced[Segment] =
+                       pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -140,10 +140,10 @@ protected case class MemorySegment(path: Path,
       )
     }
 
-  override def getFromCache(key: Sliced[Byte]): MemoryOption =
+  override def getFromCache(key: Slice[Byte]): MemoryOption =
     skipList.get(key)
 
-  override def get(key: Sliced[Byte], threadState: ThreadReadState): MemoryOption =
+  override def get(key: Slice[Byte], threadState: ThreadReadState): MemoryOption =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
@@ -151,7 +151,7 @@ protected case class MemorySegment(path: Path,
         case MaxKey.Fixed(maxKey) if key > maxKey =>
           Memory.Null
 
-        case range: MaxKey.Range[Sliced[Byte]] if key >= range.maxKey =>
+        case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
           Memory.Null
 
         case _ =>
@@ -167,7 +167,7 @@ protected case class MemorySegment(path: Path,
             skipList.get(key)
       }
 
-  def mightContainKey(key: Sliced[Byte]): Boolean =
+  def mightContainKey(key: Slice[Byte]): Boolean =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
@@ -175,7 +175,7 @@ protected case class MemorySegment(path: Path,
         case MaxKey.Fixed(maxKey) if key > maxKey =>
           false
 
-        case range: MaxKey.Range[Sliced[Byte]] if key >= range.maxKey =>
+        case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
           false
 
         case _ =>
@@ -191,7 +191,7 @@ protected case class MemorySegment(path: Path,
             skipList.contains(key)
       }
 
-  override def mightContainFunction(key: Sliced[Byte]): Boolean =
+  override def mightContainFunction(key: Slice[Byte]): Boolean =
     minMaxFunctionId.exists {
       minMaxFunctionId =>
         MinMax.contains(
@@ -200,14 +200,14 @@ protected case class MemorySegment(path: Path,
         )(FunctionStore.order)
     }
 
-  override def lower(key: Sliced[Byte],
+  override def lower(key: Slice[Byte],
                      threadState: ThreadReadState): MemoryOption =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
       skipList.lower(key)
 
-  override def higher(key: Sliced[Byte],
+  override def higher(key: Slice[Byte],
                       threadState: ThreadReadState): MemoryOption =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
@@ -222,7 +222,7 @@ protected case class MemorySegment(path: Path,
     else
       skipList.higher(key)
 
-  override def toSlice(): Sliced[Memory] =
+  override def toSlice(): Slice[Memory] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -287,7 +287,7 @@ protected case class MemorySegment(path: Path,
   override def clearAllCaches(): Unit =
     ()
 
-  override def isInKeyValueCache(key: Sliced[Byte]): Boolean =
+  override def isInKeyValueCache(key: Slice[Byte]): Boolean =
     skipList contains key
 
   override def isKeyValueCacheEmpty: Boolean =

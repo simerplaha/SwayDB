@@ -32,9 +32,8 @@ import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 
 class SegmentSerialiserSpec extends TestBase {
 
@@ -44,8 +43,8 @@ class SegmentSerialiserSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
-          implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+          implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+          implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
           implicit val segmentIO: SegmentIO = SegmentIO.random
 
           val keyValues = randomizedKeyValues(randomIntMax(100) max 1)

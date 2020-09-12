@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -44,11 +44,11 @@ import swaydb.data.util.ByteOps._
 class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Sliced[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
 
   val startId = 0
 
-  def genKeyValuesAndBlocks(keyValuesCount: Int = 10)(implicit testCaseSweeper: TestCaseSweeper): (Sliced[Memory], SegmentBlocks) = {
+  def genKeyValuesAndBlocks(keyValuesCount: Int = 10)(implicit testCaseSweeper: TestCaseSweeper): (Slice[Memory], SegmentBlocks) = {
     import testCaseSweeper._
     //  def genKeyValuesAndBlocks(keyValuesCount: Int = 50): (Slice[Memory], Blocks) = {
 
@@ -299,7 +299,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 )
                 //println("--- End ---")
 
-                def getHigher(key: Sliced[Byte]) =
+                def getHigher(key: Slice[Byte]) =
                   BinarySearchIndexBlock.searchHigher(
                     key = key,
                     start = start,
@@ -413,7 +413,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 //println("--- END ---")
                 //              None
 
-                def getLower(key: Sliced[Byte]) =
+                def getLower(key: Slice[Byte]) =
                   BinarySearchIndexBlock.searchLower(
                     key = key,
                     start = start,

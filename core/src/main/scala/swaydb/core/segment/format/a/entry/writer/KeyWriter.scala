@@ -28,7 +28,7 @@ import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.data.util.Options._
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps._
 
 trait KeyWriter {
@@ -93,7 +93,7 @@ private[a] object KeyWriter extends KeyWriter {
   private def write[T <: Memory](current: T,
                                  builder: EntryWriter.Builder,
                                  commonBytes: Int,
-                                 headerBytes: Sliced[Byte],
+                                 headerBytes: Slice[Byte],
                                  deadlineId: BaseEntryId.Deadline,
                                  isKeyCompressed: Boolean)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit = {
     val id =

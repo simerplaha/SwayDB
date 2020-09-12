@@ -26,7 +26,7 @@ package swaydb.core.segment.format.a.block.reader
 
 import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 import swaydb.data.slice.{Reader, SliceReader}
 import swaydb.data.util.ByteOps
 
@@ -52,7 +52,7 @@ private[core] object UnblockedReader {
     )
 
   def apply[O <: BlockOffset, B <: Block[O]](block: B,
-                                             bytes: Sliced[Byte]): UnblockedReader[O, B] =
+                                             bytes: Slice[Byte]): UnblockedReader[O, B] =
     new UnblockedReader[O, B](
       reader = Reader(bytes),
       block = block

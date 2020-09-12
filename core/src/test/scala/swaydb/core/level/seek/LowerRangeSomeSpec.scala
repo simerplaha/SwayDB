@@ -39,7 +39,7 @@ import swaydb.core.level.LevelSeek
 import swaydb.core.merge.FixedMerger
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -73,11 +73,11 @@ class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower         _ expects (key: Sliced[Byte], *)  returning LevelSeek.Some(1, upperLevel)
-              next.lower            _ expects (key: Sliced[Byte], *)  returning lowerLower
+              current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, upperLevel)
+              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
               //@formatter:on
             }
-            Lower(key: Sliced[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
+            Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
         }
       }
     }
@@ -105,11 +105,11 @@ class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
 
         inSequence {
           //@formatter:off
-          current.lower         _ expects (1: Sliced[Byte], *)    returning LevelSeek.Some(1, upperLevel)
-          next.lower            _ expects (1: Sliced[Byte], *)    returning lowerLevel
+          current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.Some(1, upperLevel)
+          next.lower            _ expects (1: Slice[Byte], *)    returning lowerLevel
           //@formatter:on
         }
-        Lower(1: Sliced[Byte]).runRandomIO.right.value.value shouldBe expected
+        Lower(1: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
       }
     }
 
@@ -130,11 +130,11 @@ class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower         _ expects (key: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10))
-              next.lower            _ expects (key: Sliced[Byte], *)  returning lowerLower
+              current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10))
+              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
               //@formatter:on
             }
-            Lower(key: Sliced[Byte]).runRandomIO.right.value.value shouldBe lowerLower
+            Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe lowerLower
         }
       }
     }
@@ -159,12 +159,12 @@ class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower         _ expects (key: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, rangeValue = currentRangeValue))
-              next.lower            _ expects (key: Sliced[Byte], *)  returning lowerLower
+              current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, rangeValue = currentRangeValue))
+              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
               //@formatter:on
             }
 
-            Lower(key: Sliced[Byte]).right.value.value shouldBe expected
+            Lower(key: Slice[Byte]).right.value.value shouldBe expected
         }
       }
     }
@@ -189,11 +189,11 @@ class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower         _ expects (key: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, fromValue = Value.FromValue.Null, rangeValue))
-              next.lower            _ expects (key: Sliced[Byte], *)  returning lowerLower
+              current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, fromValue = Value.FromValue.Null, rangeValue))
+              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
               //@formatter:on
             }
-            Lower(key: Sliced[Byte]).runRandomIO.right.value.value shouldBe expected
+            Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
         }
       }
     }
@@ -215,11 +215,11 @@ class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower         _ expects (key: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, fromValue = put))
-              next.lower            _ expects (key: Sliced[Byte], *)  returning randomPutKeyValue(eitherOne[Int](0, 1), deadline = None)
+              current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, fromValue = put))
+              next.lower            _ expects (key: Slice[Byte], *)  returning randomPutKeyValue(eitherOne[Int](0, 1), deadline = None)
               //@formatter:on
             }
-            Lower(key: Sliced[Byte]).runRandomIO.right.value.value shouldBe put.toMemory(1)
+            Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe put.toMemory(1)
         }
       }
     }

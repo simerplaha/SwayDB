@@ -31,7 +31,7 @@ import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Default._
@@ -81,7 +81,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   implicit val bag = Bag.less
 
   //  implicit val mapKeySerializer = MultiKey.serializer(IntSerializer)
-  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
 
   "initialising" should {

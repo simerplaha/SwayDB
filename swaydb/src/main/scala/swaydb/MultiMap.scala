@@ -31,7 +31,7 @@ import swaydb.core.map.counter.Counter
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.stream.{From, SourceFree, StreamFree}
 import swaydb.multimap.{MultiKey, MultiValue, Schema, MultiPrepare}
 import swaydb.serializers.{Serializer, _}
@@ -40,7 +40,6 @@ import scala.collection.compat._
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 object MultiMap {
 
@@ -543,10 +542,10 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     innerMap.sizeOfSegments
 
   def keySize(key: K): Int =
-    (key: Sliced[Byte]).size
+    (key: Slice[Byte]).size
 
   def valueSize(value: V): Int =
-    (value: Sliced[Byte]).size
+    (value: Slice[Byte]).size
 
   def expiration(key: K): BAG[Option[Deadline]] =
     innerMap.expiration(MultiKey.Key(mapId, key))

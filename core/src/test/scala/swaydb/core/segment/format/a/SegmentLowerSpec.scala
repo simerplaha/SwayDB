@@ -34,12 +34,11 @@ import swaydb.core.TestData._
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class SegmentLowerSpec0 extends SegmentLowerSpec {
   val keyValuesCount = 100

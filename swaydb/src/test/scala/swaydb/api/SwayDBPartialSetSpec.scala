@@ -26,7 +26,7 @@ package swaydb.api
 
 import swaydb.Bag
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import org.scalatest.OptionValues._
 import swaydb.data.RunThis._
@@ -35,17 +35,16 @@ import TestCaseSweeper._
 
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 object SwayDBPartialSetSpec {
 
   import boopickle.Default._
 
   implicit object Serialiser extends swaydb.serializers.Serializer[(Int, Option[String])] {
-    override def write(data: (Int, Option[String])): Sliced[Byte] =
+    override def write(data: (Int, Option[String])): Slice[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Sliced[Byte]): (Int, Option[String]) =
+    override def read(data: Slice[Byte]): (Int, Option[String]) =
       Unpickle[(Int, Option[String])].fromBytes(data.toByteBufferWrap)
   }
 

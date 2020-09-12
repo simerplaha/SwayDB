@@ -33,7 +33,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{DataType, Functions}
 import swaydb.function.FunctionConverter
@@ -62,11 +62,11 @@ object Set extends LazyLogging {
                                                                                                                                                    functionClassTag: ClassTag[F],
                                                                                                                                                    bag: swaydb.Bag[BAG],
                                                                                                                                                    functions: Functions[F],
-                                                                                                                                                   byteKeyOrder: KeyOrder[Sliced[Byte]] = null,
+                                                                                                                                                   byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                    typedKeyOrder: KeyOrder[A] = null,
                                                                                                                                                    compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
-      val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
+      val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       implicit val unitSerializer: Serializer[Nothing] = Default.NothingSerializer
       val functionStore: FunctionStore = FunctionConverter.toFunctionsStore[A, Nothing, Apply.Set[Nothing], F](functions)
 

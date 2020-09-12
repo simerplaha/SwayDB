@@ -36,7 +36,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
@@ -79,12 +79,12 @@ object Map extends LazyLogging {
                                                                                                                                    functionClassTag: ClassTag[F],
                                                                                                                                    bag: swaydb.Bag[BAG],
                                                                                                                                    functions: Functions[F],
-                                                                                                                                   byteKeyOrder: KeyOrder[Sliced[Byte]] = null,
+                                                                                                                                   byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                    typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                    compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
                                                                                                                                    buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map)): BAG[swaydb.Map[K, V, F, BAG]] =
     bag.suspend {
-      val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
+      val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       val functionStore = FunctionConverter.toFunctionsStore[K, V, Apply.Map[V], F](functions)
 
       val coreIO =

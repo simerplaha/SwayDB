@@ -43,7 +43,6 @@ import swaydb.core.util.{Bytes, Collections}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.{Sliced, _}
 import swaydb.data.util.ByteSizeOf
 
 import scala.collection.mutable.ListBuffer
@@ -166,11 +165,11 @@ private[core] object SegmentBlock extends LazyLogging {
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Sliced[TransientSegment] =
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
     if (mergeStats.isEmpty) {
       Slice.empty
     } else {
-      val singles: Sliced[TransientSegment.One] =
+      val singles: Slice[TransientSegment.One] =
         writeOnes(
           mergeStats = mergeStats,
           createdInLevel = createdInLevel,
@@ -192,14 +191,14 @@ private[core] object SegmentBlock extends LazyLogging {
     }
 
   protected def writeOneOrMany(createdInLevel: Int,
-                               singles: Sliced[TransientSegment.One],
+                               singles: Slice[TransientSegment.One],
                                sortedIndexConfig: SortedIndexBlock.Config,
                                valuesConfig: ValuesBlock.Config,
-                               segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Sliced[TransientSegment] =
+                               segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
     if (singles.isEmpty) {
       Slice.empty
     } else {
-      val groups: Sliced[Sliced[TransientSegment.One]] =
+      val groups: Slice[Slice[TransientSegment.One]] =
         Collections.groupedBySize[TransientSegment.One](
           minGroupSize = segmentConfig.minSize,
           itemSize = _.segmentSize,
@@ -212,7 +211,7 @@ private[core] object SegmentBlock extends LazyLogging {
             val segment = segments.head
             segment.copy(segmentBytes = PersistentSegmentOne.formatIdSliceSlice ++ segment.segmentBytes)
           } else {
-            val listKeyValue: Persistent.Builder[Memory, Sliced] =
+            val listKeyValue: Persistent.Builder[Memory, Slice] =
               MergeStats.persistent(Slice.newBuilder(segments.size * 2))
 
             segments.foldLeft(0) {
@@ -254,7 +253,7 @@ private[core] object SegmentBlock extends LazyLogging {
 
             val slotsRequired = segments.foldLeft(headerSize + listSegment.segmentBytes.size)(_ + _.segmentBytes.size)
 
-            val segmentBytes = Slice.create[Sliced[Byte]](slotsRequired)
+            val segmentBytes = Slice.create[Slice[Byte]](slotsRequired)
 
             val headerBytes = Slice.create[Byte](headerSize)
             headerBytes add PersistentSegmentMany.formatId
@@ -291,7 +290,7 @@ private[core] object SegmentBlock extends LazyLogging {
                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                 sortedIndexConfig: SortedIndexBlock.Config,
                 valuesConfig: ValuesBlock.Config,
-                segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Sliced[TransientSegment.One] =
+                segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.One] =
     if (mergeStats.isEmpty)
       Slice.empty
     else
@@ -320,7 +319,7 @@ private[core] object SegmentBlock extends LazyLogging {
                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                   sortedIndexConfig: SortedIndexBlock.Config,
                   valuesConfig: ValuesBlock.Config,
-                  segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Sliced[ClosedBlocksWithFooter] =
+                  segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[ClosedBlocksWithFooter] =
     if (keyValues.isEmpty) {
       Slice.empty
     } else {
@@ -359,7 +358,7 @@ private[core] object SegmentBlock extends LazyLogging {
         }
 
       //keys to write to bloomFilter.
-      val bloomFilterIndexableKeys = ListBuffer.empty[Sliced[Byte]]
+      val bloomFilterIndexableKeys = ListBuffer.empty[Slice[Byte]]
 
       var totalProcessedCount = 0 //numbers of key-values written
       var processedInThisSegment = 0 //numbers of key-values written
@@ -454,7 +453,7 @@ private[core] object SegmentBlock extends LazyLogging {
 
   private def writeSegmentBlock(createdInLevel: Int,
                                 hasMoreKeyValues: Boolean,
-                                bloomFilterIndexableKeys: ListBuffer[Sliced[Byte]],
+                                bloomFilterIndexableKeys: ListBuffer[Slice[Byte]],
                                 sortedIndex: SortedIndexBlock.State,
                                 values: Option[ValuesBlock.State],
                                 bloomFilterConfig: BloomFilterBlock.Config,
@@ -561,7 +560,7 @@ private[core] object SegmentBlock extends LazyLogging {
 
   private def closeBlocks(sortedIndex: SortedIndexBlock.State,
                           values: Option[ValuesBlock.State],
-                          bloomFilterIndexableKeys: ListBuffer[Sliced[Byte]],
+                          bloomFilterIndexableKeys: ListBuffer[Slice[Byte]],
                           bloomFilterConfig: BloomFilterBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,

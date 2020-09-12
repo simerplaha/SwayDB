@@ -31,7 +31,7 @@
 //import swaydb.data.accelerate.Accelerator
 //import swaydb.data.config.RecoveryMode
 //import swaydb.data.order.{KeyOrder, TimeOrder}
-//import swaydb.data.slice.Slice._
+//import swaydb.data.slice.Slice
 
 
 //import swaydb.data.util.StorageUnits._

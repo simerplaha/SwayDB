@@ -32,7 +32,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 
 import scala.annotation.tailrec
@@ -89,7 +89,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
   @tailrec
   private[throttle] def runJobs(state: ThrottleState,
-                                currentJobs: Sliced[LevelRef]): Unit =
+                                currentJobs: Slice[LevelRef]): Unit =
     if (state.terminate) {
       logger.warn(s"${state.name}: Cannot run jobs. Compaction is terminated.")
     } else {
@@ -189,7 +189,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[throttle] def pushForward(zero: LevelZero,
                                     nextLevel: NextLevel,
                                     stateId: Long,
-                                    map: swaydb.core.map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): ThrottleLevelState =
+                                    map: swaydb.core.map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): ThrottleLevelState =
     nextLevel.put(map) match {
       case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
@@ -395,7 +395,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
    * Runs lazy error checks. Ignores all errors and continues copying
    * each Level starting from the lowest level first.
    */
-  private[throttle] def copyForwardForEach(levels: Sliced[LevelRef]): Int =
+  private[throttle] def copyForwardForEach(levels: Slice[LevelRef]): Int =
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>
         val copied = copyForward(level)

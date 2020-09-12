@@ -27,7 +27,7 @@ package swaydb.core.map.serializer
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.ReaderBase
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 
 import scala.annotation.implicitNotFound
 
@@ -38,7 +38,7 @@ trait MapEntryReader[T <: MapEntry[_, _]] {
 
 object MapEntryReader {
 
-  def read[T <: MapEntry[_, _]](bytes: Sliced[Byte])(implicit serializer: MapEntryReader[T]): T =
+  def read[T <: MapEntry[_, _]](bytes: Slice[Byte])(implicit serializer: MapEntryReader[T]): T =
     serializer.read(Reader(bytes))
 
   def read[T <: MapEntry[_, _]](reader: ReaderBase[Byte])(implicit serializer: MapEntryReader[T]): T =

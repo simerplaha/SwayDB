@@ -31,7 +31,6 @@ import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.Compactor
 import swaydb.data.util.FiniteDurations
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 
 import swaydb.{ActorWire, IO, Scheduler}
@@ -43,7 +42,7 @@ import scala.concurrent.duration.Deadline
 /**
  * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
  */
-private[core] case class ThrottleState(levels: Sliced[LevelRef],
+private[core] case class ThrottleState(levels: Slice[LevelRef],
                                        child: Option[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                        executionContext: ExecutionContext,
                                        compactionStates: mutable.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {

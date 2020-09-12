@@ -28,10 +28,9 @@ import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteOps._
 
 private[swaydb] sealed trait MultiKey[+C, +K] {
@@ -81,7 +80,7 @@ private[swaydb] object MultiKey {
   implicit def serializer[T, K](implicit keySerializer: Serializer[K],
                                 childKeySerializer: Serializer[T]): Serializer[MultiKey[T, K]] =
     new Serializer[MultiKey[T, K]] {
-      override def write(data: MultiKey[T, K]): Sliced[Byte] =
+      override def write(data: MultiKey[T, K]): Slice[Byte] =
         data match {
           case MultiKey.Start(mapId) =>
             Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
@@ -130,7 +129,7 @@ private[swaydb] object MultiKey {
               .add(MultiKey.end)
         }
 
-      override def read(data: Sliced[Byte]): MultiKey[T, K] = {
+      override def read(data: Slice[Byte]): MultiKey[T, K] = {
         val reader = Reader(slice = data)
         val mapId = reader.readUnsignedLong()
         val dataType = reader.get()
@@ -165,9 +164,9 @@ private[swaydb] object MultiKey {
    * Creates dual ordering on [[MultiKey.childId]]. Orders mapKey using the [[KeyOrder.default]] order
    * and applies custom ordering on the user provided keys.
    */
-  def ordering(customOrder: KeyOrder[Sliced[Byte]]) =
-    new KeyOrder[Sliced[Byte]] {
-      override def compare(left: Sliced[Byte], right: Sliced[Byte]): Int = {
+  def ordering(customOrder: KeyOrder[Slice[Byte]]) =
+    new KeyOrder[Slice[Byte]] {
+      override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
         val letMapIdByteSize = left.readUnsignedLongByteSize()
         val leftType = left.get(letMapIdByteSize)
 

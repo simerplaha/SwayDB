@@ -42,7 +42,6 @@ import swaydb.data.Reserve
 import swaydb.data.cache.{Cache, Lazy}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.{Error, IO}
 
 private[core] object SegmentBlockCache {
@@ -502,7 +501,7 @@ private[core] class SegmentBlockCache(path: Path,
   def cachedFooter(): Option[SegmentFooterBlock] =
     footerBlockCache.get()
 
-  def toSlice(): Sliced[Persistent] = {
+  def toSlice(): Slice[Persistent] = {
     val keyValueCount = getFooter().keyValueCount
     val aggregator = Slice.newAggregator[Persistent](keyValueCount)
 
@@ -511,7 +510,7 @@ private[core] class SegmentBlockCache(path: Path,
     aggregator.result
   }
 
-  def toSlice(keyValueCount: Int): Sliced[Persistent] = {
+  def toSlice(keyValueCount: Int): Slice[Persistent] = {
     val aggregator = Slice.newAggregator[Persistent](keyValueCount)
 
     iterator() foreach aggregator.add
@@ -547,7 +546,7 @@ private[core] class SegmentBlockCache(path: Path,
       forceCacheSortedIndexAndValueReaders = false
     }
 
-  def readAllBytes(): Sliced[Byte] =
+  def readAllBytes(): Slice[Byte] =
     segmentBlockRef.copy().readFullBlock()
 
   def clear(): Unit =

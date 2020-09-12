@@ -33,7 +33,7 @@ import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader}
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -41,7 +41,6 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class ValuesBlockSpec extends TestBase {
 
@@ -123,7 +122,7 @@ class ValuesBlockSpec extends TestBase {
         Seq(uncompressedUnblockedReader, cachedUnblockedReader) foreach {
           unblockedReader =>
 
-            val keyValuesOffset = ListBuffer.empty[(Int, Sliced[Byte])]
+            val keyValuesOffset = ListBuffer.empty[(Int, Slice[Byte])]
 
             keyValues.foldLeft(0) {
               case (offset, keyValue) =>

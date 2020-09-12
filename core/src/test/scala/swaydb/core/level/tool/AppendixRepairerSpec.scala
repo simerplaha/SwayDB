@@ -39,7 +39,7 @@ import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
@@ -48,8 +48,8 @@ import scala.util.Random
 
 class AppendixRepairerSpec extends TestBase {
 
-  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
 
   "AppendixRepair" should {

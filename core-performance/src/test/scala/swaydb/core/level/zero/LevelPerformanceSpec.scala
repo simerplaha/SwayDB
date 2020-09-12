@@ -26,7 +26,7 @@
 //import swaydb.core.util.{Benchmark, SkipList}
 //import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.data.order.KeyOrder
-//import swaydb.data.slice.Slice._
+//import swaydb.data.slice.Slice
 //import swaydb.data.util.StorageUnits._
 //
 //import scala.util.Random

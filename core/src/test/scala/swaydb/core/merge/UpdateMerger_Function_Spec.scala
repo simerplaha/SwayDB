@@ -33,16 +33,15 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.Memory
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class UpdateMerger_Function_Spec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   "Merging update into Function" when {
     "times are in order" in {
 

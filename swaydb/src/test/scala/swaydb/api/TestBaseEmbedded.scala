@@ -26,7 +26,7 @@ import swaydb._
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.{TestBase, TestExecutionContext}
 import swaydb.data.RunThis._
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.multimap.MultiKey
 
 import scala.annotation.tailrec
@@ -34,7 +34,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 trait TestBaseEmbedded extends TestBase {
 

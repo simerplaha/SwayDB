@@ -29,8 +29,8 @@
 //import swaydb.IO
 //import swaydb.IO.ExceptionHandler.Throwable
 //import swaydb.data.slice.Slice
-//import swaydb.data.slice.Slice.Slice
-//import swaydb.data.slice.Slice._
+//import swaydb.data.slice.Slice
+//import swaydb.data.slice.Slice
 //
 //import scala.collection.mutable.ListBuffer
 //

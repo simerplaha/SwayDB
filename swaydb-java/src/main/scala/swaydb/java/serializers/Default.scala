@@ -28,7 +28,6 @@ import java.nio.charset.StandardCharsets
 import java.util.Optional
 
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteOps._
 import swaydb.data.util.JavaByteOps
 import swaydb.serializers.Default._
@@ -40,70 +39,70 @@ object Default {
   def intSerializer(): Serializer[java.lang.Integer] = JavaIntSerializer
 
   object JavaIntSerializer extends Serializer[java.lang.Integer] {
-    override def write(data: java.lang.Integer): Sliced[java.lang.Byte] =
+    override def write(data: java.lang.Integer): Slice[java.lang.Byte] =
       Slice.writeInt(data)
 
-    override def read(data: Sliced[java.lang.Byte]): java.lang.Integer =
+    override def read(data: Slice[java.lang.Byte]): java.lang.Integer =
       data.cast.readInt()
   }
 
   def longSerializer(): Serializer[java.lang.Long] = JavaLongSerializer
 
   implicit object JavaLongSerializer extends Serializer[java.lang.Long] {
-    override def write(data: java.lang.Long): Sliced[java.lang.Byte] =
+    override def write(data: java.lang.Long): Slice[java.lang.Byte] =
       Slice.writeLong(data)
 
-    override def read(data: Sliced[java.lang.Byte]): java.lang.Long =
+    override def read(data: Slice[java.lang.Byte]): java.lang.Long =
       data.cast.readLong()
   }
 
   def charSerializer(): Serializer[java.lang.Character] = JavaCharSerializer
 
   implicit object JavaCharSerializer extends Serializer[java.lang.Character] {
-    override def write(data: java.lang.Character): Sliced[java.lang.Byte] =
+    override def write(data: java.lang.Character): Slice[java.lang.Byte] =
       CharSerializer.write(data).cast
 
-    override def read(data: Sliced[java.lang.Byte]): java.lang.Character =
+    override def read(data: Slice[java.lang.Byte]): java.lang.Character =
       CharSerializer.read(data.cast)
   }
 
   def doubleSerializer(): Serializer[java.lang.Double] = JavaDoubleSerializer
 
   implicit object JavaDoubleSerializer extends Serializer[java.lang.Double] {
-    override def write(data: java.lang.Double): Sliced[java.lang.Byte] =
+    override def write(data: java.lang.Double): Slice[java.lang.Byte] =
       DoubleSerializer.write(data).cast
 
-    override def read(data: Sliced[java.lang.Byte]): java.lang.Double =
+    override def read(data: Slice[java.lang.Byte]): java.lang.Double =
       data.toByteBufferWrap.getDouble
   }
 
   def floatSerializer(): Serializer[java.lang.Float] = JavaFloatSerializer
 
   implicit object JavaFloatSerializer extends Serializer[java.lang.Float] {
-    override def write(data: java.lang.Float): Sliced[java.lang.Byte] =
+    override def write(data: java.lang.Float): Slice[java.lang.Byte] =
       FloatSerializer.write(data).cast
 
-    override def read(data: Sliced[java.lang.Byte]): java.lang.Float =
+    override def read(data: Slice[java.lang.Byte]): java.lang.Float =
       FloatSerializer.read(data.cast)
   }
 
   def shortSerializer(): Serializer[java.lang.Short] = JavaShortSerializer
 
   implicit object JavaShortSerializer extends Serializer[java.lang.Short] {
-    override def write(data: java.lang.Short): Sliced[java.lang.Byte] =
+    override def write(data: java.lang.Short): Slice[java.lang.Byte] =
       ShortSerializer.write(data).cast
 
-    override def read(data: Sliced[java.lang.Byte]): java.lang.Short =
+    override def read(data: Slice[java.lang.Byte]): java.lang.Short =
       ShortSerializer.read(data.cast)
   }
 
   def stringSerializer(): Serializer[java.lang.String] = StringSerializer
 
   implicit object StringSerializer extends Serializer[java.lang.String] {
-    override def write(data: java.lang.String): Sliced[java.lang.Byte] =
+    override def write(data: java.lang.String): Slice[java.lang.Byte] =
       Slice.writeString(data, StandardCharsets.UTF_8)
 
-    override def read(data: Sliced[java.lang.Byte]): java.lang.String =
+    override def read(data: Slice[java.lang.Byte]): java.lang.String =
       data.cast.readString(StandardCharsets.UTF_8)
   }
 
@@ -111,33 +110,33 @@ object Default {
     JavaOptionalStringSerializer
 
   implicit object JavaOptionalStringSerializer extends Serializer[Optional[java.lang.String]] {
-    override def write(data: Optional[java.lang.String]): Sliced[java.lang.Byte] =
+    override def write(data: Optional[java.lang.String]): Slice[java.lang.Byte] =
       data.map(data => Slice.writeString[java.lang.Byte](data, StandardCharsets.UTF_8)).orElseGet(() => Slice.emptyJavaBytes)
 
-    override def read(data: Sliced[java.lang.Byte]): Optional[java.lang.String] =
+    override def read(data: Slice[java.lang.Byte]): Optional[java.lang.String] =
       if (data.isEmpty)
         Optional.empty()
       else
         Optional.of(data.cast.readString(StandardCharsets.UTF_8))
   }
 
-  def byteSliceSerializer(): Serializer[Sliced[java.lang.Byte]] = JavaByteSliceSerializer
+  def byteSliceSerializer(): Serializer[Slice[java.lang.Byte]] = JavaByteSliceSerializer
 
-  implicit object JavaByteSliceSerializer extends Serializer[Sliced[java.lang.Byte]] {
-    override def write(data: Sliced[java.lang.Byte]): Sliced[java.lang.Byte] =
+  implicit object JavaByteSliceSerializer extends Serializer[Slice[java.lang.Byte]] {
+    override def write(data: Slice[java.lang.Byte]): Slice[java.lang.Byte] =
       data
 
-    override def read(data: Sliced[java.lang.Byte]): Sliced[java.lang.Byte] =
+    override def read(data: Slice[java.lang.Byte]): Slice[java.lang.Byte] =
       data
   }
 
-  def javaByteSliceOptionalSerializer(): Serializer[Optional[Sliced[java.lang.Byte]]] = JavaByteSliceOptionalSerializer
+  def javaByteSliceOptionalSerializer(): Serializer[Optional[Slice[java.lang.Byte]]] = JavaByteSliceOptionalSerializer
 
-  implicit object JavaByteSliceOptionalSerializer extends Serializer[Optional[Sliced[java.lang.Byte]]] {
-    override def write(data: Optional[Sliced[java.lang.Byte]]): Sliced[java.lang.Byte] =
+  implicit object JavaByteSliceOptionalSerializer extends Serializer[Optional[Slice[java.lang.Byte]]] {
+    override def write(data: Optional[Slice[java.lang.Byte]]): Slice[java.lang.Byte] =
       data.orElseGet(() => Slice.emptyJavaBytes)
 
-    override def read(data: Sliced[java.lang.Byte]): Optional[Sliced[java.lang.Byte]] =
+    override def read(data: Slice[java.lang.Byte]): Optional[Slice[java.lang.Byte]] =
       if (data.isEmpty)
         Optional.empty()
       else
@@ -147,10 +146,10 @@ object Default {
   def javaByteArraySerializer(): Serializer[Array[java.lang.Byte]] = JavaByteArraySerializer
 
   implicit object JavaByteArraySerializer extends Serializer[Array[java.lang.Byte]] {
-    override def write(data: Array[java.lang.Byte]): Sliced[java.lang.Byte] =
+    override def write(data: Array[java.lang.Byte]): Slice[java.lang.Byte] =
       Slice(data)
 
-    override def read(data: Sliced[java.lang.Byte]): Array[java.lang.Byte] =
+    override def read(data: Slice[java.lang.Byte]): Array[java.lang.Byte] =
       data.toArray
   }
 }

@@ -20,7 +20,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -31,7 +31,6 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 import TestCaseSweeper._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default

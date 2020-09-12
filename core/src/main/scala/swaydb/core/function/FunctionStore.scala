@@ -30,7 +30,6 @@ import swaydb.OK
 import swaydb.core.data.{SwayFunction, Value}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -44,19 +43,19 @@ import swaydb.data.util.ByteOps._
  * Missing functions will be reported with their functionId.
  */
 private[swaydb] abstract class FunctionStore {
-  def get(functionId: Sliced[Byte]): Option[SwayFunction]
+  def get(functionId: Slice[Byte]): Option[SwayFunction]
   def get(functionId: String): Option[SwayFunction]
 
-  def put(functionId: Sliced[Byte], function: SwayFunction): OK
+  def put(functionId: Slice[Byte], function: SwayFunction): OK
   def put(functionId: String, function: SwayFunction): OK
 
-  def remove(functionId: Sliced[Byte]): SwayFunction
+  def remove(functionId: Slice[Byte]): SwayFunction
 
-  def contains(functionId: Sliced[Byte]): Boolean
-  def notContains(functionId: Sliced[Byte]): Boolean =
+  def contains(functionId: Slice[Byte]): Boolean
+  def notContains(functionId: Slice[Byte]): Boolean =
     !contains(functionId)
 
-  def asScala: mutable.Map[Sliced[Byte], SwayFunction]
+  def asScala: mutable.Map[Slice[Byte], SwayFunction]
 
   def size: Int
 }
@@ -68,14 +67,14 @@ private[swaydb] object FunctionStore {
 
   val order: FunctionIdOrder =
     new FunctionIdOrder {
-      override def compare(x: Sliced[Byte], y: Sliced[Byte]): Int =
+      override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         KeyOrder.lexicographic.compare(x, y)
     }
 
-  def containsFunction(functionId: Sliced[Byte], values: Sliced[Value]) = {
+  def containsFunction(functionId: Slice[Byte], values: Slice[Value]) = {
 
     @tailrec
-    def checkContains(values: Sliced[Value]): Boolean =
+    def checkContains(values: Slice[Value]): Boolean =
       values.headOption match {
         case Some(value) =>
           value match {
@@ -96,34 +95,34 @@ private[swaydb] object FunctionStore {
     checkContains(values)
   }
 
-  trait FunctionIdOrder extends Ordering[Sliced[Byte]]
+  trait FunctionIdOrder extends Ordering[Slice[Byte]]
 
   final class Memory extends FunctionStore {
 
-    val hashMap = new ConcurrentHashMap[Sliced[Byte], SwayFunction]()
+    val hashMap = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
 
     override def get(functionId: String): Option[SwayFunction] =
       get(Slice.writeString[Byte](functionId))
 
-    override def get(functionId: Sliced[Byte]): Option[SwayFunction] =
+    override def get(functionId: Slice[Byte]): Option[SwayFunction] =
       Option(hashMap.get(functionId))
 
     override def put(functionId: String, function: SwayFunction): OK =
       put(Slice.writeString[Byte](functionId), function)
 
-    override def put(functionId: Sliced[Byte], function: SwayFunction): OK =
+    override def put(functionId: Slice[Byte], function: SwayFunction): OK =
       if (hashMap.putIfAbsent(functionId, function) == null)
         OK.instance
       else
         throw new IllegalArgumentException(s"Duplicate functionId '${functionId.readString()}'. functionId should be unique.")
 
-    override def contains(functionId: Sliced[Byte]): Boolean =
+    override def contains(functionId: Slice[Byte]): Boolean =
       get(functionId).isDefined
 
-    override def remove(functionId: Sliced[Byte]): SwayFunction =
+    override def remove(functionId: Slice[Byte]): SwayFunction =
       hashMap.remove(functionId)
 
-    def asScala: mutable.Map[Sliced[Byte], SwayFunction] =
+    def asScala: mutable.Map[Slice[Byte], SwayFunction] =
       hashMap.asScala
 
     def size =

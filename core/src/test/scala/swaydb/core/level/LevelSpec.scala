@@ -43,7 +43,7 @@ import swaydb.core.util.{Extension, ReserveRange}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
 import swaydb.data.config.{Dir, ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
@@ -54,7 +54,6 @@ import swaydb.data.RunThis._
 import scala.concurrent.Promise
 import scala.concurrent.duration.DurationInt
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class LevelSpec0 extends LevelSpec
 
@@ -78,9 +77,9 @@ class LevelSpec3 extends LevelSpec {
 
 sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTester {
 
-  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
   val keyValuesCount = 100
 
@@ -360,7 +359,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
           val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2)
           val segment1 = TestSegment(keyValues.head).runRandomIO.right.value
           val segment2 = TestSegment(keyValues.last).runRandomIO.right.value
-          level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Sliced[Byte]](keyValues.head.head.key)(IO.ExceptionHandler.PromiseUnit)
+          level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Slice[Byte]](keyValues.head.head.key)(IO.ExceptionHandler.PromiseUnit)
 
           //cannot reserve again
           level.reserve(Seq(segment1, segment2)).get shouldBe a[IO.Left[_, _]]
@@ -404,7 +403,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
 
           val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.right.value
           val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = Segment.Null, initialMapEntry = None).runRandomIO.right.value
-          val expectedMapEntry = MapEntry.Put[Sliced[Byte], Segment](segments.minKey, segments)
+          val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
 
           actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
             expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
@@ -425,9 +424,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
           val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialMapEntry = None).runRandomIO.right.value
 
           val expectedMapEntry =
-            MapEntry.Put[Sliced[Byte], Segment](1, mergedSegment1) ++
-              MapEntry.Put[Sliced[Byte], Segment](6, mergedSegment2) ++
-              MapEntry.Put[Sliced[Byte], Segment](11, mergedSegment3)
+            MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
+              MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
+              MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3)
 
           actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
             expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
@@ -445,10 +444,10 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
           val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
 
           val expectedMapEntry =
-            MapEntry.Put[Sliced[Byte], Segment](1, mergedSegment1) ++
-              MapEntry.Put[Sliced[Byte], Segment](6, mergedSegment2) ++
-              MapEntry.Put[Sliced[Byte], Segment](11, mergedSegment3) ++
-              MapEntry.Remove[Sliced[Byte]](0)
+            MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
+              MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
+              MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3) ++
+              MapEntry.Remove[Slice[Byte]](0)
 
           val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), originalSegment, initialMapEntry = None).runRandomIO.right.value
 

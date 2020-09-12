@@ -29,17 +29,16 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.compression.CompressionInternal
 import swaydb.core.TestData._
 import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 class ValueSerializerSpec extends AnyWordSpec with Matchers {
 
   "IntMapListBufferSerializer" in {
 
-    val map = mutable.Map.empty[Int, Iterable[(Sliced[Byte], Sliced[Byte])]]
+    val map = mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]
     map.put(1, Slice((Slice(1.toByte), Slice(2.toByte)), (Slice(3.toByte), Slice(4.toByte))))
 
     val bytes = Slice.create[Byte](IntMapListBufferSerializer.bytesRequired(map))
@@ -57,7 +56,7 @@ class ValueSerializerSpec extends AnyWordSpec with Matchers {
 
     val maxUncommonBytesToStore = randomIntMax(5)
 
-    val map = mutable.Map.empty[Int, Iterable[(Sliced[Byte], Sliced[Byte])]]
+    val map = mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]
     (1 to 12700) foreach {
       _ =>
         val bytesToAdd = (randomBytesSlice(maxUncommonBytesToStore), randomBytesSlice(maxUncommonBytesToStore))
@@ -65,7 +64,7 @@ class ValueSerializerSpec extends AnyWordSpec with Matchers {
           .getOrElseUpdate(
             key = randomIntMax(10),
             op = ListBuffer(bytesToAdd)
-          ).asInstanceOf[ListBuffer[(Sliced[Byte], Sliced[Byte])]] += bytesToAdd
+          ).asInstanceOf[ListBuffer[(Slice[Byte], Slice[Byte])]] += bytesToAdd
     }
 
     val bytes = Slice.create[Byte](IntMapListBufferSerializer.bytesRequired(map))

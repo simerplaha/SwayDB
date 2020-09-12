@@ -27,7 +27,7 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, KeyValueId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 private[core] object EntryWriter {
@@ -36,7 +36,7 @@ private[core] object EntryWriter {
     def apply(prefixCompressKeysOnly: Boolean,
               compressDuplicateValues: Boolean,
               enableAccessPositionIndex: Boolean,
-              bytes: Sliced[Byte]): Builder =
+              bytes: Slice[Byte]): Builder =
       new Builder(
         enablePrefixCompressionForCurrentWrite = false,
         prefixCompressKeysOnly = prefixCompressKeysOnly,
@@ -59,7 +59,7 @@ private[core] object EntryWriter {
                 //this should be reset to false once the entry is written
                 var isValueFullyCompressed: Boolean,
                 val enableAccessPositionIndex: Boolean,
-                val bytes: Sliced[Byte],
+                val bytes: Slice[Byte],
                 var startValueOffset: Int,
                 var endValueOffset: Int,
                 var accessPositionIndex: Int,

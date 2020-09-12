@@ -27,7 +27,6 @@ package swaydb.compression
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 import swaydb.data.util.ByteOps._
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
@@ -39,8 +38,8 @@ class CompressionSpec extends AnyWordSpec with Matchers {
 
   private def assertSuccessfulCompression(compression: CompressionInternal) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)
-    val bytes: Sliced[Byte] = string
-    val compressedBytes: Sliced[Byte] = compression.compressor.compress(bytes).get
+    val bytes: Slice[Byte] = string
+    val compressedBytes: Slice[Byte] = compression.compressor.compress(bytes).get
     val decompressedBytes = compression.decompressor.decompress(compressedBytes, bytes.size)
     val decompressedString = decompressedBytes.readString()
     decompressedString shouldBe string
@@ -48,7 +47,7 @@ class CompressionSpec extends AnyWordSpec with Matchers {
 
   private def assertUnsuccessfulCompression(compression: CompressionInternal) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)
-    val bytes: Sliced[Byte] = string
+    val bytes: Slice[Byte] = string
     compression.compressor.compress(bytes) shouldBe empty
   }
 
@@ -118,7 +117,7 @@ class CompressionSpec extends AnyWordSpec with Matchers {
 
     "compress with header space" when {
       val string = "12345-12345-12345-12345" * 100
-      val bytes: Sliced[Byte] = string
+      val bytes: Slice[Byte] = string
 
       "lz4" in {
         (1 to 100) foreach {

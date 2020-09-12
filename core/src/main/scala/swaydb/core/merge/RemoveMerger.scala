@@ -28,12 +28,11 @@ import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
 
 private[core] object RemoveMerger {
 
   def apply(newKeyValue: KeyValue.Remove,
-            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Remove =
+            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Remove =
     if (newKeyValue.time > oldKeyValue.time)
       (newKeyValue.deadline, oldKeyValue.deadline) match {
         case (None, _) =>
@@ -49,7 +48,7 @@ private[core] object RemoveMerger {
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Remove,
-            oldKeyValue: KeyValue.Put)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Put)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue.deadline match {
         case Some(_) =>
@@ -62,7 +61,7 @@ private[core] object RemoveMerger {
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Remove,
-            oldKeyValue: KeyValue.Update)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Update)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue.deadline match {
         case Some(_) =>
@@ -75,7 +74,7 @@ private[core] object RemoveMerger {
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Remove,
-            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue.deadline match {
         case None =>
@@ -91,7 +90,7 @@ private[core] object RemoveMerger {
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Remove,
-            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
         case oldKeyValue: Value.Remove =>
@@ -107,7 +106,7 @@ private[core] object RemoveMerger {
       oldKeyValue.toMemory(newKeyValue.key)
 
   def apply(newer: KeyValue.Remove,
-            older: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Sliced[Byte]],
+            older: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore): KeyValue.Fixed =
     if (newer.time > older.time)
       newer.deadline match {
@@ -124,7 +123,7 @@ private[core] object RemoveMerger {
       older
 
   def apply(newKeyValue: KeyValue.Remove,
-            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Sliced[Byte]],
+            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore): KeyValue.Fixed =
   //@formatter:off
     oldKeyValue match {

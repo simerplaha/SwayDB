@@ -29,10 +29,10 @@ import java.nio.charset.{Charset, StandardCharsets}
 
 import swaydb.Aggregator
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice.Sliced
-import swaydb.data.util.ByteOps._
+import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.util.{ByteOps, ByteSizeOf, SomeOrNoneCovariant}
 import swaydb.data.{MaxKey, slice}
+import ByteOps._
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
@@ -42,7 +42,7 @@ import scala.reflect.ClassTag
 /**
  * Documentation - http://swaydb.io/slice
  */
-sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Sliced[T]] {
+sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
   override def noneC: SliceOption[Nothing] = Slice.Null
 
   def isUnslicedOption: Boolean
@@ -64,24 +64,24 @@ object Slice {
 
   val someEmptyBytes = Some(emptyBytes)
 
-  private[swaydb] val emptyEmptyBytes: Sliced[Sliced[Byte]] = Slice.empty[Sliced[Byte]]
+  private[swaydb] val emptyEmptyBytes: Slice[Slice[Byte]] = Slice.empty[Slice[Byte]]
 
   @inline final def empty[T: ClassTag] =
     Slice.create[T](0)
 
-  final def range(from: Int, to: Int): Sliced[Int] = {
+  final def range(from: Int, to: Int): Slice[Int] = {
     val slice = Slice.create[Int](to - from + 1)
     (from to to) foreach slice.add
     slice
   }
 
-  final def range(from: Char, to: Char): Sliced[Char] = {
+  final def range(from: Char, to: Char): Slice[Char] = {
     val slice = Slice.create[Char](26)
     (from to to) foreach slice.add
     slice.close()
   }
 
-  final def range(from: Byte, to: Byte): Sliced[Byte] = {
+  final def range(from: Byte, to: Byte): Slice[Byte] = {
     val slice = Slice.create[Byte](to - from + 1)
     (from to to) foreach {
       i =>
@@ -90,50 +90,50 @@ object Slice {
     slice.close()
   }
 
-  def fill[T: ClassTag](length: Int)(elem: => T): Sliced[T] =
-    new Sliced[T](
+  def fill[T: ClassTag](length: Int)(elem: => T): Slice[T] =
+    new Slice[T](
       array = Array.fill(length)(elem),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
       written = length
     )
 
-  def createBytes(length: Int): Sliced[Byte] =
+  def createBytes(length: Int): Slice[Byte] =
     Slice.create[Byte](length)
 
-  @inline final def create[T: ClassTag](length: Int, isFull: Boolean = false): Sliced[T] =
-    new Sliced(
+  @inline final def create[T: ClassTag](length: Int, isFull: Boolean = false): Slice[T] =
+    new Slice(
       array = new Array[T](length),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
       written = if (isFull) length else 0
     )
 
-  def apply[T: ClassTag](data: Array[T]): Sliced[T] =
+  def apply[T: ClassTag](data: Array[T]): Slice[T] =
     if (data.length == 0)
       Slice.create[T](0)
     else
-      new Sliced[T](
+      new Slice[T](
         array = data,
         fromOffset = 0,
         toOffset = data.length - 1,
         written = data.length
       )
 
-  def from[T: ClassTag](iterator: Iterator[T], size: Int): Sliced[T] = {
+  def from[T: ClassTag](iterator: Iterator[T], size: Int): Slice[T] = {
     val slice = Slice.create[T](size)
     iterator foreach slice.add
     slice
   }
 
-  def from[T: ClassTag](iterator: Iterable[T], size: Int): Sliced[T] = {
+  def from[T: ClassTag](iterator: Iterable[T], size: Int): Slice[T] = {
     val slice = Slice.create[T](size)
     iterator foreach slice.add
     slice
   }
 
   def from(byteBuffer: ByteBuffer) =
-    new Sliced[Byte](
+    new Slice[Byte](
       array = byteBuffer.array(),
       fromOffset = byteBuffer.arrayOffset(),
       toOffset = byteBuffer.position() - 1,
@@ -141,41 +141,41 @@ object Slice {
     )
 
   def from(byteBuffer: ByteBuffer, from: Int, to: Int) =
-    new Sliced[Byte](
+    new Slice[Byte](
       array = byteBuffer.array(),
       fromOffset = from,
       toOffset = to,
       written = to - from + 1
     )
 
-  @inline final def apply[T: ClassTag](data: T*): Sliced[T] =
+  @inline final def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
 
-  @inline final def writeInt[B: ClassTag](integer: Int)(implicit byteOps: ByteOps[B]): Sliced[B] =
+  @inline final def writeInt[B: ClassTag](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
     Slice.create[B](ByteSizeOf.int).addInt(integer)
 
-  @inline final def writeBoolean[B: ClassTag](bool: Boolean)(implicit byteOps: ByteOps[B]): Sliced[B] =
+  @inline final def writeBoolean[B: ClassTag](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[B] =
     Slice.create[B](1).addBoolean(bool)
 
-  @inline final def writeUnsignedInt[B: ClassTag](integer: Int)(implicit byteOps: ByteOps[B]): Sliced[B] =
+  @inline final def writeUnsignedInt[B: ClassTag](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
     Slice.create[B](ByteSizeOf.varInt).addUnsignedInt(integer).close()
 
-  @inline final def writeLong[B: ClassTag](num: Long)(implicit byteOps: ByteOps[B]): Sliced[B] =
+  @inline final def writeLong[B: ClassTag](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
     Slice.create[B](ByteSizeOf.long).addLong(num)
 
-  @inline final def writeUnsignedLong[B: ClassTag](num: Long)(implicit byteOps: ByteOps[B]): Sliced[B] =
+  @inline final def writeUnsignedLong[B: ClassTag](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
     Slice.create[B](ByteSizeOf.varLong).addUnsignedLong(num).close()
 
-  @inline final def writeString[B](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Sliced[B] =
+  @inline final def writeString[B](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[B] =
     byteOps.writeString(string, charsets)
 
-  @inline final def intersects[T](range1: (Sliced[T], Sliced[T]),
-                                  range2: (Sliced[T], Sliced[T]))(implicit ordering: Ordering[Sliced[T]]): Boolean =
+  @inline final def intersects[T](range1: (Slice[T], Slice[T]),
+                                  range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean =
     intersects((range1._1, range1._2, true), (range2._1, range2._2, true))
 
-  def within[T](key: Sliced[T],
-                minKey: Sliced[T],
-                maxKey: MaxKey[Sliced[T]])(implicit keyOrder: KeyOrder[Sliced[T]]): Boolean = {
+  def within[T](key: Slice[T],
+                minKey: Slice[T],
+                maxKey: MaxKey[Slice[T]])(implicit keyOrder: KeyOrder[Slice[T]]): Boolean = {
     import keyOrder._
     key >= minKey && {
       maxKey match {
@@ -187,16 +187,16 @@ object Slice {
     }
   }
 
-  def minMax[T](left: Option[(Sliced[T], Sliced[T], Boolean)],
-                right: Option[(Sliced[T], Sliced[T], Boolean)])(implicit keyOrder: Ordering[Sliced[T]]): Option[(Sliced[T], Sliced[T], Boolean)] = {
+  def minMax[T](left: Option[(Slice[T], Slice[T], Boolean)],
+                right: Option[(Slice[T], Slice[T], Boolean)])(implicit keyOrder: Ordering[Slice[T]]): Option[(Slice[T], Slice[T], Boolean)] = {
     for {
       lft <- left
       rht <- right
     } yield minMax(lft, rht)
   } orElse left.orElse(right)
 
-  def minMax[T](left: (Sliced[T], Sliced[T], Boolean),
-                right: (Sliced[T], Sliced[T], Boolean))(implicit keyOrder: Ordering[Sliced[T]]): (Sliced[T], Sliced[T], Boolean) = {
+  def minMax[T](left: (Slice[T], Slice[T], Boolean),
+                right: (Slice[T], Slice[T], Boolean))(implicit keyOrder: Ordering[Slice[T]]): (Slice[T], Slice[T], Boolean) = {
     val min = keyOrder.min(left._1, right._1)
     val maxCompare = keyOrder.compare(left._2, right._2)
     if (maxCompare == 0)
@@ -210,12 +210,12 @@ object Slice {
   /**
    * Boolean indicates if the toKey is inclusive.
    */
-  def intersects[T](range1: (Sliced[T], Sliced[T], Boolean),
-                    range2: (Sliced[T], Sliced[T], Boolean))(implicit ordering: Ordering[Sliced[T]]): Boolean = {
+  def intersects[T](range1: (Slice[T], Slice[T], Boolean),
+                    range2: (Slice[T], Slice[T], Boolean))(implicit ordering: Ordering[Slice[T]]): Boolean = {
     import ordering._
 
-    def check(range1: (Sliced[T], Sliced[T], Boolean),
-              range2: (Sliced[T], Sliced[T], Boolean)): Boolean =
+    def check(range1: (Slice[T], Slice[T], Boolean),
+              range2: (Slice[T], Slice[T], Boolean)): Boolean =
       if (range1._3 && range2._3)
         range1._1 >= range2._1 && range1._1 <= range2._2 ||
           range1._2 >= range2._1 && range1._2 <= range2._2
@@ -232,13 +232,13 @@ object Slice {
     check(range1, range2) || check(range2, range1)
   }
 
-  implicit class SlicesImplicits[T: ClassTag](slices: Sliced[Sliced[T]]) {
+  implicit class SlicesImplicits[T: ClassTag](slices: Slice[Slice[T]]) {
     /**
      * Closes this Slice and children Slices which disables
      * more data to be written to any of the Slices.
      */
-    @inline final def closeAll(): Sliced[Sliced[T]] = {
-      val newSlices = Slice.create[Sliced[T]](slices.close().size)
+    @inline final def closeAll(): Slice[Slice[T]] = {
+      val newSlices = Slice.create[Slice[T]](slices.close().size)
       slices foreach {
         slice =>
           newSlices.insert(slice.close())
@@ -247,9 +247,9 @@ object Slice {
     }
   }
 
-  implicit class OptionByteSliceImplicits(slice: Option[Sliced[Byte]]) {
+  implicit class OptionByteSliceImplicits(slice: Option[Slice[Byte]]) {
 
-    @inline final def unslice(): Option[Sliced[Byte]] =
+    @inline final def unslice(): Option[Slice[Byte]] =
       slice flatMap {
         slice =>
           if (slice.isEmpty)
@@ -259,51 +259,51 @@ object Slice {
       }
   }
 
-  implicit class SeqByteSliceImplicits(slice: Seq[Sliced[Byte]]) {
+  implicit class SeqByteSliceImplicits(slice: Seq[Slice[Byte]]) {
 
-    @inline final def unslice(): Seq[Sliced[Byte]] =
+    @inline final def unslice(): Seq[Slice[Byte]] =
       if (slice.isEmpty)
         slice
       else
         slice.map(_.unslice())
   }
 
-  implicit class JavaByteSliced(sliced: Sliced[java.lang.Byte]) {
-    def cast: Sliced[Byte] =
-      sliced.asInstanceOf[Sliced[Byte]]
+  implicit class JavaByteSliced(sliced: Slice[java.lang.Byte]) {
+    def cast: Slice[Byte] =
+      sliced.asInstanceOf[Slice[Byte]]
   }
 
-  implicit class ScalaByteSliced(sliced: Sliced[Byte]) {
-    def cast: Sliced[java.lang.Byte] =
-      sliced.asInstanceOf[Sliced[java.lang.Byte]]
+  implicit class ScalaByteSliced(sliced: Slice[Byte]) {
+    def cast: Slice[java.lang.Byte] =
+      sliced.asInstanceOf[Slice[java.lang.Byte]]
   }
 
-  implicit class SliceImplicit[T](slice: Sliced[T]) {
-    @inline final def add(value: T): Sliced[T] = {
+  implicit class SliceImplicit[T](slice: Slice[T]) {
+    @inline final def add(value: T): Slice[T] = {
       slice.insert(value)
       slice
     }
 
-    @inline final def addAll(values: Sliced[T]): Sliced[T] = {
+    @inline final def addAll(values: Slice[T]): Slice[T] = {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
 
-    @inline final def addAll(values: Array[T]): Sliced[T] = {
+    @inline final def addAll(values: Array[T]): Slice[T] = {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
   }
 
-  implicit class SliceImplicitClassTag[T: ClassTag](slice: Sliced[T]) {
-    @inline final def append(other: Sliced[T]): Sliced[T] = {
+  implicit class SliceImplicitClassTag[T: ClassTag](slice: Slice[T]) {
+    @inline final def append(other: Slice[T]): Slice[T] = {
       val merged = Slice.create[T](slice.size + other.size)
       merged addAll slice
       merged addAll other
       merged
     }
 
-    @inline final def append(other: T): Sliced[T] = {
+    @inline final def append(other: T): Slice[T] = {
       val merged = Slice.create[T](slice.size + 1)
       merged addAll slice
       merged add other
@@ -314,19 +314,19 @@ object Slice {
   @inline final def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
     new slice.Slice.SliceBuilder[T](sizeHint)
 
-  private[swaydb] def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Sliced[T]] =
-    Aggregator.fromBuilder[T, Sliced[T]](newBuilder[T](sizeHint))
+  private[swaydb] def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Slice[T]] =
+    Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](sizeHint))
 
   final case object Null extends SliceOption[Nothing] {
     override val isNoneC: Boolean = true
-    override def getC: Sliced[Nothing] = throw new Exception("Slice is of type Null")
+    override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
     override def isUnslicedOption: Boolean = true
     override def asSliceOption(): SliceOption[Nothing] = this
   }
 
-  class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Sliced[A]] {
+  class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Sliced[A] = Slice.create[A]((sizeHint * 2) max 100)
+    protected var slice: Slice[A] = Slice.create[A]((sizeHint * 2) max 100)
 
     def extendSlice(by: Int) = {
       val extendedSlice = Slice.create[A](slice.size * by)
@@ -348,58 +348,58 @@ object Slice {
     def clear() =
       slice = Slice.create[A](slice.size)
 
-    def result(): Sliced[A] =
+    def result(): Slice[A] =
       slice.close()
   }
 
-  class SliceFactory(sizeHint: Int) extends ClassTagIterableFactory[Sliced] {
+  class SliceFactory(sizeHint: Int) extends ClassTagIterableFactory[Slice] {
 
-    def from[A](source: IterableOnce[A])(implicit evidence: ClassTag[A]): Sliced[A] =
+    def from[A](source: IterableOnce[A])(implicit evidence: ClassTag[A]): Slice[A] =
       (newBuilder[A] ++= source).result()
 
-    def empty[A](implicit evidence: ClassTag[A]): Sliced[A] =
+    def empty[A](implicit evidence: ClassTag[A]): Slice[A] =
       Slice.create[A](sizeHint)
 
-    def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Sliced[A]] =
+    def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Slice[A]] =
       new SliceBuilder[A](sizeHint)
   }
+}
 
-  /**
-   * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
-   * sub-slices.
-   *
-   * @param array      Array to create Slices for
-   * @param fromOffset start offset
-   * @param toOffset   end offset
-   * @param written    items written
-   * @tparam T The type of this Slice
-   */
+/**
+ * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
+ * sub-slices.
+ *
+ * @param array      Array to create Slices for
+ * @param fromOffset start offset
+ * @param toOffset   end offset
+ * @param written    items written
+ * @tparam T The type of this Slice
+ */
 
-  //@formatter:off
-  class Sliced[+T] private[slice](array: Array[T],
-                                 fromOffset: Int,
-                                 toOffset: Int,
-                                 written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends SliceBase[T](array, fromOffset, toOffset, written)
-                                                                                                                with SliceOption[T]
-                                                                                                                with IterableOps[T, Sliced, Sliced[T]]
-                                                                                                                with EvidenceIterableFactoryDefaults[T, Sliced, ClassTag]
-                                                                                                                with StrictOptimizedIterableOps[T, Sliced, Sliced[T]] {
-                                                                                                                //@formatter:on
+//@formatter:off
+class Slice[+T] private[slice](array: Array[T],
+                               fromOffset: Int,
+                               toOffset: Int,
+                               written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends SliceBase[T](array, fromOffset, toOffset, written)
+                                                                                                              with SliceOption[T]
+                                                                                                              with IterableOps[T, Slice, Slice[T]]
+                                                                                                              with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
+                                                                                                              with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
+                                                                                                              //@formatter:on
 
-    override val isNoneC: Boolean =
-      false
+  override val isNoneC: Boolean =
+    false
 
-    override def getC: Sliced[T] =
-      this
+  override def getC: Slice[T] =
+    this
 
-    override def selfSlice: Sliced[T] =
-      this
+  override def selfSlice: Slice[T] =
+    this
 
-    override def evidenceIterableFactory: SliceFactory =
-      new SliceFactory(size)
+  override def evidenceIterableFactory: SliceFactory =
+    new SliceFactory(size)
 
-    //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
-    override def iterableFactory: IterableFactory[Sliced] =
-      new ClassTagIterableFactory.AnyIterableDelegate[Sliced](evidenceIterableFactory)
-  }
+  //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
+  override def iterableFactory: IterableFactory[Slice] =
+    new ClassTagIterableFactory.AnyIterableDelegate[Slice](evidenceIterableFactory)
 }

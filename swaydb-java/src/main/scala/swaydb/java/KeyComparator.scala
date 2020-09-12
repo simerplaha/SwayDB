@@ -27,12 +27,12 @@ package swaydb.java
 import java.util.Comparator
 
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 
 object KeyComparator {
-  final val lexicographic: KeyComparator[Sliced[java.lang.Byte]] =
-    new KeyComparator[Sliced[java.lang.Byte]] {
-      override def compare(o1: Sliced[java.lang.Byte], o2: Sliced[java.lang.Byte]): Int =
+  final val lexicographic: KeyComparator[Slice[java.lang.Byte]] =
+    new KeyComparator[Slice[java.lang.Byte]] {
+      override def compare(o1: Slice[java.lang.Byte], o2: Slice[java.lang.Byte]): Int =
         KeyOrder.lexicographicJava.compare(o1, o2)
     }
 }

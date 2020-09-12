@@ -28,7 +28,7 @@ import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.segment.Segment.getNearestPutDeadline
 import swaydb.core.util.MinMax
 import swaydb.data.util.FiniteDurations
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import scala.concurrent.duration.Deadline
 
 protected object DeadlineAndFunctionId {
@@ -36,7 +36,7 @@ protected object DeadlineAndFunctionId {
     apply(None, None)
 
   def apply(deadline: Option[Deadline],
-            minMaxFunctionId: Option[MinMax[Sliced[Byte]]]): DeadlineAndFunctionId =
+            minMaxFunctionId: Option[MinMax[Slice[Byte]]]): DeadlineAndFunctionId =
     new DeadlineAndFunctionId(
       nearestDeadline = deadline,
       minMaxFunctionId = minMaxFunctionId
@@ -53,7 +53,7 @@ protected object DeadlineAndFunctionId {
     }
 
   def apply(deadline: Option[Deadline],
-            minMaxFunctionId: Option[MinMax[Sliced[Byte]]],
+            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             next: KeyValue): DeadlineAndFunctionId =
     next match {
       case readOnly: KeyValue.Put =>
@@ -106,4 +106,4 @@ protected object DeadlineAndFunctionId {
 }
 
 protected class DeadlineAndFunctionId(val nearestDeadline: Option[Deadline],
-                                      val minMaxFunctionId: Option[MinMax[Sliced[Byte]]])
+                                      val minMaxFunctionId: Option[MinMax[Slice[Byte]]])

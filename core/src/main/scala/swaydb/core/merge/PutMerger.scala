@@ -27,25 +27,25 @@ package swaydb.core.merge
 import swaydb.core.data.KeyValue
 import swaydb.core.data.Value
 import swaydb.data.order.TimeOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 private[core] object PutMerger {
 
   def apply(newKeyValue: KeyValue.Put,
-            oldKeyValue: KeyValue.Put)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Put =
+            oldKeyValue: KeyValue.Put)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Put =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue
     else
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Put,
-            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue
     else
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Put,
-            oldKeyValue: KeyValue.Update)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Update)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
 
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue
@@ -53,28 +53,28 @@ private[core] object PutMerger {
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Put,
-            oldKeyValue: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue
     else
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Put,
-            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue
     else
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Put,
-            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue
     else
       oldKeyValue.toMemory(newKeyValue.key)
 
   def apply(newKeyValue: KeyValue.Put,
-            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
   //@formatter:off
     oldKeyValue match {
       case oldKeyValue: KeyValue.Put =>             PutMerger(newKeyValue, oldKeyValue)

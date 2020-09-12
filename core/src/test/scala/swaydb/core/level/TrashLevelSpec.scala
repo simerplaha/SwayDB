@@ -36,7 +36,7 @@ import swaydb.core.segment.{Segment, ThreadReadState}
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 
 import scala.concurrent.duration._
@@ -63,7 +63,7 @@ class TrashLevelSpec3 extends TrashLevelSpec {
 
 sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethodTester {
 
-  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean = false

@@ -30,7 +30,7 @@ import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 
 
 import scala.collection.mutable.ListBuffer
@@ -66,21 +66,21 @@ trait NextLevel extends LevelRef {
 
   def throttle: LevelMeter => Throttle
 
-  def isUnreserved(minKey: Sliced[Byte], maxKey: Sliced[Byte], maxKeyInclusive: Boolean): Boolean
+  def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
 
   def isUnreserved(segment: Segment): Boolean
 
-  def isCopyable(minKey: Sliced[Byte], maxKey: Sliced[Byte], maxKeyInclusive: Boolean): Boolean
+  def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
 
-  def isCopyable(map: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): Boolean
+  def isCopyable(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Boolean
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
-  def mightContainFunction(key: Sliced[Byte]): Boolean
+  def mightContainFunction(key: Slice[Byte]): Boolean
 
   def put(segment: Segment): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
 
-  def put(map: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
+  def put(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
 
   def put(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
 
@@ -108,7 +108,7 @@ trait NextLevel extends LevelRef {
 
   def lastSegmentId: Option[Long]
 
-  def take(count: Int): Sliced[Segment]
+  def take(count: Int): Slice[Segment]
 
   def takeSmallSegments(size: Int): Iterable[Segment]
 

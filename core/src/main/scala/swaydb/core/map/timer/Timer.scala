@@ -35,7 +35,6 @@ import swaydb.core.map.counter.Counter
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 
 private[core] trait Timer {
   val isEmptyTimer: Boolean
@@ -79,8 +78,8 @@ private[core] object Timer {
                  mod: Long,
                  flushCheckpointSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
                                             forceSaveApplier: ForceSaveApplier,
-                                            writer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Sliced[Byte]]],
-                                            reader: MapEntryReader[MapEntry[Sliced[Byte], Sliced[Byte]]]): IO[swaydb.Error.Map, Timer] =
+                                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
+                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, Timer] =
     Counter.persistent(
       path = path,
       mmap = mmap,

@@ -33,9 +33,8 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBin
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.core.CommonAssertions._
-import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Sliced
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps._
 
 class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
@@ -96,7 +95,7 @@ class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
         case Slice.Null =>
           builder.bytes shouldBe empty
 
-        case slice: Sliced[_] =>
+        case slice: Slice[_] =>
           reader.readUnsignedInt() shouldBe 0 //valueOffset
           reader.readUnsignedInt() shouldBe slice.size //valueLength
           reader.get() shouldBe 0 //tail empty bytes

@@ -24,12 +24,12 @@
 
 package swaydb.data.order
 
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.Slice
 import swaydb.data.util.ScalaByteOps
 
 private[swaydb] object TimeOrder {
-  val long = new TimeOrder[Sliced[Byte]] {
-    override def compare(left: Sliced[Byte], right: Sliced[Byte]): Int =
+  val long = new TimeOrder[Slice[Byte]] {
+    override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
       if (left.isEmpty || right.isEmpty)
         1 //if either of them are empty then favour left to be the largest.
       else
