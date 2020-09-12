@@ -231,11 +231,17 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean] =
     bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
-  def keys: Set[K, Nothing, BAG] =
+  def keys: Stream[K, BAG] =
+    stream.map(_._1)
+
+  def values: Stream[V, BAG] =
+    stream.map(_._2)
+
+  def toSet: Set[K, Nothing, BAG] =
     Set[K, Nothing, BAG](core)
 
   private[swaydb] def keySet: mutable.Set[K] =
-    keys.asScala
+    toSet.asScala
 
   def levelZeroMeter: LevelZeroMeter =
     core.levelZeroMeter

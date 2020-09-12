@@ -267,6 +267,12 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
         innerSource.nextOrNull(previous, reverse)
     }
 
+  override def keys: Stream[K, BAG] =
+    stream.map(_._1)
+
+  override def values: Stream[V, BAG] =
+    stream.map(_._2)
+
   def stream: Source[K, (K, V), BAG] =
     new Source(sourceFree())
 
@@ -307,4 +313,5 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
 
   override def toString(): String =
     classOf[SetMap[_, _, BAG]].getSimpleName
+
 }

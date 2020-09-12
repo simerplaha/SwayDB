@@ -112,6 +112,12 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
   def head: Optional[KeyVal[K, V]] =
     asScala.head.asJavaMap(KeyVal(_))
 
+  override def keys: Stream[K] =
+    new Stream[K](asScala.keys)
+
+  def values: Stream[V] =
+    new Stream[V](asScala.values)
+
   def stream: Source[K, KeyVal[K, V]] =
     new Source(asScala.stream.transformValue(_.asKeyVal))
 

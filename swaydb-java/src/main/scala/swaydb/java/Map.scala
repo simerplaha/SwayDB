@@ -166,8 +166,14 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
   def mightContainFunction(function: F): java.lang.Boolean =
     asScala.mightContainFunction(function)
 
-  def keys: Set[K, Void] =
+  def toSet: Set[K, Void] =
     Set(asScala.keys.asInstanceOf[swaydb.Set[K, Void, Bag.Less]])(null)
+
+  def keys: Stream[K] =
+    new Stream[K](asScala.keys)
+
+  def values: Stream[V] =
+    new Stream[V](asScala.values)
 
   def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter

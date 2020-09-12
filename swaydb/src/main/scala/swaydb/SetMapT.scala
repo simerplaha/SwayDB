@@ -102,7 +102,14 @@ trait SetMapT[K, V, BAG[_]] {
 
   def head: BAG[Option[(K, V)]]
 
+  def keys: Stream[K, BAG]
+
+  def values: Stream[V, BAG]
+
   def stream: Source[K, (K, V), BAG]
+
+  def reverse: Source[K, (K, V), BAG] =
+    stream.reverse
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]]
 

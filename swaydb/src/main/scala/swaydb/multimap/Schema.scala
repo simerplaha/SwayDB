@@ -388,7 +388,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    */
   def keys: Stream[M, BAG] =
     innerMap
-      .keys
+      .toSet
       .stream
       .after(MultiKey.ChildrenStart(mapId))
       .takeWhile {

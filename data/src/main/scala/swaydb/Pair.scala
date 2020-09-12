@@ -55,9 +55,21 @@ class Pair[+L, +R](val left: L, val right: R) {
   def toKeyVal =
     KeyVal(left, right)
 
-  override def equals(obj: Any): Boolean =
-    toTuple.equals(obj)
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: Pair[L, R] =>
+        left == other.left && right == other.right
+
+      //      case other: KeyVal[L, R] =>
+      //        left == other.left && right == other.right
+
+      case _ =>
+        false
+    }
 
   override def hashCode(): Int =
     toTuple.hashCode()
+
+  override def toString: String =
+    s"Pair($left, $right)"
 }

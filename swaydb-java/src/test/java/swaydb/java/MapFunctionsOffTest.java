@@ -34,11 +34,13 @@ import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.Arrays.asList;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.data.java.CommonAssertions.*;
 import static swaydb.data.java.JavaEventually.sleep;
 import static swaydb.java.serializers.Default.intSerializer;
@@ -459,20 +461,243 @@ abstract class MapFunctionsOffTest extends TestBase {
     map.delete();
   }
 
+  /**
+   * GET
+   */
+  @Test
+  void get() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    foreachRange(1, 100, integer -> shouldContain(map.get(integer), integer + " value"));
+
+    shouldBeEmpty(map.get(200));
+    shouldBeEmpty(map.get(Integer.MAX_VALUE));
+    shouldBeEmpty(map.get(Integer.MIN_VALUE));
+
+    map.delete();
+  }
+
+  @Test
+  void getKey() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    foreachRange(1, 100, integer -> shouldContain(map.getKey(integer), integer));
+
+    shouldBeEmpty(map.getKey(200));
+    shouldBeEmpty(map.getKey(Integer.MAX_VALUE));
+    shouldBeEmpty(map.getKey(Integer.MIN_VALUE));
+
+    map.delete();
+  }
+
+  @Test
+  void getKeyValue() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    foreachRange(1, 100, integer -> shouldContain(map.getKeyValue(integer), KeyVal.create(integer, integer + " value")));
+
+    shouldBeEmpty(map.getKeyValue(200));
+    shouldBeEmpty(map.getKeyValue(Integer.MAX_VALUE));
+    shouldBeEmpty(map.getKeyValue(Integer.MIN_VALUE));
+
+    map.delete();
+  }
+
+  @Test
+  void getKeyDeadline() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    foreachRange(1, 100, integer -> shouldContain(map.getKeyDeadline(integer), Pair.create(integer, Optional.empty())));
+
+    shouldBeEmpty(map.getKeyDeadline(200));
+    shouldBeEmpty(map.getKeyDeadline(Integer.MAX_VALUE));
+    shouldBeEmpty(map.getKeyDeadline(Integer.MIN_VALUE));
+
+    map.delete();
+  }
+
+  @Test
+  void getKeyValueDeadline() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    foreachRange(1, 100, integer -> shouldContain(map.getKeyValueDeadline(integer), Pair.create(KeyVal.create(integer, integer + " value"), Optional.empty())));
+
+    shouldBeEmpty(map.getKeyValueDeadline(200));
+    shouldBeEmpty(map.getKeyValueDeadline(Integer.MAX_VALUE));
+    shouldBeEmpty(map.getKeyValueDeadline(Integer.MIN_VALUE));
+
+    map.delete();
+  }
+
+  /**
+   * CONTAINS
+   */
+
+  @Test
+  void contains() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    foreachRange(1, 100, integer -> shouldBeTrue(map.contains(integer)));
+
+    assertFalse(map.contains(200));
+
+    shouldBeFalse(map.contains(200));
+    shouldBeFalse(map.contains(Integer.MAX_VALUE));
+    shouldBeFalse(map.contains(Integer.MIN_VALUE));
+
+    map.delete();
+  }
+
+  @Test
+  void mightContain() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    foreachRange(1, 100, integer -> shouldBeTrue(map.mightContain(integer)));
+
+    assertFalse(map.mightContain(200));
+
+    shouldBeFalse(map.mightContain(200));
+    shouldBeFalse(map.mightContain(Integer.MAX_VALUE));
+    shouldBeFalse(map.mightContain(Integer.MIN_VALUE));
+
+    map.delete();
+  }
+
+  /**
+   * KEYS
+   */
+
+  @Test
+  void keys() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    shouldBe(map.keys(), Stream.range(1, 100));
+
+    map.delete();
+  }
+
+  /**
+   * VALUES
+   */
+
+  @Test
+  void values() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    shouldBe(map.values(), Stream.range(1, 100).map(integer -> integer + " value"));
+
+    map.delete();
+  }
+
+  /**
+   * meters
+   */
+  @Test
+  void levelZeroMeter() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    shouldBe(map.levelZeroMeter().mapsCount(), 1);
+
+    map.delete();
+  }
+
+  @Test
+  void levelMeter() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    shouldBeEmpty(map.levelMeter(8));
+
+    map.delete();
+  }
+
+  @Test
+  void head() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    shouldContain(map.head(), KeyVal.create(1, "1 value"));
+
+    map.delete();
+  }
+
+  @Test
+  void stream() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    Stream<KeyVal<Integer, String>> stream =
+      map
+        .stream()
+        .from(10)
+        .drop(10)
+        .takeWhile(keyValue -> true);
+
+    shouldBe(stream, Stream.range(20, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    map.delete();
+  }
+
+  @Test
+  void iterator() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    Iterator<KeyVal<Integer, String>> iterator = map.iterator();
+
+    shouldBe(iterator, Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")).iterator());
+
+    map.delete();
+  }
+
+  @Test
+  void clearAppliedFunctions() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+
+    shouldBeEmpty(map.clearAppliedFunctions());
+
+    shouldBeEmpty(map.clearAppliedAndRegisteredFunctions());
+
+    map.delete();
+  }
+
   @Test
   void comparatorTest() throws IOException {
-    MapT<Integer, Integer, Void> map =
-      createMap(intSerializer(), intSerializer(), (left, right) -> left.compareTo(right) * -1);
+    MapT<Integer, String, Void> map =
+      createMap(intSerializer(), stringSerializer(), (left, right) -> left.compareTo(right) * -1);
 
-    assertDoesNotThrow(() -> map.put(1, 1));
-    assertDoesNotThrow(() -> map.put(2, 2));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
 
-    List<Integer> integers = map
-      .stream()
-      .map(KeyVal::key)
-      .materialize();
+    List<Integer> stream =
+      map
+        .stream()
+        .map(KeyVal::key)
+        .materialize();
 
-    assertEquals(asList(2, 1), integers);
+    List<Integer> expected = Stream.range(1, 100).materialize();
+    Collections.reverse(expected);
+
+    shouldBe(stream, expected);
+
+    //reversing a reversed map results in ordered
+    Stream<Integer> reversed =
+      map
+        .stream()
+        .reverse()
+        .map(KeyVal::key);
+
+    shouldBe(reversed, Stream.range(1, 100));
 
     map.delete();
   }
@@ -551,16 +776,13 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     assertEquals(asList(key1, key2), mapKeys);
 
-    if (map instanceof swaydb.java.Map) {
-      List<Integer> setKeys =
-        ((swaydb.java.Map<Key, Value, Void>) map)
-          .keys()
-          .stream()
-          .map(key -> key.key)
-          .materialize();
+    List<Integer> setKeys =
+      map
+        .keys()
+        .map(key -> key.key)
+        .materialize();
 
-      assertEquals(asList(1, 2), setKeys);
-    }
+    assertEquals(asList(1, 2), setKeys);
 
     map.delete();
   }

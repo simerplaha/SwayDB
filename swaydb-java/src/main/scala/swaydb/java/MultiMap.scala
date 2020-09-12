@@ -201,6 +201,12 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   def head: Optional[KeyVal[K, V]] =
     asScala.head.asJavaMap(KeyVal(_))
 
+  override def keys: Stream[K] =
+    new Stream[K](asScala.keys)
+
+  def values: Stream[V] =
+    new Stream[V](asScala.values)
+
   def stream: Source[K, KeyVal[K, V]] =
     new Source(asScala.stream.transformValue(_.asKeyVal))
 
@@ -242,4 +248,5 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
 
   override def toString(): String =
     asScala.toString()
+
 }

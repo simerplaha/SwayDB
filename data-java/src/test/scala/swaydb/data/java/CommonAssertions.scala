@@ -24,26 +24,31 @@
 
 package swaydb.data.java
 
-import java.time.Duration
 import java.util.Optional
 import java.util.function.{Consumer, Supplier}
 
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.matchers.should.Matchers._
+import swaydb.data.java.JavaEventually._
 
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
-import JavaEventually._
-
-import scala.concurrent.duration.DurationInt
 
 object CommonAssertions {
 
   def shouldBeEmpty[T](option: Optional[T]): Unit =
-    option.isPresent
+    option shouldBe Optional.empty[T]()
 
   def shouldBeEmpty[T](stream: swaydb.java.Stream[T]): Unit =
     stream.size shouldBe 0
+
+  def shouldBeEmpty[T](items: java.lang.Iterable[T]): Unit =
+    items.iterator().hasNext shouldBe false
+
+  def shouldBeEmpty[T](items: java.util.Iterator[T]): Unit =
+    items.hasNext shouldBe false
 
   def shouldBeEmptyEventually[T](timeout: Int, option: Supplier[Optional[T]]): Unit =
     eventually(
@@ -59,6 +64,28 @@ object CommonAssertions {
 
   def shouldBe[T](actual: T, expected: T): Unit =
     actual shouldBe expected
+
+  def shouldBe[T](actual: java.util.Iterator[T], expected: java.util.Iterator[T]): Unit = {
+    val left = ListBuffer.empty[T]
+    val right = ListBuffer.empty[T]
+
+    actual.forEachRemaining(int => left += int)
+    expected.forEachRemaining(int => right += int)
+
+    left shouldBe right
+  }
+
+  def shouldBeGreaterThan(actual: Int, expected: Int): Unit =
+    actual should be > expected
+
+  def shouldBeGreaterThanEqualTo(actual: Int, expected: Int): Unit =
+    actual should be >= expected
+
+  def shouldBeLessThan(actual: Int, expected: Int): Unit =
+    actual should be < expected
+
+  def shouldBeLessThanEqualTo(actual: Int, expected: Int): Unit =
+    actual should be <= expected
 
   def shouldHaveSize[T](actual: java.lang.Iterable[T], expected: Int): Unit =
     actual.asScala should have size expected

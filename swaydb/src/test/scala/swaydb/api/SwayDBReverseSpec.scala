@@ -69,7 +69,6 @@ sealed trait SwayDBReverseSpec extends TestBaseEmbedded {
 
           db
             .keys
-            .stream
             .foldLeft(keyValueCount + 1) {
               case (expected, actual) =>
                 actual shouldBe expected - 1

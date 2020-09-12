@@ -509,9 +509,9 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     innerMap.core.mightContainFunction(Slice.writeString(function.id))
 
   /**
-   * TODO keys function.
+   * TODO toSet function.
    */
-  //  def keys: Set[K, F, BAG] =
+  //  def toSet: Set[K, F, BAG] =
   //    Set[K, F, BAG](
   //      core = map.core,
   //      from =
@@ -521,6 +521,12 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   //        },
   //      reverseIteration = reverseIteration
   //    )(keySerializer, bag)
+
+  def keys: Stream[K, BAG] =
+    stream.map(_._1)
+
+  def values: Stream[V, BAG] =
+    stream.map(_._2)
 
   private[swaydb] def keySet: mutable.Set[K] =
     throw new NotImplementedError("KeySet function is not yet implemented. Please request for this on GitHub - https://github.com/simerplaha/SwayDB/issues.")

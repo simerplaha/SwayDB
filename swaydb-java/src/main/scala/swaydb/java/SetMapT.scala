@@ -85,7 +85,14 @@ trait SetMapT[K, V] {
 
   def stream: Source[K, KeyVal[K, V]]
 
+  def keys: Stream[K]
+
+  def values: Stream[V]
+
   def iterator: java.util.Iterator[KeyVal[K, V]]
+
+  def reverse: Source[K, KeyVal[K, V]] =
+    stream.reverse
 
   def sizeOfBloomFilterEntries: Int
 

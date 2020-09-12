@@ -35,4 +35,16 @@ object KeyVal {
     new KeyVal(keyAndVal, keyAndVal)
 }
 
-case class KeyVal[+K, +V](key: K, value: V) extends Pair(key, value)
+case class KeyVal[+K, +V](key: K, value: V) extends Pair(key, value) {
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: KeyVal[K, V] =>
+        left == other.left && right == other.right
+
+      case _ =>
+        false
+    }
+
+  override def toString: String =
+    s"KeyVal($key, $value)"
+}
