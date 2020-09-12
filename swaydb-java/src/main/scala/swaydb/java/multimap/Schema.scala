@@ -36,8 +36,6 @@ import scala.compat.java8.DurationConverters._
 
 case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Less])(implicit evd: F <:< PureFunction.Map[K, V]) {
 
-  def mapId = asScala.mapId
-
   def defaultExpiration: Optional[Expiration] =
     asScala.defaultExpiration.asJava
 

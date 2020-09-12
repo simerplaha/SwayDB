@@ -180,7 +180,7 @@ object MultiMap {
  */
 case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
                                                 mapKey: M,
-                                                mapId: Long,
+                                                private[swaydb] val mapId: Long,
                                                 defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
                                                                                             mapKeySerializer: Serializer[M],
                                                                                             valueSerializer: Serializer[V],

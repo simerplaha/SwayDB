@@ -48,8 +48,6 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
 
   def mapKey = asScala.mapKey
 
-  def mapId = asScala.mapId
-
   def defaultExpiration: Optional[Expiration] = Expiration(asScala.defaultExpiration)
 
   def path: Path =

@@ -37,7 +37,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  * Provides APIs to manage children/nested maps/child maps of [[MultiMap]].
  */
 class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
-                                 val mapId: Long,
+                                 protected val mapId: Long,
                                  val defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
                                                                           childKeySerializer: Serializer[M],
                                                                           valueSerializer: Serializer[V],
