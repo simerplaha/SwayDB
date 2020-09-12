@@ -25,11 +25,14 @@
 package swaydb.data.java;
 
 import org.junit.jupiter.api.Test;
+import scala.Option;
+import swaydb.Pair;
 import swaydb.java.Stream;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -73,5 +76,32 @@ class StreamTest {
         .materialize();
 
     assertEquals(Arrays.asList(21, 22, 23, 24, 25), streamIntegers);
+  }
+
+  @Test
+  void collect() {
+
+    Stream<Integer> stream = Stream.create(source.iterator());
+
+    List<Optional<Integer>> streamIntegers =
+      stream
+        .collect(Optional::of)
+        .take(2)
+        .materialize();
+
+    assertEquals(Arrays.asList(Optional.of(1), Optional.of(2)), streamIntegers);
+  }
+
+  @Test
+  void partition() {
+
+    Stream<Integer> stream = Stream.create(source.iterator());
+
+    Pair<List<Integer>, List<Integer>> streamIntegers =
+      stream
+        .partition(integer -> integer % 2 == 0);
+
+    assertEquals(Arrays.asList(2, 4), streamIntegers.left());
+    assertEquals(Arrays.asList(1, 3, 5), streamIntegers.right());
   }
 }
