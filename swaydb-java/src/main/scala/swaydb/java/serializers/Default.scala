@@ -29,15 +29,19 @@ import java.util.Optional
 
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.Sliced
+import swaydb.data.util.ByteOps._
+import swaydb.data.util.JavaByteOps
 import swaydb.serializers.Default._
 
 object Default {
+
+  implicit val byteOps = JavaByteOps
 
   def intSerializer(): Serializer[java.lang.Integer] = JavaIntSerializer
 
   object JavaIntSerializer extends Serializer[java.lang.Integer] {
     override def write(data: java.lang.Integer): Sliced[java.lang.Byte] =
-      Slice.writeInt(data).cast
+      Slice.writeInt(data)
 
     override def read(data: Sliced[java.lang.Byte]): java.lang.Integer =
       data.cast.readInt()
@@ -47,7 +51,7 @@ object Default {
 
   implicit object JavaLongSerializer extends Serializer[java.lang.Long] {
     override def write(data: java.lang.Long): Sliced[java.lang.Byte] =
-      Slice.writeLong(data).cast
+      Slice.writeLong(data)
 
     override def read(data: Sliced[java.lang.Byte]): java.lang.Long =
       data.cast.readLong()
@@ -97,7 +101,7 @@ object Default {
 
   implicit object StringSerializer extends Serializer[java.lang.String] {
     override def write(data: java.lang.String): Sliced[java.lang.Byte] =
-      Slice.writeString(data, StandardCharsets.UTF_8).cast
+      Slice.writeString(data, StandardCharsets.UTF_8)
 
     override def read(data: Sliced[java.lang.Byte]): java.lang.String =
       data.cast.readString(StandardCharsets.UTF_8)
@@ -108,7 +112,7 @@ object Default {
 
   implicit object JavaOptionalStringSerializer extends Serializer[Optional[java.lang.String]] {
     override def write(data: Optional[java.lang.String]): Sliced[java.lang.Byte] =
-      data.map(data => Slice.writeString(data, StandardCharsets.UTF_8)).orElseGet(() => Slice.emptyBytes).cast
+      data.map(data => Slice.writeString[java.lang.Byte](data, StandardCharsets.UTF_8)).orElseGet(() => Slice.emptyJavaBytes)
 
     override def read(data: Sliced[java.lang.Byte]): Optional[java.lang.String] =
       if (data.isEmpty)

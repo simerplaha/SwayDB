@@ -59,9 +59,8 @@ object Default {
   }
 
   implicit object CharSerializer extends Serializer[Char] {
-    override def write(data: Char): Sliced[Byte] = {
+    override def write(data: Char): Sliced[Byte] =
       Slice(ByteBuffer.allocate(ByteSizeOf.char).putChar(data).array())
-    }
 
     override def read(data: Sliced[Byte]): Char =
       data.toByteBufferWrap.getChar
