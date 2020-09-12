@@ -53,7 +53,7 @@ import swaydb.data.MaxKey
 import swaydb.data.RunThis._
 import swaydb.data.config.{ActorConfig, Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.StorageUnits._
 import swaydb.data.util.{ByteSizeOf, OperatingSystem}
 import swaydb.serializers.Default._
@@ -62,6 +62,8 @@ import swaydb.serializers._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 

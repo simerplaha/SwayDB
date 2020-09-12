@@ -25,6 +25,7 @@
 package swaydb.stress.simulation
 
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.{Slice, _}
 import swaydb.serializers.Serializer
 
 sealed trait Domain

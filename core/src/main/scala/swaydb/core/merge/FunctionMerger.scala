@@ -24,11 +24,11 @@
 
 package swaydb.core.merge
 
-import swaydb.core.data.KeyValue
-import swaydb.core.data.{Memory, SwayFunction, SwayFunctionOutput, Value}
+import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 private[core] object FunctionMerger {
 

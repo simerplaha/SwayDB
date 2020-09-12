@@ -35,6 +35,7 @@ import swaydb.data.Reserve
 import swaydb.data.cache.Cache
 import swaydb.data.config.{ForceSave, IOStrategy}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.{Error, IO}
 
 import scala.util.hashing.MurmurHash3

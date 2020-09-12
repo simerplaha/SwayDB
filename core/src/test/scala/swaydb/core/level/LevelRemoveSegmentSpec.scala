@@ -36,7 +36,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper, TestTimer}
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 

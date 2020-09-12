@@ -30,6 +30,7 @@ import java.nio.file.Path
 import swaydb.IO
 import swaydb.data.util.Bytez
 import swaydb.data.util.Maybe.Maybe
+import swaydb.data.slice.Slice._
 
 import scala.annotation.tailrec
 

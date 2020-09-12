@@ -29,6 +29,7 @@ import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
+import swaydb.data.slice.Slice._
 import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
 

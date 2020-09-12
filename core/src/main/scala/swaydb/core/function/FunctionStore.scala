@@ -30,6 +30,7 @@ import swaydb.OK
 import swaydb.core.data.{SwayFunction, Value}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 
 import scala.annotation.tailrec
 import scala.collection.mutable

@@ -25,7 +25,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper
 import TestCaseSweeper._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb._
 

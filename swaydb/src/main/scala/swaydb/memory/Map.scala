@@ -35,7 +35,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.StorageUnits._
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer

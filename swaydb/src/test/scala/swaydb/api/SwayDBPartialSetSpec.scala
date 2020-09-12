@@ -26,7 +26,7 @@ package swaydb.api
 
 import swaydb.Bag
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.StorageUnits._
 import org.scalatest.OptionValues._
 import swaydb.data.RunThis._
@@ -34,6 +34,8 @@ import swaydb.core.TestCaseSweeper
 import TestCaseSweeper._
 
 import scala.concurrent.duration._
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 object SwayDBPartialSetSpec {
 

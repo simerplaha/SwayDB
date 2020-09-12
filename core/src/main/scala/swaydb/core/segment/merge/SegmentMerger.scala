@@ -31,6 +31,7 @@ import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.core.util.DropIterator
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 import scala.annotation.tailrec
 

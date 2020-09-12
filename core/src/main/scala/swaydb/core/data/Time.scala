@@ -27,6 +27,7 @@ package swaydb.core.data
 import swaydb.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.{ByteSizeOf, Bytez}
 
 private[core] object Time {

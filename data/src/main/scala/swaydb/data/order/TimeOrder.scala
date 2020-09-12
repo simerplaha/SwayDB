@@ -24,7 +24,7 @@
 
 package swaydb.data.order
 
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.Bytez
 
 private[swaydb] object TimeOrder {

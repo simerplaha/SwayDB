@@ -24,8 +24,7 @@
 
 package swaydb.data.order
 
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 object KeyOrder {
 
   /**

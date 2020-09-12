@@ -30,6 +30,8 @@ import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
 
 import scala.collection.mutable.ListBuffer
 

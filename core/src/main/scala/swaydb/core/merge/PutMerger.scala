@@ -27,8 +27,7 @@ package swaydb.core.merge
 import swaydb.core.data.KeyValue
 import swaydb.core.data.Value
 import swaydb.data.order.TimeOrder
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 private[core] object PutMerger {
 
   def apply(newKeyValue: KeyValue.Put,

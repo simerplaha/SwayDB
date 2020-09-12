@@ -29,7 +29,7 @@ import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.core.io.reader.Reader
 //import swaydb.core.segment.format.a.entry.id.BaseEntryId
 //import swaydb.core.segment.format.a.entry.reader.TimeReader
-//import swaydb.data.slice.Slice
+//import swaydb.data.slice.Slice._
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
 //

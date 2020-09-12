@@ -29,6 +29,7 @@ import swaydb.KeyVal;
 import swaydb.Pair;
 import swaydb.Prepare;
 import swaydb.data.java.TestBase;
+import swaydb.data.slice.Slice;
 import swaydb.java.data.slice.ByteSlice;
 import swaydb.java.serializers.Serializer;
 

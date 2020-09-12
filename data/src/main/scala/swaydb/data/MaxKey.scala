@@ -25,7 +25,7 @@
 package swaydb.data
 
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.SomeOrNoneCovariant
 
 sealed trait MaxKeyOrNull[+T] extends SomeOrNoneCovariant[MaxKeyOrNull[T], MaxKey[T]] {

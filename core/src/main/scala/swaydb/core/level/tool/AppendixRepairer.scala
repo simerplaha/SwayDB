@@ -45,6 +45,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.data.util.StorageUnits._
 
 private[swaydb] object AppendixRepairer extends LazyLogging {

@@ -29,8 +29,10 @@ import swaydb.Bag
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Serializer
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class NestedOptionValueSpec extends TestBaseEmbedded {
   override val keyValueCount: Int = 1000

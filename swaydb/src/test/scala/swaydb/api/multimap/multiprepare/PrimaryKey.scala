@@ -24,11 +24,10 @@
 
 package swaydb.api.multimap.multiprepare
 
-import boopickle.Default.{Pickle, Unpickle}
+import boopickle.Default.{Pickle, Unpickle, _}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 import swaydb.serializers.Serializer
-import boopickle.Default._
-
 /**
  * All Primary Keys for [[Table]]s.
  */

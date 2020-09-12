@@ -41,6 +41,7 @@ import swaydb.core.segment.{SegmentIO, SegmentRef}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 object TransientSegmentSerialiser {

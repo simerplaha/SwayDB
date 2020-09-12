@@ -35,7 +35,7 @@ import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter,
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.{Bytez, OperatingSystem}
 
 import scala.concurrent.ExecutionContext

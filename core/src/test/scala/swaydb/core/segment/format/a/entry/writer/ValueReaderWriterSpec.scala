@@ -33,7 +33,9 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBin
 import swaydb.serializers._
 import swaydb.serializers.Default._
 import swaydb.core.CommonAssertions._
+import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
 

@@ -34,6 +34,7 @@ import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.DataType
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.ByteSizeOf
 
 import scala.util.Random

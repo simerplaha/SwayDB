@@ -24,7 +24,7 @@
 
 package swaydb.data.slice
 
-import swaydb.data.slice.Slice.SliceFactory
+import swaydb.data.slice.Slice.Slice
 import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.tailrec
@@ -97,43 +97,44 @@ object Slice extends SliceCompanionBase {
     def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Slice[A]] =
       new SliceBuilder[A](sizeHint)
   }
-}
 
-/**
- * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
- * sub-slices.
- *
- * @param array      Array to create Slices for
- * @param fromOffset start offset
- * @param toOffset   end offset
- * @param written    items written
- * @tparam T The type of this Slice
- */
 
-//@formatter:off
-class Slice[+T] private[slice](array: Array[T],
-                               fromOffset: Int,
-                               toOffset: Int,
-                               written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends SliceBase[T](array, fromOffset, toOffset, written)
-                                                                                                           with SliceOption[T]
-                                                                                                           with IterableOps[T, Slice, Slice[T]]
-                                                                                                           with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
-                                                                                                           with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
-//@formatter:on
+  /**
+   * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
+   * sub-slices.
+   *
+   * @param array      Array to create Slices for
+   * @param fromOffset start offset
+   * @param toOffset   end offset
+   * @param written    items written
+   * @tparam T The type of this Slice
+   */
 
-  override val isNoneC: Boolean =
-    false
+  //@formatter:off
+  class Slice[+T] private[slice](array: Array[T],
+                                 fromOffset: Int,
+                                 toOffset: Int,
+                                 written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends SliceBase[T](array, fromOffset, toOffset, written)
+                                                                                                                with SliceOption[T]
+                                                                                                                with IterableOps[T, Slice, Slice[T]]
+                                                                                                                with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
+                                                                                                                with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
+                                                                                                                //@formatter:on
 
-  override def getC: Slice[T] =
-    this
+    override val isNoneC: Boolean =
+      false
 
-  override def selfSlice: Slice[T] =
-    this
+    override def getC: Slice[T] =
+      this
 
-  override def evidenceIterableFactory: SliceFactory =
-    new SliceFactory(size)
+    override def selfSlice: Slice[T] =
+      this
 
-  //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
-  override def iterableFactory: IterableFactory[Slice] =
-    new ClassTagIterableFactory.AnyIterableDelegate[Slice](evidenceIterableFactory)
+    override def evidenceIterableFactory: SliceFactory =
+      new SliceFactory(size)
+
+    //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
+    override def iterableFactory: IterableFactory[Slice] =
+      new ClassTagIterableFactory.AnyIterableDelegate[Slice](evidenceIterableFactory)
+  }
 }

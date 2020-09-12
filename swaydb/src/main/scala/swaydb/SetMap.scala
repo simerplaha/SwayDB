@@ -30,12 +30,14 @@ import swaydb.core.util.Bytes
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.serializers.Serializer
 
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 object SetMap {
   /**

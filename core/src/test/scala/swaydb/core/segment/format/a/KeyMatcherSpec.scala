@@ -33,7 +33,7 @@ import swaydb.core.segment.KeyMatcher
 import swaydb.core.segment.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

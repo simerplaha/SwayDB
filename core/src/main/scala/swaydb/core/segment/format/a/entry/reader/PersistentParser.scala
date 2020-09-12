@@ -32,8 +32,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.{KeyValueId, PersistentToKeyValueIdBinder}
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 object PersistentParser {
 
   def parse(headerInteger: Int,

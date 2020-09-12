@@ -35,6 +35,7 @@ import swaydb.core.map.counter.Counter
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 
 private[core] trait Timer {
   val isEmptyTimer: Boolean

@@ -30,6 +30,8 @@ import swaydb.core.segment.Segment
 import swaydb.data.Reserve
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Promise

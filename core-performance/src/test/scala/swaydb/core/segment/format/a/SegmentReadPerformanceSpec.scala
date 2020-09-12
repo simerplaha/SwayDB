@@ -41,7 +41,7 @@
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
 //import swaydb.data.config.{IOAction, IOStrategy, MMAP}
 //import swaydb.data.order.{KeyOrder, TimeOrder}
-//import swaydb.data.slice.Slice
+//import swaydb.data.slice.Slice._
 //import swaydb.data.util.OperatingSystem
 //
 //import scala.util.Random

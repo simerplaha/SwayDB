@@ -28,7 +28,7 @@ import java.nio.file.Path
 
 import swaydb.core
 import swaydb.core.data.{Persistent, PersistentOption}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.{SomeOrNone, TupleOrNone}
 
 protected sealed trait SegmentReadStateOption extends SomeOrNone[SegmentReadStateOption, SegmentReadState] {

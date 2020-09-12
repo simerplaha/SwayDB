@@ -28,6 +28,8 @@ import java.lang.Long.rotateLeft
 
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
 
 /**
  * Credit: Original implementation https://github.com/alexandrnikitin/bloom-filter-scala.

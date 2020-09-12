@@ -27,6 +27,8 @@ package swaydb.core.level
 import swaydb.core.map.SkipListMerger
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 
 /**
  * Default [[SkipListMerger]] implementation for Level's Appendix. Currently appendix does not implement

@@ -27,8 +27,7 @@ package swaydb.core.map.serializer
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 private[core] object AppendixMapEntryWriter {
 
   implicit object AppendixRemoveWriter extends MapEntryWriter[MapEntry.Remove[Slice[Byte]]] {

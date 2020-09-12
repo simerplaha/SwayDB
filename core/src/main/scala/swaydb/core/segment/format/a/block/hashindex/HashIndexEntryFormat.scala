@@ -32,7 +32,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.IndexFormat
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.ByteSizeOf
 import swaydb.macros.Sealed
 

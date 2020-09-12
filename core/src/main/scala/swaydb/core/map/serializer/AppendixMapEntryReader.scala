@@ -34,6 +34,7 @@ import swaydb.core.segment.{Segment, SegmentIO, SegmentSerialiser}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.Slice.Slice
 
 private[core] object AppendixMapEntryReader {
   def apply(mmapSegment: MMAP.Segment)(implicit keyOrder: KeyOrder[Slice[Byte]],

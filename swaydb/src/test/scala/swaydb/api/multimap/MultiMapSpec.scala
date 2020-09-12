@@ -29,7 +29,7 @@ import swaydb.Bag.Less
 import swaydb.api.{TestBaseEmbedded, repeatTest}
 import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{Bag, IO, MultiMap, Prepare}

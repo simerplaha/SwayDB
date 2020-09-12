@@ -36,7 +36,6 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 object Java {
 
   type JavaFunction[T, R] = java.util.function.Function[T, R]
-  type ScalaSlice[T] = swaydb.data.slice.Slice[T]
 
   implicit class ExecutorServiceImplicit(service: ExecutorService) {
     @inline final def asScala: ExecutionContext =

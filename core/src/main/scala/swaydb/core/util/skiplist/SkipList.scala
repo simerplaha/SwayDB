@@ -30,6 +30,8 @@ import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.Bagged
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
 
 import scala.collection.mutable
 

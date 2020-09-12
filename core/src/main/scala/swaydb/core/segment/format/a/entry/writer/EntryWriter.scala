@@ -27,7 +27,7 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, KeyValueId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.ByteSizeOf
 
 private[core] object EntryWriter {

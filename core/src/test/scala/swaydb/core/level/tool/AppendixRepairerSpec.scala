@@ -39,7 +39,7 @@ import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 

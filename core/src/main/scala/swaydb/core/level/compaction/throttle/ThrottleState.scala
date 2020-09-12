@@ -31,6 +31,9 @@ import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.Compactor
 import swaydb.data.util.FiniteDurations
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
+
 import swaydb.{ActorWire, IO, Scheduler}
 
 import scala.collection.mutable

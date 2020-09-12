@@ -31,7 +31,7 @@ import swaydb.core.map.counter.Counter
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.stream.{From, SourceFree, StreamFree}
 import swaydb.multimap.{MultiKey, MultiValue, Schema, MultiPrepare}
 import swaydb.serializers.{Serializer, _}
@@ -39,6 +39,8 @@ import swaydb.serializers.{Serializer, _}
 import scala.collection.compat._
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 object MultiMap {
 

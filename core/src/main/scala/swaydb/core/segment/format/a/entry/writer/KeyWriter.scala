@@ -28,8 +28,7 @@ import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.data.util.Options._
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 trait KeyWriter {
   def write[T <: Memory](current: T,
                          builder: EntryWriter.Builder,

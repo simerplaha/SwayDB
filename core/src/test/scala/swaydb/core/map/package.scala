@@ -38,6 +38,8 @@ import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext

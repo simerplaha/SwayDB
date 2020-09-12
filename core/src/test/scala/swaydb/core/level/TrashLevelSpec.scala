@@ -36,7 +36,7 @@ import swaydb.core.segment.{Segment, ThreadReadState}
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 
 import scala.concurrent.duration._

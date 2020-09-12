@@ -30,8 +30,10 @@ import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.io.file.BlockCache.Key
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.StorageUnits._
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class BlockCacheSpec extends TestBase {
 

@@ -37,7 +37,7 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSa
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 import swaydb.{Actor, Scheduler}
 
@@ -45,6 +45,8 @@ import scala.collection.mutable
 import scala.concurrent.Promise
 import scala.concurrent.duration._
 import TestCaseSweeper._
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class ThrottleCompactorSpec0 extends ThrottleCompactorSpec
 

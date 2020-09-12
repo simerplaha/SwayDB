@@ -27,17 +27,17 @@ package swaydb.core.segment.merge
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.Value.FromValueOption
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.merge.{FixedMerger, ValueMerger}
+import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.util.SomeOrNone._
 
 class SegmentMerger_Range_Into_Range extends AnyWordSpec {
 

@@ -39,11 +39,13 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class SegmentBlockSpec extends TestBase {
 

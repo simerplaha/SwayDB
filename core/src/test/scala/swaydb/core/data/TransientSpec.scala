@@ -24,7 +24,7 @@
 //import swaydb.core.TestData._
 //import swaydb.core.segment.format.a.block.SortedIndexBlock
 //import swaydb.core.{TestBase, TestTimer}
-//import swaydb.data.slice.Slice
+//import swaydb.data.slice.Slice._
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
 //

@@ -41,9 +41,11 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
 

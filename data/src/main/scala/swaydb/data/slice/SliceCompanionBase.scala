@@ -31,6 +31,7 @@ import swaydb.Aggregator
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteSizeOf, Bytez}
 import swaydb.data.{MaxKey, slice}
+import swaydb.data.slice.Slice._
 
 import scala.reflect.ClassTag
 

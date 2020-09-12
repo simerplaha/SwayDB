@@ -27,12 +27,13 @@ package swaydb.core.util
 import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.OK
 import swaydb.IOValues._
-import swaydb.data.RunThis._
+import swaydb.OK
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
+import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._

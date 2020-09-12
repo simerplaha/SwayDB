@@ -30,11 +30,11 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
-import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
-import swaydb.core.data._
-import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.{FileSweeperItem, MemorySweeper}
+import swaydb.core.data._
+import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
@@ -50,13 +50,14 @@ import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.MaxKey
-import swaydb.data.config.{Dir, IOAction, MMAP}
+import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice._
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.{FiniteDurations, SomeOrNone}
 
-import scala.annotation.tailrec
 import scala.collection.compat._
+import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._

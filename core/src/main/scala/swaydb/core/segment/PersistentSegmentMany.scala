@@ -49,6 +49,8 @@ import swaydb.core.util.skiplist.{SkipList, SkipListMap}
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.data.{MaxKey, Reserve}
 import swaydb.{Error, IO}
 

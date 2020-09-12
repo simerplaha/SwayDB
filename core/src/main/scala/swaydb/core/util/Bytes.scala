@@ -28,6 +28,9 @@ import swaydb.OK
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
+
 import swaydb.data.util.Bytez
 
 private[swaydb] object Bytes extends Bytez {

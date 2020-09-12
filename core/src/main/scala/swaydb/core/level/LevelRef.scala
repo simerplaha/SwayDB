@@ -33,6 +33,8 @@ import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer

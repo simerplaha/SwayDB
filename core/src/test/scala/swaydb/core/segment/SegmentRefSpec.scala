@@ -38,7 +38,7 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -50,7 +50,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
 
   "bestStartForHigherOrGetSearch" when {
     "fromSkipListIsNone" in {
-      // TODO:  
+      // TODO:
     }
   }
 

@@ -55,6 +55,8 @@ import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.data.util.FiniteDurations
 import swaydb.data.util.Futures.FutureImplicits
@@ -65,6 +67,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.jdk.CollectionConverters._
+import swaydb.data.slice.Slice.Slice
 
 private[core] object Level extends LazyLogging {
 

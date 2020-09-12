@@ -46,7 +46,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.{ActorRef, ActorWire, Bag, Error, IO}
 

@@ -29,10 +29,11 @@ import swaydb.IO
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, ClosedBlocksWithFooter}
+import swaydb.core.segment.format.a.block.segment.data.{ClosedBlocksWithFooter, TransientSegment}
 import swaydb.core.util.Collections._
 import swaydb.data.config.IOAction
 import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.Slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 /**

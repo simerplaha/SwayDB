@@ -29,6 +29,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.serializers._
 import swaydb.serializers.Default._
 

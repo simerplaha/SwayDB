@@ -28,6 +28,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.util.Collections._
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 

@@ -40,7 +40,7 @@
 //
 //import swaydb.core.TestBase
 //import swaydb.core.util.{Benchmark, Delay}
-//import swaydb.data.slice.Slice
+//import swaydb.data.slice.Slice._
 //import swaydb.data.order.KeyOrder
 //import swaydb.serializers.Default._
 //import swaydb.core.IOAssert._

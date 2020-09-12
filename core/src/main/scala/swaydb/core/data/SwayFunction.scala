@@ -25,6 +25,8 @@
 package swaydb.core.data
 
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 
 import scala.concurrent.duration.Deadline
 

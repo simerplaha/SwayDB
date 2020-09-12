@@ -36,6 +36,7 @@ import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 import swaydb.data.util.{ByteSizeOf, Functions}
 
 import scala.annotation.tailrec

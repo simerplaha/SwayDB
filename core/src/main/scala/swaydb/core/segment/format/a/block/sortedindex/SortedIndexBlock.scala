@@ -39,6 +39,7 @@ import swaydb.data.MaxKey
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.{Slice, _}
 import swaydb.data.util.{ByteSizeOf, FiniteDurations, Functions}
 
 import scala.annotation.tailrec

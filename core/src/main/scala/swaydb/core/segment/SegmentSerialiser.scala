@@ -28,18 +28,19 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.function.FunctionStore
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.MemorySweeper
+import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
-import swaydb.data.util.Options._
 import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice.Slice
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.Options._
 
 import scala.concurrent.duration.Deadline
 

@@ -44,7 +44,7 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.config.{Dir, ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.storage.LevelStorage
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._

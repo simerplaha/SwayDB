@@ -30,6 +30,8 @@ import java.util.function.{BiConsumer, Consumer}
 
 import swaydb.core.util.NullOps
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
 
 import scala.annotation.tailrec
 import scala.collection.mutable

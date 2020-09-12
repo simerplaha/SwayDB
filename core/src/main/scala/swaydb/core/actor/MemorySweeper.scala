@@ -31,6 +31,8 @@ import swaydb.core.util.HashedMap
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.data.util.ByteSizeOf
 import swaydb.{Actor, ActorRef, Bag}
 

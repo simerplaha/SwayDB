@@ -35,6 +35,7 @@ import swaydb.core.util.MinMax
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.{Slice, _}
 import swaydb.data.util.Maybe.{Maybe, _}
 import swaydb.data.util.{Functions, Maybe}
 

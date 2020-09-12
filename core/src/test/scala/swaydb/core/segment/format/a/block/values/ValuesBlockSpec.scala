@@ -33,13 +33,15 @@ import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader}
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class ValuesBlockSpec extends TestBase {
 

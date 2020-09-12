@@ -45,6 +45,8 @@ import swaydb.core.util.skiplist.SkipListMap
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline

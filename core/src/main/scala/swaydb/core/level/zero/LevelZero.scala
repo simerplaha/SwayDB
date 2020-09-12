@@ -51,6 +51,8 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.{Futures, Options}
 import swaydb.data.util.Futures.FutureImplicits

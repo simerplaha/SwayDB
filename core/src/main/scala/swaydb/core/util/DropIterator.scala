@@ -24,8 +24,7 @@
 
 package swaydb.core.util
 
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 /**
  * Mutable data type to hold the state of currently being merged key-values and provides functions
  * to mutate it's state.

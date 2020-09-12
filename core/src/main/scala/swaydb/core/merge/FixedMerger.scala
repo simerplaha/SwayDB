@@ -29,6 +29,9 @@ import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
+
 import scala.collection.compat._
 
 private[core] object FixedMerger {

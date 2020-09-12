@@ -27,13 +27,15 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.Functions
 import swaydb.data.RunThis._
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.macros.Sealed
 import swaydb.serializers.Default._
 import swaydb.{Apply, IO, Map, Prepare, PureFunction, StorageIntImplicits}
 
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Deadline
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 protected sealed trait Key
 protected object Key {

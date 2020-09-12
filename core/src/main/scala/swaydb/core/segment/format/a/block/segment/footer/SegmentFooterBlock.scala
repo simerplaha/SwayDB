@@ -39,6 +39,7 @@ import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 object SegmentFooterBlock {

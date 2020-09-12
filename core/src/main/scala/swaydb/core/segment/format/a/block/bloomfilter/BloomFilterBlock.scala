@@ -31,6 +31,7 @@ import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.util.MurmurHash3Generic
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.{Slice, _}
 import swaydb.data.util.{ByteSizeOf, Functions}
 
 private[core] object BloomFilterBlock extends LazyLogging {

@@ -71,6 +71,8 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 object CommonAssertions {
 

@@ -31,7 +31,9 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.{EntryReaderFailure, KeyReader}
+import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class KeyWriterReaderSpec extends AnyWordSpec with Matchers {
 

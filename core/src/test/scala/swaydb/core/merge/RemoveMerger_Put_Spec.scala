@@ -31,7 +31,7 @@ import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

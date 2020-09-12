@@ -42,6 +42,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 import swaydb.{Error, IO}
 
 import scala.annotation.tailrec

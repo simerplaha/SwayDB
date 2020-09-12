@@ -43,6 +43,7 @@ import swaydb.core.util.{Bytes, Collections}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.{Slice, _}
 import swaydb.data.util.ByteSizeOf
 
 import scala.collection.mutable.ListBuffer

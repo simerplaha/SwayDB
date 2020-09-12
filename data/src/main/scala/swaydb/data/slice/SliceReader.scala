@@ -27,6 +27,7 @@ package swaydb.data.slice
 import java.nio.file.Paths
 
 import swaydb.data.util.Bytez
+import swaydb.data.slice.Slice._
 
 /**
  * http://www.swaydb.io/slice/byte-slice

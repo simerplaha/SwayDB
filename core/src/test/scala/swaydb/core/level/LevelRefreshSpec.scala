@@ -35,13 +35,15 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.concurrent.duration._
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class LevelRefreshSpec0 extends LevelRefreshSpec
 

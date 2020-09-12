@@ -36,6 +36,7 @@ import swaydb.IO
 import swaydb.core.util.Extension
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.Maths
 
 import scala.jdk.CollectionConverters._

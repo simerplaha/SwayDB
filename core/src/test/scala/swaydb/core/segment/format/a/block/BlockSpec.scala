@@ -11,7 +11,9 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.ClosedBlocksWithFooter
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.config.IOAction
+import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class BlockSpec extends TestBase {
 

@@ -35,10 +35,12 @@ import swaydb.core.TestData._
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 
 import scala.util.{Failure, Success, Try}
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class LevelReadSomeSpec0 extends LevelReadSomeSpec
 

@@ -26,6 +26,7 @@ package swaydb.data.util
 
 import java.nio.charset.Charset
 
+import swaydb.data.slice.Slice._
 import swaydb.data.slice.{ReaderBase, Slice, SliceReader}
 import swaydb.data.util.Maybe.Maybe
 

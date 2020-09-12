@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.config.ForceSave
+import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
 
 private[file] object ChannelFile {

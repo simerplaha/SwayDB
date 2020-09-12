@@ -38,7 +38,7 @@ import TestCaseSweeper._
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -46,6 +46,8 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class LevelZeroSpec0 extends LevelZeroSpec
 

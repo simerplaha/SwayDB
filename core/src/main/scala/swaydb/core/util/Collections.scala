@@ -25,6 +25,8 @@
 package swaydb.core.util
 
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
 
 import scala.reflect.ClassTag
 

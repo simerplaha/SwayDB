@@ -25,8 +25,10 @@
 package swaydb.multimap
 
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Serializer
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 private[swaydb] sealed trait MultiValue[+V]
 private[swaydb] object MultiValue {

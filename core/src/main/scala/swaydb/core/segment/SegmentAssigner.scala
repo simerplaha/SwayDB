@@ -29,6 +29,8 @@ import swaydb.core.map.Map
 import swaydb.core.util.DropIterator
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 
 import scala.annotation.tailrec
 import scala.collection.mutable

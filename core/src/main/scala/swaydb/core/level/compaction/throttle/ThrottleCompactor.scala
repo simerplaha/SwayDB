@@ -30,12 +30,12 @@ import swaydb.IO._
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.level.zero.LevelZero
-import swaydb.data.util.FiniteDurations
-import swaydb.data.util.FiniteDurations._
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
-import swaydb.data.util.Futures
-import swaydb.{Actor, ActorWire, IO, Bag}
+import swaydb.data.slice.Slice.Slice
+import swaydb.data.util.FiniteDurations._
+import swaydb.data.util.{FiniteDurations, Futures}
+import swaydb.{Actor, ActorWire, Bag, IO}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer

@@ -34,6 +34,7 @@ import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
+import swaydb.data.slice.Slice._
 
 /**
  * Base implementation for both Scala 2.12 and 2.13.

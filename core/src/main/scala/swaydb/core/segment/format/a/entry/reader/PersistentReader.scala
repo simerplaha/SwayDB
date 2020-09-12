@@ -34,6 +34,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
+import swaydb.data.slice.Slice.Slice
 import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
 

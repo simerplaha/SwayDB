@@ -31,7 +31,7 @@ import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.StorageUnits._
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Default._

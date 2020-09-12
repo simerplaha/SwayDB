@@ -27,8 +27,7 @@ package swaydb.core.segment
 import swaydb.core.data.Persistent
 import swaydb.core.segment.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 private[core] sealed trait KeyMatcher {
   def key: Slice[Byte]
 

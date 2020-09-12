@@ -28,8 +28,7 @@ import java.util
 import java.util.concurrent.atomic.AtomicInteger
 
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 import scala.collection.mutable
 import scala.util.Random
 

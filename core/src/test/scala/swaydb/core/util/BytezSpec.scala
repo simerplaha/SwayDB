@@ -7,10 +7,12 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.{ByteSizeOf, Bytez}
 
 import scala.util.Random
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class BytezSpec extends AnyWordSpec with Matchers {
 

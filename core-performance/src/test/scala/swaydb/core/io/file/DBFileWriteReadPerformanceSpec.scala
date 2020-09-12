@@ -38,7 +38,7 @@
 //import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator, Bytes}
 //import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.data.config.IOStrategy
-//import swaydb.data.slice.Slice
+//import swaydb.data.slice.Slice._
 //import swaydb.data.util.OperatingSystem
 //import swaydb.data.util.StorageUnits._
 //

@@ -36,13 +36,15 @@ import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.mutable
 import scala.concurrent.duration._
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class SegmentAssignerSpec0 extends SegmentAssignerSpec {
   val keyValueCount = 100

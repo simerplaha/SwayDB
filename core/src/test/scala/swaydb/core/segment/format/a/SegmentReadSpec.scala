@@ -42,13 +42,15 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class SegmentReadSpec0 extends SegmentReadSpec {
   val keyValuesCount = 100

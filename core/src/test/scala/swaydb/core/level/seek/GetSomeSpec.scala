@@ -37,9 +37,11 @@ import swaydb.core.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class GetSomeSpec extends AnyWordSpec with Matchers with MockFactory with OptionValues {
 

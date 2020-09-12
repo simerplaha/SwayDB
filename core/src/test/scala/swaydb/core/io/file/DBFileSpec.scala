@@ -38,6 +38,7 @@ import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.OperatingSystem
 
 class DBFileSpec extends TestBase with MockFactory {

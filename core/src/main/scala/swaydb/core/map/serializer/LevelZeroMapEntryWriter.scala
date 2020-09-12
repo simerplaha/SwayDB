@@ -28,6 +28,7 @@ import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.{Slice, _}
 import swaydb.data.util.ByteSizeOf
 
 /**

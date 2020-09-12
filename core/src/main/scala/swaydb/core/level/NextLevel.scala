@@ -30,6 +30,8 @@ import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Promise

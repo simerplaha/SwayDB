@@ -28,6 +28,8 @@ import swaydb.IO
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+
 
 private[core] object KeyCompressor {
 

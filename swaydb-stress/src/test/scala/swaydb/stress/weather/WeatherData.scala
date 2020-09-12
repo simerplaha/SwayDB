@@ -25,6 +25,7 @@
 package swaydb.stress.weather
 
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 import swaydb.serializers.Serializer
 
 sealed trait Direction

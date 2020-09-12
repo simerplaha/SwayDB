@@ -26,7 +26,7 @@ package swaydb
 
 import swaydb.core.util.Eithers
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Serializer
 
 protected object KeyOrderConverter {

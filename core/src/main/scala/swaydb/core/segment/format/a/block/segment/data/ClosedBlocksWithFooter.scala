@@ -34,6 +34,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 import scala.concurrent.duration.Deadline
 

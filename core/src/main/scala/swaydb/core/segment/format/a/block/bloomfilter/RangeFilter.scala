@@ -28,8 +28,7 @@ import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 

@@ -28,8 +28,7 @@ import swaydb.core.data.KeyValue
 import swaydb.core.data.Value
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
-import swaydb.data.slice.Slice
-
+import swaydb.data.slice.Slice._
 private[core] object PendingApplyMerger {
 
   /**

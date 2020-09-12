@@ -32,6 +32,8 @@ import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

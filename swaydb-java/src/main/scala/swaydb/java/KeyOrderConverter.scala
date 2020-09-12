@@ -25,7 +25,7 @@
 package swaydb.java
 
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.java.data.slice.{ByteSlice, ByteSliceBuilder}
 import swaydb.serializers.Serializer
 

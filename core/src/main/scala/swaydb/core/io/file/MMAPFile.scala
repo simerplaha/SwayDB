@@ -36,6 +36,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.Reserve
 import swaydb.data.config.ForceSave
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 
 import scala.annotation.tailrec
 

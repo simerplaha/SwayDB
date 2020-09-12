@@ -35,6 +35,8 @@ import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.data.util.{SomeOrNone, SomeOrNoneCovariant, TupleOrNone}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}

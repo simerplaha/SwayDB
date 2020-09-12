@@ -36,7 +36,7 @@ import swaydb.core.segment.format.a.entry.id.MemoryToKeyValueIdBinder
 import swaydb.core.segment.format.a.entry.reader.PersistentParser
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

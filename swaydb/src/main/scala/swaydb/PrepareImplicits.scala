@@ -25,6 +25,8 @@
 package swaydb
 
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice._
+
 import swaydb.serializers._
 
 private[swaydb] object PrepareImplicits {

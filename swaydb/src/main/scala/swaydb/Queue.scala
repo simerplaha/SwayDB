@@ -31,11 +31,13 @@ import java.util.concurrent.atomic.AtomicLong
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 object Queue {
 

@@ -43,7 +43,7 @@ import swaydb.core.util.{Extension, ReserveRange}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
 import swaydb.data.config.{Dir, ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.storage.LevelStorage
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
@@ -53,6 +53,8 @@ import swaydb.data.RunThis._
 
 import scala.concurrent.Promise
 import scala.concurrent.duration.DurationInt
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class LevelSpec0 extends LevelSpec
 

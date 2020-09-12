@@ -40,12 +40,14 @@ import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper, TestTimer}
 import swaydb.data.config.{IOStrategy, MMAP}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.util.StorageUnits._
 
 import scala.util.Random
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class SegmentBlockInitialisationSpec extends TestBase {
 

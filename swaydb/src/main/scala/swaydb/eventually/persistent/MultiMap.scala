@@ -33,7 +33,7 @@ import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.data.util.StorageUnits._
 import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}

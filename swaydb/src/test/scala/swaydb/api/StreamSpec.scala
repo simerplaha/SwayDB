@@ -25,13 +25,15 @@ import swaydb.Bag._
 import swaydb.IO.ApiIO
 import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._
-import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 import swaydb.{Bag, IO, Stream}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.Slice
 
 class StreamFutureSpec extends StreamSpec[Future]()(Bag.future(TestExecutionContext.executionContext)) {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)
