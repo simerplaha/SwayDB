@@ -35,6 +35,7 @@ import swaydb.data.config.IOAction
 import swaydb.data.slice.Slice.Sliced
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.ByteOps._
 
 /**
  * A block is a group of compressed or uncompressed bytes.

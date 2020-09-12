@@ -41,6 +41,7 @@ import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.ByteOps._
 
 object SegmentFooterBlock {
   val blockName = this.getClass.getSimpleName.dropRight(1)

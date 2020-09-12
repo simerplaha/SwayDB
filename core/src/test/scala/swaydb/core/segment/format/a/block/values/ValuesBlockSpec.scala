@@ -69,7 +69,7 @@ class ValuesBlockSpec extends TestBase {
     "initialise values exists" in {
       runThis(100.times) {
         val keyValues =
-          Slice(Memory.put(key = 1, value = Slice.writeInt(1), removeAfter = 10.seconds), randomFixedTransientKeyValue(2, 3))
+          Slice(Memory.put(key = 1, value = Slice.writeInt[Byte](1), removeAfter = 10.seconds), randomFixedTransientKeyValue(2, 3))
             .toPersistentMergeBuilder
             .close(randomBoolean())
 

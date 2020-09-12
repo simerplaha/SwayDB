@@ -41,6 +41,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.slice.Slice._
 
 import swaydb.{Actor, ActorRef, IO}
+import swaydb.data.util.ByteOps._
 
 private[core] object PersistentCounter extends LazyLogging {
 

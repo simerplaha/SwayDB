@@ -105,7 +105,7 @@
 //            //              Bytes.readUnsignedInt(write)
 //            //              write.readUnsignedInt().get
 //
-//            //              val write = Slice.writeInt(i)
+//            //              val write = Slice.writeInt[Byte](i)
 //            //              write.readInt()
 //            //              Thread.sleep(1)
 //            //          println(readBytes)

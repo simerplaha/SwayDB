@@ -51,6 +51,7 @@ import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
+import swaydb.data.util.ByteOps._
 
 class LevelSegmentSpec0 extends LevelSegmentSpec
 

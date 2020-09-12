@@ -32,6 +32,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.slice.Slice._
 
 import swaydb.data.util.Options
+import swaydb.data.util.ByteOps._
 
 private[a] trait ValueWriter {
   def write[T <: Memory](current: T,

@@ -37,6 +37,7 @@ import scala.annotation.implicitNotFound
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
+import swaydb.data.util.ByteOps._
 
 @implicitNotFound("Type class implementation not found for ValueSerializer of type ${T}")
 private[core] sealed trait ValueSerializer[T] {

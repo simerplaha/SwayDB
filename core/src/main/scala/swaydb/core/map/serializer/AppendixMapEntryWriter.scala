@@ -28,6 +28,8 @@ import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice._
+import swaydb.data.util.ByteOps._
+
 private[core] object AppendixMapEntryWriter {
 
   implicit object AppendixRemoveWriter extends MapEntryWriter[MapEntry.Remove[Sliced[Byte]]] {

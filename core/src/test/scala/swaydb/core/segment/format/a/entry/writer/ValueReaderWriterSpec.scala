@@ -36,6 +36,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.Sliced
+import swaydb.data.util.ByteOps._
 
 class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
 

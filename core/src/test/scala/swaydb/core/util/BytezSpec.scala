@@ -13,6 +13,7 @@ import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
 import scala.util.Random
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.Sliced
+import swaydb.data.util.ByteOps._
 
 class BytezSpec extends AnyWordSpec with Matchers {
 

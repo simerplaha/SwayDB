@@ -28,6 +28,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
+import swaydb.data.util.ByteOps._
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -81,7 +82,7 @@ class CompressionSpec extends AnyWordSpec with Matchers {
       val from = 1
       (from to (from + count)) map {
         long =>
-          slice addAll Slice.writeLong(long)
+          slice addAll Slice.writeLong[Byte](long)
       }
 
       val compressor = CompressorInternal.randomLZ4(minCompressionSavingsPercent = 20)

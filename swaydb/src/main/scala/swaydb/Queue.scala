@@ -38,6 +38,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.Sliced
+import swaydb.data.util.ByteOps._
 
 object Queue {
 

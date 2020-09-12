@@ -30,6 +30,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.{Sliced, _}
 import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.ByteOps._
 
 /**
  * TODO move to using varints and see if that makes a difference in performance.

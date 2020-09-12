@@ -41,6 +41,7 @@ import swaydb.data.util.{ByteSizeOf, Functions}
 
 import scala.annotation.tailrec
 import scala.beans.BeanProperty
+import swaydb.data.util.ByteOps._
 
 /**
  * HashIndex.

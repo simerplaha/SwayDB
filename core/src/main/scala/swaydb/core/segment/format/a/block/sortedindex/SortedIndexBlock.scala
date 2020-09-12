@@ -45,6 +45,7 @@ import swaydb.data.util.{ByteSizeOf, FiniteDurations, Functions}
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
+import swaydb.data.util.ByteOps._
 
 private[core] object SortedIndexBlock extends LazyLogging {
 

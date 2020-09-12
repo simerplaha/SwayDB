@@ -28,6 +28,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.{Sliced, _}
 import swaydb.data.util.ScalaByteOps
 import swaydb.serializers.Serializer
+import swaydb.data.util.ByteOps._
 
 sealed trait Domain
 object Domain {

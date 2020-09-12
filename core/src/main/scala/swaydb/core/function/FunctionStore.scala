@@ -35,6 +35,7 @@ import swaydb.data.slice.Slice._
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
+import swaydb.data.util.ByteOps._
 
 /**
  * Stores all functions currently registered. This should always contain

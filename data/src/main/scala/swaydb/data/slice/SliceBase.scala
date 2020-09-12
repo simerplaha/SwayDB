@@ -334,7 +334,7 @@ abstract class SliceBase[+T](array: Array[T],
       .allocateDirect(size)
       .put(array.asInstanceOf[Array[Byte]], 0, size)
 
-  private[slice] def toByteArrayInputStream: ByteArrayInputStream =
+  private[swaydb] def toByteArrayInputStream: ByteArrayInputStream =
     new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, size)
 
   private[slice] def unsafeInnerArray: Array[_] =

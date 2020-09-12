@@ -78,6 +78,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.Random
+import swaydb.data.util.ByteOps._
 
 object TestData {
 
@@ -669,7 +670,7 @@ object TestData {
 
   def createFunction(key: Sliced[Byte],
                      swayFunction: SwayFunction)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function = {
-    val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
+    val functionId = Slice.writeInt[Byte](functionIdGenerator.incrementAndGet())
     functionStore.put(functionId, swayFunction)
     Memory.Function(key, functionId, testTimer.next)
   }
@@ -823,7 +824,7 @@ object TestData {
       randomValueOnlyFunction(functionOutput)
 
   def randomFunctionId(functionOutput: SwayFunctionOutput = randomFunctionOutput()): Sliced[Byte] = {
-    val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
+    val functionId = Slice.writeInt[Byte](functionIdGenerator.incrementAndGet())
     functionStore.put(functionId, randomSwayFunction(functionOutput))
     functionId
   }

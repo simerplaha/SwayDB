@@ -33,6 +33,7 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
 import scala.concurrent.duration
+import swaydb.data.util.ByteOps._
 
 @implicitNotFound("Type class implementation not found for DeadlineReader of type ${T}")
 sealed trait DeadlineReader[-T] {

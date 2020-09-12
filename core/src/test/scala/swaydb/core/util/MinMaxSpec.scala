@@ -39,6 +39,7 @@ import swaydb.serializers._
 import scala.util.Random
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.Sliced
+import swaydb.data.util.ByteOps._
 
 class MinMaxSpec extends AnyWordSpec with Matchers {
 
@@ -58,7 +59,7 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
     }
 
     "return left if both are equal" in {
-      val left = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
+      val left = (Slice.writeInt[Byte](1) ++ Slice.writeInt[Byte](2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
       val min = MinMax.minFavourLeft(Some(left), Some(1: Sliced[Byte]))(KeyOrder.default).value
@@ -68,7 +69,7 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
     }
 
     "return left if right is none" in {
-      val left = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
+      val left = (Slice.writeInt[Byte](1) ++ Slice.writeInt[Byte](2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
       val min = MinMax.minFavourLeft(Some(left), None)(KeyOrder.default).value
@@ -78,7 +79,7 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
     }
 
     "return right if left is none" in {
-      val right = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
+      val right = (Slice.writeInt[Byte](1) ++ Slice.writeInt[Byte](2)).dropRight(ByteSizeOf.int)
       right.underlyingArraySize should be > 4
 
       val min = MinMax.minFavourLeft(None, Some(right))(KeyOrder.default).value
@@ -108,7 +109,7 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
     }
 
     "return left if both are equal" in {
-      val left = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
+      val left = (Slice.writeInt[Byte](1) ++ Slice.writeInt[Byte](2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
       val max = MinMax.maxFavourLeft(Some(left), Some(1: Sliced[Byte]))(KeyOrder.default).value
@@ -118,7 +119,7 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
     }
 
     "return left if right is None" in {
-      val left = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
+      val left = (Slice.writeInt[Byte](1) ++ Slice.writeInt[Byte](2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
       val max = MinMax.maxFavourLeft(Some(left), None)(KeyOrder.default).value
@@ -128,7 +129,7 @@ class MinMaxSpec extends AnyWordSpec with Matchers {
     }
 
     "return right if left is None" in {
-      val right = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
+      val right = (Slice.writeInt[Byte](1) ++ Slice.writeInt[Byte](2)).dropRight(ByteSizeOf.int)
       right.underlyingArraySize should be > 4
 
       val max = MinMax.maxFavourLeft(None, Some(right))(KeyOrder.default).value

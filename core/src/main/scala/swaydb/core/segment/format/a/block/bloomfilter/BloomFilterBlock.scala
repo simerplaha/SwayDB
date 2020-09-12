@@ -33,6 +33,7 @@ import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.{Sliced, _}
 import swaydb.data.util.{ByteSizeOf, Functions}
+import swaydb.data.util.ByteOps._
 
 private[core] object BloomFilterBlock extends LazyLogging {
 

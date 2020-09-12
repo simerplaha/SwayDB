@@ -29,7 +29,8 @@ import java.nio.charset.StandardCharsets
 
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
-import swaydb.data.util.{ScalaByteOps, ByteSizeOf}
+import swaydb.data.util.ByteOps._
+import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
 
 /**
  * Default serializers.
@@ -40,9 +41,10 @@ object Default {
 
   implicit val scalaByteOps = ScalaByteOps
 
+
   implicit object IntSerializer extends Serializer[Int] {
     override def write(data: Int): Sliced[Byte] =
-      Slice.writeInt(data)
+      Slice.writeInt[Byte](data)
 
     override def read(data: Sliced[Byte]): Int =
       data.readInt()
@@ -50,7 +52,7 @@ object Default {
 
   implicit object LongSerializer extends Serializer[Long] {
     override def write(data: Long): Sliced[Byte] =
-      Slice.writeLong(data)
+      Slice.writeLong[Byte](data)
 
     override def read(data: Sliced[Byte]): Long =
       data.readLong()
@@ -92,7 +94,7 @@ object Default {
 
   implicit object StringSerializer extends Serializer[String] {
     override def write(data: String): Sliced[Byte] =
-      Slice.writeString(data, StandardCharsets.UTF_8)
+      Slice.writeString[Byte](data, StandardCharsets.UTF_8)
 
     override def read(data: Sliced[Byte]): String =
       data.readString(StandardCharsets.UTF_8)
@@ -100,7 +102,7 @@ object Default {
 
   implicit object OptionStringSerializer extends Serializer[Option[String]] {
     override def write(data: Option[String]): Sliced[Byte] =
-      data.map(data => Slice.writeString(data, StandardCharsets.UTF_8)).getOrElse(Slice.emptyBytes)
+      data.map(data => Slice.writeString[Byte](data, StandardCharsets.UTF_8)).getOrElse(Slice.emptyBytes)
 
     override def read(data: Sliced[Byte]): Option[String] =
       if (data.isEmpty)

@@ -42,6 +42,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import scala.util.Try
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice.Sliced
+import swaydb.data.util.ByteOps._
 
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default

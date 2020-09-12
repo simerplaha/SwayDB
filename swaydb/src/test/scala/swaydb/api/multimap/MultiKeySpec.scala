@@ -35,6 +35,7 @@ import swaydb.serializers.Serializer
 
 import scala.collection.SortedSet
 import scala.util.{Random, Try}
+import swaydb.data.util.ByteOps._
 
 class MultiKeySpec extends AnyWordSpec with Matchers {
 

@@ -28,6 +28,7 @@ import swaydb.core.data.{Memory, Time}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes._
 import swaydb.data.util.Options._
+import swaydb.data.util.ByteOps._
 
 private[a] trait TimeWriter {
   private[a] def write[T <: Memory](current: T,

@@ -33,6 +33,7 @@ import swaydb.data.util.Options._
 import swaydb.core.util.Times._
 
 import scala.concurrent.duration.Deadline
+import swaydb.data.util.ByteOps._
 
 private[a] trait DeadlineWriter {
   private[a] def write[T <: Memory](current: T,
