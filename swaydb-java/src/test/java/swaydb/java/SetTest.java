@@ -31,7 +31,7 @@ import swaydb.Pair;
 import swaydb.Prepare;
 import swaydb.PureFunction;
 import swaydb.data.java.TestBase;
-import swaydb.java.data.slice.Slice;
+import swaydb.java.data.slice.ByteSlice;
 import swaydb.java.memory.MemorySet;
 import swaydb.java.serializers.Serializer;
 
@@ -356,13 +356,12 @@ abstract class SetTest extends TestBase {
 
     Serializer<Key> keySerializer = new Serializer<Key>() {
       @Override
-      public byte[] write(Key data) {
-        byte[] bytes = {data.key.byteValue()};
-        return bytes;
+      public ByteSlice write(Key data) {
+        return ByteSlice.writeUnsignedInt(data.key);
       }
 
       @Override
-      public Key read(Slice<Byte> slice) {
+      public Key read(ByteSlice slice) {
         if (slice.get(0) == 1) {
           return key1;
         } else {

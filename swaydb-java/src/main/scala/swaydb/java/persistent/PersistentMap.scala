@@ -40,7 +40,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
-import swaydb.java.data.slice.{Slice => JavaSlice}
+import swaydb.java.data.slice.ByteSlice
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.persistent.DefaultConfigs
@@ -84,7 +84,7 @@ object PersistentMap {
                               private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                               private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                              private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
+                              private var byteComparator: KeyComparator[ByteSlice] = null,
                               private var typedComparator: KeyComparator[K] = null,
                               private var compactionEC: Option[ExecutionContext] = None,
                               private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map))(implicit functionClassTag: ClassTag[F],
@@ -228,7 +228,7 @@ object PersistentMap {
       this
     }
 
-    def setByteKeyComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[ByteSlice]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -249,7 +249,7 @@ object PersistentMap {
     }
 
     def get(): swaydb.java.Map[K, V, F] = {
-      val comparator: Either[KeyComparator[JavaSlice[java.lang.Byte]], KeyComparator[K]] =
+      val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,

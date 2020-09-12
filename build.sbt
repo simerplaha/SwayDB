@@ -130,7 +130,8 @@ val commonJavaDependencies =
     "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion % Test,
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompact % Test,
-    "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion % Test
+    "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion % Test,
+    "org.projectlombok" % "lombok" % "1.18.12" % Test
   )
 
 def commonDependencies(scalaVersion: String) =

@@ -26,12 +26,12 @@ package swaydb.java
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.java.data.slice.ByteSliceBuilder
+import swaydb.java.data.slice.{ByteSlice, ByteSliceBuilder}
 import swaydb.serializers.Serializer
 
 protected object KeyOrderConverter {
 
-  def toScalaKeyOrder[K](comparatorEither: Either[KeyComparator[swaydb.java.data.slice.Slice[java.lang.Byte]], KeyComparator[K]],
+  def toScalaKeyOrder[K](comparatorEither: Either[KeyComparator[ByteSlice], KeyComparator[K]],
                          keySerializer: Serializer[K]) =
     comparatorEither match {
       case Right(comparator) =>

@@ -29,7 +29,7 @@ import swaydb.KeyVal;
 import swaydb.Pair;
 import swaydb.Prepare;
 import swaydb.data.java.TestBase;
-import swaydb.java.data.slice.Slice;
+import swaydb.java.data.slice.ByteSlice;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
@@ -730,13 +730,12 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     Serializer<Key> keySerializer = new Serializer<Key>() {
       @Override
-      public byte[] write(Key data) {
-        byte[] bytes = {data.key.byteValue()};
-        return bytes;
+      public ByteSlice write(Key data) {
+        return ByteSlice.writeUnsignedInt(data.key);
       }
 
       @Override
-      public Key read(Slice<Byte> slice) {
+      public Key read(ByteSlice slice) {
         if (slice.get(0) == 1) {
           return key1;
         } else {
@@ -747,13 +746,12 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     Serializer<Value> valueSerializer = new Serializer<Value>() {
       @Override
-      public byte[] write(Value data) {
-        byte[] bytes = {data.value.byteValue()};
-        return bytes;
+      public ByteSlice write(Value data) {
+        return ByteSlice.writeUnsignedInt(data.value);
       }
 
       @Override
-      public Value read(Slice<Byte> slice) {
+      public Value read(ByteSlice slice) {
         if (slice.get(0) == 1) {
           return value1;
         } else {

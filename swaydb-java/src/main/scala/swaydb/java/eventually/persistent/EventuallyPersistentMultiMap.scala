@@ -42,7 +42,7 @@ import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java.data.slice
-import swaydb.java.data.slice.{Slice => JavaSlice}
+import swaydb.java.data.slice.ByteSlice
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.serializers.Serializer
@@ -81,7 +81,7 @@ object EventuallyPersistentMultiMap {
                                  private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                  private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                                  private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                                 private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
+                                 private var byteComparator: KeyComparator[ByteSlice] = null,
                                  private var typedComparator: KeyComparator[K] = null,
                                  private var compactionEC: Option[ExecutionContext] = None,
                                  private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap))(implicit functionClassTag: ClassTag[F],
@@ -206,7 +206,7 @@ object EventuallyPersistentMultiMap {
       this
     }
 
-    def setByteKeyComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[ByteSlice]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -227,7 +227,7 @@ object EventuallyPersistentMultiMap {
     }
 
     def get(): swaydb.java.MultiMap[M, K, V, F] = {
-      val comparator: Either[KeyComparator[slice.Slice[lang.Byte]], KeyComparator[K]] =
+      val comparator: Either[KeyComparator[slice.ByteSlice], KeyComparator[K]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,

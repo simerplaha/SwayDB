@@ -37,10 +37,15 @@ case class SliceReader(asScala: swaydb.data.slice.SliceReader) {
     asScala.hasAtLeast(size)
 
   def read(size: Int): ByteSliceBuilder =
-    ByteSliceBuilder(Slice(asScala.read(size)))
+    ByteSliceBuilder(ByteSlice(asScala.read(size).cast[java.lang.Byte]))
 
   def moveTo(newPosition: Long): SliceReader = {
     asScala.moveTo(newPosition)
+    this
+  }
+
+  def skip(count: Int): SliceReader = {
+    asScala.skip(count)
     this
   }
 
@@ -62,5 +67,5 @@ case class SliceReader(asScala: swaydb.data.slice.SliceReader) {
     SliceReader(asScala.copy())
 
   def readRemaining(): ByteSliceBuilder =
-    ByteSliceBuilder(Slice(asScala.readRemaining()))
+    ByteSliceBuilder(ByteSlice(asScala.readRemaining().cast[java.lang.Byte]))
 }

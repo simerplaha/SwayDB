@@ -40,7 +40,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.eventually.persistent.DefaultConfigs
-import swaydb.java.data.slice.{Slice => JavaSlice}
+import swaydb.java.data.slice.ByteSlice
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.serializers.Serializer
@@ -79,7 +79,7 @@ object EventuallyPersistentMap {
                               private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                               private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                              private var byteComparator: KeyComparator[JavaSlice[java.lang.Byte]] = null,
+                              private var byteComparator: KeyComparator[ByteSlice] = null,
                               private var typedComparator: KeyComparator[K] = null,
                               private var compactionEC: Option[ExecutionContext] = None,
                               private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map))(implicit functionClassTag: ClassTag[F],
@@ -203,7 +203,7 @@ object EventuallyPersistentMap {
       this
     }
 
-    def setByteKeyComparator(byteComparator: KeyComparator[JavaSlice[java.lang.Byte]]) = {
+    def setByteKeyComparator(byteComparator: KeyComparator[ByteSlice]) = {
       this.byteComparator = byteComparator
       this
     }
@@ -224,7 +224,7 @@ object EventuallyPersistentMap {
     }
 
     def get(): swaydb.java.Map[K, V, F] = {
-      val comparator: Either[KeyComparator[JavaSlice[java.lang.Byte]], KeyComparator[K]] =
+      val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,

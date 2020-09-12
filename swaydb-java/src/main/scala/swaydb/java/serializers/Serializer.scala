@@ -17,29 +17,29 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.java.serializers;
+package swaydb.java.serializers
 
-import swaydb.java.data.slice.Slice;
+import swaydb.java.data.slice.ByteSlice
 
-public interface Serializer<A> {
+trait Serializer[T] {
 
   /**
    * You can also use ByteSliceBuilder to build
    * custom serialisation.
    */
-  byte[] write(A data);
+  def write(data: T): ByteSlice
 
   /**
    * A Slice is a section of Segment's byte array so this
    * Slice could be directly coming from a Segment.
-   * <p>
+   *
    * Do not mutate this byte array, just read its content build your object.
    */
-  A read(Slice<Byte> slice);
+  def read(data: ByteSlice): T
 
 }
