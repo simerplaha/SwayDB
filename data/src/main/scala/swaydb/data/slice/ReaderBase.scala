@@ -27,7 +27,7 @@ package swaydb.data.slice
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
 
-import swaydb.IO
+import swaydb.{IO, Pair}
 import swaydb.data.util.Bytez
 import swaydb.data.util.Maybe.Maybe
 import swaydb.data.slice.Slice._
@@ -82,6 +82,9 @@ private[swaydb] trait ReaderBase { self =>
   def readUnsignedIntWithByteSize(): (Int, Int) =
     Bytez.readUnsignedIntWithByteSize(self)
 
+  def readUnsignedIntWithByteSizePair(): Pair[Int, Int] =
+    Pair(readUnsignedIntWithByteSize())
+
   def readNonZeroUnsignedInt(): Int =
     Bytez.readUnsignedIntNonZero(self)
 
@@ -90,6 +93,9 @@ private[swaydb] trait ReaderBase { self =>
 
   def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
     Bytez.readUnsignedIntNonZeroWithByteSize(self)
+
+  def readNonZeroUnsignedIntWithByteSizePair(): Pair[Int, Int] =
+    Pair(readNonZeroUnsignedIntWithByteSize())
 
   def readUnsignedIntSized(): Sliced[Byte] =
     read(Bytez.readUnsignedInt(self))

@@ -516,6 +516,9 @@ abstract class SliceBase[+T](array: Array[T],
   def cast[B]: Sliced[B] =
     this.asInstanceOf[Sliced[B]]
 
+  def toByteSlice: ByteSlice =
+    new ByteSliceImplicits(selfSlice.cast[Byte])
+
   override def equals(that: Any): Boolean =
     that match {
       case other: Sliced[T] =>

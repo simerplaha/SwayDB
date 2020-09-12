@@ -24,9 +24,11 @@
 
 package swaydb.data.slice
 
+import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
+import sun.security.util.Length
 import swaydb.Aggregator
 import swaydb.data.{MaxKey, slice}
 import swaydb.data.order.KeyOrder
@@ -95,6 +97,9 @@ object Slice {
       written = length
     )
 
+  def createBytes(length: Int): Sliced[Byte] =
+    Slice.create[Byte](length)
+
   @inline final def create[T: ClassTag](length: Int, isFull: Boolean = false): Sliced[T] =
     new Sliced(
       array = new Array[T](length),
@@ -145,20 +150,20 @@ object Slice {
   @inline final def apply[T: ClassTag](data: T*): Sliced[T] =
     Slice(data.toArray)
 
-  @inline final def writeInt(int: Int): Sliced[Byte] =
-    Slice.create[Byte](ByteSizeOf.int).addInt(int)
+  @inline final def writeInt(integer: Int): Sliced[Byte] =
+    Slice.create[Byte](ByteSizeOf.int).addInt(integer)
 
-  @inline final def writeBoolean(boolean: Boolean): Sliced[Byte] =
-    Slice.create[Byte](1).addBoolean(boolean)
+  @inline final def writeBoolean(bool: Boolean): Sliced[Byte] =
+    Slice.create[Byte](1).addBoolean(bool)
 
-  @inline final def writeUnsignedInt(int: Int): Sliced[Byte] =
-    Slice.create[Byte](ByteSizeOf.varInt).addUnsignedInt(int).close()
+  @inline final def writeUnsignedInt(integer: Int): Sliced[Byte] =
+    Slice.create[Byte](ByteSizeOf.varInt).addUnsignedInt(integer).close()
 
-  @inline final def writeLong(long: Long): Sliced[Byte] =
-    Slice.create[Byte](ByteSizeOf.long).addLong(long)
+  @inline final def writeLong(num: Long): Sliced[Byte] =
+    Slice.create[Byte](ByteSizeOf.long).addLong(num)
 
-  @inline final def writeUnsignedLong(long: Long): Sliced[Byte] =
-    Slice.create[Byte](ByteSizeOf.varLong).addUnsignedLong(long).close()
+  @inline final def writeUnsignedLong(num: Long): Sliced[Byte] =
+    Slice.create[Byte](ByteSizeOf.varLong).addUnsignedLong(num).close()
 
   @inline final def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Sliced[Byte] =
     Slice(string.getBytes(charsets))
@@ -265,7 +270,7 @@ object Slice {
   /**
    * http://www.swaydb.io/slice/byte-slice
    */
-  implicit class ByteSliceImplicits(slice: Sliced[Byte]) {
+  implicit class ByteSliceImplicits(slice: Sliced[Byte]) extends ByteSlice {
 
     @inline final def addByte(value: Byte): Sliced[Byte] = {
       slice insert value
@@ -277,16 +282,16 @@ object Slice {
       slice
     }
 
-    @inline final def addBoolean(boolean: Boolean): Sliced[Byte] = {
-      slice insert (if (boolean) 1.toByte else 0.toByte)
+    @inline final def addBoolean(bool: Boolean): Sliced[Byte] = {
+      slice insert (if (bool) 1.toByte else 0.toByte)
       slice
     }
 
     @inline final def readBoolean(): Boolean =
       slice.get(0) == 1
 
-    @inline final def addInt(int: Int): Sliced[Byte] = {
-      Bytez.writeInt(int, slice)
+    @inline final def addInt(integer: Int): Sliced[Byte] = {
+      Bytez.writeInt(integer, slice)
       slice
     }
 
@@ -298,21 +303,21 @@ object Slice {
       slice drop byteSize
     }
 
-    @inline final def addSignedInt(int: Int): Sliced[Byte] = {
-      Bytez.writeSignedInt(int, slice)
+    @inline final def addSignedInt(integer: Int): Sliced[Byte] = {
+      Bytez.writeSignedInt(integer, slice)
       slice
     }
 
     @inline final def readSignedInt(): Int =
       Bytez.readSignedInt(slice)
 
-    @inline final def addUnsignedInt(int: Int): Sliced[Byte] = {
-      Bytez.writeUnsignedInt(int, slice)
+    @inline final def addUnsignedInt(integer: Int): Sliced[Byte] = {
+      Bytez.writeUnsignedInt(integer, slice)
       slice
     }
 
-    @inline final def addNonZeroUnsignedInt(int: Int): Sliced[Byte] = {
-      Bytez.writeUnsignedIntNonZero(int, slice)
+    @inline final def addNonZeroUnsignedInt(integer: Int): Sliced[Byte] = {
+      Bytez.writeUnsignedIntNonZero(integer, slice)
       slice
     }
 
@@ -325,16 +330,16 @@ object Slice {
     @inline final def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
       Bytez.readUnsignedIntNonZeroWithByteSize(slice)
 
-    @inline final def addLong(long: Long): Sliced[Byte] = {
-      Bytez.writeLong(long, slice)
+    @inline final def addLong(num: Long): Sliced[Byte] = {
+      Bytez.writeLong(num, slice)
       slice
     }
 
     @inline final def readLong(): Long =
       Bytez.readLong(slice)
 
-    @inline final def addUnsignedLong(long: Long): Sliced[Byte] = {
-      Bytez.writeUnsignedLong(long, slice)
+    @inline final def addUnsignedLong(num: Long): Sliced[Byte] = {
+      Bytez.writeUnsignedLong(num, slice)
       slice
     }
 
@@ -347,8 +352,8 @@ object Slice {
     @inline final def readUnsignedLongByteSize(): Int =
       Bytez.readUnsignedLongByteSize(slice)
 
-    @inline final def addSignedLong(long: Long): Sliced[Byte] = {
-      Bytez.writeSignedLong(long, slice)
+    @inline final def addSignedLong(num: Long): Sliced[Byte] = {
+      Bytez.writeSignedLong(num, slice)
       slice
     }
 
@@ -369,10 +374,10 @@ object Slice {
     @inline final def toByteBufferDirect: ByteBuffer =
       slice.toByteBufferDirect
 
-    @inline final def toByteArrayOutputStream =
+    @inline final def toByteArrayOutputStream: ByteArrayInputStream =
       slice.toByteArrayInputStream
 
-    @inline final def createReader() =
+    @inline final def createReader(): SliceReader =
       SliceReader(slice)
   }
 
@@ -461,8 +466,6 @@ object Slice {
     def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Sliced[A]] =
       new SliceBuilder[A](sizeHint)
   }
-
-
 
   /**
    * An Iterable type that holds offset references to an Array without creating copies of the original array when creating

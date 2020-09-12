@@ -38,6 +38,9 @@ object Pair {
       Pair(tuple._1, tuple._2)
   }
 
+  @inline final def apply[L, R](tuple: (L, R)): Pair[L, R] =
+    new Pair(tuple._1, tuple._2)
+
   @inline final def apply[L, R](left: L, right: R): Pair[L, R] =
     new Pair(left, right)
 
