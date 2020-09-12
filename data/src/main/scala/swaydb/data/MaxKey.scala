@@ -46,7 +46,7 @@ object MaxKey {
     override def getC: MaxKey[Nothing] = throw new Exception("MaxKey is of type Null")
   }
 
-  implicit class MaxKeyImplicits(maxKey: MaxKey[Slice[Byte]]) {
+  implicit class MaxKeyImplicits(maxKey: MaxKey[Sliced[Byte]]) {
     @inline final def unslice() =
       maxKey match {
         case Fixed(maxKey) =>
@@ -56,7 +56,7 @@ object MaxKey {
           Range(fromKey.unslice(), maxKey.unslice())
       }
 
-    @inline final def lessThan(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+    @inline final def lessThan(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Boolean = {
       import keyOrder._
       (maxKey.inclusive && maxKey.maxKey < key) || (!maxKey.inclusive && maxKey.maxKey <= key)
     }

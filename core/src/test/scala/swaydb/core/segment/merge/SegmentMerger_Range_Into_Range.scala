@@ -35,14 +35,14 @@ import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 class SegmentMerger_Range_Into_Range extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   implicit val testTimer = TestTimer.Empty
 
   "Range into Range" when {

@@ -46,7 +46,7 @@ abstract class SliceBase[+T](array: Array[T],
 
   private var writePosition = fromOffset + written
 
-  def selfSlice: Slice[T]
+  def selfSlice: Sliced[T]
 
   val allocatedSize =
     toOffset - fromOffset + 1
@@ -76,7 +76,7 @@ abstract class SliceBase[+T](array: Array[T],
    * @param toOffset   end offset
    * @return Slice for the given offsets
    */
-  override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
+  override def slice(fromOffset: Int, toOffset: Int): Sliced[T] =
     if (toOffset < 0) {
       Slice.empty[T]
     } else {
@@ -102,7 +102,7 @@ abstract class SliceBase[+T](array: Array[T],
           else //partially written
             actualWritePosition - fromOffsetAdjusted
 
-        new Slice[T](
+        new Sliced[T](
           array = array,
           fromOffset = fromOffsetAdjusted,
           toOffset = toOffsetAdjusted,
@@ -111,7 +111,7 @@ abstract class SliceBase[+T](array: Array[T],
       }
     }
 
-  private def splitAt(index: Int, size: Int): (Slice[T], Slice[T]) =
+  private def splitAt(index: Int, size: Int): (Sliced[T], Sliced[T]) =
     if (index == 0) {
       (Slice.empty[T], slice(0, size - 1))
     } else {
@@ -120,20 +120,20 @@ abstract class SliceBase[+T](array: Array[T],
       (split1, split2)
     }
 
-  def splitInnerArrayAt(index: Int): (Slice[T], Slice[T]) =
+  def splitInnerArrayAt(index: Int): (Sliced[T], Sliced[T]) =
     splitAt(index, allocatedSize)
 
-  override def splitAt(index: Int): (Slice[T], Slice[T]) =
+  override def splitAt(index: Int): (Sliced[T], Sliced[T]) =
     splitAt(index, size)
 
-  override def grouped(size: Int): Iterator[Slice[T]] =
+  override def grouped(size: Int): Iterator[Sliced[T]] =
     groupedSlice(size).iterator
 
-  def groupedSlice(size: Int): Slice[Slice[T]] = {
+  def groupedSlice(size: Int): Sliced[Sliced[T]] = {
     @tailrec
-    def group(groups: Slice[Slice[T]],
-              slice: Slice[T],
-              size: Int): Slice[Slice[T]] =
+    def group(groups: Sliced[Sliced[T]],
+              slice: Sliced[T],
+              size: Int): Sliced[Sliced[T]] =
       if (size <= 1) {
         groups add slice
         groups
@@ -146,7 +146,7 @@ abstract class SliceBase[+T](array: Array[T],
     if (size == 0)
       Slice(selfSlice)
     else
-      group(Slice.create[Slice[T]](size), selfSlice, size)
+      group(Slice.create[Sliced[T]](size), selfSlice, size)
   }
 
   @throws[ArrayIndexOutOfBoundsException]
@@ -158,15 +158,15 @@ abstract class SliceBase[+T](array: Array[T],
     written = adjustedPosition max written
   }
 
-  private[swaydb] def openEnd(): Slice[T] =
-    new Slice[T](
+  private[swaydb] def openEnd(): Sliced[T] =
+    new Sliced[T](
       array = array,
       fromOffset = fromOffset,
       toOffset = array.length - 1,
       written = array.length - fromOffset
     )
 
-  override def drop(count: Int): Slice[T] =
+  override def drop(count: Int): Sliced[T] =
     if (count <= 0)
       selfSlice
     else if (count >= size)
@@ -174,14 +174,14 @@ abstract class SliceBase[+T](array: Array[T],
     else
       slice(count, size - 1)
 
-  def dropHead(): Slice[T] =
+  def dropHead(): Sliced[T] =
     drop(1)
 
   /**
    * @return Elements after the input element
    *         Returns None if input element is not found.
    */
-  def dropTo[B >: T](elem: B): Option[Slice[T]] =
+  def dropTo[B >: T](elem: B): Option[Sliced[T]] =
     indexOf(elem) map {
       index =>
         drop(index + 1)
@@ -191,13 +191,13 @@ abstract class SliceBase[+T](array: Array[T],
    * @return input Element and elements after the input element.
    *         Returns None if input element is not found.
    */
-  def dropUntil[B >: T](elem: B): Option[Slice[T]] =
+  def dropUntil[B >: T](elem: B): Option[Sliced[T]] =
     indexOf(elem) map {
       index =>
         drop(index)
     }
 
-  override def dropRight(count: Int): Slice[T] =
+  override def dropRight(count: Int): Sliced[T] =
     if (count <= 0)
       selfSlice
     else if (count >= size)
@@ -205,7 +205,7 @@ abstract class SliceBase[+T](array: Array[T],
     else
       slice(0, size - count - 1)
 
-  override def take(count: Int): Slice[T] =
+  override def take(count: Int): Sliced[T] =
     if (count <= 0)
       Slice.empty[T]
     else if (size == count)
@@ -213,13 +213,13 @@ abstract class SliceBase[+T](array: Array[T],
     else
       slice(0, (size min count) - 1)
 
-  def take(fromIndex: Int, count: Int): Slice[T] =
+  def take(fromIndex: Int, count: Int): Sliced[T] =
     if (count == 0)
       Slice.empty
     else
       slice(fromIndex, fromIndex + count - 1)
 
-  override def takeRight(count: Int): Slice[T] =
+  override def takeRight(count: Int): Sliced[T] =
     if (count <= 0)
       Slice.empty[T]
     else if (size == count)
@@ -263,9 +263,9 @@ abstract class SliceBase[+T](array: Array[T],
   override def lastOption: Option[T] =
     Option(lastOrNull)
 
-  def headSlice: Slice[T] = slice(0, 0)
+  def headSlice: Sliced[T] = slice(0, 0)
 
-  def lastSlice: Slice[T] = slice(size - 1, size - 1)
+  def lastSlice: Sliced[T] = slice(size - 1, size - 1)
 
   @throws[ArrayIndexOutOfBoundsException]
   def get(index: Int): T = {
@@ -291,7 +291,7 @@ abstract class SliceBase[+T](array: Array[T],
   /**
    * Returns a new non-writable slice. Unless position is moved manually.
    */
-  def close(): Slice[T] =
+  def close(): Sliced[T] =
     if (allocatedSize == size)
       selfSlice
     else
@@ -316,7 +316,7 @@ abstract class SliceBase[+T](array: Array[T],
       case array: mutable.WrappedArray[T] =>
         Array.copy(array.array, 0, this.array, currentWritePosition, items.size)
 
-      case items: Slice[T] =>
+      case items: Sliced[T] =>
         Array.copy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
 
       case _ =>
@@ -365,10 +365,10 @@ abstract class SliceBase[+T](array: Array[T],
   def arrayLength =
     array.length
 
-  def unslice(): Slice[T] =
+  def unslice(): Sliced[T] =
     Slice(toArray)
 
-  def toOptionUnsliced(): Option[Slice[T]] = {
+  def toOptionUnsliced(): Option[Sliced[T]] = {
     val slice = unslice()
     if (slice.isEmpty)
       None
@@ -376,7 +376,7 @@ abstract class SliceBase[+T](array: Array[T],
       Some(slice)
   }
 
-  def toOption: Option[Slice[T]] =
+  def toOption: Option[Sliced[T]] =
     if (this.isEmpty)
       None
     else
@@ -409,7 +409,7 @@ abstract class SliceBase[+T](array: Array[T],
     }
   }
 
-  override def filterNot(p: T => Boolean): Slice[T] = {
+  override def filterNot(p: T => Boolean): Sliced[T] = {
     val filtered = Slice.create[T](size)
     this.foreach {
       item =>
@@ -418,7 +418,7 @@ abstract class SliceBase[+T](array: Array[T],
     filtered.close()
   }
 
-  override def filter(p: T => Boolean): Slice[T] = {
+  override def filter(p: T => Boolean): Sliced[T] = {
     val filtered = Slice.create[T](size)
     this.foreach {
       item =>
@@ -450,13 +450,13 @@ abstract class SliceBase[+T](array: Array[T],
     nullValue
   }
 
-  def ++[B >: T : ClassTag](other: Slice[B]): Slice[B] = {
+  def ++[B >: T : ClassTag](other: Sliced[B]): Sliced[B] = {
     val slice = Slice.create[B](size + other.size)
     slice addAll selfSlice
     slice addAll other
   }
 
-  def ++[B >: T : ClassTag](other: Array[B]): Slice[B] = {
+  def ++[B >: T : ClassTag](other: Array[B]): Sliced[B] = {
     val slice = Slice.create[B](size + other.length)
     slice addAll selfSlice
     slice addAll other
@@ -471,7 +471,7 @@ abstract class SliceBase[+T](array: Array[T],
   /**
    * Return a new ordered Slice.
    */
-  def sorted[B >: T](implicit ordering: Ordering[B]): Slice[B] =
+  def sorted[B >: T](implicit ordering: Ordering[B]): Sliced[B] =
     Slice(toArrayCopy.sorted(ordering))
 
   def currentWritePosition =
@@ -483,18 +483,18 @@ abstract class SliceBase[+T](array: Array[T],
   /**
    * @return A tuple2 where _1 is written bytes and _2 is tail unwritten bytes.
    */
-  def splitUnwritten(): (Slice[T], Slice[T]) =
+  def splitUnwritten(): (Sliced[T], Sliced[T]) =
     (this.close(), unwrittenTail())
 
   def unwrittenTailSize() =
     toOffset - fromOffset - size
 
-  def unwrittenTail(): Slice[T] = {
+  def unwrittenTail(): Sliced[T] = {
     val from = fromOffset + size
     if (from > toOffset)
       Slice.empty[T]
     else
-      new Slice[T](
+      new Sliced[T](
         array = array,
         fromOffset = from,
         toOffset = toOffset,
@@ -503,7 +503,7 @@ abstract class SliceBase[+T](array: Array[T],
   }
 
   def copy() =
-    new Slice[T](
+    new Sliced[T](
       array = array,
       fromOffset = fromOffset,
       toOffset = toOffset,
@@ -513,12 +513,12 @@ abstract class SliceBase[+T](array: Array[T],
   /**
    * Used to convert Java primitive types to Scala and vice versa.
    */
-  def cast[B]: Slice[B] =
-    this.asInstanceOf[Slice[B]]
+  def cast[B]: Sliced[B] =
+    this.asInstanceOf[Sliced[B]]
 
   override def equals(that: Any): Boolean =
     that match {
-      case other: Slice[T] =>
+      case other: Sliced[T] =>
         this.size == other.size &&
           this.iterator.sameElements(other.iterator)
 

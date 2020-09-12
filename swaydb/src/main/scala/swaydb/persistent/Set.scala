@@ -82,12 +82,12 @@ object Set extends LazyLogging {
                                                                                                                              functionClassTag: ClassTag[F],
                                                                                                                              bag: swaydb.Bag[BAG],
                                                                                                                              functions: Functions[F],
-                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                             byteKeyOrder: KeyOrder[Sliced[Byte]] = null,
                                                                                                                              typedKeyOrder: KeyOrder[A] = null,
                                                                                                                              compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
                                                                                                                              buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
-      val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
+      val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       implicit val unitSerializer: Serializer[Nothing] = Default.NothingSerializer
       val functionStore: FunctionStore = FunctionConverter.toFunctionsStore[A, Nothing, Apply.Set[Nothing], F](functions)
 

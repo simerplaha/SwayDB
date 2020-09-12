@@ -59,10 +59,10 @@ private[block] trait BlockReaderBase extends ReaderBase with LazyLogging {
   override def get(): Byte =
     BlockReader get state
 
-  override def read(size: Int): Slice[Byte] =
+  override def read(size: Int): Sliced[Byte] =
     BlockReader.read(size, state)
 
-  def readFullBlock(): Slice[Byte] =
+  def readFullBlock(): Sliced[Byte] =
     BlockReader readFullBlock state
 
   def readFullBlockOrNone(): SliceOption[Byte] =
@@ -71,6 +71,6 @@ private[block] trait BlockReaderBase extends ReaderBase with LazyLogging {
     else
       readFullBlock()
 
-  override def readRemaining(): Slice[Byte] =
+  override def readRemaining(): Sliced[Byte] =
     read(state.remaining)
 }

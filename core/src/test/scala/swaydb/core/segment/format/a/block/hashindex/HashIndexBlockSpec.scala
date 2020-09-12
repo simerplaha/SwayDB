@@ -39,7 +39,7 @@ import swaydb.serializers._
 class HashIndexBlockSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Sliced[Byte]](_.key)(keyOrder))
 
   val keyValueCount = 10000
 
@@ -58,7 +58,7 @@ class HashIndexBlockSpec extends TestBase {
               startId = Some(1)
             )
 
-          val segments: Slice[SegmentBlocks] =
+          val segments: Sliced[SegmentBlocks] =
             getBlocks(
               keyValues = keyValues,
               useCacheableReaders = randomBoolean(),

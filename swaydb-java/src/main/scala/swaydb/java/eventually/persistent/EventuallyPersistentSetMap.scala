@@ -216,7 +216,7 @@ object EventuallyPersistentSetMap {
           default = KeyComparator.lexicographic
         )
 
-      val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
+      val scalaKeyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
         swaydb.eventually.persistent.SetMap[K, V, Bag.Less](

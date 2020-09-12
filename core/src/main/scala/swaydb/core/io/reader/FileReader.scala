@@ -27,7 +27,7 @@ package swaydb.core.io.reader
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 private[core] class FileReader(val file: DBFile) extends Reader with LazyLogging {
 
@@ -78,7 +78,7 @@ private[core] class FileReader(val file: DBFile) extends Reader with LazyLogging
   def path =
     file.path
 
-  override def readRemaining(): Slice[Byte] =
+  override def readRemaining(): Sliced[Byte] =
     read(remaining)
 
   final override val isFile: Boolean =

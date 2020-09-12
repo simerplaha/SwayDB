@@ -54,8 +54,8 @@ private[swaydb] object Counter {
                  mod: Long,
                  flushCheckpointSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
                                             forceSaveApplier: ForceSaveApplier,
-                                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, Counter] =
+                                            writer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Sliced[Byte]]],
+                                            reader: MapEntryReader[MapEntry[Sliced[Byte], Sliced[Byte]]]): IO[swaydb.Error.Map, Counter] =
     PersistentCounter(
       path = path,
       mmap = mmap,

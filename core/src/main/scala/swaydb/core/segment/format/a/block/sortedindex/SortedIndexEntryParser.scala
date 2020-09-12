@@ -33,7 +33,7 @@ sealed trait SortedIndexEntryParser[T] {
 
   def parse(readPosition: Int,
             headerInteger: Int,
-            tailBytes: Slice[Byte],
+            tailBytes: Sliced[Byte],
             previous: PersistentOption,
             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): T
@@ -44,7 +44,7 @@ object SortedIndexEntryParser {
   final object PartialEntry extends SortedIndexEntryParser[Persistent.Partial] {
     override def parse(readPosition: Int,
                        headerInteger: Int,
-                       tailBytes: Slice[Byte],
+                       tailBytes: Sliced[Byte],
                        previous: PersistentOption,
                        sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
@@ -60,7 +60,7 @@ object SortedIndexEntryParser {
   final object PersistentEntry extends SortedIndexEntryParser[Persistent] {
     override def parse(readPosition: Int,
                        headerInteger: Int,
-                       tailBytes: Slice[Byte],
+                       tailBytes: Sliced[Byte],
                        previous: PersistentOption,
                        sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =

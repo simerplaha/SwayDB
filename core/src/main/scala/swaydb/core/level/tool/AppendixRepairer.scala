@@ -52,7 +52,7 @@ import swaydb.data.util.StorageUnits._
 private[swaydb] object AppendixRepairer extends LazyLogging {
 
   def apply(levelPath: Path,
-            strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                               fileSweeper: FileSweeperActor): IO[swaydb.Error.Level, Unit] = {
 
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
@@ -142,8 +142,8 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         }
     }
 
-  def checkOverlappingSegments(segments: Slice[Segment],
-                               strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Level, Int] =
+  def checkOverlappingSegments(segments: Sliced[Segment],
+                               strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Sliced[Byte]]): IO[swaydb.Error.Level, Int] =
     segments.foldLeftRecoverIO(1) {
       case (position, segment) =>
         logger.info("Checking for overlapping Segments for Segment {}", segment.path)
@@ -171,12 +171,12 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     }
 
   def buildAppendixMap(appendixDir: Path,
-                       segments: Slice[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                 fileSweeper: FileSweeperActor,
-                                                 bufferCleaner: ByteBufferSweeperActor,
-                                                 forceSaveApplier: ForceSaveApplier,
-                                                 writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                 skipListMerger: SkipListMerger[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
+                       segments: Sliced[Segment])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                  fileSweeper: FileSweeperActor,
+                                                  bufferCleaner: ByteBufferSweeperActor,
+                                                  forceSaveApplier: ForceSaveApplier,
+                                                  writer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Segment]],
+                                                  skipListMerger: SkipListMerger[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
     IO {
       Effect.walkDelete(appendixDir)
 
@@ -190,7 +190,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             )
         )
 
-      Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
+      Map.persistent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](
         nullKey = Slice.Null,
         nullValue = Segment.Null,
         folder = appendixDir,

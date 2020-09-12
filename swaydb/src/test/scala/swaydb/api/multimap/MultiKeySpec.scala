@@ -106,9 +106,9 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
 
   "ordering" should {
     "ordering MapKeys in the order of Start, Entry & End" in {
-      val order = KeyOrder(Ordering.by[Slice[Byte], Int](_.readInt())(Ordering.Int))
+      val order = KeyOrder(Ordering.by[Sliced[Byte], Int](_.readInt())(Ordering.Int))
       val mapKeySerializer = MultiKey.serializer[Int, Int](IntSerializer, IntSerializer)
-      implicit val mapKeyOrder = Ordering.by[MultiKey[Int, Int], Slice[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
+      implicit val mapKeyOrder = Ordering.by[MultiKey[Int, Int], Sliced[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
 
       val keys =
         Seq(
@@ -165,9 +165,9 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
     }
 
     "ordering MapKeys in the order of Start, Entry & End when keys are large String" in {
-      val order = KeyOrder(Ordering.by[Slice[Byte], String](_.readString())(Ordering.String))
+      val order = KeyOrder(Ordering.by[Sliced[Byte], String](_.readString())(Ordering.String))
       val mapKeySerializer = MultiKey.serializer[String, String](StringSerializer, StringSerializer)
-      implicit val mapKeyOrder = Ordering.by[MultiKey[String, String], Slice[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
+      implicit val mapKeyOrder = Ordering.by[MultiKey[String, String], Sliced[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
 
       val stringLength = 100000
 
@@ -212,9 +212,9 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
     }
 
     "remove duplicate key-values" in {
-      val order = KeyOrder(Ordering.by[Slice[Byte], Int](_.readInt())(Ordering.Int))
+      val order = KeyOrder(Ordering.by[Sliced[Byte], Int](_.readInt())(Ordering.Int))
       val mapKeySerializer = MultiKey.serializer[Int, Int](IntSerializer, IntSerializer)
-      implicit val mapKeyOrder = Ordering.by[MultiKey[Int, Int], Slice[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
+      implicit val mapKeyOrder = Ordering.by[MultiKey[Int, Int], Sliced[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
 
       val keys: Seq[() => MultiKey[Int, Int]] =
         Seq(

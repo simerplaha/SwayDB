@@ -65,8 +65,8 @@ private[core] object SegmentRef {
   }
 
   def apply(path: Path,
-            minKey: Slice[Byte],
-            maxKey: MaxKey[Slice[Byte]],
+            minKey: Sliced[Byte],
+            maxKey: MaxKey[Sliced[Byte]],
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -74,10 +74,10 @@ private[core] object SegmentRef {
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-            footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+            footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                          blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef = {
-    val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]] =
+    val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Sliced[Byte], Persistent]] =
       keyValueMemorySweeper map {
         sweeper =>
           sweeper.maxKeyValuesPerSegment match {
@@ -118,9 +118,9 @@ private[core] object SegmentRef {
     )
   }
 
-  def bestStartForGetOrHigherSearch(key: Slice[Byte],
+  def bestStartForGetOrHigherSearch(key: Sliced[Byte],
                                     segmentState: SegmentReadStateOption,
-                                    floorFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                    floorFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                                          persistentKeyOrder: KeyOrder[Persistent]): PersistentOption =
     if (segmentState.isSomeS)
       SegmentRef.bestStartForGetOrHigherSearch(
@@ -142,9 +142,9 @@ private[core] object SegmentRef {
    *                          be <= to the key being search.
    * @return the best possible key-value to search higher search from.
    */
-  def bestStartForGetOrHigherSearch(key: Slice[Byte],
+  def bestStartForGetOrHigherSearch(key: Sliced[Byte],
                                     keyValueFromState: Persistent,
-                                    floorFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                    floorFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                                          persistentKeyOrder: KeyOrder[Persistent]): PersistentOption =
     if (floorFromSkipList.isNoneS)
       if (keyOrder.lteq(keyValueFromState.getS.key, key))
@@ -157,9 +157,9 @@ private[core] object SegmentRef {
         right = floorFromSkipList.getS
       )
 
-  def bestEndForLowerSearch(key: Slice[Byte],
+  def bestEndForLowerSearch(key: Sliced[Byte],
                             segmentState: SegmentReadStateOption,
-                            ceilingFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                            ceilingFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                                    persistentKeyOrder: KeyOrder[Persistent]): PersistentOption =
     if (segmentState.isSomeS && segmentState.getS.lower.isSomeC)
       SegmentRef.bestEndForLowerSearch(
@@ -170,9 +170,9 @@ private[core] object SegmentRef {
     else
       ceilingFromSkipList
 
-  def bestEndForLowerSearch(key: Slice[Byte],
+  def bestEndForLowerSearch(key: Sliced[Byte],
                             lowerKeyValueFromState: Persistent,
-                            ceilingFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                            ceilingFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                                    persistentKeyOrder: KeyOrder[Persistent]): PersistentOption =
     if (ceilingFromSkipList.isNoneS)
       if (keyOrder.gteq(lowerKeyValueFromState.getS.key, key))
@@ -185,9 +185,9 @@ private[core] object SegmentRef {
         right = ceilingFromSkipList.getS
       )
 
-  def get(key: Slice[Byte],
+  def get(key: Sliced[Byte],
           threadState: ThreadReadState)(implicit segmentRef: SegmentRef,
-                                        keyOrder: KeyOrder[Slice[Byte]],
+                                        keyOrder: KeyOrder[Sliced[Byte]],
                                         partialKeyOrder: KeyOrder[Persistent.Partial],
                                         persistentKeyOrder: KeyOrder[Persistent],
                                         segmentSearcher: SegmentSearcher): PersistentOption = {
@@ -196,7 +196,7 @@ private[core] object SegmentRef {
       case MaxKey.Fixed(maxKey) if keyOrder.gt(key, maxKey) =>
         Persistent.Null
 
-      case range: MaxKey.Range[Slice[Byte]] if keyOrder.gteq(key, range.maxKey) =>
+      case range: MaxKey.Range[Sliced[Byte]] if keyOrder.gteq(key, range.maxKey) =>
         Persistent.Null
 
       //check for minKey inside the Segment is not required since Levels already do minKey check.
@@ -302,9 +302,9 @@ private[core] object SegmentRef {
     }
   }
 
-  def higher(key: Slice[Byte],
+  def higher(key: Sliced[Byte],
              threadState: ThreadReadState)(implicit segmentRef: SegmentRef,
-                                           keyOrder: KeyOrder[Slice[Byte]],
+                                           keyOrder: KeyOrder[Sliced[Byte]],
                                            persistentKeyOrder: KeyOrder[Persistent],
                                            partialKeyOrder: KeyOrder[Persistent.Partial],
                                            segmentSearcher: SegmentSearcher): PersistentOption =
@@ -434,14 +434,14 @@ private[core] object SegmentRef {
         }
     }
 
-  private def lower(key: Slice[Byte],
+  private def lower(key: Sliced[Byte],
                     start: PersistentOption,
                     end: PersistentOption,
                     keyValueCount: Int,
                     path: Path,
                     segmentStateOptional: SegmentReadStateOption,
                     threadState: ThreadReadState)(implicit segmentRef: SegmentRef,
-                                                  keyOrder: KeyOrder[Slice[Byte]],
+                                                  keyOrder: KeyOrder[Sliced[Byte]],
                                                   persistentKeyOrder: KeyOrder[Persistent],
                                                   partialKeyOrder: KeyOrder[Persistent.Partial],
                                                   segmentSearcher: SegmentSearcher): PersistentOption = {
@@ -491,10 +491,10 @@ private[core] object SegmentRef {
     }
   }
 
-  private def bestEndForLowerSearch(key: Slice[Byte],
+  private def bestEndForLowerSearch(key: Sliced[Byte],
                                     segmentState: SegmentReadStateOption,
                                     readState: ThreadReadState)(implicit segmentRef: SegmentRef,
-                                                                keyOrder: KeyOrder[Slice[Byte]],
+                                                                keyOrder: KeyOrder[Sliced[Byte]],
                                                                 persistentKeyOrder: KeyOrder[Persistent]): PersistentOption =
 
     SegmentRef.bestEndForLowerSearch(
@@ -503,9 +503,9 @@ private[core] object SegmentRef {
       ceilingFromSkipList = segmentRef.applyToSkipList(_.ceiling(key))
     )
 
-  def lower(key: Slice[Byte],
+  def lower(key: Sliced[Byte],
             threadState: ThreadReadState)(implicit segmentRef: SegmentRef,
-                                          keyOrder: KeyOrder[Slice[Byte]],
+                                          keyOrder: KeyOrder[Sliced[Byte]],
                                           persistentKeyOrder: KeyOrder[Persistent],
                                           partialKeyOrder: KeyOrder[Persistent.Partial],
                                           segmentSearcher: SegmentSearcher): PersistentOption =
@@ -620,7 +620,7 @@ private[core] object SegmentRef {
       }
 
   def put(ref: SegmentRef,
-          newKeyValues: Slice[KeyValue],
+          newKeyValues: Sliced[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -628,9 +628,9 @@ private[core] object SegmentRef {
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): Slice[TransientSegment] =
+          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                              timeOrder: TimeOrder[Sliced[Byte]],
+                                              functionStore: FunctionStore): Sliced[TransientSegment] =
     put(
       oldKeyValuesCount = ref.getKeyValueCount(),
       oldKeyValues = ref.iterator(),
@@ -647,7 +647,7 @@ private[core] object SegmentRef {
 
   def put(oldKeyValuesCount: Int,
           oldKeyValues: Iterator[Persistent],
-          newKeyValues: Slice[KeyValue],
+          newKeyValues: Sliced[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -655,9 +655,9 @@ private[core] object SegmentRef {
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): Slice[TransientSegment] = {
+          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                              timeOrder: TimeOrder[Sliced[Byte]],
+                                              functionStore: FunctionStore): Sliced[TransientSegment] = {
 
     val builder = MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
 
@@ -691,7 +691,7 @@ private[core] object SegmentRef {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
+              segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Sliced[TransientSegment] = {
 
     val footer = ref.getFooter()
     //if it's created in the same level the required spaces for sortedIndex and values
@@ -743,7 +743,7 @@ private[core] object SegmentRef {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
+                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Sliced[TransientSegment] = {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {
@@ -802,7 +802,7 @@ private[core] object SegmentRef {
                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                          hashIndexConfig: HashIndexBlock.Config,
                          bloomFilterConfig: BloomFilterBlock.Config,
-                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
+                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Sliced[TransientSegment] = {
     val memoryKeyValues =
       Segment
         .toMemoryIterator(keyValues, removeDeletes)
@@ -827,11 +827,11 @@ private[core] object SegmentRef {
 }
 
 private[core] class SegmentRef(val path: Path,
-                               val maxKey: MaxKey[Slice[Byte]],
-                               val minKey: Slice[Byte],
-                               val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
+                               val maxKey: MaxKey[Sliced[Byte]],
+                               val minKey: Sliced[Byte],
+                               val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Sliced[Byte], Persistent]],
                                val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                         keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with LazyLogging {
+                                                                         keyOrder: KeyOrder[Sliced[Byte]]) extends SegmentRefOption with LazyLogging {
 
   override def isNoneS: Boolean =
     false
@@ -856,13 +856,13 @@ private[core] class SegmentRef(val path: Path,
           keyValueMemorySweeper.foreach(_.add(keyValue, skipList))
     }
 
-  private def applyToSkipList(f: SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent] => PersistentOption): PersistentOption =
+  private def applyToSkipList(f: SkipList[SliceOption[Byte], PersistentOption, Sliced[Byte], Persistent] => PersistentOption): PersistentOption =
     if (skipList.isDefined)
       f(skipList.get)
     else
       Persistent.Null
 
-  def getFromCache(key: Slice[Byte]): PersistentOption =
+  def getFromCache(key: Sliced[Byte]): PersistentOption =
     skipList match {
       case Some(skipList) =>
         skipList get key
@@ -871,7 +871,7 @@ private[core] class SegmentRef(val path: Path,
         Persistent.Null
     }
 
-  def mightContain(key: Slice[Byte]): Boolean = {
+  def mightContain(key: Sliced[Byte]): Boolean = {
     val bloomFilterReader = segmentBlockCache.createBloomFilterReaderOrNull()
     bloomFilterReader == null ||
       BloomFilterBlock.mightContain(
@@ -880,10 +880,10 @@ private[core] class SegmentRef(val path: Path,
       )
   }
 
-  def toSlice(): Slice[Persistent] =
+  def toSlice(): Sliced[Persistent] =
     segmentBlockCache.toSlice()
 
-  def toSlice(keyValueCount: Int): Slice[Persistent] =
+  def toSlice(keyValueCount: Int): Sliced[Persistent] =
     segmentBlockCache toSlice keyValueCount
 
   def iterator(): Iterator[Persistent] =
@@ -916,7 +916,7 @@ private[core] class SegmentRef(val path: Path,
   def createdInLevel: Int =
     segmentBlockCache.getFooter().createdInLevel
 
-  def isInKeyValueCache(key: Slice[Byte]): Boolean =
+  def isInKeyValueCache(key: Sliced[Byte]): Boolean =
     skipList.exists(_.contains(key))
 
   def cacheSize: Int =
@@ -931,7 +931,7 @@ private[core] class SegmentRef(val path: Path,
   def areAllCachesEmpty =
     isKeyValueCacheEmpty && !segmentBlockCache.isCached
 
-  def readAllBytes(): Slice[Byte] =
+  def readAllBytes(): Sliced[Byte] =
     segmentBlockCache.readAllBytes()
 
   def segmentSize: Int =

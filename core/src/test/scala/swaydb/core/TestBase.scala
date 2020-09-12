@@ -201,27 +201,27 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     Effect.deleteIfExists(testClassDirPath)
 
   object TestMap {
-    def apply(keyValues: Slice[Memory],
+    def apply(keyValues: Sliced[Memory],
               fileSize: Int = 4.mb,
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
-              mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                              timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                              sweeper: TestCaseSweeper): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+              mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
+                                                                                              timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long,
+                                                                                              sweeper: TestCaseSweeper): map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerger()
       import sweeper._
 
       val testMap =
         if (levelStorage.memory)
-          map.Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+          map.Map.memory[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
             nullKey = Slice.Null,
             nullValue = Memory.Null,
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow
           )
         else
-          map.Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+          map.Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
             nullKey = Slice.Null,
             nullValue = Memory.Null,
             folder = path,
@@ -240,7 +240,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   }
 
   object TestSegment {
-    def apply(keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
+    def apply(keyValues: Sliced[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
               createdInLevel: Int = 1,
               path: Path = testSegmentFile,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
@@ -248,8 +248,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
+                                                                                                         timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long,
                                                                                                          sweeper: TestCaseSweeper): Segment = {
 
       val segmentId = Effect.numberFileId(path)._1 - 1
@@ -276,17 +276,17 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     }
 
     def many(createdInLevel: Int = 1,
-             keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
+             keyValues: Sliced[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
              binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
              hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
              bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-             segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+             segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
+                                                                                                        timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long,
                                                                                                         pathsDistributor: PathsDistributor,
                                                                                                         idGenerator: IDGenerator,
-                                                                                                        sweeper: TestCaseSweeper): Slice[Segment] = {
+                                                                                                        sweeper: TestCaseSweeper): Sliced[Segment] = {
 
       import sweeper._
 
@@ -353,9 +353,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random2(pushForward = false, deleteEventually = false, mmap = mmapSegments),
-              keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                      sweeper: TestCaseSweeper): Level = {
+              keyValues: Sliced[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
+                                                       timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long,
+                                                       sweeper: TestCaseSweeper): Level = {
       import sweeper._
 
       val level =
@@ -389,8 +389,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               appliedFunctionsMapSize: Long = randomIntMax(1.mb),
               clearAppliedFunctionsOnBoot: Boolean = false,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
-              throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+              throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
+                                                                               timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long,
                                                                                sweeper: TestCaseSweeper): LevelZero = {
       import sweeper._
 
@@ -408,7 +408,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     }
   }
 
-  def createFile(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): Path =
+  def createFile(bytes: Sliced[Byte])(implicit sweeper: TestCaseSweeper): Path =
     Effect.write(testClassDir.resolve(nextSegmentId).sweep(), bytes)
 
   def createRandomFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
@@ -424,25 +424,25 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       createFileChannelFileReader(path)
     )
 
-  def createMMAPFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
+  def createMMAPFileReader(bytes: Sliced[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
     createMMAPFileReader(createFile(bytes))
 
   /**
    * Creates all file types currently supported which are MMAP and FileChannel.
    */
-  def createDBFiles(mmapPath: Path, mmapBytes: Slice[Byte], channelPath: Path, channelBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[DBFile] =
+  def createDBFiles(mmapPath: Path, mmapBytes: Sliced[Byte], channelPath: Path, channelBytes: Sliced[Byte])(implicit sweeper: TestCaseSweeper): List[DBFile] =
     List(
       createMMAPWriteAndRead(mmapPath, mmapBytes),
       createChannelWriteAndRead(channelPath, channelBytes)
     )
 
-  def createDBFiles(mmapBytes: Slice[Byte], channelBytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): List[DBFile] =
+  def createDBFiles(mmapBytes: Sliced[Byte], channelBytes: Sliced[Byte])(implicit sweeper: TestCaseSweeper): List[DBFile] =
     List(
       createMMAPWriteAndRead(randomFilePath, mmapBytes),
       createChannelWriteAndRead(randomFilePath, channelBytes)
     )
 
-  def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
+  def createMMAPWriteAndRead(path: Path, bytes: Sliced[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
     import sweeper._
 
     DBFile.mmapWriteAndRead(
@@ -456,7 +456,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     ).sweep()
   }
 
-  def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
+  def createChannelWriteAndRead(path: Path, bytes: Sliced[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
     val blockCacheFileId = BlockCacheFileIDGenerator.nextID
 
     import sweeper._
@@ -496,7 +496,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     )
   }
 
-  def createFileChannelFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
+  def createFileChannelFileReader(bytes: Sliced[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
     createFileChannelFileReader(createFile(bytes))
 
   def createFileChannelFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
@@ -513,7 +513,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     new FileReader(file)
   }
 
-  def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
+  def createRandomFileReader(bytes: Sliced[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
     createRandomFileReader(createFile(bytes))
 
   /**
@@ -529,14 +529,14 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
    * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time thi®s means
    * that it has already been merged into lower Levels already making the upper Level's read always valid.
    */
-  def assertLevel(level0KeyValues: (Slice[Memory], Slice[Memory], TestTimer) => Slice[Memory] = (_, _, _) => Slice.empty,
-                  assertLevel0: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                  level1KeyValues: (Slice[Memory], TestTimer) => Slice[Memory] = (_, _) => Slice.empty,
-                  assertLevel1: (Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _) => (),
-                  level2KeyValues: TestTimer => Slice[Memory] = _ => Slice.empty,
-                  assertLevel2: (Slice[Memory], LevelRef) => Unit = (_, _) => (),
-                  assertAllLevels: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                  throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+  def assertLevel(level0KeyValues: (Sliced[Memory], Sliced[Memory], TestTimer) => Sliced[Memory] = (_, _, _) => Slice.empty,
+                  assertLevel0: (Sliced[Memory], Sliced[Memory], Sliced[Memory], LevelRef) => Unit = (_, _, _, _) => (),
+                  level1KeyValues: (Sliced[Memory], TestTimer) => Sliced[Memory] = (_, _) => Slice.empty,
+                  assertLevel1: (Sliced[Memory], Sliced[Memory], LevelRef) => Unit = (_, _, _) => (),
+                  level2KeyValues: TestTimer => Sliced[Memory] = _ => Slice.empty,
+                  assertLevel2: (Sliced[Memory], LevelRef) => Unit = (_, _) => (),
+                  assertAllLevels: (Sliced[Memory], Sliced[Memory], Sliced[Memory], LevelRef) => Unit = (_, _, _, _) => (),
+                  throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
                                                ec: ExecutionContext = TestExecutionContext.executionContext): Unit = {
 
     def iterationMessage =
@@ -599,7 +599,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val level2Assert: LevelRef => Unit = assertLevel2(level0KV, _)
     val levelAllAssert: LevelRef => Unit = assertAllLevels(level0KV, level1KV, level2KV, _)
 
-    def runAsserts(asserts: Seq[((Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit))]) =
+    def runAsserts(asserts: Seq[((Sliced[Memory], LevelRef => Unit), (Sliced[Memory], LevelRef => Unit), (Sliced[Memory], LevelRef => Unit), (Sliced[Memory], LevelRef => Unit))]) =
       asserts.foldLeft(1) {
         case (count, ((level0KeyValues, level0Assert), (level1KeyValues, level1Assert), (level2KeyValues, level2Assert), (level3KeyValues, level3Assert))) => {
           println(s"\nRunning assert: $count/${asserts.size} - $iterationMessage")
@@ -624,7 +624,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         }
       }
 
-    val asserts: Seq[((Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit))] =
+    val asserts: Seq[((Sliced[Memory], LevelRef => Unit), (Sliced[Memory], LevelRef => Unit), (Sliced[Memory], LevelRef => Unit), (Sliced[Memory], LevelRef => Unit))] =
       if (throttleOn)
       //if throttle is only the top most Level's (Level0) assert should
       // be executed because throttle behaviour is unknown during runtime
@@ -710,20 +710,20 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       )
   }
 
-  private def doAssertOnLevel(level0KeyValues: Slice[Memory],
+  private def doAssertOnLevel(level0KeyValues: Sliced[Memory],
                               assertLevel0: LevelRef => Unit,
                               level0: LevelZero,
-                              level1KeyValues: Slice[Memory],
+                              level1KeyValues: Sliced[Memory],
                               assertLevel1: LevelRef => Unit,
                               level1: Level,
-                              level2KeyValues: Slice[Memory],
+                              level2KeyValues: Sliced[Memory],
                               assertLevel2: LevelRef => Unit,
                               level2: Level,
-                              level3KeyValues: Slice[Memory],
+                              level3KeyValues: Sliced[Memory],
                               assertLevel3: LevelRef => Unit,
                               level3: Level,
                               assertAllLevels: LevelRef => Unit,
-                              assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                              assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
                                                                  levelSweeper: TestCaseSweeper): Unit = {
     println("level3.putKeyValues")
     if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).runRandomIO.right.value
@@ -775,8 +775,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     ).runThisRandomlyInParallel
   }
 
-  def assertSegment[T](keyValues: Slice[Memory],
-                       assert: (Slice[Memory], Segment) => T,
+  def assertSegment[T](keyValues: Sliced[Memory],
+                       assert: (Sliced[Memory], Segment) => T,
                        segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments),
                        ensureOneSegmentOnly: Boolean = true,
                        testAgainAfterAssert: Boolean = true,
@@ -785,7 +785,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                        sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                        binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                        hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
                                                                                                     ec: ExecutionContext = TestExecutionContext.executionContext,
                                                                                                     sweeper: TestCaseSweeper,
                                                                                                     segmentIO: SegmentIO = SegmentIO.random) = {

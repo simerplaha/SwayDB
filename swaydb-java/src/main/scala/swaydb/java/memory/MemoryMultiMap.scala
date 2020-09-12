@@ -144,7 +144,7 @@ object MemoryMultiMap {
           default = KeyComparator.lexicographic
         )
 
-      val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
+      val scalaKeyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
         swaydb.memory.MultiMap[M, K, V, PureFunction.Map[K, V], Bag.Less](

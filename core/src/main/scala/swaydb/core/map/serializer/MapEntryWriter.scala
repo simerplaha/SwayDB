@@ -30,7 +30,7 @@ import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for MapEntryWriter of type ${T}")
 trait MapEntryWriter[T <: MapEntry[_, _]] {
-  def write(entry: T, bytes: Slice[Byte]): Unit
+  def write(entry: T, bytes: Sliced[Byte]): Unit
 
   def bytesRequired(entry: T): Int
 
@@ -41,7 +41,7 @@ trait MapEntryWriter[T <: MapEntry[_, _]] {
 
 object MapEntryWriter {
 
-  def write[T <: MapEntry[_, _]](entry: T, bytes: Slice[Byte])(implicit serializer: MapEntryWriter[T]): Unit =
+  def write[T <: MapEntry[_, _]](entry: T, bytes: Sliced[Byte])(implicit serializer: MapEntryWriter[T]): Unit =
     serializer.write(entry, bytes)
 
   def bytesRequired[T <: MapEntry[_, _]](entry: T)(implicit serializer: MapEntryWriter[T]): Int =

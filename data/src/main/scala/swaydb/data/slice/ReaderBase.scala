@@ -40,10 +40,10 @@ private[swaydb] trait ReaderBase { self =>
 
   def get(): Byte
 
-  def read(size: Long): Slice[Byte] =
+  def read(size: Long): Sliced[Byte] =
     read(size.toInt)
 
-  def read(size: Int): Slice[Byte]
+  def read(size: Int): Sliced[Byte]
 
   def size: Long
 
@@ -57,7 +57,7 @@ private[swaydb] trait ReaderBase { self =>
 
   def moveTo(position: Int): ReaderBase
 
-  def readRemaining(): Slice[Byte]
+  def readRemaining(): Sliced[Byte]
 
   def isFile: Boolean
 
@@ -91,7 +91,7 @@ private[swaydb] trait ReaderBase { self =>
   def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
     Bytez.readUnsignedIntNonZeroWithByteSize(self)
 
-  def readUnsignedIntSized(): Slice[Byte] =
+  def readUnsignedIntSized(): Sliced[Byte] =
     read(Bytez.readUnsignedInt(self))
 
   def readSignedInt(): Int =

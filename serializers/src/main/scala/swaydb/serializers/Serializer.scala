@@ -38,7 +38,7 @@ object Serializer {
   def toNestedOption[A](serializer: Serializer[A]) =
     new Serializer[Option[A]] {
 
-      override def write(data: Option[A]): Slice[Byte] =
+      override def write(data: Option[A]): Sliced[Byte] =
         data match {
           case Some(value) =>
             //if value is defined serialise the value with prefix 1.byte indicating value exists.
@@ -55,7 +55,7 @@ object Serializer {
             Slice.emptyBytes
         }
 
-      override def read(data: Slice[Byte]): Option[A] =
+      override def read(data: Sliced[Byte]): Option[A] =
         if (data.isEmpty)
           None
         else
@@ -64,7 +64,7 @@ object Serializer {
 }
 
 trait Serializer[A] {
-  def write(data: A): Slice[Byte]
+  def write(data: A): Sliced[Byte]
 
-  def read(data: Slice[Byte]): A
+  def read(data: Sliced[Byte]): A
 }

@@ -26,12 +26,12 @@ package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 private[swaydb] object FunctionsMapEntryReader {
 
-  implicit object FunctionsPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice.Null.type]] {
-    override def read(reader: ReaderBase): MapEntry[Slice[Byte], Slice.Null.type] = {
+  implicit object FunctionsPutMapEntryReader extends MapEntryReader[MapEntry[Sliced[Byte], Slice.Null.type]] {
+    override def read(reader: ReaderBase): MapEntry[Sliced[Byte], Slice.Null.type] = {
       val id = reader.get()
 
       if (id == FunctionsMapEntryWriter.FunctionsPutMapEntryWriter.id)

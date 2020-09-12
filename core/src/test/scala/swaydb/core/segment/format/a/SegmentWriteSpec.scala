@@ -63,7 +63,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 
@@ -93,7 +93,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   implicit def segmentIO = SegmentIO.random
 
   "Segment" should {
@@ -117,10 +117,10 @@ sealed trait SegmentWriteSpec extends TestBase {
                   segment.maxKey shouldBe {
                     keyValues.last match {
                       case _: Memory.Fixed =>
-                        MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
+                        MaxKey.Fixed[Sliced[Byte]](keyValues.last.key)
 
                       case range: Memory.Range =>
-                        MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
+                        MaxKey.Range[Sliced[Byte]](range.fromKey, range.toKey)
                     }
                   }
                   //ensure that min and max keys are slices
@@ -150,8 +150,8 @@ sealed trait SegmentWriteSpec extends TestBase {
 
               assert =
                 (keyValues, segment) => {
-                  segment.minKey shouldBe (1: Slice[Byte])
-                  segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](11)
+                  segment.minKey shouldBe (1: Sliced[Byte])
+                  segment.maxKey shouldBe MaxKey.Fixed[Sliced[Byte]](11)
                   segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
                   segment.maxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
                 }
@@ -169,8 +169,8 @@ sealed trait SegmentWriteSpec extends TestBase {
 
               assert =
                 (keyValues, segment) => {
-                  segment.minKey shouldBe (0: Slice[Byte])
-                  segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](1, 10)
+                  segment.minKey shouldBe (0: Sliced[Byte])
+                  segment.maxKey shouldBe MaxKey.Range[Sliced[Byte]](1, 10)
                 }
             )
         }
@@ -222,7 +222,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             }
           }
 
-          def doAssert(keyValues: Slice[Memory]) = {
+          def doAssert(keyValues: Sliced[Memory]) = {
 
             //read key-values so they are all part of the same byte array.
             val readKeyValues = writeAndRead(keyValues).get.map(_.toMemory)
@@ -276,7 +276,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         implicit sweeper =>
           //adjustSegmentConfig = false so that Many Segments do not get created.
 
-          def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
+          def doAssert(keyValues: Sliced[KeyValue], segment: Segment) = {
             segment.hasBloomFilter shouldBe false
             assertBloom(keyValues, segment)
             segment.hasRange.runRandomIO.right.value shouldBe true
@@ -370,7 +370,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     "set hasRange to true if the Segment contains Range key-values" in {
       TestCaseSweeper {
         implicit sweeper =>
-          def doAssert(keyValues: Slice[KeyValue], segment: Segment): Unit = {
+          def doAssert(keyValues: Sliced[KeyValue], segment: Segment): Unit = {
             segment.hasRange.runRandomIO.right.value shouldBe true
             segment.hasPut.runRandomIO.right.value shouldBe true
           }
@@ -1734,7 +1734,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         TestCaseSweeper {
           implicit sweeper =>
 
-            val keyValues: Slice[Memory.Put] = (1 to 100).map(key => Memory.put(key, key, 1.second)).toSlice
+            val keyValues: Sliced[Memory.Put] = (1 to 100).map(key => Memory.put(key, key, 1.second)).toSlice
 
             val segment =
               Benchmark(s"Created Segment: ${keyValues.size} keyValues", inlinePrint = true) {
@@ -1776,7 +1776,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             TestSweeper.createMemorySweeperMax().value.sweep()
 
-            val keyValues: Slice[Memory.Put] = (1 to (randomIntMax(100000) max 2)).map(key => Memory.put(key, key, 1.second)).toSlice
+            val keyValues: Sliced[Memory.Put] = (1 to (randomIntMax(100000) max 2)).map(key => Memory.put(key, key, 1.second)).toSlice
 
             val enableCompression = randomBoolean()
 
@@ -1855,7 +1855,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             TestSweeper.createMemorySweeperMax().value.sweep()
 
-            val keyValues: Slice[Memory.Put] = (1 to 2).map(key => Memory.put(key, Slice.Null)).toSlice
+            val keyValues: Sliced[Memory.Put] = (1 to 2).map(key => Memory.put(key, Slice.Null)).toSlice
 
             val enableCompression = false
 

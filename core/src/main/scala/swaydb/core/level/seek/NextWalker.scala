@@ -31,13 +31,13 @@ trait NextWalker extends NextGetter {
 
   def levelNumber: String
 
-  def higher(key: Slice[Byte],
+  def higher(key: Sliced[Byte],
              readState: ThreadReadState): KeyValue.PutOption
 
-  def lower(key: Slice[Byte],
+  def lower(key: Sliced[Byte],
             readState: ThreadReadState): KeyValue.PutOption
 
-  def get(key: Slice[Byte],
+  def get(key: Sliced[Byte],
           readState: ThreadReadState): KeyValue.PutOption
 
 }

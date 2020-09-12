@@ -29,6 +29,6 @@ import swaydb.core.segment.ThreadReadState
 import swaydb.data.slice.Slice._
 trait NextGetter {
 
-  def get(key: Slice[Byte],
+  def get(key: Sliced[Byte],
           readState: ThreadReadState): KeyValue.PutOption
 }

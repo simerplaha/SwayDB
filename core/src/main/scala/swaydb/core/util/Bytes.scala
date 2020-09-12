@@ -38,8 +38,8 @@ private[swaydb] object Bytes extends Bytez {
   val zero = 0.toByte
   val one = 1.toByte
 
-  def commonPrefixBytesCount(previous: Slice[Byte],
-                             next: Slice[Byte]): Int = {
+  def commonPrefixBytesCount(previous: Sliced[Byte],
+                             next: Sliced[Byte]): Int = {
     val min = Math.min(previous.size, next.size)
     var i = 0
     while (i < min && previous(i) == next(i))
@@ -47,8 +47,8 @@ private[swaydb] object Bytes extends Bytez {
     i
   }
 
-  def commonPrefixBytes(previous: Slice[Byte],
-                        next: Slice[Byte]): Slice[Byte] = {
+  def commonPrefixBytes(previous: Sliced[Byte],
+                        next: Sliced[Byte]): Sliced[Byte] = {
     val commonBytes = commonPrefixBytesCount(previous, next)
     if (previous.size <= next.size)
       next take commonBytes
@@ -56,18 +56,18 @@ private[swaydb] object Bytes extends Bytez {
       previous take commonBytes
   }
 
-  def compress(key: Slice[Byte],
+  def compress(key: Sliced[Byte],
                previous: KeyValue,
-               minimumCommonBytes: Int): Option[(Int, Slice[Byte])] =
+               minimumCommonBytes: Int): Option[(Int, Sliced[Byte])] =
     compress(
       previous = previous.key,
       next = key,
       minimumCommonBytes = minimumCommonBytes
     )
 
-  def compress(previous: Slice[Byte],
-               next: Slice[Byte],
-               minimumCommonBytes: Int): Option[(Int, Slice[Byte])] = {
+  def compress(previous: Sliced[Byte],
+               next: Sliced[Byte],
+               minimumCommonBytes: Int): Option[(Int, Sliced[Byte])] = {
     val commonBytes = Bytes.commonPrefixBytesCount(previous, next)
     if (commonBytes < minimumCommonBytes)
       None
@@ -75,8 +75,8 @@ private[swaydb] object Bytes extends Bytez {
       Some(commonBytes, next.drop(commonBytes))
   }
 
-  def compressFull(previous: Option[Slice[Byte]],
-                   next: Slice[Byte]): Option[OK] =
+  def compressFull(previous: Option[Sliced[Byte]],
+                   next: Sliced[Byte]): Option[OK] =
     previous flatMap {
       previous =>
         compressFull(
@@ -85,8 +85,8 @@ private[swaydb] object Bytes extends Bytez {
         )
     }
 
-  def compressFull(previous: Slice[Byte],
-                   next: Slice[Byte]): Option[OK] =
+  def compressFull(previous: Sliced[Byte],
+                   next: Sliced[Byte]): Option[OK] =
     if (previous.size < next.size)
       None
     else
@@ -95,16 +95,16 @@ private[swaydb] object Bytes extends Bytez {
           OK.instance
       }
 
-  def compressExact(previous: Slice[Byte],
-                    next: Slice[Byte]): Option[OK] =
+  def compressExact(previous: Sliced[Byte],
+                    next: Sliced[Byte]): Option[OK] =
     if (previous.size != next.size)
       None
     else
       compressFull(previous, next)
 
-  def decompress(previous: Slice[Byte],
-                 next: Slice[Byte],
-                 commonBytes: Int): Slice[Byte] = {
+  def decompress(previous: Sliced[Byte],
+                 next: Sliced[Byte],
+                 commonBytes: Int): Sliced[Byte] = {
     val missingCommonBytes = previous.slice(0, commonBytes - 1)
     val fullKey = new Array[Byte](commonBytes + next.size)
     var i = 0
@@ -157,17 +157,17 @@ private[swaydb] object Bytes extends Bytez {
     else
       9
 
-  def compressJoin(left: Slice[Byte],
-                   right: Slice[Byte]): Slice[Byte] =
+  def compressJoin(left: Sliced[Byte],
+                   right: Sliced[Byte]): Sliced[Byte] =
     compressJoin(
       left = left,
       right = right,
       tail = Slice.emptyBytes
     )
 
-  def compressJoin(left: Slice[Byte],
-                   right: Slice[Byte],
-                   tail: Byte): Slice[Byte] =
+  def compressJoin(left: Sliced[Byte],
+                   right: Sliced[Byte],
+                   tail: Byte): Sliced[Byte] =
     compressJoin(
       left = left,
       right = right,
@@ -181,9 +181,9 @@ private[swaydb] object Bytes extends Bytez {
    *
    * tail bytes are also appended to the the result. When decompressing tail bytes should be stripped.
    */
-  def compressJoin(left: Slice[Byte],
-                   right: Slice[Byte],
-                   tail: Slice[Byte]): Slice[Byte] = {
+  def compressJoin(left: Sliced[Byte],
+                   right: Sliced[Byte],
+                   tail: Sliced[Byte]): Sliced[Byte] = {
     val commonBytes = commonPrefixBytesCount(left, right)
     val rightWithoutCommonBytes =
       if (commonBytes != 0)
@@ -218,7 +218,7 @@ private[swaydb] object Bytes extends Bytez {
     }
   }
 
-  def decompressJoin(bytes: Slice[Byte]): (Slice[Byte], Slice[Byte]) = {
+  def decompressJoin(bytes: Sliced[Byte]): (Sliced[Byte], Sliced[Byte]) = {
 
     val reader = Reader(bytes)
     val (leftBytesSize, lastBytesRead) = Bytez.readLastUnsignedInt(bytes)
@@ -238,7 +238,7 @@ private[swaydb] object Bytes extends Bytez {
     (left, right)
   }
 
-  def normalise(bytes: Slice[Byte], toSize: Int): Slice[Byte] = {
+  def normalise(bytes: Sliced[Byte], toSize: Int): Sliced[Byte] = {
     assert(bytes.size < toSize, s"bytes.size(${bytes.size}) >= toSize($toSize)")
     val finalSlice = Slice.create[Byte](toSize)
     var zeroesToAdd = toSize - bytes.size - 1
@@ -250,9 +250,9 @@ private[swaydb] object Bytes extends Bytez {
     finalSlice addAll bytes
   }
 
-  def normalise(appendHeader: Slice[Byte],
-                bytes: Slice[Byte],
-                toSize: Int): Slice[Byte] = {
+  def normalise(appendHeader: Sliced[Byte],
+                bytes: Sliced[Byte],
+                toSize: Int): Sliced[Byte] = {
     assert((appendHeader.size + bytes.size) < toSize, s"appendHeader.size(${appendHeader.size}) + bytes.size(${bytes.size}) >= toSize($toSize)")
     val finalSlice = Slice.create[Byte](appendHeader.size + toSize)
     finalSlice addAll appendHeader
@@ -272,6 +272,6 @@ private[swaydb] object Bytes extends Bytez {
    * Similar function [[Slice.dropTo]] which is not directly to avoid
    * creation of [[Some]] object.
    */
-  def deNormalise(bytes: Slice[Byte]): Slice[Byte] =
+  def deNormalise(bytes: Sliced[Byte]): Sliced[Byte] =
     bytes drop (bytes.indexOf(Bytes.one).get + 1)
 }

@@ -47,7 +47,7 @@ class SegmentMemorySweeperSpec extends TestBase {
   val keyValuesCount = 100
 
   implicit val ec = TestExecutionContext.executionContext
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
 
   //  override def deleteFiles = false
 

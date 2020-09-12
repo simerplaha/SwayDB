@@ -37,7 +37,7 @@ import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class SegmentHigherSpec0 extends SegmentHigherSpec {
   val keyValuesCount: Int = 100

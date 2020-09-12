@@ -38,7 +38,7 @@ import scala.collection.mutable.ListBuffer
 class SegmentMerge_Performance_Spec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   implicit val testTimer: TestTimer = TestTimer.Empty
   val keyValueCount = 100
 

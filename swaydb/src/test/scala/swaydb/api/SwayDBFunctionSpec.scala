@@ -35,7 +35,7 @@ import swaydb.{Apply, IO, Map, Prepare, PureFunction, StorageIntImplicits}
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Deadline
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 protected sealed trait Key
 protected object Key {
@@ -64,10 +64,10 @@ protected object Key {
   implicit val deadlinePickler = transformPickler((nano: Long) => Deadline((nano, TimeUnit.NANOSECONDS)))(_.time.toNanos)
 
   implicit object KeySerializer extends swaydb.serializers.Serializer[Key] {
-    override def write(data: Key): Slice[Byte] =
+    override def write(data: Key): Sliced[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Slice[Byte]): Key =
+    override def read(data: Sliced[Byte]): Key =
       Unpickle[Key].fromBytes(data.toByteBufferWrap)
   }
 }

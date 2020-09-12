@@ -81,7 +81,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   implicit val bag = Bag.less
 
   //  implicit val mapKeySerializer = MultiKey.serializer(IntSerializer)
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
 
 
   "initialising" should {

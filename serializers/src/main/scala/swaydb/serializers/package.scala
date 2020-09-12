@@ -31,28 +31,28 @@ import swaydb.data.util.TupleOrNone
 
 package object serializers {
 
-  @inline implicit def toSlice[T](data: T)(implicit serializer: Serializer[T]): Slice[Byte] =
+  @inline implicit def toSlice[T](data: T)(implicit serializer: Serializer[T]): Sliced[Byte] =
     serializer.write(data)
 
-  @inline implicit def toSlice[T](data: Option[T])(implicit serializer: Serializer[T]): Option[Slice[Byte]] =
+  @inline implicit def toSlice[T](data: Option[T])(implicit serializer: Serializer[T]): Option[Sliced[Byte]] =
     data.map(serializer.write)
 
   @inline implicit def toSliceOption[T](data: Option[T])(implicit serializer: Serializer[T]): SliceOption[Byte] =
     data match {
       case Some(value) =>
-        value: Slice[Byte]
+        value: Sliced[Byte]
 
       case None =>
         Slice.Null
     }
 
-  implicit class Decode(slice: Slice[Byte]) {
+  implicit class Decode(slice: Sliced[Byte]) {
     @inline final def read[T](implicit serializer: Serializer[T]): T =
       serializer.read(slice)
   }
 
-  def read[K, V](tupleOptional: TupleOrNone[Slice[Byte], SliceOption[Byte]])(implicit keySerialiser: Serializer[K],
-                                                                             valueSerialiser: Serializer[V]): Option[(K, V)] =
+  def read[K, V](tupleOptional: TupleOrNone[Sliced[Byte], SliceOption[Byte]])(implicit keySerialiser: Serializer[K],
+                                                                              valueSerialiser: Serializer[V]): Option[(K, V)] =
     tupleOptional match {
       case TupleOrNone.None =>
         None
@@ -61,7 +61,7 @@ package object serializers {
         Some((keySerialiser.read(left), valueSerialiser.read(right.getOrElseC(Slice.emptyBytes))))
     }
 
-  implicit class DecodeOption(slice: Option[Slice[Byte]]) {
+  implicit class DecodeOption(slice: Option[Sliced[Byte]]) {
     @inline final def read[T](implicit serializer: Serializer[T]): T =
       slice match {
         case Some(slice) =>
@@ -75,7 +75,7 @@ package object serializers {
   implicit class DecodeOptionSliceOption(slice: SliceOption[Byte]) {
     @inline final def read[T](implicit serializer: Serializer[T]): T =
       slice match {
-        case slice: Slice[Byte] =>
+        case slice: Sliced[Byte] =>
           serializer.read(slice)
 
         case Slice.Null =>

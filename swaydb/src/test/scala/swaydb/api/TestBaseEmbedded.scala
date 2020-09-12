@@ -34,7 +34,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 trait TestBaseEmbedded extends TestBase {
 

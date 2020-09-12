@@ -40,12 +40,12 @@ import swaydb.data.util.SomeOrNone._
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
 
   "Single into Range" when {
 
@@ -56,7 +56,7 @@ class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
         val newKeyValue = randomFixedKeyValue(0)
 
         val expectedKeyValue = Slice(newKeyValue, oldKeyValue)
-        val expectedLastLevel: Slice[Memory.Fixed] = expectedKeyValue.flatMap(_.toLastLevelExpected).toSlice
+        val expectedLastLevel: Sliced[Memory.Fixed] = expectedKeyValue.flatMap(_.toLastLevelExpected).toSlice
 
         //        println
         //        println("newKeyValue: " + newKeyValue)
@@ -160,7 +160,7 @@ class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
 
       //9, 10, 11, 15, 18,    23,      27,  30
       //   10      -     20        25   -   30
-      val newKeyValues: Slice[Memory] =
+      val newKeyValues: Sliced[Memory] =
       Slice(
         Memory.put(9, 9),
         Memory.put(10, 10),
@@ -174,13 +174,13 @@ class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
         Memory.put(30, 30)
       )
 
-      val oldKeyValues: Slice[Memory] =
+      val oldKeyValues: Sliced[Memory] =
         Slice(
           Memory.Range(10, 20, Value.FromValue.Null, Value.update("ranges value 1")),
           Memory.Range(25, 30, Value.put(25), Value.update("ranges value 2", deadline2))
         )
 
-      val expected: Slice[Memory] =
+      val expected: Sliced[Memory] =
         Slice(
           Memory.put(9, 9),
           Memory.Range(10, 11, Value.put(10), Value.update("ranges value 1")),
@@ -195,7 +195,7 @@ class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
         )
 
       //last level check
-      val expectedInLastLevel: Slice[Memory] =
+      val expectedInLastLevel: Sliced[Memory] =
         Slice(
           Memory.put(9, 9),
           Memory.put(10, 10),

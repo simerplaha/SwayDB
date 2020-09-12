@@ -197,21 +197,21 @@ private[core] trait LevelRef {
 
   def last(readState: ThreadReadState): KeyValue.PutOption
 
-  def get(key: Slice[Byte],
+  def get(key: Sliced[Byte],
           readState: ThreadReadState): KeyValue.PutOption
 
-  def ceiling(key: Slice[Byte],
+  def ceiling(key: Sliced[Byte],
               readState: ThreadReadState): KeyValue.PutOption
 
-  def floor(key: Slice[Byte],
+  def floor(key: Sliced[Byte],
             readState: ThreadReadState): KeyValue.PutOption
 
-  def mightContainKey(key: Slice[Byte]): Boolean
+  def mightContainKey(key: Sliced[Byte]): Boolean
 
-  def lower(key: Slice[Byte],
+  def lower(key: Sliced[Byte],
             readState: ThreadReadState): KeyValue.PutOption
 
-  def higher(key: Slice[Byte],
+  def higher(key: Sliced[Byte],
              readState: ThreadReadState): KeyValue.PutOption
 
   def headKey(readState: ThreadReadState): SliceOption[Byte]
@@ -226,7 +226,7 @@ private[core] trait LevelRef {
 
   def segmentFilesOnDisk: Seq[Path]
 
-  def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit
+  def foreachSegment[T](f: (Sliced[Byte], Segment) => T): Unit
 
   def foreachLevel[T](f: LevelRef => T): Unit =
     LevelRef.foreach(this, f)
@@ -256,9 +256,9 @@ private[core] trait LevelRef {
     levels
   }
 
-  def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean
+  def containsSegmentWithMinKey(minKey: Sliced[Byte]): Boolean
 
-  def getSegment(minKey: Slice[Byte]): SegmentOption
+  def getSegment(minKey: Sliced[Byte]): SegmentOption
 
   def existsOnDisk: Boolean
 

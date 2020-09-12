@@ -25,7 +25,7 @@
 package swaydb.stress.simulation
 
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.{Slice, _}
+import swaydb.data.slice.Slice.{Sliced, _}
 import swaydb.serializers.Serializer
 
 sealed trait Domain
@@ -34,7 +34,7 @@ object Domain {
   case class Product(name: String) extends Domain
 
   implicit object DomainSerializer extends Serializer[Domain] {
-    override def write(data: Domain): Slice[Byte] =
+    override def write(data: Domain): Sliced[Byte] =
       data match {
         case User(name) =>
           Slice
@@ -51,7 +51,7 @@ object Domain {
             .close()
       }
 
-    override def read(data: Slice[Byte]): Domain = {
+    override def read(data: Sliced[Byte]): Domain = {
       val reader = data.createReader()
       val dataId = reader.readInt()
 

@@ -44,7 +44,7 @@ import scala.util.Random
 
 class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
   implicit val timeWriter: TimeWriter = TimeWriter
   implicit val valueWriter: ValueWriter = ValueWriter
   implicit val deadlineWriter: DeadlineWriter = DeadlineWriter
@@ -150,7 +150,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
         )
 
         val sortedIndexReader = Reader(builder.bytes.close())
-        val valueBytes: Slice[Byte] = previous.value.toOptionC ++ next.value.toOptionC
+        val valueBytes: Sliced[Byte] = previous.value.toOptionC ++ next.value.toOptionC
         val valuesReaderOrNull = if (valueBytes.isEmpty) null else buildSingleValueReader(valueBytes)
 
         val previousParsedKeyValue =

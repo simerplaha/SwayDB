@@ -45,13 +45,13 @@ import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class SegmentBlockSpec extends TestBase {
 
   val keyValueCount = 100
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
 
   implicit def testTimer: TestTimer = TestTimer.random
   implicit def segmentIO: SegmentIO = SegmentIO.random
@@ -80,7 +80,7 @@ class SegmentBlockSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          def test(keyValues: Slice[Memory]) = {
+          def test(keyValues: Sliced[Memory]) = {
             val segmentBytes =
               SegmentBlock
                 .writeClosedOne(keyValues = keyValues)
@@ -233,7 +233,7 @@ class SegmentBlockSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
-          def doAssert(keyValues: Slice[Memory]) = {
+          def doAssert(keyValues: Sliced[Memory]) = {
             val expectedHasRemoveRange = keyValues.exists(_.isRemoveRangeMayBe)
 
             MergeStats.persistentBuilder(keyValues).hasRemoveRange shouldBe expectedHasRemoveRange
@@ -257,7 +257,7 @@ class SegmentBlockSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
-          def doAssert(keyValues: Slice[Memory]) = {
+          def doAssert(keyValues: Sliced[Memory]) = {
             keyValues.exists(_.isRemoveRangeMayBe) shouldBe true
 
             val blocks =
@@ -303,7 +303,7 @@ class SegmentBlockSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
-          def doAssert(keyValues: Slice[Memory]) = {
+          def doAssert(keyValues: Sliced[Memory]) = {
             keyValues.exists(_.isRemoveRangeMayBe) shouldBe false
 
             val blocks =
@@ -336,7 +336,7 @@ class SegmentBlockSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
-          def doAssert(keyValues: Slice[Memory]) = {
+          def doAssert(keyValues: Sliced[Memory]) = {
             keyValues.exists(_.isRemoveRangeMayBe) shouldBe true
 
             val blocks =
@@ -376,9 +376,9 @@ class SegmentBlockSpec extends TestBase {
           import sweeper._
           runThis(1000.times) {
             //make sure the first byte in the value is not the same as the key (just for the this test).
-            val fixedValue: Slice[Byte] = Slice(11.toByte) ++ randomBytesSlice(randomIntMax(50)).drop(1)
+            val fixedValue: Sliced[Byte] = Slice(11.toByte) ++ randomBytesSlice(randomIntMax(50)).drop(1)
 
-            def fixed: Slice[Memory.Fixed] =
+            def fixed: Sliced[Memory.Fixed] =
               Slice(
                 Memory.put(1, fixedValue),
                 Memory.update(2, fixedValue),
@@ -394,7 +394,7 @@ class SegmentBlockSpec extends TestBase {
 
             val applies = randomApplies(deadline = None)
 
-            def pendingApply: Slice[Memory.PendingApply] =
+            def pendingApply: Sliced[Memory.PendingApply] =
               Slice(
                 Memory.PendingApply(1, applies),
                 Memory.PendingApply(2, applies),

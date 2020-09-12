@@ -46,7 +46,7 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class LevelKeyValuesSpec0 extends LevelKeyValuesSpec
 
@@ -70,9 +70,9 @@ class LevelKeyValuesSpec3 extends LevelKeyValuesSpec {
 
 sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMethodTester {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =
@@ -390,7 +390,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           val targetSegmentKeyValues = randomIntKeyStringValues()
           val targetSegment = TestSegment(keyValues = targetSegmentKeyValues).runRandomIO.right.value
 
-          val keyValues: Slice[KeyValue] = Slice.create[KeyValue](3) //null KeyValue will throw an exception and the put should be reverted
+          val keyValues: Sliced[KeyValue] = Slice.create[KeyValue](3) //null KeyValue will throw an exception and the put should be reverted
           keyValues.add(Memory.put(123))
           keyValues.add(Memory.put(1234, 12345))
           keyValues.add(Persistent.Put(_key = 1235, None, null, Time.empty, 10, 10, 10, 10, 10, 0)) //give it a null Reader so that it fails reading the value.

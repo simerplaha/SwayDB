@@ -36,7 +36,7 @@ private[core] object EntryWriter {
     def apply(prefixCompressKeysOnly: Boolean,
               compressDuplicateValues: Boolean,
               enableAccessPositionIndex: Boolean,
-              bytes: Slice[Byte]): Builder =
+              bytes: Sliced[Byte]): Builder =
       new Builder(
         enablePrefixCompressionForCurrentWrite = false,
         prefixCompressKeysOnly = prefixCompressKeysOnly,
@@ -59,7 +59,7 @@ private[core] object EntryWriter {
                 //this should be reset to false once the entry is written
                 var isValueFullyCompressed: Boolean,
                 val enableAccessPositionIndex: Boolean,
-                val bytes: Slice[Byte],
+                val bytes: Sliced[Byte],
                 var startValueOffset: Int,
                 var endValueOffset: Int,
                 var accessPositionIndex: Int,

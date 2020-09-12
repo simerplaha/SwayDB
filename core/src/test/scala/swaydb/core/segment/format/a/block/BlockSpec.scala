@@ -13,7 +13,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.config.IOAction
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class BlockSpec extends TestBase {
 

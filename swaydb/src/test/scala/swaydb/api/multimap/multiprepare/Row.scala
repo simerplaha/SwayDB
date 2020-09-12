@@ -26,7 +26,7 @@ package swaydb.api.multimap.multiprepare
 
 import boopickle.Default.{Pickle, Unpickle, _}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 import swaydb.serializers.Serializer
 
 /**
@@ -43,10 +43,10 @@ object Row {
   case class Order(sku: Int, price: Double) extends ProductRows
 
   implicit val serializer = new Serializer[Row] {
-    override def write(data: Row): Slice[Byte] =
+    override def write(data: Row): Sliced[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Slice[Byte]): Row =
+    override def read(data: Sliced[Byte]): Row =
       Unpickle[Row].fromBytes(data.toByteBufferWrap)
   }
 }

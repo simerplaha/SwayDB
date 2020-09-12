@@ -47,9 +47,9 @@ private[core] sealed trait BinarySearchEntryFormat {
                               largestMergedKeySize: Int): Int
 
   def write(indexOffset: Int,
-            mergedKey: Slice[Byte],
+            mergedKey: Sliced[Byte],
             keyType: Byte,
-            bytes: Slice[Byte]): Unit
+            bytes: Sliced[Byte]): Unit
 
   def read(offset: Int,
            seekSize: Int,
@@ -80,9 +80,9 @@ private[core] object BinarySearchEntryFormat {
       Bytes sizeOfUnsignedInt largestIndexOffset
 
     override def write(indexOffset: Int,
-                       mergedKey: Slice[Byte],
+                       mergedKey: Sliced[Byte],
                        keyType: Byte,
-                       bytes: Slice[Byte]): Unit =
+                       bytes: Sliced[Byte]): Unit =
       bytes addUnsignedInt indexOffset
 
     override def read(offset: Int,
@@ -116,9 +116,9 @@ private[core] object BinarySearchEntryFormat {
     }
 
     override def write(indexOffset: Int,
-                       mergedKey: Slice[Byte],
+                       mergedKey: Sliced[Byte],
                        keyType: Byte,
-                       bytes: Slice[Byte]): Unit = {
+                       bytes: Sliced[Byte]): Unit = {
       bytes addUnsignedInt mergedKey.size
       bytes addAll mergedKey
       bytes add keyType
@@ -165,7 +165,7 @@ private[core] object BinarySearchEntryFormat {
           override def indexOffset: Int =
             parseIndexOffset
 
-          override def key: Slice[Byte] =
+          override def key: Sliced[Byte] =
             fromKey
 
           override def toPersistent: Persistent =
@@ -176,7 +176,7 @@ private[core] object BinarySearchEntryFormat {
           override def indexOffset: Int =
             parseIndexOffset
 
-          override def key: Slice[Byte] =
+          override def key: Sliced[Byte] =
             entryKey
 
           override def toPersistent: Persistent =

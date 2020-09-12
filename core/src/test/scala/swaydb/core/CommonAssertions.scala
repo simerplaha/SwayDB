@@ -72,7 +72,7 @@ import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 object CommonAssertions {
 
@@ -95,7 +95,7 @@ object CommonAssertions {
           None
       }
 
-    def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+    def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
                                      segmentIO: SegmentIO = SegmentIO.random): Unit = {
       val actualMemory = actual.toMemory
       val expectedMemory = expected.toMemory
@@ -103,7 +103,7 @@ object CommonAssertions {
       actualMemory should be(expectedMemory.unslice())
     }
 
-    def getOrFetchValue: Option[Slice[Byte]] =
+    def getOrFetchValue: Option[Sliced[Byte]] =
       actual match {
         case keyValue: Memory =>
           keyValue match {
@@ -265,7 +265,7 @@ object CommonAssertions {
       }
   }
 
-  implicit class PrintSkipList(skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) {
+  implicit class PrintSkipList(skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]) {
 
     //stringify the skipList so that it's readable
     def asString(value: Value): String =
@@ -281,15 +281,15 @@ object CommonAssertions {
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
-                          expected: Memory): SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
+                          expected: Memory): SkipListConcurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
-                          expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+                          expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
+                                                        timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long): SkipListConcurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] = {
     val merger = LevelZeroSkipListMerger()
-    val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(KeyOrder.default)
+    val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(KeyOrder.default)
     (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => merger.insert(memory.key, memory, skipList))
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList
     skipList
@@ -297,16 +297,16 @@ object CommonAssertions {
 
   def assertMerge(newKeyValue: KeyValue,
                   oldKeyValue: KeyValue,
-                  expected: Slice[Memory],
-                  isLastLevel: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] =
+                  expected: Sliced[Memory],
+                  isLastLevel: Boolean = false)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                timeOrder: TimeOrder[Sliced[Byte]]): Iterable[Memory] =
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel)
 
-  def assertMerge(newKeyValues: Slice[KeyValue],
-                  oldKeyValues: Slice[KeyValue],
-                  expected: Slice[KeyValue],
-                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
+  def assertMerge(newKeyValues: Sliced[KeyValue],
+                  oldKeyValues: Sliced[KeyValue],
+                  expected: Sliced[KeyValue],
+                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                        timeOrder: TimeOrder[Sliced[Byte]]): Iterable[Memory] = {
     val builder = MergeStats.random()
 
     SegmentMerger.merge(
@@ -337,19 +337,19 @@ object CommonAssertions {
   def assertMerge(newKeyValue: KeyValue,
                   oldKeyValue: KeyValue,
                   expected: KeyValue,
-                  lastLevelExpect: KeyValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                  lastLevelExpect: KeyValueOption)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                   timeOrder: TimeOrder[Sliced[Byte]]): Unit = {
     //    println("*** Expected assert ***")
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), lastLevelExpect.toOptional.map(Slice(_)).getOrElse(Slice.empty))
     //println("*** Skip list assert ***")
     assertSkipListMerge(Slice(newKeyValue), Slice(oldKeyValue), Slice(expected))
   }
 
-  def assertMerge(newKeyValues: Slice[KeyValue],
-                  oldKeyValues: Slice[KeyValue],
-                  expected: Slice[KeyValue],
-                  lastLevelExpect: Slice[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+  def assertMerge(newKeyValues: Sliced[KeyValue],
+                  oldKeyValues: Sliced[KeyValue],
+                  expected: Sliced[KeyValue],
+                  lastLevelExpect: Sliced[KeyValue])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                     timeOrder: TimeOrder[Sliced[Byte]]): Unit = {
     //    println("*** Expected assert ***")
     assertMerge(newKeyValues, oldKeyValues, expected, isLastLevel = false)
     //println("*** Expected last level ***")
@@ -360,27 +360,27 @@ object CommonAssertions {
 
   def assertMerge(newKeyValue: KeyValue,
                   oldKeyValue: KeyValue,
-                  expected: Slice[KeyValue],
-                  lastLevelExpect: Slice[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
+                  expected: Sliced[KeyValue],
+                  lastLevelExpect: Sliced[KeyValue])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                     timeOrder: TimeOrder[Sliced[Byte]]): Iterable[Memory] = {
     //    println("*** Last level = false ***")
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel = false)
     //println("*** Last level = true ***")
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), lastLevelExpect, isLastLevel = true)
   }
 
-  def assertMerge(newKeyValues: Slice[KeyValue],
-                  oldKeyValues: Slice[KeyValue],
+  def assertMerge(newKeyValues: Sliced[KeyValue],
+                  oldKeyValues: Sliced[KeyValue],
                   expected: Memory,
-                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] =
+                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                        timeOrder: TimeOrder[Sliced[Byte]]): Iterable[Memory] =
     assertMerge(newKeyValues, oldKeyValues, Slice(expected), isLastLevel)
 
   def assertMerge(newKeyValue: Memory.Function,
                   oldKeyValue: Memory.PendingApply,
                   expected: Memory.Fixed,
-                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                   timeOrder: TimeOrder[Sliced[Byte]]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -390,8 +390,8 @@ object CommonAssertions {
   def assertMerge(newKeyValue: Memory.Function,
                   oldKeyValue: Memory.Fixed,
                   expected: Memory.Fixed,
-                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                   timeOrder: TimeOrder[Sliced[Byte]]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -401,8 +401,8 @@ object CommonAssertions {
   def assertMerge(newKeyValue: Memory.Remove,
                   oldKeyValue: Memory.Fixed,
                   expected: KeyValue.Fixed,
-                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                   timeOrder: TimeOrder[Sliced[Byte]]): Unit = {
     RemoveMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -412,8 +412,8 @@ object CommonAssertions {
   def assertMerge(newKeyValue: Memory.Put,
                   oldKeyValue: Memory.Fixed,
                   expected: Memory.Fixed,
-                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                   timeOrder: TimeOrder[Sliced[Byte]]): Unit = {
     PutMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -424,8 +424,8 @@ object CommonAssertions {
   def assertMerge(newKeyValue: Memory.Update,
                   oldKeyValue: Memory.Fixed,
                   expected: Memory.Fixed,
-                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                   timeOrder: TimeOrder[Sliced[Byte]]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -435,8 +435,8 @@ object CommonAssertions {
   def assertMerge(newKeyValue: Memory.Update,
                   oldKeyValue: Memory.PendingApply,
                   expected: KeyValue.Fixed,
-                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                   timeOrder: TimeOrder[Sliced[Byte]]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
@@ -447,8 +447,8 @@ object CommonAssertions {
   def assertMerge(newKeyValue: Memory.Fixed,
                   oldKeyValue: Memory.PendingApply,
                   expected: Memory.PendingApply,
-                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                  lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                   timeOrder: TimeOrder[Sliced[Byte]]): Unit = {
     FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
     assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
     //todo merge with persistent
@@ -465,20 +465,20 @@ object CommonAssertions {
       }
     }
 
-    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]]) =
+    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Memory]]) =
     //LevelZero does not write Groups therefore this unzip is required.
-      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
+      actual.foldLeft(Option.empty[MapEntry[Sliced[Byte], Memory]]) {
         case (mapEntry, keyValue) =>
-          val newEntry = MapEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue.toMemory)
+          val newEntry = MapEntry.Put[Sliced[Byte], Memory](keyValue.key, keyValue.toMemory)
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
   }
 
   implicit class MemoryImplicits(actual: Iterable[Memory]) {
-    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]]) =
-      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
+    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Memory]]) =
+      actual.foldLeft(Option.empty[MapEntry[Sliced[Byte], Memory]]) {
         case (mapEntry, keyValue) =>
-          val newEntry = MapEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue)
+          val newEntry = MapEntry.Put[Sliced[Byte], Memory](keyValue.key, keyValue)
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
 
@@ -519,7 +519,7 @@ object CommonAssertions {
       Segment.getAllKeyValues(actual).runRandomIO.right.value shouldBe Segment.getAllKeyValues(expected).runRandomIO.right.value
   }
 
-  implicit class SliceByteImplicits(actual: Slice[Byte]) {
+  implicit class SliceByteImplicits(actual: Sliced[Byte]) {
     def shouldHaveSameKey(expected: KeyValue): Unit =
       actual shouldBe expected.key
 
@@ -527,7 +527,7 @@ object CommonAssertions {
       actual.underlyingArraySize shouldBe actual.toArrayCopy.length
   }
 
-  implicit class OptionSliceByteImplicits(actual: Option[Slice[Byte]]) {
+  implicit class OptionSliceByteImplicits(actual: Option[Sliced[Byte]]) {
     def shouldBeSliced() =
       actual foreach (_.shouldBeSliced())
   }
@@ -582,26 +582,26 @@ object CommonAssertions {
       assertReads(expected.toSlice().runRandomIO.right.value, actual)
     }
 
-    def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
+    def shouldContainAll(keyValues: Sliced[KeyValue]): Unit =
       keyValues.foreach {
         keyValue =>
           actual.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.getUnsafe shouldBe keyValue
       }
   }
 
-  implicit class MapEntryImplicits(actual: MapEntry[Slice[Byte], Memory]) {
+  implicit class MapEntryImplicits(actual: MapEntry[Sliced[Byte], Memory]) {
 
-    def shouldBe(expected: MapEntry[Slice[Byte], Memory]): Unit = {
+    def shouldBe(expected: MapEntry[Sliced[Byte], Memory]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
       actual.totalByteSize shouldBe expected.totalByteSize
       actual match {
         case MapEntry.Put(key, value) =>
-          val exp = expected.asInstanceOf[MapEntry.Put[Slice[Byte], Memory]]
+          val exp = expected.asInstanceOf[MapEntry.Put[Sliced[Byte], Memory]]
           key shouldBe exp.key
           value shouldBe exp.value
 
         case MapEntry.Remove(key) =>
-          val exp = expected.asInstanceOf[MapEntry.Remove[Slice[Byte]]]
+          val exp = expected.asInstanceOf[MapEntry.Remove[Sliced[Byte]]]
           key shouldBe exp.key
 
         case _ => //MapEntry is a batch of other MapEntries, iterate and assert.
@@ -614,15 +614,15 @@ object CommonAssertions {
     }
   }
 
-  implicit class SegmentsPersistentMapImplicits(actual: MapEntry[Slice[Byte], Segment]) {
+  implicit class SegmentsPersistentMapImplicits(actual: MapEntry[Sliced[Byte], Segment]) {
 
-    def shouldBe(expected: MapEntry[Slice[Byte], Segment]): Unit = {
+    def shouldBe(expected: MapEntry[Sliced[Byte], Segment]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
 
-      val actualMap = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
+      val actualMap = SkipList.concurrent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
       actual.applyTo(actualMap)
 
-      val expectedMap = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
+      val expectedMap = SkipList.concurrent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
       expected.applyTo(expectedMap)
 
       actualMap.size shouldBe expectedMap.size
@@ -686,11 +686,11 @@ object CommonAssertions {
     assertLowers(0)
   }
 
-  def assertGet(keyValues: Slice[Memory],
+  def assertGet(keyValues: Sliced[Memory],
                 rawSegmentReader: Reader,
-                segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
                                                          blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
-    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Sliced[Byte]](_.key)(keyOrder))
     val blocks = readBlocksFromReader(rawSegmentReader.copy()).get
 
     keyValues.par foreach {
@@ -712,7 +712,7 @@ object CommonAssertions {
     }
   }
 
-  def assertBloom(keyValues: Slice[Memory],
+  def assertBloom(keyValues: Sliced[Memory],
                   bloom: BloomFilterBlock.State) = {
     val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.compressibleBytes)
 
@@ -727,7 +727,7 @@ object CommonAssertions {
     assertBloomNotContains(bloom)
   }
 
-  def assertBloom(keyValues: Slice[KeyValue],
+  def assertBloom(keyValues: Sliced[KeyValue],
                   segment: Segment) = {
     keyValues.par.count {
       keyValue =>
@@ -738,7 +738,7 @@ object CommonAssertions {
       assertBloomNotContains(segment)
   }
 
-  def assertBloom(keyValues: Slice[Memory],
+  def assertBloom(keyValues: Sliced[Memory],
                   bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) = {
     val unzipedKeyValues = keyValues
 
@@ -775,7 +775,7 @@ object CommonAssertions {
       ).runRandomIO.right.value shouldBe false
     }
 
-  def assertReads(keyValues: Slice[KeyValue],
+  def assertReads(keyValues: Sliced[KeyValue],
                   segment: Segment) = {
     val asserts = Seq(() => assertGet(keyValues, segment), () => assertHigher(keyValues, segment), () => assertLower(keyValues, segment))
     Random.shuffle(asserts).par.foreach(_ ())
@@ -832,8 +832,8 @@ object CommonAssertions {
       () => IO.Defer(level.last(ThreadReadState.random).toOptionPut).runIO.get shouldBe empty
     ).runThisRandomlyInParallel
 
-  def assertReads(keyValues: Slice[Memory],
-                  segmentReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+  def assertReads(keyValues: Sliced[Memory],
+                  segmentReader: Reader)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
                                          blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
 
     //read fullIndex
@@ -1075,10 +1075,10 @@ object CommonAssertions {
     }
   }
 
-  def assertLower(keyValues: Slice[Memory],
-                  reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+  def assertLower(keyValues: Sliced[Memory],
+                  reader: Reader)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
                                   blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
-    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Sliced[Byte]](_.key)(keyOrder))
 
     val blocks = readBlocksFromReader(reader.copy()).get
 
@@ -1171,10 +1171,10 @@ object CommonAssertions {
     assertLowers(0)
   }
 
-  def assertHigher(keyValues: Slice[KeyValue],
-                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+  def assertHigher(keyValues: Sliced[KeyValue],
+                   reader: Reader)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
                                    blockCacheMemorySweeper: Option[MemorySweeper.Block]): Unit = {
-    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Sliced[Byte]](_.key)(keyOrder))
     val blocks = readBlocksFromReader(reader).get
     assertHigher(
       keyValues,
@@ -1194,7 +1194,7 @@ object CommonAssertions {
     )
   }
 
-  def assertLower(keyValues: Slice[KeyValue],
+  def assertLower(keyValues: Sliced[KeyValue],
                   segment: Segment) = {
 
     @tailrec
@@ -1227,7 +1227,7 @@ object CommonAssertions {
     assertLowers(0)
   }
 
-  def assertHigher(keyValues: Slice[KeyValue],
+  def assertHigher(keyValues: Sliced[KeyValue],
                    segment: Segment): Unit =
     assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key, ThreadReadState.random)).runRandomIO.right.value.toOptional))
 
@@ -1235,7 +1235,7 @@ object CommonAssertions {
    * Asserts that all key-values are returned in order when fetching higher in sequence.
    */
   def assertHigher(_keyValues: Iterable[KeyValue],
-                   getHigher: Slice[Byte] => IO[swaydb.Error.Level, Option[KeyValue]]): Unit = {
+                   getHigher: Sliced[Byte] => IO[swaydb.Error.Level, Option[KeyValue]]): Unit = {
     import KeyOrder.default._
     val keyValues = _keyValues.toArray
 
@@ -1331,11 +1331,11 @@ object CommonAssertions {
     else
       Some(expiredDeadline())
 
-  def readAll(segment: TransientSegment.One)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
+  def readAll(segment: TransientSegment.One)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Sliced[KeyValue]] =
     readAll(segment.flattenSegmentBytes)
 
   def writeAndRead(keyValues: Iterable[Memory])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Slice[KeyValue]] = {
+                                                keyOrder: KeyOrder[Sliced[Byte]]): IO[swaydb.Error.Segment, Sliced[KeyValue]] = {
     val sortedIndexBlock = SortedIndexBlock.Config.random
 
     val segment =
@@ -1386,7 +1386,7 @@ object CommonAssertions {
                 hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                 bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                 keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Segment, Slice[SegmentBlocks]] = {
+                                                                                 keyOrder: KeyOrder[Sliced[Byte]]): IO[Error.Segment, Sliced[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeOnes(
         mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
@@ -1429,7 +1429,7 @@ object CommonAssertions {
                       hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                       keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Segment, SegmentBlocks] =
+                                                                                       keyOrder: KeyOrder[Sliced[Byte]]): IO[Error.Segment, SegmentBlocks] =
     getBlocks(
       keyValues = keyValues,
       bloomFilterConfig = bloomFilterConfig,
@@ -1444,21 +1444,21 @@ object CommonAssertions {
         segments.head
     }
 
-  def readAll(bytes: Slice[Byte])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
+  def readAll(bytes: Sliced[Byte])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Sliced[KeyValue]] =
     readAll(Reader(bytes))
 
-  def readBlocks(bytes: Slice[Byte],
+  def readBlocks(bytes: Sliced[Byte],
                  segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
     readBlocksFromReader(Reader(bytes), segmentIO)
 
-  def getSegmentBlockCache(keyValues: Slice[Memory],
+  def getSegmentBlockCache(keyValues: Sliced[Memory],
                            valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                            sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                            binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                            hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                            keyOrder: KeyOrder[Slice[Byte]]): Iterable[SegmentBlockCache] =
+                                                                                            keyOrder: KeyOrder[Sliced[Byte]]): Iterable[SegmentBlockCache] =
     SegmentBlock.writeOnes(
       mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
       createdInLevel = Int.MaxValue,
@@ -1483,14 +1483,14 @@ object CommonAssertions {
         getSegmentBlockCacheFromSegmentClosed(closed, segmentIO)
     }
 
-  def getSegmentBlockCacheSingle(keyValues: Slice[Memory],
+  def getSegmentBlockCacheSingle(keyValues: Sliced[Memory],
                                  valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                                  sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                                  binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                                  hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                                  bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                                  segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                                  keyOrder: KeyOrder[Slice[Byte]]): SegmentBlockCache = {
+                                                                                                  keyOrder: KeyOrder[Sliced[Byte]]): SegmentBlockCache = {
     val blockCaches =
       getSegmentBlockCache(
         keyValues = keyValues,
@@ -1561,7 +1561,7 @@ object CommonAssertions {
       footerCacheable = None
     )
 
-  def readAll(reader: Reader)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
+  def readAll(reader: Reader)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Sliced[KeyValue]] =
     IO {
       val blockCache = getSegmentBlockCacheFromReader(reader)
 
@@ -1573,7 +1573,7 @@ object CommonAssertions {
         )
     }
 
-  def readBlocksFromReader(reader: Reader, segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+  def readBlocksFromReader(reader: Reader, segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default,
                                                                                     blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] = {
     val blockCache = getSegmentBlockCacheFromReader(reader, segmentIO)
     readBlocks(blockCache)
@@ -1592,7 +1592,7 @@ object CommonAssertions {
     }
 
   def collapseMerge(newKeyValue: Memory.Fixed,
-                    oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
+                    oldApplies: Sliced[Value.Apply])(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
     newKeyValue match {
       case PendingApply(_, newApplies) =>
         //PendingApplies on PendingApplies are never merged. They are just stashed in sequence of their time.

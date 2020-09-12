@@ -50,7 +50,7 @@ import swaydb.serializers._
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class SegmentReadSpec0 extends SegmentReadSpec {
   val keyValuesCount = 100

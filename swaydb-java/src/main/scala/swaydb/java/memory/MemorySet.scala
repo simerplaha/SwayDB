@@ -142,7 +142,7 @@ object MemorySet {
           default = KeyComparator.lexicographic
         )
 
-      val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
+      val scalaKeyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
       val scalaMap =
         swaydb.memory.Set[A, PureFunction.Set[A], Bag.Less](

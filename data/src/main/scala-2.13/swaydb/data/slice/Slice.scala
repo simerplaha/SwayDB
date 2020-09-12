@@ -24,7 +24,7 @@
 
 package swaydb.data.slice
 
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.tailrec
@@ -35,7 +35,7 @@ import scala.reflect.ClassTag
 /**
  * Documentation - http://swaydb.io/slice
  */
-sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
+sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Sliced[T]] {
   override def noneC: SliceOption[Nothing] = Slice.Null
 
   def isUnslicedOption: Boolean
@@ -53,14 +53,14 @@ object Slice extends SliceCompanionBase {
 
   final case object Null extends SliceOption[Nothing] {
     override val isNoneC: Boolean = true
-    override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
+    override def getC: Sliced[Nothing] = throw new Exception("Slice is of type Null")
     override def isUnslicedOption: Boolean = true
     override def asSliceOption(): SliceOption[Nothing] = this
   }
 
-  class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
+  class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Sliced[A]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[A] = Slice.create[A]((sizeHint * 2) max 100)
+    protected var slice: Sliced[A] = Slice.create[A]((sizeHint * 2) max 100)
 
     def extendSlice(by: Int) = {
       val extendedSlice = Slice.create[A](slice.size * by)
@@ -82,19 +82,19 @@ object Slice extends SliceCompanionBase {
     def clear() =
       slice = Slice.create[A](slice.size)
 
-    def result(): Slice[A] =
+    def result(): Sliced[A] =
       slice.close()
   }
 
-  class SliceFactory(sizeHint: Int) extends ClassTagIterableFactory[Slice] {
+  class SliceFactory(sizeHint: Int) extends ClassTagIterableFactory[Sliced] {
 
-    def from[A](source: IterableOnce[A])(implicit evidence: ClassTag[A]): Slice[A] =
+    def from[A](source: IterableOnce[A])(implicit evidence: ClassTag[A]): Sliced[A] =
       (newBuilder[A] ++= source).result()
 
-    def empty[A](implicit evidence: ClassTag[A]): Slice[A] =
+    def empty[A](implicit evidence: ClassTag[A]): Sliced[A] =
       Slice.create[A](sizeHint)
 
-    def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Slice[A]] =
+    def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Sliced[A]] =
       new SliceBuilder[A](sizeHint)
   }
 
@@ -111,30 +111,30 @@ object Slice extends SliceCompanionBase {
    */
 
   //@formatter:off
-  class Slice[+T] private[slice](array: Array[T],
+  class Sliced[+T] private[slice](array: Array[T],
                                  fromOffset: Int,
                                  toOffset: Int,
                                  written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends SliceBase[T](array, fromOffset, toOffset, written)
                                                                                                                 with SliceOption[T]
-                                                                                                                with IterableOps[T, Slice, Slice[T]]
-                                                                                                                with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
-                                                                                                                with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
+                                                                                                                with IterableOps[T, Sliced, Sliced[T]]
+                                                                                                                with EvidenceIterableFactoryDefaults[T, Sliced, ClassTag]
+                                                                                                                with StrictOptimizedIterableOps[T, Sliced, Sliced[T]] {
                                                                                                                 //@formatter:on
 
     override val isNoneC: Boolean =
       false
 
-    override def getC: Slice[T] =
+    override def getC: Sliced[T] =
       this
 
-    override def selfSlice: Slice[T] =
+    override def selfSlice: Sliced[T] =
       this
 
     override def evidenceIterableFactory: SliceFactory =
       new SliceFactory(size)
 
     //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
-    override def iterableFactory: IterableFactory[Slice] =
-      new ClassTagIterableFactory.AnyIterableDelegate[Slice](evidenceIterableFactory)
+    override def iterableFactory: IterableFactory[Sliced] =
+      new ClassTagIterableFactory.AnyIterableDelegate[Sliced](evidenceIterableFactory)
   }
 }

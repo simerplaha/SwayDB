@@ -34,7 +34,7 @@ import swaydb.core.segment.ThreadReadState
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._

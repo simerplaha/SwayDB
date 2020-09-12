@@ -42,7 +42,7 @@ private[core] object Time {
     new Time(slice)
   }
 
-  def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
+  def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Sliced[Byte]]): Boolean = {
     import timeOrder._
     if (upperTime.nonEmpty && lowerTime.nonEmpty)
       upperTime.time > lowerTime.time
@@ -51,11 +51,11 @@ private[core] object Time {
   }
 
   implicit class TimeOptionImplicits(time: Time) {
-    @inline final def >(otherTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean =
+    @inline final def >(otherTime: Time)(implicit timeOrder: TimeOrder[Sliced[Byte]]): Boolean =
       Time > (time, otherTime)
   }
 
-  def fromApplies(applies: Slice[Value.Apply]): Time =
+  def fromApplies(applies: Sliced[Value.Apply]): Time =
     applies
       .reverse
       .find(_.time.nonEmpty)
@@ -63,7 +63,7 @@ private[core] object Time {
       .getOrElse(Time.empty)
 }
 
-private[core] case class Time private(time: Slice[Byte]) {
+private[core] case class Time private(time: Sliced[Byte]) {
   def unslice(): Time =
     Time(time.unslice())
 

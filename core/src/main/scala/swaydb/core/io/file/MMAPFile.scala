@@ -184,11 +184,11 @@ private[file] class MMAPFile(val path: Path,
         )
     }
 
-  override def append(slice: Iterable[Slice[Byte]]): Unit =
+  override def append(slice: Iterable[Sliced[Byte]]): Unit =
     slice foreach append
 
   @tailrec
-  final def append(slice: Slice[Byte]): Unit =
+  final def append(slice: Sliced[Byte]): Unit =
     try
       watchNullPointer[Unit](buffer.put(slice.toByteBufferWrap))
     catch {
@@ -209,7 +209,7 @@ private[file] class MMAPFile(val path: Path,
         append(slice)
     }
 
-  def read(position: Int, size: Int): Slice[Byte] =
+  def read(position: Int, size: Int): Sliced[Byte] =
     watchNullPointer {
       val array = new Array[Byte](size)
       var i = 0
@@ -228,7 +228,7 @@ private[file] class MMAPFile(val path: Path,
   override def fileSize =
     watchNullPointer(channel.size())
 
-  override def readAll: Slice[Byte] =
+  override def readAll: Sliced[Byte] =
     watchNullPointer(read(0, channel.size().toInt))
 
   override def isOpen =

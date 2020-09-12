@@ -37,12 +37,12 @@ import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class FunctionMerger_Remove_Spec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   "Merging a key function into Remove" when {
     "times are in order" should {
       "always return new key-value" in {

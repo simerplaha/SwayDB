@@ -60,11 +60,11 @@ object Map extends LazyLogging {
                                                                                                                                                          functionClassTag: ClassTag[F],
                                                                                                                                                          bag: swaydb.Bag[BAG],
                                                                                                                                                          functions: Functions[F],
-                                                                                                                                                         byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                                                         byteKeyOrder: KeyOrder[Sliced[Byte]] = null,
                                                                                                                                                          typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                                          compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Map[K, V, F, BAG]] =
     bag.suspend {
-      val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
+      val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       val functionStore = FunctionConverter.toFunctionsStore[K, V, Apply.Map[V], F](functions)
 
       val map =

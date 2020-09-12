@@ -159,8 +159,8 @@ object IO {
   val someFalse: IO[Nothing, Some[Boolean]] = IO.Right(Some(false))(IO.ExceptionHandler.Nothing)
   val zero: IO.Right[Nothing, Int] = IO.Right(0)(IO.ExceptionHandler.Nothing)
   val zeroZero: IO[Nothing, IO.Right[Nothing, Int]] = IO.Right(IO.Right(0)(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
-  val emptyBytes: IO.Right[Nothing, Slice[Byte]] = IO.Right(Slice.emptyBytes)(IO.ExceptionHandler.Nothing)
-  val emptySeqBytes: IO.Right[Nothing, Seq[Slice[Byte]]] = IO.Right(Seq.empty[Slice[Byte]])(IO.ExceptionHandler.Nothing)
+  val emptyBytes: IO.Right[Nothing, Sliced[Byte]] = IO.Right(Slice.emptyBytes)(IO.ExceptionHandler.Nothing)
+  val emptySeqBytes: IO.Right[Nothing, Seq[Sliced[Byte]]] = IO.Right(Seq.empty[Sliced[Byte]])(IO.ExceptionHandler.Nothing)
   val okIO: IO.Right[Nothing, OK] = IO.Right(OK.instance)(IO.ExceptionHandler.Nothing)
 
   implicit class IterableIOImplicit[E: IO.ExceptionHandler, A: ClassTag](iterable: Iterable[A]) {
@@ -217,10 +217,10 @@ object IO {
     }
 
     def mapRecoverIO[R: ClassTag](block: A => IO[E, R],
-                                  recover: (Slice[R], IO.Left[E, Slice[R]]) => Unit = (_: Slice[R], _: IO.Left[E, Slice[R]]) => (),
-                                  failFast: Boolean = true): IO[E, Slice[R]] = {
+                                  recover: (Sliced[R], IO.Left[E, Sliced[R]]) => Unit = (_: Sliced[R], _: IO.Left[E, Sliced[R]]) => (),
+                                  failFast: Boolean = true): IO[E, Sliced[R]] = {
       val it = iterable.iterator
-      var failure: Option[IO.Left[E, Slice[R]]] = None
+      var failure: Option[IO.Left[E, Sliced[R]]] = None
       val results = Slice.create[R](iterable.size)
 
       while ((!failFast || failure.isEmpty) && it.hasNext) {
@@ -229,7 +229,7 @@ object IO {
             results add value
 
           case failed @ IO.Left(_) =>
-            failure = Some(IO.Left[E, Slice[R]](failed.value))
+            failure = Some(IO.Left[E, Sliced[R]](failed.value))
         }
       }
 
@@ -238,13 +238,13 @@ object IO {
           recover(results, value)
           value
         case None =>
-          IO.Right[E, Slice[R]](results)
+          IO.Right[E, Sliced[R]](results)
       }
     }
 
     def mapRecover[R: ClassTag](block: A => R,
-                                recover: (Slice[R], Throwable) => Unit = (_: Slice[R], _: Throwable) => (),
-                                failFast: Boolean = true): Slice[R] = {
+                                recover: (Sliced[R], Throwable) => Unit = (_: Sliced[R], _: Throwable) => (),
+                                failFast: Boolean = true): Sliced[R] = {
       val it = iterable.iterator
       var failure: Throwable = null
       val successes = Slice.create[R](iterable.size)
@@ -267,10 +267,10 @@ object IO {
     }
 
     def flatMapRecoverIO[R](ioBlock: A => IO[E, Iterable[R]],
-                            recover: (Iterable[R], IO.Left[E, Slice[R]]) => Unit = (_: Iterable[R], _: IO.Left[E, Iterable[R]]) => (),
+                            recover: (Iterable[R], IO.Left[E, Sliced[R]]) => Unit = (_: Iterable[R], _: IO.Left[E, Iterable[R]]) => (),
                             failFast: Boolean = true): IO[E, Iterable[R]] = {
       val it = iterable.iterator
-      var failure: Option[IO.Left[E, Slice[R]]] = None
+      var failure: Option[IO.Left[E, Sliced[R]]] = None
       val results = ListBuffer.empty[R]
 
       while ((!failFast || failure.isEmpty) && it.hasNext) {
@@ -279,7 +279,7 @@ object IO {
             value foreach (results += _)
 
           case failed @ IO.Left(_) =>
-            failure = Some(IO.Left[E, Slice[R]](failed.value))
+            failure = Some(IO.Left[E, Sliced[R]](failed.value))
         }
       }
 

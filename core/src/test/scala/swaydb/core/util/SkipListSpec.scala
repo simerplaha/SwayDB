@@ -45,8 +45,8 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
 
   implicit val ordering = KeyOrder.default
 
-  def createSkipList(): SkipListConcurrent[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some] =
-    SkipList.concurrent[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some](Slice.Null, Value.Null)
+  def createSkipList(): SkipListConcurrent[SliceOption[Byte], ValueOption, Sliced[Byte], Value.Some] =
+    SkipList.concurrent[SliceOption[Byte], ValueOption, Sliced[Byte], Value.Some](Slice.Null, Value.Null)
 
   "put & putIfAbsent" in {
     val skipList = createSkipList()
@@ -88,7 +88,7 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
     skipList.lower(1) shouldBe Value.Null
     skipList.lower(0) shouldBe Value.Null
 
-    skipList.lowerKey(2) shouldBe (1: Slice[Byte])
+    skipList.lowerKey(2) shouldBe (1: Sliced[Byte])
     skipList.lowerKey(1) shouldBe Slice.Null
     skipList.lowerKey(0) shouldBe Slice.Null
   }
@@ -117,8 +117,8 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
     skipList.ceiling(1) shouldBe Value.Some(1)
     skipList.ceiling(2) shouldBe Value.Null
 
-    skipList.ceilingKey(0) shouldBe (1: Slice[Byte])
-    skipList.ceilingKey(1) shouldBe (1: Slice[Byte])
+    skipList.ceilingKey(0) shouldBe (1: Sliced[Byte])
+    skipList.ceilingKey(1) shouldBe (1: Sliced[Byte])
     skipList.ceilingKey(2) shouldBe Slice.Null
   }
 
@@ -129,8 +129,8 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
 
     skipList.head() shouldBe Value.Some(1)
     skipList.last() shouldBe Value.Some(2)
-    skipList.headKey shouldBe (1: Slice[Byte])
-    skipList.lastKey shouldBe (2: Slice[Byte])
+    skipList.headKey shouldBe (1: Sliced[Byte])
+    skipList.lastKey shouldBe (2: Sliced[Byte])
 
     skipList.isEmpty shouldBe false
     skipList.clear()

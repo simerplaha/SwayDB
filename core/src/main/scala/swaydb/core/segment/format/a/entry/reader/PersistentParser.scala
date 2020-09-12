@@ -37,7 +37,7 @@ object PersistentParser {
 
   def parse(headerInteger: Int,
             indexOffset: Int,
-            tailBytes: Slice[Byte],
+            tailBytes: Sliced[Byte],
             previous: PersistentOption,
             mightBeCompressed: Boolean,
             keyCompressionOnly: Boolean,
@@ -94,7 +94,7 @@ object PersistentParser {
 
   def parsePartial(offset: Int,
                    headerInteger: Int,
-                   tailBytes: Slice[Byte],
+                   tailBytes: Sliced[Byte],
                    sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
     val tailReader = Reader(tailBytes)
@@ -133,7 +133,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -144,7 +144,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -155,7 +155,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -166,7 +166,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -177,7 +177,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -190,7 +190,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           fromKey
 
         override def toPersistent: Persistent =
@@ -202,7 +202,7 @@ object PersistentParser {
 
   def matchPartial(offset: Int,
                    headerInteger: Int,
-                   tailBytes: Slice[Byte],
+                   tailBytes: Sliced[Byte],
                    sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
     val tailReader = Reader(tailBytes)
@@ -241,7 +241,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -252,7 +252,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -263,7 +263,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -274,7 +274,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -285,7 +285,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           headerKeyBytes
 
         override def toPersistent: Persistent =
@@ -298,7 +298,7 @@ object PersistentParser {
         override def indexOffset: Int =
           offset
 
-        override def key: Slice[Byte] =
+        override def key: Sliced[Byte] =
           fromKey
 
         override def toPersistent: Persistent =

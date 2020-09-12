@@ -26,12 +26,12 @@ package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 private[swaydb] object CounterMapEntryReader {
 
-  implicit object CounterPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] {
-    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Slice[Byte]] = {
+  implicit object CounterPutMapEntryReader extends MapEntryReader[MapEntry[Sliced[Byte], Sliced[Byte]]] {
+    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Sliced[Byte]] = {
       val _ = reader.get()
       val keySize = reader.readUnsignedInt()
 

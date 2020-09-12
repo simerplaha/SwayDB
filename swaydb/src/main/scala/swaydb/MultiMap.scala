@@ -40,7 +40,7 @@ import scala.collection.compat._
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 object MultiMap {
 
@@ -543,10 +543,10 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     innerMap.sizeOfSegments
 
   def keySize(key: K): Int =
-    (key: Slice[Byte]).size
+    (key: Sliced[Byte]).size
 
   def valueSize(value: V): Int =
-    (value: Slice[Byte]).size
+    (value: Sliced[Byte]).size
 
   def expiration(key: K): BAG[Option[Deadline]] =
     innerMap.expiration(MultiKey.Key(mapId, key))

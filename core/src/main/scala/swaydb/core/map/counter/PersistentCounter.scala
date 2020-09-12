@@ -44,21 +44,21 @@ import swaydb.{Actor, ActorRef, IO}
 
 private[core] object PersistentCounter extends LazyLogging {
 
-  private implicit object CounterSkipListMerger extends SkipListMerger.Disabled[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]]("CounterSkipListMerger")
+  private implicit object CounterSkipListMerger extends SkipListMerger.Disabled[SliceOption[Byte], SliceOption[Byte], Sliced[Byte], Sliced[Byte]]("CounterSkipListMerger")
 
   private[counter] def apply(path: Path,
                              mmap: MMAP.Map,
                              mod: Long,
                              flushCheckpointSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
                                                         forceSaveApplier: ForceSaveApplier,
-                                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                                        reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] = {
+                                                        writer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Sliced[Byte]]],
+                                                        reader: MapEntryReader[MapEntry[Sliced[Byte], Sliced[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] = {
     //Disabled because autoClose is not required here.
     implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] = Actor.deadActor()
-    implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+    implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
 
     IO {
-      Map.persistent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]](
+      Map.persistent[SliceOption[Byte], SliceOption[Byte], Sliced[Byte], Sliced[Byte]](
         folder = path,
         mmap = mmap,
         flushOnOverflow = true,
@@ -70,7 +70,7 @@ private[core] object PersistentCounter extends LazyLogging {
     } flatMap {
       map =>
         map.head() match {
-          case userId: Slice[Byte] =>
+          case userId: Sliced[Byte] =>
             val startId = userId.readLong()
             map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong(startId + mod))) flatMap {
               wrote =>
@@ -107,7 +107,7 @@ private[core] object PersistentCounter extends LazyLogging {
 
 private[core] class PersistentCounter(mod: Long,
                                       startId: Long,
-                                      map: PersistentMap[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Counter with LazyLogging {
+                                      map: PersistentMap[SliceOption[Byte], SliceOption[Byte], Sliced[Byte], Sliced[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Sliced[Byte]]]) extends Counter with LazyLogging {
 
   private var count = startId
 

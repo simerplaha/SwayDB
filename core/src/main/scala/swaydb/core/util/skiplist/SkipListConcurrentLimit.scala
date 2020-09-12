@@ -125,7 +125,7 @@ private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: Optio
 
   override def keys(): util.NavigableSet[Key] = skipList.keys()
 
-  override def take(count: Int): Slice[Value] = skipList.take(count)
+  override def take(count: Int): Sliced[Value] = skipList.take(count)
 
   override def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R = skipList.foldLeft(r)(f)
 

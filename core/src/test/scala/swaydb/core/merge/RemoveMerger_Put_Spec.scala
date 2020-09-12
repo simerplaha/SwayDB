@@ -38,7 +38,7 @@ import swaydb.serializers._
 class RemoveMerger_Put_Spec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   "Merging remove into any other fixed key-value" when {
 
     "times are in order" should {

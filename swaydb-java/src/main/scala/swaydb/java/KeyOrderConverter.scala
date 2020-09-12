@@ -35,8 +35,8 @@ protected object KeyOrderConverter {
                          keySerializer: Serializer[K]) =
     comparatorEither match {
       case Right(comparator) =>
-        new KeyOrder[Slice[Byte]] {
-          override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
+        new KeyOrder[Sliced[Byte]] {
+          override def compare(left: Sliced[Byte], right: Sliced[Byte]): Int = {
             val leftKey = keySerializer.read(left)
             val rightKey = keySerializer.read(right)
             comparator.compare(leftKey, rightKey)
@@ -44,8 +44,8 @@ protected object KeyOrderConverter {
         }
 
       case Left(comparator) =>
-        new KeyOrder[Slice[Byte]] {
-          override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
+        new KeyOrder[Sliced[Byte]] {
+          override def compare(x: Sliced[Byte], y: Sliced[Byte]): Int =
             comparator.compare(ByteSliceBuilder(x), ByteSliceBuilder(y))
         }
     }

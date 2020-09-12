@@ -71,7 +71,7 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
   implicit val bag = Bag.less
 
   //  implicit val mapKeySerializer = Key.serializer(IntSerializer)
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
 
 
   "apply and register function" when {

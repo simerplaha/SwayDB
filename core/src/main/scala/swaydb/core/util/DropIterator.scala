@@ -56,7 +56,7 @@ private[core] object DropIterator {
   @inline final def empty[H >: Null <: T, T >: Null] =
     new Single[H, T](0, null, null, Iterator.empty)
 
-  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Sliced[T]): DropIterator[H, T] =
     new Single[H, T](keyValues.size, null, null, keyValues.iterator)
 
   @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator[H, T] =

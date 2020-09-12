@@ -58,11 +58,11 @@ class LowerFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory with
 
       inSequence {
         //@formatter:off
-        current.lower         _ expects (0: Slice[Byte], *)  returning LevelSeek.None
-        next.lower            _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
+        current.lower         _ expects (0: Sliced[Byte], *)  returning LevelSeek.None
+        next.lower            _ expects (0: Sliced[Byte], *)  returning KeyValue.Put.Null
         //@formatter:on
       }
-      Lower(0: Slice[Byte]).right.value shouldBe empty
+      Lower(0: Sliced[Byte]).right.value shouldBe empty
     }
 
 
@@ -78,12 +78,12 @@ class LowerFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory with
 
         inSequence {
           //@formatter:off
-          current.lower         _ expects (1: Slice[Byte], *)  returning LevelSeek.Some(1, randomRemoveOrUpdateOrFunctionRemove(0))
-          next.lower            _ expects (1: Slice[Byte], *)  returning KeyValue.Put.Null
-          current.lower         _ expects (0: Slice[Byte], *)  returning LevelSeek.None
+          current.lower         _ expects (1: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRemoveOrUpdateOrFunctionRemove(0))
+          next.lower            _ expects (1: Sliced[Byte], *)  returning KeyValue.Put.Null
+          current.lower         _ expects (0: Sliced[Byte], *)  returning LevelSeek.None
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).right.value shouldBe empty
+        Lower(1: Sliced[Byte]).right.value shouldBe empty
       }
     }
 
@@ -100,13 +100,13 @@ class LowerFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory with
 
         inSequence {
           //@formatter:off
-          current.lower         _ expects (1: Slice[Byte], *)  returning LevelSeek.Some(1, randomRemoveOrUpdateOrFunctionRemove(0))
-          next.lower            _ expects (1: Slice[Byte], *)  returning randomPutKeyValue(0)
-          current.lower         _ expects (0: Slice[Byte], *)  returning LevelSeek.None
-          next.lower            _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
+          current.lower         _ expects (1: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRemoveOrUpdateOrFunctionRemove(0))
+          next.lower            _ expects (1: Sliced[Byte], *)  returning randomPutKeyValue(0)
+          current.lower         _ expects (0: Sliced[Byte], *)  returning LevelSeek.None
+          next.lower            _ expects (0: Sliced[Byte], *)  returning KeyValue.Put.Null
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).right.value shouldBe empty
+        Lower(1: Sliced[Byte]).right.value shouldBe empty
       }
     }
 
@@ -125,14 +125,14 @@ class LowerFixedNoneSpec extends AnyWordSpec with Matchers with MockFactory with
 
         inSequence {
           //@formatter:off
-          current.lower         _ expects (2: Slice[Byte], *)  returning LevelSeek.Some(1, randomRemoveOrUpdateOrFunctionRemove(1))
-          next.lower            _ expects (2: Slice[Byte], *)  returning randomPutKeyValue(0)
-          current.lower         _ expects (1: Slice[Byte], *)  returning LevelSeek.Some(1, randomRemoveOrUpdateOrFunctionRemove(0))
-          current.lower         _ expects (0: Slice[Byte], *)  returning LevelSeek.None
-          next.lower            _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
+          current.lower         _ expects (2: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRemoveOrUpdateOrFunctionRemove(1))
+          next.lower            _ expects (2: Sliced[Byte], *)  returning randomPutKeyValue(0)
+          current.lower         _ expects (1: Sliced[Byte], *)  returning LevelSeek.Some(1, randomRemoveOrUpdateOrFunctionRemove(0))
+          current.lower         _ expects (0: Sliced[Byte], *)  returning LevelSeek.None
+          next.lower            _ expects (0: Sliced[Byte], *)  returning KeyValue.Put.Null
           //@formatter:on
         }
-        Lower(2: Slice[Byte]).right.value shouldBe empty
+        Lower(2: Sliced[Byte]).right.value shouldBe empty
       }
     }
 

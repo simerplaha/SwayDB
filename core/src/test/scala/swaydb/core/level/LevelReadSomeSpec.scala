@@ -40,7 +40,7 @@ import swaydb.data.util.OperatingSystem
 
 import scala.util.{Failure, Success, Try}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class LevelReadSomeSpec0 extends LevelReadSomeSpec
 

@@ -41,7 +41,7 @@ import swaydb.serializers._
 class PendingApplyMergerSpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   "Merging PendingApply into any other fixed key-value" when {
     "times are in order" in {
 

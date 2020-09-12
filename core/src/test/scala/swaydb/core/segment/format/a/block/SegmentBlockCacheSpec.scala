@@ -31,7 +31,7 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 import TestCaseSweeper._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default

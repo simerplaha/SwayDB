@@ -57,13 +57,13 @@ object SetMap extends LazyLogging {
                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
                                                                                                                             valueSerializer: Serializer[V],
                                                                                                                             bag: swaydb.Bag[BAG],
-                                                                                                                            byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                            byteKeyOrder: KeyOrder[Sliced[Byte]] = null,
                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
       val keyOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
-      val ordering: KeyOrder[Slice[Byte]] = swaydb.SetMap.ordering(keyOrder)
+      val ordering: KeyOrder[Sliced[Byte]] = swaydb.SetMap.ordering(keyOrder)
 
       val set =
         Set[(K, V), Nothing, BAG](

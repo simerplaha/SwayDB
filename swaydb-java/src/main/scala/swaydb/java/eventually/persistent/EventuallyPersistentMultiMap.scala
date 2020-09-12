@@ -234,7 +234,7 @@ object EventuallyPersistentMultiMap {
           default = KeyComparator.lexicographic
         )
 
-      val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
+      val scalaKeyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
         swaydb.eventually.persistent.MultiMap[M, K, V, PureFunction.Map[K, V], Bag.Less](

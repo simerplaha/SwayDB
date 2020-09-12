@@ -37,7 +37,7 @@ import swaydb.serializers.Serializer
 import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 object Queue {
 
@@ -78,7 +78,7 @@ object Queue {
    */
   def serialiser[A](bSerializer: Serializer[A]): Serializer[(Long, A)] =
     new Serializer[(Long, A)] {
-      override def write(data: (Long, A)): Slice[Byte] = {
+      override def write(data: (Long, A)): Sliced[Byte] = {
         val valueBytes =
           if (data._2 == null)
             Slice.emptyBytes //value can be null when
@@ -92,7 +92,7 @@ object Queue {
           .addAll(valueBytes)
       }
 
-      override def read(data: Slice[Byte]): (Long, A) = {
+      override def read(data: Sliced[Byte]): (Long, A) = {
         val reader = data.createReader()
 
         val key = reader.readUnsignedLong()
@@ -107,12 +107,12 @@ object Queue {
   /**
    * Partial ordering based on [[SetMap.serialiser]].
    */
-  def ordering: KeyOrder[Slice[Byte]] =
-    new KeyOrder[Slice[Byte]] {
-      override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
+  def ordering: KeyOrder[Sliced[Byte]] =
+    new KeyOrder[Sliced[Byte]] {
+      override def compare(left: Sliced[Byte], right: Sliced[Byte]): Int =
         left.readUnsignedLong() compare right.readUnsignedLong()
 
-      private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
+      private[swaydb] override def comparableKey(key: Sliced[Byte]): Sliced[Byte] = {
         val (_, byteSize) = key.readUnsignedLongWithByteSize()
         key.take(byteSize)
       }

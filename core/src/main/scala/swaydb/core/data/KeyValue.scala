@@ -55,7 +55,7 @@ private[core] sealed trait KeyValueOption {
 }
 
 private[core] sealed trait KeyValue {
-  def key: Slice[Byte]
+  def key: Sliced[Byte]
 
   def indexEntryDeadline: Option[Deadline]
   def toMemory: Memory
@@ -94,7 +94,7 @@ private[core] object KeyValue {
     def isSome: Boolean =
       !isNoneS
 
-    def toTuple: Option[(Slice[Byte], Option[Slice[Byte]])] =
+    def toTuple: Option[(Sliced[Byte], Option[Sliced[Byte]])] =
       if (isNoneS) {
         None
       } else {
@@ -104,7 +104,7 @@ private[core] object KeyValue {
         Some((key, value.toOptionC))
       }
 
-    def toTupleOrNone: TupleOrNone[Slice[Byte], SliceOption[Byte]] =
+    def toTupleOrNone: TupleOrNone[Sliced[Byte], SliceOption[Byte]] =
       if (isNoneS) {
         TupleOrNone.None
       } else {
@@ -112,7 +112,7 @@ private[core] object KeyValue {
         TupleOrNone.Some(put.key, put.getOrFetchValue)
       }
 
-    def toDeadlineOrNone: TupleOrNone[Slice[Byte], Option[Deadline]] =
+    def toDeadlineOrNone: TupleOrNone[Sliced[Byte], Option[Deadline]] =
       if (isNoneS) {
         TupleOrNone.None
       } else {
@@ -120,7 +120,7 @@ private[core] object KeyValue {
         TupleOrNone.Some(put.key, put.deadline)
       }
 
-    def toKeyValueDeadlineOrNone: TupleOrNone[(Slice[Byte], SliceOption[Byte]), Option[Deadline]] =
+    def toKeyValueDeadlineOrNone: TupleOrNone[(Sliced[Byte], SliceOption[Byte]), Option[Deadline]] =
       if (isNoneS) {
         TupleOrNone.None
       } else {
@@ -232,29 +232,29 @@ private[core] object KeyValue {
 
   sealed trait Function extends KeyValue.Fixed {
     def time: Time
-    def getOrFetchFunction: Slice[Byte]
+    def getOrFetchFunction: Sliced[Byte]
     def toFromValue(): Value.Function
     def copyWithTime(time: Time): Function
   }
 
   sealed trait PendingApply extends KeyValue.Fixed {
-    def getOrFetchApplies: Slice[Value.Apply]
+    def getOrFetchApplies: Sliced[Value.Apply]
     def toFromValue(): Value.PendingApply
     def time: Time
     def deadline: Option[Deadline]
   }
 
   object Range {
-    def contains(range: KeyValue.Range, key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+    def contains(range: KeyValue.Range, key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]) =
       keyOrder.gteq(key, range.fromKey) && keyOrder.lt(key, range.toKey) //key >= range.fromKey && key < range.toKey
 
-    def containsLower(range: KeyValue.Range, key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+    def containsLower(range: KeyValue.Range, key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]) =
       keyOrder.gt(key, range.fromKey) && keyOrder.lteq(key, range.toKey) //key > range.fromKey && key <= range.toKey
   }
 
   sealed trait Range extends KeyValue {
-    def fromKey: Slice[Byte]
-    def toKey: Slice[Byte]
+    def fromKey: Sliced[Byte]
+    def toKey: Sliced[Byte]
     def fetchFromValueUnsafe: Value.FromValueOption
     def fetchRangeValueUnsafe: Value.RangeValue
     def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue)
@@ -279,7 +279,7 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOption {
   def isRemoveRangeMayBe: Boolean
   def isPut: Boolean
   def persistentTime: Time
-  def mergedKey: Slice[Byte]
+  def mergedKey: Sliced[Byte]
   def value: SliceOption[Byte]
   def deadline: Option[Deadline]
 
@@ -302,8 +302,8 @@ private[swaydb] object Memory {
 
   }
 
-  implicit class MemoryIterableImplicits(keyValues: Slice[Memory]) {
-    @inline final def maxKey(): MaxKey[Slice[Byte]] =
+  implicit class MemoryIterableImplicits(keyValues: Sliced[Memory]) {
+    @inline final def maxKey(): MaxKey[Sliced[Byte]] =
       keyValues.last match {
         case range: Memory.Range =>
           MaxKey.Range(range.fromKey, range.toKey)
@@ -312,7 +312,7 @@ private[swaydb] object Memory {
           MaxKey.Fixed(fixed.key)
       }
 
-    @inline final def minKey: Slice[Byte] =
+    @inline final def minKey: Sliced[Byte] =
       keyValues.head.key
   }
 
@@ -378,7 +378,7 @@ private[swaydb] object Memory {
       case (left: Memory.Range, right: Memory.Range) => left.fromValue == right.fromValue && left.rangeValue == right.rangeValue
     }
 
-  case class Put(key: Slice[Byte],
+  case class Put(key: Sliced[Byte],
                  value: SliceOption[Byte],
                  deadline: Option[Deadline],
                  time: Time) extends Memory.Fixed with KeyValue.Put {
@@ -445,7 +445,7 @@ private[swaydb] object Memory {
     final val id = 2.toByte
   }
 
-  case class Update(key: Slice[Byte],
+  case class Update(key: Sliced[Byte],
                     value: SliceOption[Byte],
                     deadline: Option[Deadline],
                     time: Time) extends KeyValue.Update with Memory.Fixed {
@@ -525,8 +525,8 @@ private[swaydb] object Memory {
     final val id = 3.toByte
   }
 
-  case class Function(key: Slice[Byte],
-                      function: Slice[Byte],
+  case class Function(key: Sliced[Byte],
+                      function: Sliced[Byte],
                       time: Time) extends KeyValue.Function with Memory.Fixed {
 
     override def id: Byte = Function.id
@@ -555,7 +555,7 @@ private[swaydb] object Memory {
           time = time.unslice()
         )
 
-    override def getOrFetchFunction: Slice[Byte] =
+    override def getOrFetchFunction: Sliced[Byte] =
       function
 
     override def toFromValue(): Value.Function =
@@ -575,8 +575,8 @@ private[swaydb] object Memory {
     final val id = 4.toByte
   }
 
-  case class PendingApply(key: Slice[Byte],
-                          applies: Slice[Value.Apply]) extends KeyValue.PendingApply with Memory.Fixed {
+  case class PendingApply(key: Sliced[Byte],
+                          applies: Sliced[Value.Apply]) extends KeyValue.PendingApply with Memory.Fixed {
 
     override def id: Byte = PendingApply.id
 
@@ -606,7 +606,7 @@ private[swaydb] object Memory {
 
     def time = Time.fromApplies(applies)
 
-    override def getOrFetchApplies: Slice[Value.Apply] =
+    override def getOrFetchApplies: Sliced[Value.Apply] =
       applies
 
     override def toFromValue(): Value.PendingApply =
@@ -623,7 +623,7 @@ private[swaydb] object Memory {
     final val id = 5.toByte
   }
 
-  case class Remove(key: Slice[Byte],
+  case class Remove(key: Sliced[Byte],
                     deadline: Option[Deadline],
                     time: Time) extends Memory.Fixed with KeyValue.Remove {
 
@@ -678,8 +678,8 @@ private[swaydb] object Memory {
 
     final val id = 6.toByte
 
-    def apply(fromKey: Slice[Byte],
-              toKey: Slice[Byte],
+    def apply(fromKey: Sliced[Byte],
+              toKey: Sliced[Byte],
               fromValue: Value.FromValue,
               rangeValue: Value.RangeValue): Range =
       new Range(
@@ -690,8 +690,8 @@ private[swaydb] object Memory {
       )
   }
 
-  case class Range(fromKey: Slice[Byte],
-                   toKey: Slice[Byte],
+  case class Range(fromKey: Sliced[Byte],
+                   toKey: Sliced[Byte],
                    fromValue: Value.FromValueOption,
                    rangeValue: Value.RangeValue) extends Memory with KeyValue.Range {
 
@@ -716,7 +716,7 @@ private[swaydb] object Memory {
           rangeValue = rangeValue.unslice
         )
 
-    override lazy val mergedKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
+    override lazy val mergedKey: Sliced[Byte] = Bytes.compressJoin(fromKey, toKey)
 
     override lazy val value: SliceOption[Byte] = {
       val bytesRequired = OptionRangeValueSerializer.bytesRequired(fromValue, rangeValue)
@@ -727,7 +727,7 @@ private[swaydb] object Memory {
 
     override def deadline: Option[Deadline] = None
 
-    override def key: Slice[Byte] = fromKey
+    override def key: Sliced[Byte] = fromKey
 
     override def indexEntryDeadline: Option[Deadline] = None
 
@@ -839,17 +839,17 @@ private[core] object Persistent {
     var isBinarySearchBehind: Boolean = false
     var isBinarySearchAhead: Boolean = false
 
-    def key: Slice[Byte]
+    def key: Sliced[Byte]
     def indexOffset: Int
     def toPersistent: Persistent
     def isPartial: Boolean = true
     def get: Partial = this
 
     //NOTE: the input key should be full Key and NOT comparable key.
-    def matchMutateForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.Partial
+    def matchMutateForBinarySearch(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Persistent.Partial
 
     //NOTE: the input key should be full Key and NOT comparable key.
-    def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean
+    def matchForHashIndex(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Boolean
   }
 
   object Partial {
@@ -864,7 +864,7 @@ private[core] object Persistent {
       override def getC: Partial = this
       override def isNoneC: Boolean = false
 
-      def matchMutateForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.Partial = {
+      def matchMutateForBinarySearch(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Persistent.Partial = {
         KeyMatcher.Get.matchMutateForBinarySearch(
           key = key,
           partialKeyValue = this
@@ -872,7 +872,7 @@ private[core] object Persistent {
         this
       }
 
-      def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+      def matchForHashIndex(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Boolean =
         KeyMatcher.Get.matchForHashIndex(
           key = key,
           partialKeyValue = this
@@ -883,10 +883,10 @@ private[core] object Persistent {
       override def getC: Partial = this
       override def isNoneC: Boolean = false
 
-      def fromKey: Slice[Byte]
-      def toKey: Slice[Byte]
+      def fromKey: Sliced[Byte]
+      def toKey: Sliced[Byte]
 
-      def matchMutateForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.Partial = {
+      def matchMutateForBinarySearch(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Persistent.Partial = {
         KeyMatcher.Get.matchMutateForBinarySearch(
           key = key,
           range = this
@@ -894,7 +894,7 @@ private[core] object Persistent {
         this
       }
 
-      def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+      def matchForHashIndex(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Boolean =
         KeyMatcher.Get.matchForHashIndex(
           key = key,
           range = this
@@ -905,7 +905,7 @@ private[core] object Persistent {
   sealed trait Fixed extends Persistent with KeyValue.Fixed with Partial.Fixed
 
   sealed trait Reader[T <: Persistent] {
-    def apply(key: Slice[Byte],
+    def apply(key: Sliced[Byte],
               deadline: Option[Deadline],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
@@ -918,7 +918,7 @@ private[core] object Persistent {
   }
 
   object Remove extends Reader[Persistent.Remove] {
-    def apply(key: Slice[Byte],
+    def apply(key: Sliced[Byte],
               deadline: Option[Deadline],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
@@ -940,7 +940,7 @@ private[core] object Persistent {
 
   }
 
-  case class Remove(private var _key: Slice[Byte],
+  case class Remove(private var _key: Sliced[Byte],
                     deadline: Option[Deadline],
                     private var _time: Time,
                     indexOffset: Int,
@@ -992,7 +992,7 @@ private[core] object Persistent {
   }
 
   object Put extends Reader[Persistent.Put] {
-    def apply(key: Slice[Byte],
+    def apply(key: Sliced[Byte],
               deadline: Option[Deadline],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
@@ -1028,7 +1028,7 @@ private[core] object Persistent {
       )
   }
 
-  case class Put(private var _key: Slice[Byte],
+  case class Put(private var _key: Sliced[Byte],
                  deadline: Option[Deadline],
                  private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOption[Byte]],
                  private var _time: Time,
@@ -1043,7 +1043,7 @@ private[core] object Persistent {
       _time = _time.unslice()
     }
 
-    override def key: Slice[Byte] =
+    override def key: Sliced[Byte] =
       _key
 
     override def time: Time =
@@ -1096,7 +1096,7 @@ private[core] object Persistent {
   }
 
   object Update extends Reader[Persistent.Update] {
-    def apply(key: Slice[Byte],
+    def apply(key: Sliced[Byte],
               deadline: Option[Deadline],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
@@ -1132,7 +1132,7 @@ private[core] object Persistent {
       )
   }
 
-  case class Update(private var _key: Slice[Byte],
+  case class Update(private var _key: Sliced[Byte],
                     deadline: Option[Deadline],
                     private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOption[Byte]],
                     private var _time: Time,
@@ -1147,7 +1147,7 @@ private[core] object Persistent {
       _time = _time.unslice()
     }
 
-    override def key: Slice[Byte] =
+    override def key: Sliced[Byte] =
       _key
 
     override def time: Time =
@@ -1229,7 +1229,7 @@ private[core] object Persistent {
 
   object Function extends Reader[Persistent.Function] {
 
-    def apply(key: Slice[Byte],
+    def apply(key: Sliced[Byte],
               deadline: Option[Deadline],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
@@ -1251,7 +1251,7 @@ private[core] object Persistent {
         sortedIndexAccessPosition = sortedIndexAccessPosition
       )
 
-    def apply(key: Slice[Byte],
+    def apply(key: Sliced[Byte],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
@@ -1263,7 +1263,7 @@ private[core] object Persistent {
       new Function(
         _key = key,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlock.Offset, Sliced[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null)
                 throw IO.throwable("ValuesBlock is undefined.")
@@ -1283,8 +1283,8 @@ private[core] object Persistent {
       )
   }
 
-  case class Function(private var _key: Slice[Byte],
-                      private val valueCache: CacheNoIO[ValuesBlock.Offset, Slice[Byte]],
+  case class Function(private var _key: Sliced[Byte],
+                      private val valueCache: CacheNoIO[ValuesBlock.Offset, Sliced[Byte]],
                       private var _time: Time,
                       nextIndexOffset: Int,
                       nextKeySize: Int,
@@ -1297,7 +1297,7 @@ private[core] object Persistent {
       _time = _time.unslice()
     }
 
-    override def key: Slice[Byte] =
+    override def key: Sliced[Byte] =
       _key
 
     override def time: Time =
@@ -1308,7 +1308,7 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    def getOrFetchFunction: Slice[Byte] =
+    def getOrFetchFunction: Sliced[Byte] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toFromValue(): Value.Function =
@@ -1336,7 +1336,7 @@ private[core] object Persistent {
 
   object PendingApply extends Reader[Persistent.PendingApply] {
 
-    def apply(key: Slice[Byte],
+    def apply(key: Sliced[Byte],
               deadline: Option[Deadline],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
@@ -1351,7 +1351,7 @@ private[core] object Persistent {
         _time = time,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlock.Offset, Sliced[Value.Apply]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (valuesReaderOrNull == null) {
                 throw IO.throwable("ValuesBlock is undefined.")
@@ -1362,7 +1362,7 @@ private[core] object Persistent {
                     .readFullBlock()
 
                 ValueSerializer
-                  .read[Slice[Value.Apply]](bytes)
+                  .read[Sliced[Value.Apply]](bytes)
                   .map(_.unslice)
               }
           },
@@ -1375,10 +1375,10 @@ private[core] object Persistent {
       )
   }
 
-  case class PendingApply(private var _key: Slice[Byte],
+  case class PendingApply(private var _key: Sliced[Byte],
                           private var _time: Time,
                           deadline: Option[Deadline],
-                          valueCache: CacheNoIO[ValuesBlock.Offset, Slice[Value.Apply]],
+                          valueCache: CacheNoIO[ValuesBlock.Offset, Sliced[Value.Apply]],
                           nextIndexOffset: Int,
                           nextKeySize: Int,
                           indexOffset: Int,
@@ -1390,7 +1390,7 @@ private[core] object Persistent {
       _time = _time.unslice()
     }
 
-    override def key: Slice[Byte] =
+    override def key: Sliced[Byte] =
       _key
 
     override def time: Time =
@@ -1401,7 +1401,7 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    override def getOrFetchApplies: Slice[Value.Apply] =
+    override def getOrFetchApplies: Sliced[Value.Apply] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toFromValue(): Value.PendingApply = {
@@ -1423,7 +1423,7 @@ private[core] object Persistent {
   }
 
   object Range extends Reader[Persistent.Range] {
-    def apply(key: Slice[Byte],
+    def apply(key: Sliced[Byte],
               deadline: Option[Deadline],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
@@ -1444,7 +1444,7 @@ private[core] object Persistent {
         sortedIndexAccessPosition = sortedIndexAccessPosition
       )
 
-    def apply(key: Slice[Byte],
+    def apply(key: Sliced[Byte],
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1466,8 +1466,8 @@ private[core] object Persistent {
       )
     }
 
-    def parsedKey(fromKey: Slice[Byte],
-                  toKey: Slice[Byte],
+    def parsedKey(fromKey: Sliced[Byte],
+                  toKey: Sliced[Byte],
                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                   nextIndexOffset: Int,
                   nextKeySize: Int,
@@ -1505,8 +1505,8 @@ private[core] object Persistent {
       )
   }
 
-  case class Range private(private var _fromKey: Slice[Byte],
-                           private var _toKey: Slice[Byte],
+  case class Range private(private var _fromKey: Sliced[Byte],
+                           private var _toKey: Sliced[Byte],
                            valueCache: CacheNoIO[ValuesBlock.Offset, (Value.FromValueOption, Value.RangeValue)],
                            nextIndexOffset: Int,
                            nextKeySize: Int,
@@ -1526,7 +1526,7 @@ private[core] object Persistent {
       this._toKey = _toKey.unslice()
     }
 
-    override def key: Slice[Byte] =
+    override def key: Sliced[Byte] =
       _fromKey
 
     def fetchRangeValueUnsafe: Value.RangeValue =

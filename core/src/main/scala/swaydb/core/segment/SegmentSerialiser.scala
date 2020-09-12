@@ -37,7 +37,7 @@ import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.Options._
@@ -46,12 +46,12 @@ import scala.concurrent.duration.Deadline
 
 private[core] sealed trait SegmentSerialiser {
 
-  def write(value: Segment, bytes: Slice[Byte]): Unit
+  def write(value: Segment, bytes: Sliced[Byte]): Unit
 
   def read(reader: ReaderBase,
            mmapSegment: MMAP.Segment,
-           checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                 timeOrder: TimeOrder[Slice[Byte]],
+           checkExists: Boolean)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                 timeOrder: TimeOrder[Sliced[Byte]],
                                  functionStore: FunctionStore,
                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                  fileSweeper: FileSweeperActor,
@@ -69,7 +69,7 @@ private[core] object SegmentSerialiser {
   object FormatA extends SegmentSerialiser {
     val formatId: Byte = 0.toByte
 
-    override def write(segment: Segment, bytes: Slice[Byte]): Unit = {
+    override def write(segment: Segment, bytes: Sliced[Byte]): Unit = {
       val segmentPath = Slice(segment.path.toString.getBytes(StandardCharsets.UTF_8))
 
       val (maxKeyId, maxKeyBytes) =
@@ -115,8 +115,8 @@ private[core] object SegmentSerialiser {
 
     def read(reader: ReaderBase,
              mmapSegment: MMAP.Segment,
-             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                   timeOrder: TimeOrder[Slice[Byte]],
+             checkExists: Boolean)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                   timeOrder: TimeOrder[Sliced[Byte]],
                                    functionStore: FunctionStore,
                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                    fileSweeper: FileSweeperActor,

@@ -48,8 +48,8 @@ import scala.util.Random
 
 class AppendixRepairerSpec extends TestBase {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   implicit val ec = TestExecutionContext.executionContext
 
   "AppendixRepair" should {

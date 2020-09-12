@@ -43,7 +43,7 @@ import swaydb.serializers._
 
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class SegmentGetSpec0 extends SegmentGetSpec {
   val keyValuesCount = 1000

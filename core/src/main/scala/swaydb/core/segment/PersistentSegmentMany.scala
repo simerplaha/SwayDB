@@ -61,12 +61,12 @@ import scala.jdk.CollectionConverters._
 protected object PersistentSegmentMany {
 
   val formatId: Byte = 127
-  val formatIdSlice: Slice[Byte] = Slice(formatId)
+  val formatIdSlice: Sliced[Byte] = Slice(formatId)
 
   def apply(file: DBFile,
             createdInLevel: Int,
-            segment: TransientSegment.Many)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                            timeOrder: TimeOrder[Slice[Byte]],
+            segment: TransientSegment.Many)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                            timeOrder: TimeOrder[Sliced[Byte]],
                                             functionStore: FunctionStore,
                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                             blockCache: Option[BlockCache.State],
@@ -78,7 +78,7 @@ protected object PersistentSegmentMany {
       if (segment.segments.isEmpty) {
         None
       } else {
-        val skipList = SkipList.map[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
+        val skipList = SkipList.map[SliceOption[Byte], SegmentRefOption, Sliced[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
         implicit val blockMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
         val firstSegmentOffset =
@@ -138,19 +138,19 @@ protected object PersistentSegmentMany {
   def apply(file: DBFile,
             segmentSize: Int,
             createdInLevel: Int,
-            minKey: Slice[Byte],
-            maxKey: MaxKey[Slice[Byte]],
-            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+            minKey: Sliced[Byte],
+            maxKey: MaxKey[Sliced[Byte]],
+            minMaxFunctionId: Option[MinMax[Sliced[Byte]]],
             nearestExpiryDeadline: Option[Deadline],
-            initial: Option[SkipListMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                        functionStore: FunctionStore,
-                                                                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                        blockCache: Option[BlockCache.State],
-                                                                                                        fileSweeper: FileSweeperActor,
-                                                                                                        bufferCleaner: ByteBufferSweeperActor,
-                                                                                                        segmentIO: SegmentIO,
-                                                                                                        forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
+            initial: Option[SkipListMap[SliceOption[Byte], SegmentRefOption, Sliced[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                                                                         timeOrder: TimeOrder[Sliced[Byte]],
+                                                                                                         functionStore: FunctionStore,
+                                                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                         blockCache: Option[BlockCache.State],
+                                                                                                         fileSweeper: FileSweeperActor,
+                                                                                                         bufferCleaner: ByteBufferSweeperActor,
+                                                                                                         segmentIO: SegmentIO,
+                                                                                                         forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
@@ -162,7 +162,7 @@ protected object PersistentSegmentMany {
       )
 
     val segments =
-      Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, SkipListMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]](
+      Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, SkipListMap[SliceOption[Byte], SegmentRefOption, Sliced[Byte], SegmentRef]](
         initial = initial,
         strategy = _ => segmentIO.segmentBlockIO(IOAction.ReadDataOverview).forceCacheOnAccess,
         reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"${file.path}: ${this.getClass.getSimpleName}"))
@@ -195,8 +195,8 @@ protected object PersistentSegmentMany {
    *
    * Used when Segment's information is unknown.
    */
-  def apply(file: DBFile)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                          timeOrder: TimeOrder[Slice[Byte]],
+  def apply(file: DBFile)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                          timeOrder: TimeOrder[Sliced[Byte]],
                           functionStore: FunctionStore,
                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                           blockCacheMemorySweeper: Option[MemorySweeper.Block],
@@ -288,12 +288,12 @@ protected object PersistentSegmentMany {
   }
 
   private def parseSkipList(file: DBFile,
-                            minKey: Slice[Byte],
-                            maxKey: MaxKey[Slice[Byte]],
-                            fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                            minKey: Sliced[Byte],
+                            maxKey: MaxKey[Sliced[Byte]],
+                            fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                               segmentIO: SegmentIO): SkipListMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] = {
+                                                                               segmentIO: SegmentIO): SkipListMap[SliceOption[Byte], SegmentRefOption, Sliced[Byte], SegmentRef] = {
     val blockedReader: BlockRefReader[SegmentBlock.Offset] = fileBlockRef.copy()
     val listSegmentSize = blockedReader.readUnsignedInt()
     val listSegment = blockedReader.read(listSegmentSize)
@@ -314,7 +314,7 @@ protected object PersistentSegmentMany {
         footerCacheable = None
       )
 
-    val skipList = SkipList.map[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
+    val skipList = SkipList.map[SliceOption[Byte], SegmentRefOption, Sliced[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
 
 
     //this will also clear all the SegmentRef's
@@ -386,9 +386,9 @@ protected object PersistentSegmentMany {
   }
 
   private def parseListSegment(file: DBFile,
-                               minKey: Slice[Byte],
-                               maxKey: MaxKey[Slice[Byte]],
-                               fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                               minKey: Sliced[Byte],
+                               maxKey: MaxKey[Sliced[Byte]],
+                               fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                   blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                   segmentIO: SegmentIO): SegmentRef = {
@@ -416,28 +416,28 @@ protected object PersistentSegmentMany {
 
 protected case class PersistentSegmentMany(file: DBFile,
                                            createdInLevel: Int,
-                                           minKey: Slice[Byte],
-                                           maxKey: MaxKey[Slice[Byte]],
-                                           minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                                           minKey: Sliced[Byte],
+                                           maxKey: MaxKey[Sliced[Byte]],
+                                           minMaxFunctionId: Option[MinMax[Sliced[Byte]]],
                                            segmentSize: Int,
                                            nearestPutDeadline: Option[Deadline],
-                                           private[segment] val segmentsCache: Cache[Error.Segment, Unit, SkipListMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                                                                      functionStore: FunctionStore,
-                                                                                                                                                                                      blockCache: Option[BlockCache.State],
-                                                                                                                                                                                      fileSweeper: FileSweeperActor,
-                                                                                                                                                                                      bufferCleaner: ByteBufferSweeperActor,
-                                                                                                                                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                                                                                      segmentIO: SegmentIO,
-                                                                                                                                                                                      forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
+                                           private[segment] val segmentsCache: Cache[Error.Segment, Unit, SkipListMap[SliceOption[Byte], SegmentRefOption, Sliced[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                                                                                                                                                       timeOrder: TimeOrder[Sliced[Byte]],
+                                                                                                                                                                                       functionStore: FunctionStore,
+                                                                                                                                                                                       blockCache: Option[BlockCache.State],
+                                                                                                                                                                                       fileSweeper: FileSweeperActor,
+                                                                                                                                                                                       bufferCleaner: ByteBufferSweeperActor,
+                                                                                                                                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                                                                                                       segmentIO: SegmentIO,
+                                                                                                                                                                                       forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
 
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
-  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Sliced[Byte]](_.key)(keyOrder))
+  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Sliced[Byte]](_.key)(keyOrder))
   implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
 
   override def formatId: Byte = PersistentSegmentMany.formatId
 
-  private def segments: SkipListMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] =
+  private def segments: SkipListMap[SliceOption[Byte], SegmentRefOption, Sliced[Byte], SegmentRef] =
     segmentsCache
       .value(())
       .get
@@ -500,7 +500,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
-  def put(newKeyValues: Slice[KeyValue],
+  def put(newKeyValues: Sliced[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -509,7 +509,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
+          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Sliced[PersistentSegment] = {
 
     val transient: Iterable[TransientSegment] =
       SegmentRef.put(
@@ -542,7 +542,7 @@ protected case class PersistentSegmentMany(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Sliced[PersistentSegment] = {
 
     val transient: Iterable[TransientSegment] =
       SegmentRef.refreshForNewLevel(
@@ -565,12 +565,12 @@ protected case class PersistentSegmentMany(file: DBFile,
     )
   }
 
-  def getFromCache(key: Slice[Byte]): PersistentOption =
+  def getFromCache(key: Sliced[Byte]): PersistentOption =
     segments
       .floor(key)
       .flatMapSomeS(Persistent.Null: PersistentOption)(_.getFromCache(key))
 
-  def mightContainKey(key: Slice[Byte]): Boolean =
+  def mightContainKey(key: Sliced[Byte]): Boolean =
     segments
       .floor(key)
       .existsS(_.mightContain(key))
@@ -579,10 +579,10 @@ protected case class PersistentSegmentMany(file: DBFile,
    * [[PersistentSegmentMany]] is not aware of [[minMaxFunctionId]].
    * It should be deferred to [[SegmentRef]].
    */
-  override def mightContainFunction(key: Slice[Byte]): Boolean =
+  override def mightContainFunction(key: Sliced[Byte]): Boolean =
     segmentRefs exists (_.mightContain(key))
 
-  def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+  def get(key: Sliced[Byte], threadState: ThreadReadState): PersistentOption =
     segments
       .floor(key)
       .flatMapSomeS(Persistent.Null: PersistentOption) {
@@ -593,7 +593,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           )
       }
 
-  def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+  def lower(key: Sliced[Byte], threadState: ThreadReadState): PersistentOption =
     segments
       .lower(key)
       .flatMapSomeS(Persistent.Null: PersistentOption) {
@@ -604,7 +604,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           )
       }
 
-  private def higherFromHigherSegment(key: Slice[Byte],
+  private def higherFromHigherSegment(key: Sliced[Byte],
                                       floorSegment: SegmentRefOption,
                                       threadState: ThreadReadState): PersistentOption =
     segments
@@ -620,7 +620,7 @@ protected case class PersistentSegmentMany(file: DBFile,
             )
       }
 
-  def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
+  def higher(key: Sliced[Byte], threadState: ThreadReadState): PersistentOption = {
     val floorSegment = segments.floor(key)
 
     floorSegment
@@ -640,7 +640,7 @@ protected case class PersistentSegmentMany(file: DBFile,
       }
   }
 
-  override def toSlice(): Slice[Persistent] =
+  override def toSlice(): Sliced[Persistent] =
     Segment.getAllKeyValuesRef(segmentRefs)
 
   override def iterator(): Iterator[Persistent] =
@@ -686,7 +686,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     segmentRefs.foreach(_.clearBlockCache())
   }
 
-  def isInKeyValueCache(key: Slice[Byte]): Boolean =
+  def isInKeyValueCache(key: Sliced[Byte]): Boolean =
     segments
       .floor(key)
       .forallS(_.isInKeyValueCache(key))

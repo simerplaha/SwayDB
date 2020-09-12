@@ -80,7 +80,7 @@ object MultiMap extends LazyLogging {
                                                                                                                                                             functionClassTag: ClassTag[F],
                                                                                                                                                             bag: swaydb.Bag[BAG],
                                                                                                                                                             functions: Functions[F],
-                                                                                                                                                            byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                                                            byteKeyOrder: KeyOrder[Sliced[Byte]] = null,
                                                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
                                                                                                                                                             buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap)): BAG[MultiMap[M, K, V, F, BAG]] =
@@ -90,8 +90,8 @@ object MultiMap extends LazyLogging {
       implicit val multiValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)
       val functionStore = FunctionConverter.toMultiMap[M, K, V, Apply.Map[V], F](functions)
 
-      val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
-      val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiKey.ordering(keyOrder)
+      val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
+      val internalKeyOrder: KeyOrder[Sliced[Byte]] = MultiKey.ordering(keyOrder)
 
       //the inner map with custom keyOrder and custom key-value types to support nested Maps.
       val map =

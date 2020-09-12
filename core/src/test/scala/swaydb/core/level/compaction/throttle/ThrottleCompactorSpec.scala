@@ -46,7 +46,7 @@ import scala.concurrent.Promise
 import scala.concurrent.duration._
 import TestCaseSweeper._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class ThrottleCompactorSpec0 extends ThrottleCompactorSpec
 
@@ -73,8 +73,8 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
   val keyValueCount = 1000
 
   implicit val ec = TestExecutionContext.executionContext
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   implicit val timer = TestTimer.Empty
 
   implicit val compactionOrdering = ThrottleLevelOrdering

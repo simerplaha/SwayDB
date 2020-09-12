@@ -47,13 +47,13 @@ import swaydb.data.util.StorageUnits._
 
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class SegmentBlockInitialisationSpec extends TestBase {
 
   val keyValueCount = 100
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
 
   implicit def testTimer: TestTimer = TestTimer.random
 
@@ -65,7 +65,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             implicit sweeper =>
               import sweeper._
 
-              val keyValues: Slice[Memory] =
+              val keyValues: Sliced[Memory] =
                 randomizedKeyValues(
                   count = 100,
                   startId = Some(1)
@@ -105,7 +105,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   startId = Some(1)
                 )
 
-              val keyValues: Slice[Memory] = generatedKeyValues
+              val keyValues: Sliced[Memory] = generatedKeyValues
 
               val blocks =
                 getBlocksSingle(
@@ -137,7 +137,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
               val compressions = randomCompressionsOrEmpty()
 
-              val keyValues: Slice[Memory] =
+              val keyValues: Sliced[Memory] =
                 randomizedKeyValues(
                   count = 1000,
                   startId = Some(1)
@@ -201,7 +201,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
               val compressions = randomCompressionsOrEmpty()
 
-              val keyValues: Slice[Memory] =
+              val keyValues: Sliced[Memory] =
                 randomizedKeyValues(
                   count = 100,
                   startId = Some(1)
@@ -320,7 +320,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             implicit sweeper =>
               import sweeper._
 
-              val keyValues: Slice[Memory] =
+              val keyValues: Sliced[Memory] =
                 randomizedKeyValues(
                   count = 100,
                   addPut = true,
@@ -382,13 +382,13 @@ class SegmentBlockInitialisationSpec extends TestBase {
             implicit sweeper =>
               import sweeper._
 
-              val keyValues: Slice[Memory] =
+              val keyValues: Sliced[Memory] =
                 randomPutKeyValues(
                   count = 100,
                   startId = Some(100)
                 )
 
-              val range: Slice[Memory.Range] =
+              val range: Sliced[Memory.Range] =
                 Slice(
                   Memory.Range(
                     fromKey = 0,

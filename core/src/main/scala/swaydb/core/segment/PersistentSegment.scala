@@ -46,7 +46,7 @@ trait PersistentSegment extends Segment {
   def isMMAP =
     file.isMemoryMapped
 
-  def put(newKeyValues: Slice[KeyValue],
+  def put(newKeyValues: Sliced[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -55,7 +55,7 @@ trait PersistentSegment extends Segment {
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment]
+          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Sliced[PersistentSegment]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -65,5 +65,5 @@ trait PersistentSegment extends Segment {
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment]
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Sliced[PersistentSegment]
 }

@@ -74,9 +74,9 @@ class LevelSegmentSpec3 extends LevelSegmentSpec {
 
 sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =

@@ -30,7 +30,7 @@ import swaydb.core.util.Times._
 import swaydb.data.slice.Slice._
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class TimesSpec extends AnyWordSpec with Matchers {
 

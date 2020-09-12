@@ -41,7 +41,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class ValuesBlockSpec extends TestBase {
 
@@ -123,7 +123,7 @@ class ValuesBlockSpec extends TestBase {
         Seq(uncompressedUnblockedReader, cachedUnblockedReader) foreach {
           unblockedReader =>
 
-            val keyValuesOffset = ListBuffer.empty[(Int, Slice[Byte])]
+            val keyValuesOffset = ListBuffer.empty[(Int, Sliced[Byte])]
 
             keyValues.foldLeft(0) {
               case (offset, keyValue) =>

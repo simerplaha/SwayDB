@@ -47,7 +47,7 @@ import swaydb.serializers._
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class LevelZeroSpec0 extends LevelZeroSpec
 
@@ -71,7 +71,7 @@ class LevelZeroSpec3 extends LevelZeroSpec {
 
 sealed trait LevelZeroSpec extends TestBase with MockFactory {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder = TimeOrder.long
 
@@ -107,10 +107,10 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
         implicit sweeper =>
           def assert(zero: LevelZero): Unit = {
             zero.put(1, "one").runRandomIO.value
-            zero.get(1, ThreadReadState.random).getPut.getOrFetchValue shouldBe ("one": Slice[Byte])
+            zero.get(1, ThreadReadState.random).getPut.getOrFetchValue shouldBe ("one": Sliced[Byte])
 
             zero.put("2", "two").runRandomIO.value
-            zero.get("2", ThreadReadState.random).getPut.getOrFetchValue shouldBe ("two": Slice[Byte])
+            zero.get("2", ThreadReadState.random).getPut.getOrFetchValue shouldBe ("two": Sliced[Byte])
           }
 
           val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))))
@@ -167,11 +167,11 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       //approx 2 mb key and values
       TestCaseSweeper {
         implicit sweeper =>
-          val key1 = "a" + Random.nextString(750000): Slice[Byte]
-          val key2 = "b" + Random.nextString(750000): Slice[Byte]
+          val key1 = "a" + Random.nextString(750000): Sliced[Byte]
+          val key2 = "b" + Random.nextString(750000): Sliced[Byte]
 
-          val value1 = Random.nextString(750000): Slice[Byte]
-          val value2 = Random.nextString(750000): Slice[Byte]
+          val value1 = Random.nextString(750000): Sliced[Byte]
+          val value2 = Random.nextString(750000): Sliced[Byte]
 
           def assertWrite(zero: LevelZero): Unit = {
             zero.put(key1, value1).runRandomIO
@@ -336,19 +336,19 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
           zero.put(5, "five").runRandomIO.value
 
           val head = zero.head(ThreadReadState.random).getPut
-          head.key shouldBe (1: Slice[Byte])
-          head.getOrFetchValue shouldBe ("one": Slice[Byte])
+          head.key shouldBe (1: Sliced[Byte])
+          head.getOrFetchValue shouldBe ("one": Sliced[Byte])
 
           //remove 1
           zero.remove(1).runRandomIO
           println
-          zero.head(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("two": Slice[Byte])
+          zero.head(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("two": Sliced[Byte])
 
           zero.remove(2).runRandomIO
           zero.remove(3).runRandomIO
           zero.remove(4).runRandomIO
 
-          zero.head(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("five": Slice[Byte])
+          zero.head(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("five": Sliced[Byte])
 
           zero.remove(5).runRandomIO
           zero.head(ThreadReadState.random).toOptionPut shouldBe empty
@@ -369,17 +369,17 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
           zero.put(4, "four").runRandomIO
           zero.put(5, "five").runRandomIO
 
-          zero.last(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("five": Slice[Byte])
+          zero.last(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("five": Sliced[Byte])
 
           //remove 5
           zero.remove(5).runRandomIO
-          zero.last(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("four": Slice[Byte])
+          zero.last(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("four": Sliced[Byte])
 
           zero.remove(2).runRandomIO
           zero.remove(3).runRandomIO
           zero.remove(4).runRandomIO
 
-          zero.last(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("one": Slice[Byte])
+          zero.last(ThreadReadState.random).getPut.getOrFetchValue shouldBe ("one": Sliced[Byte])
 
           zero.remove(1).runRandomIO
           zero.last(ThreadReadState.random).toOptionPut shouldBe empty

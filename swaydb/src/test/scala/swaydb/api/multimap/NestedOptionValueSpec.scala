@@ -32,7 +32,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.data.slice.Slice._
 import swaydb.serializers.Serializer
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class NestedOptionValueSpec extends TestBaseEmbedded {
   override val keyValueCount: Int = 1000
@@ -71,7 +71,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
         import swaydb.serializers.Default._
 
         implicit object OptionOptionStringSerializer extends Serializer[Option[Value]] {
-          override def write(data: Option[Value]): Slice[Byte] =
+          override def write(data: Option[Value]): Sliced[Byte] =
             data match {
               case Some(value) =>
                 value match {
@@ -90,7 +90,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
                 Slice.emptyBytes
             }
 
-          override def read(data: Slice[Byte]): Option[Value] =
+          override def read(data: Sliced[Byte]): Option[Value] =
             if (data.isEmpty)
               None
             else if (data.head == 0)

@@ -428,13 +428,13 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "None ++ Some(Slice[T](...))" in {
-    val merged: Iterable[Slice[Int]] = Some(Slice[Int](1, 2, 3)) ++ None
+    val merged: Iterable[Sliced[Int]] = Some(Slice[Int](1, 2, 3)) ++ None
     merged.flatten
       .toList should contain inOrderOnly(1, 2, 3)
   }
 
   "++ empty slices" in {
-    val merged: Slice[Int] = Slice.empty[Int] ++ Slice.empty[Int]
+    val merged: Sliced[Int] = Slice.empty[Int] ++ Slice.empty[Int]
     merged shouldBe empty
     merged.size shouldBe 0
     merged.isEmpty shouldBe true
@@ -442,7 +442,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "++ empty and non empty slices" in {
-    val merged: Slice[Int] = Slice.empty[Int] ++ Slice(1)
+    val merged: Sliced[Int] = Slice.empty[Int] ++ Slice(1)
     merged should contain only 1
     merged.size shouldBe 1
     merged.isEmpty shouldBe false
@@ -450,7 +450,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "++ non empty and empty slices" in {
-    val merged: Slice[Int] = Slice(1) ++ Slice.empty[Int]
+    val merged: Sliced[Int] = Slice(1) ++ Slice.empty[Int]
     merged should contain only 1
     merged.size shouldBe 1
     merged.isEmpty shouldBe false
@@ -458,14 +458,14 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "++ non empty" in {
-    val merged: Slice[Int] = Slice(1, 2, 3) ++ Slice(4, 5, 6)
+    val merged: Sliced[Int] = Slice(1, 2, 3) ++ Slice(4, 5, 6)
     merged.isEmpty shouldBe false
     merged.isFull shouldBe true
     merged.toList should contain inOrderOnly(1, 2, 3, 4, 5, 6)
   }
 
   "within" when {
-    implicit def toSlice(int: Int): Slice[Byte] = Slice.writeInt(int)
+    implicit def toSlice(int: Int): Sliced[Byte] = Slice.writeInt(int)
 
     "max key is Fixed" in {
       //0

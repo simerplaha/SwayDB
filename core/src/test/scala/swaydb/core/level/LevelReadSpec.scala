@@ -69,7 +69,7 @@ class LevelReadSpec3 extends LevelReadSpec {
 
 sealed trait LevelReadSpec extends TestBase with MockFactory {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
   val keyValuesCount = 100
 

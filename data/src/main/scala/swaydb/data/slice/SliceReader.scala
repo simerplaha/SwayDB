@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice._
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-private[swaydb] case class SliceReader(slice: Slice[Byte],
+private[swaydb] case class SliceReader(slice: Sliced[Byte],
                                        private var position: Int = 0) extends Reader {
 
   def path = Paths.get(this.getClass.getSimpleName)
@@ -43,7 +43,7 @@ private[swaydb] case class SliceReader(slice: Slice[Byte],
   def hasAtLeast(size: Long): Boolean =
     (slice.size - position) >= size
 
-  def read(size: Int): Slice[Byte] = {
+  def read(size: Int): Sliced[Byte] = {
     if (size <= 0)
       Slice.emptyBytes
     else {
@@ -84,7 +84,7 @@ private[swaydb] case class SliceReader(slice: Slice[Byte],
   override def copy(): SliceReader =
     SliceReader(slice)
 
-  override def readRemaining(): Slice[Byte] =
+  override def readRemaining(): Sliced[Byte] =
     read(remaining)
 
   override def isFile: Boolean = false

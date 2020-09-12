@@ -68,11 +68,11 @@ private[core] object Effect extends LazyLogging {
   }
 
   def overwrite(to: Path,
-                bytes: Slice[Byte]): Path =
+                bytes: Sliced[Byte]): Path =
     Files.write(to, bytes.toArray)
 
   def write(to: Path,
-            bytes: Slice[Byte]): Path = {
+            bytes: Sliced[Byte]): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     try {
       writeUnclosed(channel, bytes)
@@ -83,7 +83,7 @@ private[core] object Effect extends LazyLogging {
   }
 
   def write(to: Path,
-            bytes: Iterable[Slice[Byte]]): Path = {
+            bytes: Iterable[Sliced[Byte]]): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     try {
       writeUnclosed(channel, bytes)
@@ -93,7 +93,7 @@ private[core] object Effect extends LazyLogging {
     }
   }
 
-  def replace(bytes: Slice[Byte],
+  def replace(bytes: Sliced[Byte],
               to: Path): Path = {
     val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)
     try {
@@ -105,14 +105,14 @@ private[core] object Effect extends LazyLogging {
   }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Iterable[Slice[Byte]]): Unit =
+                    bytes: Iterable[Sliced[Byte]]): Unit =
     bytes foreach {
       bytes =>
         writeUnclosed(channel, bytes)
     }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Slice[Byte]): Unit = {
+                    bytes: Sliced[Byte]): Unit = {
     val written = channel write bytes.toByteBufferWrap
 
     // toByteBuffer uses size of Slice instead of written,
@@ -270,7 +270,7 @@ private[core] object Effect extends LazyLogging {
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId._1)
 
-  def readAllBytes(path: Path): Slice[Byte] =
+  def readAllBytes(path: Path): Sliced[Byte] =
     Slice(Files.readAllBytes(path))
 
   def readAllLines(path: Path): util.List[String] =

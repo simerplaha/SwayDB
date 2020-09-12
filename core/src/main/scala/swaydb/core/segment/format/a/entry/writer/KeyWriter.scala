@@ -91,7 +91,7 @@ private[a] object KeyWriter extends KeyWriter {
   private def write[T <: Memory](current: T,
                                  builder: EntryWriter.Builder,
                                  commonBytes: Int,
-                                 headerBytes: Slice[Byte],
+                                 headerBytes: Sliced[Byte],
                                  deadlineId: BaseEntryId.Deadline,
                                  isKeyCompressed: Boolean)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit = {
     val id =

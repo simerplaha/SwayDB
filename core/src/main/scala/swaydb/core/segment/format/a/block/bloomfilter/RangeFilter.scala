@@ -35,7 +35,7 @@ import scala.collection.mutable.ListBuffer
 private[core] object RangeFilter {
 
   case class State(uncommonBytesToTake: Int,
-                   filters: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]])
+                   filters: mutable.Map[Int, Iterable[(Sliced[Byte], Sliced[Byte])]])
 
   def createState(uncommonBytesToStore: Int): Option[RangeFilter.State] =
     if (uncommonBytesToStore == 0)
@@ -44,7 +44,7 @@ private[core] object RangeFilter {
       Some(
         State(
           uncommonBytesToTake = uncommonBytesToStore,
-          filters = mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]
+          filters = mutable.Map.empty[Int, Iterable[(Sliced[Byte], Sliced[Byte])]]
         )
       )
 
@@ -60,23 +60,23 @@ private[core] object RangeFilter {
         maxUncommonBytesToStore = uncommonBytesToStore
       )
 
-  def add(from: Slice[Byte],
-          to: Slice[Byte],
+  def add(from: Sliced[Byte],
+          to: Sliced[Byte],
           state: RangeFilter.State): Unit = {
     val commonBytes = Bytes.commonPrefixBytes(from, to)
     val leftUncommonBytes = from.take(from.size - 1, state.uncommonBytesToTake)
     val rightUncommonBytes = to.take(to.size - 1, state.uncommonBytesToTake)
-    val uncommonBytes: (Slice[Byte], Slice[Byte]) = (leftUncommonBytes, rightUncommonBytes)
+    val uncommonBytes: (Sliced[Byte], Sliced[Byte]) = (leftUncommonBytes, rightUncommonBytes)
     state.filters.get(commonBytes.size) map {
       ranges =>
-        ranges.asInstanceOf[ListBuffer[(Slice[Byte], Slice[Byte])]] += uncommonBytes
+        ranges.asInstanceOf[ListBuffer[(Sliced[Byte], Sliced[Byte])]] += uncommonBytes
     } getOrElse {
       state.filters.put(commonBytes.size, ListBuffer(uncommonBytes))
     }
   }
 
-  def mightContain(key: Slice[Byte],
-                   rangeFilterState: RangeFilter.State)(implicit ordering: KeyOrder[Slice[Byte]]): Boolean = {
+  def mightContain(key: Sliced[Byte],
+                   rangeFilterState: RangeFilter.State)(implicit ordering: KeyOrder[Sliced[Byte]]): Boolean = {
     import ordering._
     rangeFilterState.filters exists {
       case (commonLowerBytes, rangeBytes) =>
@@ -92,14 +92,14 @@ private[core] object RangeFilter {
     }
   }
 
-  def find(key: Slice[Byte],
+  def find(key: Sliced[Byte],
            rangeFilterState: RangeFilter.State,
-           hashIndex: HashIndexBlock)(implicit ordering: KeyOrder[Slice[Byte]]): Option[Slice[Byte]] = {
+           hashIndex: HashIndexBlock)(implicit ordering: KeyOrder[Sliced[Byte]]): Option[Sliced[Byte]] = {
     import ordering._
     //todo - binary search.
     rangeFilterState.filters foreach {
       case (commonLowerBytes, rangeBytes) =>
-        var found: Slice[Byte] = null
+        var found: Sliced[Byte] = null
         rangeBytes exists {
           case (leftBloomFilterRangeByte, rightBloomFilterRangeByte) =>
             val inputKeyWithCommonBytes = key take commonLowerBytes

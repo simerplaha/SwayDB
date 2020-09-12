@@ -36,7 +36,7 @@ import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.{ByteSizeOf, Functions}
 
 import scala.annotation.tailrec
@@ -109,9 +109,9 @@ private[core] object HashIndexBlock extends LazyLogging {
                     val writeAbleLargestValueSize: Int,
                     @BeanProperty var minimumCRC: Long,
                     val maxProbe: Int,
-                    var compressibleBytes: Slice[Byte],
-                    val cacheableBytes: Slice[Byte],
-                    var header: Slice[Byte],
+                    var compressibleBytes: Sliced[Byte],
+                    val cacheableBytes: Sliced[Byte],
+                    var header: Sliced[Byte],
                     val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
     def blockSize: Int =
@@ -311,8 +311,8 @@ private[core] object HashIndexBlock extends LazyLogging {
    * Mutates the slice and adds writes the indexOffset to it's hash index.
    */
   def writeReference(indexOffset: Int,
-                     comparableKey: Slice[Byte],
-                     mergedKey: Slice[Byte],
+                     comparableKey: Sliced[Byte],
+                     mergedKey: Sliced[Byte],
                      keyType: Byte,
                      state: State): Boolean = {
 
@@ -367,11 +367,11 @@ private[core] object HashIndexBlock extends LazyLogging {
   /**
    * Finds a key in the hash index.
    */
-  private[block] def searchReference(key: Slice[Byte],
-                                     comparableKey: Slice[Byte],
+  private[block] def searchReference(key: Sliced[Byte],
+                                     comparableKey: Sliced[Byte],
                                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                      sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                     valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption = {
+                                     valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Persistent.PartialOption = {
 
     val hash = comparableKey.hashCode()
     val hash1 = hash >>> 32
@@ -428,8 +428,8 @@ private[core] object HashIndexBlock extends LazyLogging {
    * Writes full copy of the index entry within HashIndex.
    */
   def writeCopy(indexOffset: Int,
-                comparableKey: Slice[Byte],
-                mergedKey: Slice[Byte],
+                comparableKey: Sliced[Byte],
+                mergedKey: Sliced[Byte],
                 keyType: Byte,
                 state: State): Boolean = {
 
@@ -490,11 +490,11 @@ private[core] object HashIndexBlock extends LazyLogging {
       doWrite(0)
   }
 
-  private[block] def searchCopy(key: Slice[Byte],
-                                comparableKey: Slice[Byte],
+  private[block] def searchCopy(key: Sliced[Byte],
+                                comparableKey: Sliced[Byte],
                                 hasIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                 sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption = {
+                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Persistent.PartialOption = {
 
     val hash = comparableKey.hashCode()
     val hash1 = hash >>> 32
@@ -543,10 +543,10 @@ private[core] object HashIndexBlock extends LazyLogging {
     doFind(probe = 0)
   }
 
-  def search(key: Slice[Byte],
+  def search(key: Sliced[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption =
+             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Persistent.PartialOption =
     if (hashIndexReader.block.format.isCopy)
       searchCopy(
         key = key,

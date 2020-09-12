@@ -69,9 +69,9 @@ class LevelMapSpec3 extends LevelMapSpec {
 
 sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTester {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =
@@ -82,14 +82,14 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   "putMap on a single Level" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger()
+    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] = LevelZeroSkipListMerger()
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
       import sweeper._
 
       val map =
         if (persistent)
-          Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+          Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
             nullKey = Slice.Null,
             nullValue = Memory.Null,
             folder = randomIntDirectory,
@@ -99,7 +99,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             dropCorruptedTailEntries = false
           ).runRandomIO.right.value.item.sweep()
         else
-          Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+          Map.memory[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
             nullKey = Slice.Null,
             nullValue = Memory.Null
           )
@@ -169,14 +169,14 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   "putMap on two Level" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger()
+    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] = LevelZeroSkipListMerger()
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
       import sweeper._
 
       val map =
         if (persistent)
-          Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+          Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
             nullKey = Slice.Null,
             nullValue = Memory.Null,
             folder = randomIntDirectory,
@@ -185,7 +185,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             fileSize = 1.mb,
             dropCorruptedTailEntries = false).runRandomIO.right.value.item.sweep()
         else
-          Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+          Map.memory[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
             nullKey = Slice.Null,
             nullValue = Memory.Null
           )
@@ -209,14 +209,14 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
             (nextLevel.isTrash _).expects() returning false
 
-            (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+            (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory])) expects * onCall {
+              putMap: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] =>
                 putMap.pathOption shouldBe map.pathOption
                 true
             }
 
-            (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+            (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory])) expects * onCall {
+              putMap: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] =>
                 putMap.pathOption shouldBe map.pathOption
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -242,14 +242,14 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
             (nextLevel.isTrash _).expects() returning false
 
-            (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+            (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory])) expects * onCall {
+              putMap: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] =>
                 putMap.pathOption shouldBe map.pathOption
                 true
             }
 
-            (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+            (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory])) expects * onCall {
+              putMap: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] =>
                 putMap.pathOption shouldBe map.pathOption
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))

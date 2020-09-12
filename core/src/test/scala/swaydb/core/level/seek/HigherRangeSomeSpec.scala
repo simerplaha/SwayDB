@@ -63,17 +63,17 @@ class HigherRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
         inSequence {
-          current.higher _ expects(0: Slice[Byte], *) returning LevelSeek.Some(1, upperRange)
+          current.higher _ expects(0: Sliced[Byte], *) returning LevelSeek.Some(1, upperRange)
           if (upperRange.rangeValue.isInstanceOf[Value.Function]) {
-            next.higher _ expects(0: Slice[Byte], *) returning randomPutKeyValue(1, deadline = randomDeadlineOption(false))
-            next.higher _ expects(1: Slice[Byte], *) returning randomPutKeyValue(2, deadline = randomDeadlineOption(false))
-            next.higher _ expects(2: Slice[Byte], *) returning randomPutKeyValue(3, deadline = randomDeadlineOption(false))
-            current.get _ expects(3: Slice[Byte], *) returning toKeyGet
+            next.higher _ expects(0: Sliced[Byte], *) returning randomPutKeyValue(1, deadline = randomDeadlineOption(false))
+            next.higher _ expects(1: Sliced[Byte], *) returning randomPutKeyValue(2, deadline = randomDeadlineOption(false))
+            next.higher _ expects(2: Sliced[Byte], *) returning randomPutKeyValue(3, deadline = randomDeadlineOption(false))
+            current.get _ expects(3: Sliced[Byte], *) returning toKeyGet
           } else {
-            current.get _ expects(3: Slice[Byte], *) returning toKeyGet
+            current.get _ expects(3: Sliced[Byte], *) returning toKeyGet
           }
         }
-        Higher(0: Slice[Byte]).right.value.value shouldBe toKeyGet
+        Higher(0: Sliced[Byte]).right.value.value shouldBe toKeyGet
       }
     }
 
@@ -91,16 +91,16 @@ class HigherRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
         inSequence {
-          current.higher _ expects(1: Slice[Byte], *) returning LevelSeek.Some(1, upperRange)
+          current.higher _ expects(1: Sliced[Byte], *) returning LevelSeek.Some(1, upperRange)
           if (upperRange.rangeValue.isInstanceOf[Value.Function]) {
-            next.higher _ expects(1: Slice[Byte], *) returning randomPutKeyValue(2, deadline = randomDeadlineOption(false))
-            next.higher _ expects(2: Slice[Byte], *) returning randomPutKeyValue(3, deadline = randomDeadlineOption(false))
-            current.get _ expects(3: Slice[Byte], *) returning toKeyGet
+            next.higher _ expects(1: Sliced[Byte], *) returning randomPutKeyValue(2, deadline = randomDeadlineOption(false))
+            next.higher _ expects(2: Sliced[Byte], *) returning randomPutKeyValue(3, deadline = randomDeadlineOption(false))
+            current.get _ expects(3: Sliced[Byte], *) returning toKeyGet
           } else {
-            current.get _ expects(3: Slice[Byte], *) returning toKeyGet
+            current.get _ expects(3: Sliced[Byte], *) returning toKeyGet
           }
         }
-        Higher(1: Slice[Byte]).right.value.value shouldBe toKeyGet
+        Higher(1: Sliced[Byte]).right.value.value shouldBe toKeyGet
       }
     }
 
@@ -118,15 +118,15 @@ class HigherRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
         inSequence {
-          current.higher _ expects(2: Slice[Byte], *) returning LevelSeek.Some(1, upperRange)
+          current.higher _ expects(2: Sliced[Byte], *) returning LevelSeek.Some(1, upperRange)
           if (upperRange.rangeValue.isInstanceOf[Value.Function]) {
-            next.higher _ expects(2: Slice[Byte], *) returning randomPutKeyValue(3, deadline = randomDeadlineOption(false))
-            current.get _ expects(3: Slice[Byte], *) returning toKeyGet
+            next.higher _ expects(2: Sliced[Byte], *) returning randomPutKeyValue(3, deadline = randomDeadlineOption(false))
+            current.get _ expects(3: Sliced[Byte], *) returning toKeyGet
           } else {
-            current.get _ expects(3: Slice[Byte], *) returning toKeyGet
+            current.get _ expects(3: Sliced[Byte], *) returning toKeyGet
           }
         }
-        Higher(2: Slice[Byte]).right.value.value shouldBe toKeyGet
+        Higher(2: Sliced[Byte]).right.value.value shouldBe toKeyGet
       }
     }
 
@@ -143,10 +143,10 @@ class HigherRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
         val result = randomPutKeyValue(4, deadline = randomDeadlineOption(false))
 
         inSequence {
-          current.higher _ expects(3: Slice[Byte], *) returning LevelSeek.None
-          next.higher _ expects(3: Slice[Byte], *) returning result
+          current.higher _ expects(3: Sliced[Byte], *) returning LevelSeek.None
+          next.higher _ expects(3: Sliced[Byte], *) returning result
         }
-        Higher(3: Slice[Byte]).right.value.value shouldBe result
+        Higher(3: Sliced[Byte]).right.value.value shouldBe result
       }
     }
   }

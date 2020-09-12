@@ -36,7 +36,7 @@ protected object DeadlineAndFunctionId {
     apply(None, None)
 
   def apply(deadline: Option[Deadline],
-            minMaxFunctionId: Option[MinMax[Slice[Byte]]]): DeadlineAndFunctionId =
+            minMaxFunctionId: Option[MinMax[Sliced[Byte]]]): DeadlineAndFunctionId =
     new DeadlineAndFunctionId(
       nearestDeadline = deadline,
       minMaxFunctionId = minMaxFunctionId
@@ -53,7 +53,7 @@ protected object DeadlineAndFunctionId {
     }
 
   def apply(deadline: Option[Deadline],
-            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+            minMaxFunctionId: Option[MinMax[Sliced[Byte]]],
             next: KeyValue): DeadlineAndFunctionId =
     next match {
       case readOnly: KeyValue.Put =>
@@ -106,4 +106,4 @@ protected object DeadlineAndFunctionId {
 }
 
 protected class DeadlineAndFunctionId(val nearestDeadline: Option[Deadline],
-                                      val minMaxFunctionId: Option[MinMax[Slice[Byte]]])
+                                      val minMaxFunctionId: Option[MinMax[Sliced[Byte]]])

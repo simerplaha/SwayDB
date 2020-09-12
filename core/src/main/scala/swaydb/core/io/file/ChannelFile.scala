@@ -84,13 +84,13 @@ private[file] class ChannelFile(val path: Path,
     channel.close()
   }
 
-  def append(slice: Slice[Byte]): Unit =
+  def append(slice: Sliced[Byte]): Unit =
     Effect.writeUnclosed(channel, slice)
 
-  def append(slice: Iterable[Slice[Byte]]): Unit =
+  def append(slice: Iterable[Sliced[Byte]]): Unit =
     Effect.writeUnclosed(channel, slice)
 
-  def read(position: Int, size: Int): Slice[Byte] = {
+  def read(position: Int, size: Int): Sliced[Byte] = {
     val buffer = ByteBuffer.allocate(size)
     channel.read(buffer, position)
     Slice(buffer.array())
@@ -99,7 +99,7 @@ private[file] class ChannelFile(val path: Path,
   def get(position: Int): Byte =
     read(position, 1).head
 
-  def readAll: Slice[Byte] = {
+  def readAll: Sliced[Byte] = {
     val bytes = new Array[Byte](channel.size().toInt)
     channel.read(ByteBuffer.wrap(bytes))
     Slice(bytes)

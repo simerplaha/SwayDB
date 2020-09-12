@@ -42,9 +42,9 @@ private[core] object Higher {
   /**
    * Check and returns the FromValue if it's a valid higher key-value for the input key
    */
-  def higherFromValue(key: Slice[Byte],
-                      fromKey: Slice[Byte],
-                      fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyValue.PutOption =
+  def higherFromValue(key: Sliced[Byte],
+                      fromKey: Sliced[Byte],
+                      fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Sliced[Byte]]): KeyValue.PutOption =
     fromValue.flatMapSomeS(KeyValue.Put.Null: KeyValue.PutOption) {
       fromValue =>
         if (keyOrder.gt(fromKey, key))
@@ -59,12 +59,12 @@ private[core] object Higher {
           KeyValue.Put.Null
     }
 
-  def seek(key: Slice[Byte],
+  def seek(key: Sliced[Byte],
            readState: ThreadReadState,
            currentSeek: Seek.Current,
            nextSeek: Seek.Next,
-           keyOrder: KeyOrder[Slice[Byte]],
-           timeOrder: TimeOrder[Slice[Byte]],
+           keyOrder: KeyOrder[Sliced[Byte]],
+           timeOrder: TimeOrder[Sliced[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
            functionStore: FunctionStore): KeyValue.PutOption =
@@ -78,11 +78,11 @@ private[core] object Higher {
    * could help share this code and removing duplicates but only if there is no performance penalty.
    */
   @tailrec
-  def apply(key: Slice[Byte],
+  def apply(key: Sliced[Byte],
             readState: ThreadReadState,
             currentSeek: Seek.Current,
-            nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                 timeOrder: TimeOrder[Slice[Byte]],
+            nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                 timeOrder: TimeOrder[Sliced[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
                                  functionStore: FunctionStore): KeyValue.PutOption = {

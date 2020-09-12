@@ -144,11 +144,11 @@ private[core] trait SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value
   def keys(): util.NavigableSet[Key] =
     skipList.navigableKeySet()
 
-  def take(count: Int): Slice[Value] = {
+  def take(count: Int): Sliced[Value] = {
     val slice = Slice.create(count)
 
     @tailrec
-    def doTake(nextOption: Option[(Key, Value)]): Slice[Value] =
+    def doTake(nextOption: Option[(Key, Value)]): Sliced[Value] =
       if (slice.isFull || nextOption.isEmpty)
         slice
       else {
@@ -179,7 +179,7 @@ private[core] trait SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value
       }
     }
 
-  def toSlice[V2 >: Value : ClassTag](size: Int): Slice[V2] = {
+  def toSlice[V2 >: Value : ClassTag](size: Int): Sliced[V2] = {
     val slice = Slice.create[V2](size)
     skipList.values() forEach {
       new Consumer[Value] {

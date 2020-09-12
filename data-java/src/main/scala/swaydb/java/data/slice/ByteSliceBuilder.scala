@@ -29,7 +29,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 
 import swaydb.Pair
 import swaydb.Pair._
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 object ByteSliceBuilder {
   @inline def create(length: Int): ByteSliceBuilder =
@@ -38,7 +38,7 @@ object ByteSliceBuilder {
   @inline def apply(slice: ByteSlice): ByteSliceBuilder =
     new ByteSliceBuilder(slice)
 
-  @inline def apply(slice: Slice[Byte]): ByteSliceBuilder =
+  @inline def apply(slice: Sliced[Byte]): ByteSliceBuilder =
     new ByteSliceBuilder(ByteSlice(slice.cast[java.lang.Byte]))
 }
 

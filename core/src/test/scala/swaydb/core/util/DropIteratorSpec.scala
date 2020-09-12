@@ -35,7 +35,7 @@ import swaydb.data.slice.Slice._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class DropIteratorSpec extends AnyWordSpec with Matchers {
 

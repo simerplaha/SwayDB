@@ -29,7 +29,7 @@ import swaydb.core.segment.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext,
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice._
 private[core] sealed trait KeyMatcher {
-  def key: Slice[Byte]
+  def key: Sliced[Byte]
 
   def isHigher: Boolean
 
@@ -37,7 +37,7 @@ private[core] sealed trait KeyMatcher {
             next: Persistent.PartialOption,
             hasMore: Boolean): KeyMatcher.Result
 
-  def keyOrder: KeyOrder[Slice[Byte]]
+  def keyOrder: KeyOrder[Sliced[Byte]]
 
   def matchOnly: Boolean
 }
@@ -74,7 +74,7 @@ private[core] object KeyMatcher {
   }
 
   object Get {
-    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Get =
+    def apply(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Get =
       new Getter(
         key = key,
         matchOnly = false
@@ -83,7 +83,7 @@ private[core] object KeyMatcher {
     sealed trait Bounded extends KeyMatcher.Bounded
 
     object MatchOnly {
-      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Get.MatchOnly =
+      def apply(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Get.MatchOnly =
         new Getter(
           key = key,
           matchOnly = true
@@ -94,8 +94,8 @@ private[core] object KeyMatcher {
       def matchOnly: Boolean
     }
 
-    def matchMutateForBinarySearch(key: Slice[Byte],
-                                   partialKeyValue: Persistent.Partial.Fixed)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
+    def matchMutateForBinarySearch(key: Sliced[Byte],
+                                   partialKeyValue: Persistent.Partial.Fixed)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Unit = {
       val matchResult = keyOrder.compare(key, partialKeyValue.key)
       if (matchResult == 0)
         partialKeyValue.isBinarySearchMatched = true
@@ -105,8 +105,8 @@ private[core] object KeyMatcher {
         partialKeyValue.isBinarySearchAhead = true
     }
 
-    def matchMutateForBinarySearch(key: Slice[Byte],
-                                   range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
+    def matchMutateForBinarySearch(key: Sliced[Byte],
+                                   range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Unit = {
       val fromKeyMatch = keyOrder.compare(key, range.fromKey)
       var compared: Boolean = false
       var toKeyCompare: Int = 0
@@ -128,20 +128,20 @@ private[core] object KeyMatcher {
         range.isBinarySearchAhead = true
     }
 
-    def matchForHashIndex(key: Slice[Byte],
-                          partialKeyValue: Persistent.Partial.Fixed)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+    def matchForHashIndex(key: Sliced[Byte],
+                          partialKeyValue: Persistent.Partial.Fixed)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Boolean =
       keyOrder.equiv(key, partialKeyValue.key)
 
-    def matchForHashIndex(key: Slice[Byte],
-                          range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+    def matchForHashIndex(key: Sliced[Byte],
+                          range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Boolean = {
       val fromKeyMatch = keyOrder.compare(key, range.fromKey)
       fromKeyMatch == 0 || (fromKeyMatch > 0 && keyOrder.lt(key, range.toKey))
     }
   }
 
   //private to disallow creating hashIndex Get from here.
-  private class Getter(val key: Slice[Byte],
-                       val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with Get.MatchOnly {
+  private class Getter(val key: Sliced[Byte],
+                       val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Sliced[Byte]]) extends Get with Get.MatchOnly {
 
     override def isHigher: Boolean =
       false
@@ -186,7 +186,7 @@ private[core] object KeyMatcher {
   }
 
   object Lower {
-    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Lower =
+    def apply(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Lower =
       new LowerMatcher(
         key = key,
         matchOnly = false
@@ -195,7 +195,7 @@ private[core] object KeyMatcher {
     sealed trait Bounded extends KeyMatcher.Bounded
 
     object MatchOnly {
-      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Lower.MatchOnly =
+      def apply(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Lower.MatchOnly =
         new LowerMatcher(
           key = key,
           matchOnly = true
@@ -207,8 +207,8 @@ private[core] object KeyMatcher {
     }
   }
 
-  private class LowerMatcher(val key: Slice[Byte],
-                             val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Lower with Lower.MatchOnly {
+  private class LowerMatcher(val key: Sliced[Byte],
+                             val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Sliced[Byte]]) extends Lower with Lower.MatchOnly {
 
     override def isHigher: Boolean =
       false
@@ -270,7 +270,7 @@ private[core] object KeyMatcher {
   }
 
   object Higher {
-    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Higher =
+    def apply(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Higher =
       new HigherMatcher(
         key = key,
         matchOnly = false
@@ -279,7 +279,7 @@ private[core] object KeyMatcher {
     sealed trait Bounded extends KeyMatcher.Bounded
 
     object MatchOnly {
-      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Higher.MatchOnly =
+      def apply(key: Sliced[Byte])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Higher.MatchOnly =
         new HigherMatcher(
           key = key,
           matchOnly = true
@@ -291,8 +291,8 @@ private[core] object KeyMatcher {
     }
   }
 
-  private class HigherMatcher(val key: Slice[Byte],
-                              val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Higher with Higher.MatchOnly {
+  private class HigherMatcher(val key: Sliced[Byte],
+                              val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Sliced[Byte]]) extends Higher with Higher.MatchOnly {
 
     override def isHigher: Boolean =
       true

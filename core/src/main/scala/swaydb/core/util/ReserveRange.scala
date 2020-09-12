@@ -44,8 +44,8 @@ import scala.concurrent.Promise
  */
 private[core] object ReserveRange extends LazyLogging {
 
-  case class Range[T](from: Slice[Byte],
-                      to: Slice[Byte],
+  case class Range[T](from: Sliced[Byte],
+                      to: Sliced[Byte],
                       toInclusive: Boolean,
                       reserve: Reserve[T])
 
@@ -61,9 +61,9 @@ private[core] object ReserveRange extends LazyLogging {
   def create[T](): State[T] =
     State(ListBuffer.empty)
 
-  def get[T](from: Slice[Byte],
-             to: Slice[Byte])(implicit state: State[T],
-                              ordering: KeyOrder[Slice[Byte]]): Option[T] =
+  def get[T](from: Sliced[Byte],
+             to: Sliced[Byte])(implicit state: State[T],
+                               ordering: KeyOrder[Sliced[Byte]]): Option[T] =
     state.synchronized {
       state
         .ranges
@@ -71,11 +71,11 @@ private[core] object ReserveRange extends LazyLogging {
         .flatMap(_.reserve.info.get())
     }
 
-  def reserveOrGet[T](from: Slice[Byte],
-                      to: Slice[Byte],
+  def reserveOrGet[T](from: Sliced[Byte],
+                      to: Sliced[Byte],
                       toInclusive: Boolean,
                       info: T)(implicit state: State[T],
-                               ordering: KeyOrder[Slice[Byte]]): Option[T] =
+                               ordering: KeyOrder[Sliced[Byte]]): Option[T] =
     state.synchronized {
       reserveOrGetRange(
         from = from,
@@ -91,11 +91,11 @@ private[core] object ReserveRange extends LazyLogging {
       }
     }
 
-  def reserveOrListen[T](from: Slice[Byte],
-                         to: Slice[Byte],
+  def reserveOrListen[T](from: Sliced[Byte],
+                         to: Sliced[Byte],
                          toInclusive: Boolean,
                          info: T)(implicit state: State[T],
-                                  ordering: KeyOrder[Slice[Byte]]): IO[Promise[Unit], Slice[Byte]] =
+                                  ordering: KeyOrder[Sliced[Byte]]): IO[Promise[Unit], Sliced[Byte]] =
     state.synchronized {
       reserveOrGetRange(
         from = from,
@@ -106,15 +106,15 @@ private[core] object ReserveRange extends LazyLogging {
         case IO.Left(range) =>
           val promise = Promise[Unit]()
           range.reserve.savePromise(promise)
-          IO.Left[Promise[Unit], Slice[Byte]](promise)(IO.ExceptionHandler.PromiseUnit)
+          IO.Left[Promise[Unit], Sliced[Byte]](promise)(IO.ExceptionHandler.PromiseUnit)
 
         case IO.Right(value) =>
-          IO.Right[Promise[Unit], Slice[Byte]](value)(IO.ExceptionHandler.PromiseUnit)
+          IO.Right[Promise[Unit], Sliced[Byte]](value)(IO.ExceptionHandler.PromiseUnit)
       }
     }
 
-  def free[T](from: Slice[Byte])(implicit state: State[T],
-                                 ordering: KeyOrder[Slice[Byte]]): Unit =
+  def free[T](from: Sliced[Byte])(implicit state: State[T],
+                                  ordering: KeyOrder[Sliced[Byte]]): Unit =
     state.synchronized {
       state
         .ranges
@@ -126,10 +126,10 @@ private[core] object ReserveRange extends LazyLogging {
         }
     }
 
-  def isUnreserved[T](from: Slice[Byte],
-                      to: Slice[Byte],
+  def isUnreserved[T](from: Sliced[Byte],
+                      to: Sliced[Byte],
                       toInclusive: Boolean)(implicit state: State[T],
-                                            ordering: KeyOrder[Slice[Byte]]): Boolean =
+                                            ordering: KeyOrder[Sliced[Byte]]): Boolean =
     state
       .ranges
       .forall {
@@ -141,18 +141,18 @@ private[core] object ReserveRange extends LazyLogging {
       }
 
   def isUnreserved[T](segment: Segment)(implicit state: State[T],
-                                        ordering: KeyOrder[Slice[Byte]]): Boolean =
+                                        ordering: KeyOrder[Sliced[Byte]]): Boolean =
     isUnreserved(
       from = segment.minKey,
       to = segment.maxKey.maxKey,
       toInclusive = segment.maxKey.inclusive
     )
 
-  private def reserveOrGetRange[T](from: Slice[Byte],
-                                   to: Slice[Byte],
+  private def reserveOrGetRange[T](from: Sliced[Byte],
+                                   to: Sliced[Byte],
                                    toInclusive: Boolean,
                                    info: T)(implicit state: State[T],
-                                            ordering: KeyOrder[Slice[Byte]]): IO[ReserveRange.Range[T], Slice[Byte]] =
+                                            ordering: KeyOrder[Sliced[Byte]]): IO[ReserveRange.Range[T], Sliced[Byte]] =
     state.synchronized {
       state
         .ranges
@@ -163,7 +163,7 @@ private[core] object ReserveRange extends LazyLogging {
           val waitingCount = state.ranges.size
           //Helps debug situations if too many threads and try to compact into the same Segment.
           if (waitingCount >= 100) logger.warn(s"Too many listeners: $waitingCount")
-          IO.Right[ReserveRange.Range[T], Slice[Byte]](from)
+          IO.Right[ReserveRange.Range[T], Sliced[Byte]](from)
         }
     }
 }

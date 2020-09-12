@@ -139,8 +139,8 @@ private[core] object CoreInitializer extends LazyLogging {
             fileCache: FileCache.Enable,
             threadStateCache: ThreadStateCache,
             memoryCache: MemoryCache,
-            shutdownTimeout: FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                             timeOrder: TimeOrder[Slice[Byte]],
+            shutdownTimeout: FiniteDuration)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                             timeOrder: TimeOrder[Sliced[Byte]],
                                              functionStore: FunctionStore,
                                              buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
     val validationResult =

@@ -35,12 +35,12 @@ import swaydb.core.data.Memory
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class FunctionMerger_PendingApply_Spec extends AnyWordSpec with Matchers {
 
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
 
   "Merging Function into PendingApply with a single apply" when {
 

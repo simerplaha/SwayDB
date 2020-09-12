@@ -80,7 +80,7 @@ object Queue extends LazyLogging {
       implicit val queueSerialiser: Serializer[(Long, A)] =
         swaydb.Queue.serialiser[A](serializer)
 
-      implicit val keyOrder: KeyOrder[Slice[Byte]] =
+      implicit val keyOrder: KeyOrder[Sliced[Byte]] =
         swaydb.Queue.ordering
 
       val set =

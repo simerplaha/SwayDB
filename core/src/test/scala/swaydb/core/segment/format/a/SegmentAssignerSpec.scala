@@ -44,7 +44,7 @@ import swaydb.serializers._
 import scala.collection.mutable
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class SegmentAssignerSpec0 extends SegmentAssignerSpec {
   val keyValueCount = 100
@@ -189,7 +189,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
             Memory.Range(15, 50, Value.remove(None), Value.update(10))
           )
 
-          def assertResult(assignments: mutable.Map[Segment, Slice[KeyValue]]) = {
+          def assertResult(assignments: mutable.Map[Segment, Sliced[KeyValue]]) = {
             assignments.size shouldBe 3
             assignments.find(_._1 == segment2).value._2 should contain only Memory.Range(15, 21, Value.remove(None), Value.update(10))
             assignments.find(_._1 == segment3).value._2 should contain only Memory.Range(21, 40, Value.FromValue.Null, Value.update(10))
@@ -313,23 +313,23 @@ sealed trait SegmentAssignerSpec extends TestBase {
 
           resultArray(0)._1.path shouldBe segment1.path
           resultArray(0)._2 should have size 1
-          resultArray(0)._2.head.key shouldBe (1: Slice[Byte])
+          resultArray(0)._2.head.key shouldBe (1: Sliced[Byte])
 
           resultArray(1)._1.path shouldBe segment2.path
           resultArray(1)._2 should have size 1
-          resultArray(1)._2.head.key shouldBe (2: Slice[Byte])
+          resultArray(1)._2.head.key shouldBe (2: Sliced[Byte])
 
           resultArray(2)._1.path shouldBe segment3.path
           resultArray(2)._2 should have size 1
-          resultArray(2)._2.head.key shouldBe (3: Slice[Byte])
+          resultArray(2)._2.head.key shouldBe (3: Sliced[Byte])
 
           resultArray(3)._1.path shouldBe segment4.path
           resultArray(3)._2 should have size 1
-          resultArray(3)._2.head.key shouldBe (4: Slice[Byte])
+          resultArray(3)._2.head.key shouldBe (4: Sliced[Byte])
 
           resultArray(4)._1.path shouldBe segment5.path
           resultArray(4)._2 should have size 1
-          resultArray(4)._2.head.key shouldBe (5: Slice[Byte])
+          resultArray(4)._2.head.key shouldBe (5: Sliced[Byte])
       }
     }
   }

@@ -109,7 +109,7 @@ private[a] object ValueWriter extends ValueWriter {
                                                                          deadlineWriter: DeadlineWriter): Unit =
     if (builder.enablePrefixCompressionForCurrentWrite && !builder.prefixCompressKeysOnly)
       (Memory.compressibleValue(current), Memory.compressibleValue(previous)) match {
-        case (currentValue: Slice[Byte], previousValue: Slice[Byte]) =>
+        case (currentValue: Sliced[Byte], previousValue: Sliced[Byte]) =>
           partialCompress(
             current = current,
             entryId = entryId,
@@ -118,7 +118,7 @@ private[a] object ValueWriter extends ValueWriter {
             previousValue = previousValue
           )
 
-        case (_: Slice[Byte], Slice.Null) =>
+        case (_: Sliced[Byte], Slice.Null) =>
           uncompressed(
             current = current,
             currentValue = current.value,
@@ -219,11 +219,11 @@ private[a] object ValueWriter extends ValueWriter {
 
   private def partialCompress[T <: Memory](current: T,
                                            entryId: BaseEntryId.Time,
-                                           currentValue: Slice[Byte],
+                                           currentValue: Sliced[Byte],
                                            builder: EntryWriter.Builder,
-                                           previousValue: Slice[Byte])(implicit binder: MemoryToKeyValueIdBinder[T],
-                                                                       keyWriter: KeyWriter,
-                                                                       deadlineWriter: DeadlineWriter): Unit =
+                                           previousValue: Sliced[Byte])(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                        keyWriter: KeyWriter,
+                                                                        deadlineWriter: DeadlineWriter): Unit =
     compressValueOffset( //if the values are not the same, write compressed offset, length and then deadline.
       current = current,
       builder = builder,
@@ -243,10 +243,10 @@ private[a] object ValueWriter extends ValueWriter {
   private def compressValueOffset[T <: Memory](current: T,
                                                builder: EntryWriter.Builder,
                                                entryId: BaseEntryId.Time,
-                                               currentValue: Slice[Byte],
-                                               previousValue: Slice[Byte])(implicit binder: MemoryToKeyValueIdBinder[T],
-                                                                           keyWriter: KeyWriter,
-                                                                           deadlineWriter: DeadlineWriter): Option[Unit] = {
+                                               currentValue: Sliced[Byte],
+                                               previousValue: Sliced[Byte])(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                            keyWriter: KeyWriter,
+                                                                            deadlineWriter: DeadlineWriter): Option[Unit] = {
     val currentValueOffset = builder.nextStartValueOffset
     Bytes.compress(Slice.writeInt(builder.startValueOffset), Slice.writeInt(currentValueOffset), 1) map {
       case (valueOffsetCommonBytes, valueOffsetRemainingBytes) =>
@@ -314,8 +314,8 @@ private[a] object ValueWriter extends ValueWriter {
   //if unable to compress valueOffsetBytes, try compressing value length valueLength bytes.
   private def compressValueLength[T <: Memory](current: T,
                                                entryId: BaseEntryId.Time,
-                                               currentValue: Slice[Byte],
-                                               previousValue: Slice[Byte],
+                                               currentValue: Sliced[Byte],
+                                               previousValue: Sliced[Byte],
                                                builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
                                                                              keyWriter: KeyWriter,
                                                                              deadlineWriter: DeadlineWriter): Unit =

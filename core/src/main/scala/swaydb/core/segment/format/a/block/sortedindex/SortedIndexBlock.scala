@@ -39,7 +39,7 @@ import swaydb.data.MaxKey
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.{Slice, _}
+import swaydb.data.slice.Slice.{Sliced, _}
 import swaydb.data.util.{ByteSizeOf, FiniteDurations, Functions}
 
 import scala.annotation.tailrec
@@ -149,8 +149,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   //IndexEntries that are used to create secondary indexes - binarySearchIndex & hashIndex
   class SecondaryIndexEntry(var indexOffset: Int, //mutable because if the bytes are normalised then this is adjust during close.
-                            val mergedKey: Slice[Byte],
-                            val comparableKey: Slice[Byte],
+                            val mergedKey: Sliced[Byte],
+                            val comparableKey: Sliced[Byte],
                             val keyType: Byte)
 
   case class Offset(start: Int, size: Int) extends BlockOffset
@@ -161,11 +161,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
    * resulted in very slow compaction because immutable compaction was creation
    * millions of temporary objects every second causing GC halts.
    */
-  class State(var compressibleBytes: Slice[Byte],
-              var cacheableBytes: Slice[Byte],
-              var header: Slice[Byte],
-              var minKey: Slice[Byte],
-              var maxKey: MaxKey[Slice[Byte]],
+  class State(var compressibleBytes: Sliced[Byte],
+              var cacheableBytes: Sliced[Byte],
+              var header: Sliced[Byte],
+              var minKey: Sliced[Byte],
+              var maxKey: MaxKey[Sliced[Byte]],
               var lastKeyValue: Memory,
               var smallestIndexEntrySize: Int,
               var largestIndexEntrySize: Int,
@@ -179,16 +179,16 @@ private[core] object SortedIndexBlock extends LazyLogging {
               var rangeCount: Int,
               var hasPut: Boolean,
               var hasRemoveRange: Boolean,
-              var minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+              var minMaxFunctionId: Option[MinMax[Sliced[Byte]]],
               val enableAccessPositionIndex: Boolean,
               val compressDuplicateRangeValues: Boolean,
               val normaliseIndex: Boolean,
               val compressions: UncompressedBlockInfo => Iterable[CompressionInternal],
               val secondaryIndexEntries: ListBuffer[SecondaryIndexEntry],
-              val indexEntries: ListBuffer[Slice[Byte]],
+              val indexEntries: ListBuffer[Sliced[Byte]],
               val builder: EntryWriter.Builder) {
 
-    def blockBytes: Slice[Byte] =
+    def blockBytes: Sliced[Byte] =
       header ++ compressibleBytes
 
     def uncompressedPrefixCount: Int =
@@ -246,7 +246,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       sortedIndexConfig = sortedIndexConfig
     )
 
-  def init(bytes: Slice[Byte],
+  def init(bytes: Sliced[Byte],
            compressDuplicateValues: Boolean,
            compressDuplicateRangeValues: Boolean,
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State = {
@@ -289,7 +289,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   }
 
   def write(keyValue: Memory,
-            state: SortedIndexBlock.State)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
+            state: SortedIndexBlock.State)(implicit keyOrder: KeyOrder[Sliced[Byte]]): Unit = {
     //currentWritePositionInThisSlice is used here because state.bytes can be a sub-slice.
     val positionBeforeWrite = state.compressibleBytes.currentWritePositionInThisSlice
 
@@ -401,7 +401,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     state.builder.previous = keyValue
   }
 
-  private def normaliseIfRequired(state: State): Slice[Byte] =
+  private def normaliseIfRequired(state: State): Sliced[Byte] =
     if (state.normaliseIndex) {
       val difference = state.largestIndexEntrySize - state.smallestIndexEntrySize
       if (difference == 0) {
@@ -437,7 +437,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     }
 
   def close(state: State): State = {
-    val normalisedBytes: Slice[Byte] = normaliseIfRequired(state)
+    val normalisedBytes: Sliced[Byte] = normaliseIfRequired(state)
 
     val compressionResult =
       Block.compress(
@@ -651,7 +651,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def toSlice(keyValueCount: Int,
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Slice[Persistent] = {
+              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Sliced[Persistent] = {
     val aggregator = Slice.newAggregator[Persistent](keyValueCount)
 
     iterator(
@@ -700,10 +700,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
       }
     }
 
-  def seekAndMatch(key: Slice[Byte],
+  def seekAndMatch(key: Sliced[Byte],
                    startFrom: PersistentOption,
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
+                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Sliced[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
@@ -717,10 +717,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
     else
       Persistent.Null
 
-  def matchOrSeek(key: Slice[Byte],
+  def matchOrSeek(key: Sliced[Byte],
                   startFrom: Persistent,
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): Persistent.PartialOption =
+                  valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Sliced[Byte]]): Persistent.PartialOption =
   //    if (ordering.gteq(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
@@ -741,10 +741,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
     else
       Persistent.Partial.Null
 
-  def searchSeekOne(key: Slice[Byte],
+  def searchSeekOne(key: Sliced[Byte],
                     start: Persistent,
                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
+                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Sliced[Byte]]): PersistentOption =
   //    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
@@ -758,11 +758,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
     else
       Persistent.Null
 
-  def searchSeekOne(key: Slice[Byte],
+  def searchSeekOne(key: Sliced[Byte],
                     fromPosition: Int,
                     keySizeOrZero: Int,
                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
+                    valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Sliced[Byte]]): PersistentOption =
   //    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
@@ -777,10 +777,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
         valuesReaderOrNull = valuesReaderOrNull
       )
 
-  def searchHigher(key: Slice[Byte],
+  def searchHigher(key: Sliced[Byte],
                    startFrom: PersistentOption,
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
+                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Sliced[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
@@ -791,10 +791,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReaderOrNull = valuesReaderOrNull
     )
 
-  def matchOrSeekHigher(key: Slice[Byte],
+  def matchOrSeekHigher(key: Sliced[Byte],
                         startFrom: PersistentOption,
                         sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
+                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Sliced[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
@@ -823,10 +823,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
         )
     }
 
-  def searchHigherSeekOne(key: Slice[Byte],
+  def searchHigherSeekOne(key: Sliced[Byte],
                           startFrom: Persistent,
                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                          valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
+                          valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Sliced[Byte]]): PersistentOption =
   //    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
@@ -837,11 +837,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReaderOrNull = valuesReaderOrNull
     )
 
-  def searchHigherSeekOne(key: Slice[Byte],
+  def searchHigherSeekOne(key: Sliced[Byte],
                           fromPosition: Int,
                           keySizeOrZero: Int,
                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                          valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
+                          valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Sliced[Byte]]): PersistentOption =
   //    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
@@ -853,10 +853,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReaderOrNull = valuesReaderOrNull
     )
 
-  def seekLowerAndMatch(key: Slice[Byte],
+  def seekLowerAndMatch(key: Sliced[Byte],
                         startFrom: PersistentOption,
                         sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
+                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Sliced[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
@@ -867,11 +867,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReaderOrNull = valuesReaderOrNull
     )
 
-  def matchOrSeekLower(key: Slice[Byte],
+  def matchOrSeekLower(key: Sliced[Byte],
                        startFrom: PersistentOption,
                        next: PersistentOption,
                        sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                       valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOption =
+                       valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Sliced[Byte]]): PersistentOption =
   //    if (startFrom.exists(from => order.gteq(from.key, key)) ||
   //      next.exists(next => next match {
   //        case range: Partial.RangeT => order.lt(range.toKey, key)

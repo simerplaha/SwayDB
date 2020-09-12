@@ -38,15 +38,15 @@ import scala.collection.mutable
 private[core] object SegmentAssigner {
 
   def assignMinMaxOnlyUnsafe(inputSegments: Iterable[Segment],
-                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Iterable[Segment] =
     SegmentAssigner.assignUnsafe(2 * inputSegments.size, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
 
-  def assignMinMaxOnlyUnsafe(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+  def assignMinMaxOnlyUnsafe(map: Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory],
+                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Sliced[Byte]]): Iterable[Segment] =
     SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(map), targetSegments).keys
 
-  def assignUnsafe(keyValues: Slice[KeyValue],
-                   segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] =
+  def assignUnsafe(keyValues: Sliced[KeyValue],
+                   segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Sliced[Byte]]): mutable.Map[Segment, Sliced[KeyValue]] =
     assignUnsafe(
       keyValuesCount = keyValues.size,
       keyValues = keyValues,
@@ -59,13 +59,13 @@ private[core] object SegmentAssigner {
    */
   def assignUnsafe(keyValuesCount: Int,
                    keyValues: Iterable[KeyValue],
-                   segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] = {
+                   segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Sliced[Byte]]): mutable.Map[Segment, Sliced[KeyValue]] = {
     if (Segment hasOnlyOneSegment segments) { //.size iterates the entire Iterable which is not needed.
       mutable.Map((segments.head, Slice.from(keyValues, keyValuesCount)))
     } else {
       import keyOrder._
 
-      val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue]]
+      val assignmentsMap = mutable.Map.empty[Segment, Sliced[KeyValue]]
       val segmentsIterator = segments.iterator
 
       def getNextSegmentMayBe() = if (segmentsIterator.hasNext) segmentsIterator.next() else Segment.Null

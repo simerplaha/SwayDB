@@ -29,15 +29,15 @@ import java.util.concurrent.TimeUnit
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 import scala.concurrent.duration.Deadline
 
 private[core] object LevelZeroMapEntryReader {
 
-  implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Remove]] {
+  implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Remove]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Memory.Remove] = {
+    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Remove] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
@@ -48,9 +48,9 @@ private[core] object LevelZeroMapEntryReader {
     }
   }
 
-  implicit object Level0PutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Put]] {
+  implicit object Level0PutReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Put]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Memory.Put] = {
+    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Put] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
@@ -64,9 +64,9 @@ private[core] object LevelZeroMapEntryReader {
     }
   }
 
-  implicit object Level0UpdateReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Update]] {
+  implicit object Level0UpdateReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Update]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Memory.Update] = {
+    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Update] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
@@ -80,9 +80,9 @@ private[core] object LevelZeroMapEntryReader {
     }
   }
 
-  implicit object Level0FunctionReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Function]] {
+  implicit object Level0FunctionReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Function]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Memory.Function] = {
+    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Function] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val timeLength = reader.readUnsignedInt()
@@ -94,9 +94,9 @@ private[core] object LevelZeroMapEntryReader {
     }
   }
 
-  implicit object Level0RangeReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Range]] {
+  implicit object Level0RangeReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.Range]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Memory.Range] = {
+    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.Range] = {
       val fromKeyLength = reader.readUnsignedInt()
       val fromKey = reader.read(fromKeyLength).unslice()
       val toKeyLength = reader.readUnsignedInt()
@@ -109,29 +109,29 @@ private[core] object LevelZeroMapEntryReader {
     }
   }
 
-  implicit object Level0PendingApplyReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.PendingApply]] {
+  implicit object Level0PendingApplyReader extends MapEntryReader[MapEntry.Put[Sliced[Byte], Memory.PendingApply]] {
 
-    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Memory.PendingApply] = {
+    override def read(reader: ReaderBase): MapEntry.Put[Sliced[Byte], Memory.PendingApply] = {
       val keyLength = reader.readUnsignedInt()
       val key = reader.read(keyLength).unslice()
       val valueLength = reader.readUnsignedInt()
       val valueBytes = reader.read(valueLength)
-      val applies = ValueSerializer.read[Slice[Value.Apply]](valueBytes)
+      val applies = ValueSerializer.read[Sliced[Value.Apply]](valueBytes)
 
       MapEntry.Put(key, Memory.PendingApply(key, applies))(LevelZeroMapEntryWriter.Level0PendingApplyWriter)
     }
   }
 
-  implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Memory]] {
-    private def merge(nextEntry: MapEntry[Slice[Byte], Memory],
-                      previousEntryOrNull: MapEntry[Slice[Byte], Memory]) =
+  implicit object Level0Reader extends MapEntryReader[MapEntry[Sliced[Byte], Memory]] {
+    private def merge(nextEntry: MapEntry[Sliced[Byte], Memory],
+                      previousEntryOrNull: MapEntry[Sliced[Byte], Memory]) =
       if (previousEntryOrNull == null)
         nextEntry
       else
         previousEntryOrNull ++ nextEntry
 
-    override def read(reader: ReaderBase): MapEntry[Slice[Byte], Memory] =
-      reader.foldLeft(null: MapEntry[Slice[Byte], Memory]) {
+    override def read(reader: ReaderBase): MapEntry[Sliced[Byte], Memory] =
+      reader.foldLeft(null: MapEntry[Sliced[Byte], Memory]) {
         case (previousEntry, reader) => {
           val entryId = reader.get()
           if (entryId == LevelZeroMapEntryWriter.Level0PutWriter.id)

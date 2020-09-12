@@ -37,7 +37,7 @@ class SliceOptionSpec extends AnyWordSpec with Matchers {
   implicit val keyOrder = KeyOrder.default
 
   def randomByte() = (Random.nextInt(256) - 128).toByte
-  val slice: Slice[Int] = Slice(1, 2, 3)
+  val slice: Sliced[Int] = Slice(1, 2, 3)
 
   "getOrElse" in {
     (Slice.Null getOrElseC slice) shouldBe slice

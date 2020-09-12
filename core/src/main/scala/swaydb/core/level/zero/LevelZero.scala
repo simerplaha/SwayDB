@@ -69,7 +69,7 @@ private[core] object LevelZero extends LazyLogging {
   val appliedFunctionsFolderName = "applied-functions"
   val timerFolderName = "timer"
 
-  def checkMissingFunctions(appliedFunctions: map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type],
+  def checkMissingFunctions(appliedFunctions: map.Map[SliceOption[Byte], Slice.Null.type, Sliced[Byte], Slice.Null.type],
                             functionStore: FunctionStore): IO[Error.Level, Unit] = {
     val missingFunctions = ListBuffer.empty[String]
     logger.info("Checking for missing functions.")
@@ -93,15 +93,15 @@ private[core] object LevelZero extends LazyLogging {
 
   def createAppliedFunctionsMap(databaseDirectory: Path,
                                 appliedFunctionsMapSize: Long,
-                                mmap: MMAP.Map)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                mmap: MMAP.Map)(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                 bufferCleaner: ByteBufferSweeperActor,
-                                                forceSaveApplier: ForceSaveApplier): RecoveryResult[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]] = {
+                                                forceSaveApplier: ForceSaveApplier): RecoveryResult[map.Map[SliceOption[Byte], Slice.Null.type, Sliced[Byte], Slice.Null.type]] = {
     implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
     implicit val functionsEntryReader = FunctionsMapEntryReader.FunctionsPutMapEntryReader
-    implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](LevelZero.appliedFunctionsFolderName)
+    implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Sliced[Byte], Slice.Null.type](LevelZero.appliedFunctionsFolderName)
     implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
 
-    map.Map.persistent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](
+    map.Map.persistent[SliceOption[Byte], Slice.Null.type, Sliced[Byte], Slice.Null.type](
       nullKey = Slice.Null,
       nullValue = Slice.Null,
       folder = databaseDirectory.resolve(LevelZero.appliedFunctionsFolderName),
@@ -120,8 +120,8 @@ private[core] object LevelZero extends LazyLogging {
             cacheKeyValueIds: Boolean,
             nextLevel: Option[NextLevel],
             acceleration: LevelZeroMeter => Accelerator,
-            throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        timeOrder: TimeOrder[Slice[Byte]],
+            throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                        timeOrder: TimeOrder[Sliced[Byte]],
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         functionStore: FunctionStore,
                                                         forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, LevelZero] = {
@@ -133,7 +133,7 @@ private[core] object LevelZero extends LazyLogging {
     else
       logger.info("cacheKeyValueIds is false. Key-value IDs cache disabled!")
 
-    implicit val skipListMerger: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger()
+    implicit val skipListMerger: SkipListMerger[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] = LevelZeroSkipListMerger()
 
     val mapsAndPathAndLock =
       storage match {
@@ -179,7 +179,7 @@ private[core] object LevelZero extends LazyLogging {
                   logger.info("{}: Recovering Maps.", path)
 
                   val maps =
-                    Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+                    Maps.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
                       path = path,
                       mmap = mmap,
                       fileSize = mapSize,
@@ -259,7 +259,7 @@ private[core] object LevelZero extends LazyLogging {
               implicit val implicitTimer = timer
 
               val map =
-                Maps.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+                Maps.memory[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
                   fileSize = mapSize,
                   acceleration = acceleration,
                   nullKey = Slice.Null,
@@ -303,13 +303,13 @@ private[core] object LevelZero extends LazyLogging {
 
 private[swaydb] case class LevelZero(path: Path,
                                      mapSize: Long,
-                                     maps: Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                                     maps: Maps[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory],
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => FiniteDuration,
-                                     appliedFunctionsMap: Option[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]],
-                                     private val lock: Option[FileLocker])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                     appliedFunctionsMap: Option[map.Map[SliceOption[Byte], Slice.Null.type, Sliced[Byte], Slice.Null.type]],
+                                     private val lock: Option[FileLocker])(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                                                           timeOrder: TimeOrder[Sliced[Byte]],
                                                                            functionStore: FunctionStore) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
@@ -327,12 +327,12 @@ private[swaydb] case class LevelZero(path: Path,
     IO[swaydb.Error.Close, Unit](Effect.release(lock))
       .and(nextLevel.map(_.releaseLocks) getOrElse IO.unit)
 
-  def validateInput(key: Slice[Byte]): Unit =
+  def validateInput(key: Sliced[Byte]): Unit =
     if (key.isEmpty) {
       throw new IllegalArgumentException("key cannot be empty.")
     }
 
-  def validateInput(fromKey: Slice[Byte], toKey: Slice[Byte]): Unit =
+  def validateInput(fromKey: Sliced[Byte], toKey: Sliced[Byte]): Unit =
     if (fromKey.isEmpty)
       throw new IllegalArgumentException("fromKey cannot be empty.")
     else if (toKey.isEmpty)
@@ -340,48 +340,48 @@ private[swaydb] case class LevelZero(path: Path,
     else if (fromKey > toKey) //fromKey cannot also be equal to toKey. The invoking this assert should also check for equality and call update on single key-value.
       throw new IllegalArgumentException("fromKey should be less than toKey.")
 
-  def put(key: Slice[Byte]): OK = {
+  def put(key: Sliced[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Sliced[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, None, timer.next)))
     OK.instance
   }
 
-  def put(key: Slice[Byte], value: Slice[Byte]): OK = {
+  def put(key: Sliced[Byte], value: Sliced[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Sliced[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
     OK.instance
   }
 
-  def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): OK = {
+  def put(key: Sliced[Byte], value: SliceOption[Byte], removeAt: Deadline): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, Some(removeAt), timer.next)))
+    maps.write(timer => MapEntry.Put[Sliced[Byte], Memory.Put](key, Memory.Put(key, value, Some(removeAt), timer.next)))
     OK.instance
   }
 
-  def put(key: Slice[Byte], value: SliceOption[Byte]): OK = {
+  def put(key: Sliced[Byte], value: SliceOption[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Sliced[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
     OK.instance
   }
 
-  def put(entry: Timer => MapEntry[Slice[Byte], Memory]): OK = {
+  def put(entry: Timer => MapEntry[Sliced[Byte], Memory]): OK = {
     maps write entry
     OK.instance
   }
 
-  def remove(key: Slice[Byte]): OK = {
+  def remove(key: Sliced[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Sliced[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
     OK.instance
   }
 
-  def remove(key: Slice[Byte], at: Deadline): OK = {
+  def remove(key: Sliced[Byte], at: Deadline): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
+    maps.write(timer => MapEntry.Put[Sliced[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
     OK.instance
   }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): OK = {
+  def remove(fromKey: Sliced[Byte], toKey: Sliced[Byte]): OK = {
     validateInput(fromKey, toKey)
 
     if (fromKey equiv toKey)
@@ -390,14 +390,14 @@ private[swaydb] case class LevelZero(path: Path,
       maps
         .write {
           timer =>
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
-              MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
+            (MapEntry.Put[Sliced[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(None, timer.next))): MapEntry[Sliced[Byte], Memory]) ++
+              MapEntry.Put[Sliced[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
         }
 
     OK.instance
   }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): OK = {
+  def remove(fromKey: Sliced[Byte], toKey: Sliced[Byte], at: Deadline): OK = {
     validateInput(fromKey, toKey)
 
     if (fromKey equiv toKey)
@@ -406,26 +406,26 @@ private[swaydb] case class LevelZero(path: Path,
       maps
         .write {
           timer =>
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
-              MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
+            (MapEntry.Put[Sliced[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(Some(at), timer.next))): MapEntry[Sliced[Byte], Memory]) ++
+              MapEntry.Put[Sliced[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
         }
 
     OK.instance
   }
 
-  def update(key: Slice[Byte], value: Slice[Byte]): OK = {
+  def update(key: Sliced[Byte], value: Sliced[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Sliced[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
     OK.instance
   }
 
-  def update(key: Slice[Byte], value: SliceOption[Byte]): OK = {
+  def update(key: Sliced[Byte], value: SliceOption[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Sliced[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
     OK.instance
   }
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: SliceOption[Byte]): OK = {
+  def update(fromKey: Sliced[Byte], toKey: Sliced[Byte], value: SliceOption[Byte]): OK = {
     validateInput(fromKey, toKey)
 
     if (fromKey equiv toKey)
@@ -434,7 +434,7 @@ private[swaydb] case class LevelZero(path: Path,
       maps
         .write {
           timer =>
-            (MapEntry.Put[Slice[Byte], Memory.Range](
+            (MapEntry.Put[Sliced[Byte], Memory.Range](
               key = fromKey,
               value = Memory.Range(
                 fromKey = fromKey,
@@ -442,7 +442,7 @@ private[swaydb] case class LevelZero(path: Path,
                 fromValue = Value.FromValue.Null,
                 rangeValue = Value.Update(value, None, timer.next)
               )
-            ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
+            ): MapEntry[Sliced[Byte], Memory]) ++ MapEntry.Put[Sliced[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
         }
 
     OK.instance
@@ -517,14 +517,14 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
 
-  def isFunctionApplied(functionId: Slice[Byte]): Boolean =
+  def isFunctionApplied(functionId: Sliced[Byte]): Boolean =
     appliedFunctionsMap.exists(_.contains(functionId))
 
   def clear(readState: ThreadReadState): OK =
     headKey(readState) match {
-      case headKey: Slice[Byte] =>
+      case headKey: Sliced[Byte] =>
         lastKey(readState) match {
-          case lastKey: Slice[Byte] =>
+          case lastKey: Sliced[Byte] =>
             remove(headKey, lastKey)
 
           case Slice.Null =>
@@ -535,10 +535,10 @@ private[swaydb] case class LevelZero(path: Path,
         OK.instance
     }
 
-  def registerFunction(functionId: Slice[Byte], function: SwayFunction): OK =
+  def registerFunction(functionId: Sliced[Byte], function: SwayFunction): OK =
     functionStore.put(functionId, function)
 
-  private def saveAppliedFunctionNoSync(function: Slice[Byte]): Unit =
+  private def saveAppliedFunctionNoSync(function: Sliced[Byte]): Unit =
     appliedFunctionsMap foreach {
       appliedFunctions =>
         if (appliedFunctions.notContains(function)) {
@@ -548,7 +548,7 @@ private[swaydb] case class LevelZero(path: Path,
         }
     }
 
-  def applyFunction(key: Slice[Byte], function: Slice[Byte]): OK =
+  def applyFunction(key: Sliced[Byte], function: Sliced[Byte]): OK =
     if (functionStore.notContains(function)) {
       throw FunctionNotFound(function.readString())
     } else {
@@ -560,14 +560,14 @@ private[swaydb] case class LevelZero(path: Path,
             throw new IllegalArgumentException("Functions are disabled.")
           } else {
             saveAppliedFunctionNoSync(function)
-            MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
+            MapEntry.Put[Sliced[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
           }
       }
 
       OK.instance
     }
 
-  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): OK =
+  def applyFunction(fromKey: Sliced[Byte], toKey: Sliced[Byte], function: Sliced[Byte]): OK =
     if (functionStore.notContains(function)) {
       throw FunctionNotFound(function.readString())
     } else {
@@ -583,16 +583,16 @@ private[swaydb] case class LevelZero(path: Path,
             } else {
               saveAppliedFunctionNoSync(function)
 
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
-                MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
+              (MapEntry.Put[Sliced[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Function(function, timer.next))): MapEntry[Sliced[Byte], Memory]) ++
+                MapEntry.Put[Sliced[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
             }
         }
 
       OK.instance
     }
 
-  private def getFromMap(key: Slice[Byte],
-                         currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): MemoryOption =
+  private def getFromMap(key: Sliced[Byte],
+                         currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): MemoryOption =
     if (currentMap.hasRange)
       currentMap.floor(key) match {
         case floor: Memory.Fixed if floor.key equiv key =>
@@ -607,9 +607,9 @@ private[swaydb] case class LevelZero(path: Path,
     else
       currentMap.get(key)
 
-  private def getFromNextLevel(key: Slice[Byte],
+  private def getFromNextLevel(key: Sliced[Byte],
                                readState: ThreadReadState,
-                               tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption = {
+                               tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]): KeyValue.PutOption = {
     val headOrNull = tailMaps.headOrNull
 
     if (headOrNull == null)
@@ -629,22 +629,22 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def currentGetter(currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) =
+  def currentGetter(currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]) =
     new CurrentGetter {
-      override def get(key: Slice[Byte], readState: ThreadReadState): MemoryOption =
+      override def get(key: Sliced[Byte], readState: ThreadReadState): MemoryOption =
         getFromMap(key, currentMap)
     }
 
-  def nextGetter(tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]) =
+  def nextGetter(tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]) =
     new NextGetter {
-      override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
+      override def get(key: Sliced[Byte], readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState, tailMaps)
     }
 
-  private def find(key: Slice[Byte],
+  private def find(key: Sliced[Byte],
                    readState: ThreadReadState,
-                   currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                   tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
+                   currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory],
+                   tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]): KeyValue.PutOption =
     Get.seek(
       key = key,
       readState = readState,
@@ -652,7 +652,7 @@ private[swaydb] case class LevelZero(path: Path,
       nextGetter = nextGetter(tailMaps)
     )
 
-  def get(key: Slice[Byte],
+  def get(key: Sliced[Byte],
           readState: ThreadReadState): KeyValue.PutOption = {
     val snapshot = maps.snapshot()
 
@@ -664,7 +664,7 @@ private[swaydb] case class LevelZero(path: Path,
     )
   }
 
-  def getKey(key: Slice[Byte],
+  def getKey(key: Sliced[Byte],
              readState: ThreadReadState): SliceOption[Byte] =
     get(key, readState).mapSliceOptional(_.key)
 
@@ -672,7 +672,7 @@ private[swaydb] case class LevelZero(path: Path,
     maps.reduce[SliceOption[Byte]](
       nullValue = Slice.Null,
       applier = _.headKey,
-      reduce = MinMax.minFavourLeftC[SliceOption[Byte], Slice[Byte]](_, _)(keyOrder)
+      reduce = MinMax.minFavourLeftC[SliceOption[Byte], Sliced[Byte]](_, _)(keyOrder)
     )
 
   def lastKeyFromMaps: SliceOption[Byte] =
@@ -689,7 +689,7 @@ private[swaydb] case class LevelZero(path: Path,
               case range: KeyValue.Range =>
                 range.toKey
             },
-      reduce = MinMax.maxFavourLeftC[SliceOption[Byte], Slice[Byte]](_, _)(keyOrder)
+      reduce = MinMax.maxFavourLeftC[SliceOption[Byte], Sliced[Byte]](_, _)(keyOrder)
     )
 
   def lastKey(readState: ThreadReadState): SliceOption[Byte] =
@@ -705,9 +705,9 @@ private[swaydb] case class LevelZero(path: Path,
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.headKey(readState) match {
-          case nextLevelFirstKey: Slice[Byte] =>
+          case nextLevelFirstKey: Sliced[Byte] =>
             MinMax
-              .minFavourLeftC[SliceOption[Byte], Slice[Byte]](mapHead, nextLevelFirstKey)(keyOrder)
+              .minFavourLeftC[SliceOption[Byte], Sliced[Byte]](mapHead, nextLevelFirstKey)(keyOrder)
               .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
 
           case Slice.Null =>
@@ -726,9 +726,9 @@ private[swaydb] case class LevelZero(path: Path,
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.lastKey(readState) match {
-          case nextLevelLastKey: Slice[Byte] =>
+          case nextLevelLastKey: Sliced[Byte] =>
             MinMax
-              .maxFavourLeftC[SliceOption[Byte], Slice[Byte]](mapLast, nextLevelLastKey)(keyOrder)
+              .maxFavourLeftC[SliceOption[Byte], Sliced[Byte]](mapLast, nextLevelLastKey)(keyOrder)
               .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
 
           case Slice.Null =>
@@ -740,7 +740,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
   }
 
-  def ceiling(key: Slice[Byte],
+  def ceiling(key: Sliced[Byte],
               readState: ThreadReadState): KeyValue.PutOption = {
     val snapshot = maps.snapshot()
 
@@ -752,10 +752,10 @@ private[swaydb] case class LevelZero(path: Path,
     )
   }
 
-  def ceiling(key: Slice[Byte],
+  def ceiling(key: Sliced[Byte],
               readState: ThreadReadState,
-              currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-              tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
+              currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory],
+              tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]): KeyValue.PutOption =
     find(
       key = key,
       readState = readState,
@@ -770,7 +770,7 @@ private[swaydb] case class LevelZero(path: Path,
       )
     }
 
-  def floor(key: Slice[Byte],
+  def floor(key: Sliced[Byte],
             readState: ThreadReadState): KeyValue.PutOption = {
     val snapshot = maps.snapshot()
 
@@ -782,10 +782,10 @@ private[swaydb] case class LevelZero(path: Path,
     )
   }
 
-  def floor(key: Slice[Byte],
+  def floor(key: Sliced[Byte],
             readState: ThreadReadState,
-            currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-            tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
+            currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory],
+            tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]): KeyValue.PutOption =
     find(
       key = key,
       readState = readState,
@@ -800,8 +800,8 @@ private[swaydb] case class LevelZero(path: Path,
       )
     }
 
-  private def higherFromMap(key: Slice[Byte],
-                            currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): MemoryOption =
+  private def higherFromMap(key: Sliced[Byte],
+                            currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): MemoryOption =
     if (currentMap.hasRange)
       currentMap.floor(key) match {
         case floorRange: Memory.Range if key >= floorRange.fromKey && key < floorRange.toKey =>
@@ -813,9 +813,9 @@ private[swaydb] case class LevelZero(path: Path,
     else
       currentMap.higher(key)
 
-  def findHigherInNextLevel(key: Slice[Byte],
+  def findHigherInNextLevel(key: Sliced[Byte],
                             readState: ThreadReadState,
-                            tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption = {
+                            tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull
     if (nextMapOrNull == null)
       nextLevel match {
@@ -834,10 +834,10 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def currentWalker(currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                    tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]) =
+  def currentWalker(currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory],
+                    tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]) =
     new CurrentWalker {
-      override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
+      override def get(key: Sliced[Byte], readState: ThreadReadState): KeyValue.PutOption =
         find(
           key = key,
           readState = readState,
@@ -845,13 +845,13 @@ private[swaydb] case class LevelZero(path: Path,
           tailMaps = tailMaps
         )
 
-      override def higher(key: Slice[Byte], readState: ThreadReadState): LevelSeek[Memory] =
+      override def higher(key: Sliced[Byte], readState: ThreadReadState): LevelSeek[Memory] =
         LevelSeek(
           segmentId = 0,
           result = higherFromMap(key, currentMap).toOptionS
         )
 
-      override def lower(key: Slice[Byte], readState: ThreadReadState): LevelSeek[Memory] =
+      override def lower(key: Sliced[Byte], readState: ThreadReadState): LevelSeek[Memory] =
         LevelSeek(
           segmentId = 0,
           result = lowerFromMap(key, currentMap).toOptionS
@@ -861,17 +861,17 @@ private[swaydb] case class LevelZero(path: Path,
         "current"
     }
 
-  def nextWalker(tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]) =
+  def nextWalker(tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]) =
     new NextWalker {
-      override def higher(key: Slice[Byte],
+      override def higher(key: Sliced[Byte],
                           readState: ThreadReadState): KeyValue.PutOption =
         findHigherInNextLevel(key, readState, tailMaps)
 
-      override def lower(key: Slice[Byte],
+      override def lower(key: Sliced[Byte],
                          readState: ThreadReadState): KeyValue.PutOption =
         findLowerInNextLevel(key, readState, tailMaps)
 
-      override def get(key: Slice[Byte],
+      override def get(key: Sliced[Byte],
                        readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState, tailMaps)
 
@@ -879,10 +879,10 @@ private[swaydb] case class LevelZero(path: Path,
         s"Map - Remaining maps: ${tailMaps.size}."
     }
 
-  def findHigher(key: Slice[Byte],
+  def findHigher(key: Sliced[Byte],
                  readState: ThreadReadState,
-                 currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                 tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
+                 currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory],
+                 tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]): KeyValue.PutOption =
     Higher.seek(
       key = key,
       readState = readState,
@@ -901,7 +901,7 @@ private[swaydb] case class LevelZero(path: Path,
    *
    * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
    */
-  def higher(key: Slice[Byte],
+  def higher(key: Sliced[Byte],
              readState: ThreadReadState): KeyValue.PutOption = {
     val snapshot = maps.snapshot()
 
@@ -913,8 +913,8 @@ private[swaydb] case class LevelZero(path: Path,
     )
   }
 
-  private def lowerFromMap(key: Slice[Byte],
-                           currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): MemoryOption =
+  private def lowerFromMap(key: Sliced[Byte],
+                           currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]): MemoryOption =
     if (currentMap.hasRange)
       currentMap.floor(key) match {
         case floorRange: Memory.Range if key > floorRange.fromKey && key <= floorRange.toKey =>
@@ -926,9 +926,9 @@ private[swaydb] case class LevelZero(path: Path,
     else
       currentMap.lower(key)
 
-  def findLowerInNextLevel(key: Slice[Byte],
+  def findLowerInNextLevel(key: Sliced[Byte],
                            readState: ThreadReadState,
-                           tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption = {
+                           tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull
     if (nextMapOrNull == null)
       nextLevel match {
@@ -947,10 +947,10 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def findLower(key: Slice[Byte],
+  def findLower(key: Sliced[Byte],
                 readState: ThreadReadState,
-                currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                tailMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
+                currentMap: map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory],
+                tailMaps: Sliced[map.Map[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]]): KeyValue.PutOption =
     Lower.seek(
       key = key,
       readState = readState,
@@ -969,7 +969,7 @@ private[swaydb] case class LevelZero(path: Path,
    *
    * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
    */
-  def lower(key: Slice[Byte],
+  def lower(key: Sliced[Byte],
             readState: ThreadReadState): KeyValue.PutOption = {
     val snapshot = maps.snapshot()
 
@@ -981,11 +981,11 @@ private[swaydb] case class LevelZero(path: Path,
     )
   }
 
-  def contains(key: Slice[Byte],
+  def contains(key: Sliced[Byte],
                readState: ThreadReadState): Boolean =
     get(key, readState).isSome
 
-  def valueSize(key: Slice[Byte],
+  def valueSize(key: Sliced[Byte],
                 readState: ThreadReadState): Option[Int] =
     get(key, readState) match {
       case Put.Null =>
@@ -1006,7 +1006,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
   }
 
-  def deadline(key: Slice[Byte],
+  def deadline(key: Sliced[Byte],
                readState: ThreadReadState): Option[Deadline] =
     get(
       key = key,
@@ -1025,11 +1025,11 @@ private[swaydb] case class LevelZero(path: Path,
   def existsOnDisk: Boolean =
     Effect.exists(path)
 
-  def mightContainKey(key: Slice[Byte]): Boolean =
+  def mightContainKey(key: Sliced[Byte]): Boolean =
     maps.contains(key) ||
       nextLevel.exists(_.mightContainKey(key))
 
-  private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =
+  private def findFunctionInMaps(functionId: Sliced[Byte]): Boolean =
     maps.find[Boolean](
       nullResult = false,
       matcher =
@@ -1058,7 +1058,7 @@ private[swaydb] case class LevelZero(path: Path,
           }
     )
 
-  def mightContainFunction(functionId: Slice[Byte]): Boolean =
+  def mightContainFunction(functionId: Sliced[Byte]): Boolean =
     findFunctionInMaps(functionId) ||
       nextLevel.exists(_.mightContainFunction(functionId))
 
@@ -1090,13 +1090,13 @@ private[swaydb] case class LevelZero(path: Path,
       .map(_.segmentFilesOnDisk)
       .getOrElse(Seq.empty)
 
-  override def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
+  override def foreachSegment[T](f: (Sliced[Byte], Segment) => T): Unit =
     nextLevel.foreach(_.foreachSegment(f))
 
-  override def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
+  override def containsSegmentWithMinKey(minKey: Sliced[Byte]): Boolean =
     nextLevel.exists(_.containsSegmentWithMinKey(minKey))
 
-  override def getSegment(minKey: Slice[Byte]): SegmentOption =
+  override def getSegment(minKey: Sliced[Byte]): SegmentOption =
     nextLevel match {
       case Some(segment) =>
         segment.getSegment(minKey)

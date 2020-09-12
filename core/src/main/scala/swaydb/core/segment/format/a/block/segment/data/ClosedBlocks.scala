@@ -39,7 +39,7 @@ private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlock.State,
                                   val hashIndex: Option[HashIndexBlock.State],
                                   val binarySearchIndex: Option[BinarySearchIndexBlock.State],
                                   val bloomFilter: Option[BloomFilterBlock.State],
-                                  val minMaxFunction: Option[MinMax[Slice[Byte]]],
+                                  val minMaxFunction: Option[MinMax[Sliced[Byte]]],
                                   prepareForCachingSegmentBlocksOnCreate: Boolean) {
   def nearestDeadline: Option[Deadline] = sortedIndex.nearestDeadline
 

@@ -31,7 +31,7 @@ import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.util.MurmurHash3Generic
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.{Slice, _}
+import swaydb.data.slice.Slice.{Sliced, _}
 import swaydb.data.util.{ByteSizeOf, Functions}
 
 private[core] object BloomFilterBlock extends LazyLogging {
@@ -84,15 +84,15 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
   class State(val numberOfBits: Int,
               val maxProbe: Int,
-              var compressibleBytes: Slice[Byte],
-              val cacheableBytes: Slice[Byte],
-              var header: Slice[Byte],
+              var compressibleBytes: Sliced[Byte],
+              val cacheableBytes: Sliced[Byte],
+              var header: Sliced[Byte],
               val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
     def blockSize: Int =
       header.size + compressibleBytes.size
 
-    def blockBytes: Slice[Byte] =
+    def blockBytes: Sliced[Byte] =
       header ++ compressibleBytes
 
     def written =
@@ -249,7 +249,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
         )
       )
 
-  def add(comparableKey: Slice[Byte],
+  def add(comparableKey: Sliced[Byte],
           state: BloomFilterBlock.State): Unit = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(comparableKey, 0, comparableKey.size, 0)
     val hash1 = hash >>> 32
@@ -269,7 +269,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     }
   }
 
-  def mightContain(comparableKey: Slice[Byte],
+  def mightContain(comparableKey: Sliced[Byte],
                    reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): Boolean = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(comparableKey, 0, comparableKey.size, 0)
     val hash1 = hash >>> 32

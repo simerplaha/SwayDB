@@ -34,11 +34,11 @@ import scala.annotation.tailrec
 
 private[core] object Get {
 
-  def seek(key: Slice[Byte],
+  def seek(key: Sliced[Byte],
            readState: ThreadReadState,
            currentGetter: CurrentGetter,
-           nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                   timeOrder: TimeOrder[Slice[Byte]],
+           nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                   timeOrder: TimeOrder[Sliced[Byte]],
                                    functionStore: FunctionStore): KeyValue.PutOption =
     Get(key = key, readState = readState)(
       keyOrder = keyOrder,
@@ -48,9 +48,9 @@ private[core] object Get {
       functionStore = functionStore
     )
 
-  def apply(key: Slice[Byte],
-            readState: ThreadReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
+  def apply(key: Sliced[Byte],
+            readState: ThreadReadState)(implicit keyOrder: KeyOrder[Sliced[Byte]],
+                                        timeOrder: TimeOrder[Sliced[Byte]],
                                         currentGetter: CurrentGetter,
                                         nextGetter: NextGetter,
                                         functionStore: FunctionStore): KeyValue.PutOption = {

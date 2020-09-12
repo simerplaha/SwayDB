@@ -49,7 +49,7 @@ private[swaydb] object MurmurHash3Generic {
     k
   }
 
-  def murmurhash3_x64_64(key: Slice[Byte], offset: Int, len: Int, seed: Int): Long = {
+  def murmurhash3_x64_64(key: Sliced[Byte], offset: Int, len: Int, seed: Int): Long = {
     val reader = Reader(key)
     var h1: Long = seed & 0x00000000FFFFFFFFL
     var h2: Long = seed & 0x00000000FFFFFFFFL

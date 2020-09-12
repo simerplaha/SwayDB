@@ -44,18 +44,18 @@ private[core] object Command {
 
   sealed trait KeyValueCommand extends Command {
     val keyValueRef: WeakReference[KeyValue.CacheAble]
-    val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]
+    val skipListRef: WeakReference[SkipList[_, _, Sliced[Byte], _]]
   }
 
   private[actor] class KeyValue(val keyValueRef: WeakReference[Persistent],
-                                val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]) extends KeyValueCommand
+                                val skipListRef: WeakReference[SkipList[_, _, Sliced[Byte], _]]) extends KeyValueCommand
 
   private[actor] class Cache(val weight: Int,
                              val cache: WeakReference[swaydb.data.cache.Cache[_, _, _]]) extends Command
 
   private[actor] class BlockCache(val key: BlockCache.Key,
                                   val valueSize: Int,
-                                  val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte], SliceOption[Byte]]) extends Command
+                                  val map: HashedMap.Concurrent[BlockCache.Key, Sliced[Byte], SliceOption[Byte]]) extends Command
 
 }
 
@@ -203,8 +203,8 @@ private[core] object MemorySweeper extends LazyLogging {
   sealed trait Block extends Cache {
 
     def add(key: BlockCache.Key,
-            value: Slice[Byte],
-            map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte], SliceOption[Byte]]): Unit =
+            value: Sliced[Byte],
+            map: HashedMap.Concurrent[BlockCache.Key, Sliced[Byte], SliceOption[Byte]]): Unit =
       actor foreach {
         actor =>
           actor send new Command.BlockCache(
@@ -227,13 +227,13 @@ private[core] object MemorySweeper extends LazyLogging {
     def maxKeyValuesPerSegment: Option[Int]
 
     def add(keyValue: Persistent,
-            skipList: SkipList[_, _, Slice[Byte], _]): Unit =
+            skipList: SkipList[_, _, Sliced[Byte], _]): Unit =
       if (sweepKeyValues)
         actor foreach {
           actor =>
             actor send new Command.KeyValue(
               keyValueRef = new WeakReference(keyValue),
-              skipListRef = new WeakReference[SkipList[_, _, Slice[Byte], _]](skipList)
+              skipListRef = new WeakReference[SkipList[_, _, Sliced[Byte], _]](skipList)
             )
         }
   }

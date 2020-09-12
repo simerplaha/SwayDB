@@ -35,7 +35,7 @@ import swaydb.core.util.MinMax
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.{Slice, _}
+import swaydb.data.slice.Slice.{Sliced, _}
 import swaydb.data.util.Maybe.{Maybe, _}
 import swaydb.data.util.{Functions, Maybe}
 
@@ -168,9 +168,9 @@ private[core] object BinarySearchIndexBlock {
               var writtenValues: Int,
               val minimumNumberOfKeys: Int,
               var isFullIndex: Boolean,
-              var compressibleBytes: Slice[Byte],
-              val cacheableBytes: Slice[Byte],
-              var header: Slice[Byte],
+              var compressibleBytes: Sliced[Byte],
+              val cacheableBytes: Sliced[Byte],
+              var header: Sliced[Byte],
               val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
     def blockSize: Int =
@@ -304,7 +304,7 @@ private[core] object BinarySearchIndexBlock {
     )
 
   def write(indexOffset: Int,
-            mergedKey: Slice[Byte],
+            mergedKey: Sliced[Byte],
             keyType: Byte,
             state: State): Unit =
     if (indexOffset == state.previouslyWritten) { //do not write duplicate entries.
@@ -368,14 +368,14 @@ private[core] object BinarySearchIndexBlock {
   //  var sameLower = 0
   //  var greaterLower = 0
 
-  private[block] def binarySearchMatchOrLower(key: Slice[Byte],
+  private[block] def binarySearchMatchOrLower(key: Sliced[Byte],
                                               lowest: PersistentOption,
                                               highest: PersistentOption,
                                               keyValuesCount: => Int,
                                               binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                                               sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                               valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Persistent.Partial],
-                                                                                                              keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption = {
+                                                                                                              keyOrder: KeyOrder[Sliced[Byte]]): Persistent.PartialOption = {
     val isFullIndex = binarySearchIndex == null || binarySearchIndex.block.isFullIndex
     val valuesCount = if (binarySearchIndex == null) keyValuesCount else binarySearchIndex.block.valuesCount
     val bytesPerValue = if (binarySearchIndex == null) sortedIndex.block.segmentMaxIndexEntrySize else binarySearchIndex.block.bytesPerValue
@@ -440,13 +440,13 @@ private[core] object BinarySearchIndexBlock {
   }
 
   private def binarySearchLower(fetchLeft: Boolean,
-                                key: Slice[Byte],
+                                key: Sliced[Byte],
                                 lowest: PersistentOption,
                                 highest: PersistentOption,
                                 keyValuesCount: => Int,
                                 binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                                 sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                                                                 partialOrder: KeyOrder[Persistent.Partial]): BinarySearchLowerResult.Some = {
 
     val isFullIndex = binarySearchIndex == null || binarySearchIndex.block.isFullIndex
@@ -569,13 +569,13 @@ private[core] object BinarySearchIndexBlock {
     }
   }
 
-  def search(key: Slice[Byte],
+  def search(key: Sliced[Byte],
              lowest: PersistentOption,
              highest: PersistentOption,
              keyValuesCount: => Int,
              binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
+             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Sliced[Byte]],
                                                                                    partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOption =
     if (sortedIndexReader.block.isBinarySearchable) {
       //      binarySeeks += 1
@@ -642,13 +642,13 @@ private[core] object BinarySearchIndexBlock {
     }
 
   //it's assumed that input param start will not be a higher value of key.
-  def searchHigher(key: Slice[Byte],
+  def searchHigher(key: Sliced[Byte],
                    start: PersistentOption,
                    end: PersistentOption,
                    keyValuesCount: => Int,
                    binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
+                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Sliced[Byte]],
                                                                                          partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOption = {
     val startFrom =
       search( //A check to see if key equiv start.key to perform a simple forward seek without matching is done in SegmentSearcher
@@ -669,12 +669,12 @@ private[core] object BinarySearchIndexBlock {
     )
   }
 
-  private def resolveLowerFromBinarySearch(key: Slice[Byte],
+  private def resolveLowerFromBinarySearch(key: Sliced[Byte],
                                            lower: PersistentOption,
                                            got: PersistentOption,
                                            end: PersistentOption,
                                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): PersistentOption = {
+                                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Sliced[Byte]]): PersistentOption = {
     val next =
       if (end.existsS(end => lower.existsS(_.nextIndexOffset == end.indexOffset)))
         end
@@ -692,13 +692,13 @@ private[core] object BinarySearchIndexBlock {
     )
   }
 
-  def searchLower(key: Slice[Byte],
+  def searchLower(key: Sliced[Byte],
                   start: PersistentOption,
                   end: PersistentOption,
                   keyValuesCount: Int,
                   binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
+                  valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Sliced[Byte]],
                                                                                         partialOrdering: KeyOrder[Persistent.Partial]): PersistentOption =
     if (sortedIndexReader.block.isBinarySearchable) {
       val result =

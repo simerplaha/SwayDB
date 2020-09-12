@@ -168,7 +168,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     core.sizeOfSegments
 
   def elemSize(elem: A): Int =
-    (elem: Slice[Byte]).size
+    (elem: Sliced[Byte]).size
 
   def expiration(elem: A): BAG[Option[Deadline]] =
     bag.suspend(core.deadline(elem, core.readStates.get()))
@@ -202,7 +202,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
       case Slice.Null =>
         null.asInstanceOf[A]
 
-      case slice: Slice[Byte] =>
+      case slice: Sliced[Byte] =>
         serializer.read(slice)
     }
 
@@ -211,7 +211,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
                                       readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
     from match {
       case Some(from) =>
-        val fromKeyBytes: Slice[Byte] = from.key
+        val fromKeyBytes: Sliced[Byte] = from.key
         if (from.before)
           core.beforeKey(fromKeyBytes, readState)
         else if (from.after)
@@ -226,7 +226,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
               else
                 bag.success(Slice.Null)
 
-            case slice: Slice[Byte] =>
+            case slice: Sliced[Byte] =>
               bag.success(slice)
           }
 
@@ -261,7 +261,7 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
           case Slice.Null =>
             null.asInstanceOf[A]
 
-          case slice: Slice[Byte] =>
+          case slice: Sliced[Byte] =>
             serializer.read(slice)
         }
     }

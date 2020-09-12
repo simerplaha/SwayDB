@@ -33,7 +33,7 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBin
 import swaydb.core.segment.format.a.entry.reader.{EntryReaderFailure, KeyReader}
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class KeyWriterReaderSpec extends AnyWordSpec with Matchers {
 
@@ -154,7 +154,7 @@ class KeyWriterReaderSpec extends AnyWordSpec with Matchers {
 
   "apply compression" when {
 
-    def assertCompression(previousKey: Slice[Byte],
+    def assertCompression(previousKey: Sliced[Byte],
                           next: Memory,
                           builder: EntryWriter.Builder,
                           deadlineId: BaseEntryId.Deadline) = {

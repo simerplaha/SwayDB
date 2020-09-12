@@ -25,13 +25,13 @@
 package swaydb.core.segment.format.a.block.reader
 
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 import scala.beans.BeanProperty
 
 object BlockReaderCache {
   class State(@BeanProperty var fromOffset: Int,
-              @BeanProperty var bytes: Slice[Byte]) {
+              @BeanProperty var bytes: Sliced[Byte]) {
     def toOffset = fromOffset + bytes.size - 1
 
     def size = bytes.size
@@ -40,15 +40,15 @@ object BlockReaderCache {
       size == 0
   }
 
-  def set(position: Int, bytes: Slice[Byte], state: State): Unit = {
+  def set(position: Int, bytes: Sliced[Byte], state: State): Unit = {
     state setFromOffset position
     state setBytes bytes
   }
 
-  def init(position: Int, bytes: Slice[Byte]): State =
+  def init(position: Int, bytes: Sliced[Byte]): State =
     new State(position, bytes)
 
-  def read(position: Int, size: Int, state: State): Slice[Byte] =
+  def read(position: Int, size: Int, state: State): Sliced[Byte] =
     if (state.isEmpty)
       Slice.emptyBytes
     else if (position >= state.fromOffset && position <= state.toOffset)

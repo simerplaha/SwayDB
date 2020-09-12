@@ -57,9 +57,9 @@ import scala.jdk.CollectionConverters._
 class MapSpec extends TestBase {
 
   implicit val ec = TestExecutionContext.executionContext
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   implicit val skipListMerger = LevelZeroSkipListMerger()
   implicit val merger = AppendixSkipListMerger
   implicit def segmentIO = SegmentIO.random
@@ -71,7 +71,7 @@ class MapSpec extends TestBase {
           import LevelZeroMapEntryWriter._
 
           val map =
-            Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.memory[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               fileSize = 1.mb,
@@ -85,15 +85,15 @@ class MapSpec extends TestBase {
 
           map.hasRange shouldBe false
 
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
           map.get(1) shouldBe Memory.remove(1)
           map.get(2) shouldBe Memory.remove(2)
 
           map.hasRange shouldBe false
 
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
           map.get(1) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
           map.get(11) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
 
@@ -107,7 +107,7 @@ class MapSpec extends TestBase {
           import AppendixMapEntryWriter._
 
           val map =
-            Map.memory[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
+            Map.memory[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](
               nullKey = Slice.Null,
               nullValue = Segment.Null,
               fileSize = 1.mb,
@@ -119,15 +119,15 @@ class MapSpec extends TestBase {
 
           map.hasRange shouldBe false
 
-          map.writeSync(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Segment](1, segment1)) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Segment](2, segment2)) shouldBe true
           map.get(1) shouldBe segment1
           map.get(2) shouldBe segment2
 
           map.hasRange shouldBe false
 
-          map.writeSync(MapEntry.Remove[Slice[Byte]](1)) shouldBe true
-          map.writeSync(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
+          map.writeSync(MapEntry.Remove[Sliced[Byte]](1)) shouldBe true
+          map.writeSync(MapEntry.Remove[Sliced[Byte]](2)) shouldBe true
           map.get(1).toOptionS shouldBe empty
           map.get(2).toOptionS shouldBe empty
       }
@@ -141,7 +141,7 @@ class MapSpec extends TestBase {
           import sweeper._
 
           val map =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -155,7 +155,7 @@ class MapSpec extends TestBase {
           map.close()
           //recover from an empty map
           val recovered =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = map.path,
@@ -180,7 +180,7 @@ class MapSpec extends TestBase {
           import appendixReader._
 
           val map =
-            Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
+            Map.persistent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](
               nullKey = Slice.Null,
               nullValue = Segment.Null,
               folder = createRandomDir,
@@ -193,7 +193,7 @@ class MapSpec extends TestBase {
           map.close()
           //recover from an empty map
           val recovered =
-            Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
+            Map.persistent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](
               nullKey = Slice.Null,
               nullValue = Segment.Null,
               folder = map.path,
@@ -215,7 +215,7 @@ class MapSpec extends TestBase {
           import LevelZeroMapEntryWriter._
           import sweeper._
 
-          def assertReads(map: PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) = {
+          def assertReads(map: PersistentMap[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory]) = {
             map.get(1) shouldBe Memory.put(1, 1)
             map.get(2) shouldBe Memory.remove(2)
             map.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
@@ -223,9 +223,9 @@ class MapSpec extends TestBase {
             map.hasRange shouldBe true
           }
 
-          def doRecover(path: Path): PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+          def doRecover(path: Path): PersistentMap[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory] = {
             val recovered =
-              Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+              Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 folder = path,
@@ -246,7 +246,7 @@ class MapSpec extends TestBase {
           }
 
           val map =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -256,11 +256,11 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             ).item.sweep()
 
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, 1))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.put(2, 2))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Put](1, Memory.put(1, 1))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Put](2, Memory.put(2, 2))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
           assertReads(map)
 
@@ -285,7 +285,7 @@ class MapSpec extends TestBase {
           val segment2 = TestSegment(Slice(Memory.put(3, 3, None), Memory.put(4, 4, None)))
 
           val map =
-            Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
+            Map.persistent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](
               nullKey = Slice.Null,
               nullValue = Segment.Null,
               folder = createRandomDir,
@@ -295,15 +295,15 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             ).item.sweep()
 
-          map.writeSync(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
-          map.writeSync(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Segment](1, segment1)) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Segment](2, segment2)) shouldBe true
+          map.writeSync(MapEntry.Remove[Sliced[Byte]](2)) shouldBe true
           map.get(1) shouldBe segment1
           map.get(2).toOptionS shouldBe empty
 
-          def doRecover(path: Path): PersistentMap[SliceOption[Byte], SegmentOption, Slice[Byte], Segment] = {
+          def doRecover(path: Path): PersistentMap[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment] = {
             val recovered =
-              Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
+              Map.persistent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](
                 nullKey = Slice.Null,
                 nullValue = Segment.Null,
                 folder = map.path,
@@ -339,7 +339,7 @@ class MapSpec extends TestBase {
           import sweeper._
 
           val map1 =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -352,10 +352,10 @@ class MapSpec extends TestBase {
           map1.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
           map1.writeSync(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
           map1.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
-          map1.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
+          map1.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
 
           val map2 =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -368,7 +368,7 @@ class MapSpec extends TestBase {
           map2.writeSync(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
           map2.writeSync(MapEntry.Put(5, Memory.put(5, 5))) shouldBe true
           map2.writeSync(MapEntry.Put(2, Memory.put(2, 22))) shouldBe true //second file will override 2's value to be 22
-          map2.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+          map2.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
           //move map2's log file into map1's log file folder named as 1.log and reboot to test recovery.
           val map2sLogFile = map2.path.resolve(0.toLogFileId)
@@ -376,7 +376,7 @@ class MapSpec extends TestBase {
 
           //recover map 1 and it should contain all entries of map1 and map2
           val map1Recovered =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = map1.path,
@@ -417,7 +417,7 @@ class MapSpec extends TestBase {
           val segment2Updated = TestSegment(Slice(Memory.put(2, 2, None), Memory.put(12, 12, None)))
 
           val map1 =
-            Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
+            Map.persistent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](
               nullKey = Slice.Null,
               nullValue = Segment.Null,
               folder = createRandomDir,
@@ -432,7 +432,7 @@ class MapSpec extends TestBase {
           map1.writeSync(MapEntry.Put(3, segment3)) shouldBe true
 
           val map2 =
-            Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
+            Map.persistent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](
               nullKey = Slice.Null,
               nullValue = Segment.Null,
               folder = createRandomDir,
@@ -452,7 +452,7 @@ class MapSpec extends TestBase {
 
           //recover map 1 and it should contain all entries of map1 and map2
           val map1Recovered =
-            Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
+            Map.persistent[SliceOption[Byte], SegmentOption, Sliced[Byte], Segment](
               nullKey = Slice.Null,
               nullValue = Segment.Null,
               folder = map1.path,
@@ -482,7 +482,7 @@ class MapSpec extends TestBase {
           import sweeper._
 
           val map =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -493,7 +493,7 @@ class MapSpec extends TestBase {
 
           //fails because the file already exists.
           assertThrows[FileAlreadyExistsException] {
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = map.path,
@@ -504,7 +504,7 @@ class MapSpec extends TestBase {
           }
 
           //recovers because the recovery is provided
-          Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+          Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
             nullKey = Slice.Null,
             nullValue = Memory.Null,
             folder = map.path,
@@ -526,10 +526,10 @@ class MapSpec extends TestBase {
           import LevelZeroMapEntryWriter._
           import sweeper._
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+          val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
           val file =
-            PersistentMap.recover[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            PersistentMap.recover[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               folder = createRandomDir,
               mmap = MMAP.Disabled(TestForceSave.channel()),
               fileSize = 4.mb,
@@ -556,7 +556,7 @@ class MapSpec extends TestBase {
 
           //create a map
           val map =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -567,18 +567,18 @@ class MapSpec extends TestBase {
             ).item.sweep()
 
           map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
           map.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
           map.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
           map.currentFilePath.fileId shouldBe(0, Extension.Log)
 
           map.hasRange shouldBe true
 
           val skipList =
-            SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null
             )(keyOrder)
@@ -607,11 +607,11 @@ class MapSpec extends TestBase {
           recoveredFile.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
 
           skipList.isEmpty shouldBe false
-          skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          skipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
-          skipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
-          skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          skipList.get(1: Sliced[Byte]) shouldBe Memory.put(1, 1)
+          skipList.get(2: Sliced[Byte]) shouldBe Memory.remove(2)
+          skipList.get(3: Sliced[Byte]) shouldBe Memory.put(3, 3)
+          skipList.get(10: Sliced[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          skipList.get(15: Sliced[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
       }
     }
 
@@ -624,7 +624,7 @@ class MapSpec extends TestBase {
 
           //create a map
           val map =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -635,10 +635,10 @@ class MapSpec extends TestBase {
             ).item.sweep()
 
           map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
           map.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
-          map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
+          map.writeSync(MapEntry.Put[Sliced[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
           map.currentFilePath.fileId shouldBe(5, Extension.Log)
           map.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
@@ -653,7 +653,7 @@ class MapSpec extends TestBase {
           }
 
           //reopen file
-          val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+          val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           val recoveredFile = PersistentMap.recover(map.path, mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()), 1.byte, skipList, dropCorruptedTailEntries = false)._1.item.sweep()
           recoveredFile.isOpen shouldBe true
           recoveredFile.isMemoryMapped shouldBe true
@@ -662,11 +662,11 @@ class MapSpec extends TestBase {
           recoveredFile.path.resolveSibling(5.toLogFileId).exists shouldBe false //5.log gets deleted
 
           skipList.isEmpty shouldBe false
-          skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          skipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
-          skipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
-          skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          skipList.get(1: Sliced[Byte]) shouldBe Memory.put(1, 1)
+          skipList.get(2: Sliced[Byte]) shouldBe Memory.remove(2)
+          skipList.get(3: Sliced[Byte]) shouldBe Memory.put(3, 3)
+          skipList.get(10: Sliced[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          skipList.get(15: Sliced[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 
           if (OperatingSystem.isWindows) {
             recoveredFile.close()
@@ -674,7 +674,7 @@ class MapSpec extends TestBase {
           }
 
           //reopen the recovered file
-          val skipList2 = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+          val skipList2 = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           val recoveredFile2 = PersistentMap.recover(map.path, mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()), 1.byte, skipList2, dropCorruptedTailEntries = false)._1.item.sweep()
           recoveredFile2.isOpen shouldBe true
           recoveredFile2.isMemoryMapped shouldBe true
@@ -683,11 +683,11 @@ class MapSpec extends TestBase {
           recoveredFile2.path.resolveSibling(6.toLogFileId).exists shouldBe false //6.log gets deleted
 
           skipList2.isEmpty shouldBe false
-          skipList2.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          skipList2.get(2: Slice[Byte]) shouldBe Memory.remove(2)
-          skipList2.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
-          skipList2.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          skipList2.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          skipList2.get(1: Sliced[Byte]) shouldBe Memory.put(1, 1)
+          skipList2.get(2: Sliced[Byte]) shouldBe Memory.remove(2)
+          skipList2.get(3: Sliced[Byte]) shouldBe Memory.put(3, 3)
+          skipList2.get(10: Sliced[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          skipList2.get(15: Sliced[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
       }
     }
 
@@ -700,7 +700,7 @@ class MapSpec extends TestBase {
 
           //create a map
           val map =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -716,7 +716,7 @@ class MapSpec extends TestBase {
           if (OperatingSystem.isWindows)
             sweeper.receiveAll()
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+          val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           val file = PersistentMap.recover(map.path, MMAP.Disabled(TestForceSave.channel()), 4.mb, skipList, dropCorruptedTailEntries = false)._1.item.sweep()
 
           file.isOpen shouldBe true
@@ -738,7 +738,7 @@ class MapSpec extends TestBase {
           import LevelZeroMapEntryWriter._
           import sweeper._
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+          val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           skipList.put(1, Memory.put(1, 1))
           skipList.put(2, Memory.put(2, 2))
           skipList.put(3, Memory.remove(3))
@@ -748,16 +748,16 @@ class MapSpec extends TestBase {
           val currentFile = PersistentMap.recover(createRandomDir, MMAP.Disabled(TestForceSave.channel()), 4.mb, skipList, dropCorruptedTailEntries = false)._1.item.sweep()
           val nextFile = PersistentMap.nextFile(currentFile, MMAP.Disabled(TestForceSave.channel()), 4.mb, skipList).sweep()
 
-          val nextFileSkipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+          val nextFileSkipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           val nextFileBytes = DBFile.channelRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).readAll
           val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
           mapEntries applyTo nextFileSkipList
 
-          nextFileSkipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          nextFileSkipList.get(2: Slice[Byte]) shouldBe Memory.put(2, 2)
-          nextFileSkipList.get(3: Slice[Byte]) shouldBe Memory.remove(3)
-          nextFileSkipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          nextFileSkipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.put(15), Value.update(14))
+          nextFileSkipList.get(1: Sliced[Byte]) shouldBe Memory.put(1, 1)
+          nextFileSkipList.get(2: Sliced[Byte]) shouldBe Memory.put(2, 2)
+          nextFileSkipList.get(3: Sliced[Byte]) shouldBe Memory.remove(3)
+          nextFileSkipList.get(10: Sliced[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          nextFileSkipList.get(15: Sliced[Byte]) shouldBe Memory.Range(15, 20, Value.put(15), Value.update(14))
       }
     }
   }
@@ -771,7 +771,7 @@ class MapSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
           val map =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -790,7 +790,7 @@ class MapSpec extends TestBase {
 
           def assertRecover =
             assertThrows[IllegalStateException] {
-              Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+              Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
                 nullKey = Slice.Null,
                 nullValue = Memory.Null,
                 folder = map.currentFilePath.getParent,
@@ -816,7 +816,7 @@ class MapSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
           val map =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -837,7 +837,7 @@ class MapSpec extends TestBase {
           Effect.overwrite(map.currentFilePath, allBytes.dropRight(1))
 
           val recoveredMap =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = map.currentFilePath.getParent,
@@ -857,7 +857,7 @@ class MapSpec extends TestBase {
           Effect.overwrite(recoveredMap.currentFilePath, allBytes.drop(1))
 
           val recoveredMap2 =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               Slice.Null,
               Memory.Null,
               recoveredMap.currentFilePath.getParent,
@@ -881,7 +881,7 @@ class MapSpec extends TestBase {
           import sweeper._
 
           val map1 =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -896,7 +896,7 @@ class MapSpec extends TestBase {
           map1.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
 
           val map2 =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -925,7 +925,7 @@ class MapSpec extends TestBase {
           //corrupt 0.log bytes
           Effect.overwrite(log0, log0Bytes.drop(1))
           assertThrows[IllegalStateException] {
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = map1.path,
@@ -941,7 +941,7 @@ class MapSpec extends TestBase {
           //corrupt 0.log bytes
           Effect.overwrite(log0, log0Bytes.dropRight(1))
           val recoveredMapWith0LogCorrupted =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = map1.path,
@@ -978,7 +978,7 @@ class MapSpec extends TestBase {
           import sweeper._
 
           val map1 =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -993,7 +993,7 @@ class MapSpec extends TestBase {
           map1.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
 
           val map2 =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = createRandomDir,
@@ -1021,7 +1021,7 @@ class MapSpec extends TestBase {
           //corrupt 1.log bytes
           Effect.overwrite(log1, log1Bytes.drop(1))
           assertThrows[IllegalStateException] {
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = map1.path,
@@ -1037,7 +1037,7 @@ class MapSpec extends TestBase {
           //corrupt 1.log bytes
           Effect.overwrite(log1, log1Bytes.dropRight(1))
           val recoveredMapWith0LogCorrupted =
-            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
               nullKey = Slice.Null,
               nullValue = Memory.Null,
               folder = map1.path,
@@ -1079,7 +1079,7 @@ class MapSpec extends TestBase {
 
               //create a Map with randomly max size so that this test also covers when multiple maps are created. Also set flushOnOverflow to true so that the same Map gets written.
               val map =
-                Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+                Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
                   nullKey = Slice.Null,
                   nullValue = Memory.Null,
                   folder = createRandomDir,
@@ -1136,7 +1136,7 @@ class MapSpec extends TestBase {
               val mmap = TestForceSave.mmap()
 
               val map =
-                Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+                Map.persistent[SliceOption[Byte], MemoryOption, Sliced[Byte], Memory](
                   nullKey = Slice.Null,
                   nullValue = Memory.Null,
                   folder = createRandomDir,

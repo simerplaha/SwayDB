@@ -43,7 +43,7 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class LevelRefreshSpec0 extends LevelRefreshSpec
 
@@ -67,9 +67,9 @@ class LevelRefreshSpec3 extends LevelRefreshSpec {
 
 sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMethodTester {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   val keyValuesCount = 100
 
   implicit val skipListMerger = LevelZeroSkipListMerger

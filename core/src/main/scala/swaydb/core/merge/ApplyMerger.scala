@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice._
 private[core] object ApplyMerger {
 
   def apply(newKeyValue: Value.Apply,
-            oldKeyValue: KeyValue.Put)(implicit timeOrder: TimeOrder[Slice[Byte]],
+            oldKeyValue: KeyValue.Put)(implicit timeOrder: TimeOrder[Sliced[Byte]],
                                        functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
@@ -49,7 +49,7 @@ private[core] object ApplyMerger {
       oldKeyValue
 
   def apply(newKeyValue: Value.Apply,
-            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
+            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Sliced[Byte]],
                                           functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
@@ -66,7 +66,7 @@ private[core] object ApplyMerger {
       oldKeyValue
 
   def apply(newKeyValue: Value.Apply,
-            oldKeyValue: KeyValue.Update)(implicit timeOrder: TimeOrder[Slice[Byte]],
+            oldKeyValue: KeyValue.Update)(implicit timeOrder: TimeOrder[Sliced[Byte]],
                                           functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
@@ -83,7 +83,7 @@ private[core] object ApplyMerger {
       oldKeyValue
 
   def apply(newKeyValue: Value.Apply,
-            oldKeyValue: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
+            oldKeyValue: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Sliced[Byte]],
                                                 functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
@@ -100,7 +100,7 @@ private[core] object ApplyMerger {
       oldKeyValue
 
   def apply(newKeyValue: Value.Apply,
-            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Sliced[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
         case newValue: Value.Remove =>
@@ -115,8 +115,8 @@ private[core] object ApplyMerger {
     else
       oldKeyValue
 
-  def apply(newApplies: Slice[Value.Apply],
-            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
+  def apply(newApplies: Sliced[Value.Apply],
+            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Sliced[Byte]],
                                          functionStore: FunctionStore): KeyValue.Fixed =
     newApplies.foldLeft((oldKeyValue, 0)) {
       case ((oldMerged, count), newApply) =>

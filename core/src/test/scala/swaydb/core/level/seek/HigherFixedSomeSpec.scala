@@ -63,11 +63,11 @@ class HigherFixedSomeSpec extends AnyWordSpec with Matchers with MockFactory wit
 
         inSequence {
           //@formatter:off
-          current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(1, put)
-          next.higher           _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
+          current.higher        _ expects (0: Sliced[Byte], *)  returning LevelSeek.Some(1, put)
+          next.higher           _ expects (0: Sliced[Byte], *)  returning KeyValue.Put.Null
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe put
+        Higher(0: Sliced[Byte]).runRandomIO.right.value.value shouldBe put
       }
     }
 
@@ -85,11 +85,11 @@ class HigherFixedSomeSpec extends AnyWordSpec with Matchers with MockFactory wit
 
         inSequence {
           //@formatter:off
-          current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.None
-          next.higher           _ expects (0: Slice[Byte], *)  returning put
+          current.higher        _ expects (0: Sliced[Byte], *)  returning LevelSeek.None
+          next.higher           _ expects (0: Sliced[Byte], *)  returning put
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe put
+        Higher(0: Sliced[Byte]).runRandomIO.right.value.value shouldBe put
       }
     }
 
@@ -109,11 +109,11 @@ class HigherFixedSomeSpec extends AnyWordSpec with Matchers with MockFactory wit
 
         inSequence {
           //@formatter:off
-          current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(1, upperKeyValue)
-          next.higher           _ expects (0: Slice[Byte], *)  returning lowerKeyValue
+          current.higher        _ expects (0: Sliced[Byte], *)  returning LevelSeek.Some(1, upperKeyValue)
+          next.higher           _ expects (0: Sliced[Byte], *)  returning lowerKeyValue
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
+        Higher(0: Sliced[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
       }
     }
 
@@ -144,14 +144,14 @@ class HigherFixedSomeSpec extends AnyWordSpec with Matchers with MockFactory wit
 
         inSequence {
           //@formatter:off
-          current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(1, upperKeyValue)
-          next.higher           _ expects (0: Slice[Byte], *)  returning lowerKeyValue
+          current.higher        _ expects (0: Sliced[Byte], *)  returning LevelSeek.Some(1, upperKeyValue)
+          next.higher           _ expects (0: Sliced[Byte], *)  returning lowerKeyValue
           if(!isUpperExpected) {
-            current.higher        _ expects (1: Slice[Byte], *)  returning LevelSeek.None
+            current.higher        _ expects (1: Sliced[Byte], *)  returning LevelSeek.None
           }
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
+        Higher(0: Sliced[Byte]).runRandomIO.right.value.value shouldBe expected
       }
     }
 
@@ -169,11 +169,11 @@ class HigherFixedSomeSpec extends AnyWordSpec with Matchers with MockFactory wit
 
         inSequence {
           //@formatter:off
-          current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(1, upperKeyValue)
-          next.higher           _ expects (0: Slice[Byte], *)  returning lowerKeyValue
+          current.higher        _ expects (0: Sliced[Byte], *)  returning LevelSeek.Some(1, upperKeyValue)
+          next.higher           _ expects (0: Sliced[Byte], *)  returning lowerKeyValue
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe lowerKeyValue
+        Higher(0: Sliced[Byte]).runRandomIO.right.value.value shouldBe lowerKeyValue
       }
     }
   }

@@ -32,18 +32,18 @@ import swaydb.data.slice.Slice._
 
 private[core] object ValueMerger {
 
-  def apply(key: Slice[Byte],
+  def apply(key: Sliced[Byte],
             newRangeValue: Value.RangeValue,
-            oldFromValue: Value.FromValue)(implicit timeOrder: TimeOrder[Slice[Byte]],
+            oldFromValue: Value.FromValue)(implicit timeOrder: TimeOrder[Sliced[Byte]],
                                            functionStore: FunctionStore): Value.FromValue =
     FixedMerger(
       newKeyValue = newRangeValue.toMemory(key),
       oldKeyValue = oldFromValue.toMemory(key)
     ).toFromValue()
 
-  def apply(key: Slice[Byte],
+  def apply(key: Sliced[Byte],
             newRangeValue: Value.FromValue,
-            oldFromValue: Value.FromValue)(implicit timeOrder: TimeOrder[Slice[Byte]],
+            oldFromValue: Value.FromValue)(implicit timeOrder: TimeOrder[Sliced[Byte]],
                                            functionStore: FunctionStore): Value.FromValue =
     FixedMerger(
       newKeyValue = newRangeValue.toMemory(key),
@@ -51,7 +51,7 @@ private[core] object ValueMerger {
     ).toFromValue()
 
   def apply(newRangeValue: Value.RangeValue,
-            oldRangeValue: Value.RangeValue)(implicit timeOrder: TimeOrder[Slice[Byte]],
+            oldRangeValue: Value.RangeValue)(implicit timeOrder: TimeOrder[Sliced[Byte]],
                                              functionStore: FunctionStore): Value.RangeValue =
     FixedMerger(
       newKeyValue = newRangeValue.toMemory(Slice.emptyBytes),

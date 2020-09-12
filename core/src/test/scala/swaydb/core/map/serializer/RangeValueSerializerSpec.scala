@@ -33,7 +33,7 @@ import swaydb.core.data.Value
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class RangeValueSerializerSpec extends AnyWordSpec with Matchers {
 

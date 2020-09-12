@@ -48,8 +48,8 @@ class PersistentTimerSpec extends TimerSpec {
   def newTimer(path: Path)(implicit ec: ExecutionContext,
                            forceSaveApplier: ForceSaveApplier,
                            cleaner: ByteBufferSweeperActor,
-                           writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                           reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
+                           writer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Sliced[Byte]]],
+                           reader: MapEntryReader[MapEntry[Sliced[Byte], Sliced[Byte]]]): Timer =
     Timer.persistent(
       path = path,
       mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
@@ -65,8 +65,8 @@ class MemoryTimerSpec extends TimerSpec {
   def newTimer(path: Path)(implicit ec: ExecutionContext,
                            forceSaveApplier: ForceSaveApplier,
                            cleaner: ByteBufferSweeperActor,
-                           writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                           reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
+                           writer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Sliced[Byte]]],
+                           reader: MapEntryReader[MapEntry[Sliced[Byte], Sliced[Byte]]]): Timer =
     Timer.memory()
 }
 
@@ -82,8 +82,8 @@ sealed trait TimerSpec extends TestBase {
   def newTimer(path: Path)(implicit ec: ExecutionContext,
                            forceSaveApplier: ForceSaveApplier,
                            cleaner: ByteBufferSweeperActor,
-                           writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                           reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer
+                           writer: MapEntryWriter[MapEntry.Put[Sliced[Byte], Sliced[Byte]]],
+                           reader: MapEntryReader[MapEntry[Sliced[Byte], Sliced[Byte]]]): Timer
 
   "it" should {
 

@@ -43,7 +43,7 @@ import swaydb.data.util.StorageUnits._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class LevelCollapseSpec0 extends LevelCollapseSpec
 
@@ -67,9 +67,9 @@ class LevelCollapseSpec3 extends LevelCollapseSpec {
 
 sealed trait LevelCollapseSpec extends TestBase {
 
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =

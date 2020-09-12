@@ -42,7 +42,7 @@ protected object SegmentReadState {
   }
 
   def updateOnSuccessSequentialRead(path: Path,
-                                    forKey: Slice[Byte],
+                                    forKey: Sliced[Byte],
                                     segmentState: SegmentReadStateOption,
                                     threadReadState: ThreadReadState,
                                     found: Persistent): Unit =
@@ -67,7 +67,7 @@ protected object SegmentReadState {
    */
 
   def createOnSuccessSequentialRead(path: Path,
-                                    forKey: Slice[Byte],
+                                    forKey: Sliced[Byte],
                                     readState: ThreadReadState,
                                     found: Persistent): Unit = {
     found.unsliceKeys
@@ -83,7 +83,7 @@ protected object SegmentReadState {
   }
 
   def mutateOnSuccessSequentialRead(path: Path,
-                                    forKey: Slice[Byte],
+                                    forKey: Sliced[Byte],
                                     readState: ThreadReadState,
                                     segmentState: SegmentReadState,
                                     found: Persistent): Unit = {
@@ -95,7 +95,7 @@ protected object SegmentReadState {
   }
 
   def updateAfterRandomRead(path: Path,
-                            forKey: Slice[Byte],
+                            forKey: Sliced[Byte],
                             start: PersistentOption,
                             segmentStateOptional: SegmentReadStateOption,
                             threadReadState: ThreadReadState,
@@ -121,7 +121,7 @@ protected object SegmentReadState {
    * Sets read state after a random read WITHOUT an existing [[SegmentReadState]] exists.
    */
   def createAfterRandomRead(path: Path,
-                            forKey: Slice[Byte],
+                            forKey: Sliced[Byte],
                             start: PersistentOption,
                             threadState: ThreadReadState,
                             foundOption: PersistentOption): Unit =
@@ -145,7 +145,7 @@ protected object SegmentReadState {
    * Sets read state after a random read WITH an existing [[SegmentReadState]] exists.
    */
   def mutateAfterRandomRead(path: Path,
-                            forKey: Slice[Byte],
+                            forKey: Sliced[Byte],
                             threadState: ThreadReadState,
                             segmentState: SegmentReadState, //should not be null.
                             foundOption: PersistentOption): Unit =
@@ -168,8 +168,8 @@ protected object SegmentReadState {
  * the end key-value for faster lower search and should not mutate
  * get's set [[keyValue]].
  */
-protected class SegmentReadState(var keyValue: (Slice[Byte], Persistent),
-                                 var lower: TupleOrNone[Slice[Byte], Persistent],
+protected class SegmentReadState(var keyValue: (Sliced[Byte], Persistent),
+                                 var lower: TupleOrNone[Sliced[Byte], Persistent],
                                  var isSequential: Boolean) extends SegmentReadStateOption {
   override def isNoneS: Boolean = false
   override def getS: SegmentReadState = this

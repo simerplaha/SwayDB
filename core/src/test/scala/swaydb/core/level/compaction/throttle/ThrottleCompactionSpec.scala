@@ -49,7 +49,7 @@ import swaydb.serializers._
 import scala.collection.mutable.ListBuffer
 import scala.collection.compat._
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 
 class CompactionSpec0 extends CompactionSpec
 
@@ -76,8 +76,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
   val keyValueCount = 1000
 
   implicit val ec = TestExecutionContext.executionContext
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val keyOrder: KeyOrder[Sliced[Byte]] = KeyOrder.default
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
   implicit val timer = TestTimer.Empty
 
   "putForward" should {

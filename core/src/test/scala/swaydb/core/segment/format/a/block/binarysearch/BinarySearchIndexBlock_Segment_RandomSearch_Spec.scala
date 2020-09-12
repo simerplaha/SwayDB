@@ -43,11 +43,11 @@ import scala.util.Try
 class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Sliced[Byte]](_.key)(keyOrder))
 
   val startId = 0
 
-  def genKeyValuesAndBlocks(keyValuesCount: Int = 10)(implicit testCaseSweeper: TestCaseSweeper): (Slice[Memory], SegmentBlocks) = {
+  def genKeyValuesAndBlocks(keyValuesCount: Int = 10)(implicit testCaseSweeper: TestCaseSweeper): (Sliced[Memory], SegmentBlocks) = {
     import testCaseSweeper._
     //  def genKeyValuesAndBlocks(keyValuesCount: Int = 50): (Slice[Memory], Blocks) = {
 
@@ -298,7 +298,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 )
                 //println("--- End ---")
 
-                def getHigher(key: Slice[Byte]) =
+                def getHigher(key: Sliced[Byte]) =
                   BinarySearchIndexBlock.searchHigher(
                     key = key,
                     start = start,
@@ -412,7 +412,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 //println("--- END ---")
                 //              None
 
-                def getLower(key: Slice[Byte]) =
+                def getLower(key: Sliced[Byte]) =
                   BinarySearchIndexBlock.searchLower(
                     key = key,
                     start = start,

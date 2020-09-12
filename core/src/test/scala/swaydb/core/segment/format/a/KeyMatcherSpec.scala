@@ -41,9 +41,9 @@ import scala.util.Random
 
 class KeyMatcherSpec extends TestBase {
 
-  implicit val integer: KeyOrder[Slice[Byte]] =
-    new KeyOrder[Slice[Byte]] {
-      override def compare(a: Slice[Byte], b: Slice[Byte]): Int =
+  implicit val integer: KeyOrder[Sliced[Byte]] =
+    new KeyOrder[Sliced[Byte]] {
+      override def compare(a: Sliced[Byte], b: Sliced[Byte]): Int =
         IntSerializer.read(a) compareTo IntSerializer.read(b)
     }
 

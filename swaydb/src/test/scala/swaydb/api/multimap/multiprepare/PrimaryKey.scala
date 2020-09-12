@@ -26,7 +26,7 @@ package swaydb.api.multimap.multiprepare
 
 import boopickle.Default.{Pickle, Unpickle, _}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 import swaydb.serializers.Serializer
 /**
  * All Primary Keys for [[Table]]s.
@@ -44,10 +44,10 @@ object PrimaryKey {
   case class Order(id: Int) extends ProductPrimaryKey
 
   implicit val serializer = new Serializer[PrimaryKey] {
-    override def write(data: PrimaryKey): Slice[Byte] =
+    override def write(data: PrimaryKey): Sliced[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Slice[Byte]): PrimaryKey =
+    override def read(data: Sliced[Byte]): PrimaryKey =
       Unpickle[PrimaryKey].fromBytes(data.toByteBufferWrap)
   }
 }

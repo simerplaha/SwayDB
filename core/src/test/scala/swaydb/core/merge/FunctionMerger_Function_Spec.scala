@@ -35,7 +35,7 @@ import swaydb.data.slice.Slice._
 class FunctionMerger_Function_Spec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val timeOrder: TimeOrder[Sliced[Byte]] = TimeOrder.long
 
   "Merging Function into function" when {
 

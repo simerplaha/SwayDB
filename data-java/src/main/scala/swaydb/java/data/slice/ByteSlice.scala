@@ -49,16 +49,16 @@ object ByteSlice {
     ByteSlice(Slice.writeUnsignedInt(integer).cast[java.lang.Byte])
 
   def writeLong(value: Long): ByteSlice =
-    ByteSlice(Slice.writeLong(value).asInstanceOf[Slice[java.lang.Byte]])
+    ByteSlice(Slice.writeLong(value).asInstanceOf[Sliced[java.lang.Byte]])
 
   def writeUnsignedLong(value: Long): ByteSlice =
-    ByteSlice(Slice.writeUnsignedLong(value).asInstanceOf[Slice[java.lang.Byte]])
+    ByteSlice(Slice.writeUnsignedLong(value).asInstanceOf[Sliced[java.lang.Byte]])
 
   def writeString(string: String): ByteSlice =
-    ByteSlice(Slice.writeString(string, StandardCharsets.UTF_8).asInstanceOf[Slice[java.lang.Byte]])
+    ByteSlice(Slice.writeString(string, StandardCharsets.UTF_8).asInstanceOf[Sliced[java.lang.Byte]])
 
   def writeString(string: String, charsets: Charset): ByteSlice =
-    ByteSlice(Slice.writeString(string, charsets).asInstanceOf[Slice[java.lang.Byte]])
+    ByteSlice(Slice.writeString(string, charsets).asInstanceOf[Sliced[java.lang.Byte]])
 
   def fromByteArray(array: Array[java.lang.Byte]): ByteSlice =
     ByteSlice(swaydb.data.slice.Slice[java.lang.Byte](array))
@@ -70,7 +70,7 @@ object ByteSlice {
     new ByteSlice(Slice.create(length = length, isFull = true))
 }
 
-case class ByteSlice(asScala: Slice[java.lang.Byte]) extends java.lang.Iterable[java.lang.Byte] {
+case class ByteSlice(asScala: Sliced[java.lang.Byte]) extends java.lang.Iterable[java.lang.Byte] {
   def size: Int =
     asScala.size
 

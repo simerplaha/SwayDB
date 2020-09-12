@@ -33,7 +33,7 @@ import swaydb.core.segment.format.a.block.segment.data.{ClosedBlocksWithFooter, 
 import swaydb.core.util.Collections._
 import swaydb.data.config.IOAction
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteSizeOf
 
 /**
@@ -75,8 +75,8 @@ private[core] object Block extends LazyLogging {
                   val headerSize: Int,
                   val offset: O)
 
-  class CompressionResult(val compressedBytes: Option[Slice[Byte]],
-                          val headerBytes: Slice[Byte]) {
+  class CompressionResult(val compressedBytes: Option[Sliced[Byte]],
+                          val headerBytes: Sliced[Byte]) {
     /**
      * More bytes could get allocated to headerBytes when it's created. This fixes the size to it's original size.
      * currently not more that 1 byte is required to store the size of the header.
@@ -117,7 +117,7 @@ private[core] object Block extends LazyLogging {
    *
    * NOTE: Always invoke [[CompressionResult.fixHeaderSize()]] when done writing header bytes outside this function.
    */
-  def compress(bytes: Slice[Byte],
+  def compress(bytes: Sliced[Byte],
                compressions: Iterable[CompressionInternal],
                blockName: String): CompressionResult =
     compressions.untilSome(_.compressor.compress(bytes)) match {
@@ -258,7 +258,7 @@ private[core] object Block extends LazyLogging {
     )
   }
 
-  def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
+  def unblock[O <: BlockOffset, B <: Block[O]](bytes: Sliced[Byte])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     unblock(BlockRefReader(bytes))
 
   def unblock[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O],

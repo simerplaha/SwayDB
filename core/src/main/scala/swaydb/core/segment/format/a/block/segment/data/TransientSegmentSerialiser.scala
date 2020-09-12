@@ -41,14 +41,14 @@ import swaydb.core.segment.{SegmentIO, SegmentRef}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.Slice
+import swaydb.data.slice.Slice.Sliced
 import swaydb.data.util.ByteSizeOf
 
 object TransientSegmentSerialiser {
 
   def toKeyValue(one: TransientSegment.One,
                  offset: Int,
-                 size: Int): Slice[Memory] =
+                 size: Int): Sliced[Memory] =
     one.maxKey match {
       case MaxKey.Fixed(maxKey) =>
         val value = Slice.create[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2))
@@ -97,7 +97,7 @@ object TransientSegmentSerialiser {
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                                 segmentIO: SegmentIO,
                                                                 blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef =
@@ -164,7 +164,7 @@ object TransientSegmentSerialiser {
                    hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                    binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Sliced[Byte]],
                                                                 segmentIO: SegmentIO,
                                                                 blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef = {
