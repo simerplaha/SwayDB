@@ -25,11 +25,12 @@
 package swaydb.java;
 
 import org.junit.jupiter.api.Test;
-import swaydb.*;
+import swaydb.KeyVal;
+import swaydb.Pair;
+import swaydb.Prepare;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.Slice;
-import swaydb.java.memory.MemoryMap;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
@@ -43,10 +44,15 @@ import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
-abstract class MapTest extends TestBase implements JavaEventually {
+abstract class MapFunctionsOffTest extends TestBase implements JavaEventually {
 
   public abstract <K, V> MapT<K, V, Void> createMap(Serializer<K> keySerializer,
                                                     Serializer<V> valueSerializer) throws IOException;
+
+  public abstract <K, V> MapT<K, V, Void> createMap(Serializer<K> keySerializer,
+                                                    Serializer<V> valueSerializer,
+                                                    KeyComparator<K> keyComparator) throws IOException;
+
 
   @Test
   void putTest() throws IOException {
@@ -415,12 +421,9 @@ abstract class MapTest extends TestBase implements JavaEventually {
   }
 
   @Test
-  void comparatorTest() {
+  void comparatorTest() throws IOException {
     MapT<Integer, Integer, Void> map =
-      MemoryMap
-        .functionsOff(intSerializer(), intSerializer())
-        .setTypedComparator((left, right) -> left.compareTo(right) * -1)
-        .get();
+      createMap(intSerializer(), intSerializer(), (left, right) -> left.compareTo(right) * -1);
 
     assertDoesNotThrow(() -> map.put(1, 1));
     assertDoesNotThrow(() -> map.put(2, 2));
@@ -495,7 +498,6 @@ abstract class MapTest extends TestBase implements JavaEventually {
       }
     };
 
-
     MapT<Key, Value, Void> map =
       createMap(keySerializer, valueSerializer);
 
@@ -520,81 +522,6 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
       assertEquals(Arrays.asList(1, 2), setKeys);
     }
-
-    map.delete();
-  }
-
-  @Test
-  void registerAndApplyFunction() {
-    PureFunction.OnKey<Integer, Integer, Apply.Map<Integer>> updateValueTo10 =
-      (key, deadline) ->
-        Apply.update(10);
-
-    PureFunction.OnKeyValue<Integer, Integer, Apply.Map<Integer>> incrementBy1 =
-      (key, value, deadline) ->
-        Apply.update(value + 1);
-
-    PureFunction.OnKeyValue<Integer, Integer, Apply.Map<Integer>> removeMod0OrIncrementBy1 =
-      (key, value, deadline) -> {
-        if (key % 10 == 0) {
-          return Apply.removeFromMap();
-        } else {
-          return Apply.update(value + 1);
-        }
-      };
-
-    //this will not compile since the return type specified is a Set - expected!
-    PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> invalidType =
-      (key, value, deadline) ->
-        Apply.update(value + 1);
-
-    Map<Integer, Integer, PureFunction<Integer, Integer, Apply.Map<Integer>>> map =
-      MemoryMap
-        .functionsOn(intSerializer(), intSerializer(), Arrays.asList(updateValueTo10, incrementBy1, removeMod0OrIncrementBy1))
-        .get();
-
-    map.put(Stream.range(1, 100).map(KeyVal::create));
-
-    map.applyFunction(1, updateValueTo10);
-    assertEquals(10, map.get(1).get());
-
-    map.applyFunction(10, 20, incrementBy1);
-    IntStream
-      .rangeClosed(10, 20)
-      .forEach(
-        integer ->
-          assertEquals(integer + 1, map.get(integer).get())
-      );
-
-    map.applyFunction(21, 50, removeMod0OrIncrementBy1);
-    IntStream
-      .rangeClosed(21, 50)
-      .forEach(
-        integer -> {
-          if (integer % 10 == 0) {
-            assertFalse(map.get(integer).isPresent());
-          } else {
-            assertEquals(integer + 1, map.get(integer).get());
-          }
-        }
-      );
-
-    //untouched 51 - 100. Overlapping functions executions.
-    map.commit(
-      Arrays.asList(
-        Prepare.applyMapFunction(51, updateValueTo10),
-        Prepare.applyMapFunction(52, 100, updateValueTo10),
-        Prepare.applyMapFunction(51, 100, incrementBy1),
-        Prepare.applyMapFunction(51, 100, removeMod0OrIncrementBy1)
-      )
-    );
-
-    assertEquals(12, map.get(51).get());
-    assertFalse(map.get(60).isPresent());
-    assertFalse(map.get(70).isPresent());
-    assertFalse(map.get(80).isPresent());
-    assertFalse(map.get(90).isPresent());
-    assertFalse(map.get(100).isPresent());
 
     map.delete();
   }

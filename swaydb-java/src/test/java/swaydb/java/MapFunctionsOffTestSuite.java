@@ -38,7 +38,7 @@ import java.io.IOException;
 /**
  * Maps
  */
-class MemoryMapTest extends MapTest {
+class MemoryMapFunctionsOffTest extends MapFunctionsOffTest {
 
   public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
                                           Serializer<V> valueSerializer) {
@@ -47,9 +47,20 @@ class MemoryMapTest extends MapTest {
         .functionsOff(keySerializer, valueSerializer)
         .get();
   }
+
+  @Override
+  public <K, V> MapT<K, V, Void> createMap(Serializer<K> keySerializer,
+                                           Serializer<V> valueSerializer,
+                                           KeyComparator<K> keyComparator) {
+    return
+      MemoryMap
+        .functionsOff(keySerializer, valueSerializer)
+        .setTypedComparator(keyComparator)
+        .get();
+  }
 }
 
-class PersistentMapTest extends MapTest {
+class PersistentMapFunctionsOffTest extends MapFunctionsOffTest {
 
   @AfterEach
   void deleteDir() throws IOException {
@@ -64,9 +75,20 @@ class PersistentMapTest extends MapTest {
         .functionsOff(testDir(), keySerializer, valueSerializer)
         .get();
   }
+
+  @Override
+  public <K, V> MapT<K, V, Void> createMap(Serializer<K> keySerializer,
+                                           Serializer<V> valueSerializer,
+                                           KeyComparator<K> keyComparator) throws IOException {
+    return
+      PersistentMap
+        .functionsOff(testDir(), keySerializer, valueSerializer)
+        .setTypedComparator(keyComparator)
+        .get();
+  }
 }
 
-class EventuallyPersistentMapTest extends MapTest {
+class EventuallyPersistentMapFunctionsOffTest extends MapFunctionsOffTest {
 
   @AfterEach
   void deleteDir() throws IOException {
@@ -81,13 +103,24 @@ class EventuallyPersistentMapTest extends MapTest {
         .functionsOff(testDir(), keySerializer, valueSerializer)
         .get();
   }
+
+  @Override
+  public <K, V> MapT<K, V, Void> createMap(Serializer<K> keySerializer,
+                                           Serializer<V> valueSerializer,
+                                           KeyComparator<K> keyComparator) throws IOException {
+    return
+      EventuallyPersistentMap
+        .functionsOff(testDir(), keySerializer, valueSerializer)
+        .setTypedComparator(keyComparator)
+        .get();
+  }
 }
 
 
 /**
  * MultiMap
  */
-class MemoryMultiMapTest extends MapTest {
+class MemoryMultiMapFunctionsOffTest extends MapFunctionsOffTest {
 
   public <K, V> MapT<K, V, Void> createMap(Serializer<K> keySerializer,
                                            Serializer<V> valueSerializer) {
@@ -96,9 +129,21 @@ class MemoryMultiMapTest extends MapTest {
         .functionsOff(keySerializer, keySerializer, valueSerializer)
         .get();
   }
+
+
+  @Override
+  public <K, V> MapT<K, V, Void> createMap(Serializer<K> keySerializer,
+                                           Serializer<V> valueSerializer,
+                                           KeyComparator<K> keyComparator) {
+    return
+      MemoryMultiMap
+        .functionsOff(keySerializer, keySerializer, valueSerializer)
+        .setTypedComparator(keyComparator)
+        .get();
+  }
 }
 
-class PersistentMultiMapTest extends MapTest {
+class PersistentMultiMapFunctionsOffTest extends MapFunctionsOffTest {
 
   @AfterEach
   void deleteDir() throws IOException {
@@ -113,9 +158,20 @@ class PersistentMultiMapTest extends MapTest {
         .functionsOff(testDir(), keySerializer, keySerializer, valueSerializer)
         .get();
   }
+
+  @Override
+  public <K, V> MapT<K, V, Void> createMap(Serializer<K> keySerializer,
+                                           Serializer<V> valueSerializer,
+                                           KeyComparator<K> keyComparator) throws IOException {
+    return
+      PersistentMultiMap
+        .functionsOff(testDir(), keySerializer, keySerializer, valueSerializer)
+        .setTypedComparator(keyComparator)
+        .get();
+  }
 }
 
-class EventuallyPersistentMultiMapTest extends MapTest {
+class EventuallyPersistentMultiMapFunctionsOffTest extends MapFunctionsOffTest {
 
   @AfterEach
   void deleteDir() throws IOException {
@@ -128,6 +184,17 @@ class EventuallyPersistentMultiMapTest extends MapTest {
     return
       EventuallyPersistentMultiMap
         .functionsOff(testDir(), keySerializer, keySerializer, valueSerializer)
+        .get();
+  }
+
+  @Override
+  public <K, V> MapT<K, V, Void> createMap(Serializer<K> keySerializer,
+                                           Serializer<V> valueSerializer,
+                                           KeyComparator<K> keyComparator) throws IOException {
+    return
+      EventuallyPersistentMultiMap
+        .functionsOff(testDir(), keySerializer, keySerializer, valueSerializer)
+        .setTypedComparator(keyComparator)
         .get();
   }
 }
