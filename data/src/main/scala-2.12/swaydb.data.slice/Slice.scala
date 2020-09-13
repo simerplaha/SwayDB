@@ -279,7 +279,7 @@ object Slice {
       val newSlices = Slice.create[Slice[T]](slices.close().size)
       slices foreach {
         slice =>
-          newSlices.insert(slice.close())
+          newSlices.add(slice.close())
       }
       newSlices
     }
@@ -312,7 +312,7 @@ object Slice {
   implicit class ByteSliceImplicits(slice: Slice[Byte]) {
 
     @inline final def addByte(value: Byte): Slice[Byte] = {
-      slice insert value
+      slice add value
       slice
     }
 
@@ -322,7 +322,7 @@ object Slice {
     }
 
     @inline final def addBoolean(boolean: Boolean): Slice[Byte] = {
-      slice insert (if (boolean) 1.toByte else 0.toByte)
+      slice add (if (boolean) 1.toByte else 0.toByte)
       slice
     }
 
@@ -422,17 +422,17 @@ object Slice {
 
   implicit class SliceImplicit[T](slice: Slice[T]) {
     @inline final def add(value: T): Slice[T] = {
-      slice.insert(value)
+      slice.add(value)
       slice
     }
 
     @inline final def addAll(values: Slice[T]): Slice[T] = {
-      if (values.nonEmpty) slice.insertAll(values)
+      if (values.nonEmpty) slice.addAll(values)
       slice
     }
 
     @inline final def addAll(values: Array[T]): Slice[T] = {
-      if (values.nonEmpty) slice.insertAll(values)
+      if (values.nonEmpty) slice.addAll(values)
       slice
     }
   }

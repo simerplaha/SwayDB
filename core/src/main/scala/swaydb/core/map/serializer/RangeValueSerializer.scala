@@ -30,7 +30,6 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.data.slice.ReaderBase
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 import scala.annotation.implicitNotFound
 

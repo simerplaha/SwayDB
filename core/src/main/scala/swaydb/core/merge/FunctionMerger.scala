@@ -28,7 +28,6 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 private[core] object FunctionMerger {
 

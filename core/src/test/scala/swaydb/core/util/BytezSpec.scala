@@ -4,15 +4,14 @@ import java.nio.charset.StandardCharsets
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
+import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteOps._
 import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
 
 import scala.util.Random
-import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 class BytezSpec extends AnyWordSpec with Matchers {
 
@@ -76,7 +75,7 @@ class BytezSpec extends AnyWordSpec with Matchers {
 
       val slice = Slice.create[Byte](ByteSizeOf.boolean * booleans.size)
 
-      booleans foreach slice.addBoolean
+      booleans foreach (bool => slice.addBoolean(bool))
 
       val reader = Reader(slice)
 

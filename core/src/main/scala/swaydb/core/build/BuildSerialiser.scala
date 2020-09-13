@@ -28,7 +28,6 @@ import java.nio.file.Path
 import swaydb.core.util.CRC32
 import swaydb.data.DataType
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 import swaydb.data.util.ByteSizeOf
 
 sealed trait BuildSerialiser {

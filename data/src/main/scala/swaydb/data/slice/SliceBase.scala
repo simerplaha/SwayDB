@@ -26,9 +26,11 @@ package swaydb.data.slice
 
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
+import java.nio.charset.{Charset, StandardCharsets}
 
 import swaydb.IO
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteOps
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
@@ -300,41 +302,44 @@ abstract class SliceBase[+T](array: Array[T],
   def apply(index: Int): T =
     get(index)
 
-  @throws[ArrayIndexOutOfBoundsException]
-  private[slice] def insert(item: Any): Unit = {
+  def add[B >: T](item: B): Slice[B] = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
     array(writePosition) = item.asInstanceOf[T]
     writePosition += 1
     written = (writePosition - fromOffset) max written
+    selfSlice
   }
 
-  @throws[ArrayIndexOutOfBoundsException]
-  private[slice] def insertAll(items: Iterable[Any]): Unit = {
-    val futurePosition = writePosition + items.size - 1
-    if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
-    items match {
-      case array: mutable.WrappedArray[T] =>
-        Array.copy(array.array, 0, this.array, currentWritePosition, items.size)
+  def addAll[B >: T](items: Iterable[B]): Slice[B] =
+    if (items.nonEmpty) {
+      val futurePosition = writePosition + items.size - 1
+      if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
+      items match {
+        case array: mutable.WrappedArray[T] =>
+          Array.copy(array.array, 0, this.array, currentWritePosition, items.size)
 
-      case items: Slice[T] =>
-        Array.copy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
+        case items: Slice[T] =>
+          Array.copy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
 
-      case _ =>
-        throw IO.throwable(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
+        case _ =>
+          throw IO.throwable(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
+      }
+      writePosition += items.size
+      written = (writePosition - fromOffset) max written
+      selfSlice
+    } else {
+      selfSlice
     }
-    writePosition += items.size
-    written = (writePosition - fromOffset) max written
-  }
 
-  private[swaydb] def toByteBufferWrap: ByteBuffer =
+  def toByteBufferWrap: ByteBuffer =
     ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, size)
 
-  private[swaydb] def toByteBufferDirect: ByteBuffer =
+  def toByteBufferDirect: ByteBuffer =
     ByteBuffer
       .allocateDirect(size)
       .put(array.asInstanceOf[Array[Byte]], 0, size)
 
-  private[swaydb] def toByteArrayInputStream: ByteArrayInputStream =
+  def toByteArrayInputStream: ByteArrayInputStream =
     new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, size)
 
   private[slice] def unsafeInnerArray: Array[_] =
@@ -509,6 +514,114 @@ abstract class SliceBase[+T](array: Array[T],
       toOffset = toOffset,
       written = written
     )
+
+  @inline final def addBoolean[B >: T](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeBoolean(bool, selfSlice)
+    selfSlice
+  }
+
+  @inline final def readBoolean(): Boolean =
+    selfSlice.get(0) == 1
+
+  @inline final def addInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeInt(integer, selfSlice)
+    selfSlice
+  }
+
+  @inline final def readInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
+    byteOps.readInt(selfSlice)
+
+  @inline final def dropUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Slice[T] = {
+    val (_, byteSize) = readUnsignedIntWithByteSize[B]()
+    selfSlice drop byteSize
+  }
+
+  @inline final def addSignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeSignedInt(integer, selfSlice)
+    selfSlice
+  }
+
+  @inline final def readSignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
+    byteOps.readSignedInt(selfSlice)
+
+  @inline final def addUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeUnsignedInt(integer, selfSlice)
+    selfSlice
+  }
+
+  @inline final def addNonZeroUnsignedInt[B >: T](integer: Int)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeUnsignedIntNonZero(integer, selfSlice)
+    selfSlice
+  }
+
+  @inline final def readUnsignedInt[B >: T]()(implicit byteOps: ByteOps[B]): Int =
+    byteOps.readUnsignedInt(selfSlice)
+
+  @inline final def readUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
+    byteOps.readUnsignedIntWithByteSize(selfSlice)
+
+  @inline final def readNonZeroUnsignedIntWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Int, Int) =
+    byteOps.readUnsignedIntNonZeroWithByteSize(selfSlice)
+
+  @inline final def addLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeLong(num, selfSlice)
+    selfSlice
+  }
+
+  @inline final def readLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
+    byteOps.readLong(selfSlice)
+
+  @inline final def addUnsignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeUnsignedLong(num, selfSlice)
+    selfSlice
+  }
+
+  @inline final def readUnsignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
+    byteOps.readUnsignedLong(selfSlice)
+
+  @inline final def readUnsignedLongWithByteSize[B >: T]()(implicit byteOps: ByteOps[B]): (Long, Int) =
+    byteOps.readUnsignedLongWithByteSize(selfSlice)
+
+  @inline final def readUnsignedLongByteSize[B >: T]()(implicit byteOps: ByteOps[B]): Int =
+    byteOps.readUnsignedLongByteSize(selfSlice)
+
+  @inline final def addSignedLong[B >: T](num: Long)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeSignedLong(num, selfSlice)
+    selfSlice
+  }
+
+  @inline final def readSignedLong[B >: T]()(implicit byteOps: ByteOps[B]): Long =
+    byteOps.readSignedLong(selfSlice)
+
+  @inline final def addString[B >: T](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeString(string, selfSlice, charsets)
+    selfSlice
+  }
+
+  @inline final def addStringUTF8[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeString(string, selfSlice, StandardCharsets.UTF_8)
+    selfSlice
+  }
+
+  @inline final def readString[B >: T](charset: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): String =
+    byteOps.readString(selfSlice, charset)
+
+  @inline final def createReader[B >: T]()(implicit byteOps: ByteOps[B]): SliceReader[B] =
+    SliceReader[B](selfSlice)
+
+  @inline final def append[B >: T : ClassTag](other: Slice[B]): Slice[B] = {
+    val merged = Slice.create[B](selfSlice.size + other.size)
+    merged addAll selfSlice
+    merged addAll other
+    merged
+  }
+
+  @inline final def append[B >: T : ClassTag](other: B): Slice[B] = {
+    val merged = Slice.create[B](selfSlice.size + 1)
+    merged addAll selfSlice
+    merged add other
+    merged
+  }
 
   override def equals(that: Any): Boolean =
     that match {

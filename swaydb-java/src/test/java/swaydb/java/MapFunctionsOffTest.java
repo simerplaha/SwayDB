@@ -61,6 +61,8 @@ abstract class MapFunctionsOffTest extends TestBase {
    */
   @Test
   void putIndividuals() throws IOException {
+    final Slice<Byte> javaBytes = Slice.createJavaBytes(1);
+
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
     map.put(1, "one");
     map.put(2, "two");

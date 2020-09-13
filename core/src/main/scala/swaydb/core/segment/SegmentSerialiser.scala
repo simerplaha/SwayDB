@@ -86,7 +86,7 @@ private[core] object SegmentSerialiser {
         .add(this.formatId)
         .add(segment.formatId)
         .addUnsignedInt(segmentPath.size)
-        .addBytes(segmentPath)
+        .addAll(segmentPath)
         .addUnsignedInt(segment.createdInLevel)
         .addUnsignedInt(segment.segmentSize)
         .addUnsignedInt(segment.minKey.size)

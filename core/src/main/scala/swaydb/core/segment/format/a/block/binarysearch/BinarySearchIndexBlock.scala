@@ -241,7 +241,7 @@ private[core] object BinarySearchIndexBlock {
 
       compressionResult.compressedBytes foreach (state.compressibleBytes = _)
 
-      compressionResult.headerBytes addByte state.format.id
+      compressionResult.headerBytes add state.format.id
       compressionResult.headerBytes addUnsignedInt state.writtenValues
       compressionResult.headerBytes addInt state.bytesPerValue
       state.isFullIndex = state.writtenValues == uncompressedKeyValuesCount

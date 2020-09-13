@@ -32,7 +32,6 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.util.{ByteOps, ByteSizeOf, SomeOrNoneCovariant}
 import swaydb.data.{MaxKey, slice}
-import ByteOps._
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
@@ -69,6 +68,7 @@ object Slice {
   @inline final def empty[T: ClassTag] =
     Slice.create[T](0)
 
+
   final def range(from: Int, to: Int): Slice[Int] = {
     val slice = Slice.create[Int](to - from + 1)
     (from to to) foreach slice.add
@@ -98,8 +98,11 @@ object Slice {
       written = length
     )
 
-  def createBytes(length: Int): Slice[Byte] =
+  def createScalaBytes(length: Int): Slice[Byte] =
     Slice.create[Byte](length)
+
+  def createJavaBytes(length: Int): Slice[java.lang.Byte] =
+    Slice.create[java.lang.Byte](length)
 
   @inline final def create[T: ClassTag](length: Int, isFull: Boolean = false): Slice[T] =
     new Slice(
@@ -241,7 +244,7 @@ object Slice {
       val newSlices = Slice.create[Slice[T]](slices.close().size)
       slices foreach {
         slice =>
-          newSlices.insert(slice.close())
+          newSlices.add(slice.close())
       }
       newSlices
     }
@@ -276,39 +279,6 @@ object Slice {
   implicit class ScalaByteSliced(sliced: Slice[Byte]) {
     def cast: Slice[java.lang.Byte] =
       sliced.asInstanceOf[Slice[java.lang.Byte]]
-  }
-
-  implicit class SliceImplicit[T](slice: Slice[T]) {
-    @inline final def add(value: T): Slice[T] = {
-      slice.insert(value)
-      slice
-    }
-
-    @inline final def addAll(values: Slice[T]): Slice[T] = {
-      if (values.nonEmpty) slice.insertAll(values)
-      slice
-    }
-
-    @inline final def addAll(values: Array[T]): Slice[T] = {
-      if (values.nonEmpty) slice.insertAll(values)
-      slice
-    }
-  }
-
-  implicit class SliceImplicitClassTag[T: ClassTag](slice: Slice[T]) {
-    @inline final def append(other: Slice[T]): Slice[T] = {
-      val merged = Slice.create[T](slice.size + other.size)
-      merged addAll slice
-      merged addAll other
-      merged
-    }
-
-    @inline final def append(other: T): Slice[T] = {
-      val merged = Slice.create[T](slice.size + 1)
-      merged addAll slice
-      merged add other
-      merged
-    }
   }
 
   @inline final def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =

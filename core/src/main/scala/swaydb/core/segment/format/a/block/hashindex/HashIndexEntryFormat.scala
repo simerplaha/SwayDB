@@ -125,7 +125,7 @@ private[core] object HashIndexEntryFormat {
       bytes addUnsignedLong crc
 
       if (bytes.get(bytes.currentWritePosition - 1) == 0) //if the last byte is 0 add one to avoid next write overwriting this entry's last byte.
-        bytes addByte Bytes.one
+        bytes add Bytes.one
 
       crc
     }

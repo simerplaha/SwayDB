@@ -63,7 +63,6 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, _}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
-import swaydb.data.util.ByteOps._
 
 private[core] object LevelZero extends LazyLogging {
 
