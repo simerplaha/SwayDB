@@ -406,7 +406,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
 
   override def equals(other: Any): Boolean =
     other match {
-      case other: Map[_, _, _, _,] =>
+      case other: Map[_, _, _, _] =>
         other.path == this.path
 
       case _ =>
