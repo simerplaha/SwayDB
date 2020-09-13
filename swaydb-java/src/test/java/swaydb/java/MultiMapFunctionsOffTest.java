@@ -84,7 +84,7 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
         .schema().init("child4")
         .schema().init("child5");
 
-    shouldBe(root.schema().flatten().map(swaydb.MultiMap::mapKey), asList("child1", "child2", "child3", "child4", "child5"));
+    shouldBe(root.schema().flatten().map(MultiMap::mapKey), asList("child1", "child2", "child3", "child4", "child5"));
     shouldHaveSize(root.schema().flatten(), 5);
 
     shouldContain(root.get(1), "root value");
@@ -100,13 +100,13 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
     MultiMap<String, Integer, String, Void> child2 = root.schema().init("child2");
     MultiMap<String, Integer, String, Void> child3 = root.schema().init("child3");
 
-    shouldBe(root.schema().flatten().map(swaydb.MultiMap::mapKey), asList("child1", "child2", "child3"));
+    shouldBe(root.schema().flatten().map(MultiMap::mapKey), asList("child1", "child2", "child3"));
 
     root.schema().remove(child1.mapKey());
-    shouldBe(root.schema().flatten().map(swaydb.MultiMap::mapKey), asList("child2", "child3"));
+    shouldBe(root.schema().flatten().map(MultiMap::mapKey), asList("child2", "child3"));
 
     root.schema().remove(child2.mapKey());
-    shouldBe(root.schema().flatten().map(swaydb.MultiMap::mapKey), asList("child3"));
+    shouldBe(root.schema().flatten().map(MultiMap::mapKey), asList("child3"));
 
     root.schema().remove(child3.mapKey());
     shouldBeEmpty(root.schema().flatten());

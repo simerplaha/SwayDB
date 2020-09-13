@@ -137,8 +137,8 @@ case class Schema[M, K, V, F](asScala: swaydb.multimap.Schema[M, K, V, F, Bag.Le
   def keys: Stream[M] =
     Stream.fromScala(asScala.keys)
 
-  def flatten: Stream[swaydb.MultiMap[M, K, V, F, Less]] =
-    new Stream(asScala.flatten)
+  def flatten: Stream[MultiMap[M, K, V, F]] =
+    new Stream(asScala.flatten.map(MultiMap(_)))
 
   def stream: Stream[MultiMap[M, K, V, F]] =
     Stream.fromScala(asScala.stream.map(MultiMap(_)))
