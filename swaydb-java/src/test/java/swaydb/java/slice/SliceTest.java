@@ -35,7 +35,8 @@ import java.util.Arrays;
 
 import static swaydb.data.java.CommonAssertions.*;
 
-public class SliceTest {
+public class
+SliceTest {
 
   @Test
   void serialising() {

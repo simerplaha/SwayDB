@@ -27,6 +27,18 @@ package swaydb.java;
 import org.junit.jupiter.api.Test;
 import swaydb.data.java.TestBase;
 import swaydb.java.serializers.Serializer;
+import swaydb.java.table.domain.table.mapKey.ProductsMap;
+import swaydb.java.table.domain.table.mapKey.MapKey;
+import swaydb.java.table.domain.table.mapKey.MapKeySerializer;
+import swaydb.java.table.domain.table.mapKey.UsersMap;
+import swaydb.java.table.domain.table.key.Key;
+import swaydb.java.table.domain.table.key.KeySerializer;
+import swaydb.java.table.domain.table.key.ProductKey;
+import swaydb.java.table.domain.table.key.UserKey;
+import swaydb.java.table.domain.table.value.ProductValue;
+import swaydb.java.table.domain.table.value.Value;
+import swaydb.java.table.domain.table.value.ValueSerializer;
+import swaydb.java.table.domain.table.value.UserValue;
 
 import java.io.IOException;
 
@@ -110,5 +122,37 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
 
     root.schema().remove(child3.mapKey());
     shouldBeEmpty(root.schema().flatten());
+  }
+
+  /**
+   * Demos how MultiMap can be used to create nested tables. The following creates two tables Users and Products
+   * under the root table and bounds specific type types.
+   */
+  @Test
+  void multiMapDemo() throws IOException {
+    //First lets create a root Map with serializers set.
+    MultiMap<MapKey, Key, Value, Void> root =
+      createMap(MapKeySerializer.instance, KeySerializer.instance, ValueSerializer.instance);
+
+    //Create two child sibling tables under the root map - Users and Products
+    MultiMap<MapKey, UserKey, UserValue, Void> users = root.schema().init(UsersMap.instance, UserKey.class, UserValue.class);
+    MultiMap<MapKey, ProductKey, ProductValue, Void> products = root.schema().init(ProductsMap.instance, ProductKey.class, ProductValue.class);
+
+    //assert that the root table contains children.
+    shouldContain(root.schema().get(UsersMap.instance, UserKey.class, UserValue.class), users);
+    shouldContain(root.schema().get(ProductsMap.instance, ProductKey.class, ProductValue.class), products);
+
+    //print all child tables
+    root.schema().stream().forEach(table -> System.out.println(table.mapKey()));
+
+    //insert data into User table
+    foreachRange(1, 10, i -> users.put(UserKey.of(i + "@email.com"), UserValue.of("First-" + i, "Last-" + i)));
+    System.out.println("Users\n"); //print data from user table
+    users.stream().forEach(System.out::println);
+
+    //Insert data into product table
+    foreachRange(1, 10, i -> products.put(ProductKey.of(i), ProductValue.of(i)));
+    System.out.println("Products\n"); //print that data.
+    products.stream().forEach(System.out::println);
   }
 }

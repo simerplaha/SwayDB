@@ -250,7 +250,18 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   def delete(): Unit =
     asScala.delete()
 
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: MultiMap[_, _,_,_] =>
+        other.asScala.mapId == asScala.mapId
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    asScala.mapId.hashCode()
+
   override def toString(): String =
     asScala.toString()
-
 }

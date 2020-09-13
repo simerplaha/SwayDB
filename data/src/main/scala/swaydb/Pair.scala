@@ -74,5 +74,5 @@ class Pair[+L, +R](val left: L, val right: R) {
     toTuple.hashCode()
 
   override def toString: String =
-    s"Pair($left, $right)"
+    s"Pair(left = $left, right = $right)"
 }

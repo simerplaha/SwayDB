@@ -53,12 +53,27 @@ trait ByteOps[B] {
 
   def readString(slice: Slice[B], charset: Charset): String
 
+  def readStringWithSize(slice: Slice[B], charset: Charset): String
+
+  def readStringWithSizeUTF8(slice: Slice[B]): String
+
+  def readStringWithSizeUTF8(reader: ReaderBase[B]): String
+
   def writeString(string: String,
                   bytes: Slice[B],
                   charsets: Charset): Slice[B]
 
   def writeString(string: String,
                   charsets: Charset): Slice[B]
+
+  def writeStringWithSize(string: String,
+                          charsets: Charset): Slice[B]
+
+  def writeStringWithSize(string: String,
+                          bytes: Slice[B],
+                          charsets: Charset): Slice[B]
+
+  def writeStringWithSizeUTF8(string: String): Slice[B]
 
   def writeSignedInt(x: Int, slice: Slice[B]): Unit
 

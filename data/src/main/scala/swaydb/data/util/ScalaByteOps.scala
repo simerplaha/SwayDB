@@ -24,7 +24,7 @@
 
 package swaydb.data.util
 
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, StandardCharsets}
 
 import swaydb.data.slice.{ReaderBase, Slice, SliceReader}
 import swaydb.data.util.Maybe.Maybe
@@ -91,6 +91,18 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   def readString(slice: Slice[Byte], charset: Charset): String =
     new String(slice.toArray[Byte], charset)
 
+  def readStringWithSize(slice: Slice[Byte], charset: Charset): String = {
+    val reader = slice.createReader()
+    val string = reader.readString(reader.readUnsignedInt(), charset)
+    string
+  }
+
+  def readStringWithSizeUTF8(slice: Slice[Byte]): String =
+    readStringWithSize(slice, StandardCharsets.UTF_8)
+
+  def readStringWithSizeUTF8(reader: ReaderBase[Byte]): String =
+    reader.readStringUTF8(reader.readUnsignedInt())
+
   def writeString(string: String,
                   bytes: Slice[Byte],
                   charsets: Charset): Slice[Byte] =
@@ -99,6 +111,27 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   def writeString(string: String,
                   charsets: Charset): Slice[Byte] =
     Slice(string.getBytes(charsets))
+
+  def writeStringWithSize(string: String,
+                          charsets: Charset): Slice[Byte] = {
+    val bytes = string.getBytes(charsets)
+    Slice
+      .create[Byte](sizeOfUnsignedInt(bytes.length) + bytes.length)
+      .addUnsignedInt(bytes.length)
+      .addAll(bytes)
+  }
+
+  def writeStringWithSize(string: String,
+                          bytes: Slice[Byte],
+                          charsets: Charset): Slice[Byte] = {
+    val stringBytes = string.getBytes(charsets)
+    bytes
+      .addUnsignedInt(stringBytes.length)
+      .addAll(stringBytes)
+  }
+
+  def writeStringWithSizeUTF8(string: String): Slice[Byte] =
+    writeStringWithSize(string, StandardCharsets.UTF_8)
 
   def writeBoolean(bool: Boolean, slice: Slice[Byte]): Slice[Byte] = {
     slice add (if (bool) 1.toByte else 0.toByte)
@@ -476,6 +509,42 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
 
     index + 1
   }
+
+  def sizeOfUnsignedInt(int: Int): Int =
+    if (int < 0)
+      5
+    else if (int < 0x80)
+      1
+    else if (int < 0x4000)
+      2
+    else if (int < 0x200000)
+      3
+    else if (int < 0x10000000)
+      4
+    else
+      5
+
+  def sizeOfUnsignedLong(long: Long): Int =
+    if (long < 0L)
+      10
+    else if (long < 0x80L)
+      1
+    else if (long < 0x4000L)
+      2
+    else if (long < 0x200000L)
+      3
+    else if (long < 0x10000000L)
+      4
+    else if (long < 0x800000000L)
+      5
+    else if (long < 0x40000000000L)
+      6
+    else if (long < 0x2000000000000L)
+      7
+    else if (long < 0x100000000000000L)
+      8
+    else
+      9
 }
 
 private[swaydb] object ScalaByteOps extends ScalaByteOps

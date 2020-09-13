@@ -669,6 +669,18 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
       innerMap.delete()
     }
 
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: MultiMap[_, _, _, _, _] =>
+        other.mapId == this.mapId
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    mapId.hashCode()
+
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getSimpleName
 }

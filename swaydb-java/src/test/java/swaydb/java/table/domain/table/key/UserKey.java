@@ -17,34 +17,26 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb
+package swaydb.java.table.domain.table.key;
 
-object KeyVal {
-  def apply[K, V](keyVal: (K, V)): KeyVal[K, V] =
-    new KeyVal(keyVal._1, keyVal._2)
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
-  def create[K, V](key: K, value: V): KeyVal[K, V] =
-    new KeyVal(key, value)
+@RequiredArgsConstructor(staticName = "of")
+@ToString
+public class UserKey implements Key {
 
-  def create[T](keyAndVal: T): KeyVal[T, T] =
-    new KeyVal(keyAndVal, keyAndVal)
-}
+  public final static byte dataTypeId = 1;
 
-case class KeyVal[+K, +V](key: K, value: V) extends Pair(key, value) {
-  override def equals(other: Any): Boolean =
-    other match {
-      case other: KeyVal[K, V] =>
-        left == other.left && right == other.right
+  @NonNull
+  @Getter
+  private final String email;
 
-      case _ =>
-        false
-    }
-
-  override def toString: String =
-    s"KeyVal(key = $key, value = $value)"
 }

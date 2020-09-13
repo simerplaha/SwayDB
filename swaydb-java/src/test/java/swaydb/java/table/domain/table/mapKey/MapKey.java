@@ -17,34 +17,19 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb
+package swaydb.java.table.domain.table.mapKey;
 
-object KeyVal {
-  def apply[K, V](keyVal: (K, V)): KeyVal[K, V] =
-    new KeyVal(keyVal._1, keyVal._2)
-
-  def create[K, V](key: K, value: V): KeyVal[K, V] =
-    new KeyVal(key, value)
-
-  def create[T](keyAndVal: T): KeyVal[T, T] =
-    new KeyVal(keyAndVal, keyAndVal)
+/**
+ * In SQL this would be table name
+ */
+public interface MapKey {
+  //unique Id of the Map instance.
+  //You can use String, Integer or any other data-type here.
+  byte getId();
 }
 
-case class KeyVal[+K, +V](key: K, value: V) extends Pair(key, value) {
-  override def equals(other: Any): Boolean =
-    other match {
-      case other: KeyVal[K, V] =>
-        left == other.left && right == other.right
-
-      case _ =>
-        false
-    }
-
-  override def toString: String =
-    s"KeyVal(key = $key, value = $value)"
-}

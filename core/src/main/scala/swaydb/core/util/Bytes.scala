@@ -118,42 +118,6 @@ private[swaydb] object Bytes extends ScalaByteOps {
     Slice(fullKey)
   }
 
-  def sizeOfUnsignedInt(int: Int): Int =
-    if (int < 0)
-      5
-    else if (int < 0x80)
-      1
-    else if (int < 0x4000)
-      2
-    else if (int < 0x200000)
-      3
-    else if (int < 0x10000000)
-      4
-    else
-      5
-
-  def sizeOfUnsignedLong(long: Long): Int =
-    if (long < 0L)
-      10
-    else if (long < 0x80L)
-      1
-    else if (long < 0x4000L)
-      2
-    else if (long < 0x200000L)
-      3
-    else if (long < 0x10000000L)
-      4
-    else if (long < 0x800000000L)
-      5
-    else if (long < 0x40000000000L)
-      6
-    else if (long < 0x2000000000000L)
-      7
-    else if (long < 0x100000000000000L)
-      8
-    else
-      9
-
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte]): Slice[Byte] =
     compressJoin(

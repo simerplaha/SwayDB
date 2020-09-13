@@ -355,15 +355,21 @@ abstract class SliceBase[+T](array: Array[T],
    */
   override def toArray[B >: T](implicit evidence$1: ClassTag[B]): Array[B] =
     if (size == array.length)
-      array.asInstanceOf[Array[B]]
+      if (size == 0)
+        Array.empty
+      else
+        array.asInstanceOf[Array[B]]
     else
       toArrayCopy[B]
 
-  def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] = {
-    val newArray = new Array[B](size)
-    Array.copy(array, fromOffset, newArray, 0, size)
-    newArray
-  }
+  def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] =
+    if (size == 0) {
+      Array.empty
+    } else {
+      val newArray = new Array[B](size)
+      Array.copy(array, fromOffset, newArray, 0, size)
+      newArray
+    }
 
   //for java
   def toArray: Array[T]@uncheckedVariance =
@@ -618,6 +624,11 @@ abstract class SliceBase[+T](array: Array[T],
 
   @inline final def addStringUTF8[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
     byteOps.writeString(string, selfSlice, StandardCharsets.UTF_8)
+    selfSlice
+  }
+
+  @inline final def addStringUTF8WithSize[B >: T](string: String)(implicit byteOps: ByteOps[B]): Slice[T] = {
+    byteOps.writeStringWithSize(string, selfSlice, StandardCharsets.UTF_8)
     selfSlice
   }
 
