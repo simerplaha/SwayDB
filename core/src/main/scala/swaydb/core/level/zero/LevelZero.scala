@@ -25,7 +25,7 @@
 package swaydb.core.level.zero
 
 import java.nio.channels.FileChannel
-import java.nio.file.{Path, Paths, StandardOpenOption}
+import java.nio.file.{Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
@@ -39,13 +39,13 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
-import swaydb.core.{CoreInitializer, map}
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, FunctionsMapEntryReader, FunctionsMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, RecoveryResult, SkipListMerger}
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.MinMax
+import swaydb.core.{MemoryPathGenerator, map}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.MMAP
@@ -264,7 +264,8 @@ private[core] object LevelZero extends LazyLogging {
                   nullValue = Memory.Null
                 )
 
-              (map, appliedFunctionsMap, Paths.get(CoreInitializer.memoryPath).resolve(0.toString), None)
+              val path = nextLevel.map(_.rootPath.getParent).getOrElse(MemoryPathGenerator.next())
+              (map, appliedFunctionsMap, path.resolve(0.toString), None)
           }
       }
 

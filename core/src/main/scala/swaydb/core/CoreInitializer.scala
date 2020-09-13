@@ -24,8 +24,6 @@
 
 package swaydb.core
 
-import java.nio.file.Paths
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -58,8 +56,6 @@ import scala.sys.ShutdownHookThread
  * Creates all configured Levels via [[ConfigWizard]] instances and starts compaction.
  */
 private[core] object CoreInitializer extends LazyLogging {
-
-  val memoryPath = "MEMORY"
 
   /**
    * Based on the configuration returns execution context for the Level.
@@ -191,6 +187,8 @@ private[core] object CoreInitializer extends LazyLogging {
 
         implicit val shutdownEC: ExecutionContext = shutdownExecutionContext(contexts)
 
+        lazy val memoryLevelPath = MemoryPathGenerator.next()
+
         def createLevel(id: Long,
                         nextLevel: Option[NextLevel],
                         config: LevelConfig): IO[swaydb.Error.Level, NextLevel] =
@@ -216,7 +214,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     deleteEventually = config.deleteSegmentsEventually,
                     compressions = _ => Seq.empty
                   ),
-                levelStorage = LevelStorage.Memory(dir = Paths.get(CoreInitializer.memoryPath).resolve(id.toString)),
+                levelStorage = LevelStorage.Memory(dir = memoryLevelPath.resolve(id.toString)),
                 appendixStorage = AppendixStorage.Memory,
                 nextLevel = nextLevel,
                 throttle = config.throttle
