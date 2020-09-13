@@ -22,7 +22,16 @@ val scalaCollectionsCompact = "2.1.6"
 val scala212 = "2.12.12"
 val scala213 = "2.13.3"
 
-val commonScalaOptions =
+val inlining =
+  Seq(
+    //        "-opt:l:inline",
+    //        "-opt-warnings",
+    //        "-opt-inline-from:swaydb.**",
+    //        "-Yopt-log-inline",
+    //        "_"
+  )
+
+val scalaOptions =
   Seq(
     "-language:postfixOps",
     "-deprecation",
@@ -32,35 +41,15 @@ val commonScalaOptions =
     "-unchecked",
     "-language:higherKinds",
     "-language:implicitConversions",
-    //    "-Ywarn-dead-code",
-    //    "-Ywarn-numeric-widen",
-    //    "-Ywarn-value-discard",
-    //    "-Ywarn-unused",
-    //    "-Xfatal-warnings",
     "-Xlint"
-  )
-
-def publishScalaOptions(scalaVersion: String): Seq[String] =
-  CrossVersion.partialVersion(scalaVersion) match {
-    case Some((2, major)) if major >= 12 =>
-      Seq(
-        //        "-opt:l:inline",
-        //        "-opt-warnings",
-        //        "-opt-inline-from:swaydb.**",
-        //        "-Yopt-log-inline",
-        //        "_"
-      )
-
-    case Some((2, 11)) =>
-      Seq.empty
-  }
+  ) ++ inlining
 
 val commonSettings = Seq(
   organization := "io.swaydb",
   scalaVersion := scalaVersion.value,
   scalaVersion in ThisBuild := scala213,
   parallelExecution in ThisBuild := false,
-  scalacOptions ++= commonScalaOptions,
+  scalacOptions ++= scalaOptions,
   unmanagedSourceDirectories in Compile += {
     val sourceDir = (sourceDirectory in Compile).value
     CrossVersion.partialVersion(scalaVersion.value) match {
@@ -86,7 +75,7 @@ val publishSettings = Seq[Setting[_]](
   developers := List(
     Developer(id = "simerplaha", name = "Simer JS Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))
   ),
-  scalacOptions ++= commonScalaOptions ++ publishScalaOptions(scalaVersion.value),
+  scalacOptions ++= scalaOptions,
   publishTo := sonatypePublishTo.value,
   releaseCrossBuild := true,
   releaseVersionBump := sbtrelease.Version.Bump.Next,
