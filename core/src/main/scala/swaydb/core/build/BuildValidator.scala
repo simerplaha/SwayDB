@@ -79,7 +79,7 @@ object BuildValidator {
           IO.failed(s"Missing ${Build.fileName} file. This directory might be an incompatible older version of SwayDB. Current version: v${thisVersion.version}.")
 
         case previous @ Build.Info(previousVersion, previousDataType) =>
-          val isValid = previousVersion.major >= 0 && previousVersion.minor >= 14 && previousVersion.revision >= 0
+          val isValid = previousVersion.major >= 0 && previousVersion.minor >= 15 && previousVersion.revision >= 0
           if (!isValid)
             IO.failed(s"Incompatible versions! v${previous.version} is not compatible with v${thisVersion.version}.")
           else if (previousDataType != dataType)

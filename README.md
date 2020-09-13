@@ -12,20 +12,20 @@
 [build-badge]: https://github.com/simerplaha/SwayDB/workflows/Build/badge.svg
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-Embeddable **persistent** and **in-memory** key-value storage engine aimed for **high performance** & **resource efficiency**.
+Embeddable **persistent** and **in-memory** key-value storage engine aimed for **high performance** & **resource efficiency**. 
 
-Data is managed by creating familiar data structures like `Map`, `Set`, `Queue` `MultiMap`, `SetMap` and can easily convert 
+Data is managed by creating familiar data structures like `Map`, `Set`, `Queue` `MultiMap`, `SetMap` and can easily be converted 
 to native Java and Scala collections.
   
-Conditional updates/data modifications can be performed by simply submitting any **Java**, **Scala**, **Kotlin** or any 
+Conditional updates/data modifications can be performed by submitting any **Java**, **Scala**, **Kotlin** or any 
 **native JVM** code - **No query language**.
 
 __Scalable on a single machine__ - Data can be stored on multiple local __HDD/SSD__ and, single or multiple __Threads__ 
 can be allocated for reads, caching & compaction.
 
-SwayDB's core is **non-blocking**, but the APIs can be configured as blocking, non-blocking and/or reactive.   
+SwayDB's core is **non-blocking**, but the APIs can be configured to be blocking, non-blocking and/or reactive.   
 
-Configurations can be tuned to suit **different workloads**. Some use-cases are:
+Highly configurable to suit **different workloads**. Some use-cases are:
 - General key-value storage
 - Message queues
 - Time-series or Events data
@@ -97,8 +97,7 @@ for both **personal** and **commercial** reasons, the license **only** asks for 
 to SwayDB's source code to be shared so that it supports the contributors by not duplicating efforts and shares knowledge on
 this project's subject.
 
-The language in the [LICENSE](/LICENSE.md) file follows [GNU's FAQ](https://www.gnu.org/licenses/gpl-faq.en.html#GPLIncompatibleLibs)
-so that it is correct in legal terms.
+The language in the [LICENSE](/LICENSE.md) file follows [GNU's FAQ](https://www.gnu.org/licenses/gpl-faq.en.html#GPLIncompatibleLibs).
 
 # Sponsors
 Thank you Jetbrains for providing an open-source licence for their awesome development tools. 
