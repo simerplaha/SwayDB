@@ -26,7 +26,6 @@ package swaydb.core.io.reader
 
 import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Slice, SliceReader}
-import swaydb.data.slice.Slice
 
 private[swaydb] object Reader {
 

@@ -24,7 +24,6 @@
 
 package swaydb.test
 
-import java.util.TimerTask
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import swaydb.data.config.ActorConfig.QueueOrder

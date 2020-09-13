@@ -25,13 +25,13 @@
 package swaydb.core.segment.format.a
 
 import swaydb.core.TestBase
-import swaydb.data.cache.Cache
 import swaydb.core.data.Persistent._
 import swaydb.core.data.Value.FromValueOption
 import swaydb.core.data.{Persistent, Time, Value}
 import swaydb.core.segment.KeyMatcher
 import swaydb.core.segment.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.data.cache.Cache
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

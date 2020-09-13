@@ -42,7 +42,7 @@ import swaydb.core.util.PipeOps._
 import swaydb.core.util.{Extension, IDGenerator}
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
-import swaydb.data.config.{Dir, ForceSave, MMAP}
+import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage

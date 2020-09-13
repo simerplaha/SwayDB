@@ -25,6 +25,7 @@
 package swaydb.core.util
 
 import swaydb.data.slice.Slice
+
 private[core] object CRC32 {
 
   val disabledCRC = -1L

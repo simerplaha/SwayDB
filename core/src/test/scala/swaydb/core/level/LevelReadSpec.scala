@@ -26,7 +26,6 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.file.Effect._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -37,7 +36,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.compaction.Throttle
-import swaydb.data.config.{ForceSave, MMAP}
+import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem

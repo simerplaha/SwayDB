@@ -27,7 +27,6 @@ package swaydb.core.segment.format.a.entry
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.{Memory, Persistent}
@@ -35,6 +34,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.MemoryToKeyValueIdBinder
 import swaydb.core.segment.format.a.entry.reader.PersistentParser
 import swaydb.core.segment.format.a.entry.writer._
+import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

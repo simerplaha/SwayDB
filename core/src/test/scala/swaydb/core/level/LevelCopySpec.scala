@@ -36,14 +36,13 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis.eventual
-import swaydb.data.config.{ForceSave, MMAP}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration.DurationInt
-import swaydb.data.slice.Slice
 
 class LevelCopySpec0 extends LevelCopySpec
 

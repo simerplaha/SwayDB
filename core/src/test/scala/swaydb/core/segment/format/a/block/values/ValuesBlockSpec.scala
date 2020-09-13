@@ -26,21 +26,20 @@ package swaydb.core.segment.format.a.block.values
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader}
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import swaydb.data.slice.Slice
 
 class ValuesBlockSpec extends TestBase {
 

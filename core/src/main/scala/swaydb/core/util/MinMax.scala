@@ -28,8 +28,6 @@ import swaydb.core.data.Value.{FromValue, FromValueOption}
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.slice.Slice
-
-
 import swaydb.data.util.{SomeOrNone, SomeOrNoneCovariant}
 
 import scala.annotation.tailrec

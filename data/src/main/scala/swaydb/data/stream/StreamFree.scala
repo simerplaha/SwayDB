@@ -24,8 +24,8 @@
 
 package swaydb.data.stream
 
-import swaydb.{Bag, Streamer}
 import swaydb.data.util.OptionMutable
+import swaydb.{Bag, Streamer}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer

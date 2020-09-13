@@ -26,8 +26,8 @@ package swaydb.core.util
 
 import java.util.concurrent.ConcurrentHashMap
 
-import scala.jdk.CollectionConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 private[swaydb] object HashedMap {
 

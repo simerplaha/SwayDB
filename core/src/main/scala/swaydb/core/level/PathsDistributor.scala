@@ -35,8 +35,8 @@ import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
 
 import scala.annotation.tailrec
-import scala.jdk.CollectionConverters._
 import scala.collection.compat._
+import scala.jdk.CollectionConverters._
 
 /**
  * Maintains the distribution of [[Segment]]s to the configured directories ratios.

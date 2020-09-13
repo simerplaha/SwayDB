@@ -23,6 +23,7 @@
  */
 
 package swaydb.core.build
+
 import java.nio.file.Path
 
 import swaydb.core.util.CRC32

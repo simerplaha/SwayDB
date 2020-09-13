@@ -36,8 +36,6 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -112,8 +110,8 @@ class AppendixMapEntrySpec extends TestBase {
     "write and remove key-value" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
           import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
+          import sweeper._
 
           val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
 

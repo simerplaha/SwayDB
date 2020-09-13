@@ -29,15 +29,13 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Memory
 import swaydb.core.level.NextLevel
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestSweeper, TestTimer}
+import swaydb.core._
+import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -46,9 +44,8 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.collection.mutable.ListBuffer
 import scala.collection.compat._
-import swaydb.data.slice.Slice
+import scala.collection.mutable.ListBuffer
 
 class CompactionSpec0 extends CompactionSpec
 

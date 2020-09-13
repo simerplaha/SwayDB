@@ -27,9 +27,9 @@ package swaydb.core.util
 import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Time, Value}
+import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -37,7 +37,6 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Random
-import swaydb.data.slice.Slice
 
 class MinMaxSpec extends AnyWordSpec with Matchers {
 

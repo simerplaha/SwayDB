@@ -28,8 +28,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.HashedMap
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 
 import scala.annotation.tailrec
 

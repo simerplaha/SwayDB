@@ -31,13 +31,11 @@ import swaydb.core.data.{KeyValue, Memory, MemoryOption}
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.data.util.Futures
 import swaydb.{Error, IO}
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 private[core] object TrashLevel extends NextLevel {
 

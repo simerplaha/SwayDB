@@ -26,7 +26,6 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.format.a.block.BlockOffset
-import swaydb.data.slice.Slice
 import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceOption}
 
 /**

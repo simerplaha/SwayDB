@@ -27,7 +27,6 @@ package swaydb.java.multimap
 import java.time.Duration
 import java.util.Optional
 
-import swaydb.Bag.Less
 import swaydb.java.data.util.Java._
 import swaydb.java.{MultiMap, Stream}
 import swaydb.{Bag, Expiration, PureFunction}

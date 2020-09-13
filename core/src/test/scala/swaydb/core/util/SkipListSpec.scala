@@ -26,13 +26,11 @@ package swaydb.core.util
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
+import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
-import swaydb.serializers._
 import swaydb.serializers.Default._
+import swaydb.serializers._
 
 class SkipListConcurrentSpec extends SkipListSpec
 sealed trait SkipListSpec extends AnyWordSpec with Matchers {

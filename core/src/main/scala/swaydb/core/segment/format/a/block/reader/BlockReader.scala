@@ -27,7 +27,6 @@ package swaydb.core.segment.format.a.block.reader
 import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.slice.Slice
 
 private[reader] object BlockReader {
 

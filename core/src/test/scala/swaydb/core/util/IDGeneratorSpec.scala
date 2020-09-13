@@ -26,6 +26,7 @@ package swaydb.core.util
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
 import scala.collection.parallel.CollectionConverters._
 
 class IDGeneratorSpec extends AnyFlatSpec with Matchers {

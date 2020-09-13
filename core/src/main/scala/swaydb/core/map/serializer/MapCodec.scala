@@ -33,7 +33,6 @@ import swaydb.core.util.CRC32
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.slice.Slice
 
 private[core] object MapCodec extends LazyLogging {
 

@@ -27,9 +27,10 @@ package swaydb.core.map
 import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer.{MapCodec, MapEntryWriter}
-import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
+import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+
 import scala.collection.mutable.ListBuffer
 
 /**

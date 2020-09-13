@@ -28,8 +28,6 @@ import java.nio.file.Paths
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, PersistentOption, Time}
@@ -39,12 +37,13 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.MaxKey
+import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.slice.Slice
 
 class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
 

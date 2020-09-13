@@ -33,11 +33,12 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
+import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -48,7 +49,6 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
-import swaydb.core._
 import swaydb.data.MaxKey
 import swaydb.data.RunThis._
 import swaydb.data.config.{ActorConfig, Dir, MMAP}
@@ -62,7 +62,6 @@ import swaydb.serializers._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.slice.Slice
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 

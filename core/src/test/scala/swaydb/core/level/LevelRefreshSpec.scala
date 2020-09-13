@@ -42,7 +42,6 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.concurrent.duration._
-import swaydb.data.slice.Slice
 
 class LevelRefreshSpec0 extends LevelRefreshSpec
 

@@ -31,7 +31,6 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.TestCaseSweeper._
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
@@ -40,8 +39,9 @@ import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.{Extension, ReserveRange}
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
-import swaydb.data.config.{Dir, ForceSave, MMAP}
+import swaydb.core._
+import swaydb.data.RunThis._
+import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
@@ -49,11 +49,9 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.RunThis._
 
 import scala.concurrent.Promise
 import scala.concurrent.duration.DurationInt
-import swaydb.data.slice.Slice
 
 class LevelSpec0 extends LevelSpec
 
@@ -94,7 +92,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       if (persistent) {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
+
             val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir, 1))
             val storage =
               LevelStorage.Persistent(

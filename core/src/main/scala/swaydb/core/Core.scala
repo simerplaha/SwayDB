@@ -40,8 +40,6 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.TupleOrNone
 import swaydb.{Bag, IO, OK, Prepare}

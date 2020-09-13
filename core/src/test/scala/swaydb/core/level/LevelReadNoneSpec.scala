@@ -26,12 +26,12 @@ package swaydb.core.level
 
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
-import swaydb.core.{TestBase, TestForceSave}
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.segment.ThreadReadState
-import swaydb.data.config.{ForceSave, MMAP}
+import swaydb.core.{TestBase, TestForceSave}
+import swaydb.data.RunThis._
+import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem

@@ -2,7 +2,6 @@ package swaydb.core.segment.format.a.block
 
 import org.scalatest.OptionValues._
 import swaydb.compression.CompressionInternal
-import swaydb.data.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
@@ -10,8 +9,8 @@ import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.ClosedBlocksWithFooter
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.data.RunThis._
 import swaydb.data.config.IOAction
-import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice
 
 class BlockSpec extends TestBase {

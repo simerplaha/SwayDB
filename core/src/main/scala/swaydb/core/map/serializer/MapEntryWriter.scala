@@ -26,6 +26,7 @@ package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.Slice
+
 import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for MapEntryWriter of type ${T}")

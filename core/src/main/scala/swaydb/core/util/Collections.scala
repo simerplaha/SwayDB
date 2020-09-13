@@ -26,7 +26,6 @@ package swaydb.core.util
 
 import swaydb.data.slice.Slice
 
-
 import scala.reflect.ClassTag
 
 private[swaydb] object Collections {

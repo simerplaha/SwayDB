@@ -28,13 +28,12 @@ import java.util
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
-import swaydb.{Bag, Pair}
-import swaydb.Bag.Less
 import swaydb.data.util.Java._
+import swaydb.{Bag, Pair}
 
+import scala.collection.compat._
 import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._
-import scala.collection.compat._
 
 object Stream {
 

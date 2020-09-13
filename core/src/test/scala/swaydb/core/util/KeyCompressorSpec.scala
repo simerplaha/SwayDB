@@ -27,10 +27,10 @@ package swaydb.core.util
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.data.MaxKey
+import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._

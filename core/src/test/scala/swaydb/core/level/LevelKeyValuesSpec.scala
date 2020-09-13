@@ -29,14 +29,14 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.config.{ForceSave, MMAP}
+import swaydb.data.RunThis._
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -45,7 +45,6 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.concurrent.duration._
-import swaydb.data.slice.Slice
 
 class LevelKeyValuesSpec0 extends LevelKeyValuesSpec
 
@@ -324,7 +323,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "not return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level has a last Level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()) )
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments), nextLevel = Some(TestLevel()))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
@@ -364,7 +363,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           val function = PrivateMethod[IO[swaydb.Error.Segment, Unit]]('putKeyValues)
           (level invokePrivate function(keyValues.size, keyValues, Seq(targetSegment), None)).runRandomIO.right.value
 
-          if(isWindowsAndMMAPSegments())
+          if (isWindowsAndMMAPSegments())
             sweeper.receiveAll()
 
           targetSegment.existsOnDisk shouldBe false //target Segment should be deleted

@@ -28,13 +28,13 @@ import java.nio.file.{Path, Paths}
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
-import swaydb.data.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.io.file.Effect
 import swaydb.core.segment.Segment
+import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.RunThis._
 import swaydb.data.config.Dir
 import swaydb.data.order.KeyOrder
-import TestCaseSweeper._
 
 class PathsDistributorSpec extends TestBase with MockFactory {
 

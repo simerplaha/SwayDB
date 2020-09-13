@@ -32,6 +32,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.MinMax
 import swaydb.data.slice.Slice
+
 import scala.concurrent.duration.Deadline
 
 private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlock.State,

@@ -38,6 +38,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.Dir
 import swaydb.data.slice.Slice
+
 trait PersistentSegment extends Segment {
   def file: DBFile
 

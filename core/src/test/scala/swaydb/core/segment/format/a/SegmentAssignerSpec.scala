@@ -26,14 +26,13 @@ package swaydb.core.segment.format.a
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.io.file.Effect._
 import swaydb.core.segment.{Segment, SegmentAssigner, SegmentIO}
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -43,7 +42,6 @@ import swaydb.serializers._
 
 import scala.collection.mutable
 import scala.concurrent.duration._
-import swaydb.data.slice.Slice
 
 class SegmentAssignerSpec0 extends SegmentAssignerSpec {
   val keyValueCount = 100

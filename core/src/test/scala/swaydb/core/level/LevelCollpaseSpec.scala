@@ -42,7 +42,6 @@ import swaydb.data.util.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import swaydb.data.slice.Slice
 
 class LevelCollapseSpec0 extends LevelCollapseSpec
 

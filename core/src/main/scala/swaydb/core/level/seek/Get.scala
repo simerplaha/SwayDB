@@ -30,6 +30,7 @@ import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, Upda
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+
 import scala.annotation.tailrec
 
 private[core] object Get {

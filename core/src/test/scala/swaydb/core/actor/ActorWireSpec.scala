@@ -26,15 +26,14 @@ package swaydb.core.actor
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.data.RunThis._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
-import swaydb.core.TestData._
+import swaydb.data.RunThis._
 import swaydb.{Actor, ActorWire}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import TestCaseSweeper._
 
 class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
   implicit val ec = TestExecutionContext.executionContext
@@ -44,7 +43,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
     "process messages in order of arrival" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
 
           class MyImpl(message: ListBuffer[Int]) {
             def message(int: Int): Unit =
@@ -78,7 +77,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
     "ask" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
 
           object MyImpl {
             def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): String =
@@ -98,7 +97,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
     "askFlatMap" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
 
           object MyImpl {
             def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): Future[String] =
@@ -118,7 +117,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
     "send" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
 
           class MyImpl(var name: String) {
             def hello(name: String): Future[String] =
@@ -153,7 +152,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
     "scheduleAsk" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           class MyImpl(var invoked: Boolean = false) {
             def invoke(): Unit =
               invoked = true
@@ -198,7 +197,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
     "scheduleAskFlatMap" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           class MyImpl(var invoked: Boolean = false) {
             def invoke(): Future[Boolean] =
               Future {
@@ -250,7 +249,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
     "scheduleAskWithSelf" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
+
           class MyImpl(var invoked: Boolean = false) {
             def invoke(replyTo: ActorWire[MyImpl, Unit]): Future[Boolean] =
               replyTo

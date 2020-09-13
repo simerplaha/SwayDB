@@ -24,23 +24,11 @@
 
 package swaydb.core.segment
 
-import java.nio.file.Paths
-
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestBase
-import swaydb.core.TestData._
-import swaydb.core.actor.MemorySweeper
-import swaydb.core.data.{Persistent, PersistentOption, Time}
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.data.MaxKey
+import swaydb.core.data.Persistent
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.serializers.Default._
-import swaydb.serializers._
 
 class SegmentRefSpec extends TestBase with MockFactory {
 

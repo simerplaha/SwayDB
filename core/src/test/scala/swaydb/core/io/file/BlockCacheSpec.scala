@@ -24,15 +24,14 @@
 
 package swaydb.core.io.file
 
-import swaydb.data.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.io.file.BlockCache.Key
 import swaydb.core.util.Bytes
+import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.slice.Slice
 
 class BlockCacheSpec extends TestBase {
 

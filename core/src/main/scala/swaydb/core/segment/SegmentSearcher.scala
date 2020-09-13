@@ -32,6 +32,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+
 private[core] trait SegmentSearcher {
 
   def searchSequential(key: Slice[Byte],

@@ -28,10 +28,10 @@ import java.util.concurrent.{CompletionStage, ExecutorService}
 import java.util.function.{BiConsumer, Consumer}
 import java.util.{Comparator, TimerTask, UUID}
 
+import swaydb.Bag
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.util.Java.JavaFunction
 import swaydb.java.data.TriFunctionVoid
-import swaydb.{Bag, Scheduler}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FutureConverters._

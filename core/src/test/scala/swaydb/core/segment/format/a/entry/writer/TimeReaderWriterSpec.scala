@@ -20,8 +20,6 @@
 //package swaydb.core.segment.format.a.entry.writer
 //
 //import org.scalatest.matchers.should.Matchers
-
-import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
 //import swaydb.core.TestTimer

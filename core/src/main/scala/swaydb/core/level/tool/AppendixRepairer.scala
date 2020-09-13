@@ -33,7 +33,6 @@ import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.MemorySweeper
-import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.MapEntryWriter
@@ -41,12 +40,10 @@ import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.Extension
 import swaydb.data.config.{ForceSave, MMAP}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.order.KeyOrder
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.data.util.StorageUnits._
 
 private[swaydb] object AppendixRepairer extends LazyLogging {

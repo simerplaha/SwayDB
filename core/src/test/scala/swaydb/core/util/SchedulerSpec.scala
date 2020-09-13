@@ -28,11 +28,11 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.{IO, Scheduler}
 
 import scala.concurrent.duration._
-import TestCaseSweeper._
 
 class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
 

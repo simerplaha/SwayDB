@@ -29,7 +29,6 @@ import swaydb.core.TestData._
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.slice.Slice
 
 class BinarySearchEntryFormatSpec extends TestBase {
 

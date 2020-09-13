@@ -52,12 +52,11 @@ import swaydb.core.util.skiplist.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.{FiniteDurations, SomeOrNone}
 
-import scala.collection.compat._
 import scala.annotation.tailrec
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._

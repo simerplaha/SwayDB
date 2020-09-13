@@ -27,11 +27,9 @@ package swaydb.core.level
 import java.nio.file.Path
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.IOValues._
 import swaydb.core.{TestBase, TestCaseSweeper}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.DurationInt
 
 class LevelRefSpec extends TestBase with MockFactory {
 

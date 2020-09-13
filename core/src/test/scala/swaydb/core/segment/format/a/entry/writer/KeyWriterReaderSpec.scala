@@ -26,12 +26,11 @@ package swaydb.core.segment.format.a.entry.writer
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.{EntryReaderFailure, KeyReader}
-import swaydb.data.slice.Slice
+import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 
 class KeyWriterReaderSpec extends AnyWordSpec with Matchers {

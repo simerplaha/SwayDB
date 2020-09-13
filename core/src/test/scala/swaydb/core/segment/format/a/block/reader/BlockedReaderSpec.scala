@@ -31,7 +31,6 @@ import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice
 
 class BlockedReaderSpec extends TestBase with MockFactory {
 

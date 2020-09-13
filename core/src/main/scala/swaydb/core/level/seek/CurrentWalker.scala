@@ -28,6 +28,7 @@ import swaydb.core.data.KeyValue
 import swaydb.core.level.LevelSeek
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.slice.Slice
+
 trait CurrentWalker {
 
   def levelNumber: String

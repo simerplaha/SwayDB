@@ -24,8 +24,8 @@
 
 package swaydb.core.util
 
-import swaydb.data.RunThis._
 import swaydb.core.{TestBase, TestExecutionContext, TestTimer}
+import swaydb.data.RunThis._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

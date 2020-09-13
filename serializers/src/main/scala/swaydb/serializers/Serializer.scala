@@ -25,6 +25,7 @@
 package swaydb.serializers
 
 import swaydb.data.slice.Slice
+
 object Serializer {
   private val one = Slice(1.toByte)
 

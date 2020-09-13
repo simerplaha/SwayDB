@@ -30,20 +30,12 @@ import swaydb.Error.Map.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.SegmentIO
 import swaydb.core.util.skiplist.SkipList
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
-import swaydb.data.config.MMAP
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
-import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

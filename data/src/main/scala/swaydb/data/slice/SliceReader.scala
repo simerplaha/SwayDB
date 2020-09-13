@@ -26,7 +26,6 @@ package swaydb.data.slice
 
 import java.nio.file.Paths
 
-import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps
 
 /**

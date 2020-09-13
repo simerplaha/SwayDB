@@ -28,12 +28,12 @@ import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper}
+import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -42,7 +42,6 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Random
-import swaydb.data.slice.Slice
 
 class SegmentGetSpec0 extends SegmentGetSpec {
   val keyValuesCount = 1000

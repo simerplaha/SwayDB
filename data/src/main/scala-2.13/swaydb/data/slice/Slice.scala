@@ -24,7 +24,6 @@
 
 package swaydb.data.slice
 
-import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 

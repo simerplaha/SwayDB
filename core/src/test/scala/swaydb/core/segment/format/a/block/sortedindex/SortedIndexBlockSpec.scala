@@ -27,7 +27,7 @@ package swaydb.core.segment.format.a.block.sortedindex
 import org.scalatest.PrivateMethodTester
 import swaydb.Compression
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
+import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentIO
@@ -36,13 +36,13 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReade
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestSweeper}
+import swaydb.data.RunThis._
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 import swaydb.data.config.{PrefixCompression, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 
-import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
+import scala.collection.mutable.ListBuffer
 
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 

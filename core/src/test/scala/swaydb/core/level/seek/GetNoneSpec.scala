@@ -29,16 +29,15 @@ import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{KeyValue, SwayFunctionOutput, Value}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestData, TestTimer}
+import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.slice.Slice
 
 class GetNoneSpec extends AnyWordSpec with Matchers with MockFactory with OptionValues {
 

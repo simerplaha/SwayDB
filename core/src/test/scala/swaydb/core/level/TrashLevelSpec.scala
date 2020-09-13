@@ -27,14 +27,14 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
-import swaydb.data.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, ThreadReadState}
+import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
+import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle
-import swaydb.data.config.{ForceSave, MMAP}
+import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem

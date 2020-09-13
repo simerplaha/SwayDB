@@ -32,6 +32,7 @@ import swaydb.core.merge._
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+
 import scala.annotation.tailrec
 
 private[core] object Lower {

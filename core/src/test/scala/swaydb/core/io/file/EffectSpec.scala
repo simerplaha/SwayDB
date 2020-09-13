@@ -28,10 +28,10 @@ import java.nio.file.Paths
 
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.util.{Benchmark, Extension}
 import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.RunThis._
 import swaydb.data.util.StorageUnits._
 
 class EffectSpec extends TestBase {

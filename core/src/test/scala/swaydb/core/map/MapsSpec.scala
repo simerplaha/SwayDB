@@ -24,12 +24,12 @@
 
 package swaydb.core.map
 
-import java.nio.file.{Files, NoSuchFileException}
+import java.nio.file.NoSuchFileException
 import java.util.concurrent.ConcurrentLinkedDeque
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.data.RunThis._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.io.file.Effect
@@ -37,12 +37,11 @@ import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.data.RunThis._
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -50,7 +49,6 @@ import swaydb.serializers._
 
 import scala.jdk.CollectionConverters._
 import scala.util.Random
-import TestCaseSweeper._
 
 class MapsSpec extends TestBase {
 

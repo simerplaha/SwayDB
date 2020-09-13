@@ -26,26 +26,23 @@ package swaydb.core.level.compaction.throttle
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
+import swaydb.Actor
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.{Compaction, Compactor}
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestSweeper, TestTimer}
+import swaydb.core._
+import swaydb.data.RunThis._
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
-import swaydb.{Actor, Scheduler}
 
 import scala.collection.mutable
 import scala.concurrent.Promise
 import scala.concurrent.duration._
-import TestCaseSweeper._
-import swaydb.data.slice.Slice
 
 class ThrottleCompactorSpec0 extends ThrottleCompactorSpec
 
@@ -204,7 +201,6 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
       "level states were empty" in {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
 
             val (level, nextLevel, testState) = createTestLevel()
 
@@ -229,7 +225,6 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
       "level states were non-empty but level's state is unchanged and has scheduled task" in {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
 
             val (level, nextLevel, testState) = createTestLevel()
 
@@ -266,7 +261,6 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
       "level states were non-empty but level's state is unchanged and task is undefined" in {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
 
             val (level, nextLevel, testState) = createTestLevel()
 
@@ -372,7 +366,6 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
       "one of level states is awaiting pull and other Level's sleep is shorter" in {
         TestCaseSweeper {
           implicit sweeper =>
-            import sweeper._
 
             val (level, nextLevel, testState) = createTestLevel()
 
@@ -431,7 +424,6 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
     "run compaction and postCompaction" in {
       TestCaseSweeper {
         implicit sweeper =>
-          import sweeper._
 
           val nextLevel = TestLevel()
           val level = TestLevel(nextLevel = Some(nextLevel))

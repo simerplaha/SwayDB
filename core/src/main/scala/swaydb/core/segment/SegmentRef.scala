@@ -45,12 +45,10 @@ import swaydb.core.util.skiplist.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.data.util.{SomeOrNone, TupleOrNone}
 
-import scala.collection.mutable.ListBuffer
 import scala.collection.compat._
+import scala.collection.mutable.ListBuffer
 
 private[core] sealed trait SegmentRefOption extends SomeOrNone[SegmentRefOption, SegmentRef] {
   override def noneS: SegmentRefOption = SegmentRef.Null

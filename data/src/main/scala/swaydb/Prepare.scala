@@ -26,8 +26,8 @@ package swaydb
 
 import java.time.Duration
 
-import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.compat.java8.DurationConverters._
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 sealed trait Prepare[+K, +V, +F]
 

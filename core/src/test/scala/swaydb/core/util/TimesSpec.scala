@@ -28,8 +28,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.util.Times._
 import swaydb.data.slice.Slice
+
 import scala.concurrent.duration._
-import swaydb.data.slice.Slice
 
 class TimesSpec extends AnyWordSpec with Matchers {
 

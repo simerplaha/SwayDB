@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit
 
 import swaydb.data.slice.Slice
 
-
 import scala.concurrent.duration.Deadline
 
 private[swaydb] object Times {

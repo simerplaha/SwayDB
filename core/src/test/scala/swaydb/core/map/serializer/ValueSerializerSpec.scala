@@ -30,9 +30,9 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.TestData._
 import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
 import swaydb.data.slice.Slice
+
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import swaydb.data.slice.Slice
 
 class ValueSerializerSpec extends AnyWordSpec with Matchers {
 

@@ -26,7 +26,6 @@ package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.DBFile
-import swaydb.data.slice.Slice
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteOps
 

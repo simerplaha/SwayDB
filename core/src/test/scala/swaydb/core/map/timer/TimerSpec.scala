@@ -36,10 +36,9 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSa
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.{ScalaByteOps, OperatingSystem}
+import swaydb.data.util.{OperatingSystem, ScalaByteOps}
 
 import scala.concurrent.ExecutionContext
-import swaydb.data.util.StorageUnits._
 
 class PersistentTimerSpec extends TimerSpec {
 

@@ -42,7 +42,7 @@ import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, FunctionsMapEntryReader, FunctionsMapEntryWriter}
 import swaydb.core.map.timer.Timer
-import swaydb.core.map.{MapEntry, Maps, PersistentMap, RecoveryResult, SkipListMerger}
+import swaydb.core.map.{MapEntry, Maps, RecoveryResult, SkipListMerger}
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.MinMax
@@ -51,12 +51,10 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.data.storage.Level0Storage
-import swaydb.data.util.{Futures, Options}
 import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.StorageUnits._
+import swaydb.data.util.{Futures, Options}
 import swaydb.{Actor, Error, IO, OK}
 
 import scala.collection.mutable.ListBuffer

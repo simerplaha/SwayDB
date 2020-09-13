@@ -27,10 +27,9 @@ package swaydb.data.slice
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
 
-import swaydb.{IO, Pair}
-import swaydb.data.util.{ByteOps, ScalaByteOps}
+import swaydb.data.util.ByteOps
 import swaydb.data.util.Maybe.Maybe
-import swaydb.data.slice.Slice
+import swaydb.{IO, Pair}
 
 import scala.annotation.tailrec
 

@@ -28,13 +28,12 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.file.Effect
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import TestCaseSweeper._
+import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -46,7 +45,6 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.slice.Slice
 
 class LevelZeroSpec0 extends LevelZeroSpec
 

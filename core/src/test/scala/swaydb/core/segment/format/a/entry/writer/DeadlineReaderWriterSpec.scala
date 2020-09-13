@@ -28,14 +28,14 @@ import java.util.concurrent.TimeUnit
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.data.RunThis._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Times._
+import swaydb.data.RunThis._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.CommonAssertions._
 
 import scala.concurrent.duration.{FiniteDuration, _}
 

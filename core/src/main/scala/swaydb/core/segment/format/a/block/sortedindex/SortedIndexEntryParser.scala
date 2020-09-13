@@ -29,6 +29,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.reader.PersistentParser
 import swaydb.data.slice.Slice
+
 sealed trait SortedIndexEntryParser[T] {
 
   def parse(readPosition: Int,

@@ -26,8 +26,7 @@ package swaydb.core.map.serializer
 
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.data.slice.ReaderBase
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{ReaderBase, Slice}
 
 import scala.annotation.implicitNotFound
 

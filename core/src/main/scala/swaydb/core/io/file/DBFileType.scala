@@ -28,6 +28,7 @@ import java.nio.file.Path
 
 import swaydb.core.actor.FileSweeperItem
 import swaydb.data.slice.Slice
+
 private[file] trait DBFileType extends FileSweeperItem {
 
   val path: Path

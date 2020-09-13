@@ -333,7 +333,7 @@ private[core] class SegmentBlockCache(path: Path,
           )
         )
       }
-    }
+  }
     .get
     .copy()
 

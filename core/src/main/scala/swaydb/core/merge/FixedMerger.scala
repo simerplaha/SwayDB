@@ -24,14 +24,10 @@
 
 package swaydb.core.merge
 
-import swaydb.core.data.KeyValue
-import swaydb.core.data.{Memory, Value}
+import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-
-
-import scala.collection.compat._
 
 private[core] object FixedMerger {
 

@@ -26,7 +26,6 @@ package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.data.slice.Slice
 
 private[swaydb] object CounterMapEntryReader {
 

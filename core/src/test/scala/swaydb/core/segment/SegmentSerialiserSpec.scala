@@ -33,7 +33,6 @@ import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice
 
 class SegmentSerialiserSpec extends TestBase {
 

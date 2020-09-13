@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.RunThis._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Memory
@@ -18,6 +18,7 @@ import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCac
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.data.RunThis._
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -29,8 +30,6 @@ import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
-import TestCaseSweeper._
-import swaydb.data.slice.Slice
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default

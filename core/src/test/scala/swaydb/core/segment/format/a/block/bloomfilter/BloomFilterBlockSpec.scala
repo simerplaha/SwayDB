@@ -26,11 +26,11 @@ package swaydb.core.segment.format.a.block.bloomfilter
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions.eitherOne
-import swaydb.data.RunThis._
-import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._

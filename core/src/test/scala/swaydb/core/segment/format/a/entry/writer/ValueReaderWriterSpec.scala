@@ -26,15 +26,14 @@ package swaydb.core.segment.format.a.entry.writer
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.data.RunThis._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
-import swaydb.serializers._
+import swaydb.data.RunThis._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
-import swaydb.core.CommonAssertions._
-import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice
+import swaydb.serializers._
 
 class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
 
