@@ -523,7 +523,7 @@ object CommonAssertions {
       actual shouldBe expected.key
 
     def shouldBeSliced() =
-      actual.underlyingArraySize shouldBe actual.toArrayCopy.length
+      actual.underlyingArraySize shouldBe actual.toArrayCopy[Byte].length
   }
 
   implicit class OptionSliceByteImplicits(actual: Option[Slice[Byte]]) {

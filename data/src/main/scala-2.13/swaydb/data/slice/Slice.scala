@@ -303,18 +303,18 @@ object Slice {
       sliced.asInstanceOf[Slice[java.lang.Byte]]
   }
 
-  @inline final def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
-    new slice.Slice.SliceBuilder[T](sizeHint)
-
-  private[swaydb] def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Slice[T]] =
-    Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](sizeHint))
-
   final case object Null extends SliceOption[Nothing] {
     override val isNoneC: Boolean = true
     override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
     override def isUnslicedOption: Boolean = true
     override def asSliceOption(): SliceOption[Nothing] = this
   }
+
+  @inline final def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
+    new slice.Slice.SliceBuilder[T](sizeHint)
+
+  private[swaydb] def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Slice[T]] =
+    Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](sizeHint))
 
   class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
@@ -377,7 +377,7 @@ class Slice[+T] private[slice](array: Array[T],
                                                                                                               with IterableOps[T, Slice, Slice[T]]
                                                                                                               with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
                                                                                                               with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
-                                                                                                              //@formatter:on
+//@formatter:on
 
   override val isNoneC: Boolean =
     false

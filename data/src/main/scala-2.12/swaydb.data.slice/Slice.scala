@@ -29,9 +29,8 @@ import java.nio.charset.{Charset, StandardCharsets}
 
 import swaydb.Aggregator
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.util.{ByteOps, ByteSizeOf, SomeOrNoneCovariant}
 import swaydb.data.{MaxKey, slice}
-import swaydb.data.util.{ByteSizeOf, Bytez, SomeOrNoneCovariant}
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
@@ -57,51 +56,9 @@ sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T
 
 object Slice {
 
-  final case object Null extends SliceOption[Nothing] {
-    override val isNoneC: Boolean = true
-    override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
-    override def isUnslicedOption: Boolean = true
-    override def asSliceOption(): SliceOption[Nothing] = this
-  }
-
-  class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
-    //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Sliced[T](...)))
-    protected var slice: Slice[T] = Slice.create[T]((sizeHint * 2) max 100)
-
-    def extendSlice(by: Int) = {
-      val extendedSlice = Slice.create[T](slice.size * by)
-      extendedSlice addAll slice
-      slice = extendedSlice
-    }
-
-    @tailrec
-    final def +=(x: T): this.type =
-      try {
-        slice add x
-        this
-      } catch {
-        case _: ArrayIndexOutOfBoundsException => //Extend slice.
-          extendSlice(by = 2)
-          +=(x)
-      }
-
-    def clear() =
-      slice = Slice.create[T](slice.size)
-
-    def result: Slice[T] =
-      slice.close()
-  }
-
-  implicit def canBuildFrom[T: ClassTag]: CanBuildFrom[Slice[_], T, Slice[T]] =
-    new CanBuildFrom[Slice[_], T, Slice[T]] {
-      def apply(from: Slice[_]) =
-        new SliceBuilder[T](from.size)
-
-      def apply() =
-        new SliceBuilder[T](100)
-    }
-
   val emptyBytes = Slice.create[Byte](0)
+
+  val emptyJavaBytes = Slice.create[java.lang.Byte](0)
 
   val someEmptyBytes = Some(emptyBytes)
 
@@ -139,6 +96,12 @@ object Slice {
       written = length
     )
 
+  def createScalaBytes(length: Int): Slice[Byte] =
+    Slice.create[Byte](length)
+
+  def createJavaBytes(length: Int): Slice[java.lang.Byte] =
+    Slice.create[java.lang.Byte](length)
+
   @inline final def create[T: ClassTag](length: Int, isFull: Boolean = false): Slice[T] =
     new Slice(
       array = new Array[T](length),
@@ -146,6 +109,12 @@ object Slice {
       toOffset = if (length == 0) -1 else length - 1,
       written = if (isFull) length else 0
     )
+
+  def createForJava(array: Array[java.lang.Byte]): Slice[java.lang.Byte] =
+    apply(array)
+
+  def createForScala(array: Array[Byte]): Slice[Byte] =
+    apply(array)
 
   def apply[T: ClassTag](data: Array[T]): Slice[T] =
     if (data.length == 0)
@@ -170,7 +139,23 @@ object Slice {
     slice
   }
 
-  def from(byteBuffer: ByteBuffer) =
+  def createForJava(byteBuffer: ByteBuffer): Slice[java.lang.Byte] =
+    new Slice[java.lang.Byte](
+      array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
+      fromOffset = byteBuffer.arrayOffset(),
+      toOffset = byteBuffer.position() - 1,
+      written = byteBuffer.position()
+    )
+
+  def createForJava(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[java.lang.Byte] =
+    new Slice[java.lang.Byte](
+      array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
+      fromOffset = from,
+      toOffset = to,
+      written = to - from + 1
+    )
+
+  def createForScala(byteBuffer: ByteBuffer): Slice[Byte] =
     new Slice[Byte](
       array = byteBuffer.array(),
       fromOffset = byteBuffer.arrayOffset(),
@@ -178,7 +163,7 @@ object Slice {
       written = byteBuffer.position()
     )
 
-  def from(byteBuffer: ByteBuffer, from: Int, to: Int) =
+  def createForScala(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[Byte] =
     new Slice[Byte](
       array = byteBuffer.array(),
       fromOffset = from,
@@ -189,31 +174,31 @@ object Slice {
   @inline final def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
 
-  @inline final def writeInt(int: Int): Slice[Byte] =
-    Slice.create[Byte](ByteSizeOf.int).addInt(int)
+  @inline final def writeInt[B: ClassTag](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
+    Slice.create[B](ByteSizeOf.int).addInt(integer)
 
-  @inline final def writeBoolean(boolean: Boolean): Slice[Byte] =
-    Slice.create[Byte](1).addBoolean(boolean)
+  @inline final def writeBoolean[B: ClassTag](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[B] =
+    Slice.create[B](1).addBoolean(bool)
 
-  @inline final def writeUnsignedInt(int: Int): Slice[Byte] =
-    Slice.create[Byte](ByteSizeOf.varInt).addUnsignedInt(int).close()
+  @inline final def writeUnsignedInt[B: ClassTag](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
+    Slice.create[B](ByteSizeOf.varInt).addUnsignedInt(integer).close()
 
-  @inline final def writeLong(long: Long): Slice[Byte] =
-    Slice.create[Byte](ByteSizeOf.long).addLong(long)
+  @inline final def writeLong[B: ClassTag](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
+    Slice.create[B](ByteSizeOf.long).addLong(num)
 
-  @inline final def writeUnsignedLong(long: Long): Slice[Byte] =
-    Slice.create[Byte](ByteSizeOf.varLong).addUnsignedLong(long).close()
+  @inline final def writeUnsignedLong[B: ClassTag](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
+    Slice.create[B](ByteSizeOf.varLong).addUnsignedLong(num).close()
 
-  @inline final def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] =
-    Slice(string.getBytes(charsets))
+  @inline final def writeString[B](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[B] =
+    byteOps.writeString(string, charsets)
 
   @inline final def intersects[T](range1: (Slice[T], Slice[T]),
                                   range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean =
     intersects((range1._1, range1._2, true), (range2._1, range2._2, true))
 
-  def within(key: Slice[Byte],
-             minKey: Slice[Byte],
-             maxKey: MaxKey[Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+  def within[T](key: Slice[T],
+                minKey: Slice[T],
+                maxKey: MaxKey[Slice[T]])(implicit keyOrder: KeyOrder[Slice[T]]): Boolean = {
     import keyOrder._
     key >= minKey && {
       maxKey match {
@@ -225,16 +210,16 @@ object Slice {
     }
   }
 
-  def minMax(left: Option[(Slice[Byte], Slice[Byte], Boolean)],
-             right: Option[(Slice[Byte], Slice[Byte], Boolean)])(implicit keyOrder: Ordering[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte], Boolean)] = {
+  def minMax[T](left: Option[(Slice[T], Slice[T], Boolean)],
+                right: Option[(Slice[T], Slice[T], Boolean)])(implicit keyOrder: Ordering[Slice[T]]): Option[(Slice[T], Slice[T], Boolean)] = {
     for {
       lft <- left
       rht <- right
     } yield minMax(lft, rht)
   } orElse left.orElse(right)
 
-  def minMax(left: (Slice[Byte], Slice[Byte], Boolean),
-             right: (Slice[Byte], Slice[Byte], Boolean))(implicit keyOrder: Ordering[Slice[Byte]]): (Slice[Byte], Slice[Byte], Boolean) = {
+  def minMax[T](left: (Slice[T], Slice[T], Boolean),
+                right: (Slice[T], Slice[T], Boolean))(implicit keyOrder: Ordering[Slice[T]]): (Slice[T], Slice[T], Boolean) = {
     val min = keyOrder.min(left._1, right._1)
     val maxCompare = keyOrder.compare(left._2, right._2)
     if (maxCompare == 0)
@@ -306,151 +291,21 @@ object Slice {
         slice.map(_.unslice())
   }
 
-  /**
-   * http://www.swaydb.io/slice/byte-slice
-   */
-  implicit class ByteSliceImplicits(slice: Slice[Byte]) {
-
-    @inline final def addByte(value: Byte): Slice[Byte] = {
-      slice add value
-      slice
-    }
-
-    @inline final def addBytes(anotherSlice: Slice[Byte]): Slice[Byte] = {
-      slice.addAll(anotherSlice)
-      slice
-    }
-
-    @inline final def addBoolean(boolean: Boolean): Slice[Byte] = {
-      slice add (if (boolean) 1.toByte else 0.toByte)
-      slice
-    }
-
-    @inline final def readBoolean(): Boolean =
-      slice.get(0) == 1
-
-    @inline final def addInt(int: Int): Slice[Byte] = {
-      Bytez.writeInt(int, slice)
-      slice
-    }
-
-    @inline final def readInt(): Int =
-      Bytez.readInt(slice)
-
-    @inline final def dropUnsignedInt(): Slice[Byte] = {
-      val (_, byteSize) = readUnsignedIntWithByteSize()
-      slice drop byteSize
-    }
-
-    @inline final def addSignedInt(int: Int): Slice[Byte] = {
-      Bytez.writeSignedInt(int, slice)
-      slice
-    }
-
-    @inline final def readSignedInt(): Int =
-      Bytez.readSignedInt(slice)
-
-    @inline final def addUnsignedInt(int: Int): Slice[Byte] = {
-      Bytez.writeUnsignedInt(int, slice)
-      slice
-    }
-
-    @inline final def addNonZeroUnsignedInt(int: Int): Slice[Byte] = {
-      Bytez.writeUnsignedIntNonZero(int, slice)
-      slice
-    }
-
-    @inline final def readUnsignedInt(): Int =
-      Bytez.readUnsignedInt(slice)
-
-    @inline final def readUnsignedIntWithByteSize(): (Int, Int) =
-      Bytez.readUnsignedIntWithByteSize(slice)
-
-    @inline final def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
-      Bytez.readUnsignedIntNonZeroWithByteSize(slice)
-
-    @inline final def addLong(long: Long): Slice[Byte] = {
-      Bytez.writeLong(long, slice)
-      slice
-    }
-
-    @inline final def readLong(): Long =
-      Bytez.readLong(slice)
-
-    @inline final def addUnsignedLong(long: Long): Slice[Byte] = {
-      Bytez.writeUnsignedLong(long, slice)
-      slice
-    }
-
-    @inline final def readUnsignedLong(): Long =
-      Bytez.readUnsignedLong(slice)
-
-    @inline final def readUnsignedLongWithByteSize(): (Long, Int) =
-      Bytez.readUnsignedLongWithByteSize(slice)
-
-    @inline final def readUnsignedLongByteSize(): Int =
-      Bytez.readUnsignedLongByteSize(slice)
-
-    @inline final def addSignedLong(long: Long): Slice[Byte] = {
-      Bytez.writeSignedLong(long, slice)
-      slice
-    }
-
-    @inline final def readSignedLong(): Long =
-      Bytez.readSignedLong(slice)
-
-    @inline final def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
-      string.getBytes(charsets) foreach slice.add
-      slice
-    }
-
-    @inline final def readString(charset: Charset = StandardCharsets.UTF_8): String =
-      Bytez.readString(slice, charset)
-
-    @inline final def toByteBufferWrap: ByteBuffer =
-      slice.toByteBufferWrap
-
-    @inline final def toByteBufferDirect: ByteBuffer =
-      slice.toByteBufferDirect
-
-    @inline final def toByteArrayOutputStream =
-      slice.toByteArrayInputStream
-
-    @inline final def createReader() =
-      SliceReader(slice)
+  implicit class JavaByteSliced(sliced: Slice[java.lang.Byte]) {
+    def cast: Slice[Byte] =
+      sliced.asInstanceOf[Slice[Byte]]
   }
 
-  implicit class SliceImplicit[T](slice: Slice[T]) {
-    @inline final def add(value: T): Slice[T] = {
-      slice.add(value)
-      slice
-    }
-
-    @inline final def addAll(values: Slice[T]): Slice[T] = {
-      if (values.nonEmpty) slice.addAll(values)
-      slice
-    }
-
-    @inline final def addAll(values: Array[T]): Slice[T] = {
-      if (values.nonEmpty) slice.addAll(values)
-      slice
-    }
+  implicit class ScalaByteSliced(sliced: Slice[Byte]) {
+    def cast: Slice[java.lang.Byte] =
+      sliced.asInstanceOf[Slice[java.lang.Byte]]
   }
 
-  implicit class SliceImplicitClassTag[T: ClassTag](slice: Slice[T]) {
-    @inline final def append(other: Slice[T]): Slice[T] = {
-      val merged = Slice.create[T](slice.size + other.size)
-      merged addAll slice
-      merged addAll other
-      merged
-    }
-
-    @inline final def append(other: T): Slice[T] = {
-      val merged = Slice.create[T](slice.size + 1)
-      merged addAll slice
-      merged add other
-      merged
-    }
+  final case object Null extends SliceOption[Nothing] {
+    override val isNoneC: Boolean = true
+    override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
+    override def isUnslicedOption: Boolean = true
+    override def asSliceOption(): SliceOption[Nothing] = this
   }
 
   @inline final def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
@@ -460,35 +315,72 @@ object Slice {
     Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](sizeHint))
 
 
-  /**
-   * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
-   * sub-slices.
-   *
-   * @param array      Array to create Slices for
-   * @param fromOffset start offset
-   * @param toOffset   end offset
-   * @param written    items written
-   * @tparam T The type of this Slice
-   */
-  //@formatter:off
-  class Sliced[+T] private[slice](array: Array[T],
-                                  fromOffset: Int,
-                                  toOffset: Int,
-                                  written: Int)(implicit classTag: ClassTag[T]) extends SliceBase[T](array, fromOffset, toOffset, written)
-                                                                                   with SliceOption[T]
-                                                                                   with IterableLike[T, Slice[T]] {
-                                                                                   //@formatter:on
+  class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
+    //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
+    protected var slice: Slice[T] = Slice.create[T]((sizeHint * 2) max 100)
 
-    override val isNoneC: Boolean =
-      false
+    def extendSlice(by: Int) = {
+      val extendedSlice = Slice.create[T](slice.size * by)
+      extendedSlice addAll slice
+      slice = extendedSlice
+    }
 
-    override def getC: Slice[T] =
-      this
+    @tailrec
+    final def +=(x: T): this.type =
+      try {
+        slice add x
+        this
+      } catch {
+        case _: ArrayIndexOutOfBoundsException => //Extend slice.
+          extendSlice(by = 2)
+          +=(x)
+      }
 
-    override def selfSlice: Slice[T] =
-      this
+    def clear() =
+      slice = Slice.create[T](slice.size)
 
-    override protected[this] def newBuilder: scala.collection.mutable.Builder[T, Slice[T]] =
-      new Slice.SliceBuilder[T](array.length max 1)
+    def result: Slice[T] =
+      slice.close()
   }
+
+  implicit def canBuildFrom[T: ClassTag]: CanBuildFrom[Slice[_], T, Slice[T]] =
+    new CanBuildFrom[Slice[_], T, Slice[T]] {
+      def apply(from: Slice[_]) =
+        new SliceBuilder[T](from.size)
+
+      def apply() =
+        new SliceBuilder[T](100)
+    }
+}
+
+/**
+ * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
+ * sub-slices.
+ *
+ * @param array      Array to create Slices for
+ * @param fromOffset start offset
+ * @param toOffset   end offset
+ * @param written    items written
+ * @tparam T The type of this Slice
+ */
+//@formatter:off
+class Slice[+T] private[slice](array: Array[T],
+                               fromOffset: Int,
+                               toOffset: Int,
+                               written: Int)(implicit classTag: ClassTag[T]) extends SliceBase[T](array, fromOffset, toOffset, written)
+                                                                                with SliceOption[T]
+                                                                                with IterableLike[T, Slice[T]] {
+//@formatter:on
+
+  override val isNoneC: Boolean =
+    false
+
+  override def getC: Slice[T] =
+    this
+
+  override def selfSlice: Slice[T] =
+    this
+
+  override protected[this] def newBuilder: scala.collection.mutable.Builder[T, Slice[T]] =
+    new Slice.SliceBuilder[T](array.length max 100)
 }

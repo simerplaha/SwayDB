@@ -107,7 +107,10 @@ object Default {
 
   implicit object JavaOptionalStringSerializer extends Serializer[Optional[java.lang.String]] {
     override def write(data: Optional[java.lang.String]): Slice[java.lang.Byte] =
-      data.map(data => Slice.writeString[java.lang.Byte](data, StandardCharsets.UTF_8)).orElseGet(() => Slice.emptyJavaBytes)
+      if (data.isPresent)
+        Slice.writeString[java.lang.Byte](data.get(), StandardCharsets.UTF_8)
+      else
+        Slice.emptyJavaBytes
 
     override def read(slice: Slice[java.lang.Byte]): Optional[java.lang.String] =
       if (slice.isEmpty)
@@ -130,7 +133,10 @@ object Default {
 
   implicit object JavaByteSliceOptionalSerializer extends Serializer[Optional[Slice[java.lang.Byte]]] {
     override def write(data: Optional[Slice[java.lang.Byte]]): Slice[java.lang.Byte] =
-      data.orElseGet(() => Slice.emptyJavaBytes)
+      if (data.isPresent)
+        data.get()
+      else
+        Slice.emptyJavaBytes
 
     override def read(slice: Slice[java.lang.Byte]): Optional[Slice[java.lang.Byte]] =
       if (slice.isEmpty)
