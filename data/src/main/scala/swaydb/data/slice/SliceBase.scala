@@ -374,16 +374,22 @@ abstract class SliceBase[+T](array: Array[T],
   //for java
   def toArray: Array[T]@uncheckedVariance =
     if (size == array.length)
-      array
+      if (size == 0)
+        Array.empty
+      else
+        array
     else
       toArrayCopy
 
   //for java
-  def toArrayCopy: Array[T]@uncheckedVariance = {
-    val newArray = new Array[T](size)
-    Array.copy(array, fromOffset, newArray, 0, size)
-    newArray
-  }
+  def toArrayCopy: Array[T]@uncheckedVariance =
+    if (size == 0) {
+      Array.empty
+    } else {
+      val newArray = new Array[T](size)
+      Array.copy(array, fromOffset, newArray, 0, size)
+      newArray
+    }
 
   def isOriginalSlice =
     array.length == size

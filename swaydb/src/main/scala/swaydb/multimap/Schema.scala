@@ -37,12 +37,12 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  * Provides APIs to manage children/nested maps/child maps of [[MultiMap]].
  */
 class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
-                                 protected val mapId: Long,
-                                 val defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
-                                                                          childKeySerializer: Serializer[M],
-                                                                          valueSerializer: Serializer[V],
-                                                                          counter: Counter,
-                                                                          bag: Bag[BAG]) {
+                                 mapId: Long,
+                                 defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
+                                                                      childKeySerializer: Serializer[M],
+                                                                      valueSerializer: Serializer[V],
+                                                                      counter: Counter,
+                                                                      bag: Bag[BAG]) {
 
   /**
    * Creates new or initialises the existing map.
@@ -233,9 +233,9 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    * @param expire     updates the expiration only. If forceClear is true then this is ignored.
    * @return a list of [[Prepare.Remove]] statements.
    */
-  private def prepareRemove(expiration: Option[Deadline],
-                            forceClear: Boolean,
-                            expire: Boolean): BAG[ListBuffer[Prepare[MultiKey[M, K], MultiValue[V], Nothing]]] = {
+  protected def prepareRemove(expiration: Option[Deadline],
+                              forceClear: Boolean,
+                              expire: Boolean): BAG[ListBuffer[Prepare[MultiKey[M, K], MultiValue[V], Nothing]]] = {
     val buffer = ListBuffer.empty[Prepare[MultiKey[M, K], MultiValue[V], Nothing]]
 
     if (forceClear || expire) {
@@ -264,7 +264,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
                             expire: Boolean): BAG[ListBuffer[Prepare[MultiKey[M, K], MultiValue[V], Nothing]]] =
     bag.flatMap(getChild(mapKey)) {
       case Some(child) =>
-        val buffer = child.schema.prepareRemove(expiration = expiration, forceClear = forceClear, expire = expire)
+        val buffer = child.prepareRemove(expiration = expiration, forceClear = forceClear, expire = expire)
 
         bag.transform(buffer) {
           buffer =>
@@ -294,12 +294,12 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
   /**
    * Builds [[Prepare.Remove]] statements for all children of this map.
    */
-  private def prepareRemove(expire: Option[Deadline]): BAG[ListBuffer[Prepare.Remove[MultiKey[M, K]]]] =
+  protected def prepareRemove(expire: Option[Deadline]): BAG[ListBuffer[Prepare.Remove[MultiKey[M, K]]]] =
     children.foldLeftBags(ListBuffer.empty[Prepare.Remove[MultiKey[M, K]]]) {
       case (buffer, child) =>
 
         buffer ++= buildPrepareRemove(child.mapKey, child.mapId, expire)
-        bag.transform(child.schema.prepareRemove(expire)) {
+        bag.transform(child.prepareRemove(expire)) {
           childPrepares =>
             buffer ++= childPrepares
         }
@@ -352,8 +352,8 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    */
   def flattenChildren: Stream[MultiMap[M, K, V, F, BAG], BAG] =
     children flatMap {
-      child =>
-        Stream.join(child, child.schema.flattenChildren)
+      child: MultiMap[M, K, V, F, BAG] =>
+        Stream.join(child, child.flattenChildren)
     }
 
   /**
@@ -384,12 +384,9 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
         case Some(map) => map
       }
 
-  def isEmpty: BAG[Boolean] =
+  def hasChildren: BAG[Boolean] =
     bag.transform(childKeys.headOrNull) {
       head =>
-        head == null
+        head != null
     }
-
-  def nonEmpty: BAG[Boolean] =
-    bag.transform(isEmpty)(!_)
 }

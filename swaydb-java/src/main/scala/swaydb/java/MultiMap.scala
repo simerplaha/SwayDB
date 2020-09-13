@@ -33,7 +33,6 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
-import swaydb.java.multimap.Schema
 import swaydb.multimap.MultiPrepare
 import swaydb.{Bag, Expiration, KeyVal, OK, Pair, Prepare, PureFunction}
 
@@ -52,9 +51,6 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
 
   def path: Path =
     asScala.path
-
-  def schema: Schema[M, K, V, F] =
-    Schema(asScala.schema)
 
   def put(key: K, value: V): swaydb.OK =
     asScala.put(key, value)
@@ -240,6 +236,113 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
 
   def isFunctionApplied(function: F): java.lang.Boolean =
     asScala.isFunctionApplied(function)
+
+  /**
+   * Creates new or initialises the existing map.
+   */
+  def child(mapKey: M): MultiMap[M, K, V, F] =
+    MultiMap(asScala.child(mapKey))
+
+  def child[K2 <: K](mapKey: M, keyType: Class[K2]): MultiMap[M, K2, V, F] =
+    MultiMap(asScala.child(mapKey, keyType))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]])
+
+  def child[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2]): MultiMap[M, K2, V2, F] =
+    MultiMap(asScala.child(mapKey, keyType, valueType))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]])
+
+  /**
+   * Creates new or initialises the existing map.
+   */
+  def child(mapKey: M, expireAfter: Duration): MultiMap[M, K, V, F] =
+    MultiMap(asScala.child(mapKey, expireAfter.toScala))
+
+  def child[K2 <: K](mapKey: M, keyType: Class[K2], expireAfter: Duration): MultiMap[M, K2, V, F] =
+    MultiMap(asScala.child(mapKey, keyType, expireAfter.toScala))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]])
+
+  def child[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M, K2, V2, F] =
+    MultiMap(asScala.child(mapKey, keyType, valueType, expireAfter.toScala))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]])
+
+
+  /**
+   * Clears existing entries before creating the Map.
+   *
+   * @note Put has slower immediate write performance for preceding key-value entries.
+   *       Always use [[child]] if clearing existing entries is not required.
+   */
+  def replaceChild(mapKey: M): MultiMap[M, K, V, F] =
+    MultiMap(asScala.replaceChild(mapKey))
+
+  def replaceChild[K2 <: K](mapKey: M, keyType: Class[K2]): MultiMap[M, K2, V, F] =
+    MultiMap(asScala.replaceChild(mapKey, keyType))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]])
+
+  def replaceChild[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2]): MultiMap[M, K2, V2, F] =
+    MultiMap(asScala.replaceChild(mapKey, keyType, valueType))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]])
+
+
+  /**
+   * Clears existing entries before creating the Map.
+   *
+   * @note Put has slower immediate write performance for preceding key-value entries.
+   *       Always use [[child]] if clearing existing entries is not required.
+   */
+  def replaceChild(mapKey: M, expireAfter: Duration): MultiMap[M, K, V, F] =
+    MultiMap(asScala.replaceChild(mapKey, expireAfter.toScala))
+
+  def replaceChild[K2 <: K](mapKey: M, keyType: Class[K2], expireAfter: Duration): MultiMap[M, K2, V, F] =
+    MultiMap(asScala.replaceChild(mapKey, keyType, expireAfter.toScala))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]])
+
+  def replaceChild[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2], expireAfter: Duration): MultiMap[M, K2, V2, F] =
+    MultiMap(asScala.replaceChild(mapKey, keyType, valueType, expireAfter.toScala))(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]])
+
+  /**
+   * @return false if the map does not exist else true on successful remove.
+   */
+  def removeChild(mapKey: M): Boolean =
+    asScala.removeChild(mapKey)
+
+  /**
+   * Returns the child Map
+   */
+  def getChild(mapKey: M): Optional[MultiMap[M, K, V, F]] =
+    asScala.getChild(mapKey) match {
+      case Some(map) =>
+        Optional.of(MultiMap(map))
+
+      case None =>
+        Optional.empty()
+    }
+
+  def getChild[K2 <: K](mapKey: M, keyType: Class[K2]): Optional[MultiMap[M, K2, V, F]] =
+    asScala.getChild(mapKey, keyType) match {
+      case Some(map) =>
+        Optional.of(MultiMap(map)(evd.asInstanceOf[F <:< PureFunction.Map[K2, V]]))
+
+      case None =>
+        Optional.empty()
+    }
+
+  def getChild[K2 <: K, V2 <: V](mapKey: M, keyType: Class[K2], valueType: Class[V2]): Optional[MultiMap[M, K2, V2, F]] =
+    asScala.getChild(mapKey, keyType, valueType) match {
+      case Some(map) =>
+        Optional.of(MultiMap(map)(evd.asInstanceOf[F <:< PureFunction.Map[K2, V2]]))
+
+      case None =>
+        Optional.empty()
+    }
+
+  /**
+   * Keys of all child Maps.
+   */
+  def childKeys: Stream[M] =
+    Stream.fromScala(asScala.childKeys)
+
+  def flattenChildren: Stream[MultiMap[M, K, V, F]] =
+    new Stream(asScala.flattenChildren.map(MultiMap(_)))
+
+  def children: Stream[MultiMap[M, K, V, F]] =
+    Stream.fromScala(asScala.children.map(MultiMap(_)))
+
+  def hasChildren: Boolean =
+    asScala.hasChildren
 
   def asJava: util.Map[K, V] =
     asScala.asScala.asJava

@@ -33,13 +33,11 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.data.stream.{From, SourceFree, StreamFree}
-import swaydb.multimap.{MultiKey, MultiValue, Schema, MultiPrepare}
+import swaydb.multimap.{MultiKey, MultiPrepare, MultiValue, Schema}
 import swaydb.serializers.{Serializer, _}
 
-import scala.collection.compat._
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.data.slice.Slice
 
 object MultiMap {
 
@@ -183,23 +181,13 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
                                                 mapKey: M,
                                                 private[swaydb] val mapId: Long,
                                                 defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
-                                                                                            mapKeySerializer: Serializer[M],
-                                                                                            valueSerializer: Serializer[V],
-                                                                                            counter: Counter,
-                                                                                            val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
+                                                                                                         mapKeySerializer: Serializer[M],
+                                                                                                         valueSerializer: Serializer[V],
+                                                                                                         counter: Counter,
+                                                                                                         val bag: Bag[BAG]) extends Schema[M, K, V, F, BAG](innerMap = innerMap, mapId = mapId, defaultExpiration = defaultExpiration) with MapT[K, V, F, BAG] { self =>
 
   override def path: Path =
     innerMap.path
-
-  /**
-   * APIs for managing child map of this [[MultiMap]].
-   */
-  def schema: Schema[M, K, V, F, BAG] =
-    new Schema(
-      innerMap = innerMap,
-      mapId = mapId,
-      defaultExpiration = defaultExpiration
-    )
 
   /**
    * Narrows this [[MultiMap]]'s map key type [[M]]

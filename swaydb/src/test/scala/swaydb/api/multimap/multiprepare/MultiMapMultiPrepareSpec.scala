@@ -51,12 +51,12 @@ class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
           val root = swaydb.memory.MultiMap[Table, PrimaryKey, Row, Nothing, Bag.Less]().sweep(_.delete())
 
           //create sibling1 UserMap and it's child UserActivity
-          val userMap = root.schema.child(Table.User: Table.UserTables, classOf[PrimaryKey.UserPrimaryKeys], classOf[Row.UserRows])
-          val userActivityMap = userMap.schema.child(Table.Activity, classOf[PrimaryKey.Activity], classOf[Row.Activity])
+          val userMap = root.child(Table.User: Table.UserTables, classOf[PrimaryKey.UserPrimaryKeys], classOf[Row.UserRows])
+          val userActivityMap = userMap.child(Table.Activity, classOf[PrimaryKey.Activity], classOf[Row.Activity])
 
           //create sibling2 ProductMap and it's child ProductOrderMap
-          val productMap = root.schema.child(Table.Product: Table.ProductTables, classOf[PrimaryKey.ProductPrimaryKey], classOf[Row.ProductRows])
-          val productOrderMap = productMap.schema.child(Table.Order, classOf[PrimaryKey.Order], classOf[Row.Order])
+          val productMap = root.child(Table.Product: Table.ProductTables, classOf[PrimaryKey.ProductPrimaryKey], classOf[Row.ProductRows])
+          val productOrderMap = productMap.child(Table.Order, classOf[PrimaryKey.Order], classOf[Row.Order])
 
           //create a transaction to write into userActivity and User
           val transaction =

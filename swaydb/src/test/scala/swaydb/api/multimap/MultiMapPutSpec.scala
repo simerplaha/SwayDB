@@ -59,11 +59,11 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
           val root = newDB()
 
-          var child1 = root.schema.child(1)
-          var child2 = root.schema.child(2)
+          var child1 = root.child(1)
+          var child2 = root.child(2)
 
-          if (randomBoolean()) child1 = root.schema.getChild(1).value
-          if (randomBoolean()) child2 = root.schema.getChild(2).value
+          if (randomBoolean()) child1 = root.getChild(1).value
+          if (randomBoolean()) child2 = root.getChild(2).value
 
           child1.put(3, "three")
           child1.put(4, "four")
@@ -95,12 +95,12 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
             firstMap.put(4, "four again")
           }
 
-          val child1 = root.schema.child(1)
+          val child1 = root.child(1)
 
-          val child2 = child1.schema.child(2)
+          val child2 = child1.child(2)
           insert(child2)
 
-          val child3 = child1.schema.child(3)
+          val child3 = child1.child(3)
           insert(child3)
 
           child1.isEmpty shouldBe true
@@ -123,28 +123,28 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
           val root = newDB()
 
-          var root1 = root.schema.child(1)
-          var root2 = root.schema.child(2)
-          if (randomBoolean()) root1 = root.schema.getChild(1).value
-          if (randomBoolean()) root2 = root.schema.getChild(2).value
+          var root1 = root.child(1)
+          var root2 = root.child(2)
+          if (randomBoolean()) root1 = root.getChild(1).value
+          if (randomBoolean()) root2 = root.getChild(2).value
 
-          var sub11 = root1.schema.child(1)
-          var sub12 = root1.schema.child(2)
-          if (randomBoolean()) sub11 = root1.schema.getChild(1).value
-          if (randomBoolean()) sub12 = root1.schema.getChild(2).value
+          var sub11 = root1.child(1)
+          var sub12 = root1.child(2)
+          if (randomBoolean()) sub11 = root1.getChild(1).value
+          if (randomBoolean()) sub12 = root1.getChild(2).value
           sub11.put(1, "one")
           sub12.put(2, "two")
-          if (randomBoolean()) sub11 = root1.schema.getChild(1).value
-          if (randomBoolean()) sub12 = root1.schema.getChild(2).value
+          if (randomBoolean()) sub11 = root1.getChild(1).value
+          if (randomBoolean()) sub12 = root1.getChild(2).value
 
-          var sub21 = root2.schema.child(1)
-          var sub22 = root2.schema.child(2)
-          if (randomBoolean()) sub21 = root2.schema.getChild(1).value
-          if (randomBoolean()) sub22 = root2.schema.getChild(2).value
+          var sub21 = root2.child(1)
+          var sub22 = root2.child(2)
+          if (randomBoolean()) sub21 = root2.getChild(1).value
+          if (randomBoolean()) sub22 = root2.getChild(2).value
           sub21.put(1, "1")
           sub22.put(2, "2")
-          if (randomBoolean()) sub21 = root2.schema.getChild(1).value
-          if (randomBoolean()) sub22 = root2.schema.getChild(2).value
+          if (randomBoolean()) sub21 = root2.getChild(1).value
+          if (randomBoolean()) sub22 = root2.getChild(2).value
 
           sub11.get(1).value shouldBe "one"
           sub12.get(2).value shouldBe "two"
@@ -152,12 +152,12 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
           sub21.get(1).value shouldBe "1"
           sub22.get(2).value shouldBe "2"
 
-          root.schema.childKeys.materialize.toList should have size 2
+          root.childKeys.materialize.toList should have size 2
 
-          val rootSubMaps = root.schema.children.materialize
+          val rootSubMaps = root.children.materialize
           rootSubMaps.foreach(_.isEmpty shouldBe true) //has no map entries
 
-          val subMaps = rootSubMaps.flatMap(_.schema.children.materialize)
+          val subMaps = rootSubMaps.flatMap(_.children.materialize)
           subMaps should have size 4
 
           subMaps(0).get(1).value shouldBe "one"
