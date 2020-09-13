@@ -623,7 +623,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   override def equals(other: Any): Boolean =
     other match {
       case other: MultiMap[_, _, _, _, _] =>
-        other.mapId == this.mapId
+        other.path == this.path && other.mapId == this.mapId
 
       case _ =>
         false

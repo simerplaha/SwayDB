@@ -28,13 +28,10 @@ import java.nio.file.Path
 
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
-import swaydb.core.function.{FunctionStore => CoreFunctionStore}
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.serializers.{Serializer, _}
 
@@ -304,6 +301,18 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
 
   def delete(): BAG[Unit] =
     bag.suspend(core.delete())
+
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: Set[_, _, _] =>
+        other.path == this.path
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    path.hashCode()
 
   override def toString(): String =
     s"Set(path = $path)"

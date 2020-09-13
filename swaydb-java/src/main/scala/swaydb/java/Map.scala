@@ -235,6 +235,18 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
   def delete(): Unit =
     asScala.delete()
 
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: Map[_, _, _] =>
+        other.asScala.equals(this.asScala)
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    asScala.hashCode()
+
   override def toString(): String =
     asScala.toString()
 }

@@ -356,14 +356,14 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   override def equals(other: Any): Boolean =
     other match {
       case other: MultiMap[_, _,_,_] =>
-        other.asScala.mapId == asScala.mapId
+        other.asScala.equals(this.asScala)
 
       case _ =>
         false
     }
 
   override def hashCode(): Int =
-    asScala.mapId.hashCode()
+    asScala.hashCode()
 
   override def toString(): String =
     asScala.toString()

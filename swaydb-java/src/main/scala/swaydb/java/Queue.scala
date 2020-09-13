@@ -71,6 +71,18 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
   def delete(): Unit =
     asScala.delete()
 
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: Queue[_] =>
+        other.asScala.equals(this.asScala)
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    asScala.hashCode()
+
   override def toString(): String =
     asScala.toString()
 }

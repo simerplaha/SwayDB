@@ -312,6 +312,18 @@ case class SetMap[K, V, BAG[_]] private(set: Set[(K, V), Nothing, BAG])(implicit
   def delete(): BAG[Unit] =
     set.delete()
 
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: SetMap[_, _, _] =>
+        other.path == this.path
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    path.hashCode()
+
   override def toString(): String =
     s"SetMap(path = $path)"
 

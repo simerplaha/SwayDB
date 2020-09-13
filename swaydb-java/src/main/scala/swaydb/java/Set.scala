@@ -191,6 +191,18 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
   def delete(): Unit =
     asScala.delete()
 
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: Set[_, _] =>
+        other.asScala.equals(this.asScala)
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    asScala.hashCode()
+
   override def toString(): String =
     asScala.toString()
 }

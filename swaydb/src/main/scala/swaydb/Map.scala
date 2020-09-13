@@ -32,8 +32,6 @@ import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.slice.Slice
-
 import swaydb.data.stream.{From, SourceFree}
 import swaydb.data.util.TupleOrNone
 import swaydb.serializers.{Serializer, _}
@@ -405,6 +403,18 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
 
   def delete(): BAG[Unit] =
     bag.suspend(core.delete())
+
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: Map[_, _, _, _,] =>
+        other.path == this.path
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    path.hashCode()
 
   override def toString(): String =
     s"Map(path = $path)"

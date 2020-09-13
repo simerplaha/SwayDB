@@ -150,7 +150,18 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
 
   private def copy(): Unit = ()
 
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: SetMap[_, _] =>
+        other.asScala.equals(this.asScala)
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    asScala.hashCode()
+
   override def toString(): String =
     asScala.toString()
-
 }
