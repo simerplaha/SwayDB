@@ -217,7 +217,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
           _ =>
             MultiMap(
               innerMap = innerMap,
-              mapKey = childKey.asInstanceOf[M],
+              mapKey = childKey,
               mapId = childIdOrNew,
               defaultExpiration = expiration
             ).asInstanceOf[MultiMap[M, K2, V2, F2, BAG]]
@@ -352,7 +352,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    */
   def flattenChildren: Stream[MultiMap[M, K, V, F, BAG], BAG] =
     children flatMap {
-      child: MultiMap[M, K, V, F, BAG] =>
+      child =>
         Stream.join(child, child.flattenChildren)
     }
 
