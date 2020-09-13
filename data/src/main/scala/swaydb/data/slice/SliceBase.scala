@@ -25,9 +25,9 @@
 package swaydb.data.slice
 
 import java.io.ByteArrayInputStream
+import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
-import java.{lang, util}
 
 import swaydb.IO
 import swaydb.data.util.ByteOps
