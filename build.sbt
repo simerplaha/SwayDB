@@ -19,7 +19,6 @@ val junitJupiterVersion = "5.6.2"
 val scalaParallelCollectionsVersion = "0.2.0"
 val scalaCollectionsCompact = "2.1.6"
 
-val scala211 = "2.11.12"
 val scala212 = "2.12.12"
 val scala213 = "2.13.3"
 
@@ -74,7 +73,7 @@ val commonSettings = Seq(
   }
 )
 
-lazy val supportedScalaVersions = List(scala211, scala212, scala213)
+lazy val supportedScalaVersions = List(scala212, scala213)
 
 val publishSettings = Seq[Setting[_]](
   crossScalaVersions := supportedScalaVersions,

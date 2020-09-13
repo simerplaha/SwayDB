@@ -4,16 +4,6 @@ on: [ push ]
 
 jobs:
   #Ubuntu
-  build_211-ubuntu:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up JDK 1.8
-        uses: actions/setup-java@v1
-        with:
-          java-version: 1.8
-      - run: sbt '++ 2.11.12 clean; compile'
-
   build_212-ubuntu:
     runs-on: ubuntu-latest
     steps:
@@ -35,6 +25,16 @@ jobs:
       - run: sbt '++ 2.13.1 clean; compile'
 
   #Windows
+  build_212-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - run: sbt '++ 2.12.11 clean; compile'
+
   build_213-windows:
     runs-on: windows-latest
     steps:
