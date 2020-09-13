@@ -72,5 +72,5 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
     asScala.delete()
 
   override def toString(): String =
-    asScala.toString
+    asScala.toString()
 }

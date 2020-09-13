@@ -250,4 +250,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
 
   def delete(): Unit =
     set.delete()
+
+  override def toString(): String =
+    s"Queue(path = $path)"
 }

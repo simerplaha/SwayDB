@@ -407,5 +407,5 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
     bag.suspend(core.delete())
 
   override def toString(): String =
-    classOf[Map[_, _, _, BAG]].getSimpleName
+    s"Map(path = $path)"
 }

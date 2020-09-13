@@ -128,7 +128,4 @@ trait SetMapT[K, V, BAG[_]] {
   def close(): BAG[Unit]
 
   def delete(): BAG[Unit]
-
-  override def toString(): String =
-    this.getClass.getSimpleName
 }

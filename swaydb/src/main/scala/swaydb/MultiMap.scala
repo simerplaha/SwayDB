@@ -670,5 +670,5 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     mapId.hashCode()
 
   override def toString(): String =
-    classOf[Map[_, _, _, BAG]].getSimpleName
+    s"MultiMap(key = $mapKey, defaultExpiration = $defaultExpiration, path = $path)"
 }

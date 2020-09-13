@@ -107,7 +107,4 @@ trait SetMapT[K, V] {
   def close(): Unit
 
   def delete(): Unit
-
-  override def toString(): String =
-    this.getClass.getSimpleName
 }

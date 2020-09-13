@@ -306,5 +306,5 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implic
     bag.suspend(core.delete())
 
   override def toString(): String =
-    classOf[Map[_, _, _, BAG]].getSimpleName
+    s"Set(path = $path)"
 }

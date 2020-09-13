@@ -59,6 +59,8 @@ import scala.sys.ShutdownHookThread
  */
 private[core] object CoreInitializer extends LazyLogging {
 
+  val memoryPath = "MEMORY"
+
   /**
    * Based on the configuration returns execution context for the Level.
    */
@@ -214,7 +216,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     deleteEventually = config.deleteSegmentsEventually,
                     compressions = _ => Seq.empty
                   ),
-                levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
+                levelStorage = LevelStorage.Memory(dir = Paths.get(CoreInitializer.memoryPath).resolve(id.toString)),
                 appendixStorage = AppendixStorage.Memory,
                 nextLevel = nextLevel,
                 throttle = config.throttle
