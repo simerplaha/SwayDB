@@ -53,7 +53,6 @@ import swaydb.serializers._
 import swaydb.data.RunThis._
 
 import scala.jdk.CollectionConverters._
-import swaydb.data.util.ByteOps._
 
 class MapSpec extends TestBase {
 

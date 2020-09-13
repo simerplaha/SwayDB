@@ -41,7 +41,6 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Random
-import swaydb.data.util.ByteOps._
 
 class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
 

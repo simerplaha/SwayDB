@@ -37,7 +37,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.util.ByteOps._
 
 class LevelReadNoneSpec0 extends LevelReadNoneSpec
 

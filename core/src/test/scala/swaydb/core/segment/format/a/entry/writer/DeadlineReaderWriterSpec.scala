@@ -38,7 +38,6 @@ import swaydb.serializers._
 import swaydb.core.CommonAssertions._
 
 import scala.concurrent.duration.{FiniteDuration, _}
-import swaydb.data.util.ByteOps._
 
 class DeadlineReaderWriterSpec extends AnyWordSpec with Matchers {
 

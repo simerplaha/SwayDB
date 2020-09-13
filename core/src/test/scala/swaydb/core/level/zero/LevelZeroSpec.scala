@@ -47,7 +47,6 @@ import swaydb.serializers._
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 class LevelZeroSpec0 extends LevelZeroSpec
 

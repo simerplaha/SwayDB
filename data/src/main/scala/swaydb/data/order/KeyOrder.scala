@@ -25,7 +25,6 @@
 package swaydb.data.order
 
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 object KeyOrder {
 

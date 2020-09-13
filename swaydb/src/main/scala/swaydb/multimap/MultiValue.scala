@@ -28,7 +28,6 @@ import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 private[swaydb] sealed trait MultiValue[+V]
 private[swaydb] object MultiValue {

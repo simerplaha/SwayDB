@@ -39,7 +39,6 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Try
-import swaydb.data.util.ByteOps._
 
 class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with MockFactory {
 

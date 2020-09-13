@@ -8,7 +8,6 @@ import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
 
 import scala.util.Random

@@ -31,7 +31,6 @@ import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
-import swaydb.data.util.ByteOps._
 
 @implicitNotFound("Type class implementation not found for ValueOffsetReader of type ${T}")
 sealed trait ValueOffsetReader[-T] {

@@ -44,7 +44,6 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
-import swaydb.data.util.ByteOps._
 
 class MapEntrySpec extends TestBase {
 

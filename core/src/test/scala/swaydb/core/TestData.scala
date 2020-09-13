@@ -77,7 +77,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.Random
-import swaydb.data.util.ByteOps._
 
 object TestData {
 

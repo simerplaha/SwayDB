@@ -39,7 +39,6 @@ import swaydb.data.util.Maybe.{Maybe, _}
 import swaydb.data.util.{Functions, Maybe}
 
 import scala.annotation.tailrec
-import swaydb.data.util.ByteOps._
 
 private[core] object BinarySearchIndexBlock {
 

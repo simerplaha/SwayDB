@@ -25,7 +25,6 @@
 package swaydb.core.util
 
 import swaydb.core.TestBase
-import swaydb.data.util.ByteOps._
 
 class UUIDsSpec extends TestBase {
 

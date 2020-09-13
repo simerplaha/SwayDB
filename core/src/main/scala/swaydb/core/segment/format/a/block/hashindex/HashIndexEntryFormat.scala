@@ -35,7 +35,6 @@ import swaydb.data.config.IndexFormat
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.macros.Sealed
-import swaydb.data.util.ByteOps._
 
 private[core] sealed trait HashIndexEntryFormat {
   def id: Byte

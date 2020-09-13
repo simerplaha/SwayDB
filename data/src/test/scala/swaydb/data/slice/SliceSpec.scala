@@ -30,7 +30,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 import swaydb.data.util.{ByteSizeOf, ScalaByteOps}
 
 import scala.util.Random

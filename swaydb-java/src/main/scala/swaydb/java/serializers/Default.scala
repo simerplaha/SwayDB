@@ -28,32 +28,28 @@ import java.nio.charset.StandardCharsets
 import java.util.Optional
 
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
-import swaydb.data.util.JavaByteOps
 import swaydb.serializers.Default._
 
 object Default {
-
-  implicit val byteOps = JavaByteOps
 
   def intSerializer(): Serializer[java.lang.Integer] = JavaIntSerializer
 
   object JavaIntSerializer extends Serializer[java.lang.Integer] {
     override def write(data: java.lang.Integer): Slice[java.lang.Byte] =
-      Slice.writeInt(data)
+      Slice.writeInt[java.lang.Byte](data)
 
     override def read(data: Slice[java.lang.Byte]): java.lang.Integer =
-      data.cast.readInt()
+      data.readInt()
   }
 
   def longSerializer(): Serializer[java.lang.Long] = JavaLongSerializer
 
   implicit object JavaLongSerializer extends Serializer[java.lang.Long] {
     override def write(data: java.lang.Long): Slice[java.lang.Byte] =
-      Slice.writeLong(data)
+      Slice.writeLong[java.lang.Byte](data)
 
     override def read(data: Slice[java.lang.Byte]): java.lang.Long =
-      data.cast.readLong()
+      data.readLong()
   }
 
   def charSerializer(): Serializer[java.lang.Character] = JavaCharSerializer
@@ -100,10 +96,10 @@ object Default {
 
   implicit object StringSerializer extends Serializer[java.lang.String] {
     override def write(data: java.lang.String): Slice[java.lang.Byte] =
-      Slice.writeString(data, StandardCharsets.UTF_8)
+      Slice.writeString[java.lang.Byte](data, StandardCharsets.UTF_8)
 
     override def read(data: Slice[java.lang.Byte]): java.lang.String =
-      data.cast.readString(StandardCharsets.UTF_8)
+      data.readString(StandardCharsets.UTF_8)
   }
 
   def optionalStringSerializer(): Serializer[Optional[java.lang.String]] =
@@ -117,7 +113,7 @@ object Default {
       if (data.isEmpty)
         Optional.empty()
       else
-        Optional.of(data.cast.readString(StandardCharsets.UTF_8))
+        Optional.of(data.readString(StandardCharsets.UTF_8))
   }
 
   def byteSliceSerializer(): Serializer[Slice[java.lang.Byte]] = JavaByteSliceSerializer

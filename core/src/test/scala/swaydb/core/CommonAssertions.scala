@@ -72,7 +72,6 @@ import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 object CommonAssertions {
 

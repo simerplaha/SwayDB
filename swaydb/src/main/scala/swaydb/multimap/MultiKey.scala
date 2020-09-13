@@ -31,7 +31,6 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 private[swaydb] sealed trait MultiKey[+C, +K] {
   def childId: Long

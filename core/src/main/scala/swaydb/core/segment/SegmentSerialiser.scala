@@ -43,7 +43,6 @@ import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.Options._
 
 import scala.concurrent.duration.Deadline
-import swaydb.data.util.ByteOps._
 
 private[core] sealed trait SegmentSerialiser {
 

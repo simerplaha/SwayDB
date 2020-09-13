@@ -47,7 +47,6 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
-import swaydb.data.util.ByteOps._
 
 private[core] object SegmentBlock extends LazyLogging {
 

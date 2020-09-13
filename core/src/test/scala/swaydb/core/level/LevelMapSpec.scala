@@ -46,7 +46,6 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.util.ByteOps._
 
 class LevelMapSpec0 extends LevelMapSpec
 

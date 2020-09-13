@@ -46,7 +46,6 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 class LevelKeyValuesSpec0 extends LevelKeyValuesSpec
 

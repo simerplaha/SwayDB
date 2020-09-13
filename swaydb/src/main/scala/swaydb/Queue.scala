@@ -37,7 +37,6 @@ import swaydb.serializers.Serializer
 import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteOps._
 
 object Queue {
 
