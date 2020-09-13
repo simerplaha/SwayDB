@@ -91,8 +91,8 @@ object Queue {
           .addAll(valueBytes)
       }
 
-      override def read(data: Slice[Byte]): (Long, A) = {
-        val reader = data.createReader()
+      override def read(slice: Slice[Byte]): (Long, A) = {
+        val reader = slice.createReader()
 
         val key = reader.readUnsignedLong()
 

@@ -128,8 +128,8 @@ private[swaydb] object MultiKey {
               .add(MultiKey.end)
         }
 
-      override def read(data: Slice[Byte]): MultiKey[T, K] = {
-        val reader = Reader(slice = data)
+      override def read(slice: Slice[Byte]): MultiKey[T, K] = {
+        val reader = Reader(slice = slice)
         val mapId = reader.readUnsignedLong()
         val dataType = reader.get()
         if (dataType == MultiKey.start)

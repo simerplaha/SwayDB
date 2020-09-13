@@ -62,8 +62,8 @@ object SetMap {
           .addAll(valueBytes)
       }
 
-      override def read(data: Slice[Byte]): (A, B) = {
-        val reader = data.createReader()
+      override def read(slice: Slice[Byte]): (A, B) = {
+        val reader = slice.createReader()
 
         val keyBytes = reader.read(reader.readUnsignedInt())
         val valuesBytes = reader.read(reader.readUnsignedInt())

@@ -29,7 +29,6 @@ import swaydb.KeyVal;
 import swaydb.Pair;
 import swaydb.Prepare;
 import swaydb.data.java.TestBase;
-import swaydb.data.slice.Slice;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
@@ -61,8 +60,6 @@ abstract class MapFunctionsOffTest extends TestBase {
    */
   @Test
   void putIndividuals() throws IOException {
-    final Slice<Byte> javaBytes = Slice.createJavaBytes(1);
-
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
     map.put(1, "one");
     map.put(2, "two");

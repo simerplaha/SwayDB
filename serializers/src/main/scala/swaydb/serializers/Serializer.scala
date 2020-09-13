@@ -54,16 +54,16 @@ object Serializer {
             Slice.emptyBytes
         }
 
-      override def read(data: Slice[Byte]): Option[A] =
-        if (data.isEmpty)
+      override def read(slice: Slice[Byte]): Option[A] =
+        if (slice.isEmpty)
           None
         else
-          Some(serializer.read(data.dropHead()))
+          Some(serializer.read(slice.dropHead()))
     }
 }
 
 trait Serializer[A] {
   def write(data: A): Slice[Byte]
 
-  def read(data: Slice[Byte]): A
+  def read(slice: Slice[Byte]): A
 }

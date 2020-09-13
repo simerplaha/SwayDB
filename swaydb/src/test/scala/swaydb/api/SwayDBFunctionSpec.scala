@@ -66,8 +66,8 @@ protected object Key {
     override def write(data: Key): Slice[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Slice[Byte]): Key =
-      Unpickle[Key].fromBytes(data.toByteBufferWrap)
+    override def read(slice: Slice[Byte]): Key =
+      Unpickle[Key].fromBytes(slice.toByteBufferWrap)
   }
 }
 

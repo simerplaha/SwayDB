@@ -49,7 +49,7 @@ object Table {
     override def write(data: Table): Slice[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Slice[Byte]): Table =
-      Unpickle[Table].fromBytes(data.toByteBufferWrap)
+    override def read(slice: Slice[Byte]): Table =
+      Unpickle[Table].fromBytes(slice.toByteBufferWrap)
   }
 }

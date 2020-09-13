@@ -46,7 +46,7 @@ private[swaydb] object MultiValue {
 
               case mapId: MapId =>
                 val slice = Slice.create[Byte](1 + Bytes.sizeOfUnsignedLong(mapId.id))
-                slice add 1
+                slice add 1.toByte
                 slice addUnsignedLong mapId.id
             }
 
@@ -56,25 +56,25 @@ private[swaydb] object MultiValue {
               two
             } else {
               val slice = Slice.create[Byte](1 + bytes.size)
-              slice add 3
+              slice add 3.toByte
               slice addAll bytes
             }
         }
 
-      override def read(data: Slice[Byte]): MultiValue[A] =
-        if (data.isEmpty) {
+      override def read(slice: Slice[Byte]): MultiValue[A] =
+        if (slice.isEmpty) {
           MultiValue.None
-        } else if (data.head == 1) {
-          new MapId(data.dropHead().readUnsignedLong())
-        } else if (data.head == 2) {
+        } else if (slice.head == 1) {
+          new MapId(slice.dropHead().readUnsignedLong())
+        } else if (slice.head == 2) {
           val theirValue = serializer.read(Slice.emptyBytes)
           new Their(theirValue)
-        } else if (data.head == 3) {
-          val theirBytes = data.dropHead()
+        } else if (slice.head == 3) {
+          val theirBytes = slice.dropHead()
           val theirValue = serializer.read(theirBytes)
           new Their(theirValue)
         } else {
-          throw new Exception(s"Invalid data id :${data.head}")
+          throw new Exception(s"Invalid data id :${slice.head}")
         }
     }
 

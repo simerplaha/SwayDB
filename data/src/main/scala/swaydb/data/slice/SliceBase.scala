@@ -27,14 +27,15 @@ package swaydb.data.slice
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
+import java.{lang, util}
 
 import swaydb.IO
-import swaydb.data.slice.Slice
 import swaydb.data.util.ByteOps
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
@@ -309,6 +310,9 @@ abstract class SliceBase[+T](array: Array[T],
     written = (writePosition - fromOffset) max written
     selfSlice
   }
+
+  def addAll[B >: T](items: java.lang.Iterable[B]): Slice[B] =
+    addAll(items.asScala)
 
   def addAll[B >: T](items: Iterable[B]): Slice[B] =
     if (items.nonEmpty) {
@@ -622,6 +626,9 @@ abstract class SliceBase[+T](array: Array[T],
     merged add other
     merged
   }
+
+  def asJava(): lang.Iterable[T]@uncheckedVariance =
+    (this: Iterable[T]).asJava
 
   override def equals(that: Any): Boolean =
     that match {

@@ -117,8 +117,14 @@ private[swaydb] trait ReaderBase[B] { self =>
   def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): String =
     byteOps.readString(self, charset)
 
+  def readRemainingAsStringUTF8(): String =
+    byteOps.readString(self, StandardCharsets.UTF_8)
+
   def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
     byteOps.readString(size, self, charset)
+
+  def readStringUTF8(size: Int): String =
+    byteOps.readString(size, self, StandardCharsets.UTF_8)
 
   def remaining: Long =
     size - getPosition

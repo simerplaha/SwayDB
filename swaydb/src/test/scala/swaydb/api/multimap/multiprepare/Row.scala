@@ -45,7 +45,7 @@ object Row {
     override def write(data: Row): Slice[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Slice[Byte]): Row =
-      Unpickle[Row].fromBytes(data.toByteBufferWrap)
+    override def read(slice: Slice[Byte]): Row =
+      Unpickle[Row].fromBytes(slice.toByteBufferWrap)
   }
 }

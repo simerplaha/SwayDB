@@ -61,7 +61,7 @@ object WeatherData {
     override def write(data: WeatherData): Slice[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Slice[Byte]): WeatherData =
-      Unpickle[WeatherData].fromBytes(data.toByteBufferWrap)
+    override def read(slice: Slice[Byte]): WeatherData =
+      Unpickle[WeatherData].fromBytes(slice.toByteBufferWrap)
   }
 }

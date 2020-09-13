@@ -38,8 +38,8 @@ object Default {
     override def write(data: java.lang.Integer): Slice[java.lang.Byte] =
       Slice.writeInt[java.lang.Byte](data)
 
-    override def read(data: Slice[java.lang.Byte]): java.lang.Integer =
-      data.readInt()
+    override def read(slice: Slice[java.lang.Byte]): java.lang.Integer =
+      slice.readInt()
   }
 
   def longSerializer(): Serializer[java.lang.Long] = JavaLongSerializer
@@ -48,8 +48,8 @@ object Default {
     override def write(data: java.lang.Long): Slice[java.lang.Byte] =
       Slice.writeLong[java.lang.Byte](data)
 
-    override def read(data: Slice[java.lang.Byte]): java.lang.Long =
-      data.readLong()
+    override def read(slice: Slice[java.lang.Byte]): java.lang.Long =
+      slice.readLong()
   }
 
   def charSerializer(): Serializer[java.lang.Character] = JavaCharSerializer
@@ -58,8 +58,8 @@ object Default {
     override def write(data: java.lang.Character): Slice[java.lang.Byte] =
       CharSerializer.write(data).cast
 
-    override def read(data: Slice[java.lang.Byte]): java.lang.Character =
-      CharSerializer.read(data.cast)
+    override def read(slice: Slice[java.lang.Byte]): java.lang.Character =
+      CharSerializer.read(slice.cast)
   }
 
   def doubleSerializer(): Serializer[java.lang.Double] = JavaDoubleSerializer
@@ -68,8 +68,8 @@ object Default {
     override def write(data: java.lang.Double): Slice[java.lang.Byte] =
       DoubleSerializer.write(data).cast
 
-    override def read(data: Slice[java.lang.Byte]): java.lang.Double =
-      data.toByteBufferWrap.getDouble
+    override def read(slice: Slice[java.lang.Byte]): java.lang.Double =
+      slice.toByteBufferWrap.getDouble
   }
 
   def floatSerializer(): Serializer[java.lang.Float] = JavaFloatSerializer
@@ -78,8 +78,8 @@ object Default {
     override def write(data: java.lang.Float): Slice[java.lang.Byte] =
       FloatSerializer.write(data).cast
 
-    override def read(data: Slice[java.lang.Byte]): java.lang.Float =
-      FloatSerializer.read(data.cast)
+    override def read(slice: Slice[java.lang.Byte]): java.lang.Float =
+      FloatSerializer.read(slice.cast)
   }
 
   def shortSerializer(): Serializer[java.lang.Short] = JavaShortSerializer
@@ -88,8 +88,8 @@ object Default {
     override def write(data: java.lang.Short): Slice[java.lang.Byte] =
       ShortSerializer.write(data).cast
 
-    override def read(data: Slice[java.lang.Byte]): java.lang.Short =
-      ShortSerializer.read(data.cast)
+    override def read(slice: Slice[java.lang.Byte]): java.lang.Short =
+      ShortSerializer.read(slice.cast)
   }
 
   def stringSerializer(): Serializer[java.lang.String] = StringSerializer
@@ -98,8 +98,8 @@ object Default {
     override def write(data: java.lang.String): Slice[java.lang.Byte] =
       Slice.writeString[java.lang.Byte](data, StandardCharsets.UTF_8)
 
-    override def read(data: Slice[java.lang.Byte]): java.lang.String =
-      data.readString(StandardCharsets.UTF_8)
+    override def read(slice: Slice[java.lang.Byte]): java.lang.String =
+      slice.readString(StandardCharsets.UTF_8)
   }
 
   def optionalStringSerializer(): Serializer[Optional[java.lang.String]] =
@@ -109,11 +109,11 @@ object Default {
     override def write(data: Optional[java.lang.String]): Slice[java.lang.Byte] =
       data.map(data => Slice.writeString[java.lang.Byte](data, StandardCharsets.UTF_8)).orElseGet(() => Slice.emptyJavaBytes)
 
-    override def read(data: Slice[java.lang.Byte]): Optional[java.lang.String] =
-      if (data.isEmpty)
+    override def read(slice: Slice[java.lang.Byte]): Optional[java.lang.String] =
+      if (slice.isEmpty)
         Optional.empty()
       else
-        Optional.of(data.readString(StandardCharsets.UTF_8))
+        Optional.of(slice.readString(StandardCharsets.UTF_8))
   }
 
   def byteSliceSerializer(): Serializer[Slice[java.lang.Byte]] = JavaByteSliceSerializer
@@ -122,8 +122,8 @@ object Default {
     override def write(data: Slice[java.lang.Byte]): Slice[java.lang.Byte] =
       data
 
-    override def read(data: Slice[java.lang.Byte]): Slice[java.lang.Byte] =
-      data
+    override def read(slice: Slice[java.lang.Byte]): Slice[java.lang.Byte] =
+      slice
   }
 
   def javaByteSliceOptionalSerializer(): Serializer[Optional[Slice[java.lang.Byte]]] = JavaByteSliceOptionalSerializer
@@ -132,11 +132,11 @@ object Default {
     override def write(data: Optional[Slice[java.lang.Byte]]): Slice[java.lang.Byte] =
       data.orElseGet(() => Slice.emptyJavaBytes)
 
-    override def read(data: Slice[java.lang.Byte]): Optional[Slice[java.lang.Byte]] =
-      if (data.isEmpty)
+    override def read(slice: Slice[java.lang.Byte]): Optional[Slice[java.lang.Byte]] =
+      if (slice.isEmpty)
         Optional.empty()
       else
-        Optional.of(data)
+        Optional.of(slice)
   }
 
   def javaByteArraySerializer(): Serializer[Array[java.lang.Byte]] = JavaByteArraySerializer
@@ -145,7 +145,7 @@ object Default {
     override def write(data: Array[java.lang.Byte]): Slice[java.lang.Byte] =
       Slice(data)
 
-    override def read(data: Slice[java.lang.Byte]): Array[java.lang.Byte] =
-      data.toArray
+    override def read(slice: Slice[java.lang.Byte]): Array[java.lang.Byte] =
+      slice.toArray
   }
 }

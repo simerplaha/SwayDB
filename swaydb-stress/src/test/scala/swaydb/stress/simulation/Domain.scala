@@ -52,8 +52,8 @@ object Domain {
             .close()
       }
 
-    override def read(data: Slice[Byte]): Domain = {
-      val reader = data.createReader()
+    override def read(slice: Slice[Byte]): Domain = {
+      val reader = slice.createReader()
       val dataId = reader.readInt()
 
       val result =

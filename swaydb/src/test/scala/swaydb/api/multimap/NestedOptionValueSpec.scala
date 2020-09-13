@@ -89,13 +89,13 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
                 Slice.emptyBytes
             }
 
-          override def read(data: Slice[Byte]): Option[Value] =
-            if (data.isEmpty)
+          override def read(slice: Slice[Byte]): Option[Value] =
+            if (slice.isEmpty)
               None
-            else if (data.head == 0)
+            else if (slice.head == 0)
               Some(Value.Empty)
             else
-              Some(Value.NonEmpty(StringSerializer.read(data.dropHead())))
+              Some(Value.NonEmpty(StringSerializer.read(slice.dropHead())))
         }
 
         val root = swaydb.memory.MultiMap[Int, Int, Option[Value], Nothing, Bag.Less]().sweep(_.delete())

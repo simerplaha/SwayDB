@@ -116,6 +116,6 @@ trait ByteOps[B] {
 }
 
 object ByteOps {
-  implicit val scalaByteOps: ByteOps[Byte] = ScalaByteOps
-  implicit val javaByteOps: ByteOps[java.lang.Byte] = JavaByteOps
+  final implicit val Scala: ByteOps[Byte] = ScalaByteOps
+  final implicit val Java: ByteOps[java.lang.Byte] = ScalaByteOps.asInstanceOf[ByteOps[java.lang.Byte]]
 }

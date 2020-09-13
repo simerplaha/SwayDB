@@ -40,6 +40,6 @@ trait Serializer[T] {
    *
    * Do not mutate this byte array, just read its content build your object.
    */
-  def read(data: Slice[java.lang.Byte]): T
+  def read(slice: Slice[java.lang.Byte]): T
 
 }

@@ -44,8 +44,8 @@ object SwayDBPartialSetSpec {
     override def write(data: (Int, Option[String])): Slice[Byte] =
       Slice(Pickle.intoBytes(data).array())
 
-    override def read(data: Slice[Byte]): (Int, Option[String]) =
-      Unpickle[(Int, Option[String])].fromBytes(data.toByteBufferWrap)
+    override def read(slice: Slice[Byte]): (Int, Option[String]) =
+      Unpickle[(Int, Option[String])].fromBytes(slice.toByteBufferWrap)
   }
 
   implicit val ordering =
