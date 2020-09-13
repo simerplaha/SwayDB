@@ -653,7 +653,7 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     Iterator<KeyVal<Integer, String>> iterator = map.iterator();
 
-    shouldBe(iterator, Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")).iterator());
+    shouldBeSameIterators(iterator, Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")).iterator());
 
     map.delete();
   }

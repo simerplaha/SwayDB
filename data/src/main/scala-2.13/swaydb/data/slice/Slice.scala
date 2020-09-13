@@ -24,6 +24,7 @@
 
 package swaydb.data.slice
 
+import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
@@ -68,7 +69,6 @@ object Slice {
   @inline final def empty[T: ClassTag] =
     Slice.create[T](0)
 
-
   final def range(from: Int, to: Int): Slice[Int] = {
     val slice = Slice.create[Int](to - from + 1)
     (from to to) foreach slice.add
@@ -112,6 +112,12 @@ object Slice {
       written = if (isFull) length else 0
     )
 
+  def createForJava(array: Array[java.lang.Byte]): Slice[java.lang.Byte] =
+    apply(array)
+
+  def createForScala(array: Array[Byte]): Slice[Byte] =
+    apply(array)
+
   def apply[T: ClassTag](data: Array[T]): Slice[T] =
     if (data.length == 0)
       Slice.create[T](0)
@@ -135,7 +141,23 @@ object Slice {
     slice
   }
 
-  def from(byteBuffer: ByteBuffer) =
+  def createForJava(byteBuffer: ByteBuffer): Slice[java.lang.Byte] =
+    new Slice[java.lang.Byte](
+      array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
+      fromOffset = byteBuffer.arrayOffset(),
+      toOffset = byteBuffer.position() - 1,
+      written = byteBuffer.position()
+    )
+
+  def createForJava(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[java.lang.Byte] =
+    new Slice[java.lang.Byte](
+      array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
+      fromOffset = from,
+      toOffset = to,
+      written = to - from + 1
+    )
+
+  def createForScala(byteBuffer: ByteBuffer): Slice[Byte] =
     new Slice[Byte](
       array = byteBuffer.array(),
       fromOffset = byteBuffer.arrayOffset(),
@@ -143,7 +165,7 @@ object Slice {
       written = byteBuffer.position()
     )
 
-  def from(byteBuffer: ByteBuffer, from: Int, to: Int) =
+  def createForScala(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[Byte] =
     new Slice[Byte](
       array = byteBuffer.array(),
       fromOffset = from,

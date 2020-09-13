@@ -29,7 +29,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+
 import scala.collection.mutable
+import scala.reflect.ClassTag
 import scala.util.Random
 
 private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
@@ -125,7 +127,7 @@ private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: Optio
 
   override def keys(): util.NavigableSet[Key] = skipList.keys()
 
-  override def take(count: Int): Slice[Value] = skipList.take(count)
+  override def take(count: Int)(implicit classTag: ClassTag[Value]): Slice[Value] = skipList.take(count)
 
   override def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R = skipList.foldLeft(r)(f)
 

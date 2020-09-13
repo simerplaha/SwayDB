@@ -65,7 +65,7 @@ object CommonAssertions {
   def shouldBe[T](actual: T, expected: T): Unit =
     actual shouldBe expected
 
-  def shouldBe[T](actual: java.util.Iterator[T], expected: java.util.Iterator[T]): Unit = {
+  def shouldBeSameIterators[T](actual: java.util.Iterator[T], expected: java.util.Iterator[T]): Unit = {
     val left = ListBuffer.empty[T]
     val right = ListBuffer.empty[T]
 

@@ -90,7 +90,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
 
   //TODO - readString is expensive. If the slice bytes are a sub-slice of another other Slice a copy of the array will be created.
   def readString(slice: Slice[Byte], charset: Charset): String =
-    new String(slice.toArray, charset)
+    new String(slice.toArray[Byte], charset)
 
   def writeString(string: String,
                   bytes: Slice[Byte],

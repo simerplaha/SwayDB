@@ -30,12 +30,15 @@ import swaydb.data.slice.Slice;
 import swaydb.data.slice.SliceReader;
 import swaydb.data.util.ByteOps;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import static swaydb.data.java.CommonAssertions.*;
 
 public class SliceTest {
 
   @Test
-  void sliceTest() {
+  void serialising() {
     final Slice<Byte> bytes =
       Slice
         .createJavaBytes(100)
@@ -59,6 +62,19 @@ public class SliceTest {
     shouldBe(reader.readRemainingAsStringUTF8(), "this is a test string");
     shouldBeFalse(reader.hasMore());
 
-    bytes.asJava().forEach(System.out::println);
+    //does not work without casting.
+    final Byte[] bytes1 = (Byte[]) bytes.toArrayCopy();
+    shouldBeSameIterators(Arrays.stream(bytes1).iterator(), bytes.asJava().iterator());
+  }
+
+  @Test
+  void createFromArray() {
+    Byte[] array = {1, 2, 3, 4, 5, 127};
+    Slice<Byte> bytes = Slice.createForJava(array);
+
+    final ArrayList<Byte> actual = new ArrayList<>();
+    bytes.asJava().forEach(actual::add);
+
+    shouldBeSameIterators(actual.iterator(), bytes.asJava().iterator());
   }
 }

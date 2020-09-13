@@ -303,18 +303,18 @@ abstract class SliceBase[+T](array: Array[T],
   def apply(index: Int): T =
     get(index)
 
-  def add[B >: T](item: B): Slice[B] = {
+  def add(item: T@uncheckedVariance): Slice[T] = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
-    array(writePosition) = item.asInstanceOf[T]
+    array(writePosition) = item
     writePosition += 1
     written = (writePosition - fromOffset) max written
     selfSlice
   }
 
-  def addAll[B >: T](items: java.lang.Iterable[B]): Slice[B] =
+  def addAll(items: java.lang.Iterable[T]@uncheckedVariance): Slice[T] =
     addAll(items.asScala)
 
-  def addAll[B >: T](items: Iterable[B]): Slice[B] =
+  def addAll(items: Iterable[T]@uncheckedVariance): Slice[T] =
     if (items.nonEmpty) {
       val futurePosition = writePosition + items.size - 1
       if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
@@ -357,10 +357,24 @@ abstract class SliceBase[+T](array: Array[T],
     if (size == array.length)
       array.asInstanceOf[Array[B]]
     else
-      toArrayCopy
+      toArrayCopy[B]
 
   def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] = {
     val newArray = new Array[B](size)
+    Array.copy(array, fromOffset, newArray, 0, size)
+    newArray
+  }
+
+  //for java
+  def toArray: Array[T]@uncheckedVariance =
+    if (size == array.length)
+      array
+    else
+      toArrayCopy
+
+  //for java
+  def toArrayCopy: Array[T]@uncheckedVariance = {
+    val newArray = new Array[T](size)
     Array.copy(array, fromOffset, newArray, 0, size)
     newArray
   }

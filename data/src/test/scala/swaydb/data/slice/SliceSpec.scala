@@ -240,7 +240,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "take first and last elements" in {
-      val slice = Slice.create(5).add(0).add(1).add(2).add(3).add(4)
+      val slice = Slice.create[Byte](5).add(0).add(1).add(2).add(3).add(4)
       slice.size shouldBe 5
 
       (slice take 2) should contain only(0, 1)

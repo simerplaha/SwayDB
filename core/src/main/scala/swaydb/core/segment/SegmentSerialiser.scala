@@ -133,7 +133,7 @@ private[core] object SegmentSerialiser {
       val segmentFormatId = reader.get()
       val segmentPathLength = reader.readUnsignedInt()
       val segmentPathBytes = reader.read(segmentPathLength).unslice()
-      val segmentPath = Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8))
+      val segmentPath = Paths.get(new String(segmentPathBytes.toArray[Byte], StandardCharsets.UTF_8))
       val createdInLevel = reader.readUnsignedInt()
       val segmentSize = reader.readUnsignedInt()
       val minKeyLength = reader.readUnsignedInt()

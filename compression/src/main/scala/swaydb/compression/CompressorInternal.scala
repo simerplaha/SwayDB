@@ -111,7 +111,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
       if (isCompressionSatisfied(minCompressionPercentage, compressedBytes, slice.size, compressionName))
         Some(
-          Slice.from(
+          Slice.createForScala(
             byteBuffer = compressedBuffer,
             from = 0,
             to = emptyHeadSpace + compressedBytes - 1
