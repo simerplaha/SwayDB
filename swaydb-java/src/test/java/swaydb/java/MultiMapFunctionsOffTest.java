@@ -74,10 +74,10 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
     MultiMap<String, Integer, String, Void> root = createMap(stringSerializer(), intSerializer(), stringSerializer());
     root.put(1, "root value");
 
-    MultiMap<String, Integer, String, Void> child1 = root.schema().init("child1");
+    MultiMap<String, Integer, String, Void> child1 = root.schema().child("child1");
 
-    shouldContain(root.schema().get("child1"), child1);
-    shouldContainOnly(root.schema().stream(), child1);
+    shouldContain(root.schema().getChild("child1"), child1);
+    shouldContainOnly(root.schema().children(), child1);
 
     shouldContain(root.get(1), "root value");
     shouldBeTrue(child1.isEmpty());
@@ -90,14 +90,14 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
 
     MultiMap<String, Integer, String, Void> child1 =
       root
-        .schema().init("child1")
-        .schema().init("child2")
-        .schema().init("child3")
-        .schema().init("child4")
-        .schema().init("child5");
+        .schema().child("child1")
+        .schema().child("child2")
+        .schema().child("child3")
+        .schema().child("child4")
+        .schema().child("child5");
 
-    shouldBe(root.schema().flatten().map(MultiMap::mapKey), asList("child1", "child2", "child3", "child4", "child5"));
-    shouldHaveSize(root.schema().flatten(), 5);
+    shouldBe(root.schema().flattenChildren().map(MultiMap::mapKey), asList("child1", "child2", "child3", "child4", "child5"));
+    shouldHaveSize(root.schema().flattenChildren(), 5);
 
     shouldContain(root.get(1), "root value");
     shouldBeTrue(child1.isEmpty());
@@ -108,20 +108,20 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
     MultiMap<String, Integer, String, Void> root = createMap(stringSerializer(), intSerializer(), stringSerializer());
     root.put(1, "root value");
 
-    MultiMap<String, Integer, String, Void> child1 = root.schema().init("child1");
-    MultiMap<String, Integer, String, Void> child2 = root.schema().init("child2");
-    MultiMap<String, Integer, String, Void> child3 = root.schema().init("child3");
+    MultiMap<String, Integer, String, Void> child1 = root.schema().child("child1");
+    MultiMap<String, Integer, String, Void> child2 = root.schema().child("child2");
+    MultiMap<String, Integer, String, Void> child3 = root.schema().child("child3");
 
-    shouldBe(root.schema().flatten().map(MultiMap::mapKey), asList("child1", "child2", "child3"));
+    shouldBe(root.schema().flattenChildren().map(MultiMap::mapKey), asList("child1", "child2", "child3"));
 
-    root.schema().remove(child1.mapKey());
-    shouldBe(root.schema().flatten().map(MultiMap::mapKey), asList("child2", "child3"));
+    root.schema().removeChild(child1.mapKey());
+    shouldBe(root.schema().flattenChildren().map(MultiMap::mapKey), asList("child2", "child3"));
 
-    root.schema().remove(child2.mapKey());
-    shouldBe(root.schema().flatten().map(MultiMap::mapKey), asList("child3"));
+    root.schema().removeChild(child2.mapKey());
+    shouldBe(root.schema().flattenChildren().map(MultiMap::mapKey), asList("child3"));
 
-    root.schema().remove(child3.mapKey());
-    shouldBeEmpty(root.schema().flatten());
+    root.schema().removeChild(child3.mapKey());
+    shouldBeEmpty(root.schema().flattenChildren());
   }
 
   /**
@@ -135,15 +135,15 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
       createMap(MapKeySerializer.instance, KeySerializer.instance, ValueSerializer.instance);
 
     //Create two child sibling tables under the root map - Users and Products
-    MultiMap<MapKey, UserKey, UserValue, Void> users = root.schema().init(UsersMap.instance, UserKey.class, UserValue.class);
-    MultiMap<MapKey, ProductKey, ProductValue, Void> products = root.schema().init(ProductsMap.instance, ProductKey.class, ProductValue.class);
+    MultiMap<MapKey, UserKey, UserValue, Void> users = root.schema().child(UsersMap.instance, UserKey.class, UserValue.class);
+    MultiMap<MapKey, ProductKey, ProductValue, Void> products = root.schema().child(ProductsMap.instance, ProductKey.class, ProductValue.class);
 
     //assert that the root table contains children.
-    shouldContain(root.schema().get(UsersMap.instance, UserKey.class, UserValue.class), users);
-    shouldContain(root.schema().get(ProductsMap.instance, ProductKey.class, ProductValue.class), products);
+    shouldContain(root.schema().getChild(UsersMap.instance, UserKey.class, UserValue.class), users);
+    shouldContain(root.schema().getChild(ProductsMap.instance, ProductKey.class, ProductValue.class), products);
 
     //print all child tables
-    root.schema().stream().forEach(table -> System.out.println(table.mapKey()));
+    root.schema().children().forEach(table -> System.out.println(table.mapKey()));
 
     //insert data into User table
     foreachRange(1, 10, i -> users.put(UserKey.of(i + "@email.com"), UserValue.of("First-" + i, "Last-" + i)));

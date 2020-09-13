@@ -101,39 +101,39 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     /**
      * Child1 hierarchy
      */
-    val child1 = root.schema.init(1)
+    val child1 = root.schema.child(1)
     child1.put(1, "one")
     child1.put(2, "two")
 
-    val child11 = child1.schema.init(11)
+    val child11 = child1.schema.child(11)
     child11.put(3, "three")
     child11.put(4, "four")
 
-    val child12 = child1.schema.init(12)
+    val child12 = child1.schema.child(12)
     child12.put(5, "five")
     child12.put(6, "six")
 
     /**
      * Child2 hierarchy
      */
-    val child2 = root.schema.init(2)
+    val child2 = root.schema.child(2)
     child2.put(7, "seven")
     child2.put(8, "eight")
 
-    val child21 = child2.schema.init(21)
+    val child21 = child2.schema.child(21)
     child21.put(9, "nine")
     child21.put(10, "ten")
 
-    val child22 = child2.schema.init(22)
+    val child22 = child2.schema.child(22)
     child22.put(11, "eleven")
     child22.put(12, "twelve")
 
     root.get(0).value shouldBe "zero"
-    root.schema.keys.materialize.toList shouldBe List(1, 2)
+    root.schema.childKeys.materialize.toList shouldBe List(1, 2)
 
     child1.get(1).value shouldBe "one"
     child1.get(2).value shouldBe "two"
-    child1.schema.keys.materialize.toList shouldBe List(11, 12)
+    child1.schema.childKeys.materialize.toList shouldBe List(11, 12)
     child11.get(3).value shouldBe "three"
     child11.get(4).value shouldBe "four"
     child12.get(5).value shouldBe "five"
@@ -150,9 +150,9 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           root.put(key = 0, value = "zero1")
           root.get(key = 0).value shouldBe "zero1"
 
-          val child1 = root.schema.get(1).value
-          val child11 = child1.schema.get(11).value
-          val child12 = child1.schema.get(12).value
+          val child1 = root.schema.getChild(1).value
+          val child11 = child1.schema.getChild(11).value
+          val child12 = child1.schema.getChild(12).value
           //update the last child's key-value only and everything else should remain the same
           child12.put(6, "updated")
           child12.get(5).value shouldBe "five"
@@ -162,9 +162,9 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           child11.get(3).value shouldBe "three"
           child11.get(4).value shouldBe "four"
 
-          val child2 = root.schema.get(2).value
-          val child21 = child2.schema.get(21).value
-          val child22 = child2.schema.get(22).value
+          val child2 = root.schema.getChild(2).value
+          val child21 = child2.schema.getChild(21).value
+          val child22 = child2.schema.getChild(22).value
           //update the last child's key-value only and everything else should remain the same
           child22.put(12, "updated")
           child22.get(11).value shouldBe "eleven"
@@ -218,7 +218,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           val deadline = 2.seconds.fromNow
 
           //expired map
-          val child = root.schema.init(1, deadline)
+          val child = root.schema.child(1, deadline)
 
           //inserting a stream into child which has deadline set will also set deadline values for these key-values
           val stream = swaydb.Stream.range(1, 10).map(int => (int, int.toString))
@@ -251,7 +251,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           val mapDeadline = 1.hour.fromNow
 
           //expired map
-          val child = root.schema.init(1, mapDeadline)
+          val child = root.schema.child(1, mapDeadline)
 
           //inserting a stream into child which has deadline set will also set deadline values for these key-values
           val stream = swaydb.Stream.range(1, 10).map(int => (int, int.toString))
@@ -277,7 +277,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
             child.schema.isEmpty shouldBe true
           }
           //root has only 1 child
-          root.schema.keys.materialize.toList should contain only 1
+          root.schema.childKeys.materialize.toList should contain only 1
       }
     }
 
@@ -291,7 +291,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
             root.get(1).value shouldBe "one"
 
             //childMap with default expiration set expiration
-            val child1 = root.schema.init(2, 2.second)
+            val child1 = root.schema.child(2, 2.second)
             child1.put(1, "one") //inserting key-value without expiration uses default expiration.
             child1.get(1).value shouldBe "one"
             child1.expiration(1) shouldBe defined
@@ -304,7 +304,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
 
             //child map is expired
             eventual(2.seconds) {
-              root.schema.keys.materialize.toList shouldBe empty
+              root.schema.childKeys.materialize.toList shouldBe empty
             }
 
             child1.isEmpty shouldBe true
@@ -323,19 +323,19 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           root.put(1, "one")
           root.put(2, "two")
 
-          val child1 = root.schema.init(1)
+          val child1 = root.schema.child(1)
           child1.put(1, "one")
           child1.put(2, "two")
 
-          val child2 = child1.schema.init(2)
+          val child2 = child1.schema.child(2)
           child2.put(1, "one")
           child2.put(2, "two")
 
-          val child3 = child2.schema.init(3)
+          val child3 = child2.schema.child(3)
           child2.put(1, "one")
           child2.put(2, "two")
 
-          val child4 = child2.schema.init(4)
+          val child4 = child2.schema.child(4)
           child2.put(1, "one")
           child2.put(2, "two")
 
@@ -346,13 +346,13 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           //check 2nd child has it's key-values
           child1.stream.materialize.toList.map(_._1) shouldBe List(1, 2)
           //all maps exists.
-          root.schema.keys.materialize.toList shouldBe List(1)
-          child1.schema.keys.materialize.toList shouldBe List(2)
-          child2.schema.keys.materialize.toList shouldBe List(3, 4)
+          root.schema.childKeys.materialize.toList shouldBe List(1)
+          child1.schema.childKeys.materialize.toList shouldBe List(2)
+          child2.schema.childKeys.materialize.toList shouldBe List(3, 4)
 
           //remove child1
-          root.schema.remove(1)
-          root.schema.keys.materialize.toList shouldBe empty
+          root.schema.removeChild(1)
+          root.schema.childKeys.materialize.toList shouldBe empty
           child1.stream.materialize.toList shouldBe empty
           child2.stream.materialize.toList shouldBe empty
       }
@@ -367,28 +367,28 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           root.put(1, "one")
           root.put(2, "two")
 
-          val child1 = root.schema.init(1)
+          val child1 = root.schema.child(1)
           child1.put(1, "one")
           child1.put(2, "two")
 
-          val child2 = child1.schema.init(2)
+          val child2 = child1.schema.child(2)
           child2.put(1, "one")
           child2.put(2, "two")
 
-          val child3 = child2.schema.init(3)
+          val child3 = child2.schema.child(3)
           child2.put(1, "one")
           child2.put(2, "two")
 
-          val child4 = child2.schema.init(4)
+          val child4 = child2.schema.child(4)
           child2.put(1, "one")
           child2.put(2, "two")
 
-          child2.schema.remove(4)
+          child2.schema.removeChild(4)
 
           //all maps exists.
-          root.schema.keys.materialize.toList shouldBe List(1)
-          child1.schema.keys.materialize.toList shouldBe List(2)
-          child2.schema.keys.materialize.toList shouldBe List(3)
+          root.schema.childKeys.materialize.toList shouldBe List(1)
+          child1.schema.childKeys.materialize.toList shouldBe List(2)
+          child2.schema.childKeys.materialize.toList shouldBe List(3)
       }
     }
   }
@@ -402,12 +402,12 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         root.put(1, "one")
         root.put(2, "two")
 
-        val child1 = root.schema.init(1)
+        val child1 = root.schema.child(1)
         child1.put(1, "one")
         child1.put(2, "two")
 
         //create last child with expiration
-        val child11 = child1.schema.init(11, 3.seconds)
+        val child11 = child1.schema.child(11, 3.seconds)
         child11.put(1, "one")
         child11.put(2, "two", 1.hour)
         //expiration should be set to 3.seconds and not 1.hour since the map expires is 3.seconds.
@@ -424,7 +424,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         //parent child of last child is not empty
         child1.stream.materialize.toList should not be empty
         //parent child of last child has no child maps.
-        child1.schema.keys.materialize.toList shouldBe empty
+        child1.schema.childKeys.materialize.toList shouldBe empty
     }
   }
 
@@ -436,11 +436,11 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         root.put(1, "one")
         root.put(2, "two")
 
-        val child1 = root.schema.init(1)
+        val child1 = root.schema.child(1)
         child1.put(1, "one")
         child1.put(2, "two")
 
-        val child11 = child1.schema.init(11)
+        val child11 = child1.schema.child(11)
         child11.put(1, "one")
         child11.put(2, "two")
 
@@ -466,14 +466,14 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           val root = newDB()
 
           root
-            .schema.init(1)
-            .schema.init(2)
-            .schema.init(3)
-            .schema.init(4)
+            .schema.child(1)
+            .schema.child(2)
+            .schema.child(3)
+            .schema.child(4)
 
-          root.schema.flatten.materialize.toList should have size 4
+          root.schema.flattenChildren.materialize.toList should have size 4
 
-          root.schema.flatten.map(_.mapKey).materialize.toList shouldBe (1 to 4)
+          root.schema.flattenChildren.map(_.mapKey).materialize.toList shouldBe (1 to 4)
       }
     }
 
@@ -487,19 +487,19 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           root.put(1, "one")
           root.put(2, "two")
 
-          val child1 = root.schema.init(1)
+          val child1 = root.schema.child(1)
           child1.put(1, "one")
           child1.put(2, "two")
 
-          var child2 = child1.schema.init(2)
+          var child2 = child1.schema.child(2)
           child2.put(1, "one")
           child2.put(2, "two")
 
-          val child3 = child2.schema.init(3)
+          val child3 = child2.schema.child(3)
           child3.put(1, "one")
           child3.put(2, "two")
 
-          val child4 = child2.schema.init(4)
+          val child4 = child2.schema.child(4)
           child4.put(1, "one")
           child4.put(2, "two")
 
@@ -507,9 +507,9 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           child1.get(2).value shouldBe "two"
 
           //replace last with expiration
-          child2 = child1.schema.replace(2, 3.second)
+          child2 = child1.schema.replaceChild(2, 3.second)
           //child1 now only have one child 2 removing 3 and 4
-          child1.schema.keys.materialize.toList should contain only 2
+          child1.schema.childKeys.materialize.toList should contain only 2
 
           child2.isEmpty shouldBe true //last has no key-values
           child2.put(1, "one") //add a key-value
@@ -519,7 +519,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           child4.isEmpty shouldBe true
 
           eventual(4.seconds)(child2.isEmpty shouldBe true) //which eventually expires
-          child1.schema.keys.materialize.toList shouldBe empty
+          child1.schema.childKeys.materialize.toList shouldBe empty
       }
     }
 
@@ -532,16 +532,16 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           root.put(1, "one")
           root.put(2, "two")
 
-          val child1 = root.schema.init(1)
+          val child1 = root.schema.child(1)
           child1.put(1, "one")
           child1.put(2, "two")
           generateRandomNestedMaps(child1.toBag[IO.ApiIO])
 
-          val child2 = root.schema.init(2)
+          val child2 = root.schema.child(2)
           child2.put(1, "one")
           child2.put(2, "two")
 
-          root.schema.replace(1)
+          root.schema.replaceChild(1)
 
           //child1 is replaced and is removed
           child1.isEmpty shouldBe true
@@ -564,7 +564,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
             //randomly generate 100 child of random hierarchy.
             (1 to 100).foldLeft(root) {
               case (parent, i) =>
-                val child = parent.schema.init(i)
+                val child = parent.schema.child(i)
 
                 //randomly add data to the child
                 if (Random.nextBoolean())
@@ -580,17 +580,17 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
                   parent
             }
             //100 children in total are created
-            root.schema.flatten should have size 100
+            root.schema.flattenChildren should have size 100
             //root should have more than one child
-            root.schema.keys.materialize.size should be >= 1
+            root.schema.childKeys.materialize.size should be >= 1
 
             //random set a deadline
             val deadline = randomDeadlineOption(false)
             //replace all children of root map.
-            root.schema.keys.materialize.foreach(child => root.schema.replace(child, deadline))
+            root.schema.childKeys.materialize.foreach(child => root.schema.replaceChild(child, deadline))
 
             //root's children do not contain any children of their own.
-            root.schema.stream.materialize.foreach {
+            root.schema.children.materialize.foreach {
               child =>
                 //has no children
                 child.schema.isEmpty shouldBe true
@@ -614,28 +614,28 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
 
             //initial child with expiration.
             val deadline = 1.hour.fromNow
-            var child1 = root.schema.init(1, deadline)
+            var child1 = root.schema.child(1, deadline)
             child1.put(1, "one")
             child1.put(2, "two")
 
-            val child2 = child1.schema.init(2)
+            val child2 = child1.schema.child(2)
             child2.put(1, "one")
             child2.put(2, "two")
 
             //re-init child1 with the same expiration has no effect.
-            child1 = root.schema.init(1, deadline)
+            child1 = root.schema.child(1, deadline)
             child1.get(1).value shouldBe "one"
             child1.get(2).value shouldBe "two"
             child2.get(1).value shouldBe "one"
             child2.get(2).value shouldBe "two"
 
             //re-init with updated expiration should expire everything.
-            child1 = root.schema.init(1, 0.second)
-            child1.schema.keys.materialize.toList shouldBe empty
+            child1 = root.schema.child(1, 0.second)
+            child1.schema.childKeys.materialize.toList shouldBe empty
             child1.isEmpty shouldBe true
 
             //re-init the same expired map with a new map does not set expiration.
-            child1 = root.schema.init(1)
+            child1 = root.schema.child(1)
             child1.put(1, "one")
             child1.get(1).value shouldBe "one"
             child1.expiration(1) shouldBe empty
@@ -652,15 +652,15 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         root.put(1, "one")
         root.put(2, "two")
 
-        val child1 = root.schema.init(1)
+        val child1 = root.schema.child(1)
         child1.put(1, "one")
         child1.put(2, "two")
 
-        val child2 = child1.schema.init(2)
+        val child2 = child1.schema.child(2)
         child2.put(1, "one")
         child2.put(2, "two")
 
-        val child3 = child1.schema.init(3)
+        val child3 = child1.schema.child(3)
         child3.put(1, "one")
         child3.put(2, "two")
 
