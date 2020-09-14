@@ -24,9 +24,6 @@
 
 package swaydb.stress.weather
 
-import swaydb.data.slice.Slice
-import swaydb.serializers.Serializer
-
 sealed trait Direction
 object Direction {
   case object East extends Direction
@@ -57,11 +54,5 @@ object WeatherData {
 
   import boopickle.Default._
 
-  implicit val weatherDataSerializer = new Serializer[WeatherData] {
-    override def write(data: WeatherData): Slice[Byte] =
-      Slice(Pickle.intoBytes(data).array())
-
-    override def read(slice: Slice[Byte]): WeatherData =
-      Unpickle[WeatherData].fromBytes(slice.toByteBufferWrap)
-  }
+  implicit val weatherDataSerializer = swaydb.serializers.BooPickle[WeatherData]
 }
