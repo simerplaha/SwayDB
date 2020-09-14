@@ -29,7 +29,9 @@ import java.nio.charset.Charset
 import swaydb.data.slice.{ReaderBase, Slice, SliceReader}
 import swaydb.data.util.Maybe.Maybe
 
-trait ByteOps[B] {
+import scala.reflect.ClassTag
+
+abstract class ByteOps[B](implicit val classTag: ClassTag[B]) {
 
   def writeInt(int: Int, slice: Slice[B]): Unit
 

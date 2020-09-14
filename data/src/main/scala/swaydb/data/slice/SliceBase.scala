@@ -641,6 +641,9 @@ abstract class SliceBase[+T](array: Array[T],
   @inline final def readString[B >: T](charset: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): String =
     byteOps.readString(selfSlice, charset)
 
+  @inline final def readStringUTF8[B >: T]()(implicit byteOps: ByteOps[B]): String =
+    byteOps.readString(selfSlice, StandardCharsets.UTF_8)
+
   @inline final def createReader[B >: T]()(implicit byteOps: ByteOps[B]): SliceReader[B] =
     SliceReader[B](selfSlice)
 

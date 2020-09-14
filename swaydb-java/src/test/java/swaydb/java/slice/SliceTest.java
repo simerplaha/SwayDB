@@ -35,8 +35,7 @@ import java.util.Arrays;
 
 import static swaydb.data.java.CommonAssertions.*;
 
-public class
-SliceTest {
+public class SliceTest {
 
   @Test
   void serialising() {
@@ -77,5 +76,23 @@ SliceTest {
     bytes.asJava().forEach(actual::add);
 
     shouldBeSameIterators(actual.iterator(), bytes.asJava().iterator());
+  }
+
+  @Test
+  void writeAndRead() {
+    //boolean
+    shouldBeTrue(Slice.writeBoolean(true, ByteOps.Java()).readBoolean());
+    shouldBeFalse(Slice.writeBoolean(false, ByteOps.Java()).readBoolean());
+    //Integer
+    shouldBe(Slice.writeInt(Int.MaxValue(), ByteOps.Java()).readInt(ByteOps.Java()), Int.MaxValue());
+    shouldBe(Slice.writeInt(10000, ByteOps.Java()).readInt(ByteOps.Java()), 10000);
+    shouldBe(Slice.writeInt(Int.MinValue(), ByteOps.Java()).readInt(ByteOps.Java()), Int.MinValue());
+    shouldBe(Slice.writeUnsignedInt(Int.MaxValue(), ByteOps.Java()).readUnsignedInt(ByteOps.Java()), Int.MaxValue());
+
+    shouldBe(Slice.writeLong(Long.MIN_VALUE, ByteOps.Java()).readLong(ByteOps.Java()), Long.MIN_VALUE);
+    shouldBe(Slice.writeLong(Long.MAX_VALUE, ByteOps.Java()).readLong(ByteOps.Java()), Long.MAX_VALUE);
+    shouldBe(Slice.writeUnsignedLong(Long.MAX_VALUE, ByteOps.Java()).readUnsignedLong(ByteOps.Java()), Long.MAX_VALUE);
+
+    shouldBe(Slice.writeStringUTF8("test string", ByteOps.Java()).readStringUTF8(ByteOps.Java()), "test string");
   }
 }
