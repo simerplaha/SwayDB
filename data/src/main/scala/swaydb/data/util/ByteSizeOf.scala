@@ -24,7 +24,7 @@
 
 package swaydb.data.util
 
-object ByteSizeOf {
+private[swaydb] object ByteSizeOf {
   val byte = java.lang.Byte.BYTES
   val short = java.lang.Short.BYTES
   val int = java.lang.Integer.BYTES

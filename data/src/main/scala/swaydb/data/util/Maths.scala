@@ -24,7 +24,7 @@
 
 package swaydb.data.util
 
-object Maths {
+private[swaydb] object Maths {
 
   @inline def round(double: Double, scale: Int = 6): BigDecimal =
     BigDecimal(double).setScale(scale, BigDecimal.RoundingMode.HALF_UP)

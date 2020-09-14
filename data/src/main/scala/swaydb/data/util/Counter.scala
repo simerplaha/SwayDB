@@ -24,7 +24,7 @@
 
 package swaydb.data.util
 
-sealed trait Counter[T] {
+private[swaydb] sealed trait Counter[T] {
   def incrementAndGet(): T
 
   def decrementAndGet(): T
@@ -32,7 +32,7 @@ sealed trait Counter[T] {
   def get(): T
 }
 
-object Counter {
+private[swaydb] object Counter {
 
   def forInt(start: Int): IntCounter =
     new IntCounter(start)

@@ -27,12 +27,12 @@ package swaydb.data.util
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
-object AtomicThreadLocalBoolean {
+private[swaydb] object AtomicThreadLocalBoolean {
   def apply(): AtomicThreadLocalBoolean =
     new AtomicThreadLocalBoolean()
 }
 
-class AtomicThreadLocalBoolean {
+private[swaydb] class AtomicThreadLocalBoolean {
 
   private val bool = new AtomicBoolean()
   private val threadLocal = new ThreadLocal[UUID]()

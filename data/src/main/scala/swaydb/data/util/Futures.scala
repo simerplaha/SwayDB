@@ -28,7 +28,7 @@ import swaydb.IO
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object Futures {
+private[swaydb] object Futures {
 
   val none = Future.successful(None)
   val unit: Future[Unit] = Future.successful(())
