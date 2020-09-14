@@ -25,24 +25,25 @@
 package swaydb.java;
 
 import org.junit.jupiter.api.Test;
-import swaydb.*;
 import swaydb.Exception;
+import swaydb.*;
 import swaydb.core.Core;
 import swaydb.data.java.TestBase;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assumptions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static swaydb.PureFunctionJava.*;
 import static swaydb.data.java.CommonAssertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 import static swaydb.java.serializers.Default.stringSerializer;
-import static swaydb.PureFunctionJava.*;
 
 abstract class MapFunctionsOnTest extends TestBase {
 
@@ -182,6 +183,128 @@ abstract class MapFunctionsOnTest extends TestBase {
     shouldContain(map.get(51), "51 updated");
     foreachRange(51, 60, key -> shouldContain(map.get(key), key + " updated"));
     foreachRange(61, 80, key -> shouldContain(map.get(key), key + 1 + ""));
+
+    map.delete();
+  }
+
+  //similar Scala test can be found in SwayDBFunctionsSpec
+  @Test
+  void applyAllFunctions() throws IOException {
+    //test head should have 1
+    OnKey<Integer, String> onKey = (key) -> Apply.update(1 + " " + randomString(10));
+    //test head should have 2
+    OnKeyExpiration<Integer, String> onKeyExpiration = (key, deadline) -> Apply.update(2 + " " + key + " set key");
+    //test head should have 3
+    OnKeyValue<Integer, String> onKeyValue = (key, value) -> Apply.update(3 + " " + value + " " + randomString(10));
+    //test head should have 4
+    OnValue<Integer, String> onValue = value -> Apply.update(4 + " " + value + " " + randomString(10));
+    //test head should have original value but deadline is set
+    OnValueExpiration<Integer, String> onValueExpiration =
+      (value, expiration) -> {
+        if (expiration.isPresent()) {
+          return Apply.nothingOnMap();
+        } else {
+          return Apply.expireFromMap(Duration.ofSeconds(100));
+        }
+      };
+    //test no change
+    OnKeyValueExpiration<Integer, String> onKeyValueExpiration = (key, value, expiration) -> Apply.nothingOnMap();
+
+    MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
+      createMap(
+        intSerializer(),
+        stringSerializer(),
+        Arrays.asList(onKey, onKeyExpiration, onKeyValue, onValue, onValueExpiration, onKeyValueExpiration)
+      );
+
+
+    foreachRange(1, 60, (integer) -> map.put(integer, ""));
+
+    //Write using range or individual
+    eitherOne(
+      () -> foreachRange(1, 10, (integer) -> map.applyFunction(integer, onKey)),
+      () -> map.applyFunction(1, 10, onKey)
+    );
+
+    eitherOne(
+      () -> foreachRange(11, 20, (integer) -> map.applyFunction(integer, onKeyExpiration)),
+      () -> map.applyFunction(11, 20, onKeyExpiration)
+    );
+
+    eitherOne(
+      () -> foreachRange(21, 30, (integer) -> map.applyFunction(integer, onKeyValue)),
+      () -> map.applyFunction(21, 30, onKeyValue)
+    );
+
+    eitherOne(
+      () -> foreachRange(31, 40, (integer) -> map.applyFunction(integer, onValue)),
+      () -> map.applyFunction(31, 40, onValue)
+    );
+
+    eitherOne(
+      () -> foreachRange(41, 50, (integer) -> map.applyFunction(integer, onValueExpiration)),
+      () -> map.applyFunction(41, 50, onValueExpiration)
+    );
+
+    eitherOne(
+      () -> foreachRange(51, 60, (integer) -> map.applyFunction(integer, onKeyValueExpiration)),
+      () -> map.applyFunction(51, 60, onKeyValueExpiration)
+    );
+
+    //assert
+    foreachRange(
+      1,
+      10,
+      integer -> {
+        shouldStartWith(map.get(integer), "1");
+        shouldBeEmpty(map.expiration(integer));
+      }
+    );
+
+    foreachRange(
+      11,
+      20,
+      integer -> {
+        shouldStartWith(map.get(integer), "2");
+        shouldBeEmpty(map.expiration(integer));
+      }
+    );
+
+    foreachRange(
+      21,
+      30,
+      integer -> {
+        shouldStartWith(map.get(integer), "3");
+        shouldBeEmpty(map.expiration(integer));
+      }
+    );
+
+    foreachRange(
+      31,
+      40,
+      integer -> {
+        shouldStartWith(map.get(integer), "4");
+        shouldBeEmpty(map.expiration(integer));
+      }
+    );
+
+    foreachRange(
+      41,
+      50,
+      integer -> {
+        shouldBeEmptyString(map.get(integer));
+        shouldBeDefined(map.expiration(integer));
+      }
+    );
+
+    foreachRange(
+      51,
+      60,
+      integer -> {
+        shouldBeEmptyString(map.get(integer));
+        shouldBeEmpty(map.expiration(integer));
+      }
+    );
 
     map.delete();
   }

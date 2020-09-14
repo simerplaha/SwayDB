@@ -35,8 +35,14 @@ import swaydb.data.util.Java._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
+import scala.util.Random
 
 object CommonAssertions {
+
+  def randomString(size: Int = 10) = Random.alphanumeric.take(size max 1).mkString
+
+  def shouldBeDefined[T](option: Optional[T]): Unit =
+    option.isPresent shouldBe true
 
   def shouldBeEmpty[T](option: Optional[T]): Unit =
     option shouldBe Optional.empty[T]()
@@ -105,6 +111,15 @@ object CommonAssertions {
   def shouldInclude(string: String, contain: String): Unit =
     string should include(contain)
 
+  def shouldStartWith(string: Optional[String], start: String): Unit =
+    string.asScala.value should startWith(start)
+
+  def shouldStartWith(string: String, start: String): Unit =
+    string should startWith(start)
+
+  def shouldBeEmptyString(string: Optional[String]): Unit =
+    string.asScala.value shouldBe empty
+
   def shouldIncludeIgnoreCase(string: String, contain: String): Unit =
     string.toLowerCase should include(contain.toLowerCase)
 
@@ -128,4 +143,16 @@ object CommonAssertions {
 
   def foreachRange(from: Int, to: Int, test: Consumer[Integer]): Unit =
     (from to to).foreach(int => test.accept(int))
+
+  def eitherOne[T](left: Supplier[T], right: Supplier[T]): T =
+    if (Random.nextBoolean())
+      left.get()
+    else
+      right.get()
+
+  def eitherOne(left: Test, right: Test): Unit =
+    if (Random.nextBoolean())
+      left.assert()
+    else
+      right.assert()
 }

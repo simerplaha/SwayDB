@@ -29,8 +29,11 @@ import swaydb.macros.Sealed
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
 import swaydb.{Apply, IO, Prepare, PureFunction, StorageIntImplicits}
+import swaydb.core.TestData._
 
 import scala.collection.parallel.CollectionConverters._
+import scala.concurrent.duration.DurationInt
+import swaydb.core.CommonAssertions._
 
 sealed trait Key
 object Key {
@@ -55,6 +58,7 @@ object Key {
   }
 
   import boopickle.Default._
+
   implicit val serializer = swaydb.serializers.BooPickle[Key]
 }
 
@@ -216,4 +220,108 @@ sealed trait SwayDBFunctionSpec extends TestBase {
       }
     }
   }
+
+  "apply all functions" in {
+    case class Key(int: Int)
+    case class Value(someValue: String)
+
+    import boopickle.Default._
+    implicit val keySerializer = swaydb.serializers.BooPickle[Key]
+    implicit val valueSerializer = swaydb.serializers.BooPickle[Value]
+
+    //test head should have 1
+    val onKey: OnKey[Key, Value] = _ => Apply.Update(Value(1 + randomString))
+    //test head should have 2
+    val onKeyDeadline: OnKeyDeadline[Key, Value] = (key, _) => Apply.Update(Value(2 + " " + key.int + " set key"))
+    //test head should have 3
+    val onKeyValue: OnKeyValue[Key, Value] = (key, value) => Apply.Update(Value(3 + " " + value.someValue + " " + randomString))
+    //test head should have 4
+    val onValue: OnValue[Value] = value => Apply.Update(Value(4 + " " + value.someValue + " " + randomString))
+    //test head should have original value but deadline is set
+    val onValueDeadline: OnValueDeadline[Value] = (_, deadline) => Apply.Expire(deadline.map(_ + 10.seconds).getOrElse(10.seconds.fromNow))
+    //test no change
+    val onKeyValueDeadline: OnKeyValueDeadline[Key, Value] = (_, _, _) => Apply.Nothing
+
+    TestCaseSweeper {
+      implicit sweeper =>
+
+        implicit val functions = Functions(onKey, onKeyDeadline, onKeyValue, onValue, onValueDeadline, onKeyValueDeadline)
+        val map = newDB[Key, Value]()
+
+        (1 to 60).foreach(i => map.put(Key(i), Value("")))
+
+        /**
+         * Write using range or individual
+         */
+        eitherOne(
+          (1 to 10).foreach(i => map.applyFunction(Key(i), onKey)),
+          map.applyFunction(Key(1), Key(10), onKey)
+        )
+
+        eitherOne(
+          (11 to 20).foreach(i => map.applyFunction(Key(i), onKeyDeadline)),
+          map.applyFunction(Key(11), Key(20), onKeyDeadline)
+        )
+
+        eitherOne(
+          (21 to 30).foreach(i => map.applyFunction(Key(i), onKeyValue)),
+          map.applyFunction(Key(21), Key(30), onKeyValue)
+        )
+
+        eitherOne(
+          (31 to 40).foreach(i => map.applyFunction(Key(i), onValue)),
+          map.applyFunction(Key(31), Key(40), onValue)
+        )
+
+        eitherOne(
+          (41 to 50).foreach(i => map.applyFunction(Key(i), onValueDeadline)),
+          map.applyFunction(Key(41), Key(50), onValueDeadline)
+        )
+
+        eitherOne(
+          (51 to 60).foreach(i => map.applyFunction(Key(i), onKeyValueDeadline)),
+          map.applyFunction(Key(51), Key(60), onKeyValueDeadline)
+        )
+
+        /**
+         * Assert
+         */
+        (1 to 10) foreach {
+          i =>
+            map.get(Key(i)).get.get.someValue should startWith("1")
+            map.expiration(Key(i)).value shouldBe empty
+        }
+
+        (11 to 20) foreach {
+          i =>
+            map.get(Key(i)).get.get.someValue should startWith("2")
+            map.expiration(Key(i)).value shouldBe empty
+        }
+
+        (21 to 30) foreach {
+          i =>
+            map.get(Key(i)).get.get.someValue should startWith("3")
+            map.expiration(Key(i)).value shouldBe empty
+        }
+
+        (31 to 40) foreach {
+          i =>
+            map.get(Key(i)).get.get.someValue should startWith("4")
+            map.expiration(Key(i)).value shouldBe empty
+        }
+
+        (41 to 50) foreach {
+          i =>
+            map.get(Key(i)).get.get.someValue shouldBe empty
+            map.expiration(Key(i)).value shouldBe defined
+        }
+
+        (51 to 60) foreach {
+          i =>
+            map.get(Key(i)).get.get.someValue shouldBe empty
+            map.expiration(Key(i)).value shouldBe empty
+        }
+    }
+  }
+
 }
