@@ -26,6 +26,7 @@ package swaydb
 
 import java.nio.file.Path
 
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.counter.Counter
 import swaydb.core.util.Times._
@@ -54,7 +55,7 @@ object MultiMap {
                                                                                                                                                                                             valueSerializer: Serializer[V]): BAG[MultiMap[M, K, V, F, BAG]] = {
     implicit val writer = swaydb.core.map.serializer.CounterMapEntryWriter.CounterPutMapEntryWriter
     implicit val reader = swaydb.core.map.serializer.CounterMapEntryReader.CounterPutMapEntryReader
-    implicit val core = map.core.bufferSweeper
+    implicit val core: ByteBufferSweeperActor = map.protectedSweeper
     implicit val forceSaveApplier = ForceSaveApplier.Enabled
 
     Counter.persistent(
@@ -326,23 +327,23 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiK
    *       to get the nearest expiration. But functions does not check if the custom logic within the function expires
    *       key-values earlier than [[defaultExpiration]].
    */
-  def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] = {
-    val innerKey = innerMap.keySerializer.write(MultiKey.Key(mapId, key))
-    val functionId = Slice.writeString[Byte](function.id)
-    innerMap.core.applyFunction(innerKey, functionId)
-  }
+  def applyFunction(key: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
+    innerMap.applyFunction(
+      MultiKey.Key(mapId, key),
+      function.asInstanceOf[PureFunction.Map[MultiKey[M, K], MultiValue[V]]]
+    )
 
   /**
    * @note In other operations like [[expire]], [[remove]], [[put]] the input expiration value is compared with [[defaultExpiration]]
    *       to get the nearest expiration. But functions does not check if the custom logic within the function expires
    *       key-values earlier than [[defaultExpiration]].
    */
-  def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] = {
-    val fromKey = innerMap.keySerializer.write(MultiKey.Key(mapId, from))
-    val toKey = innerMap.keySerializer.write(MultiKey.Key(mapId, to))
-    val functionId = Slice.writeString[Byte](function.id)
-    innerMap.core.applyFunction(fromKey, toKey, functionId)
-  }
+  def applyFunction(from: K, to: K, function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[OK] =
+    innerMap.applyFunction(
+      from = MultiKey.Key(mapId, from),
+      to = MultiKey.Key(mapId, to),
+      function = function.asInstanceOf[PureFunction.Map[MultiKey[M, K], MultiValue[V]]]
+    )
 
   /**
    * Commits transaction to global map.
@@ -458,7 +459,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiK
     innerMap.mightContain(MultiKey.Key(mapId, key))
 
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean] =
-    innerMap.core.mightContainFunction(Slice.writeString[Byte](function.id))
+    innerMap.mightContainFunction(function.asInstanceOf[PureFunction.Map[MultiKey[M, K], MultiValue[V]]])
 
   /**
    * TODO toSet function.
@@ -594,7 +595,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiK
     innerMap.clearAppliedAndRegisteredFunctions()
 
   override def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): Boolean =
-    innerMap.core.isFunctionApplied(Slice.writeString[Byte](function.id))
+    innerMap.isFunctionApplied(function.asInstanceOf[PureFunction.Map[MultiKey[M, K], MultiValue[V]]])
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

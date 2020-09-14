@@ -44,9 +44,9 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  *
  * For documentation check - http://swaydb.io/
  */
-case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit val keySerializer: Serializer[K],
-                                                                             val valueSerializer: Serializer[V],
-                                                                             val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
+case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit val keySerializer: Serializer[K],
+                                                                     val valueSerializer: Serializer[V],
+                                                                     val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   def path: Path =
     core.zeroPath.getParent
@@ -403,6 +403,17 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
 
   def delete(): BAG[Unit] =
     bag.suspend(core.delete())
+
+  /**
+   * The private modifier restricts access in Scala.
+   * But does not stop access from Java.
+   *
+   * Do not access this Actor.
+   *
+   * TODO - Make private.
+   */
+  private[swaydb] def protectedSweeper =
+    core.bufferSweeper
 
   override def equals(other: Any): Boolean =
     other match {

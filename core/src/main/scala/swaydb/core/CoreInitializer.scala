@@ -180,7 +180,7 @@ private[core] object CoreInitializer extends LazyLogging {
         implicit val compactionStrategy: Compactor[ThrottleState] =
           ThrottleCompactor
 
-        implicit val bufferCleaner: ByteBufferSweeperActor =
+        implicit val bufferSweeper: ByteBufferSweeperActor =
           ByteBufferSweeper()(fileSweeper.executionContext)
 
         val contexts = executionContexts(config)

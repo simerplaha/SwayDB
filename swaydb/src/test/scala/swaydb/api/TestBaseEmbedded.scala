@@ -56,6 +56,11 @@ trait TestBaseEmbedded extends TestBase {
     root.invokePrivate(function())
   }
 
+  def getCore[K, V, F, BAG[_]](root: Map[K, V, F, BAG]): Core[BAG] = {
+    val function = PrivateMethod[Core[BAG]](Symbol("core"))
+    root.invokePrivate(function())
+  }
+
   def printMap[BAG[_]](root: MultiMap[_, _, _, _, BAG]): Unit = {
     root.innerMapReflection.toBag[Bag.Less].stream.materialize.foreach {
       map =>

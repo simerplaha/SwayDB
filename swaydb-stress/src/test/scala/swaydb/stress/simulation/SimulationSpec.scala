@@ -29,8 +29,9 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.PureFunctionScala._
+import swaydb.api.TestBaseEmbedded
+import swaydb.core.TestCaseSweeper
 import swaydb.core.TestData._
-import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.Functions
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.slice.Slice
@@ -70,7 +71,9 @@ object ProductCommand {
   case class AssertState(removeAsserted: RemoveAsserted) extends ProductCommand
 }
 
-trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
+trait SimulationSpec extends AnyWordSpec with TestBaseEmbedded with LazyLogging {
+
+  override val keyValueCount: Int = 0
 
   def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
               sweeper: TestCaseSweeper): swaydb.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO]
@@ -196,7 +199,7 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
           else {
             val function = createFunction()
             //this test is a very old version and should be updated. This is a hack to register function directly using core.
-            db.core.registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
+            getCore(db).registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
             db.applyFunction(productId, function).get
           }
 
@@ -227,7 +230,7 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
           else {
             val function = createFunction()
             //this test is a very old version and should be updated. This is a hack to register function directly using core.
-            db.core.registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
+            getCore(db).registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
             db.applyFunction(productId, function).get
           }
 
@@ -330,7 +333,7 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
           else {
             val function = createFunction()
             //this test is a very old version and should be updated. This is a hack to register function directly using core.
-            db.core.registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
+            getCore(db).registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
             db.applyFunction(from, to, function).get
           }
 
@@ -372,7 +375,7 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
             db.expire(from, to, newDeadline).get
           else {
             val function = createFunction()
-            db.core.registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
+            getCore(db).registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
             db.applyFunction(from, to, function).get
           }
 
@@ -408,7 +411,7 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
           else {
             val function = createFunction()
             //this test is a very old version and should be updated. This is a hack to register function directly using core.
-            db.core.registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
+            getCore(db).registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
             db.applyFunction(productToRemoveId, function).get
           }
 
@@ -462,7 +465,7 @@ trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
           else {
             val function = createFunction()
             //this test is a very old version and should be updated. This is a hack to register function directly using core.
-            db.core.registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
+            getCore(db).registerFunction(Slice.writeStringUTF8(function.id), FunctionConverter.toCore[Long, Domain, Apply.Map[Domain], PureFunction.Map[Long, Domain]](function))
             db.applyFunction(from, to, function).get
           }
 
