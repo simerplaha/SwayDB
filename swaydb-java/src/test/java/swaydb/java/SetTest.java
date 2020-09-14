@@ -394,7 +394,7 @@ abstract class SetTest extends TestBase {
   void registerAndApplyFunction() {
 
     PureFunctionJava.OnEntry<Integer> expire =
-      (key, deadline) ->
+      (key) ->
         Apply.expireFromSet(Duration.ZERO);
 
     //does not compile

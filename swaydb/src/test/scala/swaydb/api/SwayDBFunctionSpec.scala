@@ -35,6 +35,7 @@ import swaydb.{Apply, IO, Map, Prepare, PureFunction, StorageIntImplicits}
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Deadline
 import swaydb.data.slice.Slice
+import swaydb.PureFunctionScala._
 
 protected sealed trait Key
 protected object Key {
@@ -44,7 +45,7 @@ protected object Key {
   case class Id(id: Int) extends Key
   sealed trait Function extends Key
 
-  case object IncrementValue extends Key.Function with swaydb.PureFunction.OnValue[Int] {
+  case object IncrementValue extends Key.Function with OnValue[Int] {
     override val id: String =
       "1"
 
@@ -52,11 +53,11 @@ protected object Key {
       Apply.Update(value + 1)
   }
 
-  case object DoNothing extends Key.Function with swaydb.PureFunction.KeyValue[Key, Int, Apply.Map[Int]] {
+  case object DoNothing extends Key.Function with OnKeyValue[Key, Int] {
     override val id: String =
       "2"
 
-    override def apply(key: Key, value: Int, deadline: Option[Deadline]): Apply.Map[Int] =
+    override def apply(key: Key, value: Int): Apply.Map[Int] =
       Apply.Nothing
   }
 

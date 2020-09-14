@@ -24,11 +24,13 @@
 
 package swaydb.function
 
+import java.util.Optional
+
 import swaydb.core.function.FunctionStore
 import swaydb.data.Functions
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Expiration, MultiMap, PureFunction, PureFunctionJava, SwayDB}
+import swaydb.{Apply, Expiration, MultiMap, PureFunction, PureFunctionJava, PureFunctionScala, SwayDB}
 
 import scala.concurrent.duration.Deadline
 
@@ -36,39 +38,62 @@ object FunctionConverter {
 
   def toCore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: F)(implicit keySerializer: Serializer[K],
                                                                            valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction =
+
+
     function match {
-      case function: PureFunction.Key[K, V, Apply.Map[V]] =>
-        SwayDB.toCoreFunction(function)
+      case function: PureFunctionScala.OnEntry[K] =>
+        SwayDB.toCoreFunctionKey[K, V](function)
 
-      case function: PureFunction.Value[V, Apply.Map[V]] =>
-        SwayDB.toCoreFunction(function)
+      case function: PureFunctionScala.OnEntryDeadline[K] =>
+        SwayDB.toCoreFunctionKeyDeadline[K, V](function)
 
-      case function: PureFunction.KeyValue[K, V, Apply.Map[V]] =>
-        SwayDB.toCoreFunction(function)
+      case function: PureFunctionScala.OnKey[K, V] =>
+        SwayDB.toCoreFunctionKey[K, V](function)
+
+      case function: PureFunctionScala.OnKeyDeadline[K, V] =>
+        SwayDB.toCoreFunctionKeyDeadline[K, V](function)
+
+      case function: PureFunctionScala.OnKeyValue[K, V] =>
+        SwayDB.toCoreFunctionKeyValue[K, V](function)
+
+      case function: PureFunctionScala.OnValue[V] =>
+        SwayDB.toCoreFunctionValue[V](function)
+
+      case function: PureFunctionScala.OnValueDeadline[V] =>
+        SwayDB.toCoreFunctionValueDeadline[V](function)
+
+      case function: PureFunctionScala.OnKeyValueDeadline[K, V] =>
+        SwayDB.toCoreFunctionKeyValueDeadline[K, V](function)
 
       case function: PureFunctionJava.OnEntry[K] =>
-        SwayDB.toCoreFunction(
-          (key: K, deadline) =>
-            function.apply(key, Expiration(deadline)).asInstanceOf[Apply.Set[Nothing]]
-        )(keySerializer, valueSerializer)
+        SwayDB.toCoreFunctionKey[K, V](
+          key =>
+            function.apply(key).asInstanceOf[Apply.Set[V]]
+        )
+
+      case function: PureFunctionJava.OnEntryExpiration[K] =>
+        SwayDB.toCoreFunctionKeyExpiration[K, V](
+          (key, expiration) =>
+            function.apply(key, expiration).asInstanceOf[Apply.Set[V]]
+        )
 
       case function: PureFunctionJava.OnKey[K, V] =>
-        SwayDB.toCoreFunction(
-          (key: K, deadline) =>
-            function.apply(key, Expiration(deadline))
-        )
+        SwayDB.toCoreFunctionKey[K, V](function)
+
+      case function: PureFunctionJava.OnKeyExpiration[K, V] =>
+        SwayDB.toCoreFunctionKeyExpiration[K, V](function)
 
       case function: PureFunctionJava.OnValue[K, V] =>
-        SwayDB.toCoreFunction(
-          (value: V) =>
-            function.apply(value)
-        )
+        SwayDB.toCoreFunctionValue[V](function)
+
+      case function: PureFunctionJava.OnValueExpiration[K, V] =>
+        SwayDB.toCoreFunctionValueExpiration[V](function)
 
       case function: PureFunctionJava.OnKeyValue[K, V] =>
-        SwayDB.toCoreFunction(
-          (key, value, deadline) =>
-            function.apply(key, value, Expiration(deadline))
-        )
+        SwayDB.toCoreFunctionKeyValue[K, V](function)
+
+      case function: PureFunctionJava.OnKeyValueExpiration[K, V] =>
+        SwayDB.toCoreFunctionKeyValueExpiration[K, V](function)
     }
 
   def toCore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](functions: Functions[F])(implicit keySerializer: Serializer[K],
@@ -90,10 +115,10 @@ object FunctionConverter {
   /**
    * Register the function converting it to [[MultiMap.innerMap]]'s function type.
    */
-  def toMultiMap[M, K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: Functions[F]): Functions[PureFunction.Map[MultiKey[M, K], MultiValue[V]]] =
+  def toMultiMap[M, K, V, R <: Apply.Map[V], F <: PureFunction[K, V, R]](function: Functions[F]): Functions[PureFunction.Map[MultiKey[M, K], MultiValue[V]]] =
     Functions(function.map(function => toMultiMap[M, K, V, R, F](function)))
 
-  def toMultiMap[M, K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: F): PureFunction.Map[MultiKey[M, K], MultiValue[V]] = {
+  def toMultiMap[M, K, V, R <: Apply.Map[V], F <: PureFunction[K, V, R]](function: F): PureFunction.Map[MultiKey[M, K], MultiValue[V]] = {
 
     /**
      * Validates [[MultiKey]] supplied to the function. Only [[MultiKey.Key]] is accepted
@@ -134,10 +159,28 @@ object FunctionConverter {
       }
 
     function match {
-      //convert all MultiMap Functions to Map functions that register them since MultiMap is
-      //just a parent implementation over Map.
-      case function: PureFunction.Key[K, V, Apply.Map[V]] =>
-        new PureFunction.Key[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]] {
+
+      /**
+       * SCALA FUNCTIONS
+       */
+
+      case function: PureFunctionScala.OnKey[K, V] =>
+        new PureFunctionScala.OnKey[MultiKey[M, K], MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(elem: MultiKey[M, K]): Apply.Map[MultiValue[V]] =
+            validateKey(elem) {
+              dataKey =>
+                function
+                  .apply(dataKey)
+                  .mapValue(value => MultiValue.Their(value))
+            }
+        }
+
+      case function: PureFunctionScala.OnKeyDeadline[K, V] =>
+        new PureFunctionScala.OnKeyDeadline[MultiKey[M, K], MultiValue[V]] {
           //use user function's functionId
           override val id: String =
             function.id
@@ -147,12 +190,27 @@ object FunctionConverter {
               dataKey =>
                 function
                   .apply(dataKey, deadline)
-                  .map(value => MultiValue.Their(value))
+                  .mapValue(value => MultiValue.Their(value))
             }
         }
 
-      case function: PureFunction.Value[V, Apply.Map[V]] =>
-        new PureFunction.Value[MultiValue[V], Apply.Map[MultiValue[V]]] {
+      case function: PureFunctionScala.OnKeyValue[K, V] =>
+        new PureFunctionScala.OnKeyValue[MultiKey[M, K], MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(key: MultiKey[M, K], value: MultiValue[V]): Apply.Map[MultiValue[V]] =
+            validateKeyValue(key, value) {
+              (dataKey, dataValue) =>
+                function
+                  .apply(dataKey, dataValue)
+                  .mapValue(value => MultiValue.Their(value))
+            }
+        }
+
+      case function: PureFunctionScala.OnValue[V] =>
+        new PureFunctionScala.OnValue[MultiValue[V]] {
           //use user function's functionId
           override val id: String =
             function.id
@@ -162,67 +220,196 @@ object FunctionConverter {
               dataValue =>
                 function
                   .apply(dataValue)
-                  .map(value => MultiValue.Their(value))
+                  .mapValue(value => MultiValue.Their(value))
             }
         }
 
-      case function: swaydb.PureFunction.KeyValue[K, V, Apply.Map[V]] =>
-        new swaydb.PureFunction.KeyValue[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]] {
+      case function: PureFunctionScala.OnValueDeadline[V] =>
+        new PureFunctionScala.OnValueDeadline[MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(value: MultiValue[V], deadline: Option[Deadline]): Apply.Map[MultiValue[V]] =
+            validateValue(value) {
+              dataValue =>
+                function
+                  .apply(dataValue, deadline)
+                  .mapValue(value => MultiValue.Their(value))
+            }
+        }
+
+      case function: PureFunctionScala.OnKeyValueDeadline[K, V] =>
+        new PureFunctionScala.OnKeyValueDeadline[MultiKey[M, K], MultiValue[V]] {
           //use user function's functionId
           override val id: String =
             function.id
 
           override def apply(key: MultiKey[M, K], value: MultiValue[V], deadline: Option[Deadline]): Apply.Map[MultiValue[V]] =
             validateKeyValue(key, value) {
-              (dataKey, userValue) =>
+              (dataKey, dataValue) =>
                 function
-                  .apply(dataKey, userValue, deadline)
-                  .map(value => MultiValue.Their(value))
+                  .apply(dataKey, dataValue, deadline)
+                  .mapValue(value => MultiValue.Their(value))
             }
         }
 
+      /**
+       * JAVA FUNCTIONS
+       */
       case function: PureFunctionJava.OnKey[K, V] =>
-        new PureFunction.Key[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]] {
+        new PureFunctionJava.OnKey[MultiKey[M, K], MultiValue[V]] {
           //use user function's functionId
           override val id: String =
             function.id
 
-          override def apply(key: MultiKey[M, K], deadline: Option[Deadline]): Apply.Map[MultiValue[V]] =
+          override def apply(key: MultiKey[M, K]): Apply.Map[MultiValue[V]] =
             validateKey(key) {
               dataKey =>
                 function
-                  .apply(dataKey, Expiration(deadline))
-                  .map(value => MultiValue.Their(value))
+                  .apply(dataKey)
+                  .mapValue(value => MultiValue.Their(value))
+            }
+        }
+
+      case function: PureFunctionJava.OnKeyExpiration[K, V] =>
+        new PureFunctionJava.OnKeyExpiration[MultiKey[M, K], MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(key: MultiKey[M, K], expiration: Optional[Expiration]): Apply.Map[MultiValue[V]] =
+            validateKey(key) {
+              dataKey =>
+                function
+                  .apply(dataKey, expiration)
+                  .mapValue(value => MultiValue.Their(value))
             }
         }
 
       case function: PureFunctionJava.OnValue[K, V] =>
-        new swaydb.PureFunction.Value[MultiValue[V], Apply.Map[MultiValue[V]]] {
+        new PureFunctionJava.OnValue[MultiKey[M, K], MultiValue[V]] {
           //use user function's functionId
           override val id: String =
             function.id
 
           override def apply(value: MultiValue[V]): Apply.Map[MultiValue[V]] =
             validateValue(value) {
-              userValue =>
+              dataValue =>
                 function
-                  .apply(userValue)
-                  .map(value => MultiValue.Their(value))
+                  .apply(dataValue)
+                  .mapValue(value => MultiValue.Their(value))
             }
         }
 
-      case function: PureFunctionJava.OnKeyValue[K, V] =>
-        new swaydb.PureFunction.KeyValue[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]] {
+      case function: PureFunctionJava.OnValueExpiration[K, V] =>
+        new PureFunctionJava.OnValueExpiration[MultiKey[M, K], MultiValue[V]] {
           //use user function's functionId
           override val id: String =
             function.id
 
-          override def apply(key: MultiKey[M, K], value: MultiValue[V], deadline: Option[Deadline]): Apply.Map[MultiValue[V]] =
-            validateKeyValue(key, value) {
-              (dataKey, userValue) =>
+          override def apply(value: MultiValue[V], expiration: Optional[Expiration]): Apply.Map[MultiValue[V]] =
+            validateValue(value) {
+              dataValue =>
                 function
-                  .apply(dataKey, userValue, Expiration(deadline))
-                  .map(value => MultiValue.Their(value))
+                  .apply(dataValue, expiration)
+                  .mapValue(value => MultiValue.Their(value))
+            }
+        }
+
+      case function: PureFunctionJava.OnKeyValue[K, V] =>
+        new PureFunctionJava.OnKeyValue[MultiKey[M, K], MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(key: MultiKey[M, K], value: MultiValue[V]): Apply.Map[MultiValue[V]] =
+            validateKeyValue(key, value) {
+              (dataKey, dataValue) =>
+                function
+                  .apply(dataKey, dataValue)
+                  .mapValue(value => MultiValue.Their(value))
+            }
+        }
+
+      case function: PureFunctionJava.OnKeyValueExpiration[K, V] =>
+        new PureFunctionJava.OnKeyValueExpiration[MultiKey[M, K], MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(key: MultiKey[M, K], value: MultiValue[V], expiration: Optional[Expiration]): Apply.Map[MultiValue[V]] =
+            validateKeyValue(key, value) {
+              (dataKey, dataValue) =>
+                function
+                  .apply(dataKey, dataValue, expiration)
+                  .mapValue(value => MultiValue.Their(value))
+            }
+        }
+
+      /**
+       * The following Set's OnEntry functions are not expected in MultiMap.
+       *
+       * But if this function gets passed a Set key-value then it converts
+       * it ot a Map function applying the same logic and output of the Set function.
+       */
+      case function: PureFunctionScala.OnEntry[K] =>
+        new PureFunctionScala.OnKey[MultiKey[M, K], MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(elem: MultiKey[M, K]): Apply.Map[MultiValue[V]] =
+            validateKey(elem) {
+              dataKey =>
+                function
+                  .apply(dataKey)
+                  .toMap
+            }
+        }
+
+      case function: PureFunctionScala.OnEntryDeadline[K] =>
+        new PureFunctionScala.OnKeyDeadline[MultiKey[M, K], MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(elem: MultiKey[M, K], deadline: Option[Deadline]): Apply.Map[MultiValue[V]] =
+            validateKey(elem) {
+              dataKey =>
+                function
+                  .apply(dataKey, deadline)
+                  .toMap
+            }
+        }
+
+      case function: PureFunctionJava.OnEntry[K] =>
+        new PureFunctionJava.OnKey[MultiKey[M, K], MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(key: MultiKey[M, K]): Apply.Map[MultiValue[V]] =
+            validateKey(key) {
+              dataKey =>
+                function
+                  .apply(dataKey)
+                  .toMap
+            }
+        }
+
+      case function: PureFunctionJava.OnEntryExpiration[K] =>
+        new PureFunctionJava.OnKeyExpiration[MultiKey[M, K], MultiValue[V]] {
+          //use user function's functionId
+          override val id: String =
+            function.id
+
+          override def apply(key: MultiKey[M, K], expiration: Optional[Expiration]): Apply.Map[MultiValue[V]] =
+            validateKey(key) {
+              dataKey =>
+                function
+                  .apply(dataKey, expiration)
+                  .toMap
             }
         }
     }

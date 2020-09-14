@@ -25,6 +25,7 @@
 package swaydb
 
 import java.nio.file.Path
+import java.util.Optional
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.Core
@@ -40,7 +41,6 @@ import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.slice.Slice
-
 import swaydb.serializers.Serializer
 
 import scala.concurrent.duration._
@@ -176,8 +176,18 @@ object SwayDB extends LazyLogging {
         SwayFunctionOutput.Update(untypedValue, update.deadline)
     }
 
-  private[swaydb] def toCoreFunction[K, V](f: (K, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                 valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+  private[swaydb] def toCoreFunctionKey[K, V](f: K => Apply[V])(implicit keySerializer: Serializer[K],
+                                                                valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+    import swaydb.serializers._
+
+    def function(key: Slice[Byte]) =
+      toCoreFunctionOutput(f(key.read[K]))
+
+    swaydb.core.data.SwayFunction.Key(function)
+  }
+
+  private[swaydb] def toCoreFunctionKeyDeadline[K, V](f: (K, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
+                                                                                            valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
 
     def function(key: Slice[Byte], deadline: Option[Deadline]) =
@@ -186,8 +196,28 @@ object SwayDB extends LazyLogging {
     swaydb.core.data.SwayFunction.KeyDeadline(function)
   }
 
-  private[swaydb] def toCoreFunction[K, V](f: (K, V, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                    valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+  private[swaydb] def toCoreFunctionKeyExpiration[K, V](f: (K, Optional[Expiration]) => Apply[V])(implicit keySerializer: Serializer[K],
+                                                                                                  valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+    import swaydb.serializers._
+
+    def function(key: Slice[Byte], deadline: Option[Deadline]) =
+      toCoreFunctionOutput(f(key.read[K], Expiration(deadline)))
+
+    swaydb.core.data.SwayFunction.KeyDeadline(function)
+  }
+
+  private[swaydb] def toCoreFunctionKeyValueExpiration[K, V](f: (K, V, Optional[Expiration]) => Apply[V])(implicit keySerializer: Serializer[K],
+                                                                                                          valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+    import swaydb.serializers._
+
+    def function(key: Slice[Byte], value: SliceOption[Byte], deadline: Option[Deadline]) =
+      toCoreFunctionOutput(f(key.read[K], value.read[V], Expiration(deadline)))
+
+    swaydb.core.data.SwayFunction.KeyValueDeadline(function)
+  }
+
+  private[swaydb] def toCoreFunctionKeyValueDeadline[K, V](f: (K, V, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
+                                                                                                    valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
 
     def function(key: Slice[Byte], value: SliceOption[Byte], deadline: Option[Deadline]) =
@@ -196,13 +226,41 @@ object SwayDB extends LazyLogging {
     swaydb.core.data.SwayFunction.KeyValueDeadline(function)
   }
 
-  private[swaydb] def toCoreFunction[K, V](f: V => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+  private[swaydb] def toCoreFunctionKeyValue[K, V](f: (K, V) => Apply[V])(implicit keySerializer: Serializer[K],
+                                                                          valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+    import swaydb.serializers._
+
+    def function(key: Slice[Byte], value: SliceOption[Byte]) =
+      toCoreFunctionOutput(f(key.read[K], value.read[V]))
+
+    swaydb.core.data.SwayFunction.KeyValue(function)
+  }
+
+  private[swaydb] def toCoreFunctionValue[V](f: V => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
 
     def function(value: SliceOption[Byte]) =
       toCoreFunctionOutput(f(value.read[V]))
 
     swaydb.core.data.SwayFunction.Value(function)
+  }
+
+  private[swaydb] def toCoreFunctionValueExpiration[V](f: (V, Optional[Expiration]) => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+    import swaydb.serializers._
+
+    def function(value: SliceOption[Byte], deadline: Option[Deadline]) =
+      toCoreFunctionOutput(f(value.read[V], Expiration(deadline)))
+
+    swaydb.core.data.SwayFunction.ValueDeadline(function)
+  }
+
+  private[swaydb] def toCoreFunctionValueDeadline[V](f: (V, Option[Deadline]) => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+    import swaydb.serializers._
+
+    def function(value: SliceOption[Byte], deadline: Option[Deadline]) =
+      toCoreFunctionOutput(f(value.read[V], deadline))
+
+    swaydb.core.data.SwayFunction.ValueDeadline(function)
   }
 
   /**

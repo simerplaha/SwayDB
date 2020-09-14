@@ -50,12 +50,6 @@ sealed trait PureFunction[+K, +V, R <: Apply[V]] {
     this.getClass.getName
 }
 
-/**
- * Function types for Scala.
- *
- * Your registered functions implements one of the these functions that
- * informs SwayDB of target data for the on the applied key should be read to execute the function.
- */
 object PureFunction {
 
   //Default function type for Map
@@ -63,47 +57,6 @@ object PureFunction {
 
   //Default function type for Set
   type Set[K] = PureFunction[K, Nothing, Apply.Set[Nothing]]
-
-  //type alias for Set OnKey function. Set do not have values (Nothing).
-  type OnEntry[A] = Key[A, Nothing, Apply.Set[Nothing]]
-
-  //type alias for Map OnKey function.
-  type OnKey[K, V] = Key[K, V, Apply.Map[V]]
-
-  //type alias for Map OnValue function.
-  type OnValue[V] = Value[V, Apply.Map[V]]
-
-  //type alias for Map OnKeyValue function.
-  type OnKeyValue[K, V] = KeyValue[K, V, Apply.Map[V]]
-
-  /** ******************************************************************************
-   * *******************************************************************************
-   * ******* Use the types prefixed with On* for a shorter function syntax. ********
-   * *******************************************************************************
-   * * ***************************************************************************** */
-
-  /**
-   * Fetches only the key and deadline ignoring the value.
-   */
-  trait Key[K, V, R <: Apply[V]] extends ((K, Option[Deadline]) => R) with PureFunction[K, V, R] {
-    override def apply(key: K, deadline: Option[Deadline]): R
-  }
-
-  /**
-   * Applies to value.
-   */
-  trait Value[V, R <: Apply[V]] extends (V => R) with PureFunction[Nothing, V, R] {
-    override def apply(value: V): R
-  }
-
-
-  /**
-   * Fetches the key, value and deadline.
-   */
-  trait KeyValue[K, V, R <: Apply[V]] extends ((K, V, Option[Deadline]) => R) with PureFunction[K, V, R] {
-    override def apply(key: K, value: V, deadline: Option[Deadline]): R
-  }
-
 
   /** *********************************
    * **********************************
@@ -135,6 +88,54 @@ object PureFunction {
 }
 
 /**
+ * Function types for Scala.
+ *
+ * Your registered functions implements one of the these functions that
+ * informs SwayDB of target data for the on the applied key should be read to execute the function.
+ */
+object PureFunctionScala {
+
+  //For Set only function. Set do not have values (Nothing).
+  trait OnEntry[A] extends (A => Apply.Set[Nothing]) with PureFunction[A, Nothing, Apply.Set[Nothing]] {
+    override def apply(elem: A): Apply.Set[Nothing]
+  }
+
+  trait OnEntryDeadline[A] extends ((A, Option[Deadline]) => Apply.Set[Nothing]) with PureFunction[A, Nothing, Apply.Set[Nothing]] {
+    override def apply(elem: A, deadline: Option[Deadline]): Apply.Set[Nothing]
+  }
+
+  //For Map OnKey function.
+  trait OnKey[K, V] extends (K => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(key: K): Apply.Map[V]
+  }
+
+  //For Map OnKey function.
+  trait OnKeyDeadline[K, V] extends ((K, Option[Deadline]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(key: K, deadline: Option[Deadline]): Apply.Map[V]
+  }
+
+  //For Map OnKeyValue function.
+  trait OnKeyValue[K, V] extends ((K, V) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(key: K, value: V): Apply.Map[V]
+  }
+
+  //For Map OnValue function.
+  trait OnValue[V] extends (V => Apply.Map[V]) with PureFunction[Nothing, V, Apply.Map[V]] {
+    override def apply(value: V): Apply.Map[V]
+  }
+
+  //For Map OnValue function.
+  trait OnValueDeadline[V] extends ((V, Option[Deadline]) => Apply.Map[V]) with PureFunction[Nothing, V, Apply.Map[V]] {
+    override def apply(value: V, deadline: Option[Deadline]): Apply.Map[V]
+  }
+
+  //For Map OnValue function.
+  trait OnKeyValueDeadline[K, V] extends ((K, V, Option[Deadline]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(key: K, value: V, deadline: Option[Deadline]): Apply.Map[V]
+  }
+}
+
+/**
  * Helper function types Java so that specifying the return type is required for every function.
  *
  * Uses Expiration and Optional instead of Scala's native Deadline and Option types.
@@ -145,14 +146,25 @@ object PureFunctionJava {
   /**
    * Applies to Set entries.
    */
-  trait OnEntry[K] extends ((K, Optional[Expiration]) => Apply.Set[Void]) with PureFunction[K, Void, Apply.Set[Void]] {
-    override def apply(key: K, expiration: Optional[Expiration]): Apply.Set[Void]
+  trait OnEntry[A] extends (A => Apply.Set[Void]) with PureFunction[A, Void, Apply.Set[Void]] {
+    override def apply(elem: A): Apply.Set[Void]
+  }
+
+  trait OnEntryExpiration[A] extends ((A, Optional[Expiration]) => Apply.Set[Void]) with PureFunction[A, Void, Apply.Set[Void]] {
+    override def apply(elem: A, expiration: Optional[Expiration]): Apply.Set[Void]
   }
 
   /**
    * Applies to a Map's key. Value is not read.
    */
-  trait OnKey[K, V] extends ((K, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+  trait OnKey[K, V] extends (K => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(key: K): Apply.Map[V]
+  }
+
+  /**
+   * Applies to a Map's key. Value is not read.
+   */
+  trait OnKeyExpiration[K, V] extends ((K, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
     override def apply(key: K, expiration: Optional[Expiration]): Apply.Map[V]
   }
 
@@ -164,9 +176,23 @@ object PureFunctionJava {
   }
 
   /**
+   * Applies to a Map's key. Value is not read.
+   */
+  trait OnValueExpiration[K, V] extends ((V, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(value: V, expiration: Optional[Expiration]): Apply.Map[V]
+  }
+
+  /**
    * Applies to a Map's key and value.
    */
-  trait OnKeyValue[K, V] extends ((K, V, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+  trait OnKeyValue[K, V] extends ((K, V) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(key: K, value: V): Apply.Map[V]
+  }
+
+  /**
+   * Applies to a Map's key and value.
+   */
+  trait OnKeyValueExpiration[K, V] extends ((K, V, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
     override def apply(key: K, value: V, expiration: Optional[Expiration]): Apply.Map[V]
   }
 }

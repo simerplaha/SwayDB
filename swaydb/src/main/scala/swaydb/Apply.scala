@@ -78,7 +78,7 @@ object Apply {
   }
 
   sealed trait Map[+V] extends Apply[V] {
-    @inline def map[B](f: V => B): Apply.Map[B] =
+    @inline def mapValue[B](f: V => B): Apply.Map[B] =
       this match {
         case Nothing =>
           Nothing
@@ -92,6 +92,27 @@ object Apply {
         case Update(value, deadline) =>
           Apply.Update(f(value), deadline)
       }
+  }
+
+  implicit class SetNothingToMap[S](set: Set[Nothing]) {
+    @inline def toMap[V]: Apply.Map[V] =
+      set match {
+        case Nothing =>
+          Nothing
+
+        case Remove =>
+          Remove
+
+        case expire: Expire =>
+          expire
+      }
+  }
+
+  implicit class SetVoidToMap(set: Set[Void]) {
+    @inline def toMap[V]: Apply.Map[V] =
+      set
+        .asInstanceOf[Set[Nothing]]
+        .toMap
   }
 
   /**

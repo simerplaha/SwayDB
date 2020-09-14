@@ -34,6 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{Apply, Bag, MultiMap, Prepare, PureFunction}
+import swaydb.PureFunctionScala._
 
 import scala.concurrent.duration._
 
@@ -76,23 +77,17 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
 
   "apply and register function" when {
     //register all types of functions
-    val onKeyValueFunction =
-      new PureFunction.KeyValue[Int, String, Apply.Map[String]] {
-        override def apply(key: Int, value: String, deadline: Option[Deadline]): Apply.Map[String] =
-          Apply.Update("updated1")
-      }
+    val onKeyValueFunction: OnKeyValueDeadline[Int, String] =
+      (key: Int, value: String, deadline: Option[Deadline]) =>
+        Apply.Update("updated1")
 
-    val onValueFunction =
-      new PureFunction.KeyValue[Int, String, Apply.Map[String]] {
-        override def apply(key: Int, value: String, deadline: Option[Deadline]): Apply.Map[String] =
-          Apply.Update("updated2")
-      }
+    val onValueFunction: OnKeyValue[Int, String] =
+      (key: Int, value: String) =>
+        Apply.Update("updated2")
 
-    val onKeyFunction =
-      new PureFunction.Key[Int, String, Apply.Map[String]] {
-        override def apply(key: Int, deadline: Option[Deadline]): Apply.Map[String] =
-          Apply.Update("updated3")
-      }
+    val onKeyFunction: OnKey[Int, String] =
+      (key: Int) =>
+        Apply.Update("updated3")
 
     //register all types of functions
     implicit val functions = Functions[PureFunction.Map[Int, String]](onKeyValueFunction, onValueFunction, onKeyFunction)

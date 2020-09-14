@@ -59,17 +59,17 @@ abstract class MapFunctionsOnTest extends TestBase {
 
 
   OnKey<Integer, String> appendUpdated =
-    (key, deadline) ->
+    (key) ->
       Apply.update(key + " updated");
 
   OnKeyValue<Integer, String> incrementBy1 =
-    (key, value, deadline) ->
+    (key, value) ->
       Apply.update(key + 1 + "");
 
   OnValue<Integer, String> doNothingWithValue = Apply::update;
 
   OnKeyValue<Integer, String> removeMod0OrIncrementBy1 =
-    (key, value, deadline) -> {
+    (key, value) -> {
       if (key % 10 == 0) {
         return Apply.removeFromMap();
       } else {
@@ -79,12 +79,12 @@ abstract class MapFunctionsOnTest extends TestBase {
 
   //add this function will not compile - invalid types!
   OnKeyValue<String, String> invalidType1 =
-    (key, value, deadline) ->
+    (key, value) ->
       Apply.update(value + 1);
 
   //add this function will not compile - invalid types!
   OnKeyValue<String, Integer> invalidType2 =
-    (key, value, deadline) ->
+    (key, value) ->
       Apply.update(value + 1);
 
   @Test
@@ -95,7 +95,7 @@ abstract class MapFunctionsOnTest extends TestBase {
       createMap(intSerializer(), stringSerializer(), Collections.emptyList());
 
     OnKeyValue<Integer, String> missingFunction =
-      (key, value, deadline) ->
+      (key, value) ->
         Apply.update(value + 1);
 
     Exception.FunctionNotFound functionNotFound = assertThrows(Exception.FunctionNotFound.class, () -> map.applyFunction(1, missingFunction));

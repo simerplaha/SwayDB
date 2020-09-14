@@ -149,4 +149,12 @@ object Default {
     override def read(slice: Slice[Byte]): Nothing =
       ().asInstanceOf[Nothing]
   }
+
+  implicit object VoidSerializer extends Serializer[Void] {
+    override def write(data: Void): Slice[Byte] =
+      Slice.emptyBytes
+
+    override def read(slice: Slice[Byte]): Void =
+      ().asInstanceOf[Void]
+  }
 }

@@ -39,9 +39,9 @@ private[swaydb] object SwayFunction {
   case class KeyDeadline(f: (Slice[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresDeadline
   case class KeyValue(f: (Slice[Byte], SliceOption[Byte]) => SwayFunctionOutput) extends RequiresKey with RequiresValue
 
-  case class KeyValueDeadline(f: (Slice[Byte], SliceOption[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresValue with RequiresDeadline
   case class Value(f: SliceOption[Byte] => SwayFunctionOutput) extends RequiresValue
   case class ValueDeadline(f: (SliceOption[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresValue with RequiresDeadline
+  case class KeyValueDeadline(f: (Slice[Byte], SliceOption[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresValue with RequiresDeadline
 }
 
 private[swaydb] sealed trait SwayFunctionOutput
