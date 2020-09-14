@@ -9,7 +9,6 @@ val logbackClassicVersion = "1.2.3"
 val scalaLoggingVersion = "3.9.2"
 val scalaMockVersion = "5.0.0"
 val scalaTestVersion = "3.2.0"
-val reactiveStreamsVersion = "1.0.2"
 val boopickleVersion = "1.3.3"
 val monixVersion = "3.2.2"
 val zioVersion = "1.0.1"
@@ -193,6 +192,7 @@ lazy val serializers =
 
 lazy val `serializer-boopickle` =
   project
+    .settings(name := "boopickle")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)

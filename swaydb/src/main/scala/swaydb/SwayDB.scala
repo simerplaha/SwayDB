@@ -25,243 +25,24 @@
 package swaydb
 
 import java.nio.file.Path
-import java.util.Optional
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.Core
 import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.build.{Build, BuildValidator}
-import swaydb.core.data._
-import swaydb.core.function.FunctionStore
+import swaydb.core.build.Build
 import swaydb.core.level.tool.AppendixRepairer
 import swaydb.data.MaxKey
-import swaydb.data.config._
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.order.KeyOrder
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
-import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
-
-import scala.concurrent.duration._
-import scala.reflect.ClassTag
 
 /**
  * Instance used for creating/initialising databases.
  */
 object SwayDB extends LazyLogging {
 
-  private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-
-  final def version: Build.Version = Build.thisVersion()
-
-  /**
-   * Creates a database based on the input config.
-   *
-   * @param config          Configuration to use to create the database
-   * @param keySerializer   Converts keys to Bytes
-   * @param valueSerializer Converts values to Bytes
-   * @param keyOrder        Sort order for keys
-   * @tparam K Type of key
-   * @tparam V Type of value
-   * @return Database instance
-   */
-  def apply[K, V, F](fileCache: FileCache.Enable,
-                     memoryCache: MemoryCache,
-                     threadStateCache: ThreadStateCache,
-                     cacheKeyValueIds: Boolean,
-                     shutdownTimeout: FiniteDuration,
-                     config: SwayDBPersistentConfig)(implicit keySerializer: Serializer[K],
-                                                     valueSerializer: Serializer[V],
-                                                     functionClassTag: ClassTag[F],
-                                                     keyOrder: KeyOrder[Slice[Byte]],
-                                                     buildValidator: BuildValidator,
-                                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
-    Core(
-      enableTimer = PureFunction.isOn(functionClassTag),
-      cacheKeyValueIds = cacheKeyValueIds,
-      fileCache = fileCache,
-      memoryCache = memoryCache,
-      shutdownTimeout = shutdownTimeout,
-      threadStateCache = threadStateCache,
-      config = config
-    ) map {
-      db =>
-        swaydb.Map[K, V, F, Bag.Less](db)
-    }
-
-  def apply[A, F](fileCache: FileCache.Enable,
-                  memoryCache: MemoryCache,
-                  threadStateCache: ThreadStateCache,
-                  cacheKeyValueIds: Boolean,
-                  shutdownTimeout: FiniteDuration,
-                  config: SwayDBPersistentConfig)(implicit serializer: Serializer[A],
-                                                  functionClassTag: ClassTag[F],
-                                                  keyOrder: KeyOrder[Slice[Byte]],
-                                                  buildValidator: BuildValidator,
-                                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[A, F, Bag.Less]] =
-    Core(
-      enableTimer = PureFunction.isOn(functionClassTag),
-      cacheKeyValueIds = cacheKeyValueIds,
-      fileCache = fileCache,
-      memoryCache = memoryCache,
-      shutdownTimeout = shutdownTimeout,
-      threadStateCache = threadStateCache,
-      config = config
-    ) map {
-      db =>
-        swaydb.Set[A, F, Bag.Less](db)
-    }
-
-  def apply[K, V, F](fileCache: FileCache.Enable,
-                     memoryCache: MemoryCache,
-                     threadStateCache: ThreadStateCache,
-                     cacheKeyValueIds: Boolean,
-                     shutdownTimeout: FiniteDuration,
-                     config: SwayDBMemoryConfig)(implicit keySerializer: Serializer[K],
-                                                 valueSerializer: Serializer[V],
-                                                 functionClassTag: ClassTag[F],
-                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                 buildValidator: BuildValidator,
-                                                 functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, Bag.Less]] =
-    Core(
-      enableTimer = PureFunction.isOn(functionClassTag),
-      cacheKeyValueIds = cacheKeyValueIds,
-      fileCache = fileCache,
-      memoryCache = memoryCache,
-      shutdownTimeout = shutdownTimeout,
-      threadStateCache = threadStateCache,
-      config = config
-    ) map {
-      db =>
-        swaydb.Map[K, V, F, Bag.Less](db)
-    }
-
-  def apply[A, F](fileCache: FileCache.Enable,
-                  memoryCache: MemoryCache,
-                  threadStateCache: ThreadStateCache,
-                  cacheKeyValueIds: Boolean,
-                  shutdownTimeout: FiniteDuration,
-                  config: SwayDBMemoryConfig)(implicit serializer: Serializer[A],
-                                              functionClassTag: ClassTag[F],
-                                              keyOrder: KeyOrder[Slice[Byte]],
-                                              buildValidator: BuildValidator,
-                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, swaydb.Set[A, F, Bag.Less]] =
-    Core(
-      enableTimer = PureFunction.isOn(functionClassTag),
-      cacheKeyValueIds = cacheKeyValueIds,
-      fileCache = fileCache,
-      memoryCache = memoryCache,
-      shutdownTimeout = shutdownTimeout,
-      threadStateCache = threadStateCache,
-      config = config
-    ) map {
-      db =>
-        swaydb.Set[A, F, Bag.Less](db)
-    }
-
-  private def toCoreFunctionOutput[V](output: Apply[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
-    output match {
-      case Apply.Nothing =>
-        SwayFunctionOutput.Nothing
-
-      case Apply.Remove =>
-        SwayFunctionOutput.Remove
-
-      case Apply.Expire(deadline) =>
-        SwayFunctionOutput.Expire(deadline)
-
-      case update: Apply.Update[V] =>
-        val untypedValue: Slice[Byte] = valueSerializer.write(update.value)
-        SwayFunctionOutput.Update(untypedValue, update.deadline)
-    }
-
-  private[swaydb] def toCoreFunctionKey[K, V](f: K => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
-    import swaydb.serializers._
-
-    def function(key: Slice[Byte]) =
-      toCoreFunctionOutput(f(key.read[K]))
-
-    swaydb.core.data.SwayFunction.Key(function)
-  }
-
-  private[swaydb] def toCoreFunctionKeyDeadline[K, V](f: (K, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                            valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
-    import swaydb.serializers._
-
-    def function(key: Slice[Byte], deadline: Option[Deadline]) =
-      toCoreFunctionOutput(f(key.read[K], deadline))
-
-    swaydb.core.data.SwayFunction.KeyDeadline(function)
-  }
-
-  private[swaydb] def toCoreFunctionKeyExpiration[K, V](f: (K, Optional[Expiration]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                                  valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
-    import swaydb.serializers._
-
-    def function(key: Slice[Byte], deadline: Option[Deadline]) =
-      toCoreFunctionOutput(f(key.read[K], Expiration(deadline)))
-
-    swaydb.core.data.SwayFunction.KeyDeadline(function)
-  }
-
-  private[swaydb] def toCoreFunctionKeyValueExpiration[K, V](f: (K, V, Optional[Expiration]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                                          valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
-    import swaydb.serializers._
-
-    def function(key: Slice[Byte], value: SliceOption[Byte], deadline: Option[Deadline]) =
-      toCoreFunctionOutput(f(key.read[K], value.read[V], Expiration(deadline)))
-
-    swaydb.core.data.SwayFunction.KeyValueDeadline(function)
-  }
-
-  private[swaydb] def toCoreFunctionKeyValueDeadline[K, V](f: (K, V, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                                                    valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
-    import swaydb.serializers._
-
-    def function(key: Slice[Byte], value: SliceOption[Byte], deadline: Option[Deadline]) =
-      toCoreFunctionOutput(f(key.read[K], value.read[V], deadline))
-
-    swaydb.core.data.SwayFunction.KeyValueDeadline(function)
-  }
-
-  private[swaydb] def toCoreFunctionKeyValue[K, V](f: (K, V) => Apply[V])(implicit keySerializer: Serializer[K],
-                                                                          valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
-    import swaydb.serializers._
-
-    def function(key: Slice[Byte], value: SliceOption[Byte]) =
-      toCoreFunctionOutput(f(key.read[K], value.read[V]))
-
-    swaydb.core.data.SwayFunction.KeyValue(function)
-  }
-
-  private[swaydb] def toCoreFunctionValue[V](f: V => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
-    import swaydb.serializers._
-
-    def function(value: SliceOption[Byte]) =
-      toCoreFunctionOutput(f(value.read[V]))
-
-    swaydb.core.data.SwayFunction.Value(function)
-  }
-
-  private[swaydb] def toCoreFunctionValueExpiration[V](f: (V, Optional[Expiration]) => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
-    import swaydb.serializers._
-
-    def function(value: SliceOption[Byte], deadline: Option[Deadline]) =
-      toCoreFunctionOutput(f(value.read[V], Expiration(deadline)))
-
-    swaydb.core.data.SwayFunction.ValueDeadline(function)
-  }
-
-  private[swaydb] def toCoreFunctionValueDeadline[V](f: (V, Option[Deadline]) => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
-    import swaydb.serializers._
-
-    def function(value: SliceOption[Byte], deadline: Option[Deadline]) =
-      toCoreFunctionOutput(f(value.read[V], deadline))
-
-    swaydb.core.data.SwayFunction.ValueDeadline(function)
-  }
+  final val version: Build.Version = Build.thisVersion()
 
   /**
    * Documentation: http://www.swaydb.io/api/repairAppendix
@@ -307,6 +88,7 @@ object SwayDB extends LazyLogging {
               )
           )
         )
+
       case IO.Left(error) =>
         IO.Left(error)
 
