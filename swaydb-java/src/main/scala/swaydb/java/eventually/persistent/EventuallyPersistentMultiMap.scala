@@ -279,7 +279,7 @@ object EventuallyPersistentMultiMap {
                            mapKeySerializer: JavaSerializer[M],
                            keySerializer: JavaSerializer[K],
                            valueSerializer: JavaSerializer[V],
-                           functions: java.lang.Iterable[PureFunction.Map[K, V]]): Config[M, K, V, PureFunction[K, V, swaydb.Apply.Map[V]]] = {
+                           functions: java.lang.Iterable[PureFunction[K, V, Apply.Map[V]]]): Config[M, K, V, PureFunction[K, V, Apply.Map[V]]] = {
     implicit val pureFunctions = Functions(functions)
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaMapKeySerializer: Serializer[M] = SerializerConverter.toScala(mapKeySerializer)

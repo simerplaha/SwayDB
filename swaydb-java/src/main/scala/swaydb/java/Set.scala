@@ -40,7 +40,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
+case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
 
   def path: Path =
     asScala.path

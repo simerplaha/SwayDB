@@ -89,7 +89,7 @@ object PersistentSet {
                            private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set))(implicit functionClassTag: ClassTag[F],
                                                                                                                             serializer: Serializer[A],
                                                                                                                             functions: Functions[F],
-                                                                                                                            evd: F <:< PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
+                                                                                                                            evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -301,20 +301,20 @@ object PersistentSet {
 
   def functionsOn[A](dir: Path,
                      serializer: JavaSerializer[A],
-                     functions: java.lang.Iterable[PureFunction.OnKey[A, Void, Apply.Set[Void]]]): Config[A, PureFunction.OnKey[A, Void, Apply.Set[Void]]] = {
+                     functions: java.lang.Iterable[PureFunction[A, Void, Apply.Set[Void]]]): Config[A, PureFunction[A, Void, Apply.Set[Void]]] = {
 
     implicit val scalaFunctions = functions.castToNothingFunctions
     implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
-    val config: Config[A, PureFunction.Set[A]] = new Config(dir)
+    val config: Config[A, PureFunction[A, Nothing, Apply.Set[Nothing]]] = new Config(dir)
 
-    config.asInstanceOf[Config[A, PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
+    config.asInstanceOf[Config[A, PureFunction[A, Void, Apply.Set[Void]]]]
   }
 
   def functionsOff[A](dir: Path,
                       serializer: JavaSerializer[A]): Config[A, Void] = {
 
     implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
-    implicit val evd: Void <:< PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] = null
+    implicit val evd: Void <:< PureFunction[A, Nothing, Apply.Set[Nothing]] = null
 
     new Config(dir)
   }

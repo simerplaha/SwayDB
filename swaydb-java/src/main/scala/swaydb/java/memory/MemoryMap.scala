@@ -172,7 +172,7 @@ object MemoryMap {
 
   def functionsOn[K, V](keySerializer: JavaSerializer[K],
                         valueSerializer: JavaSerializer[V],
-                        functions: java.lang.Iterable[PureFunction.Map[K, V]]): Config[K, V, PureFunction[K, V, swaydb.Apply.Map[V]]] = {
+                        functions: java.lang.Iterable[PureFunction[K, V, Apply.Map[V]]]): Config[K, V, PureFunction[K, V, Apply.Map[V]]] = {
     implicit val pureFunctions = Functions(functions)
     implicit val scalaKeySerializer: Serializer[K] = SerializerConverter.toScala(keySerializer)
     implicit val scalaValueSerializer: Serializer[V] = SerializerConverter.toScala(valueSerializer)

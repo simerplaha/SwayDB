@@ -26,10 +26,7 @@ package swaydb.java;
 
 
 import org.junit.jupiter.api.Test;
-import swaydb.Apply;
-import swaydb.Pair;
-import swaydb.Prepare;
-import swaydb.PureFunction;
+import swaydb.*;
 import swaydb.data.java.TestBase;
 import swaydb.java.memory.MemorySet;
 import swaydb.java.serializers.Serializer;
@@ -396,18 +393,19 @@ abstract class SetTest extends TestBase {
   @Test
   void registerAndApplyFunction() {
 
-    PureFunction.OnKey<Integer, Void, Apply.Set<Void>> expire =
+    PureFunctionJava.OnSet<Integer> expire =
       (key, deadline) ->
         Apply.expireFromSet(Duration.ZERO);
 
     //does not compile
-    PureFunction.OnKeyValue<Integer, Integer, Apply.Set<Integer>> removeMod0OrIncrementBy1 = null;
+    PureFunctionJava.OnMapKeyValue<Integer, Integer> removeMod0OrIncrementBy1 = null;
 
     //this will not compile since the return type specified is a Set - expected!
-    PureFunction.OnKeyValue<Integer, Integer, Apply.Set<Integer>> function = null;
+    PureFunctionJava.OnSet<String> invalidSetFunction = null;
 
-    Set<Integer, PureFunction.OnKey<Integer, Void, Apply.Set<Void>>> set =
-      MemorySet.functionsOn(intSerializer(), Collections.singletonList(expire))
+    Set<Integer, PureFunction<Integer, Void, Apply.Set<Void>>> set =
+      MemorySet
+        .functionsOn(intSerializer(), Collections.singletonList(expire))
         .get();
 
     set.add(Stream.range(1, 100));

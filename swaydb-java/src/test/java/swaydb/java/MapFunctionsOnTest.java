@@ -42,6 +42,7 @@ import static org.junit.jupiter.api.Assumptions.*;
 import static swaydb.data.java.CommonAssertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 import static swaydb.java.serializers.Default.stringSerializer;
+import static swaydb.PureFunctionJava.*;
 
 abstract class MapFunctionsOnTest extends TestBase {
 
@@ -57,15 +58,15 @@ abstract class MapFunctionsOnTest extends TestBase {
                                                                                 KeyComparator<K> keyComparator) throws IOException;
 
 
-  PureFunction.OnKey<Integer, String, Apply.Map<String>> appendUpdated =
+  OnMapKey<Integer, String> appendUpdated =
     (key, deadline) ->
       Apply.update(key + " updated");
 
-  PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> incrementBy1 =
+  OnMapKeyValue<Integer, String> incrementBy1 =
     (key, value, deadline) ->
       Apply.update(key + 1 + "");
 
-  PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> removeMod0OrIncrementBy1 =
+  OnMapKeyValue<Integer, String> removeMod0OrIncrementBy1 =
     (key, value, deadline) -> {
       if (key % 10 == 0) {
         return Apply.removeFromMap();
@@ -75,12 +76,12 @@ abstract class MapFunctionsOnTest extends TestBase {
     };
 
   //add this function will not compile - invalid types!
-  PureFunction.OnKeyValue<String, String, Apply.Map<String>> invalidType1 =
+  OnMapKeyValue<String, String> invalidType1 =
     (key, value, deadline) ->
       Apply.update(value + 1);
 
   //add this function will not compile - invalid types!
-  PureFunction.OnKeyValue<String, Integer, Apply.Map<Integer>> invalidType2 =
+  OnMapKeyValue<String, Integer> invalidType2 =
     (key, value, deadline) ->
       Apply.update(value + 1);
 
@@ -91,7 +92,7 @@ abstract class MapFunctionsOnTest extends TestBase {
     MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
       createMap(intSerializer(), stringSerializer(), Collections.emptyList());
 
-    PureFunction.OnKeyValue<Integer, String, Apply.Map<String>> missingFunction =
+    OnMapKeyValue<Integer, String> missingFunction =
       (key, value, deadline) ->
         Apply.update(value + 1);
 

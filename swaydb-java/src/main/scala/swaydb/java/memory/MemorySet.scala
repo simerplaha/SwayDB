@@ -66,7 +66,7 @@ object MemorySet {
                            private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
                                                                                       serializer: Serializer[A],
                                                                                       functions: Functions[F],
-                                                                                      evd: F <:< PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) {
+                                                                                      evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -168,13 +168,13 @@ object MemorySet {
   }
 
   def functionsOn[A](serializer: JavaSerializer[A],
-                     functions: java.lang.Iterable[PureFunction.OnKey[A, Void, Apply.Set[Void]]]): Config[A, PureFunction.OnKey[A, Void, Apply.Set[Void]]] = {
+                     functions: java.lang.Iterable[PureFunction[A, Void, Apply.Set[Void]]]): Config[A, PureFunction[A, Void, Apply.Set[Void]]] = {
 
     implicit val scalaFunctions = functions.castToNothingFunctions
     implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
-    val config: Config[A, PureFunction.Set[A]] = new Config()
+    val config: Config[A, PureFunction[A, Nothing, Apply.Set[Nothing]]] = new Config()
 
-    config.asInstanceOf[Config[A, PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
+    config.asInstanceOf[Config[A, PureFunction[A, Void, Apply.Set[Void]]]]
   }
 
   def functionsOff[A](serializer: JavaSerializer[A]): Config[A, Void] = {
