@@ -10,7 +10,7 @@ val scalaLoggingVersion = "3.9.2"
 val scalaMockVersion = "5.0.0"
 val scalaTestVersion = "3.2.0"
 val reactiveStreamsVersion = "1.0.2"
-val boopickleVersion = "1.3.1"
+val boopickleVersion = "1.3.3"
 val monixVersion = "3.2.2"
 val zioVersion = "1.0.1"
 val catsEffectVersion = "2.0.0"
@@ -135,7 +135,20 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(swaydb)
-    .aggregate(swaydb, core, compression, data, configs, serializers, `swaydb-monix`, `swaydb-zio`, `swaydb-cats-effect`, `data-java`, `swaydb-java`)
+    .aggregate(
+      swaydb,
+      core,
+      compression,
+      data,
+      configs,
+      serializers,
+      `data-java`,
+      `swaydb-java`,
+      `serializer-boopickle`,
+      `swaydb-monix`,
+      `swaydb-zio`,
+      `swaydb-cats-effect`
+    )
 
 lazy val core =
   project
@@ -164,7 +177,7 @@ lazy val swaydb =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonDependencies(scalaVersion.value))
-    .dependsOn(core % "test->test;compile->compile", serializers, configs)
+    .dependsOn(core % "test->test;compile->compile", serializers, `serializer-boopickle` % "test->test", configs)
 
 lazy val configs =
   project
@@ -177,6 +190,13 @@ lazy val serializers =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(data)
+
+lazy val `serializer-boopickle` =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)
+    .dependsOn(serializers)
 
 lazy val `core-stress` =
   project

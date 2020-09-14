@@ -19,28 +19,21 @@
 
 package swaydb.api
 
-import java.util.concurrent.TimeUnit
-
-import swaydb.IO.ApiIO
 import swaydb.IOValues._
+import swaydb.PureFunctionScala._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.Functions
 import swaydb.data.RunThis._
-import swaydb.data.slice.Slice
 import swaydb.macros.Sealed
 import swaydb.serializers.Default._
-import swaydb.{Apply, IO, Map, Prepare, PureFunction, StorageIntImplicits}
+import swaydb.serializers.Serializer
+import swaydb.{Apply, IO, Prepare, PureFunction, StorageIntImplicits}
 
 import scala.collection.parallel.CollectionConverters._
-import scala.concurrent.duration.Deadline
-import swaydb.data.slice.Slice
-import swaydb.PureFunctionScala._
 
-protected sealed trait Key
-protected object Key {
-
-  import boopickle.Default._
+sealed trait Key
+object Key {
 
   case class Id(id: Int) extends Key
   sealed trait Function extends Key
@@ -61,43 +54,44 @@ protected object Key {
       Apply.Nothing
   }
 
-  implicit val deadlinePickler = transformPickler((nano: Long) => Deadline((nano, TimeUnit.NANOSECONDS)))(_.time.toNanos)
-
-  implicit object KeySerializer extends swaydb.serializers.Serializer[Key] {
-    override def write(data: Key): Slice[Byte] =
-      Slice(Pickle.intoBytes(data).array())
-
-    override def read(slice: Slice[Byte]): Key =
-      Unpickle[Key].fromBytes(slice.toByteBufferWrap)
-  }
+  import boopickle.Default._
+  implicit val serializer = swaydb.serializers.BooPickle[Key]
 }
 
 class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
 
-  override def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
-                       sweeper: TestCaseSweeper): Map[Key, Int, PureFunction.Map[Key, Int], ApiIO] =
-    swaydb.persistent.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
+  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
+                    keySerializer: Serializer[K],
+                    valueSerializer: Serializer[V],
+                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
 
-  override def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
-                       sweeper: TestCaseSweeper): Map[Key, Int, PureFunction.Map[Key, Int], ApiIO] =
-    swaydb.persistent.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO](randomDir, mapSize = 1.byte).right.value.sweep(_.delete().get)
+  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
+                    keySerializer: Serializer[K],
+                    valueSerializer: Serializer[V],
+                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+    swaydb.persistent.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](randomDir, mapSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
 
-  override def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
-                       sweeper: TestCaseSweeper): Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO] =
-    swaydb.memory.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO](mapSize = 1.byte).right.value.sweep(_.delete().get)
+  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
+                    keySerializer: Serializer[K],
+                    valueSerializer: Serializer[V],
+                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+    swaydb.memory.Map[K, V, PureFunction.Map[K, V], IO.ApiIO](mapSize = 1.byte).right.value.sweep(_.delete().get)
 }
 
 class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
 
-  override def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
-                       sweeper: TestCaseSweeper): Map[Key, Int, PureFunction.Map[Key, Int], ApiIO] =
-    swaydb.memory.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO]().right.value.sweep(_.delete().get)
+  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
+                    keySerializer: Serializer[K],
+                    valueSerializer: Serializer[V],
+                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO] =
+    swaydb.memory.Map[K, V, PureFunction.Map[K, V], IO.ApiIO]().right.value.sweep(_.delete().get)
 }
 
 //class SwayDBFunctionSpec4 extends SwayDBFunctionSpec {
@@ -113,11 +107,13 @@ class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
 
 sealed trait SwayDBFunctionSpec extends TestBase {
 
-  def newDB()(implicit functionStore: Functions[PureFunction.Map[Key, Int]],
-              sweeper: TestCaseSweeper): swaydb.Map[Key, Int, PureFunction.Map[Key, Int], IO.ApiIO]
+  def newDB[K, V]()(implicit functionStore: Functions[PureFunction.Map[K, V]],
+                    keySerializer: Serializer[K],
+                    valueSerializer: Serializer[V],
+                    sweeper: TestCaseSweeper): swaydb.Map[K, V, PureFunction.Map[K, V], IO.ApiIO]
 
+  "it" should {
 
-  "SwayDB" should {
     val functions = Sealed.list[Key.Function].collect { case function: PureFunction.Map[Key, Int] => function }
     implicit val functionsMap = Functions[PureFunction.Map[Key, Int]](functions)
 

@@ -140,7 +140,7 @@ object Slice {
     slice
   }
 
-  def createForJava(byteBuffer: ByteBuffer): Slice[java.lang.Byte] =
+  def fromBufferForJava(byteBuffer: ByteBuffer): Slice[java.lang.Byte] =
     new Slice[java.lang.Byte](
       array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
       fromOffset = byteBuffer.arrayOffset(),
@@ -148,7 +148,7 @@ object Slice {
       written = byteBuffer.position()
     )
 
-  def createForJava(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[java.lang.Byte] =
+  def fromBufferForJava(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[java.lang.Byte] =
     new Slice[java.lang.Byte](
       array = byteBuffer.array().asInstanceOf[Array[java.lang.Byte]],
       fromOffset = from,
@@ -156,7 +156,7 @@ object Slice {
       written = to - from + 1
     )
 
-  def createForScala(byteBuffer: ByteBuffer): Slice[Byte] =
+  def fromBufferForScala(byteBuffer: ByteBuffer): Slice[Byte] =
     new Slice[Byte](
       array = byteBuffer.array(),
       fromOffset = byteBuffer.arrayOffset(),
@@ -164,7 +164,7 @@ object Slice {
       written = byteBuffer.position()
     )
 
-  def createForScala(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[Byte] =
+  def fromBufferForScala(byteBuffer: ByteBuffer, from: Int, to: Int): Slice[Byte] =
     new Slice[Byte](
       array = byteBuffer.array(),
       fromOffset = from,
