@@ -94,7 +94,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
           rootMap.stream.materialize.toList shouldBe empty
 
           //assert
-          rootMap.innerMap.stream.materialize.toList shouldBe
+          getInnerMap(rootMap).stream.materialize.toList shouldBe
             List(
               (MultiKey.Start(MultiMap.rootMapId), MultiValue.None),
               (MultiKey.KeysStart(MultiMap.rootMapId), MultiValue.None),
@@ -120,7 +120,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
           rootMap.stream.materialize.toList should contain only((1, "one"), (2, "two"))
 
           //assert
-          rootMap.innerMap.stream.materialize.toList shouldBe
+          getInnerMap(rootMap).stream.materialize.toList shouldBe
             List(
               (MultiKey.Start(MultiMap.rootMapId), MultiValue.None),
               (MultiKey.KeysStart(MultiMap.rootMapId), MultiValue.None),
@@ -159,7 +159,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
             val expectedChildId = MultiMap.rootMapId + 1
 
             //assert
-            rootMap.innerMap.stream.materialize.toList shouldBe
+            getInnerMap(rootMap).stream.materialize.toList shouldBe
               List(
                 (MultiKey.Start(expectedRootId), MultiValue.None),
                 (MultiKey.KeysStart(expectedRootId), MultiValue.None),

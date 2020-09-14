@@ -19,28 +19,45 @@
 
 package swaydb.api
 
+import org.scalatest.PrivateMethodTester._
 import org.scalatest.exceptions.TestFailedException
 import swaydb.IO.ApiIO
 import swaydb.IOValues._
 import swaydb._
 import swaydb.core.CommonAssertions.eitherOne
-import swaydb.core.{TestBase, TestExecutionContext}
+import swaydb.core.{Core, TestBase, TestExecutionContext}
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.multimap.MultiKey
+import swaydb.multimap.{MultiKey, MultiValue}
 
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.slice.Slice
 
 trait TestBaseEmbedded extends TestBase {
 
   val keyValueCount: Int
 
+  implicit class MultiMapInnerMap[M, K, V, F, BAG[_]](root: MultiMap[M, K, V, F, BAG]) {
+    def innerMapReflection = {
+      val function = PrivateMethod[Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG]](Symbol("innerMap"))
+      root.invokePrivate(function())
+    }
+  }
+
+  def getInnerMap[M, K, V, F, BAG[_]](root: MultiMap[M, K, V, F, BAG]): Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG] = {
+    val function = PrivateMethod[Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG]](Symbol("innerMap"))
+    root.invokePrivate(function())
+  }
+
+  def getCore[A, F, BAG[_]](root: Set[A, F, BAG]): Core[BAG] = {
+    val function = PrivateMethod[Core[BAG]](Symbol("core"))
+    root.invokePrivate(function())
+  }
+
   def printMap[BAG[_]](root: MultiMap[_, _, _, _, BAG]): Unit = {
-    root.innerMap.toBag[Bag.Less].stream.materialize.foreach {
+    root.innerMapReflection.toBag[Bag.Less].stream.materialize.foreach {
       map =>
         println(map)
         map._1 match {
@@ -134,7 +151,7 @@ trait TestBaseEmbedded extends TestBase {
                       map.update(1, 1000000, value = "just triggering update to assert remove").right.value
 
                     case SetMap(set) =>
-                      set.core.update(fromKey = Slice.writeInt[Byte](1), to = Slice.writeInt[Byte](1000000), value = Slice.Null).right.value
+                      getCore(set).update(fromKey = Slice.writeInt[Byte](1), to = Slice.writeInt[Byte](1000000), value = Slice.Null).right.value
                   }
 
                   if (i == 100000) sleep(2.seconds)

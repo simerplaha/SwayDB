@@ -24,6 +24,7 @@
 
 package swaydb.core
 
+import java.nio.file.Path
 import java.util.function.Supplier
 
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -153,7 +154,7 @@ private[swaydb] object Core {
     }
 }
 
-private[swaydb] class Core[BAG[_]](val zero: LevelZero,
+private[swaydb] class Core[BAG[_]](zero: LevelZero,
                                    threadStateCache: ThreadStateCache,
                                    onClose: => Future[Unit])(implicit bag: Bag[BAG],
                                                              private[swaydb] val bufferSweeper: ByteBufferSweeperActor,
@@ -185,6 +186,9 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
           }
       }
     }
+
+  def zeroPath: Path =
+    zero.path
 
   @inline private def assertTerminated[T, BAG2[_]](f: => BAG2[T])(implicit bag: Bag[BAG2]): BAG2[T] =
     if (closed)

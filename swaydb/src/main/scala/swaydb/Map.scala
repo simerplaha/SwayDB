@@ -49,7 +49,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(imp
                                                                              val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   def path: Path =
-    core.zero.path.getParent
+    core.zeroPath.getParent
 
   def put(key: K, value: V): BAG[OK] =
     bag.suspend(core.put(key = key, value = value))

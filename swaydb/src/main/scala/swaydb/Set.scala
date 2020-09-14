@@ -42,11 +42,11 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  *
  * For documentation check - http://swaydb.io/
  */
-case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG])(implicit serializer: Serializer[A],
-                                                                          bag: Bag[BAG]) { self =>
+case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit serializer: Serializer[A],
+                                                                  bag: Bag[BAG]) { self =>
 
   def path: Path =
-    core.zero.path.getParent
+    core.zeroPath.getParent
 
   def get(elem: A): BAG[Option[A]] =
     bag.map(core.getKey(elem, core.readStates.get()))(_.mapC(_.read[A]))

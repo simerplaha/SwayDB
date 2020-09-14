@@ -177,7 +177,7 @@ object MultiMap {
  * [[MultiMap]] is just a simple extension that uses custom data types ([[MultiKey]]) and
  * KeyOrder ([[MultiKey.ordering]]) for it's API.
  */
-case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
+case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
                                                 mapKey: M,
                                                 private[swaydb] val mapId: Long,
                                                 defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
