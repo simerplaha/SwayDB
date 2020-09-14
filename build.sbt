@@ -17,7 +17,7 @@ val catsEffectVersion = "2.2.0"
 val scalaJava8CompatVersion = "0.9.1"
 val junitJupiterVersion = "5.6.2"
 val scalaParallelCollectionsVersion = "0.2.0"
-val scalaCollectionsCompact = "2.1.6"
+val scalaCollectionsCompact = "2.2.0"
 
 val scala212 = "2.12.12"
 val scala213 = "2.13.3"
