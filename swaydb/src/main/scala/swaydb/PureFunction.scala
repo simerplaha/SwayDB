@@ -56,22 +56,43 @@ sealed trait PureFunction[+K, +V, +R <: Apply[V]] {
  */
 object PureFunction {
 
+  //type alias for setting the type of
   type Map[K, V] = PureFunction[K, V, Apply.Map[V]]
 
-  type Set[A] = PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]
+  //type alias for Set OnKey function. Set do not have values (Nothing).
+  type Set[A] = OnKey[A, Nothing, Apply.Set[Nothing]]
 
+  //type alias for Map OnKey function.
+  type MapKey[K, V] = OnKey[K, V, Apply.Map[V]]
+
+  //type alias for Map OnKeyValue function.
+  type MapKeyValue[K, V] = OnKeyValue[K, V, Apply.Map[V]]
+
+  /**
+   * Fetches just the key and deadline information ignoring the value.
+   */
   trait OnKey[K, +V, R <: Apply[V]] extends ((K, Option[Deadline]) => R) with PureFunction[K, V, R] {
     override def apply(key: K, deadline: Option[Deadline]): R
   }
 
+  /**
+   * Fetches the key, value and deadline.
+   */
   trait OnKeyValue[K, V, R <: Apply[V]] extends ((K, V, Option[Deadline]) => R) with PureFunction[K, V, R] {
     override def apply(key: K, value: V, deadline: Option[Deadline]): R
   }
 
-  def isOff[F](implicit classTag: ClassTag[F]): Boolean =
+
+  /** *********************************
+   * **********************************
+   * ******* FOR INTERNAL USE *********
+   * **********************************
+   * ********************************** */
+
+  private[swaydb] def isOff[F](implicit classTag: ClassTag[F]): Boolean =
     classTag == ClassTag.Nothing || classTag == ClassTag.Unit || classTag == ClassTag.Null || classTag == ClassTag(classOf[Void])
 
-  def isOn[F](implicit classTag: ClassTag[F]): Boolean =
+  private[swaydb] def isOn[F](implicit classTag: ClassTag[F]): Boolean =
     !isOff(classTag)
 
   /**

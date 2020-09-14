@@ -70,7 +70,7 @@ val publishSettings = Seq[Setting[_]](
   publishMavenStyle := true,
   licenses := Seq("LAGPL3" -> url("https://github.com/simerplaha/SwayDB/blob/master/LICENSE.md")),
   publish := {},
-  publishLocal := {},
+//  publishLocal := {},
   sonatypeProjectHosting := Some(GitHubHosting("simerplaha", "SwayDB", "simer.j@gmail.com")),
   developers := List(
     Developer(id = "simerplaha", name = "Simer JS Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))

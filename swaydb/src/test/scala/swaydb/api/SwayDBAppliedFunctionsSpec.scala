@@ -64,8 +64,9 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
 
               val dir = createRandomDir
 
-              val function: PureFunction.OnKey[Int, String, Apply.Map[String]] =
-                (key: Int, deadline: Option[Deadline]) => fail("There is no data for this function to execute")
+              val function: PureFunction.MapKey[Int, String] =
+                (key: Int, deadline: Option[Deadline]) =>
+                  fail("There is no data for this function to execute")
 
               implicit val functions = Functions[PureFunction.Map[Int, String]](function)
               val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Less](dir)
@@ -89,13 +90,13 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
             val dir = createRandomDir
 
             val function1 =
-              new PureFunction.OnKey[Int, String, Apply.Map[String]] {
+              new PureFunction.MapKey[Int, String] {
                 override def apply(key: Int, deadline: Option[Deadline]): Apply.Map[String] =
                   fail("There is no data for this function to execute")
               }
 
             val function2 =
-              new PureFunction.OnKey[Int, String, Apply.Map[String]] {
+              new PureFunction.MapKey[Int, String] {
                 override def apply(key: Int, deadline: Option[Deadline]): Apply.Map[String] =
                   fail("There is no data for this function to execute")
               }
@@ -129,13 +130,13 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
             val dir = createRandomDir
 
             val noDataToApply =
-              new PureFunction.OnKey[Int, String, Apply.Map[String]] {
+              new PureFunction.MapKey[Int, String] {
                 override def apply(key: Int, deadline: Option[Deadline]): Apply.Map[String] =
                   fail("There is no data for this function to execute")
               }
 
             val hasData =
-              new PureFunction.OnKey[Int, String, Apply.Map[String]] {
+              new PureFunction.MapKey[Int, String] {
                 override def apply(key: Int, deadline: Option[Deadline]): Apply.Map[String] =
                   Apply.Nothing
               }
