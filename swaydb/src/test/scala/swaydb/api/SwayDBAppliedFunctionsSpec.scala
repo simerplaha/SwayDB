@@ -190,13 +190,13 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
             val dir = createRandomDir
 
             val noDataToApply =
-              new PureFunction.OnKey[Int, String, Apply.Map[String]] {
+              new PureFunction.Key[Int, String, Apply.Map[String]] {
                 override def apply(key: Int, deadline: Option[Deadline]): Apply.Map[String] =
                   fail("There is no data for this function to execute")
               }
 
             val hasData =
-              new PureFunction.OnKey[Int, String, Apply.Map[String]] {
+              new PureFunction.Key[Int, String, Apply.Map[String]] {
                 override def apply(key: Int, deadline: Option[Deadline]): Apply.Map[String] =
                   Apply.Nothing
               }
@@ -236,7 +236,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
           val functions =
             (1 to 1000) map {
               i =>
-                new PureFunction.OnKey[Int, String, Apply.Map[String]] {
+                new PureFunction.Key[Int, String, Apply.Map[String]] {
                   override def apply(key: Int, deadline: Option[Deadline]): Apply.Map[String] =
                     fail("There is no data for this function to execute")
 

@@ -77,19 +77,19 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
   "apply and register function" when {
     //register all types of functions
     val onKeyValueFunction =
-      new PureFunction.OnKeyValue[Int, String, Apply.Map[String]] {
+      new PureFunction.KeyValue[Int, String, Apply.Map[String]] {
         override def apply(key: Int, value: String, deadline: Option[Deadline]): Apply.Map[String] =
           Apply.Update("updated1")
       }
 
     val onValueFunction =
-      new PureFunction.OnKeyValue[Int, String, Apply.Map[String]] {
+      new PureFunction.KeyValue[Int, String, Apply.Map[String]] {
         override def apply(key: Int, value: String, deadline: Option[Deadline]): Apply.Map[String] =
           Apply.Update("updated2")
       }
 
     val onKeyFunction =
-      new PureFunction.OnKey[Int, String, Apply.Map[String]] {
+      new PureFunction.Key[Int, String, Apply.Map[String]] {
         override def apply(key: Int, deadline: Option[Deadline]): Apply.Map[String] =
           Apply.Update("updated3")
       }

@@ -58,30 +58,52 @@ sealed trait PureFunction[+K, +V, R <: Apply[V]] {
  */
 object PureFunction {
 
-  //type alias for setting the type of Map
+  //Default function type for Map
   type Map[K, V] = PureFunction[K, V, Apply.Map[V]]
 
-  //type alias for setting the type of Map
+  //Default function type for Set
   type Set[K] = PureFunction[K, Nothing, Apply.Set[Nothing]]
 
   //type alias for Set OnKey function. Set do not have values (Nothing).
-  type OnSetEntry[A] = OnKey[A, Nothing, Apply.Set[Nothing]]
+  type OnSetEntry[A] = Key[A, Nothing, Apply.Set[Nothing]]
 
   //type alias for Map OnKey function.
-  type OnMapKey[K, V] = OnKey[K, V, Apply.Map[V]]
+  type OnMapKey[K, V] = Key[K, V, Apply.Map[V]]
+
+  //type alias for Map OnValue function.
+  type OnMapValue[V] = Value[V, Apply.Map[V]]
 
   //type alias for Map OnKeyValue function.
-  type OnMapKeyValue[K, V] = OnKeyValue[K, V, Apply.Map[V]]
+  type OnMapKeyValue[K, V] = KeyValue[K, V, Apply.Map[V]]
+
+  /** ******************************************************************************
+   * *******************************************************************************
+   * ******* Use the types prefixed with On* for a shorter function syntax. ********
+   * *******************************************************************************
+   * * ***************************************************************************** */
 
   /**
    * Fetches only the key and deadline ignoring the value.
    */
-  trait OnKey[K, +V, R <: Apply[V]] extends ((K, Option[Deadline]) => R) with PureFunction[K, V, R]
+  trait Key[K, V, R <: Apply[V]] extends ((K, Option[Deadline]) => R) with PureFunction[K, V, R] {
+    override def apply(key: K, deadline: Option[Deadline]): R
+  }
+
+  /**
+   * Applies to value.
+   */
+  trait Value[V, R <: Apply[V]] extends (V => R) with PureFunction[Nothing, V, R] {
+    override def apply(value: V): R
+  }
+
 
   /**
    * Fetches the key, value and deadline.
    */
-  trait OnKeyValue[K, V, R <: Apply[V]] extends ((K, V, Option[Deadline]) => R) with PureFunction[K, V, R]
+  trait KeyValue[K, V, R <: Apply[V]] extends ((K, V, Option[Deadline]) => R) with PureFunction[K, V, R] {
+    override def apply(key: K, value: V, deadline: Option[Deadline]): R
+  }
+
 
   /** *********************************
    * **********************************
@@ -123,15 +145,28 @@ object PureFunctionJava {
   /**
    * Applies to Set entries.
    */
-  trait OnSet[K] extends ((K, Optional[Expiration]) => Apply.Set[Void]) with PureFunction[K, Void, Apply.Set[Void]]
+  trait OnSet[K] extends ((K, Optional[Expiration]) => Apply.Set[Void]) with PureFunction[K, Void, Apply.Set[Void]] {
+    override def apply(key: K, expiration: Optional[Expiration]): Apply.Set[Void]
+  }
 
   /**
    * Applies to a Map's key. Value is not read.
    */
-  trait OnMapKey[K, V] extends ((K, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]]
+  trait OnMapKey[K, V] extends ((K, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(key: K, expiration: Optional[Expiration]): Apply.Map[V]
+  }
+
+  /**
+   * Applies to a Map's key. Value is not read.
+   */
+  trait OnMapValue[K, V] extends (V => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(value: V): Apply.Map[V]
+  }
 
   /**
    * Applies to a Map's key and value.
    */
-  trait OnMapKeyValue[K, V] extends ((K, V, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]]
+  trait OnMapKeyValue[K, V] extends ((K, V, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+    override def apply(key: K, value: V, expiration: Optional[Expiration]): Apply.Map[V]
+  }
 }

@@ -179,7 +179,7 @@ object MemorySet {
 
   def functionsOff[A](serializer: JavaSerializer[A]): Config[A, Void] = {
     implicit val scalaSerializer: Serializer[A] = SerializerConverter.toScala(serializer)
-    implicit val evd: Void <:< PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]] = null
+    implicit val evd: Void <:< PureFunction.Key[A, Nothing, Apply.Set[Nothing]] = null
 
     new Config()
   }
