@@ -90,7 +90,7 @@ object Build extends LazyLogging {
       val slice = BuildSerialiser.write(buildInfo)
 
       Effect.createDirectoriesIfAbsent(folder)
-      logger.info(s"Writing build.info - v${buildInfo.version}")
+      logger.debug(s"Writing build.info - v${buildInfo.version.version}")
       Effect.write(file, slice)
     }
 
@@ -107,7 +107,7 @@ object Build extends LazyLogging {
           IO {
             val bytes = Effect.readAllBytes(file)
             val buildInfo = BuildSerialiser.read(bytes, file)
-            logger.info(s"build.info - v${buildInfo.version}")
+            logger.debug(s"build.info - v${buildInfo.version.version}")
             buildInfo
           }
     }
