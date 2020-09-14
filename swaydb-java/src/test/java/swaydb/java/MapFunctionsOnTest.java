@@ -58,15 +58,17 @@ abstract class MapFunctionsOnTest extends TestBase {
                                                                                 KeyComparator<K> keyComparator) throws IOException;
 
 
-  OnMapKey<Integer, String> appendUpdated =
+  OnKey<Integer, String> appendUpdated =
     (key, deadline) ->
       Apply.update(key + " updated");
 
-  OnMapKeyValue<Integer, String> incrementBy1 =
+  OnKeyValue<Integer, String> incrementBy1 =
     (key, value, deadline) ->
       Apply.update(key + 1 + "");
 
-  OnMapKeyValue<Integer, String> removeMod0OrIncrementBy1 =
+  OnValue<Integer, String> doNothingWithValue = Apply::update;
+
+  OnKeyValue<Integer, String> removeMod0OrIncrementBy1 =
     (key, value, deadline) -> {
       if (key % 10 == 0) {
         return Apply.removeFromMap();
@@ -76,12 +78,12 @@ abstract class MapFunctionsOnTest extends TestBase {
     };
 
   //add this function will not compile - invalid types!
-  OnMapKeyValue<String, String> invalidType1 =
+  OnKeyValue<String, String> invalidType1 =
     (key, value, deadline) ->
       Apply.update(value + 1);
 
   //add this function will not compile - invalid types!
-  OnMapKeyValue<String, Integer> invalidType2 =
+  OnKeyValue<String, Integer> invalidType2 =
     (key, value, deadline) ->
       Apply.update(value + 1);
 
@@ -92,7 +94,7 @@ abstract class MapFunctionsOnTest extends TestBase {
     MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
       createMap(intSerializer(), stringSerializer(), Collections.emptyList());
 
-    OnMapKeyValue<Integer, String> missingFunction =
+    OnKeyValue<Integer, String> missingFunction =
       (key, value, deadline) ->
         Apply.update(value + 1);
 
@@ -106,7 +108,7 @@ abstract class MapFunctionsOnTest extends TestBase {
     assumeTrue(this::isPersistent, "IGNORED! Test not needed for memory databases");
 
     MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
-      createMap(intSerializer(), stringSerializer(), Arrays.asList(appendUpdated, incrementBy1, removeMod0OrIncrementBy1));
+      createMap(intSerializer(), stringSerializer(), Arrays.asList(appendUpdated, incrementBy1, removeMod0OrIncrementBy1, doNothingWithValue));
 
     map.applyFunction(1, appendUpdated);
     map.applyFunction(2, removeMod0OrIncrementBy1);
@@ -141,7 +143,7 @@ abstract class MapFunctionsOnTest extends TestBase {
   @Test
   void registerAndApplyFunction() throws IOException {
     MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
-      createMap(intSerializer(), stringSerializer(), Arrays.asList(appendUpdated, incrementBy1, removeMod0OrIncrementBy1));
+      createMap(intSerializer(), stringSerializer(), Arrays.asList(appendUpdated, incrementBy1, removeMod0OrIncrementBy1, doNothingWithValue));
 
     map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + "")));
 
@@ -153,6 +155,8 @@ abstract class MapFunctionsOnTest extends TestBase {
 
 
     map.applyFunction(21, 50, removeMod0OrIncrementBy1);
+
+    map.applyFunction(21, 50, doNothingWithValue);
 
     foreachRange(
       21,

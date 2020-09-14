@@ -65,16 +65,16 @@ object PureFunction {
   type Set[K] = PureFunction[K, Nothing, Apply.Set[Nothing]]
 
   //type alias for Set OnKey function. Set do not have values (Nothing).
-  type OnSetEntry[A] = Key[A, Nothing, Apply.Set[Nothing]]
+  type OnEntry[A] = Key[A, Nothing, Apply.Set[Nothing]]
 
   //type alias for Map OnKey function.
-  type OnMapKey[K, V] = Key[K, V, Apply.Map[V]]
+  type OnKey[K, V] = Key[K, V, Apply.Map[V]]
 
   //type alias for Map OnValue function.
-  type OnMapValue[V] = Value[V, Apply.Map[V]]
+  type OnValue[V] = Value[V, Apply.Map[V]]
 
   //type alias for Map OnKeyValue function.
-  type OnMapKeyValue[K, V] = KeyValue[K, V, Apply.Map[V]]
+  type OnKeyValue[K, V] = KeyValue[K, V, Apply.Map[V]]
 
   /** ******************************************************************************
    * *******************************************************************************
@@ -145,28 +145,28 @@ object PureFunctionJava {
   /**
    * Applies to Set entries.
    */
-  trait OnSet[K] extends ((K, Optional[Expiration]) => Apply.Set[Void]) with PureFunction[K, Void, Apply.Set[Void]] {
+  trait OnEntry[K] extends ((K, Optional[Expiration]) => Apply.Set[Void]) with PureFunction[K, Void, Apply.Set[Void]] {
     override def apply(key: K, expiration: Optional[Expiration]): Apply.Set[Void]
   }
 
   /**
    * Applies to a Map's key. Value is not read.
    */
-  trait OnMapKey[K, V] extends ((K, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+  trait OnKey[K, V] extends ((K, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
     override def apply(key: K, expiration: Optional[Expiration]): Apply.Map[V]
   }
 
   /**
    * Applies to a Map's key. Value is not read.
    */
-  trait OnMapValue[K, V] extends (V => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+  trait OnValue[K, V] extends (V => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
     override def apply(value: V): Apply.Map[V]
   }
 
   /**
    * Applies to a Map's key and value.
    */
-  trait OnMapKeyValue[K, V] extends ((K, V, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
+  trait OnKeyValue[K, V] extends ((K, V, Optional[Expiration]) => Apply.Map[V]) with PureFunction[K, V, Apply.Map[V]] {
     override def apply(key: K, value: V, expiration: Optional[Expiration]): Apply.Map[V]
   }
 }

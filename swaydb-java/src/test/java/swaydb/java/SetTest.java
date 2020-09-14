@@ -393,15 +393,15 @@ abstract class SetTest extends TestBase {
   @Test
   void registerAndApplyFunction() {
 
-    PureFunctionJava.OnSet<Integer> expire =
+    PureFunctionJava.OnEntry<Integer> expire =
       (key, deadline) ->
         Apply.expireFromSet(Duration.ZERO);
 
     //does not compile
-    PureFunctionJava.OnMapKeyValue<Integer, Integer> removeMod0OrIncrementBy1 = null;
+    PureFunctionJava.OnKeyValue<Integer, Integer> removeMod0OrIncrementBy1 = null;
 
     //this will not compile since the return type specified is a Set - expected!
-    PureFunctionJava.OnSet<String> invalidSetFunction = null;
+    PureFunctionJava.OnEntry<String> invalidSetFunction = null;
 
     Set<Integer, PureFunction<Integer, Void, Apply.Set<Void>>> set =
       MemorySet
