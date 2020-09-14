@@ -14,16 +14,15 @@
 
 Embeddable **persistent** and **in-memory** key-value storage engine aimed for **high performance** & **resource efficiency**. 
 
-Data is managed by creating familiar data structures like `Map`, `Set`, `Queue` `MultiMap`, `SetMap` and can easily be converted 
+Manage data by creating familiar data structures like `Map`, `Set`, `Queue` `MultiMap`, `SetMap` that can easily be converted 
 to native Java and Scala collections.
   
-Conditional updates/data modifications can be performed by submitting any **Java**, **Scala**, **Kotlin** or any 
-**native JVM** code - **No query language**.
+Perform conditional updates/data modifications with any **Java**, **Scala**, **Kotlin** or any **native JVM** code - **No query language**.
 
 __Scalable on a single machine__ - Data can be stored on multiple local __HDD/SSD__ and, single or multiple __Threads__ 
 can be allocated for reads, caching & compaction.
 
-SwayDB's core is **non-blocking**, but the APIs can be configured to be blocking, non-blocking and/or reactive.   
+SwayDB's core is **non-blocking**, but the APIs are configurable to be blocking, non-blocking and/or reactive.   
 
 Highly configurable to suit **different workloads**. Some use-cases are:
 - General key-value storage
