@@ -86,13 +86,13 @@ private[core] object LevelZero extends LazyLogging {
 
   def createAppliedFunctionsMap(databaseDirectory: Path,
                                 appliedFunctionsMapSize: Long,
-                                mmap: MMAP.Map)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                bufferCleaner: ByteBufferSweeperActor,
+                                mmap: MMAP.Map)(implicit bufferCleaner: ByteBufferSweeperActor,
                                                 forceSaveApplier: ForceSaveApplier): RecoveryResult[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]] = {
     implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
     implicit val functionsEntryReader = FunctionsMapEntryReader.FunctionsPutMapEntryReader
     implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](LevelZero.appliedFunctionsFolderName)
     implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
+    implicit val keyOrder = KeyOrder.default
 
     map.Map.persistent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](
       nullKey = Slice.Null,

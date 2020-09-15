@@ -25,6 +25,7 @@
 package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
+import swaydb.PureFunctionScala._
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
@@ -34,7 +35,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{Apply, Bag, MultiMap, Prepare, PureFunction}
-import swaydb.PureFunctionScala._
 
 import scala.concurrent.duration._
 
