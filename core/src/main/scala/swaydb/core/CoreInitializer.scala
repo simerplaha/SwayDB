@@ -106,11 +106,8 @@ private[core] object CoreInitializer extends LazyLogging {
   def addShutdownHook[BAG[_]](core: Core[BAG],
                               shutdownTimeout: FiniteDuration): ShutdownHookThread =
     sys.addShutdownHook {
-      if (core.state != CoreState.Closed) {
-        import scala.concurrent.ExecutionContext.Implicits.global
-        val future = Future(core.closeWithBag[Bag.Less]())
-        Await.result(future, shutdownTimeout)
-      }
+      if (core.state != CoreState.Closed)
+        core.closeWithBag[Bag.Less]()
     }
 
   /**
