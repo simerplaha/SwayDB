@@ -40,6 +40,9 @@ import scala.jdk.CollectionConverters._
  * converting an [[IO]] type to [[scala.util.Try]] by the client using [[toTry]].
  */
 object Exception {
+
+  val maxFunctionsToLog = 2
+
   case class Busy(error: Error.Recoverable) extends Exception("Is busy")
   case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Exception(s"Failed to open file $file")
   case class NoSuchFile(file: Path) extends Exception(s"No such file $file")
@@ -52,16 +55,25 @@ object Exception {
   case object NotSentToNextLevel extends Exception("Not sent to next Level")
   case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
 
+  /**
+   * Report missing functions.
+   */
   def pluralFunction(size: Int) =
     if (size == 1)
       "function"
     else
       "functions"
 
+  def listMissingFunctions(functions: Iterable[String]) =
+    if (functions.size <= maxFunctionsToLog)
+      s"""List(${functions.take(maxFunctionsToLog).map(id => s""""$id"""").mkString(", ")})"""
+    else
+      s"""List(${functions.take(maxFunctionsToLog).map(id => s""""$id"""").mkString("", ", ", ", ...")})"""
+
   def missingFunctionsMessage(functions: Iterable[String]) =
-    s"Missing ${functions.size} ${pluralFunction(functions.size)}. List(${functions.take(2).map(id => s""""$id"""").mkString(", ")})" + {
-      if (functions.size > 2)
-        s"... See this exception's 'functions' value for a list of missing functions. " +
+    s"Missing ${functions.size} ${pluralFunction(functions.size)}. ${listMissingFunctions(functions)}" + {
+      if (functions.size > maxFunctionsToLog)
+        s". See this exception's 'functions' value for a list of missing functions. " +
           s"Or set 'clearAppliedFunctionsOnBoot = true' to clear already applied functions."
       else
         "."
