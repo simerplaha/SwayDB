@@ -27,7 +27,7 @@ package swaydb.monix
 import monix.eval._
 import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, IO, Serial}
+import swaydb.{Actor, Bag, IO, Serial}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
@@ -60,6 +60,9 @@ object Bag {
 
           override def terminate(): Task[Unit] =
             actor.terminateAndClear[Task]()(self)
+
+          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+            actor.terminateAndClear[BAG]()(bag)
         }
 
       override val unit: Task[Unit] =

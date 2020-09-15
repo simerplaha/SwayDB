@@ -25,6 +25,7 @@
 package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
+import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -39,10 +40,12 @@ private[swaydb] object FunctionsMapEntryWriter {
     override def write(entry: MapEntry.Put[Slice[Byte], Slice.Null.type], bytes: Slice[Byte]): Unit =
       bytes
         .add(id)
+        .addUnsignedInt(entry.key.size)
         .addAll(entry.key)
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Slice.Null.type]): Int =
       ByteSizeOf.byte +
+        Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size
   }
 
@@ -55,10 +58,12 @@ private[swaydb] object FunctionsMapEntryWriter {
     override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
       bytes
         .add(id)
+        .addUnsignedInt(entry.key.size)
         .addAll(entry.key)
 
     override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
       ByteSizeOf.byte +
+        Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size
   }
 }

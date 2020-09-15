@@ -17,19 +17,37 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb
+package swaydb.core
 
-trait Serial[T[_]] {
+import scala.beans.BeanProperty
 
-  def execute[F](f: => F): T[F]
+object CoreState {
+  sealed trait State {
+    val isRunning: Boolean
+    def isNotRunning: Boolean =
+      !isRunning
+  }
 
-  def terminate(): T[Unit]
+  case object Running extends State {
+    override val isRunning: Boolean = true
+  }
 
-  def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
+  case object Closing extends State {
+    override val isRunning: Boolean = false
+  }
 
+  case object Closed extends State {
+    override val isRunning: Boolean = false
+  }
+}
+
+case class CoreState(@BeanProperty @volatile var state: CoreState.State = CoreState.Running) {
+  @inline def isRunning = state.isRunning
+
+  @inline def isNotRunning = state.isNotRunning
 }

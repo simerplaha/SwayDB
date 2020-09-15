@@ -93,7 +93,7 @@ private[core] object BlockCache extends LazyLogging {
     blockCache.foreach(close)
 
   def close(blockCache: BlockCache.State): Unit = {
-    logger.info("Cleared BlockCache")
+    logger.info("Cleared BlockCache!")
     blockCache.clear()
     blockCache.sweeper.terminateAndClear()
   }

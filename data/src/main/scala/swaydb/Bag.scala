@@ -243,6 +243,9 @@ object Bag extends LazyLogging {
 
             override def terminate(): X[Unit] =
               transfer.to(selfSerial.terminate())
+
+            override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+              selfSerial.terminateBag()(bag)
           }
 
         override def exception[A](a: X[A]): Option[Throwable] =
@@ -288,6 +291,9 @@ object Bag extends LazyLogging {
 
             override def terminate(): X[Unit] =
               transfer.to(selfSerial.terminate())
+
+            override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+              selfSerial.terminateBag()(bag)
           }
 
         override def fromPromise[A](a: Promise[A]): X[A] =
@@ -339,6 +345,9 @@ object Bag extends LazyLogging {
 
           override def terminate(): ThrowableIO[Unit] =
             IO.unit
+
+          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+            bag.unit
         }
 
       override def apply[A](a: => A): IO.ThrowableIO[A] =
@@ -426,6 +435,9 @@ object Bag extends LazyLogging {
 
           override def terminate(): ApiIO[Unit] =
             IO.unit
+
+          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+            bag.unit
         }
 
       override def foreach[A](a: ApiIO[A])(f: A => Unit): Unit =
@@ -490,6 +502,9 @@ object Bag extends LazyLogging {
 
           override def terminate(): Try[Unit] =
             Success(())
+
+          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+            bag.unit
         }
 
       override def foreach[A](a: Try[A])(f: A => Unit): Unit =
@@ -545,6 +560,9 @@ object Bag extends LazyLogging {
 
           override def terminate(): Less[Unit] =
             ()
+
+          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+            bag.unit
         }
 
       override def foreach[A](a: Less[A])(f: A => Unit): Unit = f(a)
@@ -588,6 +606,9 @@ object Bag extends LazyLogging {
 
           override def terminate(): Future[Unit] =
             actor.terminateAndClear[Future]()(self)
+
+          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+            actor.terminateAndClear[BAG]()(bag)
         }
 
       override val unit: Future[Unit] =

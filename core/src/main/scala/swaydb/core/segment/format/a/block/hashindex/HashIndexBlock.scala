@@ -44,9 +44,9 @@ import scala.beans.BeanProperty
 /**
  * HashIndex.
  */
-private[core] object HashIndexBlock extends LazyLogging {
+private[core] case object HashIndexBlock extends LazyLogging {
 
-  val blockName = this.getClass.getSimpleName.dropRight(1)
+  val blockName = this.productPrefix
 
   object Config {
     val disabled =

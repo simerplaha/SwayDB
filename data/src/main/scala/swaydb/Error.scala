@@ -316,7 +316,7 @@ object Error {
   }
 
   case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.getClass.getSimpleName}. Path: $path")
+    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.productPrefix}. Path: $path")
     override def exception: Throwable = exp getOrElse {
       path match {
         case Some(path) =>
@@ -329,19 +329,19 @@ object Error {
   }
 
   case class FileNotFound(exception: FileNotFoundException) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.getClass.getSimpleName}")
+    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.productPrefix}")
   }
 
   case class AsynchronousClose(exception: AsynchronousCloseException) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.getClass.getSimpleName}")
+    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.productPrefix}")
   }
 
   case class ClosedChannel(exception: ClosedChannelException) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.getClass.getSimpleName}")
+    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.productPrefix}")
   }
 
   case class NullMappedByteBuffer(exception: Exception.NullMappedByteBuffer) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.getClass.getSimpleName}")
+    override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.productPrefix}")
   }
 
   case class ReservedResource(reserve: Reserve[Unit]) extends Recoverable with Error.Close with Error.Delete with Error.Boot with Error.API {

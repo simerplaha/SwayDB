@@ -41,8 +41,9 @@ import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
-object SegmentFooterBlock {
-  val blockName = this.getClass.getSimpleName.dropRight(1)
+private[core] case object SegmentFooterBlock {
+
+  val blockName = this.productPrefix
 
   object Config {
     def default =

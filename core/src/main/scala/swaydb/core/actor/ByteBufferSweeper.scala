@@ -44,9 +44,9 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
-private[swaydb] object ByteBufferSweeper extends LazyLogging {
+private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
-  val className = ByteBufferSweeper.getClass.getSimpleName.split("\\$").last
+  val className = this.productPrefix
 
   type ByteBufferSweeperActor = CacheNoIO[Unit, ActorRef[Command, State]]
 
@@ -470,7 +470,7 @@ private[swaydb] object ByteBufferSweeper extends LazyLogging {
                                                            actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ByteBufferSweeperActor =
     Cache.noIO[Unit, ActorRef[Command, State]](synchronised = true, stored = true, initial = None) {
       (_, _) =>
-        logger.info("Starting ByteBuffer cleaner for memory-mapped files.")
+        logger.info(s"Starting ${this.productPrefix} for memory-mapped files.")
         createActor(
           maxDeleteRetries = maxDeleteRetries,
           messageReschedule = messageReschedule

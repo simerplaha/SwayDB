@@ -40,9 +40,9 @@ import swaydb.data.util.{Functions, Maybe}
 
 import scala.annotation.tailrec
 
-private[core] object BinarySearchIndexBlock {
+private[core] case object BinarySearchIndexBlock {
 
-  val blockName = this.getClass.getSimpleName.dropRight(1)
+  val blockName = this.productPrefix
 
   object Config {
 

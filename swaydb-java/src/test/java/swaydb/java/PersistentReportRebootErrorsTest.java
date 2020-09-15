@@ -26,6 +26,7 @@ package swaydb.java;
 
 import org.junit.jupiter.api.Test;
 import swaydb.Exception;
+import swaydb.data.DataType;
 import swaydb.data.java.TestBase;
 import swaydb.java.persistent.PersistentMap;
 import swaydb.java.persistent.PersistentSet;
@@ -35,7 +36,7 @@ import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static swaydb.data.java.CommonAssertions.shouldInclude;
+import static swaydb.data.java.CommonAssertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
 
@@ -52,7 +53,8 @@ public class PersistentReportRebootErrorsTest extends TestBase {
     map.close();
 
     Exception.InvalidDirectoryType exception = assertThrows(Exception.InvalidDirectoryType.class, () -> PersistentSet.functionsOff(path, intSerializer()).get());
-    shouldInclude(exception.getMessage(), "Invalid type");
+    shouldBe(exception.invalidType(), DataType.set());
+    shouldBe(exception.expected(), DataType.map());
   }
 
   @Test

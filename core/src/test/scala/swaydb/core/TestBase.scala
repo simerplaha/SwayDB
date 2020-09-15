@@ -62,7 +62,7 @@ import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -687,7 +687,19 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     compaction foreach {
       implicit compaction =>
-        CoreShutdown.close(level0).await(10.seconds)
+        val termination =
+          compaction
+            .ask
+            .flatMap {
+              (impl, state, self) =>
+                impl.terminate(state, self)
+            }
+            .flatMap {
+              _ =>
+                level0.close()
+            }
+
+        termination.await(10.seconds)
     }
 
     level0.delete().await(10.seconds)

@@ -103,17 +103,15 @@ private[core] object CoreInitializer extends LazyLogging {
         )
     }
 
-  def addShutdownHook(zero: LevelZero,
-                      shutdownTimeout: FiniteDuration)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
-                                                       shutdownEC: ExecutionContext): ShutdownHookThread =
+  def addShutdownHook[BAG[_]](core: Core[BAG],
+                              shutdownTimeout: FiniteDuration): ShutdownHookThread =
     sys.addShutdownHook {
-      implicit val bag = Bag.less
-      Await.result(CoreShutdown.close(zero), shutdownTimeout)
+      if (core.state != CoreState.Closed) {
+        import scala.concurrent.ExecutionContext.Implicits.global
+        val future = Future(core.closeWithBag[Bag.Less]())
+        Await.result(future, shutdownTimeout)
+      }
     }
-
-  def onClose(zero: LevelZero)(implicit compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
-                               shutdownEC: ExecutionContext): Future[Unit] =
-    CoreShutdown.close(zero)
 
   /**
    * Initialises Core/Levels. To see full documentation for each input parameter see the website - http://swaydb.io/configurations/.
@@ -274,16 +272,22 @@ private[core] object CoreInitializer extends LazyLogging {
                       ) map {
                         implicit compactor =>
 
-                          addShutdownHook(zero, shutdownTimeout)
-
                           //trigger initial wakeUp.
                           sendInitialWakeUp(compactor)
 
-                          new Core[Bag.Less](
-                            zero = zero,
-                            threadStateCache = threadStateCache,
-                            onClose = onClose(zero)
+                          val core =
+                            new Core[Bag.Less](
+                              zero = zero,
+                              threadStateCache = threadStateCache,
+                              coreState = CoreState()
+                            )
+
+                          addShutdownHook(
+                            core = core,
+                            shutdownTimeout = shutdownTimeout
                           )
+
+                          core
                       }
                   }
               }

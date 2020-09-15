@@ -42,7 +42,7 @@ private[core] trait FileSweeperItem {
 /**
  * Actor that manages closing and delete files that are overdue.
  */
-private[swaydb] object FileSweeper extends LazyLogging {
+private[swaydb] case object FileSweeper extends LazyLogging {
 
   type FileSweeperActor = ActorRef[FileSweeper.Command, Unit]
 
@@ -105,14 +105,14 @@ private[swaydb] object FileSweeper extends LazyLogging {
                            bag: Bag.Async[BAG]): BAG[Unit] =
     bag.transform(fileSweeper.terminateAndRecover()) {
       _ =>
-        logger.info(this.getClass.getSimpleName + " terminated!")
+        logger.info(this.productPrefix + " terminated!")
     }
 
   def closeSync[BAG[_]]()(implicit fileSweeper: FileSweeperActor,
                           bag: Bag.Sync[BAG]): BAG[Unit] =
     bag.transform(fileSweeper.terminateAndRecover()) {
       _ =>
-        logger.info(this.getClass.getSimpleName + " terminated!")
+        logger.info(this.productPrefix + " terminated!")
     }
 
   private def processCommand(command: Command): Unit =

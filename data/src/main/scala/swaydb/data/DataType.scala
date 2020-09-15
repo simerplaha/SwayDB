@@ -33,11 +33,13 @@ sealed trait DataType {
 
 object DataType {
 
+  def map(): DataType = Map //for java
   case object Map extends DataType {
     override def id: Byte = 1
     def name = productPrefix
   }
 
+  def set(): DataType = Set //for java
   case object Set extends DataType {
     override def id: Byte = 2
     def name = productPrefix

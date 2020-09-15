@@ -45,9 +45,9 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
-private[core] object SortedIndexBlock extends LazyLogging {
+private[core] case object SortedIndexBlock extends LazyLogging {
 
-  val blockName = this.getClass.getSimpleName.dropRight(1)
+  val blockName = this.productPrefix
 
   //use default writers
   implicit val timeWriter: TimeWriter = TimeWriter

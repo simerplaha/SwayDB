@@ -33,7 +33,7 @@ private[swaydb] object Functions extends LazyLogging {
       function
     catch {
       case exception: Throwable =>
-        logger.error("Please make sure your functions do not throw exceptions. Using default value.", exception)
+        logger.error("Make sure your functions do not throw exceptions. Using default value.", exception)
         default
     }
 
@@ -42,7 +42,7 @@ private[swaydb] object Functions extends LazyLogging {
       function
     catch {
       case exception: Throwable =>
-        logger.error("Please make sure your functions do not throw exceptions. Using default value 'false'.", exception)
+        logger.error("Make sure your functions do not throw exceptions. Using default value 'false'.", exception)
         false
     }
 }

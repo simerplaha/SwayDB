@@ -35,7 +35,7 @@ import swaydb.IO.ExceptionHandler
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.data.config.ForceSave
 
-private[core] object ByteBufferCleaner extends LazyLogging {
+private[core] case object ByteBufferCleaner extends LazyLogging {
 
   object Cleaner {
     def apply(handle: MethodHandle): Cleaner =
@@ -99,13 +99,13 @@ private[core] object ByteBufferCleaner extends LazyLogging {
 
       val method = java9Cleaner()
       method.invoke(buffer)
-      logger.info("Initialised Java 9 ByteBuffer cleaner.")
+      logger.info(s"Initialised Java 9 ${this.productPrefix}.")
       Cleaner(method)
     } orElse {
       IO {
         val method = java8Cleaner()
         method.invoke(buffer)
-        logger.info("Initialised Java 8 ByteBuffer cleaner.")
+        logger.info(s"Initialised Java 8 ${this.productPrefix}.")
         Cleaner(method)
       }
     }

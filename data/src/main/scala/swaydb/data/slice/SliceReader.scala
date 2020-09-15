@@ -34,7 +34,7 @@ import swaydb.data.util.ByteOps
 private[swaydb] case class SliceReader[B](slice: Slice[B],
                                           private var position: Int = 0)(implicit val byteOps: ByteOps[B]) extends Reader[B] {
 
-  def path = Paths.get(this.getClass.getSimpleName)
+  def path = Paths.get(this.productPrefix)
 
   override def size: Long =
     slice.size

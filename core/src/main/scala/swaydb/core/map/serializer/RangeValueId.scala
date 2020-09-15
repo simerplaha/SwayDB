@@ -137,7 +137,8 @@ case object PendingApplyUpdateRange extends RangeValueId {
   override val id: Int = 24
 }
 
-object RangeValueId {
+case object RangeValueId {
+
   val ids: Map[Int, RangeValueId] =
     Sealed.list[RangeValueId].map {
       rangeId =>
@@ -147,5 +148,6 @@ object RangeValueId {
   def apply(id: Int): IO[swaydb.Error.Fatal, RangeValueId] =
     ids.get(id)
       .map(IO.Right[swaydb.Error.Fatal, RangeValueId](_))
-      .getOrElse(IO.failed[swaydb.Error.Fatal, RangeValueId](s"Invalid ${this.getClass.getSimpleName}: $id"))
+      .getOrElse(IO.failed[swaydb.Error.Fatal, RangeValueId](s"Invalid ${this.productPrefix}: $id"))
+
 }

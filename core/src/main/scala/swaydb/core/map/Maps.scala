@@ -98,7 +98,7 @@ private[core] object Maps extends LazyLogging {
       nullValue = nullValue
     ).map(_.reverse) flatMap {
       recoveredMapsReversed =>
-        logger.info(s"{}: Recovered {} maps.", path, recoveredMapsReversed.size)
+        logger.info(s"{}: Recovered {} ${if (recoveredMapsReversed.isEmpty || recoveredMapsReversed.size > 1) "logs" else "log"}.", path, recoveredMapsReversed.size)
         val nextMapId =
           recoveredMapsReversed.headOption match {
             case Some(lastMaps) =>
@@ -212,7 +212,7 @@ private[core] object Maps extends LazyLogging {
           IO.Right(recoveredMaps)
 
         case mapPath :: otherMapsPaths =>
-          logger.info(s"{}: Recovering.", mapPath)
+          logger.debug(s"{}: Recovering.", mapPath)
 
           IO {
             Map.persistent[OK, OV, K, V](

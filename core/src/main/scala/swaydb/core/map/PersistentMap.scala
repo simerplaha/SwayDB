@@ -169,10 +169,10 @@ private[map] object PersistentMap extends LazyLogging {
           logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
           val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None, bufferCleaner, forceSaveApplier)
           val bytes = file.readAll
-          logger.info("{}: Reading file.", path)
           val recovery = MapCodec.read[K, V](bytes, dropCorruptedTailEntries).get
 
-          logger.info("{}: Recovered! Populating in-memory map with recovered key-values.", path)
+          logger.debug("{}: Recovered! Indexing recovered key-values.", path)
+
           val entriesRecovered =
             recovery.item.foldLeft(0) {
               case (size, entry) =>
@@ -191,7 +191,7 @@ private[map] object PersistentMap extends LazyLogging {
                 size + entry.entriesCount
             }
 
-          logger.info(s"{}: Recovered {} ${if (entriesRecovered > 1) "entries" else "entry"}.", path, entriesRecovered)
+          logger.info(s"{}: Recovered {} ${if (entriesRecovered == 0 || entriesRecovered > 1) "entries" else "entry"}.", path, entriesRecovered)
           RecoveryResult(file, recovery.result)
       }
 
@@ -245,7 +245,7 @@ private[map] object PersistentMap extends LazyLogging {
         //Next file successfully created. delete all old files without the last which gets deleted by nextFile.
         try {
           oldFiles.dropRight(1).foreach(_.delete())
-          logger.info(s"Recovery successful")
+          logger.debug(s"Recovery successful")
           file
         } catch {
           case throwable: Throwable =>

@@ -186,8 +186,6 @@ private[core] object Level extends LazyLogging {
                 IO.Left(error)
 
               case None =>
-                logger.info("{}: Starting level.", levelStorage.dir)
-
                 val allSegments = appendix.values().asScala
                 implicit val segmentIDGenerator = IDGenerator(initial = largestSegmentId(allSegments))
                 implicit val reserveRange = ReserveRange.create[Unit]()
@@ -347,7 +345,6 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               reserve: ReserveRange.State[Unit],
                                                               val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
 
-  logger.info(s"{}: Level started.", pathDistributor)
 
   override val levelNumber: Int =
     pathDistributor
@@ -355,6 +352,8 @@ private[core] case class Level(dirs: Seq[Dir],
       .path
       .folderId
       .toInt
+
+  logger.info(s"{}: Level $levelNumber started.", pathDistributor)
 
   private implicit val currentWalker =
     new CurrentWalker {

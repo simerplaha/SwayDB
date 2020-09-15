@@ -46,7 +46,7 @@ object PersistentReader extends LazyLogging {
   def populateBaseEntryIds(): Unit = {
     cachedBaseEntryIds = new util.HashMap[Int, (TimeReader[_], DeadlineReader[_], ValueOffsetReader[_], ValueLengthReader[_], ValueReader[_])](BaseEntryReader.readers.head.maxID + 200)
 
-    logger.info("Caching key-value IDs ...")
+    logger.debug("Caching key-value IDs ...")
 
     (BaseEntryReader.readers.head.minID to BaseEntryReader.readers.last.maxID) foreach {
       baseId =>

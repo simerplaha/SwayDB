@@ -56,7 +56,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 
-protected object PersistentSegmentMany {
+protected case object PersistentSegmentMany {
 
   val formatId: Byte = 127
   val formatIdSlice: Slice[Byte] = Slice(formatId)
@@ -163,7 +163,7 @@ protected object PersistentSegmentMany {
       Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, SkipListMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]](
         initial = initial,
         strategy = _ => segmentIO.segmentBlockIO(IOAction.ReadDataOverview).forceCacheOnAccess,
-        reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"${file.path}: ${this.getClass.getSimpleName}"))
+        reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"${file.path}: ${this.productPrefix}"))
       )() {
         (_, _) =>
           IO {

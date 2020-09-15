@@ -27,6 +27,7 @@ package swaydb.data.util
 import scala.annotation.unchecked.uncheckedVariance
 
 private[swaydb] sealed trait OptionMutable[+T] extends SomeOrNoneCovariant[OptionMutable[T], OptionMutable.Some[T]] {
+
   override def noneC: OptionMutable[Nothing] = OptionMutable.Null
   def setValue(value: T@uncheckedVariance): Unit
   def value: T
@@ -40,9 +41,10 @@ private[swaydb] sealed trait OptionMutable[+T] extends SomeOrNoneCovariant[Optio
     }
 }
 
-private[swaydb] object OptionMutable {
+private[swaydb] case object OptionMutable {
+
   final case object Null extends OptionMutable[Nothing] {
-    private def throwException = throw new Exception(s"${this.getClass.getSimpleName} is of type Null.")
+    private def throwException = throw new Exception(s"${this.productPrefix} is of type Null.")
 
     override def isNoneC: Boolean = true
     override def getC: Some[Nothing] = throwException

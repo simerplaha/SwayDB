@@ -169,7 +169,7 @@ private[core] object LevelZero extends LazyLogging {
                 lock =>
                   //LevelZero does not required FileSweeper since they are all Map files.
                   implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
-                  logger.info("{}: Recovering Maps.", path)
+                  logger.info("{}: Recovering logs.", path)
 
                   val maps =
                     Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](

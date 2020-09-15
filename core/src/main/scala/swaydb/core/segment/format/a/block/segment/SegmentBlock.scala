@@ -48,9 +48,9 @@ import swaydb.data.util.ByteSizeOf
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
-private[core] object SegmentBlock extends LazyLogging {
+private[core] case object SegmentBlock extends LazyLogging {
 
-  val blockName = this.getClass.getSimpleName.dropRight(1)
+  val blockName = this.productPrefix
 
   val formatId: Byte = 1.toByte
 

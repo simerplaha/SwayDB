@@ -36,9 +36,9 @@ import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
 
-private[core] object ValuesBlock {
+private[core] case object ValuesBlock {
 
-  val blockName = this.getClass.getSimpleName.dropRight(1)
+  val blockName = this.productPrefix
 
   val empty =
     ValuesBlock(ValuesBlock.Offset.zero, 0, None)

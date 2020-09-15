@@ -34,9 +34,9 @@ private[swaydb] object FunctionsMapEntryReader {
       val id = reader.get()
 
       if (id == FunctionsMapEntryWriter.FunctionsPutMapEntryWriter.id)
-        MapEntry.Put(reader.readRemaining(), Slice.Null)(FunctionsMapEntryWriter.FunctionsPutMapEntryWriter)
+        MapEntry.Put(reader.read(reader.readUnsignedInt()), Slice.Null)(FunctionsMapEntryWriter.FunctionsPutMapEntryWriter)
       else if (id == FunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter.id)
-        MapEntry.Remove(reader.readRemaining())(FunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter)
+        MapEntry.Remove(reader.read(reader.readUnsignedInt()))(FunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter)
       else
         throw new IllegalArgumentException(s"Invalid Functions entry id - $id")
     }

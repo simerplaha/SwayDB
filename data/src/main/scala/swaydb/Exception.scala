@@ -59,9 +59,10 @@ object Exception {
       "functions"
 
   def missingFunctionsMessage(functions: Iterable[String]) =
-    s"Missing ${functions.size} ${pluralFunction(functions.size)}. ${functions.take(2).mkString(", ")}" + {
+    s"Missing ${functions.size} ${pluralFunction(functions.size)}. List(${functions.take(2).map(id => s""""$id"""").mkString(", ")})" + {
       if (functions.size > 2)
-        "... See this exception's functions value to see the list of missing functions."
+        s"... See this exception's 'functions' value for a list of missing functions. " +
+          s"Or set 'clearAppliedFunctionsOnBoot = true' to clear already applied functions."
       else
         "."
     }
@@ -77,7 +78,7 @@ object Exception {
    *
    * @param functionId the id of the missing function.
    */
-  case class FunctionNotFound(functionId: String) extends Exception(s"Function '$functionId' not found. Please make sure the function is added to your instance. See http://swaydb.io/api/write/registerFunction.")
+  case class FunctionNotFound(functionId: String) extends Exception(s"Function with id '$functionId' not found. Make sure the function is added to the instance. See documentation http://swaydb.io/.")
   case class OverlappingFileLock(exception: OverlappingFileLockException) extends Exception("Failed to get directory lock.")
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
   case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")
@@ -91,7 +92,7 @@ object Exception {
 
   case class GetOnIncompleteDeferredFutureIO(reserve: Reserve[Unit]) extends Exception("Get invoked on in-complete Future within Deferred IO.")
 
-  case class InvalidDirectoryType(invalidType: DataType, expected: DataType) extends Exception(s"Invalid type ${invalidType.name} for directory that is of type ${expected.name}.")
+  case class InvalidDirectoryType(invalidType: DataType, expected: DataType) extends Exception(s"Wrong data type ${invalidType.name} for the directory of type ${expected.name}.")
   case class MissingMultiMapGenFolder(path: Path) extends Exception(s"Missing multimap gen file or folder: $path")
   case class IncompatibleVersions(previous: String, current: String) extends Exception(s"Incompatible versions! v$previous is not compatible with v$current.")
   case class MissingBuildInfo(buildInfoFileName: String, version: String) extends Exception(s"Missing $buildInfoFileName file. This directory might be an incompatible older version of SwayDB. Current version: v$version.")

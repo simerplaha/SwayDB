@@ -26,7 +26,7 @@ package swaydb.zio
 
 import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, Serial}
+import swaydb.{Actor, Bag, Serial}
 import zio.Task
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -60,6 +60,9 @@ object Bag {
 
           override def terminate(): Task[Unit] =
             actor.terminateAndClear[Task]()(self)
+
+          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+            actor.terminateAndClear[BAG]()(bag)
         }
 
       override val unit: Task[Unit] =

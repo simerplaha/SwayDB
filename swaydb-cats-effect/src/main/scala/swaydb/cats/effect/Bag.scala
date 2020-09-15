@@ -27,7 +27,7 @@ package swaydb.cats.effect
 import cats.effect.{ContextShift, IO}
 import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, Serial, IO => SwayIO}
+import swaydb.{Actor, Bag, Serial, IO => SwayIO}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
@@ -59,6 +59,9 @@ object Bag {
 
           override def terminate(): IO[Unit] =
             actor.terminateAndClear[IO]()(self)
+
+          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+            actor.terminateAndClear[BAG]()(bag)
         }
 
       override val unit: IO[Unit] =

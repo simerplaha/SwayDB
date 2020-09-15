@@ -27,10 +27,13 @@ package swaydb.core
 import java.nio.file.Path
 import java.util.function.Supplier
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.build.BuildValidator
 import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
+import swaydb.core.level.compaction.Compactor
+import swaydb.core.level.compaction.throttle.ThrottleState
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
@@ -43,7 +46,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.TupleOrNone
-import swaydb.{Bag, IO, OK, Prepare}
+import swaydb.{ActorWire, Bag, IO, OK, Prepare}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -155,12 +158,11 @@ private[swaydb] object Core {
 }
 
 private[swaydb] class Core[BAG[_]](zero: LevelZero,
-                                   threadStateCache: ThreadStateCache,
-                                   onClose: => Future[Unit])(implicit bag: Bag[BAG],
-                                                             private[swaydb] val bufferSweeper: ByteBufferSweeperActor,
-                                                             shutdownExecutionContext: ExecutionContext) {
-
-  @volatile private var closed: Boolean = false
+                                   coreState: CoreState,
+                                   threadStateCache: ThreadStateCache)(implicit bag: Bag[BAG],
+                                                                       compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
+                                                                       private[swaydb] val bufferSweeper: ByteBufferSweeperActor,
+                                                                       shutdownExecutionContext: ExecutionContext) extends LazyLogging {
 
   private val serial = bag.createSerial()
 
@@ -191,15 +193,13 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
     zero.path
 
   @inline private def assertTerminated[T, BAG2[_]](f: => BAG2[T])(implicit bag: Bag[BAG2]): BAG2[T] =
-    if (closed)
-      bag.failure(new IllegalAccessException(Core.closedMessage))
-    else
+    if (coreState.isRunning)
       f
+    else
+      bag.failure(new IllegalAccessException(Core.closedMessage))
 
   @inline private def execute[R, BAG[_]](thunk: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
-    if (closed)
-      bag.failure(new IllegalAccessException(Core.closedMessage))
-    else
+    if (coreState.isRunning)
       try
         bag.success(thunk(zero))
       catch {
@@ -207,6 +207,8 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
           val error = IO.ExceptionHandler.toError[swaydb.Error.Level](throwable)
           IO.Defer[swaydb.Error.Level, R](thunk(zero), error).run(1)
       }
+    else
+      bag.failure(new IllegalAccessException(Core.closedMessage))
 
   def put(key: Slice[Byte]): BAG[OK] =
     assertTerminated(serial.execute(zero.put(key)))
@@ -360,24 +362,70 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
   def isFunctionApplied(functionId: Slice[Byte]): Boolean =
     zero.isFunctionApplied(functionId)
 
+  /**
+   * This does the final clean up on all Levels.
+   *
+   * - Releases all locks on all system folders
+   * - Flushes all files and persists them to disk for persistent databases.
+   */
+
+  private def shutdownCompaction(): Future[Unit] = {
+    implicit val futureBag = Bag.future(shutdownExecutionContext)
+
+    logger.info("Stopping compaction ...")
+    compactor
+      .ask
+      .flatMap {
+        (impl, state, self) =>
+          impl.terminate(state, self)
+      }
+      .recoverWith {
+        case exception =>
+          logger.error("Failed compaction shutdown.", exception)
+          Future.failed(exception)
+      }
+  }
+
   def close(): BAG[Unit] =
-    bag.and {
-      closed = true
-      serial.terminate()
-    }(IO.fromFuture(onClose).run(0))
+    closeWithBag()(this.bag)
+
+  def closeWithBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+    if (coreState.isNotRunning) {
+      bag.unit
+    } else {
+      val closeResult =
+        bag
+          .and {
+            coreState setState CoreState.Closing
+            serial.terminateBag()
+          } {
+            IO
+              .fromFuture(shutdownCompaction().and(zero.close()))
+              .run(0)
+          }
+
+      bag.transform(closeResult) {
+        unit =>
+          coreState setState CoreState.Closed
+          unit
+      }
+    }
 
   def delete(): BAG[Unit] =
-    IO.fromFuture {
-      closed = true
-      onClose.and(zero.delete())
-    }.run(0)
+    bag.and(close()) {
+      IO.fromFuture(zero.delete()).run(0)
+    }
+
+  def state: CoreState.State =
+    coreState.getState
 
   def toBag[BAG[_]](implicit bag: Bag[BAG]): Core[BAG] =
     new Core[BAG](
       zero = zero,
+      coreState = coreState,
       threadStateCache = threadStateCache,
-      onClose = onClose
     )(bag = bag,
+      compactor = compactor,
       bufferSweeper = bufferSweeper,
       shutdownExecutionContext = shutdownExecutionContext)
 }

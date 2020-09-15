@@ -47,7 +47,7 @@ private[level] object ThrottleLevelState {
     @volatile var listenerInitialised: Boolean = false
 
     override def toString: String =
-      this.getClass.getSimpleName +
+      this.productPrefix +
         s"timeout: ${timeout.timeLeft.asString}, " +
         s"stateId: $stateId, " +
         s"listenerInvoked: $listenerInvoked, " +
@@ -57,7 +57,7 @@ private[level] object ThrottleLevelState {
   case class Sleeping(sleepDeadline: Deadline,
                       stateId: Long) extends ThrottleLevelState {
     override def toString: String =
-      this.getClass.getSimpleName +
+      this.productPrefix +
         s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +
         s"stateId: $stateId "
   }

@@ -33,9 +33,9 @@ import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Functions}
 
-private[core] object BloomFilterBlock extends LazyLogging {
+private[core] case object BloomFilterBlock extends LazyLogging {
 
-  val blockName = this.getClass.getSimpleName.dropRight(1)
+  val blockName = this.productPrefix
 
   object Config {
     val disabled =
