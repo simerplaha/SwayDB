@@ -41,24 +41,26 @@ import swaydb.{Actor, Error, IO}
 
 import scala.collection.mutable.ListBuffer
 
-case object AppliedFunctionsMap extends LazyLogging {
+case object AppliedFunctions extends LazyLogging {
 
-  val appliedFunctionsFolderName = "applied-functions"
+  val folderName = "def-applied"
 
   def create(databaseDirectory: Path,
              appliedFunctionsMapSize: Long,
              mmap: MMAP.Map)(implicit bufferCleaner: ByteBufferSweeperActor,
                              forceSaveApplier: ForceSaveApplier): RecoveryResult[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]] = {
+    val folder = databaseDirectory.resolve(folderName)
+
     implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
     implicit val functionsEntryReader = FunctionsMapEntryReader.FunctionsPutMapEntryReader
-    implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](appliedFunctionsFolderName)
+    implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](folder.toString)
     implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
     implicit val keyOrder = KeyOrder.default
 
     map.Map.persistent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](
       nullKey = Slice.Null,
       nullValue = Slice.Null,
-      folder = databaseDirectory.resolve(appliedFunctionsFolderName),
+      folder = folder,
       mmap = mmap,
       flushOnOverflow = true,
       fileSize = appliedFunctionsMapSize,

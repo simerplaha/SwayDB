@@ -80,7 +80,7 @@ object BuildValidator {
           IO.failed(Exception.MissingBuildInfo(Build.fileName, thisVersion.version))
 
         case previous @ Build.Info(previousVersion, previousDataType) =>
-          val isValid = previousVersion.major >= 0 && previousVersion.minor >= 15 && previousVersion.revision >= 0
+          val isValid = previousVersion.major >= 0 && previousVersion.minor >= 16 && previousVersion.revision >= 0
           if (!isValid)
             IO.failed(IncompatibleVersions(previous.version.version, thisVersion.version))
           else if (previousDataType != dataType)

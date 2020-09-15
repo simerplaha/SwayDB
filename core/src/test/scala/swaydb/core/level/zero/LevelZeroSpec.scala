@@ -25,19 +25,23 @@
 package swaydb.core.level.zero
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.file.Effect
+import swaydb.core.map.appliedfunctions.AppliedFunctions
+import swaydb.core.map.timer.Timer
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle
-import swaydb.data.config.MMAP
+import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.storage.LevelStorage
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -403,6 +407,87 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
           val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
           IO(zero.update(10, 1, value = "value")).left.value.getMessage shouldBe "fromKey should be less than toKey."
           IO(zero.update(2, 1, value = "value")).left.value.getMessage shouldBe "fromKey should be less than toKey."
+      }
+    }
+  }
+
+  "timer and appliedFunctions" should {
+    import Effect._
+
+    "initiate" when {
+      "timer is enabled" in {
+        if (persistent)
+          TestCaseSweeper {
+            implicit sweeper =>
+              val zero = TestLevelZero(None, enableTimer = true)
+              zero.path.folderId shouldBe 0
+
+              val timerPath = zero.path.getParent.resolve(Timer.folderName)
+              Effect.exists(timerPath) shouldBe true
+
+              //applied functions are also created
+              val appliedFunctionsPath = zero.path.getParent.resolve(AppliedFunctions.folderName)
+              Effect.exists(appliedFunctionsPath) shouldBe true
+          }
+        else
+          TestCaseSweeper {
+            implicit sweeper =>
+              val zero = TestLevelZero(None, enableTimer = true)
+              zero.path.folderId shouldBe 0
+              zero.maps.timer.isEmptyTimer shouldBe false
+
+              //applied functions are disabled for in-memory
+              zero.appliedFunctionsMap shouldBe empty
+          }
+      }
+
+      "timer is enabled for in-memory but next level is-persistent" in {
+        if (persistent)
+          cancel("does not apply for in-memory")
+        else
+          TestCaseSweeper {
+            implicit sweeper =>
+              val persistentLevel = TestLevel(LevelStorage.Persistent(nextLevelPath, eitherOne(Seq.empty, Seq(Dir(randomDir, 1), Dir(randomDir, 1)))))
+              val zero = TestLevelZero(Some(persistentLevel))
+
+              //zero is in-memory but next level is persistent
+              zero.inMemory shouldBe true
+              persistentLevel.inMemory shouldBe false
+              zero.nextLevel.value.rootPath shouldBe persistentLevel.rootPath
+
+              persistentLevel.rootPath.folderId shouldBe a[Long]
+
+              //persistent timer is still created
+              val timerPath = persistentLevel.rootPath.getParent.resolve(Timer.folderName)
+              Effect.exists(timerPath) shouldBe true
+
+              //applied functions are also created
+              val appliedFunctionsPath = persistentLevel.rootPath.getParent.resolve(AppliedFunctions.folderName)
+              Effect.exists(appliedFunctionsPath) shouldBe true
+          }
+      }
+    }
+
+    "not initiate" when {
+      "timer is disabled" in {
+        if (persistent)
+          TestCaseSweeper {
+            implicit sweeper =>
+              val zero = TestLevelZero(None, enableTimer = false)
+              import Effect._
+              zero.path.folderId shouldBe 0
+
+              val timerPath = zero.path.getParent.resolve(Timer.folderName)
+              Effect.exists(timerPath) shouldBe false
+          }
+        else
+          TestCaseSweeper {
+            implicit sweeper =>
+              val zero = TestLevelZero(None, enableTimer = false)
+              import Effect._
+              zero.path.folderId shouldBe 0
+              zero.maps.timer.isEmptyTimer shouldBe true
+          }
       }
     }
   }

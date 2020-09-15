@@ -359,7 +359,7 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
                                                                                                         val bufferCleaner: ByteBufferSweeperActor,
                                                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                         skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                                                        timer: Timer,
+                                                                                                        val timer: Timer,
                                                                                                         forceSaveApplier: ForceSaveApplier) extends LazyLogging { self =>
 
   //this listener is invoked when currentMap is full.

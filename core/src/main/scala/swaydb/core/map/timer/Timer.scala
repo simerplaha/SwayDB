@@ -48,7 +48,7 @@ private[core] trait Timer {
 private[core] object Timer {
   val defaultKey = Slice.emptyBytes
 
-  val timerFolderName = "timer"
+  val folderName = "def-timer"
 
   def memory(): Timer =
     new Timer {
@@ -84,7 +84,7 @@ private[core] object Timer {
     implicit val writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]] = CounterMapEntryWriter.CounterPutMapEntryWriter
     implicit val reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] = CounterMapEntryReader.CounterPutMapEntryReader
 
-    val timerFolder = path.resolve(timerFolderName)
+    val timerFolder = path.resolve(folderName)
     Effect createDirectoriesIfAbsent timerFolder
 
     Counter.persistent(

@@ -39,7 +39,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
-import swaydb.core.map.appliedfunctions.AppliedFunctionsMap
+import swaydb.core.map.appliedfunctions.AppliedFunctions
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, FunctionsMapEntryReader, FunctionsMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, RecoveryResult, SkipListMerger}
@@ -140,7 +140,7 @@ private[core] object LevelZero extends LazyLogging {
                     maps =>
                       if (enableTimer) {
                         val appliedFunctionsMap =
-                          AppliedFunctionsMap
+                          AppliedFunctions
                             .create(
                               databaseDirectory = databaseDirectory,
                               appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -168,7 +168,7 @@ private[core] object LevelZero extends LazyLogging {
                   val mmap = LevelRef.getMmapForLogOrDisable(nextLevel)
 
                   val appliedFunctionsMap =
-                    AppliedFunctionsMap
+                    AppliedFunctions
                       .create(
                         databaseDirectory = databaseDirectory,
                         appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -231,10 +231,10 @@ private[core] object LevelZero extends LazyLogging {
           case Some(appliedFunctions) =>
             if (clearAppliedFunctionsOnBoot)
               IO(zero.clearAppliedFunctions())
-                .and(AppliedFunctionsMap.validate(appliedFunctions, functionStore))
+                .and(AppliedFunctions.validate(appliedFunctions, functionStore))
                 .andThen(zero)
             else
-              AppliedFunctionsMap
+              AppliedFunctions
                 .validate(appliedFunctions, functionStore)
                 .andThen(zero)
 
