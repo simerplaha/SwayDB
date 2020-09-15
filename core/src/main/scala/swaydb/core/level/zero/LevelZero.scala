@@ -70,18 +70,13 @@ private[core] object LevelZero extends LazyLogging {
   def checkMissingFunctions(appliedFunctions: map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type],
                             functionStore: FunctionStore): IO[Error.Level, Unit] = {
     val missingFunctions = ListBuffer.empty[String]
-    logger.info("Checking for missing functions.")
+    logger.debug("Checking for missing functions.")
 
     appliedFunctions.foreach {
       case (functionId, _) =>
         if (functionStore.notContains(functionId))
           missingFunctions += functionId.readString()
     }
-
-    if (missingFunctions.isEmpty)
-      logger.info("No missing functions.")
-    else
-      logger.error(s"Missing ${missingFunctions.size} functions. Please register the missing functions. See the error/exception MissingFunctions to see the list of missing function.")
 
     if (missingFunctions.isEmpty)
       IO.unit

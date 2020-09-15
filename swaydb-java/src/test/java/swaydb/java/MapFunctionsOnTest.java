@@ -118,7 +118,7 @@ abstract class MapFunctionsOnTest extends TestBase {
 
     Exception.MissingFunctions exception = assertThrows(Exception.MissingFunctions.class, () -> createMap(intSerializer(), stringSerializer(), Collections.emptyList()));
 
-    shouldContainTheSameElementsAs(exception.functionsAsJava(), Arrays.asList(appendUpdated.id(), removeMod0OrIncrementBy1.id()));
+    shouldContainTheSameElementsAs(exception.asJava(), Arrays.asList(appendUpdated.id(), removeMod0OrIncrementBy1.id()));
   }
 
   @Test

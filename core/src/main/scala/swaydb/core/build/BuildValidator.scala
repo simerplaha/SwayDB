@@ -26,9 +26,10 @@ package swaydb.core.build
 
 import java.nio.file.Path
 
-import swaydb.IO
+import swaydb.Exception.{IncompatibleVersions, MissingMultiMapGenFolder}
 import swaydb.core.io.file.Effect
 import swaydb.data.DataType
+import swaydb.{Exception, IO}
 
 sealed trait BuildValidator { self =>
 
@@ -76,14 +77,14 @@ object BuildValidator {
           IO(Some(dataType))
 
         case Build.NoBuildInfo =>
-          IO.failed(s"Missing ${Build.fileName} file. This directory might be an incompatible older version of SwayDB. Current version: v${thisVersion.version}.")
+          IO.failed(Exception.MissingBuildInfo(Build.fileName, thisVersion.version))
 
         case previous @ Build.Info(previousVersion, previousDataType) =>
           val isValid = previousVersion.major >= 0 && previousVersion.minor >= 15 && previousVersion.revision >= 0
           if (!isValid)
-            IO.failed(s"Incompatible versions! v${previous.version} is not compatible with v${thisVersion.version}.")
+            IO.failed(IncompatibleVersions(previous.version.version, thisVersion.version))
           else if (previousDataType != dataType)
-            IO.failed(s"Invalid type ${dataType.name}. This directory is of type ${previous.dataType.name}.")
+            IO.failed(Exception.InvalidDirectoryType(dataType, previous.dataType))
           else
             IO(Some(dataType))
       }
@@ -98,7 +99,7 @@ object BuildValidator {
       Effect.isEmptyOrNotExists(multiMapFolder) match {
         case IO.Right(isEmpty) =>
           if (isEmpty)
-            IO.failed(s"Missing multimap gen file or folder: $multiMapFolder.")
+            IO.failed(MissingMultiMapGenFolder(multiMapFolder))
           else
             IO.none
 
@@ -116,7 +117,7 @@ object BuildValidator {
 
         case Build.Info(_, dataType) =>
           if (dataType != DataType.MultiMap)
-            IO.failed(s"Invalid data-type ${dataType.name}. Expected ${DataType.MultiMap.name}.")
+            IO.failed(Exception.InvalidDirectoryType(dataType, DataType.MultiMap))
           else
             checkExists()
       }

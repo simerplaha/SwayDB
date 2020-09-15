@@ -22,6 +22,7 @@ package swaydb.api
 import java.nio.file.Files
 
 import org.scalatest.OptionValues._
+import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
 import swaydb._
 import swaydb.data.RunThis.runThis
@@ -85,7 +86,7 @@ class MultiMapSwayDBSpec5 extends SwayDBSpec {
 
 sealed trait SwayDBSpec extends TestBaseEmbedded {
 
-  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String,  IO.ApiIO]
+  def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String, IO.ApiIO]
 
   implicit val bag = Bag.apiIO
 
@@ -465,7 +466,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           map.close()
 
           val set = swaydb.persistent.Set[Int, Nothing, IO.ApiIO](dir)
-          set.left.value.exception.getMessage shouldBe s"Invalid type ${DataType.Set.name}. This directory is of type ${DataType.Map.name}."
+          set.left.value.exception shouldBe InvalidDirectoryType(DataType.Set, DataType.Map)
 
           //reopen it as a map
           val reopened = swaydb.persistent.Map[Int, Int, Nothing, Bag.Less](dir).sweep(_.delete())

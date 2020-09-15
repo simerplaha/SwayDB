@@ -27,6 +27,7 @@ package swaydb.core.build
 import java.nio.file.FileAlreadyExistsException
 
 import swaydb.Error.IO
+import swaydb.Exception.InvalidDirectoryType
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.io.file.Effect
@@ -211,7 +212,7 @@ class BuildSpec extends TestBase {
                 Effect.exists(folder.resolve(Build.fileName)) shouldBe true
 
                 val error = Build.validateOrCreate(folder)(IO.ExceptionHandler, BuildValidator.DisallowOlderVersions(invalidDataType))
-                error.left.value.exception.getMessage shouldBe s"Invalid type ${invalidDataType.name}. This directory is of type ${dataType.name}."
+                error.left.value.exception shouldBe InvalidDirectoryType(invalidDataType, dataType)
             }
         }
       }

@@ -25,6 +25,7 @@
 package swaydb.java;
 
 import org.junit.jupiter.api.Test;
+import swaydb.Exception;
 import swaydb.data.java.TestBase;
 import swaydb.java.persistent.PersistentMap;
 import swaydb.java.persistent.PersistentSet;
@@ -50,7 +51,7 @@ public class PersistentReportRebootErrorsTest extends TestBase {
 
     map.close();
 
-    Exception exception = assertThrows(Exception.class, () -> PersistentSet.functionsOff(path, intSerializer()).get());
+    Exception.InvalidDirectoryType exception = assertThrows(Exception.InvalidDirectoryType.class, () -> PersistentSet.functionsOff(path, intSerializer()).get());
     shouldInclude(exception.getMessage(), "Invalid type");
   }
 

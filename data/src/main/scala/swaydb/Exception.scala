@@ -28,7 +28,7 @@ import java.lang
 import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Path
 
-import swaydb.data.Reserve
+import swaydb.data.{DataType, Reserve}
 
 import scala.jdk.CollectionConverters._
 
@@ -51,8 +51,23 @@ object Exception {
   case object NoSegmentsRemoved extends Exception("No Segments Removed")
   case object NotSentToNextLevel extends Exception("Not sent to next Level")
   case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
-  case class MissingFunctions(functions: Iterable[String]) extends Exception(s"Missing ${functions.size} functions. See this exception's functions value to see a list of missing functions.") {
-    def functionsAsJava: lang.Iterable[String] =
+
+  def pluralFunction(size: Int) =
+    if (size == 1)
+      "function"
+    else
+      "functions"
+
+  def missingFunctionsMessage(functions: Iterable[String]) =
+    s"Missing ${functions.size} ${pluralFunction(functions.size)}. ${functions.take(2).mkString(", ")}" + {
+      if (functions.size > 2)
+        "... See this exception's functions value to see the list of missing functions."
+      else
+        "."
+    }
+
+  case class MissingFunctions(functions: Iterable[String]) extends Exception(missingFunctionsMessage(functions)) {
+    def asJava: lang.Iterable[String] =
       functions.asJava
   }
 
@@ -75,4 +90,10 @@ object Exception {
   case class UnknownExtension(path: Path) extends Exception
 
   case class GetOnIncompleteDeferredFutureIO(reserve: Reserve[Unit]) extends Exception("Get invoked on in-complete Future within Deferred IO.")
+
+  case class InvalidDirectoryType(invalidType: DataType, expected: DataType) extends Exception(s"Invalid type ${invalidType.name} for directory that is of type ${expected.name}.")
+  case class MissingMultiMapGenFolder(path: Path) extends Exception(s"Missing multimap gen file or folder: $path")
+  case class IncompatibleVersions(previous: String, current: String) extends Exception(s"Incompatible versions! v$previous is not compatible with v$current.")
+  case class MissingBuildInfo(buildInfoFileName: String, version: String) extends Exception(s"Missing $buildInfoFileName file. This directory might be an incompatible older version of SwayDB. Current version: v$version.")
+
 }
