@@ -142,7 +142,7 @@ private[core] object LevelZero extends LazyLogging {
                           AppliedFunctions
                             .create(
                               dir = databaseDirectory,
-                              appliedFunctionsMapSize = appliedFunctionsMapSize,
+                              fileSize = appliedFunctionsMapSize,
                               mmap = mmap
                             )
 
@@ -170,7 +170,7 @@ private[core] object LevelZero extends LazyLogging {
                     AppliedFunctions
                       .create(
                         dir = databaseDirectory,
-                        appliedFunctionsMapSize = appliedFunctionsMapSize,
+                        fileSize = appliedFunctionsMapSize,
                         mmap = mmap
                       )
 

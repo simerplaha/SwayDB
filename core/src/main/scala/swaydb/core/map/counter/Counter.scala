@@ -48,17 +48,17 @@ private[swaydb] object Counter {
   def memory(): MemoryCounter =
     MemoryCounter()
 
-  def persistent(path: Path,
+  def persistent(dir: Path,
                  mmap: MMAP.Map,
                  mod: Long,
-                 flushCheckpointSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                            forceSaveApplier: ForceSaveApplier,
-                                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, Counter] =
+                 fileSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
+                                 forceSaveApplier: ForceSaveApplier,
+                                 writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
+                                 reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] =
     PersistentCounter(
-      path = path,
+      path = dir,
       mmap = mmap,
       mod = mod,
-      flushCheckpointSize = flushCheckpointSize
+      fileSize = fileSize
     )
 }

@@ -59,10 +59,10 @@ object MultiMap {
     implicit val forceSaveApplier = ForceSaveApplier.Enabled
 
     Counter.persistent(
-      path = path.resolve(MultiMap.folderName),
+      dir = path.resolve(MultiMap.folderName),
       mmap = mmap,
       mod = 1000,
-      flushCheckpointSize = 1.mb
+      fileSize = 1.mb
     ) match {
       case IO.Right(counter) =>
         implicit val implicitCounter: Counter = counter

@@ -26,13 +26,18 @@ package swaydb.core.map
 
 import swaydb.Bag
 import swaydb.IOValues._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.TestExecutionContext
 import swaydb.core.actor.ByteBufferSweeper
-import swaydb.core.map.serializer.MapEntryReader
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.map.counter.{Counter, PersistentCounter}
+import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.DurationInt
 
@@ -41,7 +46,8 @@ object MapTestUtil {
   //cannot be added to TestBase because PersistentMap cannot leave the map package.
   implicit class ReopenMap[OK, OV, K <: OK, V <: OV](map: PersistentMap[OK, OV, K, V]) {
     def reopen(implicit keyOrder: KeyOrder[K],
-               reader: MapEntryReader[MapEntry[K, V]]) = {
+               reader: MapEntryReader[MapEntry[K, V]],
+               testCaseSweeper: TestCaseSweeper) = {
       map.close().runRandomIO.right.value
 
       implicit val skipListMerger = map.skipListMerger
@@ -58,7 +64,7 @@ object MapTestUtil {
         dropCorruptedTailEntries = false,
         nullValue = map.nullValue,
         nullKey = map.nullKey
-      ).runRandomIO.right.value.item
+      ).runRandomIO.right.value.item.sweep()
     }
   }
 
@@ -75,6 +81,24 @@ object MapTestUtil {
       implicit val bag = Bag.future
       val isShut = (map.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
       assert(isShut, "Is not shut")
+    }
+  }
+
+  //cannot be added to TestBase because PersistentMap cannot leave the map package.
+  implicit class ReopenCounter(counter: PersistentCounter) {
+    def reopen(implicit bufferCleaner: ByteBufferSweeperActor,
+               forceSaveApplier: ForceSaveApplier,
+               writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
+               reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]],
+               testCaseSweeper: TestCaseSweeper): PersistentCounter = {
+      counter.close
+
+      Counter.persistent(
+        dir = counter.path,
+        fileSize = counter.fileSize,
+        mmap = MMAP.randomForMap(),
+        mod = counter.mod
+      ).value.sweep(_.close)
     }
   }
 

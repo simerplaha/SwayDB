@@ -46,7 +46,7 @@ case object AppliedFunctions extends LazyLogging {
   val folderName = "def-applied"
 
   def create(dir: Path,
-             appliedFunctionsMapSize: Long,
+             fileSize: Long,
              mmap: MMAP.Map)(implicit bufferCleaner: ByteBufferSweeperActor,
                              forceSaveApplier: ForceSaveApplier): RecoveryResult[map.PersistentMap[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]] = {
     val folder = dir.resolve(folderName)
@@ -64,7 +64,7 @@ case object AppliedFunctions extends LazyLogging {
       folder = folder,
       mmap = mmap,
       flushOnOverflow = true,
-      fileSize = appliedFunctionsMapSize,
+      fileSize = fileSize,
       dropCorruptedTailEntries = false
     )
   }

@@ -79,8 +79,8 @@ private[core] object Timer {
   def persistent(path: Path,
                  mmap: MMAP.Map,
                  mod: Long = 100000,
-                 flushCheckpointSize: Long = 1.mb)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                                   forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, Timer] = {
+                 fileSize: Long = 1.mb)(implicit bufferCleaner: ByteBufferSweeperActor,
+                                        forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, Timer] = {
     implicit val writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]] = CounterMapEntryWriter.CounterPutMapEntryWriter
     implicit val reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] = CounterMapEntryReader.CounterPutMapEntryReader
 
@@ -88,10 +88,10 @@ private[core] object Timer {
     Effect createDirectoriesIfAbsent timerFolder
 
     Counter.persistent(
-      path = timerFolder,
+      dir = timerFolder,
       mmap = mmap,
       mod = mod,
-      flushCheckpointSize = flushCheckpointSize
+      fileSize = fileSize
     ) transform {
       counter =>
         new Timer {

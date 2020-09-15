@@ -42,13 +42,26 @@ private[core] object PersistentCounter extends LazyLogging {
 
   private implicit object CounterSkipListMerger extends SkipListMerger.Disabled[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]]("CounterSkipListMerger")
 
+  /**
+   * If startId greater than mod then mod needs
+   * next commit should be adjust so that it reserved
+   * used ids that are greater than startId.
+   */
+  def nextCommit(mod: Long, startId: Long): Long =
+    if (mod <= startId) {
+      val modded = startId / mod
+      mod * (modded + 1)
+    } else {
+      mod
+    }
+
   private[counter] def apply(path: Path,
                              mmap: MMAP.Map,
                              mod: Long,
-                             flushCheckpointSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                                        forceSaveApplier: ForceSaveApplier,
-                                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                                        reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] = {
+                             fileSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
+                                             forceSaveApplier: ForceSaveApplier,
+                                             writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
+                                             reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] = {
     //Disabled because autoClose is not required here.
     implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] = Actor.deadActor()
     implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
@@ -58,7 +71,7 @@ private[core] object PersistentCounter extends LazyLogging {
         folder = path,
         mmap = mmap,
         flushOnOverflow = true,
-        fileSize = flushCheckpointSize,
+        fileSize = fileSize,
         dropCorruptedTailEntries = false,
         nullKey = Slice.Null,
         nullValue = Slice.Null
@@ -66,15 +79,15 @@ private[core] object PersistentCounter extends LazyLogging {
     } flatMap {
       map =>
         map.head() match {
-          case userId: Slice[Byte] =>
-            val startId = userId.readLong()
-            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](startId + mod))) flatMap {
+          case usedCount: Slice[Byte] =>
+            val nextStartId = usedCount.readLong()
+            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](nextStartId + mod))) flatMap {
               wrote =>
                 if (wrote)
                   IO {
                     new PersistentCounter(
                       mod = mod,
-                      startId = startId,
+                      startId = nextStartId,
                       map = map
                     )
                   }
@@ -83,7 +96,8 @@ private[core] object PersistentCounter extends LazyLogging {
             }
 
           case Slice.Null =>
-            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](mod))) flatMap {
+            val startId = nextCommit(mod, Counter.startId)
+            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](startId))) flatMap {
               wrote =>
                 if (wrote)
                   IO {
@@ -101,11 +115,15 @@ private[core] object PersistentCounter extends LazyLogging {
   }
 }
 
-private[core] class PersistentCounter(mod: Long,
-                                      startId: Long,
+private[core] class PersistentCounter(val mod: Long,
+                                      val startId: Long,
                                       map: PersistentMap[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Counter with LazyLogging {
 
   private var count = startId
+
+  def path = map.path
+
+  def fileSize = map.fileSize
 
   override def next: Long =
     synchronized {
@@ -121,7 +139,7 @@ private[core] class PersistentCounter(mod: Long,
        * performance issues.
        *
        * Throwing exception on failure is temporarily solution since failures are not expected and if failure does occur
-       * it would be due to file system permission issue.
+       * it would be due to file system permission issue and should be reported back up with the stacktrace.
        */
       if (count % mod == 0)
         if (!map.writeNoSync(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](count + mod)))) {

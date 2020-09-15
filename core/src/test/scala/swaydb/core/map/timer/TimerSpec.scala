@@ -53,7 +53,7 @@ class PersistentTimerSpec extends TimerSpec {
       path = path,
       mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
       mod = 100,
-      flushCheckpointSize = 1000
+      fileSize = 1000
     ).get
 }
 
@@ -110,7 +110,7 @@ sealed trait TimerSpec extends TestBase {
                 path = dir,
                 mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
                 mod = 100,
-                flushCheckpointSize = 1000
+                fileSize = 1000
               ).get
 
             write(1000 + 101 to 2000 + 201, reopenedTimer)
@@ -121,7 +121,7 @@ sealed trait TimerSpec extends TestBase {
                 path = dir,
                 mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
                 mod = 100,
-                flushCheckpointSize = 1000
+                fileSize = 1000
               ).get
 
             write(2000 + 201 to 300 + 301, reopenedTimer2)

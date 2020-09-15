@@ -37,6 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.data.RunThis._
 
 class AppliedFunctionsSpec extends TestBase {
 
@@ -46,44 +47,50 @@ class AppliedFunctionsSpec extends TestBase {
   implicit val functionsEntryReader = AppliedFunctionsMapEntryReader.FunctionsMapEntryReader
 
   "initialise and reopen" in {
-    TestCaseSweeper {
-      implicit sweeper =>
-        import sweeper._
+    runThis(10.times, log = true) {
+      TestCaseSweeper {
+        implicit sweeper =>
+          import sweeper._
 
-        val mapResult =
-          AppliedFunctions.create(
-            dir = randomDir,
-            appliedFunctionsMapSize = 1.mb,
-            mmap = MMAP.randomForMap()
-          )
+          val mapResult =
+            AppliedFunctions.create(
+              dir = randomDir,
+              fileSize = randomIntMax(1.kb) max 1,
+              mmap = MMAP.randomForMap()
+            )
 
-        mapResult.result.value shouldBe (())
+          //start successful
+          mapResult.result.value shouldBe (())
 
-        val map = mapResult.item.sweep()
+          val map = mapResult.item.sweep()
 
-        val functionIds =
-          (1 to 100) map {
-            i =>
-              val functionId = i.toString
-              map.writeSync(MapEntry.Put(functionId, Slice.Null)) shouldBe true
-              functionId
+          //write random functionIds
+          val functionIds =
+            (1 to (randomIntMax(1000) max 10)) map {
+              i =>
+                val functionId = randomString
+                map.writeSync(MapEntry.Put(functionId, Slice.Null)) shouldBe true
+                functionId
+            }
+
+          //should contain
+          functionIds foreach {
+            functionId =>
+              map.contains(functionId) shouldBe true
           }
 
-        functionIds foreach {
-          functionId =>
-            map.contains(functionId) shouldBe true
-        }
+          //randomly reopening results in the same skipList
+          functionIds.foldLeft(map.reopen) {
+            case (reopened, functionId) =>
+              reopened.size shouldBe functionIds.size
+              reopened.contains(functionId) shouldBe true
 
-        functionIds.foldLeft(map.reopen) {
-          case (reopened, functionId) =>
-            reopened.size shouldBe functionIds.size
-            reopened.contains(functionId) shouldBe true
-
-            if (randomBoolean())
-              reopened
-            else
-              reopened.reopen
-        }
+              if (randomBoolean())
+                reopened
+              else
+                reopened.reopen.sweep()
+          }
+      }
     }
   }
 }
