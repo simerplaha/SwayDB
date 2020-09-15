@@ -40,7 +40,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 
 object Queue extends LazyLogging {
 
@@ -55,7 +55,6 @@ object Queue extends LazyLogging {
                        appendixFlushCheckpointSize: Int = 2.mb,
                        otherDirs: Seq[Dir] = Seq.empty,
                        cacheKeyValueIds: Boolean = true,
-                       shutdownTimeout: FiniteDuration = 30.seconds,
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                        sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -93,7 +92,6 @@ object Queue extends LazyLogging {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
-          shutdownTimeout = shutdownTimeout,
           acceleration = acceleration,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

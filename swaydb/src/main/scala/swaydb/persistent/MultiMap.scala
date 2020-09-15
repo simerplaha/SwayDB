@@ -42,7 +42,7 @@ import swaydb.serializers.Serializer
 import swaydb.{Apply, KeyOrderConverter, MultiMap, PureFunction}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object MultiMap extends LazyLogging {
@@ -67,7 +67,6 @@ object MultiMap extends LazyLogging {
                                                           appendixFlushCheckpointSize: Int = 2.mb,
                                                           otherDirs: Seq[Dir] = Seq.empty,
                                                           cacheKeyValueIds: Boolean = true,
-                                                          shutdownTimeout: FiniteDuration = 30.seconds,
                                                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                           sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -115,7 +114,6 @@ object MultiMap extends LazyLogging {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
-          shutdownTimeout = shutdownTimeout,
           acceleration = acceleration,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

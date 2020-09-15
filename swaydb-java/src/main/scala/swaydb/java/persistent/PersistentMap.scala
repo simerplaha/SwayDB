@@ -25,7 +25,6 @@
 package swaydb.java.persistent
 
 import java.nio.file.Path
-import java.time.Duration
 import java.util.Collections
 import java.util.concurrent.ExecutorService
 
@@ -46,10 +45,9 @@ import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag, PureFunction}
 
-import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
@@ -65,7 +63,6 @@ object PersistentMap {
                               private var appendixFlushCheckpointSize: Int = 2.mb,
                               private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                               private var cacheKeyValueIds: Boolean = true,
-                              private var shutdownTimeout: Duration = 30.seconds.toJava,
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                               private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                               private var randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -134,11 +131,6 @@ object PersistentMap {
 
     def setCacheKeyValueIds(cacheKeyValueIds: Boolean) = {
       this.cacheKeyValueIds = cacheKeyValueIds
-      this
-    }
-
-    def setShutdownTimeout(duration: Duration) = {
-      this.shutdownTimeout = duration
       this
     }
 
@@ -269,7 +261,6 @@ object PersistentMap {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
-          shutdownTimeout = shutdownTimeout.toScala,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

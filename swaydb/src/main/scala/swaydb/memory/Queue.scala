@@ -36,7 +36,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 
 object Queue extends LazyLogging {
 
@@ -48,7 +48,6 @@ object Queue extends LazyLogging {
                        maxKeyValuesPerSegment: Int = Int.MaxValue,
                        fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                        deleteSegmentsEventually: Boolean = true,
-                       shutdownTimeout: FiniteDuration = 30.seconds,
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
@@ -69,7 +68,6 @@ object Queue extends LazyLogging {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
-          shutdownTimeout = shutdownTimeout,
           acceleration = acceleration,
           levelZeroThrottle = levelZeroThrottle,
           lastLevelThrottle = lastLevelThrottle,

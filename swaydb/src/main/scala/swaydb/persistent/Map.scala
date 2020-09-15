@@ -27,22 +27,22 @@ package swaydb.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Apply, KeyOrderConverter, PureFunction}
 import swaydb.configs.level.{DefaultExecutionContext, DefaultPersistentConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
-import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{DataType, Functions}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
+import swaydb.{Apply, KeyOrderConverter, PureFunction}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
@@ -57,7 +57,6 @@ object Map extends LazyLogging {
                                                        appendixFlushCheckpointSize: Int = 2.mb,
                                                        otherDirs: Seq[Dir] = Seq.empty,
                                                        cacheKeyValueIds: Boolean = true,
-                                                       shutdownTimeout: FiniteDuration = 30.seconds,
                                                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                        sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -92,7 +91,6 @@ object Map extends LazyLogging {
           enableTimer = PureFunction.isOn(functionClassTag),
           cacheKeyValueIds = cacheKeyValueIds,
           threadStateCache = threadStateCache,
-          shutdownTimeout = shutdownTimeout,
           config =
             DefaultPersistentConfig(
               dir = dir,

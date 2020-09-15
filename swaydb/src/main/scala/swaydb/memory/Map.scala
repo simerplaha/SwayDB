@@ -25,23 +25,22 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Apply, KeyOrderConverter, PureFunction, SwayDB}
 import swaydb.configs.level.{DefaultExecutionContext, DefaultMemoryConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
-import swaydb.core.function.FunctionStore
-import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{DataType, Functions}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
+import swaydb.{Apply, KeyOrderConverter, PureFunction}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
@@ -51,7 +50,6 @@ object Map extends LazyLogging {
                                                        maxKeyValuesPerSegment: Int = Int.MaxValue,
                                                        fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                        deleteSegmentsEventually: Boolean = true,
-                                                       shutdownTimeout: FiniteDuration = 30.seconds,
                                                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                        levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                                                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
@@ -72,7 +70,6 @@ object Map extends LazyLogging {
           enableTimer = PureFunction.isOn(functionClassTag),
           cacheKeyValueIds = false,
           threadStateCache = threadStateCache,
-          shutdownTimeout = shutdownTimeout,
           config =
             DefaultMemoryConfig(
               mapSize = mapSize,

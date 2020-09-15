@@ -30,16 +30,15 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
-import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{DataType, Functions}
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
 object SetMap extends LazyLogging {
@@ -55,7 +54,6 @@ object SetMap extends LazyLogging {
                           cacheKeyValueIds: Boolean = true,
                           mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                           deleteMemorySegmentsEventually: Boolean = true,
-                          shutdownTimeout: FiniteDuration = 30.seconds,
                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                           persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                           persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -90,7 +88,6 @@ object SetMap extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
-          shutdownTimeout = shutdownTimeout,
           acceleration = acceleration,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
           persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,

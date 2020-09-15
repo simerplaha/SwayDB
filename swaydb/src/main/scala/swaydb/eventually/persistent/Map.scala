@@ -27,22 +27,20 @@ package swaydb.eventually.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Apply, KeyOrderConverter, PureFunction}
 import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecutionContext}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
-import swaydb.core.function.FunctionStore
-import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{DataType, Functions}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
+import swaydb.{Apply, KeyOrderConverter, PureFunction}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
@@ -62,7 +60,6 @@ object Map extends LazyLogging {
                                                        memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
                                                        persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                                                        otherDirs: Seq[Dir] = Seq.empty,
-                                                       shutdownTimeout: FiniteDuration = 30.seconds,
                                                        cacheKeyValueIds: Boolean = true,
                                                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                        deleteMemorySegmentsEventually: Boolean = true,
@@ -95,7 +92,6 @@ object Map extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           fileCache = fileCache,
           memoryCache = memoryCache,
-          shutdownTimeout = shutdownTimeout,
           threadStateCache = threadStateCache,
           config =
             DefaultEventuallyPersistentConfig(

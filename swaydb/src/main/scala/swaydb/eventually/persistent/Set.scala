@@ -27,22 +27,21 @@ package swaydb.eventually.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Apply, KeyOrderConverter, PureFunction}
 import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecutionContext}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
-import swaydb.data.{DataType, Functions}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{DataType, Functions}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.{Default, Serializer}
+import swaydb.{Apply, KeyOrderConverter, PureFunction}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 
 object Set extends LazyLogging {
@@ -65,7 +64,6 @@ object Set extends LazyLogging {
                                                  cacheKeyValueIds: Boolean = true,
                                                  mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                  deleteMemorySegmentsEventually: Boolean = true,
-                                                 shutdownTimeout: FiniteDuration = 30.seconds,
                                                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                  persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                  persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -94,7 +92,6 @@ object Set extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           fileCache = fileCache,
           memoryCache = memoryCache,
-          shutdownTimeout = shutdownTimeout,
           threadStateCache = threadStateCache,
           config =
             DefaultEventuallyPersistentConfig(

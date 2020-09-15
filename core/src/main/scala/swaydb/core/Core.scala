@@ -46,7 +46,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.TupleOrNone
-import swaydb.{ActorWire, Bag, IO, OK, Prepare}
+import swaydb._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -63,7 +63,6 @@ private[swaydb] object Core {
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache,
-            shutdownTimeout: FiniteDuration,
             threadStateCache: ThreadStateCache,
             config: SwayDBPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             timeOrder: TimeOrder[Slice[Byte]],
@@ -75,15 +74,13 @@ private[swaydb] object Core {
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       threadStateCache = threadStateCache,
-      memoryCache = memoryCache,
-      shutdownTimeout = shutdownTimeout
+      memoryCache = memoryCache
     )
 
   def apply(enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache,
-            shutdownTimeout: FiniteDuration,
             threadStateCache: ThreadStateCache,
             config: SwayDBMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
@@ -95,8 +92,7 @@ private[swaydb] object Core {
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       threadStateCache = threadStateCache,
-      memoryCache = memoryCache,
-      shutdownTimeout = shutdownTimeout
+      memoryCache = memoryCache
     )
 
   /**

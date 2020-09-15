@@ -103,8 +103,7 @@ private[core] object CoreInitializer extends LazyLogging {
         )
     }
 
-  def addShutdownHook[BAG[_]](core: Core[BAG],
-                              shutdownTimeout: FiniteDuration): ShutdownHookThread =
+  def addShutdownHook[BAG[_]](core: Core[BAG]): ShutdownHookThread =
     sys.addShutdownHook {
       if (core.state != CoreState.Closed)
         core.closeWithBag[Bag.Less]()
@@ -131,11 +130,10 @@ private[core] object CoreInitializer extends LazyLogging {
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             threadStateCache: ThreadStateCache,
-            memoryCache: MemoryCache,
-            shutdownTimeout: FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                             timeOrder: TimeOrder[Slice[Byte]],
-                                             functionStore: FunctionStore,
-                                             buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
+            memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                      timeOrder: TimeOrder[Slice[Byte]],
+                                      functionStore: FunctionStore,
+                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
     val validationResult =
       config.level0.storage match {
         case Level0Storage.Memory =>
@@ -279,10 +277,7 @@ private[core] object CoreInitializer extends LazyLogging {
                               coreState = CoreState()
                             )
 
-                          addShutdownHook(
-                            core = core,
-                            shutdownTimeout = shutdownTimeout
-                          )
+                          addShutdownHook(core = core)
 
                           core
                       }

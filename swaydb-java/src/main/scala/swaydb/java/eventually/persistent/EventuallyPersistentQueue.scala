@@ -25,7 +25,6 @@
 package swaydb.java.eventually.persistent
 
 import java.nio.file.Path
-import java.time.Duration
 import java.util.Collections
 import java.util.concurrent.ExecutorService
 
@@ -43,10 +42,8 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 
-import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
 
 object EventuallyPersistentQueue {
@@ -62,7 +59,6 @@ object EventuallyPersistentQueue {
                         private var cacheKeyValueIds: Boolean = true,
                         private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                         private var deleteMemorySegmentsEventually: Boolean = true,
-                        private var shutdownTimeout: Duration = 30.seconds.toJava,
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                         private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                         private var persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -126,11 +122,6 @@ object EventuallyPersistentQueue {
 
     def setDeleteMemorySegmentsEventually(deleteMemorySegmentsEventually: Boolean) = {
       this.deleteMemorySegmentsEventually = deleteMemorySegmentsEventually
-      this
-    }
-
-    def setShutdownTimeout(duration: Duration) = {
-      this.shutdownTimeout = duration
       this
     }
 
@@ -218,7 +209,6 @@ object EventuallyPersistentQueue {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
-          shutdownTimeout = shutdownTimeout.toScala,
           acceleration = acceleration.apply,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
           persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,
