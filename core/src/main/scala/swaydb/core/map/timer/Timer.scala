@@ -29,12 +29,13 @@ import java.nio.file.Path
 import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.data.Time
-import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.counter.Counter
-import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
+import swaydb.data.util.StorageUnits._
 
 private[core] trait Timer {
   val isEmptyTimer: Boolean
@@ -46,6 +47,8 @@ private[core] trait Timer {
 
 private[core] object Timer {
   val defaultKey = Slice.emptyBytes
+
+  val timerFolderName = "timer"
 
   def memory(): Timer =
     new Timer {
@@ -75,13 +78,17 @@ private[core] object Timer {
 
   def persistent(path: Path,
                  mmap: MMAP.Map,
-                 mod: Long,
-                 flushCheckpointSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                            forceSaveApplier: ForceSaveApplier,
-                                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, Timer] =
+                 mod: Long = 100000,
+                 flushCheckpointSize: Long = 1.mb)(implicit bufferCleaner: ByteBufferSweeperActor,
+                                                   forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, Timer] = {
+    implicit val writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]] = CounterMapEntryWriter.CounterPutMapEntryWriter
+    implicit val reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] = CounterMapEntryReader.CounterPutMapEntryReader
+
+    val timerFolder = path.resolve(timerFolderName)
+    Effect createDirectoriesIfAbsent timerFolder
+
     Counter.persistent(
-      path = path,
+      path = timerFolder,
       mmap = mmap,
       mod = mod,
       flushCheckpointSize = flushCheckpointSize
@@ -98,4 +105,5 @@ private[core] object Timer {
             counter.close
         }
     }
+  }
 }
