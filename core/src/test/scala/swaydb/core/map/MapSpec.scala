@@ -31,16 +31,17 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
 import swaydb.core.util.skiplist.SkipList
 import swaydb.core.util.{BlockCacheFileIDGenerator, Extension}
-import swaydb.core._
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -54,7 +55,6 @@ import scala.jdk.CollectionConverters._
 
 class MapSpec extends TestBase {
 
-  implicit val ec = TestExecutionContext.executionContext
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
@@ -1173,6 +1173,44 @@ class MapSpec extends TestBase {
             }
         }
       }
+    }
+  }
+
+  "reopening after each write" in {
+    TestCaseSweeper {
+      implicit sweeper =>
+        import LevelZeroMapEntryReader._
+        import LevelZeroMapEntryWriter._
+        import sweeper._
+
+        val map1 =
+          Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            nullKey = Slice.Null,
+            nullValue = Memory.Null,
+            folder = createRandomDir,
+            mmap = MMAP.randomForMap(),
+            flushOnOverflow = true,
+            fileSize = 1.mb,
+            dropCorruptedTailEntries = false
+          ).item.sweep()
+
+        (1 to 100) foreach {
+          i =>
+            map1.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
+        }
+
+        (1 to 100).foldLeft(map1) {
+          case (map, i) =>
+            map.size shouldBe 100
+
+            map.get(i).getUnsafe shouldBe Memory.put(i: Slice[Byte], i: Slice[Byte])
+
+            if (randomBoolean())
+              map
+            else
+              map.reopen
+        }
+
     }
   }
 }

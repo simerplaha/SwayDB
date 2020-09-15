@@ -39,10 +39,10 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
-import swaydb.core.map.appliedfunctions.AppliedFunctions
-import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, FunctionsMapEntryReader, FunctionsMapEntryWriter}
+import swaydb.core.map.applied.AppliedFunctions
+import swaydb.core.map.serializer.AppliedFunctionsMapEntryWriter
 import swaydb.core.map.timer.Timer
-import swaydb.core.map.{MapEntry, Maps, RecoveryResult, SkipListMerger}
+import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.MinMax
@@ -54,7 +54,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.Futures.FutureImplicits
-import swaydb.data.util.StorageUnits._
 import swaydb.data.util.{Futures, Options}
 import swaydb.{Actor, Error, IO, OK}
 
@@ -142,7 +141,7 @@ private[core] object LevelZero extends LazyLogging {
                         val appliedFunctionsMap =
                           AppliedFunctions
                             .create(
-                              databaseDirectory = databaseDirectory,
+                              dir = databaseDirectory,
                               appliedFunctionsMapSize = appliedFunctionsMapSize,
                               mmap = mmap
                             )
@@ -170,7 +169,7 @@ private[core] object LevelZero extends LazyLogging {
                   val appliedFunctionsMap =
                     AppliedFunctions
                       .create(
-                        databaseDirectory = databaseDirectory,
+                        dir = databaseDirectory,
                         appliedFunctionsMapSize = appliedFunctionsMapSize,
                         mmap = mmap
                       )
@@ -409,7 +408,7 @@ private[swaydb] case class LevelZero(path: Path,
                 logger.info(s"Checked $progress/$totalAppliedFunctions applied functions. Removed ${cleaned.size}.")
 
               if (!this.mightContainFunction(functionId)) {
-                appliedFunctions.writeSync(MapEntry.Remove(functionId)(FunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter))
+                appliedFunctions.writeSync(MapEntry.Remove(functionId)(AppliedFunctionsMapEntryWriter.FunctionsRemoveMapEntryWriter))
                 cleaned += functionId.readString()
                 cleaned
               } else {
@@ -488,7 +487,7 @@ private[swaydb] case class LevelZero(path: Path,
         if (appliedFunctions.notContains(function)) {
           //writeNoSync because this already because this functions is already being
           //called un map.write which is a sync function.
-          appliedFunctions.writeNoSync(MapEntry.Put(function, Slice.Null)(FunctionsMapEntryWriter.FunctionsPutMapEntryWriter))
+          appliedFunctions.writeNoSync(MapEntry.Put(function, Slice.Null)(AppliedFunctionsMapEntryWriter.FunctionsPutMapEntryWriter))
         }
     }
 

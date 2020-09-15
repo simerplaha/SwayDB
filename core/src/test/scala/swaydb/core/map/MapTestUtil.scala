@@ -17,56 +17,47 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core
+package swaydb.core.map
 
 import swaydb.Bag
 import swaydb.IOValues._
 import swaydb.core.TestData._
+import swaydb.core.TestExecutionContext
 import swaydb.core.actor.ByteBufferSweeper
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
-import swaydb.core.data.{Memory, MemoryOption}
-import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ForceSaveApplier
-import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.map.serializer.MapEntryReader
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.StorageUnits._
+import swaydb.data.order.KeyOrder
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
-import scala.util.Random
 
-package object map {
+object MapTestUtil {
 
   //cannot be added to TestBase because PersistentMap cannot leave the map package.
-  implicit class ReopenMap(map: PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) {
-    def reopen(implicit keyOrder: KeyOrder[Slice[Byte]],
-               timeOrder: TimeOrder[Slice[Byte]],
-               functionStore: FunctionStore,
-               fileSweeper: FileSweeperActor,
-               bufferCleaner: ByteBufferSweeperActor,
-               forceSaveApplier: ForceSaveApplier,
-               ec: ExecutionContext,
-               writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]],
-               reader: MapEntryReader[MapEntry[Slice[Byte], Memory]],
-               skipListMerge: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) = {
+  implicit class ReopenMap[OK, OV, K <: OK, V <: OV](map: PersistentMap[OK, OV, K, V]) {
+    def reopen(implicit keyOrder: KeyOrder[K],
+               reader: MapEntryReader[MapEntry[K, V]]) = {
       map.close().runRandomIO.right.value
-      Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+
+      implicit val skipListMerger = map.skipListMerger
+      implicit val writer = map.writer
+      implicit val forceSaveApplied = map.forceSaveApplier
+      implicit val cleaner = map.bufferCleaner
+      implicit val sweeper = map.fileSweeper
+
+      Map.persistent[OK, OV, K, V](
         folder = map.path,
         mmap = MMAP.randomForMap(),
-        flushOnOverflow = Random.nextBoolean(),
-        fileSize = 10.mb,
+        flushOnOverflow = map.flushOnOverflow,
+        fileSize = map.fileSize,
         dropCorruptedTailEntries = false,
-        nullValue = Memory.Null,
-        nullKey = Slice.Null
+        nullValue = map.nullValue,
+        nullKey = map.nullKey
       ).runRandomIO.right.value.item
     }
   }
@@ -86,4 +77,5 @@ package object map {
       assert(isShut, "Is not shut")
     }
   }
+
 }

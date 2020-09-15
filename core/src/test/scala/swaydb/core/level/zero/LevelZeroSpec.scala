@@ -32,7 +32,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.file.Effect
-import swaydb.core.map.appliedfunctions.AppliedFunctions
+import swaydb.core.map.applied.AppliedFunctions
 import swaydb.core.map.timer.Timer
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}

@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.map.appliedfunctions
+package swaydb.core.map.applied
 
 import java.nio.file.Path
 
@@ -30,9 +30,9 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.ForceSaveApplier
+import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map
-import swaydb.core.map.serializer.{FunctionsMapEntryReader, FunctionsMapEntryWriter}
+import swaydb.core.map.serializer.{AppliedFunctionsMapEntryReader, AppliedFunctionsMapEntryWriter}
 import swaydb.core.map.{RecoveryResult, SkipListMerger}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
@@ -45,14 +45,15 @@ case object AppliedFunctions extends LazyLogging {
 
   val folderName = "def-applied"
 
-  def create(databaseDirectory: Path,
+  def create(dir: Path,
              appliedFunctionsMapSize: Long,
              mmap: MMAP.Map)(implicit bufferCleaner: ByteBufferSweeperActor,
-                             forceSaveApplier: ForceSaveApplier): RecoveryResult[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]] = {
-    val folder = databaseDirectory.resolve(folderName)
+                             forceSaveApplier: ForceSaveApplier): RecoveryResult[map.PersistentMap[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]] = {
+    val folder = dir.resolve(folderName)
+    Effect.createDirectoriesIfAbsent(folder)
 
-    implicit val functionsEntryWriter = FunctionsMapEntryWriter.FunctionsPutMapEntryWriter
-    implicit val functionsEntryReader = FunctionsMapEntryReader.FunctionsPutMapEntryReader
+    implicit val functionsEntryWriter = AppliedFunctionsMapEntryWriter.FunctionsPutMapEntryWriter
+    implicit val functionsEntryReader = AppliedFunctionsMapEntryReader.FunctionsMapEntryReader
     implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](folder.toString)
     implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
     implicit val keyOrder = KeyOrder.default

@@ -304,11 +304,11 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
                                                              flushOnOverflow: Boolean,
                                                              private val _skipList: SkipListConcurrent[OK, OV, K, V],
                                                              private var currentFile: DBFile,
-                                                             private val hasRangeInitial: Boolean)(implicit fileSweeper: FileSweeperActor,
+                                                             private val hasRangeInitial: Boolean)(implicit val fileSweeper: FileSweeperActor,
                                                                                                    val bufferCleaner: ByteBufferSweeperActor,
-                                                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                   skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                                                   forceSaveApplier: ForceSaveApplier) extends Map[OK, OV, K, V] with LazyLogging {
+                                                                                                   val writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                                   val skipListMerger: SkipListMerger[OK, OV, K, V],
+                                                                                                   val forceSaveApplier: ForceSaveApplier) extends Map[OK, OV, K, V] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).

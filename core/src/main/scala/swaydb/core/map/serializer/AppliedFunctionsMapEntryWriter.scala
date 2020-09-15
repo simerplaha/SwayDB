@@ -29,7 +29,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
-private[swaydb] object FunctionsMapEntryWriter {
+private[swaydb] object AppliedFunctionsMapEntryWriter {
 
   implicit object FunctionsPutMapEntryWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Slice.Null.type]] {
     val id: Byte = 0
