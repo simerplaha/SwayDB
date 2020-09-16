@@ -190,14 +190,6 @@ lazy val serializers =
     .settings(publishSettings)
     .dependsOn(data)
 
-lazy val `serializer-boopickle` =
-  project
-    .settings(name := "boopickle")
-    .settings(commonSettings)
-    .settings(publishSettings)
-    .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)
-    .dependsOn(serializers)
-
 lazy val `core-stress` =
   project
     .settings(commonSettings)
@@ -245,7 +237,7 @@ lazy val `swaydb-java` =
     .dependsOn(swaydb, `data-java`)
 
 /**
- * Support modules.
+ * Support modules - Effect
  */
 lazy val `swaydb-monix` =
   project
@@ -270,3 +262,14 @@ lazy val `swaydb-cats-effect` =
     .settings(publishSettings)
     .settings(libraryDependencies += "org.typelevel" %% "cats-effect" % catsEffectVersion)
     .dependsOn(data)
+
+/**
+ * Support modules - Serialisers.
+ */
+lazy val `serializer-boopickle` =
+  project
+    .settings(name := "boopickle")
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies += "io.suzaku" %% "boopickle" % boopickleVersion)
+    .dependsOn(serializers)
