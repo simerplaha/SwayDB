@@ -44,7 +44,11 @@ object Build extends LazyLogging {
   case class Version(major: Int,
                      minor: Int,
                      revision: Int) {
-    val version = s"""$major.$minor.$revision"""
+    val version =
+      if (revision == 0)
+        s"""$major.$minor"""
+      else
+        s"""$major.$minor.$revision"""
   }
 
   final def thisVersion(): Version = Version(major, minor, revision)
