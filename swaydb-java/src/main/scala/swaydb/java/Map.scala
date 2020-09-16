@@ -197,7 +197,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     asScala.head.asJavaMap(KeyVal(_))
 
   def stream: Source[K, KeyVal[K, V]] =
-    new Source(asScala.stream.transformValue(_.asKeyVal))
+    new Source(asScala.transformValue(_.asKeyVal))
 
   def iterator: java.util.Iterator[KeyVal[K, V]] =
     asScala

@@ -71,12 +71,10 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
           child2.put(4, "four again")
 
           child1
-            .stream
             .materialize
             .toList should contain inOrderOnly((3, "three"), (4, "four"))
 
           child2
-            .stream
             .materialize
             .toList should contain inOrderOnly((4, "four again"), (5, "five"))
       }
@@ -106,12 +104,10 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
           child1.isEmpty shouldBe true
 
           child2
-            .stream
             .materialize
             .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
           child3
-            .stream
             .materialize
             .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
       }

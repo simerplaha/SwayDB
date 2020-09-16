@@ -92,7 +92,6 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
 
   def doFoldLeft(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     db
-      .stream
       .foldLeft(Option.empty[Int]) {
         case (previousKey, (key, value)) =>
           previousKey map {
@@ -107,7 +106,6 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
 
   def doForeach(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     db
-      .stream
       .foreach {
         case (key, value) =>
           if (key % 10000 == 0)
@@ -120,7 +118,6 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     val startFrom = randomNextInt(keyValueCount) min (keyValueCount - 100)
     val took =
       db
-        .stream
         .from(startFrom)
         .takeWhile {
           case (key, _) =>
@@ -151,7 +148,6 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
     val startFrom = randomNextInt(keyValueCount) min (keyValueCount - 100)
     val took =
       db
-        .stream
         .from(startFrom)
         .reverse
         .takeWhile {
@@ -172,7 +168,6 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
 
   def doTake(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) = {
     db
-      .stream
       .take(100)
       .map {
         case (key, value) =>
@@ -182,7 +177,6 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
       }.materialize.runRandomIO.right.value shouldBe (1 to 100)
 
     db
-      .stream
       .fromOrAfter(0)
       .take(100)
       .map {
@@ -195,7 +189,6 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
 
   def doDrop(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     db
-      .stream
       .from(keyValueCount - 200)
       .drop(100)
       .map {
@@ -207,7 +200,6 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
 
   def doTakeRight(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
     db
-      .stream
       .fromOrBefore(Int.MaxValue)
       .reverse
       .take(100)
@@ -219,7 +211,7 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
       }.materialize.runRandomIO.right.value shouldBe (keyValueCount - 99 to keyValueCount).reverse
 
   def doCount(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) =
-    db.stream.size.get should be >= keyValueCount
+    db.count.get should be >= keyValueCount
 
   def doDeleteAll(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) = {
     (1 to keyValueCount / 2) foreach {

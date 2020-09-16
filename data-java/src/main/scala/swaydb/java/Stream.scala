@@ -113,8 +113,8 @@ class Stream[A](val asScala: swaydb.Stream[A, Bag.Less]) {
   def iterator(): util.Iterator[A] =
     asScala.iterator(Bag.less).asJava
 
-  def size: Int =
-    asScala.size
+  def count: Int =
+    asScala.count
 
   def materialize: util.List[A] =
     asScala.materialize.asJava

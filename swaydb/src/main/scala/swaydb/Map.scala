@@ -46,7 +46,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  */
 case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit val keySerializer: Serializer[K],
                                                                      val valueSerializer: Serializer[V],
-                                                                     val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
+                                                                     override val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   def path: Path =
     core.zeroPath.getParent
@@ -232,10 +232,10 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     bag.suspend(core mightContainFunction Slice.writeString[Byte](function.id))
 
   def keys: Stream[K, BAG] =
-    stream.map(_._1)
+    map(_._1)
 
   def values: Stream[V, BAG] =
-    stream.map(_._2)
+    map(_._2)
 
   def toSet: Set[K, Nothing, BAG] =
     Set[K, Nothing, BAG](core)
@@ -271,13 +271,6 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
         reverseIteration = false,
         readState = core.readStates.get())
     )(Option(_))
-
-  private[swaydb] def headOrNull: BAG[(K, V)] =
-    headOrNull(
-      from = None,
-      reverseIteration = false,
-      readState = core.readStates.get()
-    )
 
   private def headOrNull[BAG[_]](from: Option[From[K]],
                                  reverseIteration: Boolean,
@@ -332,7 +325,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     else
       core.after(keySerializer.write(previousKey), readState)
 
-  private def sourceFree(): SourceFree[K, (K, V)] =
+  override private[swaydb] def free: SourceFree[K, (K, V)] =
     new SourceFree[K, (K, V)](from = None, reverse = false) {
       val readState = core.readStates.get()
 
@@ -354,13 +347,6 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
             (key, value)
         }
     }
-
-
-  def stream: Source[K, (K, V), BAG] =
-    new Source(sourceFree())
-
-  def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
-    stream.iterator(bag)
 
   def sizeOfBloomFilterEntries: BAG[Int] =
     bag.suspend(core.bloomFilterKeyValueCount)
@@ -392,7 +378,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
   /**
    * Returns an Async API of type O where the [[Bag]] is known.
    */
-  def toBag[X[_]](implicit bag: Bag[X]): Map[K, V, F, X] =
+  override def toBag[X[_]](implicit bag: Bag[X]): Map[K, V, F, X] =
     copy(core = core.toBag[X])
 
   def asScala: scala.collection.mutable.Map[K, V] =

@@ -36,6 +36,12 @@ object Stream {
       stream.foldLeft(numeric.zero)(numeric.plus)
   }
 
+  @inline private def apply[A, BAG[_]](nextFree: => StreamFree[A])(implicit bag: Bag[BAG]): Stream[A, BAG] =
+    new Stream[A, BAG] {
+      override private[swaydb] def free: StreamFree[A] =
+        nextFree
+    }
+
   /**
    * Create and empty [[Stream]].
    */
@@ -58,7 +64,7 @@ object Stream {
     apply[Char, BAG](from until to)
 
   def tabulate[A, BAG[_]](n: Int)(f: Int => A)(implicit bag: Bag[BAG]): Stream[A, BAG] =
-    new Stream(StreamFree.tabulate(n)(f))
+    Stream(StreamFree.tabulate(n)(f))
 
   /**
    * Create a [[Stream]] from a collection.
@@ -67,10 +73,10 @@ object Stream {
     apply[A, BAG](items.iterator)
 
   def apply[A, BAG[_]](it: Iterator[A])(implicit bag: Bag[BAG]): Stream[A, BAG] =
-    new Stream(StreamFree(it))
+    Stream(StreamFree(it))
 
   def join[A, B >: A, BAG[_]](head: A, tail: Stream[B, BAG])(implicit bag: Bag[BAG]): Stream[B, BAG] =
-    new Stream(StreamFree.join(head, tail.free))
+    Stream(StreamFree.join(head, tail.free))
 }
 
 /**
@@ -82,7 +88,9 @@ object Stream {
  *
  * [[Stream]] can be converted to other bags by calling [[toBag]]
  */
-class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val bag: Bag[BAG]) {
+abstract class Stream[A, BAG[_]](implicit val bag: Bag[BAG]) {
+
+  private[swaydb] def free: StreamFree[A]
 
   private[swaydb] def headOrNull: BAG[A] =
     free.headOrNull
@@ -94,13 +102,13 @@ class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val ba
     free.headOption
 
   def map[B](f: A => B): Stream[B, BAG] =
-    new Stream(free.map(f))
+    Stream(free.map(f))
 
-  def mapBags[B](f: A => BAG[B]): Stream[B, BAG] =
-    new Stream(free.mapBags(f))
+  def mapFlatten[B](f: A => BAG[B]): Stream[B, BAG] =
+    Stream(free.mapBags(f))
 
   def flatMap[B](f: A => Stream[B, BAG]): Stream[B, BAG] =
-    new Stream(
+    Stream(
       free flatMap {
         item =>
           f(item).free
@@ -108,32 +116,32 @@ class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val ba
     )
 
   def drop(count: Int): Stream[A, BAG] =
-    new Stream(free.drop(count))
+    Stream(free.drop(count))
 
   def dropWhile(f: A => Boolean): Stream[A, BAG] =
-    new Stream(free.dropWhile(f))
+    Stream(free.dropWhile(f))
 
   def take(count: Int): Stream[A, BAG] =
-    new Stream(free.take(count))
+    Stream(free.take(count))
 
   def takeWhile(f: A => Boolean): Stream[A, BAG] =
-    new Stream(free.takeWhile(f))
+    Stream(free.takeWhile(f))
 
   def filter(f: A => Boolean): Stream[A, BAG] =
-    new Stream(free.filter(f))
+    Stream(free.filter(f))
 
   def filterNot(f: A => Boolean): Stream[A, BAG] =
-    new Stream(free.filterNot(f))
+    Stream(free.filterNot(f))
 
   def collect[B](pf: PartialFunction[A, B]): Stream[B, BAG] =
-    new Stream(free.collect(pf))
+    Stream(free.collect(pf))
 
   def collectFirst[B](pf: PartialFunction[A, B]): BAG[Option[B]] =
     free.collectFirst(pf)
 
   def flatten[B](implicit bag: Bag[BAG],
                  evd: A <:< BAG[B]): Stream[B, BAG] =
-    new Stream(free.flatten)
+    Stream(free.flatten)
 
   def collectFirstOrNull[B](pf: PartialFunction[A, B]): BAG[B] =
     free.collectFirstOrNull(pf)
@@ -155,7 +163,7 @@ class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val ba
   def foldLeft[B](initial: B)(f: (B, A) => B): BAG[B] =
     free.foldLeft(initial)(f)
 
-  def foldLeftBags[B](initial: B)(f: (B, A) => BAG[B]): BAG[B] =
+  def foldLeftFlatten[B](initial: B)(f: (B, A) => BAG[B]): BAG[B] =
     free.foldLeftBags(initial)(f)
 
   def foreach(f: A => Unit): BAG[Unit] =
@@ -167,13 +175,13 @@ class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val ba
   /**
    * Folds over all elements in the StreamBag to calculate it's total size.
    */
-  def size: BAG[Int] =
-    free.size
+  def count: BAG[Int] =
+    free.count
 
   /**
    * Materialises/closes and processes the stream to a [[Seq]].
    */
-  def materialize[X[_]](implicit builder: mutable.Builder[A, X[A]]): BAG[X[A]] =
+  def materialize[C[_]](implicit builder: mutable.Builder[A, C[A]]): BAG[C[A]] =
     free.materializeFromBuilder
 
   /**
@@ -192,7 +200,4 @@ class Stream[A, BAG[_]](private[swaydb] val free: StreamFree[A])(implicit val ba
 
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[A]] =
     free.iterator
-
-  def toBag[BAG[_]](implicit bag: Bag[BAG]): Stream[A, BAG] =
-    new Stream[A, BAG](free)(bag)
 }

@@ -26,33 +26,40 @@ package swaydb
 
 import swaydb.data.stream.SourceFree
 
+object Source {
+  @inline def apply[K, T, BAG[_]](nextFree: => SourceFree[K, T])(implicit bag: Bag[BAG]): Source[K, T, BAG] =
+    new Source[K, T, BAG] {
+      private[swaydb] override def free: SourceFree[K, T] =
+        nextFree
+    }
+}
+
 /**
  * [[Source]] carries the [[BAG]] information at the time of creation whereas [[SourceFree]] requires
  * [[BAG]] at the time of execution.
  */
-class Source[K, T, BAG[_]](private[swaydb] override val free: SourceFree[K, T])(implicit bag: Bag[BAG]) extends Stream[T, BAG](free) {
+abstract class Source[K, T, BAG[_]](implicit bag: Bag[BAG]) extends Stream[T, BAG] {
+
+  private[swaydb] def free: SourceFree[K, T]
 
   def from(key: K): Source[K, T, BAG] =
-    new Source(free.from(key))
+    Source(free.from(key))
 
   def before(key: K): Source[K, T, BAG] =
-    new Source(free.before(key))
+    Source(free.before(key))
 
   def fromOrBefore(key: K): Source[K, T, BAG] =
-    new Source(free.fromOrBefore(key))
+    Source(free.fromOrBefore(key))
 
   def after(key: K): Source[K, T, BAG] =
-    new Source(free.after(key))
+    Source(free.after(key))
 
   def fromOrAfter(key: K): Source[K, T, BAG] =
-    new Source(free.fromOrAfter(key))
+    Source(free.fromOrAfter(key))
 
   def reverse: Source[K, T, BAG] =
-    new Source(free.reverse)
-
-  override def toBag[BAG[_]](implicit bag: Bag[BAG]): Source[K, T, BAG] =
-    new Source[K, T, BAG](free)(bag)
+    Source(free.reverse)
 
   private[swaydb] def transformValue[B](f: T => B): Source[K, B, BAG] =
-    new Source(free.transformValue(f))
+    Source(free.transformValue(f))
 }

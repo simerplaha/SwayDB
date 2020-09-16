@@ -220,7 +220,7 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
   def head: BAG[Option[(K, V)]] =
     set.head
 
-  private def sourceFree(): SourceFree[K, (K, V)] =
+  private[swaydb] def free: SourceFree[K, (K, V)] =
     new SourceFree[K, (K, V)](None, false) {
 
       var innerSource: SourceFree[(K, V), (K, V)] = _
@@ -231,15 +231,15 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
             case Some(from) =>
               val start =
                 if (from.before)
-                  set.stream.before((from.key, nullValue))
+                  set.before((from.key, nullValue))
                 else if (from.after)
-                  set.stream.after((from.key, nullValue))
+                  set.after((from.key, nullValue))
                 else if (from.orBefore)
-                  set.stream.fromOrBefore((from.key, nullValue))
+                  set.fromOrBefore((from.key, nullValue))
                 else if (from.orAfter)
-                  set.stream.fromOrAfter((from.key, nullValue))
+                  set.fromOrAfter((from.key, nullValue))
                 else
-                  set.stream.from((from.key, nullValue))
+                  set.from((from.key, nullValue))
 
               if (reverse)
                 start
@@ -252,13 +252,10 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
             case None =>
               if (reverse)
                 set
-                  .stream
                   .reverse
                   .free
               else
-                set
-                  .stream
-                  .free
+                set.free
           }
 
         innerSource.headOrNull
@@ -269,16 +266,10 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
     }
 
   override def keys: Stream[K, BAG] =
-    stream.map(_._1)
+    self.map(_._1)
 
   override def values: Stream[V, BAG] =
-    stream.map(_._2)
-
-  def stream: Source[K, (K, V), BAG] =
-    new Source(sourceFree())
-
-  def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
-    set.iterator
+    self.map(_._2)
 
   def sizeOfBloomFilterEntries: BAG[Int] =
     set.sizeOfBloomFilterEntries

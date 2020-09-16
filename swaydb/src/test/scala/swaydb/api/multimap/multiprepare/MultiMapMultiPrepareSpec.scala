@@ -76,8 +76,8 @@ class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
           assertTransaction1()
 
           //product is still is empty
-          productMap.stream.materialize.toList shouldBe empty
-          productOrderMap.stream.materialize.toList shouldBe empty
+          productMap.materialize.toList shouldBe empty
+          productOrderMap.materialize.toList shouldBe empty
 
           //crete transaction2 which uses all maps
           val transaction2 =
@@ -105,8 +105,8 @@ class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
           assertTransaction1()
 
           //products are non empty
-          productMap.stream.materialize.toList should not be empty
-          productOrderMap.stream.materialize.toList should not be empty
+          productMap.materialize.toList should not be empty
+          productOrderMap.materialize.toList should not be empty
 
           //order2 expires after 2 seconds
           eventually(Timeout(2.seconds)) {

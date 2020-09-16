@@ -62,7 +62,6 @@ object PersistentSetMap {
                            private var appendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
-                           private var shutdownTimeout: Duration = 30.seconds.toJava,
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -119,11 +118,6 @@ object PersistentSetMap {
 
     def setCacheKeyValueIds(cacheKeyValueIds: Boolean) = {
       this.cacheKeyValueIds = cacheKeyValueIds
-      this
-    }
-
-    def setShutdownTimeout(duration: Duration) = {
-      this.shutdownTimeout = duration
       this
     }
 
@@ -252,7 +246,6 @@ object PersistentSetMap {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
-          shutdownTimeout = shutdownTimeout.toScala,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

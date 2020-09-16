@@ -63,7 +63,7 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
     asScala.popOrElse(orElse.get())
 
   def stream: Stream[A] =
-    new Stream(asScala.stream)
+    new Stream(asScala)
 
   def close(): Unit =
     asScala.close()

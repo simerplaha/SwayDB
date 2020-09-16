@@ -87,31 +87,31 @@ sealed trait QueueSpec extends TestBase {
 
         val queue: Queue[Int] = newQueue()
 
-        def assertStreamIsEmpty() = queue.stream.materialize.toList shouldBe empty
+        def assertStreamIsEmpty() = queue.materialize.toList shouldBe empty
 
         queue.push(elem = 1, expireAfter = 1.seconds)
         queue.push(2)
-        queue.stream.materialize.toList should contain inOrderOnly(1, 2)
+        queue.materialize.toList should contain inOrderOnly(1, 2)
 
         Thread.sleep(1000)
 
-        queue.stream.materialize.toList should contain only 2
+        queue.materialize.toList should contain only 2
         queue.popOrNull() shouldBe 2
         queue.pop() shouldBe empty
         assertStreamIsEmpty()
 
         queue.push(elem = 3, expireAfter = 1.seconds)
-        queue.stream.materialize.toList should contain only 3
+        queue.materialize.toList should contain only 3
         queue.popOrNull() shouldBe 3
         assertStreamIsEmpty()
 
         queue.push(elem = 4, expireAfter = 1.seconds)
         queue.push(elem = 5)
         queue.push(elem = 6)
-        queue.stream.materialize.toList should contain inOrderOnly(4, 5, 6)
+        queue.materialize.toList should contain inOrderOnly(4, 5, 6)
 
         Thread.sleep(1000)
-        queue.stream.materialize.toList should contain inOrderOnly(5, 6)
+        queue.materialize.toList should contain inOrderOnly(5, 6)
         queue.popOrNull() shouldBe 5
         queue.popOrNull() shouldBe 6
         assertStreamIsEmpty()

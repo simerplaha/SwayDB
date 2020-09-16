@@ -185,7 +185,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiK
                                                                                             mapKeySerializer: Serializer[M],
                                                                                             valueSerializer: Serializer[V],
                                                                                             counter: Counter,
-                                                                                            val bag: Bag[BAG]) extends Schema[M, K, V, F, BAG](innerMap = innerMap, mapId = mapId, defaultExpiration = defaultExpiration) with MapT[K, V, F, BAG] { self =>
+                                                                                            override val bag: Bag[BAG]) extends Schema[M, K, V, F, BAG](innerMap = innerMap, mapId = mapId, defaultExpiration = defaultExpiration) with MapT[K, V, F, BAG] { self =>
 
   override def path: Path =
     innerMap.path
@@ -476,10 +476,10 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiK
   //    )(keySerializer, bag)
 
   def keys: Stream[K, BAG] =
-    stream.map(_._1)
+    map(_._1)
 
   def values: Stream[V, BAG] =
-    stream.map(_._2)
+    map(_._2)
 
   private[swaydb] def keySet: mutable.Set[K] =
     throw new NotImplementedError("KeySet function is not yet implemented. Please request for this on GitHub - https://github.com/simerplaha/SwayDB/issues.")
@@ -506,9 +506,9 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiK
     bag.map(expiration(key))(_.map(_.timeLeft))
 
   def head: BAG[Option[(K, V)]] =
-    stream.headOption
+    bag.transform(headOrNull)(Option(_))
 
-  private def sourceFree(): SourceFree[K, (K, V)] =
+  private[swaydb] def free: SourceFree[K, (K, V)] =
     new SourceFree[K, (K, V)](from = None, reverse = false) {
 
       var freeStream: StreamFree[(K, V)] = _
@@ -519,15 +519,15 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiK
             case Some(from) =>
               val start =
                 if (from.before)
-                  innerMap.stream.before(MultiKey.Key(mapId, from.key))
+                  innerMap.before(MultiKey.Key(mapId, from.key))
                 else if (from.after)
-                  innerMap.stream.after(MultiKey.Key(mapId, from.key))
+                  innerMap.after(MultiKey.Key(mapId, from.key))
                 else if (from.orBefore)
-                  innerMap.stream.fromOrBefore(MultiKey.Key(mapId, from.key))
+                  innerMap.fromOrBefore(MultiKey.Key(mapId, from.key))
                 else if (from.orAfter)
-                  innerMap.stream.fromOrAfter(MultiKey.Key(mapId, from.key))
+                  innerMap.fromOrAfter(MultiKey.Key(mapId, from.key))
                 else
-                  innerMap.stream.from(MultiKey.Key(mapId, from.key))
+                  innerMap.from(MultiKey.Key(mapId, from.key))
 
               if (reverse)
                 start.reverse
@@ -537,12 +537,10 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiK
             case None =>
               if (reverse)
                 innerMap
-                  .stream
                   .before(MultiKey.KeysEnd(mapId))
                   .reverse
               else
                 innerMap
-                  .stream
                   .after(MultiKey.KeysStart(mapId))
           }
 
@@ -570,23 +568,17 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val innerMap: Map[MultiK
         freeStream.nextOrNull(previous)
     }
 
-  def stream: Source[K, (K, V), BAG] =
-    new Source(sourceFree())
-
-  def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
-    stream.iterator(bag)
-
   def sizeOfBloomFilterEntries: BAG[Int] =
     innerMap.sizeOfBloomFilterEntries
 
   def isEmpty: BAG[Boolean] =
-    bag.map(stream.headOption)(_.isEmpty)
+    bag.map(headOption)(_.isEmpty)
 
   def nonEmpty: BAG[Boolean] =
-    bag.map(stream.headOption)(_.nonEmpty)
+    bag.map(headOption)(_.nonEmpty)
 
   def last: BAG[Option[(K, V)]] =
-    stream.lastOption
+    lastOption
 
   override def clearAppliedFunctions(): BAG[Iterable[String]] =
     innerMap.clearAppliedFunctions()

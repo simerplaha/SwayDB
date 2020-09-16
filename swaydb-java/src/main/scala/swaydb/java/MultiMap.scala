@@ -208,7 +208,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     new Stream[V](asScala.values)
 
   def stream: Source[K, KeyVal[K, V]] =
-    new Source(asScala.stream.transformValue(_.asKeyVal))
+    new Source(asScala.transformValue(_.asKeyVal))
 
   def iterator: java.util.Iterator[KeyVal[K, V]] =
     asScala

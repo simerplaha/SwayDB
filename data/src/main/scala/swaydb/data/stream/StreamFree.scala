@@ -260,7 +260,7 @@ private[swaydb] trait StreamFree[A] { self =>
   /**
    * Folds over all elements in the StreamBag to calculate it's total size.
    */
-  def size[BAG[_]](implicit bag: Bag[BAG]): BAG[Int] =
+  def count[BAG[_]](implicit bag: Bag[BAG]): BAG[Int] =
     foldLeft(0) {
       case (size, _) =>
         size + 1

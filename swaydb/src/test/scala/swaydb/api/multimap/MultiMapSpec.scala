@@ -184,7 +184,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           val stream = swaydb.Stream.range(1, 10).map(int => (int, int.toString))
           root.put(stream)
 
-          root.stream.materialize.toList shouldBe (1 to 10).map(int => (int, int.toString)).toList
+          root.materialize.toList shouldBe (1 to 10).map(int => (int, int.toString)).toList
       }
     }
 
@@ -341,10 +341,10 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
 
           //remove key-values should last child
           eitherOne(child2.remove(Seq(1, 2)), child2.remove(from = 1, to = 2))
-          child2.stream.materialize.toList shouldBe empty
+          child2.materialize.toList shouldBe empty
 
           //check 2nd child has it's key-values
-          child1.stream.materialize.toList.map(_._1) shouldBe List(1, 2)
+          child1.materialize.toList.map(_._1) shouldBe List(1, 2)
           //all maps exists.
           root.childKeys.materialize.toList shouldBe List(1)
           child1.childKeys.materialize.toList shouldBe List(2)
@@ -353,8 +353,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           //remove child1
           root.removeChild(1)
           root.childKeys.materialize.toList shouldBe empty
-          child1.stream.materialize.toList shouldBe empty
-          child2.stream.materialize.toList shouldBe empty
+          child1.materialize.toList shouldBe empty
+          child2.materialize.toList shouldBe empty
       }
     }
 
@@ -414,15 +414,15 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         child11.expiration(2).value.timeLeft.minus(4.seconds).fromNow.hasTimeLeft() shouldBe false
 
         //last child is not empty
-        child11.stream.materialize.toList should not be empty
+        child11.materialize.toList should not be empty
 
         //last child is empty
         eventual(4.seconds) {
-          child11.stream.materialize.toList shouldBe empty
+          child11.materialize.toList shouldBe empty
         }
 
         //parent child of last child is not empty
-        child1.stream.materialize.toList should not be empty
+        child1.materialize.toList should not be empty
         //parent child of last child has no child maps.
         child1.childKeys.materialize.toList shouldBe empty
     }
@@ -446,16 +446,16 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
 
         //update just the last child.
         child1.update((1, "updated"), (2, "updated"))
-        child1.stream.materialize.toList shouldBe List((1, "updated"), (2, "updated"))
+        child1.materialize.toList shouldBe List((1, "updated"), (2, "updated"))
 
         //everything else remains the same.
-        root.stream.materialize.toList shouldBe List((1, "one"), (2, "two"))
-        child11.stream.materialize.toList shouldBe List((1, "one"), (2, "two"))
+        root.materialize.toList shouldBe List((1, "one"), (2, "two"))
+        child11.materialize.toList shouldBe List((1, "one"), (2, "two"))
 
         root.clearKeyValues()
         root.isEmpty shouldBe true
 
-        child11.stream.materialize.toList shouldBe List((1, "one"), (2, "two"))
+        child11.materialize.toList shouldBe List((1, "one"), (2, "two"))
     }
   }
 
@@ -580,7 +580,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
                   parent
             }
             //100 children in total are created
-            root.flattenChildren should have size 100
+            root.flattenChildren.materialize should have size 100
             //root should have more than one child
             root.childKeys.materialize.size should be >= 1
 

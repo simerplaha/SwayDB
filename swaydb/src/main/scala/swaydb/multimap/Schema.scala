@@ -28,7 +28,7 @@ import swaydb.core.map.counter.Counter
 import swaydb.core.util.Times._
 import swaydb.multimap.MultiKey.Child
 import swaydb.serializers._
-import swaydb.{Apply, Bag, Map, MultiMap, Prepare, PureFunction, Stream}
+import swaydb.{Apply, Bag, Map, MultiMap, Prepare, PureFunction, Source, Stream}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -36,13 +36,13 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 /**
  * Provides APIs to manage children/nested maps/child maps of [[MultiMap]].
  */
-class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
-                                 mapId: Long,
-                                 defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
-                                                                      childKeySerializer: Serializer[M],
-                                                                      valueSerializer: Serializer[V],
-                                                                      counter: Counter,
-                                                                      bag: Bag[BAG]) {
+abstract class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
+                                          mapId: Long,
+                                          defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
+                                                                               childKeySerializer: Serializer[M],
+                                                                               valueSerializer: Serializer[V],
+                                                                               counter: Counter,
+                                                                               bag: Bag[BAG]) extends Source[K, (K, V), BAG] {
 
   /**
    * Creates new or initialises the existing map.
@@ -295,7 +295,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
    * Builds [[Prepare.Remove]] statements for all children of this map.
    */
   protected def prepareRemove(expire: Option[Deadline]): BAG[ListBuffer[Prepare.Remove[MultiKey[M, K]]]] =
-    children.foldLeftBags(ListBuffer.empty[Prepare.Remove[MultiKey[M, K]]]) {
+    children.foldLeftFlatten(ListBuffer.empty[Prepare.Remove[MultiKey[M, K]]]) {
       case (buffer, child) =>
 
         buffer ++= buildPrepareRemove(child.mapKey, child.mapId, expire)
@@ -362,7 +362,6 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], Pu
   def childKeys: Stream[M, BAG] =
     innerMap
       .toSet
-      .stream
       .after(MultiKey.ChildrenStart(mapId))
       .takeWhile {
         case MultiKey.Child(parentMap, _) =>

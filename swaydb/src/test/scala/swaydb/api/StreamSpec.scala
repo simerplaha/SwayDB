@@ -412,7 +412,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
         val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
 
         val fold: BAG[Int] =
-          stream.foldLeftBags(0) {
+          stream.foldLeftFlatten(0) {
             case (left, right) =>
               bag(left + right)
           }
@@ -427,7 +427,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
           val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
 
           val fold: BAG[Int] =
-            stream.foldLeftBags(0) {
+            stream.foldLeftFlatten(0) {
               case (left, right) =>
                 if (right == 9)
                   throw new Exception("oh no")
@@ -445,7 +445,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
         val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
 
         val fold: Stream[Int, BAG] =
-          stream.mapBags {
+          stream.mapFlatten {
             int =>
               bag(int)
           }

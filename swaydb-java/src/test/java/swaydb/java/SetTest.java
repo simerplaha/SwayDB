@@ -185,7 +185,7 @@ abstract class SetTest extends TestBase {
       )
     );
 
-    assertEquals(8, set.stream().size());
+    assertEquals(8, set.stream().count());
 
     IntStream
       .rangeClosed(1, 8)
@@ -198,7 +198,7 @@ abstract class SetTest extends TestBase {
       3,
       () -> {
         assertTrue(set.isEmpty());
-        assertEquals(0, set.stream().size());
+        assertEquals(0, set.stream().count());
 
         IntStream
           .rangeClosed(1, 8)
@@ -231,7 +231,7 @@ abstract class SetTest extends TestBase {
         }
       );
 
-    assertEquals(maxKeyValues, set.stream().size());
+    assertEquals(maxKeyValues, set.stream().count());
 
     //expire individually
     IntStream
@@ -247,7 +247,7 @@ abstract class SetTest extends TestBase {
     eventually(
       2,
       () -> {
-        assertEquals(0, set.stream().size());
+        assertEquals(0, set.stream().count());
         assertTrue(set.isEmpty());
       }
     );
@@ -263,11 +263,11 @@ abstract class SetTest extends TestBase {
       .rangeClosed(1, 100000)
       .forEach(set::add);
 
-    assertEquals(100000, set.stream().size());
+    assertEquals(100000, set.stream().count());
 
     set.clear();
 
-    assertEquals(0, set.stream().size());
+    assertEquals(0, set.stream().count());
     assertTrue(set.isEmpty());
 
     set.delete();

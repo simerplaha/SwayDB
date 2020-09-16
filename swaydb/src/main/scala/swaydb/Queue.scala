@@ -32,11 +32,11 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.stream.StreamFree
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.data.slice.Slice
 
 object Queue {
 
@@ -123,7 +123,7 @@ object Queue {
  */
 case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
                             private val pushIds: AtomicLong,
-                            private val popIds: AtomicLong) extends LazyLogging {
+                            private val popIds: AtomicLong) extends Stream[A, Bag.Less]()(Bag.less) with LazyLogging {
 
   private val nullA = null.asInstanceOf[A]
 
@@ -238,12 +238,10 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
       orElse
     }
 
-  private def copy(): Unit = ()
+  override private[swaydb] def free: StreamFree[A] =
+    set.free.map(_._2)
 
-  def stream: Stream[A, Bag.Less] =
-    set
-      .stream
-      .map(_._2)
+  private def copy(): Unit = ()
 
   def close(): Unit =
     set.close()
@@ -265,4 +263,5 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
 
   override def toString(): String =
     s"Queue(path = $path)"
+
 }

@@ -43,7 +43,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  * For documentation check - http://swaydb.io/
  */
 case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit serializer: Serializer[A],
-                                                                  bag: Bag[BAG]) { self =>
+                                                                  bag: Bag[BAG]) extends Source[A, A, BAG] { self =>
 
   def path: Path =
     core.zeroPath.getParent
@@ -176,13 +176,6 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
   def head: BAG[Option[A]] =
     headOption(core.readStates.get())
 
-  private[swaydb] def headOrNull: BAG[A] =
-    headOrNull(
-      from = None,
-      reverseIteration = false,
-      readState = core.readStates.get()
-    )
-
   protected def headOption(readState: ThreadReadState): BAG[Option[A]] =
     bag.transform(
       headOrNull(
@@ -242,7 +235,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
     else
       core.afterKey(serializer.write(previous), readState)
 
-  private def sourceFree(): SourceFree[A, A] =
+  override private[swaydb] def free: SourceFree[A, A] =
     new SourceFree[A, A](from = None, reverse = false) {
       val readState = core.readStates.get()
 
@@ -271,12 +264,6 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
 
   def isFunctionApplied(function: F)(implicit evd: F <:< PureFunction.Set[A]): Boolean =
     core.isFunctionApplied(Slice.writeString[Byte](function.id))
-
-  def stream: Source[A, A, BAG] =
-    new swaydb.Source(sourceFree())
-
-  def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[A]] =
-    stream.iterator(bag)
 
   def sizeOfBloomFilterEntries: BAG[Int] =
     bag.suspend(core.bloomFilterKeyValueCount)
@@ -316,4 +303,5 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
 
   override def toString(): String =
     s"Set(path = $path)"
+
 }

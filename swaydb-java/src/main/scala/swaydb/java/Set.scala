@@ -163,7 +163,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
     asScala.isFunctionApplied(function)
 
   def stream: Source[A, A] =
-    new Source(asScala.stream)
+    new Source(asScala)
 
   def iterator: java.util.Iterator[A] =
     asScala

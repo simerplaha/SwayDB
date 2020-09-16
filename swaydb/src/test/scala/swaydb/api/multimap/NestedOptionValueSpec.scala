@@ -53,7 +53,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
         root.contains(2) shouldBe true
         root.get(2).value shouldBe None
 
-        root.stream.materialize.toList should contain only((1, None), (2, None))
+        root.materialize.toList should contain only((1, None), (2, None))
     }
   }
 
@@ -115,7 +115,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
         root.get(3).value shouldBe None
         root.get(2).value.value shouldBe Value.NonEmpty("two")
 
-        root.stream.materialize.toList shouldBe List((1, Some(Value.Empty)), (2, Some(Value.NonEmpty("two"))), (3, None))
+        root.materialize.toList shouldBe List((1, Some(Value.Empty)), (2, Some(Value.NonEmpty("two"))), (3, None))
     }
   }
 }

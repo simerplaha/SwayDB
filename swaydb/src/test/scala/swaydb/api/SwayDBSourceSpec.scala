@@ -100,7 +100,6 @@ sealed trait SwayDBSourceSpec extends TestBaseEmbedded {
 
             val result =
               db
-              .stream
               .from(10)
               .transformValue {
                 item =>

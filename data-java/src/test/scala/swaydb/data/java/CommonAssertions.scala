@@ -48,7 +48,7 @@ object CommonAssertions {
     option shouldBe Optional.empty[T]()
 
   def shouldBeEmpty[T](stream: swaydb.java.Stream[T]): Unit =
-    stream.size shouldBe 0
+    stream.count shouldBe 0
 
   def shouldBeEmpty[T](items: java.lang.Iterable[T]): Unit =
     items.iterator().hasNext shouldBe false
@@ -97,7 +97,7 @@ object CommonAssertions {
     actual.asScala should have size expected
 
   def shouldHaveSize[T](actual: swaydb.java.Stream[T], expected: Int): Unit =
-    actual.size shouldBe expected
+    actual.count shouldBe expected
 
   def shouldHaveSize[K, V](actual: java.util.Map[K, V], expected: Int): Unit =
     actual should have size expected
