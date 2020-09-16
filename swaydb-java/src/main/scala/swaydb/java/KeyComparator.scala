@@ -28,12 +28,25 @@ import java.util.Comparator
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.util.Java.JavaFunction
 
 object KeyComparator {
   final val lexicographic: KeyComparator[Slice[java.lang.Byte]] =
     new KeyComparator[Slice[java.lang.Byte]] {
       override def compare(o1: Slice[java.lang.Byte], o2: Slice[java.lang.Byte]): Int =
         KeyOrder.lexicographicJava.compare(o1, o2)
+    }
+
+  /**
+   * Create a [[KeyComparator]] on type A when comparator for B is known and how to
+   * convert A => B is known.
+   */
+  def by[A, B](comparator: Comparator[B], mapFunction: JavaFunction[A, B]): KeyComparator[A] =
+    new KeyComparator[A] {
+      val ordering = Ordering.by(mapFunction.apply)(Ordering.comparatorToOrdering(comparator))
+
+      override def compare(o1: A, o2: A): Int =
+        ordering.compare(o1, o2)
     }
 }
 

@@ -116,6 +116,9 @@ object KeyOrder {
         x.readSignedLong() compare y.readSignedLong()
     }
 
+  def by[T, S](f: T => S)(implicit ordering: Ordering[S]): KeyOrder[T] =
+    KeyOrder(Ordering.by(f)(ordering))
+
   def apply[K](ordering: Ordering[K]): KeyOrder[K] =
     new KeyOrder[K]() {
       override def compare(x: K, y: K): Int =
