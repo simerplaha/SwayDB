@@ -161,17 +161,23 @@ trait SliceCompanionBase {
   @inline final def writeInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
     Slice.create[B](ByteSizeOf.int)(byteOps.classTag).addInt(integer)
 
-  @inline final def writeBoolean[B](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[B] =
-    Slice.create[B](1)(byteOps.classTag).addBoolean(bool)
-
   @inline final def writeUnsignedInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
     Slice.create[B](ByteSizeOf.varInt)(byteOps.classTag).addUnsignedInt(integer).close()
+
+  @inline final def writeSignedInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
+    Slice.create[B](ByteSizeOf.varInt)(byteOps.classTag).addSignedInt(integer).close()
 
   @inline final def writeLong[B](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
     Slice.create[B](ByteSizeOf.long)(byteOps.classTag).addLong(num)
 
   @inline final def writeUnsignedLong[B](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
     Slice.create[B](ByteSizeOf.varLong)(byteOps.classTag).addUnsignedLong(num).close()
+
+  @inline final def writeSignedLong[B](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
+    Slice.create[B](ByteSizeOf.varLong)(byteOps.classTag).addSignedLong(num).close()
+
+  @inline final def writeBoolean[B](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[B] =
+    Slice.create[B](1)(byteOps.classTag).addBoolean(bool)
 
   @inline final def writeString[B](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[B] =
     byteOps.writeString(string, charsets)

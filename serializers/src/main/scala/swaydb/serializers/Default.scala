@@ -41,18 +41,18 @@ object Default {
 
   implicit object IntSerializer extends Serializer[Int] {
     override def write(data: Int): Slice[Byte] =
-      Slice.writeInt[Byte](data)
+      Slice.writeSignedInt[Byte](data)
 
     override def read(slice: Slice[Byte]): Int =
-      slice.readInt()
+      slice.readSignedInt()
   }
 
   implicit object LongSerializer extends Serializer[Long] {
     override def write(data: Long): Slice[Byte] =
-      Slice.writeLong[Byte](data)
+      Slice.writeSignedLong[Byte](data)
 
     override def read(slice: Slice[Byte]): Long =
-      slice.readLong()
+      slice.readSignedLong()
   }
 
   implicit object CharSerializer extends Serializer[Char] {

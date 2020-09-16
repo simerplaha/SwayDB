@@ -36,20 +36,20 @@ object Default {
 
   object JavaIntSerializer extends Serializer[java.lang.Integer] {
     override def write(data: java.lang.Integer): Slice[java.lang.Byte] =
-      Slice.writeInt[java.lang.Byte](data)
+      Slice.writeSignedInt[java.lang.Byte](data)
 
     override def read(slice: Slice[java.lang.Byte]): java.lang.Integer =
-      slice.readInt()
+      slice.readSignedInt()
   }
 
   def longSerializer(): Serializer[java.lang.Long] = JavaLongSerializer
 
   implicit object JavaLongSerializer extends Serializer[java.lang.Long] {
     override def write(data: java.lang.Long): Slice[java.lang.Byte] =
-      Slice.writeLong[java.lang.Byte](data)
+      Slice.writeSignedLong[java.lang.Byte](data)
 
     override def read(slice: Slice[java.lang.Byte]): java.lang.Long =
-      slice.readLong()
+      slice.readSignedLong()
   }
 
   def charSerializer(): Serializer[java.lang.Character] = JavaCharSerializer
