@@ -34,7 +34,12 @@ class BrakePedalSpec extends AnyWordSpec with Matchers {
   "BrakePedal" should {
     "continue applying brakes and release brakes until complete" in {
 
-      val pedal = new BrakePedal(100.millisecond, 1.millisecond)
+      val pedal =
+        new BrakePedal(
+          brakeFor = 100.millisecond,
+          releaseRate = 1.millisecond,
+          logAsWarning = true
+        )
 
       var brakesApplied = 1
 

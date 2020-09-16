@@ -27,4 +27,5 @@ package swaydb.data.accelerate
 import scala.concurrent.duration.FiniteDuration
 
 case class Brake(brakeFor: FiniteDuration,
-                 releaseRate: FiniteDuration)
+                 releaseRate: FiniteDuration,
+                 logAsWarning: Boolean)

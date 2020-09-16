@@ -427,16 +427,21 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
           throw throwable
       }
 
-    if (!persisted) {
-      val accelerate = acceleration(meter)
-
-      if (accelerate.brake.isEmpty) {
+    val accelerate = acceleration(meter)
+    if (accelerate.brake.isEmpty) {
+      if (brakePedal != null && brakePedal.isReleased())
         brakePedal = null
-      } else {
-        val brake = accelerate.brake.get
-        brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
-      }
+    } else if (brakePedal == null) {
+      val brake = accelerate.brake.get
+      brakePedal =
+        new BrakePedal(
+          brakeFor = brake.brakeFor,
+          releaseRate = brake.releaseRate,
+          logAsWarning = brake.logAsWarning
+        )
+    }
 
+    if (!persisted) {
       val nextMapSize = accelerate.nextMapSize max entry.totalByteSize
       logger.debug(s"Map full. Initialising next map of size: $nextMapSize.bytes.")
       initNextMap(nextMapSize)

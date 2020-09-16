@@ -66,7 +66,7 @@ class AcceleratorSpec extends AnyWordSpec with Matchers {
             def currentMapSize = 4.mb
             def mapsCount = 2
           }
-      ) shouldBe Accelerator(8.mb, Some(Brake(brakeFor = 10.millisecond, releaseRate = 0.5.millisecond)))
+      ) shouldBe Accelerator(8.mb, Some(Brake(brakeFor = 10.millisecond, releaseRate = 0.5.millisecond, logAsWarning = true)))
     }
 
     "increase the map size when the map count is reached and multiple brakes with the number of overflown maps" in {
@@ -84,7 +84,7 @@ class AcceleratorSpec extends AnyWordSpec with Matchers {
             def currentMapSize = 4.mb
             def mapsCount = 5
           }
-      ) shouldBe Accelerator(16.mb, Some(Brake(brakeFor = 40.millisecond, releaseRate = 0.5.millisecond)))
+      ) shouldBe Accelerator(16.mb, Some(Brake(brakeFor = 40.millisecond, releaseRate = 0.5.millisecond, logAsWarning = true)))
     }
 
     "not allow mapSize to go over maxMapSize" in {
@@ -102,7 +102,7 @@ class AcceleratorSpec extends AnyWordSpec with Matchers {
             def currentMapSize = 4.mb
             def mapsCount = 2
           }
-      ) shouldBe Accelerator(10.mb, Some(Brake(brakeFor = 1.second, releaseRate = 100.millisecond)))
+      ) shouldBe Accelerator(10.mb, Some(Brake(brakeFor = 1.second, releaseRate = 100.millisecond, logAsWarning = true)))
     }
 
     "increment the currentMapSize and not the defaultMapSize" in {
@@ -120,7 +120,7 @@ class AcceleratorSpec extends AnyWordSpec with Matchers {
             def currentMapSize = 8.mb
             def mapsCount = 2
           }
-      ) shouldBe Accelerator(16.mb, Some(Brake(brakeFor = 1.second, releaseRate = 100.millisecond)))
+      ) shouldBe Accelerator(16.mb, Some(Brake(brakeFor = 1.second, releaseRate = 100.millisecond, logAsWarning = true)))
     }
   }
 }

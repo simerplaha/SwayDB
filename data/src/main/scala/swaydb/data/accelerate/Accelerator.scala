@@ -63,7 +63,8 @@ object Accelerator {
             maxMapSize: Long = 24.mb,
             brakeOnMapCount: Int = 6,
             brakeFor: FiniteDuration = 50.milliseconds,
-            releaseRate: FiniteDuration = 1.millisecond)(levelZeroMeter: LevelZeroMeter): Accelerator =
+            releaseRate: FiniteDuration = 1.millisecond,
+            logAsWarning: Boolean = true)(levelZeroMeter: LevelZeroMeter): Accelerator =
     Accelerator(
       nextMapSize =
         nextMapSize(increaseMapSizeOnMapCount, increaseMapSizeBy, maxMapSize, levelZeroMeter),
@@ -74,7 +75,8 @@ object Accelerator {
           Some(
             Brake(
               brakeFor = brakeFor * (levelZeroMeter.mapsCount - brakeOnMapCount + 1),
-              releaseRate = releaseRate
+              releaseRate = releaseRate,
+              logAsWarning = logAsWarning
             )
           )
     )

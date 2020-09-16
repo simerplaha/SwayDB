@@ -29,7 +29,8 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.duration._
 
 private[core] class BrakePedal(private var brakeFor: FiniteDuration,
-                               private val releaseRate: FiniteDuration) extends LazyLogging {
+                               releaseRate: FiniteDuration,
+                               logAsWarning: Boolean) extends LazyLogging {
 
   /**
    * Blocking back-pressure.
@@ -39,9 +40,23 @@ private[core] class BrakePedal(private var brakeFor: FiniteDuration,
    * @return true if the brake is complete else false.
    */
   def applyBrakes(): Boolean = {
-    logger.warn(s"Braking for: {}", brakeFor)
+    if (logAsWarning)
+      logger.warn(s"Blocking-backpressure - Braking for: $brakeFor.")
+
     Thread.sleep(brakeFor.toMillis)
     brakeFor = brakeFor - releaseRate
-    brakeFor.fromNow.isOverdue()
+
+    val isOverdue = brakeFor.fromNow.isOverdue()
+
+    if(logAsWarning && isOverdue)
+      logger.warn(s"Blocking-backpressure - Brake released!")
+
+    isOverdue
   }
+
+  def isReleased(): Boolean =
+    brakeFor.fromNow.isOverdue()
+
+  def isBraking(): Boolean =
+    brakeFor.fromNow.hasTimeLeft()
 }

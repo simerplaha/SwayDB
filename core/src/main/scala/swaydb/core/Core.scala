@@ -57,7 +57,7 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 private[swaydb] object Core {
 
-  val closedMessage = "This SwayDB instance was closed."
+  val closedMessage = "Cannot perform read or write on closed instance."
 
   def apply(enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
