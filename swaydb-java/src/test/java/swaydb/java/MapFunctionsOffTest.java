@@ -26,6 +26,7 @@ package swaydb.java;
 
 import lombok.*;
 import org.junit.jupiter.api.Test;
+import scala.Int;
 import swaydb.KeyVal;
 import swaydb.Pair;
 import swaydb.Prepare;
@@ -36,10 +37,8 @@ import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -668,6 +667,44 @@ abstract class MapFunctionsOffTest extends TestBase {
     shouldBeEmpty(map.clearAppliedFunctions());
 
     shouldBeEmpty(map.clearAppliedAndRegisteredFunctions());
+
+    map.delete();
+  }
+
+  @Test
+  void asJava() throws IOException {
+    MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
+
+    Map<Integer, String> javaMap = map.asJava();
+    foreachRange(1, 100, integer -> shouldBe(javaMap.get(integer), integer + " value"));
+
+    //insert in java map
+    shouldBe(javaMap.put(1, "new value"), "1 value");
+    //read from scala map
+    shouldContain(map.get(1), "new value");
+
+    HashMap<Integer, String> integerStringHashMap = new HashMap<>();
+    integerStringHashMap.put(10, "ten");
+    integerStringHashMap.put(11, "eleven");
+    integerStringHashMap.put(Int.MaxValue(), "MaxValue");
+    //put many in java
+    javaMap.putAll(integerStringHashMap);
+
+    //read from scala map
+    shouldContain(map.get(10), "ten");
+    shouldContain(map.get(11), "eleven");
+    shouldContain(map.get(Int.MaxValue()), "MaxValue");
+
+    //old values remain
+    shouldContain(map.get(2), "2 value");
+
+    //remove
+    shouldBe(javaMap.remove(11), "eleven");
+    shouldBeFalse(map.contains(11));
+
+    shouldBe(javaMap.remove(100), "100 value");
+    shouldBeFalse(map.contains(100));
 
     map.delete();
   }
