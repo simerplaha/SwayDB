@@ -40,31 +40,31 @@ import scala.reflect.ClassTag
  */
 trait SliceCompanionBase {
 
-  val emptyBytes = Slice.of[Byte](0)
+  val emptyBytes = of[Byte](0)
 
-  val emptyJavaBytes = Slice.of[java.lang.Byte](0)
+  val emptyJavaBytes = of[java.lang.Byte](0)
 
   val someEmptyBytes = Some(emptyBytes)
 
-  private[swaydb] val emptyEmptyBytes: Slice[Slice[Byte]] = Slice.empty[Slice[Byte]]
+  private[swaydb] val emptyEmptyBytes: Slice[Slice[Byte]] = empty[Slice[Byte]]
 
   @inline final def empty[T: ClassTag] =
-    Slice.of[T](0)
+    of[T](0)
 
   final def range(from: Int, to: Int): Slice[Int] = {
-    val slice = Slice.of[Int](to - from + 1)
+    val slice = of[Int](to - from + 1)
     (from to to) foreach slice.add
     slice
   }
 
   final def range(from: Char, to: Char): Slice[Char] = {
-    val slice = Slice.of[Char](26)
+    val slice = of[Char](26)
     (from to to) foreach slice.add
     slice.close()
   }
 
   final def range(from: Byte, to: Byte): Slice[Byte] = {
-    val slice = Slice.of[Byte](to - from + 1)
+    val slice = of[Byte](to - from + 1)
     (from to to) foreach {
       i =>
         slice add i.toByte
@@ -81,10 +81,10 @@ trait SliceCompanionBase {
     )
 
   def createScalaBytes(length: Int): Slice[Byte] =
-    Slice.of[Byte](length)
+    of[Byte](length)
 
   def createJavaBytes(length: Int): Slice[java.lang.Byte] =
-    Slice.of[java.lang.Byte](length)
+    of[java.lang.Byte](length)
 
   @inline final def of[T: ClassTag](length: Int, isFull: Boolean = false): Slice[T] =
     new Slice(
@@ -102,7 +102,7 @@ trait SliceCompanionBase {
 
   def apply[T: ClassTag](data: Array[T]): Slice[T] =
     if (data.length == 0)
-      Slice.of[T](0)
+      of[T](0)
     else
       new Slice[T](
         array = data,
@@ -112,13 +112,13 @@ trait SliceCompanionBase {
       )
 
   def from[T: ClassTag](iterator: Iterator[T], size: Int): Slice[T] = {
-    val slice = Slice.of[T](size)
+    val slice = of[T](size)
     iterator foreach slice.add
     slice
   }
 
   def from[T: ClassTag](iterator: Iterable[T], size: Int): Slice[T] = {
-    val slice = Slice.of[T](size)
+    val slice = of[T](size)
     iterator foreach slice.add
     slice
   }
@@ -159,25 +159,25 @@ trait SliceCompanionBase {
     Slice(data.toArray)
 
   @inline final def writeInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
-    Slice.of[B](ByteSizeOf.int)(byteOps.classTag).addInt(integer)
+    of[B](ByteSizeOf.int)(byteOps.classTag).addInt(integer)
 
   @inline final def writeUnsignedInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
-    Slice.of[B](ByteSizeOf.varInt)(byteOps.classTag).addUnsignedInt(integer).close()
+    of[B](ByteSizeOf.varInt)(byteOps.classTag).addUnsignedInt(integer).close()
 
   @inline final def writeSignedInt[B](integer: Int)(implicit byteOps: ByteOps[B]): Slice[B] =
-    Slice.of[B](ByteSizeOf.varInt)(byteOps.classTag).addSignedInt(integer).close()
+    of[B](ByteSizeOf.varInt)(byteOps.classTag).addSignedInt(integer).close()
 
   @inline final def writeLong[B](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
-    Slice.of[B](ByteSizeOf.long)(byteOps.classTag).addLong(num)
+    of[B](ByteSizeOf.long)(byteOps.classTag).addLong(num)
 
   @inline final def writeUnsignedLong[B](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
-    Slice.of[B](ByteSizeOf.varLong)(byteOps.classTag).addUnsignedLong(num).close()
+    of[B](ByteSizeOf.varLong)(byteOps.classTag).addUnsignedLong(num).close()
 
   @inline final def writeSignedLong[B](num: Long)(implicit byteOps: ByteOps[B]): Slice[B] =
-    Slice.of[B](ByteSizeOf.varLong)(byteOps.classTag).addSignedLong(num).close()
+    of[B](ByteSizeOf.varLong)(byteOps.classTag).addSignedLong(num).close()
 
   @inline final def writeBoolean[B](bool: Boolean)(implicit byteOps: ByteOps[B]): Slice[B] =
-    Slice.of[B](1)(byteOps.classTag).addBoolean(bool)
+    of[B](1)(byteOps.classTag).addBoolean(bool)
 
   @inline final def writeString[B](string: String, charsets: Charset = StandardCharsets.UTF_8)(implicit byteOps: ByteOps[B]): Slice[B] =
     byteOps.writeString(string, charsets)
@@ -254,7 +254,7 @@ trait SliceCompanionBase {
      * more data to be written to any of the Slices.
      */
     @inline final def closeAll(): Slice[Slice[T]] = {
-      val newSlices = Slice.of[Slice[T]](slices.close().size)
+      val newSlices = of[Slice[T]](slices.close().size)
       slices foreach {
         slice =>
           newSlices.add(slice.close())
