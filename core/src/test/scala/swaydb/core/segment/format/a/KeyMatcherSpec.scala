@@ -44,7 +44,7 @@ class KeyMatcherSpec extends TestBase {
   implicit val integer: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
       override def compare(a: Slice[Byte], b: Slice[Byte]): Int =
-        IntSignedSerializer.read(a) compareTo IntSignedSerializer.read(b)
+        IntSerializer.read(a) compareTo IntSerializer.read(b)
     }
 
   /**

@@ -107,7 +107,7 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
   "ordering" should {
     "ordering MapKeys in the order of Start, Entry & End" in {
       val order = KeyOrder(Ordering.by[Slice[Byte], Int](_.readInt())(Ordering.Int))
-      val mapKeySerializer = MultiKey.serializer[Int, Int](IntSignedSerializer, IntSignedSerializer)
+      val mapKeySerializer = MultiKey.serializer[Int, Int](IntSerializer, IntSerializer)
       implicit val mapKeyOrder = Ordering.by[MultiKey[Int, Int], Slice[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
 
       val keys =
@@ -213,7 +213,7 @@ class MultiKeySpec extends AnyWordSpec with Matchers {
 
     "remove duplicate key-values" in {
       val order = KeyOrder(Ordering.by[Slice[Byte], Int](_.readInt())(Ordering.Int))
-      val mapKeySerializer = MultiKey.serializer[Int, Int](IntSignedSerializer, IntSignedSerializer)
+      val mapKeySerializer = MultiKey.serializer[Int, Int](IntSerializer, IntSerializer)
       implicit val mapKeyOrder = Ordering.by[MultiKey[Int, Int], Slice[Byte]](mapKeySerializer.write)(MultiKey.ordering(order))
 
       val keys: Seq[() => MultiKey[Int, Int]] =
