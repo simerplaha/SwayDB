@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static swaydb.PureFunctionJava.*;
-import static swaydb.data.java.CommonAssertions.*;
+import static swaydb.data.java.JavaTest.*;
 import static swaydb.java.serializers.Default.intSerializer;
 import static swaydb.java.serializers.Default.stringSerializer;
 

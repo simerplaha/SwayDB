@@ -29,6 +29,7 @@ import java.time.Duration
 import java.util
 import java.util.Optional
 
+import swaydb.Bag.Less
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
@@ -56,7 +57,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
     asScala.put(keyValues.asScala.map(_.toTuple))
 
   def put(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
-    asScala.put(keyValues.asScala.map(_.toTuple))
+    asScala.put(keyValues.asScalaStream.map(_.toTuple))
 
   def put(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
     asScala.put(keyValues.asScala.map(_.toTuple))
@@ -68,7 +69,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
     asScala.remove(keys.asScala)
 
   def remove(keys: Stream[K]): swaydb.OK =
-    asScala.remove(keys.asScala)
+    asScala.remove(keys.asScalaStream)
 
   def remove(keys: java.util.Iterator[K]): swaydb.OK =
     asScala.remove(keys.asScala)
@@ -113,19 +114,10 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
     asScala.head.asJavaMap(KeyVal(_))
 
   override def keys: Stream[K] =
-    new Stream[K](asScala.keys)
+    Stream.fromScala[K](asScala.keys)
 
   def values: Stream[V] =
-    new Stream[V](asScala.values)
-
-  def stream: Source[K, KeyVal[K, V]] =
-    new Source(asScala.transformValue(_.asKeyVal))
-
-  def iterator: java.util.Iterator[KeyVal[K, V]] =
-    asScala
-      .iterator(Bag.less)
-      .map(KeyVal(_))
-      .asJava
+    Stream.fromScala[V](asScala.values)
 
   def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries
@@ -141,6 +133,9 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
 
   def asJava: util.Map[K, V] =
     asScala.asScala.asJava
+
+  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Less] =
+    asScala.transformValue(_.asKeyVal)
 
   def close(): Unit =
     asScala.close()
@@ -164,4 +159,6 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
 
   override def toString(): String =
     asScala.toString()
+
+
 }

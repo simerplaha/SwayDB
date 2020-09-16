@@ -62,9 +62,7 @@ abstract class SetTest extends TestBase {
 
     HashSet<Integer> actualKeyValues = new HashSet<>();
 
-    set
-      .stream()
-      .forEach(actualKeyValues::add);
+    set.forEach(actualKeyValues::add);
 
     HashSet<Integer> expectedKeyValues = new HashSet<>();
 
@@ -185,7 +183,7 @@ abstract class SetTest extends TestBase {
       )
     );
 
-    assertEquals(8, set.stream().count());
+    assertEquals(8, set.count());
 
     IntStream
       .rangeClosed(1, 8)
@@ -198,7 +196,7 @@ abstract class SetTest extends TestBase {
       3,
       () -> {
         assertTrue(set.isEmpty());
-        assertEquals(0, set.stream().count());
+        assertEquals(0, set.count());
 
         IntStream
           .rangeClosed(1, 8)
@@ -231,7 +229,7 @@ abstract class SetTest extends TestBase {
         }
       );
 
-    assertEquals(maxKeyValues, set.stream().count());
+    assertEquals(maxKeyValues, set.count());
 
     //expire individually
     IntStream
@@ -247,7 +245,7 @@ abstract class SetTest extends TestBase {
     eventually(
       2,
       () -> {
-        assertEquals(0, set.stream().count());
+        assertEquals(0, set.count());
         assertTrue(set.isEmpty());
       }
     );
@@ -263,11 +261,11 @@ abstract class SetTest extends TestBase {
       .rangeClosed(1, 100000)
       .forEach(set::add);
 
-    assertEquals(100000, set.stream().count());
+    assertEquals(100000, set.count());
 
     set.clear();
 
-    assertEquals(0, set.stream().count());
+    assertEquals(0, set.count());
     assertTrue(set.isEmpty());
 
     set.delete();
@@ -326,10 +324,7 @@ abstract class SetTest extends TestBase {
     assertDoesNotThrow(() -> set.add(1));
     assertDoesNotThrow(() -> set.add(2));
 
-    List<Integer> integers =
-      set
-        .stream()
-        .materialize();
+    List<Integer> integers = set.materialize();
 
     assertEquals(Arrays.asList(2, 1), integers);
 
@@ -372,15 +367,12 @@ abstract class SetTest extends TestBase {
 //    assertDoesNotThrow(() -> set.add(key2));
 //
 //    List<Key> mapKeys =
-//      set
-//        .stream()
-//        .materialize();
+//      set.materialize();
 //
 //    assertEquals(Arrays.asList(key1, key2), mapKeys);
 //
 //    List<Integer> setKeys =
 //      set
-//        .stream()
 //        .map(key -> key.key)
 //        .materialize();
 //

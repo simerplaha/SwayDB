@@ -62,7 +62,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     asScala.put(keyValues.asScala.map(_.toTuple))
 
   def put(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
-    asScala.put(keyValues.asScala.map(_.toTuple))
+    asScala.put(keyValues.asScalaStream.map(_.toTuple))
 
   def put(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
     asScala.put(keyValues.asScala.map(_.toTuple))
@@ -77,7 +77,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     asScala.remove(keys = keys.asScala)
 
   def remove(keys: Stream[K]): swaydb.OK =
-    asScala.remove(keys.asScala)
+    asScala.remove(keys.asScalaStream)
 
   def remove(keys: java.util.Iterator[K]): swaydb.OK =
     asScala.remove(keys.asScala)
@@ -97,7 +97,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     )
 
   def expire(keys: Stream[Pair[K, java.time.Duration]]): swaydb.OK =
-    asScala.expire(keys.asScala.map(_.toScala))
+    asScala.expire(keys.asScalaStream.map(_.toScala))
 
   def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): swaydb.OK =
     asScala.expire(keys.asScala.map(_.asScalaDeadline))
@@ -115,7 +115,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     asScala.update(keyValues.asScala.map(_.toTuple))
 
   def update(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
-    asScala.update(keyValues.asScala.map(_.toTuple))
+    asScala.update(keyValues.asScalaStream.map(_.toTuple))
 
   def update(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
     asScala.update(keyValues.asScala.map(_.toTuple))
@@ -142,7 +142,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     asScala.commit(prepare.asScala)
 
   def commit(prepare: Stream[Prepare[K, V, F]]): swaydb.OK =
-    asScala.commit(prepare.asScala)
+    asScala.commit(prepare.asScalaStream)
 
   def get(key: K): Optional[V] =
     asScala.get(key).asJava
@@ -202,19 +202,10 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     asScala.head.asJavaMap(KeyVal(_))
 
   override def keys: Stream[K] =
-    new Stream[K](asScala.keys)
+    Stream.fromScala[K](asScala.keys)
 
   def values: Stream[V] =
-    new Stream[V](asScala.values)
-
-  def stream: Source[K, KeyVal[K, V]] =
-    new Source(asScala.transformValue(_.asKeyVal))
-
-  def iterator: java.util.Iterator[KeyVal[K, V]] =
-    asScala
-      .iterator(Bag.less)
-      .map(KeyVal(_))
-      .asJava
+    Stream.fromScala[V](asScala.values)
 
   def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries
@@ -336,7 +327,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     Stream.fromScala(asScala.childKeys)
 
   def flattenChildren: Stream[MultiMap[M, K, V, F]] =
-    new Stream(asScala.flattenChildren.map(MultiMap(_)))
+    Stream.fromScala(asScala.flattenChildren.map(MultiMap(_)))
 
   def children: Stream[MultiMap[M, K, V, F]] =
     Stream.fromScala(asScala.children.map(MultiMap(_)))
@@ -353,9 +344,12 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   def delete(): Unit =
     asScala.delete()
 
+  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Bag.Less] =
+    asScala.transformValue(_.asKeyVal)
+
   override def equals(other: Any): Boolean =
     other match {
-      case other: MultiMap[_, _,_,_] =>
+      case other: MultiMap[_, _, _, _] =>
         other.asScala.equals(this.asScala)
 
       case _ =>

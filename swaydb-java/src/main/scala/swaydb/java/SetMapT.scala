@@ -35,7 +35,7 @@ import swaydb.{Expiration, KeyVal, OK}
 /**
  * Base trait for a basic SwayDB SetMap type.
  */
-trait SetMapT[K, V] {
+trait SetMapT[K, V] extends swaydb.java.Source[K, KeyVal[K, V]] {
 
   def path: Path
 
@@ -83,16 +83,9 @@ trait SetMapT[K, V] {
 
   def head: Optional[KeyVal[K, V]]
 
-  def stream: Source[K, KeyVal[K, V]]
-
   def keys: Stream[K]
 
   def values: Stream[V]
-
-  def iterator: java.util.Iterator[KeyVal[K, V]]
-
-  def reverse: Source[K, KeyVal[K, V]] =
-    stream.reverse
 
   def sizeOfBloomFilterEntries: Int
 

@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.stream.IntStream;
 
+import static swaydb.data.java.JavaTest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static swaydb.java.serializers.Default.intSerializer;
@@ -73,18 +74,20 @@ abstract class QueueTest extends TestBase {
   void pushManyTest() throws IOException {
     Queue<Integer> queue = createQueue(intSerializer());
 
-    IntStream
-      .range(1, 1000000)
-      .forEach(queue::push);
-
-    IntStream
-      .range(1, 1000000)
-      .forEach(
-        integer ->
-          assertEquals(integer, queue.popOrNull())
-      );
+    foreachRange(1, 1000000, queue::push);
+    foreachRange(1, 1000000, integer -> assertEquals(integer, queue.popOrNull()));
 
     assertNull(queue.popOrNull());
+
+    queue.delete();
+  }
+
+  @Test
+  void stream() throws IOException {
+    Queue<Integer> queue = createQueue(intSerializer());
+
+    foreachRange(1, 1000, queue::push);
+    foreachRange(1, 1000, integer -> shouldContain(queue.pop(), integer));
 
     queue.delete();
   }

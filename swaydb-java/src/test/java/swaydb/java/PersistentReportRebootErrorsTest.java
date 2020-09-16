@@ -36,7 +36,7 @@ import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static swaydb.data.java.CommonAssertions.*;
+import static swaydb.data.java.JavaTest.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
 

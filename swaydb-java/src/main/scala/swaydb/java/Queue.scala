@@ -28,12 +28,13 @@ import java.nio.file.Path
 import java.util.Optional
 import java.util.function.Supplier
 
+import swaydb.Bag.Less
 import swaydb.OK
 
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 
-case class Queue[A](asScala: swaydb.Queue[A]) {
+case class Queue[A](asScala: swaydb.Queue[A]) extends Stream[A] {
 
   def path: Path =
     asScala.path
@@ -45,7 +46,7 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
     asScala.push(elem, expireAfter.toScala)
 
   def push(elems: Stream[A]): OK =
-    asScala.push(elems.asScala)
+    asScala.push(elems.asScalaStream)
 
   def push(elems: java.lang.Iterable[A]): OK =
     asScala.push(elems.asScala)
@@ -62,14 +63,14 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
   def popOrElse(orElse: Supplier[A]): A =
     asScala.popOrElse(orElse.get())
 
-  def stream: Stream[A] =
-    new Stream(asScala)
-
   def close(): Unit =
     asScala.close()
 
   def delete(): Unit =
     asScala.delete()
+
+  override def asScalaStream: swaydb.Stream[A, Less] =
+    asScala
 
   override def equals(other: Any): Boolean =
     other match {
@@ -85,4 +86,5 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
 
   override def toString(): String =
     asScala.toString()
+
 }

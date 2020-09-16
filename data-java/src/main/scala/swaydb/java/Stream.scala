@@ -28,6 +28,7 @@ import java.util
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
+import swaydb.Bag.Less
 import swaydb.data.util.Java._
 import swaydb.{Bag, Pair}
 
@@ -39,83 +40,88 @@ object Stream {
 
   private implicit val bag = Bag.less
 
-  def fromScala[A](stream: swaydb.Stream[A, Bag.Less]): Stream[A] =
-    new Stream(stream)
+  @inline def fromScala[A](stream: swaydb.Stream[A, Bag.Less]): Stream[A] =
+    new Stream[A] {
+      override def asScalaStream: swaydb.Stream[A, Less] =
+        stream
+    }
 
   def create[A](iterator: java.util.Iterator[A]): Stream[A] =
-    new Stream[A](swaydb.Stream(iterator.asScala.to(Iterable)))
+    Stream.fromScala[A](swaydb.Stream(iterator.asScala.to(Iterable)))
 
   def create[A](iterator: java.lang.Iterable[A]): Stream[A] =
-    new Stream[A](swaydb.Stream(iterator.asScala))
+    Stream.fromScala[A](swaydb.Stream(iterator.asScala))
 
   def range(from: Int, to: Int): Stream[Integer] =
-    new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Integer, Bag.Less]])
+    Stream.fromScala(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Integer, Bag.Less]])
 
   def rangeUntil(from: Int, toExclusive: Int): Stream[Integer] =
-    new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Integer, Bag.Less]])
+    Stream.fromScala(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Integer, Bag.Less]])
 
   def range(from: Char, to: Char): Stream[Character] =
-    new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Character, Bag.Less]])
+    Stream.fromScala(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Character, Bag.Less]])
 
   def rangeUntil(from: Char, toExclusive: Char): Stream[Character] =
-    new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Character, Bag.Less]])
+    Stream.fromScala(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Character, Bag.Less]])
 
   def tabulate[T](count: Int, function: JavaFunction[Int, T]): Stream[T] =
-    new Stream(swaydb.Stream.tabulate[T, Bag.Less](count)(function.apply))
+    Stream.fromScala(swaydb.Stream.tabulate[T, Bag.Less](count)(function.apply))
 }
 
-class Stream[A](val asScala: swaydb.Stream[A, Bag.Less]) {
+trait Stream[A] {
+
+  def asScalaStream: swaydb.Stream[A, Bag.Less]
 
   def forEach(consumer: Consumer[A]): Unit =
-    asScala.foreach(consumer.asScala)
+    asScalaStream.foreach(consumer.asScala)
 
   def map[B](function: JavaFunction[A, B]): Stream[B] =
-    Stream.fromScala(asScala.map(function.asScala))
+    Stream.fromScala(asScalaStream.map(function.asScala))
 
   def flatMap[B](function: JavaFunction[A, Stream[B]]): Stream[B] =
-    Stream.fromScala(asScala.flatMap(function.asScala(_).asScala))
+    Stream.fromScala(asScalaStream.flatMap(function.asScala(_).asScalaStream))
 
   def drop(count: Int): Stream[A] =
-    Stream.fromScala(asScala.drop(count))
+    Stream.fromScala(asScalaStream.drop(count))
 
   def dropWhile(predicate: Predicate[A]): Stream[A] =
-    Stream.fromScala(asScala.dropWhile(predicate.test))
+    Stream.fromScala(asScalaStream.dropWhile(predicate.test))
 
   def take(count: Int): Stream[A] =
-    Stream.fromScala(asScala.take(count))
+    Stream.fromScala(asScalaStream.take(count))
 
   def takeWhile(predicate: Predicate[A]): Stream[A] =
-    Stream.fromScala(asScala.takeWhile(predicate.test))
+    Stream.fromScala(asScalaStream.takeWhile(predicate.test))
 
   def filter(predicate: Predicate[A]): Stream[A] =
-    Stream.fromScala(asScala.filter(predicate.test))
+    Stream.fromScala(asScalaStream.filter(predicate.test))
 
   def filterNot(predicate: Predicate[A]): Stream[A] =
-    Stream.fromScala(asScala.filterNot(predicate.test))
+    Stream.fromScala(asScalaStream.filterNot(predicate.test))
 
   def partition[B](predicate: Predicate[A]): Pair[util.List[A], util.List[A]] = {
-    val (left, right) = asScala.partition(predicate.test)
+    val (left, right) = asScalaStream.partition(predicate.test)
     Pair(left.asJava, right.asJava)
   }
 
   def lastOption: Optional[A] =
-    asScala.lastOption.asJava
+    asScalaStream.lastOption.asJava
 
   def headOption: Optional[A] =
-    asScala.headOption.asJava
+    asScalaStream.headOption.asJava
 
   def foldLeft[B](initial: B, function: BiFunction[B, A, B]): B =
-    asScala.foldLeft(initial)(function.asScala)
+    asScalaStream.foldLeft(initial)(function.asScala)
 
   def count(predicate: Predicate[A]): Int =
-    asScala.count(predicate.test)
+    asScalaStream.count(predicate.test)
 
   def iterator(): util.Iterator[A] =
-    asScala.iterator(Bag.less).asJava
+    asScalaStream.iterator(Bag.less).asJava
 
   def count: Int =
-    asScala.count
+    asScalaStream.count
 
   def materialize: util.List[A] =
-    asScala.materialize.asJava
+    asScalaStream.materialize.asJava
 }

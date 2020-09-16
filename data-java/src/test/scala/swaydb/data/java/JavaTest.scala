@@ -37,7 +37,7 @@ import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
 import scala.util.Random
 
-object CommonAssertions {
+object JavaTest {
 
   def randomString(size: Int = 10) = Random.alphanumeric.take(size max 1).mkString
 

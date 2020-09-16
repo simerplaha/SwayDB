@@ -29,6 +29,7 @@ import java.time.Duration
 import java.util.Optional
 import java.{lang, util}
 
+import swaydb.Bag.Less
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
@@ -57,7 +58,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     asScala.put(keyValues.asScala.map(_.toTuple))
 
   def put(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
-    asScala.put(keyValues.asScala.map(_.toTuple))
+    asScala.put(keyValues.asScalaStream.map(_.toTuple))
 
   def put(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
     asScala.put(keyValues.asScala.map(_.toTuple))
@@ -72,7 +73,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     asScala.remove(keys.asScala)
 
   def remove(keys: Stream[K]): swaydb.OK =
-    asScala.remove(keys.asScala)
+    asScala.remove(keys.asScalaStream)
 
   def remove(keys: java.util.Iterator[K]): swaydb.OK =
     asScala.remove(keys.asScala)
@@ -92,7 +93,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     )
 
   def expire(keys: Stream[Pair[K, java.time.Duration]]): swaydb.OK =
-    asScala.expire(keys.asScala.map(_.toScala))
+    asScala.expire(keys.asScalaStream.map(_.toScala))
 
   def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): swaydb.OK =
     asScala.expire(keys.asScala.map(_.asScalaDeadline))
@@ -110,7 +111,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     asScala.update(keyValues.asScala.map(_.toTuple))
 
   def update(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
-    asScala.update(keyValues.asScala.map(_.toTuple))
+    asScala.update(keyValues.asScalaStream.map(_.toTuple))
 
   def update(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
     asScala.update(keyValues.asScala.map(_.toTuple))
@@ -128,7 +129,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     asScala.commit(prepare.asScala)
 
   def commit(prepare: Stream[Prepare[K, V, F]]): swaydb.OK =
-    asScala.commit(prepare.asScala)
+    asScala.commit(prepare.asScalaStream)
 
   def get(key: K): Optional[V] =
     asScala.get(key).asJava
@@ -170,10 +171,10 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     Set(asScala.keys.asInstanceOf[swaydb.Set[K, Void, Bag.Less]])(null)
 
   def keys: Stream[K] =
-    new Stream[K](asScala.keys)
+    Stream.fromScala[K](asScala.keys)
 
   def values: Stream[V] =
-    new Stream[V](asScala.values)
+    Stream.fromScala[V](asScala.values)
 
   def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter
@@ -196,14 +197,8 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
   def head: Optional[KeyVal[K, V]] =
     asScala.head.asJavaMap(KeyVal(_))
 
-  def stream: Source[K, KeyVal[K, V]] =
-    new Source(asScala.transformValue(_.asKeyVal))
-
-  def iterator: java.util.Iterator[KeyVal[K, V]] =
-    asScala
-      .iterator(Bag.less)
-      .map(KeyVal(_))
-      .asJava
+  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Less] =
+    asScala.transformValue(_.asKeyVal)
 
   def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries

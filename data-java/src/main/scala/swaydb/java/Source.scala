@@ -26,23 +26,35 @@ package swaydb.java
 
 import swaydb.Bag
 
-class Source[K, T](scalaSource: swaydb.Source[K, T, Bag.Less]) extends Stream[T](scalaSource) {
+object Source {
+
+  @inline def apply[K, T](scalaSource: => swaydb.Source[K, T, Bag.Less]): Source[K, T] =
+    new Source[K, T] {
+      override def asScalaStream: swaydb.Source[K, T, Bag.Less] =
+        scalaSource
+    }
+
+}
+
+trait Source[K, T] extends Stream[T] {
+
+  override def asScalaStream: swaydb.Source[K, T, Bag.Less]
 
   def from(key: K): Source[K, T] =
-    new Source(scalaSource.from(key))
+    Source(asScalaStream.from(key))
 
   def before(key: K): Source[K, T] =
-    new Source(scalaSource.before(key))
+    Source(asScalaStream.before(key))
 
   def fromOrBefore(key: K): Source[K, T] =
-    new Source(scalaSource.fromOrBefore(key))
+    Source(asScalaStream.fromOrBefore(key))
 
   def after(key: K): Source[K, T] =
-    new Source(scalaSource.after(key))
+    Source(asScalaStream.after(key))
 
   def fromOrAfter(key: K): Source[K, T] =
-    new Source(scalaSource.fromOrAfter(key))
+    Source(asScalaStream.fromOrAfter(key))
 
   def reverse: Source[K, T] =
-    new Source(scalaSource.reverse)
+    Source(asScalaStream.reverse)
 }

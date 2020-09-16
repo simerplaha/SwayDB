@@ -28,6 +28,7 @@ import java.nio.file.Path
 import java.util.Optional
 import java.{lang, util}
 
+import swaydb.Bag.Less
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
@@ -40,7 +41,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
+case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) extends Source[A, A] {
 
   def path: Path =
     asScala.path
@@ -67,7 +68,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
     asScala.add(elems.asScala)
 
   def add(elems: Stream[A]): swaydb.OK =
-    asScala.add(elems.asScala)
+    asScala.add(elems.asScalaStream)
 
   def add(elems: java.util.Iterator[A]): swaydb.OK =
     asScala.add(elems.asScala)
@@ -82,7 +83,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
     asScala.remove(elems.asScala)
 
   def remove(elems: Stream[A]): swaydb.OK =
-    asScala.remove(elems.asScala)
+    asScala.remove(elems.asScalaStream)
 
   def remove(elems: java.util.Iterator[A]): swaydb.OK =
     asScala.remove(elems.asScala)
@@ -103,7 +104,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
 
   def expire(elems: Stream[Pair[A, java.time.Duration]]): swaydb.OK =
     asScala.expire {
-      elems.asScala.map {
+      elems.asScalaStream.map {
         pair =>
           (pair.left, pair.right.toScala.fromNow)
       }
@@ -130,7 +131,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
     asScala.commit(prepare.asScala.asInstanceOf[Iterable[Prepare[A, Nothing, F]]])
 
   def commit(prepare: Stream[Prepare[A, Void, F]]): swaydb.OK =
-    asScala.commit(prepare.asInstanceOf[Stream[Prepare[A, Nothing, F]]].asScala)
+    asScala.commit(prepare.asInstanceOf[Stream[Prepare[A, Nothing, F]]].asScalaStream)
 
   def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter
@@ -162,14 +163,6 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
   def isFunctionApplied(function: F): Boolean =
     asScala.isFunctionApplied(function)
 
-  def stream: Source[A, A] =
-    new Source(asScala)
-
-  def iterator: java.util.Iterator[A] =
-    asScala
-      .iterator(Bag.less)
-      .asJava
-
   def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries
 
@@ -191,6 +184,9 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
   def delete(): Unit =
     asScala.delete()
 
+  override def asScalaStream: swaydb.Source[A, A, Less] =
+    asScala
+
   override def equals(other: Any): Boolean =
     other match {
       case other: Set[_, _] =>
@@ -205,4 +201,5 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
 
   override def toString(): String =
     asScala.toString()
+
 }

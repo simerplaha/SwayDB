@@ -33,7 +33,7 @@ import swaydb.data.util.ByteOps;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static swaydb.data.java.CommonAssertions.*;
+import static swaydb.data.java.JavaTest.*;
 
 public class SliceTest {
 

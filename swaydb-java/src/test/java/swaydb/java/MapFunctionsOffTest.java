@@ -40,7 +40,7 @@ import java.util.Optional;
 
 import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static swaydb.data.java.CommonAssertions.*;
+import static swaydb.data.java.JavaTest.*;
 import static swaydb.data.java.JavaEventually.sleep;
 import static swaydb.java.serializers.Default.intSerializer;
 import static swaydb.java.serializers.Default.stringSerializer;
@@ -129,8 +129,8 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     keyVals.forEach(keyVal -> shouldContain(map.get(keyVal.key()), keyVal.key() + " value"));
 
-    shouldBe(map.stream(), keyVals);
-    shouldHaveSize(map.stream(), 3);
+    shouldBe(map, keyVals);
+    shouldHaveSize(map, 3);
 
     map.delete();
   }
@@ -196,7 +196,7 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     map.remove(1, 100);
 
-    shouldHaveSize(map.stream(), 0);
+    shouldHaveSize(map, 0);
     shouldBeTrue(map.isEmpty());
 
     shouldBeEmpty(map.head());
@@ -212,7 +212,7 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     map.remove(Stream.range(1, 100));
 
-    shouldHaveSize(map.stream(), 0);
+    shouldHaveSize(map, 0);
     shouldBeTrue(map.isEmpty());
 
     shouldBeEmpty(map.head());
@@ -238,10 +238,10 @@ abstract class MapFunctionsOffTest extends TestBase {
     shouldBeEmpty(map.get(2));
     shouldBeEmpty(map.get(3));
 
-    shouldHaveSize(map.stream(), 97);
+    shouldHaveSize(map, 97);
     shouldBeFalse(map.isEmpty());
 
-    shouldBe(map.stream().map(KeyVal::key).materialize(), Stream.range(4, 100).materialize());
+    shouldBe(map.map(KeyVal::key).materialize(), Stream.range(4, 100).materialize());
 
     map.delete();
   }
@@ -316,7 +316,7 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     sleep(Duration.ofSeconds(1));
 
-    shouldBe(map.stream().map(KeyVal::key), Stream.range(21, 89));
+    shouldBe(map.map(KeyVal::key), Stream.range(21, 89));
 
     map.delete();
   }
@@ -352,9 +352,9 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     map.update(Stream.range(1, 100).map(integer -> KeyVal.create(integer, "updated")));
 
-    shouldBe(map.stream().map(KeyVal::value), Stream.range(1, 100).map(i -> "updated"));
+    shouldBe(map.map(KeyVal::value), Stream.range(1, 100).map(i -> "updated"));
 
-    map.stream().forEach(
+    map.forEach(
       keyValue ->
         shouldBe(keyValue.value(), "updated")
     );
@@ -376,8 +376,8 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     shouldContain(map.get(1), "updated");
     shouldContain(map.get(2), "updated");
-    shouldBe(map.stream().take(2).map(KeyVal::value), Stream.range(1, 2).map(i -> "updated"));
-    shouldBe(map.stream().drop(2).map(KeyVal::value), Stream.range(3, 100).map(i -> i + " value"));
+    shouldBe(map.take(2).map(KeyVal::value), Stream.range(1, 2).map(i -> "updated"));
+    shouldBe(map.drop(2).map(KeyVal::value), Stream.range(3, 100).map(i -> i + " value"));
 
     map.delete();
   }
@@ -396,7 +396,7 @@ abstract class MapFunctionsOffTest extends TestBase {
     map.clearKeyValues();
 
     shouldBeEmpty(map.get(1));
-    shouldBeEmpty(map.stream());
+    shouldBeEmpty(map);
 
     map.delete();
   }
@@ -636,7 +636,7 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     Stream<KeyVal<Integer, String>> stream =
       map
-        .stream()
+
         .from(10)
         .drop(10)
         .takeWhile(keyValue -> true);
@@ -679,7 +679,7 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     List<Integer> stream =
       map
-        .stream()
+
         .map(KeyVal::key)
         .materialize();
 
@@ -691,7 +691,7 @@ abstract class MapFunctionsOffTest extends TestBase {
     //reversing a reversed map results in ordered
     Stream<Integer> reversed =
       map
-        .stream()
+
         .reverse()
         .map(KeyVal::key);
 
@@ -775,7 +775,7 @@ abstract class MapFunctionsOffTest extends TestBase {
 //
 //    List<Key> mapKeys =
 //      map
-//        .stream()
+//
 //        .map(KeyVal::key)
 //        .materialize();
 //

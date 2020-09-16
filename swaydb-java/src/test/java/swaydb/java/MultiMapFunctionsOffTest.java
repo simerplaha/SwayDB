@@ -43,7 +43,7 @@ import swaydb.java.table.domain.table.value.ValueSerializer;
 import java.io.IOException;
 
 import static java.util.Arrays.asList;
-import static swaydb.data.java.CommonAssertions.*;
+import static swaydb.data.java.JavaTest.*;
 import static swaydb.java.serializers.Default.intSerializer;
 import static swaydb.java.serializers.Default.stringSerializer;
 
@@ -148,11 +148,11 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
     //insert data into User table
     foreachRange(1, 10, i -> users.put(UserKey.of(i + "@email.com"), UserValue.of("First-" + i, "Last-" + i)));
     System.out.println("Users\n"); //print data from user table
-    users.stream().forEach(System.out::println);
+    users.forEach(System.out::println);
 
     //Insert data into product table
     foreachRange(1, 10, i -> products.put(ProductKey.of(i), ProductValue.of(i)));
     System.out.println("Products\n"); //print that data.
-    products.stream().forEach(System.out::println);
+    products.forEach(System.out::println);
   }
 }
