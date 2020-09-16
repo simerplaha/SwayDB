@@ -80,28 +80,46 @@ object KeyOrder {
   /**
    * Provides the default reverse ordering.
    */
-  val reverse: KeyOrder[Slice[Byte]] =
+  val reverseLexicographic: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int =
         default.compare(a, b) * -1
+    }
+
+  val reverseLexicographicJava: KeyOrder[Slice[java.lang.Byte]] =
+    new KeyOrder[Slice[java.lang.Byte]] {
+      def compare(a: Slice[java.lang.Byte], b: Slice[java.lang.Byte]): Int =
+        lexicographicJava.compare(a, b) * -1
+    }
+
+  val signedInt: KeyOrder[Slice[Byte]] =
+    new KeyOrder[Slice[Byte]] {
+      override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
+        x.readSignedInt() compare y.readSignedInt()
+    }
+
+  val signedLong: KeyOrder[Slice[Byte]] =
+    new KeyOrder[Slice[Byte]] {
+      override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
+        x.readSignedLong() compare y.readSignedLong()
+    }
+
+  val signedIntJava: KeyOrder[Slice[java.lang.Byte]] =
+    new KeyOrder[Slice[java.lang.Byte]] {
+      override def compare(x: Slice[java.lang.Byte], y: Slice[java.lang.Byte]): Int =
+        x.readSignedInt() compare y.readSignedInt()
+    }
+
+  val signedLongJava: KeyOrder[Slice[java.lang.Byte]] =
+    new KeyOrder[Slice[java.lang.Byte]] {
+      override def compare(x: Slice[java.lang.Byte], y: Slice[java.lang.Byte]): Int =
+        x.readSignedLong() compare y.readSignedLong()
     }
 
   def apply[K](ordering: Ordering[K]): KeyOrder[K] =
     new KeyOrder[K]() {
       override def compare(x: K, y: K): Int =
         ordering.compare(x, y)
-    }
-
-  val integer: KeyOrder[Slice[Byte]] =
-    new KeyOrder[Slice[Byte]] {
-      override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
-        x.readInt() compare y.readInt()
-    }
-
-  val long: KeyOrder[Slice[Byte]] =
-    new KeyOrder[Slice[Byte]] {
-      override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
-        x.readLong() compare y.readLong()
     }
 }
 

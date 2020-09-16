@@ -30,7 +30,6 @@ import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.stream.IntStream;
 
 import static swaydb.data.java.JavaTest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;

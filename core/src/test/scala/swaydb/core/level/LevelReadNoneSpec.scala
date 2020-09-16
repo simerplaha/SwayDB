@@ -119,7 +119,7 @@ sealed trait LevelReadNoneSpec extends TestBase {
 
     "level is non empty but the searched key do not exist" in {
       runThis(10.times) {
-        implicit val keyOrder = KeyOrder.integer
+        implicit val keyOrder = KeyOrder.signedInt
 
         assertLevel(
           level0KeyValues =

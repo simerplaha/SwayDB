@@ -106,7 +106,12 @@ object Exception {
 
   case class InvalidDirectoryType(invalidType: DataType, expected: DataType) extends Exception(s"Wrong data type ${invalidType.name} for the directory of type ${expected.name}.")
   case class MissingMultiMapGenFolder(path: Path) extends Exception(s"Missing multimap gen file or folder: $path")
-  case class IncompatibleVersions(previous: String, current: String) extends Exception(s"Incompatible versions! v$previous is not compatible with v$current.")
+
+  case class IncompatibleVersions(previous: String, current: String)
+    extends Exception(
+      s"Incompatible versions! SwayDB v$current is not compatible with files created by v$previous. Use a different directory."
+    )
+
   case class MissingBuildInfo(buildInfoFileName: String, version: String) extends Exception(s"Missing $buildInfoFileName file. This directory might be an incompatible older version of SwayDB. Current version: v$version.")
 
 }

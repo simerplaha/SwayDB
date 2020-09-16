@@ -26,7 +26,7 @@ package swaydb.core.util
 
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.data.order.KeyOrder
-import swaydb.serializers.Default.LongSerializer
+import swaydb.serializers.Default.LongSignedSerializer
 
 object BloomFilterMemoryUsage extends App {
 
@@ -39,7 +39,7 @@ object BloomFilterMemoryUsage extends App {
   var keys =
     (0L to 1000000L) map {
       key =>
-        LongSerializer.write(key)
+        LongSignedSerializer.write(key)
     }
 
   val bloomFilter =

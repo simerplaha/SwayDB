@@ -32,9 +32,9 @@ import swaydb.serializers.Default._
 
 object Default {
 
-  def intSerializer(): Serializer[java.lang.Integer] = JavaIntSerializer
+  def intSerializer(): Serializer[java.lang.Integer] = JavaIntSignedSerializer
 
-  object JavaIntSerializer extends Serializer[java.lang.Integer] {
+  object JavaIntSignedSerializer extends Serializer[java.lang.Integer] {
     override def write(data: java.lang.Integer): Slice[java.lang.Byte] =
       Slice.writeSignedInt[java.lang.Byte](data)
 
@@ -42,9 +42,9 @@ object Default {
       slice.readSignedInt()
   }
 
-  def longSerializer(): Serializer[java.lang.Long] = JavaLongSerializer
+  def longSerializer(): Serializer[java.lang.Long] = JavaLongSignedSerializer
 
-  implicit object JavaLongSerializer extends Serializer[java.lang.Long] {
+  implicit object JavaLongSignedSerializer extends Serializer[java.lang.Long] {
     override def write(data: java.lang.Long): Slice[java.lang.Byte] =
       Slice.writeSignedLong[java.lang.Byte](data)
 

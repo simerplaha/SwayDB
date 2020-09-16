@@ -718,7 +718,6 @@ abstract class MapFunctionsOffTest extends TestBase {
 
     List<Integer> stream =
       map
-
         .map(KeyVal::key)
         .materialize();
 
@@ -730,7 +729,6 @@ abstract class MapFunctionsOffTest extends TestBase {
     //reversing a reversed map results in ordered
     Stream<Integer> reversed =
       map
-
         .reverse()
         .map(KeyVal::key);
 

@@ -39,7 +39,7 @@ object Default {
 
   implicit val scalaByteOps = ScalaByteOps
 
-  implicit object IntSerializer extends Serializer[Int] {
+  implicit object IntSignedSerializer extends Serializer[Int] {
     override def write(data: Int): Slice[Byte] =
       Slice.writeSignedInt[Byte](data)
 
@@ -47,7 +47,7 @@ object Default {
       slice.readSignedInt()
   }
 
-  implicit object LongSerializer extends Serializer[Long] {
+  implicit object LongSignedSerializer extends Serializer[Long] {
     override def write(data: Long): Slice[Byte] =
       Slice.writeSignedLong[Byte](data)
 
