@@ -24,11 +24,14 @@
 
 package swaydb.java;
 
+import lombok.*;
 import org.junit.jupiter.api.Test;
 import swaydb.KeyVal;
 import swaydb.Pair;
 import swaydb.Prepare;
 import swaydb.data.java.TestBase;
+import swaydb.data.slice.Slice;
+import swaydb.data.util.ByteOps;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
@@ -700,95 +703,61 @@ abstract class MapFunctionsOffTest extends TestBase {
     map.delete();
   }
 
-//  @Test
-//  void createMapWithCustomSerializer() throws IOException {
-//    class Key {
-//      Integer key;
-//
-//      Key setKey(Integer key) {
-//        this.key = key;
-//        return this;
-//      }
-//    }
-//
-//    class Value {
-//      Integer value;
-//
-//      Value setValue(Integer value) {
-//        this.value = value;
-//        return this;
-//      }
-//    }
-//
-//    Key key1 = new Key().setKey(1);
-//    Key key2 = new Key().setKey(2);
-//
-//    Value value1 = new Value().setValue(1);
-//    Value value2 = new Value().setValue(2);
-//
-//    Serializer<Key> keySerializer = new Serializer<Key>() {
-//      @Override
-//      public Slice.Sliced<Byte> write(Key data) {
-//        return Slice.writeUnsignedInt(data.key);
-//      }
-//
-//      @Override
-//      public Key read(Slice.Sliced<Byte> data) {
-//        return null;
-//      }
-////      @Override
-////      public Sliced<Byte> write(Key data) {
-////        return ByteSlice.writeUnsignedInt(data.key);
-////      }
-////
-////      @Override
-////      public Key read(ByteSlice slice) {
-////        if (slice.get(0) == 1) {
-////          return key1;
-////        } else {
-////          return key2;
-////        }
-////      }
-//    };
-//
-//    Serializer<Value> valueSerializer = new Serializer<Value>() {
-//      @Override
-//      public ByteSlice write(Value data) {
-//        return ByteSlice.writeUnsignedInt(data.value);
-//      }
-//
-//      @Override
-//      public Value read(ByteSlice slice) {
-//        if (slice.get(0) == 1) {
-//          return value1;
-//        } else {
-//          return value2;
-//        }
-//      }
-//    };
-//
-//    MapT<Key, Value, Void> map =
-//      createMap(keySerializer, valueSerializer);
-//
-//    assertDoesNotThrow(() -> map.put(key1, value1));
-//    assertDoesNotThrow(() -> map.put(key2, value2));
-//
-//    List<Key> mapKeys =
-//      map
-//
-//        .map(KeyVal::key)
-//        .materialize();
-//
-//    assertEquals(asList(key1, key2), mapKeys);
-//
-//    List<Integer> setKeys =
-//      map
-//        .keys()
-//        .map(key -> key.key)
-//        .materialize();
-//
-//    assertEquals(asList(1, 2), setKeys);
-//
-//    map.delete();
-//  }
+  @RequiredArgsConstructor(staticName = "of")
+  @EqualsAndHashCode
+  static class Key {
+    @Getter
+    private final int key;
+  }
+
+  @RequiredArgsConstructor(staticName = "of")
+  @EqualsAndHashCode
+  static class Value {
+    @Getter
+    private final int value;
+  }
+
+  @Test
+  void createMapWithCustomSerializer() throws IOException {
+
+    Key key1 = Key.of(1);
+    Key key2 = Key.of(2);
+
+    Value value1 = Value.of(1);
+    Value value2 = Value.of(2);
+
+    Serializer<Key> keySerializer = new Serializer<Key>() {
+      @Override
+      public Slice<Byte> write(Key data) {
+        return Slice.writeUnsignedInt(data.key, ByteOps.Java());
+      }
+
+      @Override
+      public Key read(Slice<Byte> slice) {
+        return new Key(slice.readUnsignedInt(ByteOps.Java()));
+      }
+    };
+
+    Serializer<Value> valueSerializer = new Serializer<Value>() {
+      @Override
+      public Slice<Byte> write(Value data) {
+        return Slice.writeUnsignedInt(data.value, ByteOps.Java());
+      }
+
+      @Override
+      public Value read(Slice<Byte> slice) {
+        return new Value(slice.readUnsignedInt(ByteOps.Java()));
+      }
+    };
+
+    MapT<Key, Value, Void> map =
+      createMap(keySerializer, valueSerializer);
+
+    map.put(key1, value1);
+    map.put(key2, value2);
+
+    shouldBe(map.materialize(), asList(KeyVal.create(key1, value1), KeyVal.create(key2, value2)));
+
+    map.delete();
+  }
 }
