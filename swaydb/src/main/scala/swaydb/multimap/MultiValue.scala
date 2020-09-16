@@ -45,7 +45,7 @@ private[swaydb] object MultiValue {
                 Slice.emptyBytes
 
               case mapId: MapId =>
-                val slice = Slice.create[Byte](1 + Bytes.sizeOfUnsignedLong(mapId.id))
+                val slice = Slice.of[Byte](1 + Bytes.sizeOfUnsignedLong(mapId.id))
                 slice add 1.toByte
                 slice addUnsignedLong mapId.id
             }
@@ -55,7 +55,7 @@ private[swaydb] object MultiValue {
             if (bytes.isEmpty) {
               two
             } else {
-              val slice = Slice.create[Byte](1 + bytes.size)
+              val slice = Slice.of[Byte](1 + bytes.size)
               slice add 3.toByte
               slice addAll bytes
             }

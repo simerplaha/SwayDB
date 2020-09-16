@@ -41,7 +41,7 @@ class ValueSerializerSpec extends AnyWordSpec with Matchers {
     val map = mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]
     map.put(1, Slice((Slice(1.toByte), Slice(2.toByte)), (Slice(3.toByte), Slice(4.toByte))))
 
-    val bytes = Slice.create[Byte](IntMapListBufferSerializer.bytesRequired(map))
+    val bytes = Slice.of[Byte](IntMapListBufferSerializer.bytesRequired(map))
 
     //    IntMapListBufferSerializer.optimalBytesRequired(2, ???) should be >= bytes.size
 
@@ -67,7 +67,7 @@ class ValueSerializerSpec extends AnyWordSpec with Matchers {
           ).asInstanceOf[ListBuffer[(Slice[Byte], Slice[Byte])]] += bytesToAdd
     }
 
-    val bytes = Slice.create[Byte](IntMapListBufferSerializer.bytesRequired(map))
+    val bytes = Slice.of[Byte](IntMapListBufferSerializer.bytesRequired(map))
     val optimalBytes =
       IntMapListBufferSerializer.optimalBytesRequired(
         numberOfRanges = map.foldLeft(0)(_ + _._2.size),

@@ -110,7 +110,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-          val deleteKeyValues = Slice.create[Memory](keyValues.size * 2)
+          val deleteKeyValues = Slice.of[Memory](keyValues.size * 2)
           keyValues foreach {
             keyValue =>
               deleteKeyValues add Memory.remove(keyValue.key)
@@ -142,7 +142,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           val keyValues = randomPutKeyValues()
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-          val deleteKeyValues = Slice.create[Memory](keyValues.size)
+          val deleteKeyValues = Slice.of[Memory](keyValues.size)
           keyValues foreach {
             keyValue =>
               deleteKeyValues add Memory.remove(keyValue.key)
@@ -204,7 +204,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-          val deleteKeyValues = Slice.create[Memory](keyValues.size * 2)
+          val deleteKeyValues = Slice.of[Memory](keyValues.size * 2)
           keyValues foreach {
             keyValue =>
               deleteKeyValues add Memory.remove(keyValue.key, 1.seconds)
@@ -253,7 +253,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           val keyValues = randomPutKeyValues(keyValuesCount)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-          val deleteKeyValues = Slice.create[Memory](keyValues.size * 2)
+          val deleteKeyValues = Slice.of[Memory](keyValues.size * 2)
           keyValues foreach {
             keyValue =>
               deleteKeyValues add Memory.remove(keyValue.key, 0.seconds)
@@ -388,7 +388,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           val targetSegmentKeyValues = randomIntKeyStringValues()
           val targetSegment = TestSegment(keyValues = targetSegmentKeyValues).runRandomIO.right.value
 
-          val keyValues: Slice[KeyValue] = Slice.create[KeyValue](3) //null KeyValue will throw an exception and the put should be reverted
+          val keyValues: Slice[KeyValue] = Slice.of[KeyValue](3) //null KeyValue will throw an exception and the put should be reverted
           keyValues.add(Memory.put(123))
           keyValues.add(Memory.put(1234, 12345))
           keyValues.add(Persistent.Put(_key = 1235, None, null, Time.empty, 10, 10, 10, 10, 10, 0)) //give it a null Reader so that it fails reading the value.

@@ -118,7 +118,7 @@ case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Slice[Byte]],
     if (conflictingKeyValues.isEmpty) {
       skipList.put(insert.key, insert)
     } else {
-      val oldKeyValues = Slice.create[Memory](conflictingKeyValues.size())
+      val oldKeyValues = Slice.of[Memory](conflictingKeyValues.size())
 
       conflictingKeyValues.values() forEach {
         new Consumer[Memory] {

@@ -77,7 +77,7 @@ private[core] object SegmentAssigner {
 
           case None =>
             //+1 for cases when a Range might extend to the next Segment.
-            val initial = Slice.create[KeyValue](remainingKeyValues + 1)
+            val initial = Slice.of[KeyValue](remainingKeyValues + 1)
             initial add keyValue
             assignmentsMap += (segment -> initial)
         }

@@ -152,7 +152,7 @@ class BuildSpec extends TestBase {
 
                 val existsBytes = Effect.readAllBytes(file)
 
-                val bytesWithInvalidFormatId = Slice.create[Byte](existsBytes.size)
+                val bytesWithInvalidFormatId = Slice.of[Byte](existsBytes.size)
                 bytesWithInvalidFormatId addAll existsBytes.take(ByteSizeOf.long) //keep CRC
                 bytesWithInvalidFormatId add (Build.formatId + 1).toByte //change formatId
                 bytesWithInvalidFormatId addAll existsBytes.drop(ByteSizeOf.long + 1) //keep the rest

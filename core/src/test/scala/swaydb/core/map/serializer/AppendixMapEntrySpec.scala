@@ -59,7 +59,7 @@ class AppendixMapEntrySpec extends TestBase {
           import AppendixMapEntryWriter.AppendixPutWriter
           val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
 
-          val slice = Slice.create[Byte](entry.entryBytesSize)
+          val slice = Slice.of[Byte](entry.entryBytesSize)
           entry writeTo slice
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -90,7 +90,7 @@ class AppendixMapEntrySpec extends TestBase {
           import AppendixMapEntryWriter.AppendixRemoveWriter
           val entry = MapEntry.Remove[Slice[Byte]](1)
 
-          val slice = Slice.create[Byte](entry.entryBytesSize)
+          val slice = Slice.of[Byte](entry.entryBytesSize)
           entry writeTo slice
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -130,7 +130,7 @@ class AppendixMapEntrySpec extends TestBase {
               MapEntry.Remove[Slice[Byte]](segment2.minKey) ++
               MapEntry.Put[Slice[Byte], Segment](segment5.minKey, segment5)
 
-          val slice = Slice.create[Byte](entry.entryBytesSize)
+          val slice = Slice.of[Byte](entry.entryBytesSize)
           entry writeTo slice
           slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 

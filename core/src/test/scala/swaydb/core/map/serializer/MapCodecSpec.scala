@@ -106,13 +106,13 @@ class MapCodecSpec extends TestBase {
       bytes.isFull shouldBe true
 
       //1 empty byte.
-      val bytesWith1EmptyByte = Slice.create[Byte](bytes.size + 1)
+      val bytesWith1EmptyByte = Slice.of[Byte](bytes.size + 1)
       bytes foreach bytesWith1EmptyByte.add
       bytesWith1EmptyByte.isFull shouldBe false
       assertBytes(bytesWith1EmptyByte)
 
       //10 empty bytes. This is to check that key-values are still read if there are enough bytes to create a CRC
-      val bytesWith20EmptyByte = Slice.create[Byte](bytes.size + 10)
+      val bytesWith20EmptyByte = Slice.of[Byte](bytes.size + 10)
       bytes foreach bytesWith20EmptyByte.add
       bytesWith20EmptyByte.isFull shouldBe false
       assertBytes(bytesWith20EmptyByte)

@@ -1413,7 +1413,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val keyValues = randomizedKeyValues(count = keyValuesCount)
           val segment = TestSegment(keyValues)
 
-          val updatedKeyValues = Slice.create[Memory](keyValues.size)
+          val updatedKeyValues = Slice.of[Memory](keyValues.size)
           keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key, Slice.Null))
 
           val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
@@ -1455,7 +1455,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRanges = false)
             val segment1 = TestSegment(keyValues1)
 
-            val keyValues2Unclosed = Slice.create[Memory](keyValues1.size * 100)
+            val keyValues2Unclosed = Slice.of[Memory](keyValues1.size * 100)
             keyValues1 foreach {
               keyValue =>
                 keyValues2Unclosed add randomPutKeyValue(keyValue.key)
@@ -1518,7 +1518,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             val segment = TestSegment(keyValues)
 
-            val deleteKeyValues = Slice.create[Memory](keyValues.size)
+            val deleteKeyValues = Slice.of[Memory](keyValues.size)
             (1 to 4).foreach(key => deleteKeyValues add Memory.remove(key))
             deleteKeyValues add Memory.Range(5, 10, FromValue.Null, Value.remove(None))
 
@@ -1546,7 +1546,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val keyValues = Slice(Memory.Range(1, 10, FromValue.Null, Value.update(10)))
           val segment = TestSegment(keyValues)
 
-          val deleteKeyValues = Slice.create[Memory](10)
+          val deleteKeyValues = Slice.of[Memory](10)
           (1 to 10).foreach(key => deleteKeyValues add Memory.remove(key))
 
           val removedRanges =
@@ -1577,7 +1577,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           val keyValues = randomKeyValues(count = keyValuesCount)
           val segment = TestSegment(keyValues)
 
-          val deleteKeyValues = Slice.create[Memory.Remove](keyValues.size - 1)
+          val deleteKeyValues = Slice.of[Memory.Remove](keyValues.size - 1)
           keyValues.drop(1).foreach(keyValue => deleteKeyValues add Memory.remove(keyValue.key))
 
           val newSegments =

@@ -35,7 +35,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
       range =>
         range foreach {
           int =>
-            val slice = Slice.create[Byte](ByteSizeOf.int)
+            val slice = Slice.of[Byte](ByteSizeOf.int)
             Bytes.writeInt(int, slice)
             slice.readInt() shouldBe int //from Slice
             Bytes.readInt(slice) shouldBe int //from slice
@@ -49,7 +49,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
       range =>
         range foreach {
           long =>
-            val slice = Slice.create[Byte](ByteSizeOf.long)
+            val slice = Slice.of[Byte](ByteSizeOf.long)
             Bytes.writeLong(long, slice)
             slice.readLong() shouldBe long
             Bytes.readLong(slice) shouldBe long
@@ -60,11 +60,11 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
 
   "writeBoolean & readBoolean" when {
     "slice" in {
-      val trueSlice = Slice.create[Byte](ByteSizeOf.boolean)
+      val trueSlice = Slice.of[Byte](ByteSizeOf.boolean)
       trueSlice.addBoolean(true)
       trueSlice.readBoolean() shouldBe true
 
-      val falseSlice = Slice.create[Byte](ByteSizeOf.boolean)
+      val falseSlice = Slice.of[Byte](ByteSizeOf.boolean)
       falseSlice.addBoolean(false)
       falseSlice.readBoolean() shouldBe false
     }
@@ -72,7 +72,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
     "reader" in {
       val booleans = Seq.fill(10)(randomBoolean())
 
-      val slice = Slice.create[Byte](ByteSizeOf.boolean * booleans.size)
+      val slice = Slice.of[Byte](ByteSizeOf.boolean * booleans.size)
 
       booleans foreach (bool => slice.addBoolean(bool))
 
@@ -88,7 +88,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
   "writeString & readString" when {
     "single" in {
       runThis(10.times) {
-        val slice = Slice.create[Byte](10000)
+        val slice = Slice.of[Byte](10000)
         val string = randomCharacters(randomIntMax(1000) max 1)
         Bytes.writeString(string, slice, StandardCharsets.UTF_8)
         slice.readString() shouldBe string
@@ -100,7 +100,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
 
     "multiple" in {
       runThis(10.times) {
-        val slice = Slice.create[Byte](10000)
+        val slice = Slice.of[Byte](10000)
         val string1 = randomCharacters(randomIntMax(1000) max 1)
         val string2 = randomCharacters(randomIntMax(1000) max 1)
 
@@ -130,7 +130,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
 
               Bytes.readUnsignedIntWithByteSize(unsignedBytes) shouldBe(int, actualByteSize)
 
-              val signedBytes = Slice.create[Byte](ByteSizeOf.varInt)
+              val signedBytes = Slice.of[Byte](ByteSizeOf.varInt)
               Bytes.writeSignedInt(int, signedBytes)
               Bytes.readSignedInt(signedBytes) shouldBe int
           }
@@ -149,7 +149,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
 
               Bytes.readUnsignedLongWithByteSize(unsignedBytes) shouldBe(long, actualByteSize)
 
-              val signedBytes = Slice.create[Byte](ByteSizeOf.varLong)
+              val signedBytes = Slice.of[Byte](ByteSizeOf.varLong)
               Bytes.writeSignedLong(long, signedBytes)
               Bytes.readSignedLong(signedBytes) shouldBe long
           }
@@ -161,7 +161,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
     "readUnsignedInt" in {
       intRanges foreach {
         range =>
-          val slice = Slice.create[Byte](2000000 * ByteSizeOf.varInt)
+          val slice = Slice.of[Byte](2000000 * ByteSizeOf.varInt)
 
           range foreach {
             int =>
@@ -179,7 +179,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
     "readSignedInt" in {
       intRanges foreach {
         range =>
-          val slice = Slice.create[Byte](2000000 * ByteSizeOf.varInt)
+          val slice = Slice.of[Byte](2000000 * ByteSizeOf.varInt)
 
           range foreach {
             int =>
@@ -197,7 +197,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
     "readUnsignedLong" in {
       longRanges foreach {
         range =>
-          val slice = Slice.create[Byte](2000000 * ByteSizeOf.varLong)
+          val slice = Slice.of[Byte](2000000 * ByteSizeOf.varLong)
 
           range foreach {
             long =>
@@ -215,7 +215,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
     "readSignedLong" in {
       longRanges foreach {
         range =>
-          val slice = Slice.create[Byte](2000000 * ByteSizeOf.varLong)
+          val slice = Slice.of[Byte](2000000 * ByteSizeOf.varLong)
 
           range foreach {
             long =>
@@ -231,12 +231,12 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
     }
 
     "readUnsignedLongByteSize" in {
-      var bytes = Slice.create[Byte](9)
+      var bytes = Slice.of[Byte](9)
       bytes.addUnsignedLong(0)
       bytes.size shouldBe 1
       bytes.readUnsignedLongByteSize() shouldBe 1
 
-      bytes = Slice.create[Byte](9)
+      bytes = Slice.of[Byte](9)
       bytes.addUnsignedLong(Long.MaxValue)
       bytes.size shouldBe 9
       bytes.readUnsignedLongByteSize() shouldBe 9
@@ -246,7 +246,7 @@ class Bytes_ScalaByteOpsAPI_Spec extends AnyWordSpec with Matchers {
         range =>
           range foreach {
             long =>
-              val slice = Slice.create[Byte](ByteSizeOf.varLong)
+              val slice = Slice.of[Byte](ByteSizeOf.varLong)
               Bytes.writeUnsignedLong(long, slice)
               Bytes.readUnsignedLongByteSize(slice) shouldBe slice.size
           }

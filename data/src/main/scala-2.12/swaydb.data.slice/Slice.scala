@@ -59,10 +59,10 @@ object Slice extends SliceCompanionBase {
 
   class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[T] = Slice.create[T]((sizeHint * 2) max 100)
+    protected var slice: Slice[T] = Slice.of[T]((sizeHint * 2) max 100)
 
     def extendSlice(by: Int) = {
-      val extendedSlice = Slice.create[T](slice.size * by)
+      val extendedSlice = Slice.of[T](slice.size * by)
       extendedSlice addAll slice
       slice = extendedSlice
     }
@@ -79,7 +79,7 @@ object Slice extends SliceCompanionBase {
       }
 
     def clear() =
-      slice = Slice.create[T](slice.size)
+      slice = Slice.of[T](slice.size)
 
     def result: Slice[T] =
       slice.close()

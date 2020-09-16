@@ -94,7 +94,7 @@ class DBFileSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           //size is 10 but only 2 bytes were written
-          val incompleteBytes = Slice.create[Byte](10)
+          val incompleteBytes = Slice.of[Byte](10)
           incompleteBytes.addUnsignedInt(1)
           incompleteBytes.addUnsignedInt(2)
           incompleteBytes.size shouldBe 2
@@ -356,7 +356,7 @@ class DBFileSpec extends TestBase with MockFactory {
         implicit sweeper =>
           import sweeper._
           val testFile = randomFilePath
-          val bytes = Slice.create[Byte](10)
+          val bytes = Slice.of[Byte](10)
           bytes.addUnsignedInt(1)
           bytes.addUnsignedInt(2)
 

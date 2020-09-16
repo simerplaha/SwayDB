@@ -43,7 +43,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
   "A Slice" should {
     "be created by specifying it's length" in {
-      val slice = Slice.create[Int](10)
+      val slice = Slice.of[Int](10)
       slice.allocatedSize shouldBe 10
       slice.size shouldBe 0
       slice.fromOffset shouldBe 0
@@ -51,7 +51,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "be created by specifying it's length and isFull" in {
-      val slice = Slice.create[Int](10, isFull = true)
+      val slice = Slice.of[Int](10, isFull = true)
       slice.allocatedSize shouldBe 10
       slice.size shouldBe 10
       slice.fromOffset shouldBe 0
@@ -89,7 +89,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
     "be sliced for a partially written slice" in {
       //slice0 is (10, 10, null, null)
-      val slice0 = Slice.create[Int](4)
+      val slice0 = Slice.of[Int](4)
       slice0 add 10
       slice0 add 10 //second slice starts here
       slice0.size shouldBe 2
@@ -118,7 +118,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
     "be sliced if the original slice is full written" in {
       //slice0 = (1, 2, 3, 4)
-      val slice0 = Slice.create[Int](4)
+      val slice0 = Slice.of[Int](4)
       slice0 add 1
       slice0 add 2
       slice0 add 3
@@ -161,7 +161,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "throw ArrayIndexOutOfBoundsException when inserting items outside the Slice offset" in {
-      val slice = Slice.create[Byte](1)
+      val slice = Slice.of[Byte](1)
       slice.allocatedSize shouldBe 1
       slice.size shouldBe 0
       slice.fromOffset shouldBe 0
@@ -240,7 +240,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "take first and last elements" in {
-      val slice = Slice.create[Byte](5).add(0).add(1).add(2).add(3).add(4)
+      val slice = Slice.of[Byte](5).add(0).add(1).add(2).add(3).add(4)
       slice.size shouldBe 5
 
       (slice take 2) should contain only(0, 1)
@@ -285,7 +285,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "update original slice with moveWritePosition when splits are updated" in {
-      val originalSlice = Slice.create[Int](2)
+      val originalSlice = Slice.of[Int](2)
       val (split1, split2) = originalSlice.splitInnerArrayAt(1)
       split1.allocatedSize shouldBe 1
       split2.size shouldBe 0
@@ -344,7 +344,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
   "A Byte Slice (Slice[Byte])" can {
     "write and read Integers" in {
-      val slice = Slice.create[Byte](ByteSizeOf.int * 2)
+      val slice = Slice.of[Byte](ByteSizeOf.int * 2)
       slice addInt Int.MaxValue
       slice addInt Int.MinValue
 
@@ -354,7 +354,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "write and read Long" in {
-      val slice = Slice.create[Byte](ByteSizeOf.long * 2)
+      val slice = Slice.of[Byte](ByteSizeOf.long * 2)
       slice addLong Long.MaxValue
       slice addLong Long.MinValue
 
@@ -364,25 +364,25 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "write and read Unsigned Integer" in {
-      val slice = Slice.create[Byte](ByteSizeOf.int + 1)
+      val slice = Slice.of[Byte](ByteSizeOf.int + 1)
       slice addUnsignedInt Int.MaxValue
       slice.createReader().readUnsignedInt() shouldBe Int.MaxValue
     }
 
     "write and read Unsigned Long" in {
-      val slice = Slice.create[Byte](ByteSizeOf.long + 1)
+      val slice = Slice.of[Byte](ByteSizeOf.long + 1)
       slice addUnsignedLong Long.MaxValue
       slice.createReader().readUnsignedLong() shouldBe Long.MaxValue
     }
 
     "write and read String" in {
-      val slice = Slice.create[Byte](10000)
+      val slice = Slice.of[Byte](10000)
       slice addStringUTF8 "This is a string"
       slice.close().createReader().readRemainingAsString() shouldBe "This is a string"
     }
 
     "write and read remaining string String" in {
-      val slice = Slice.create[Byte](10000)
+      val slice = Slice.of[Byte](10000)
 
       slice addInt 1
       slice addLong 2L
@@ -403,7 +403,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "write and read String of specified size" in {
-      val slice = Slice.create[Byte](10000)
+      val slice = Slice.of[Byte](10000)
       slice addStringUTF8 "This is a string"
 
       val reader = slice.close().createReader()
@@ -413,7 +413,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "write multiple with addAll" in {
-    Slice.create[Int](4)
+    Slice.of[Int](4)
       .add(1)
       .add(2)
       .addAll(Slice(3, 4)).toList shouldBe List(1, 2, 3, 4)
@@ -421,7 +421,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
   "addAll should fail if Slice does not have capacity" in {
     assertThrows[ArrayIndexOutOfBoundsException] {
-      Slice.create[Int](3)
+      Slice.of[Int](3)
         .add(1)
         .add(2)
         .addAll(Slice(3, 4))
@@ -537,7 +537,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "partially complete" in {
-      val slice = Slice.create[Int](10)
+      val slice = Slice.of[Int](10)
       (1 to 6) foreach slice.add
 
       slice.reverse.toList should contain inOrderOnly(6, 5, 4, 3, 2, 1)
@@ -551,7 +551,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "on empty" in {
-      Slice.create[Int](10).reverse.toList shouldBe empty
+      Slice.of[Int](10).reverse.toList shouldBe empty
     }
   }
 
@@ -663,7 +663,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "manually adjusting slice random testing 1" in {
-    val slice = Slice.create[Int](10)
+    val slice = Slice.of[Int](10)
 
     slice.moveWritePosition(3)
 
@@ -688,7 +688,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "manually adjusting slice random testing 2" in {
-    val slice = Slice.create[Int](10)
+    val slice = Slice.of[Int](10)
 
     slice.moveWritePosition(5)
     slice add 6
@@ -714,7 +714,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "manually adjusting slice random testing with addAll" in {
-    val slice = Slice.create[Int](10)
+    val slice = Slice.of[Int](10)
 
     slice moveWritePosition 5
     slice addAll Slice(1, 2, 3, 4)
@@ -740,13 +740,13 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "closing an empty slice" in {
-    val close0 = Slice.create(0).close()
+    val close0 = Slice.of(0).close()
     close0.size shouldBe 0
     close0.size shouldBe 0
     close0.fromOffset shouldBe 0
     close0.toList shouldBe List.empty
 
-    val close1 = Slice.create(1).close()
+    val close1 = Slice.of(1).close()
     close1.size shouldBe 0
     close1.size shouldBe 0
     close1.fromOffset shouldBe 0
@@ -754,7 +754,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
   }
 
   "moved a closed sub slice" in {
-    val slice = Slice.create[Int](10)
+    val slice = Slice.of[Int](10)
     val subSlice = slice.slice(0, 4).close()
 
     //can only write to a subslice
@@ -883,7 +883,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
 
   "hashCode" should {
     "be same for partially and fully written slice" in {
-      val partiallyWritten = Slice.create[Int](100)
+      val partiallyWritten = Slice.of[Int](100)
       partiallyWritten.add(1)
       partiallyWritten.add(2)
       partiallyWritten.add(3)
@@ -967,7 +967,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "return empty for unwritten bytes" in {
-      val slice = Slice.create[Int](10)
+      val slice = Slice.of[Int](10)
       val (left, right) = slice.splitUnwritten()
 
       left.isEmpty shouldBe true
@@ -990,7 +990,7 @@ class SliceSpec extends AnyWordSpec with Matchers {
     }
 
     "close written bytes" in {
-      val slice = Slice.create[Int](10)
+      val slice = Slice.of[Int](10)
 
       (1 to 5) foreach slice.add
 

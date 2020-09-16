@@ -813,7 +813,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def tempMinMaxKeyValues(segments: Iterable[Segment]): Slice[Memory] =
-    segments.foldLeft(Slice.create[Memory](segments.size * 2)) {
+    segments.foldLeft(Slice.of[Memory](segments.size * 2)) {
       case (keyValues, segment) =>
         keyValues add Memory.Put(segment.minKey, Slice.Null, None, Time.empty)
         segment.maxKey match {
@@ -837,7 +837,7 @@ private[core] object Segment extends LazyLogging {
       }
     } yield
       Slice(minKey, maxKey)
-  } getOrElse Slice.create[Memory](0)
+  } getOrElse Slice.of[Memory](0)
 
   def minMaxKey(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     for {

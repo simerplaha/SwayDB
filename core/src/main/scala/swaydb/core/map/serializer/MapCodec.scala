@@ -53,7 +53,7 @@ private[core] object MapCodec extends LazyLogging {
   def write[K, V](mapEntries: MapEntry[K, V]): Slice[Byte] = {
     val totalEntrySize = headerSize + mapEntries.entryBytesSize
 
-    val slice = Slice.create[Byte](totalEntrySize)
+    val slice = Slice.of[Byte](totalEntrySize)
 
     slice moveWritePosition headerSize
     mapEntries writeTo slice

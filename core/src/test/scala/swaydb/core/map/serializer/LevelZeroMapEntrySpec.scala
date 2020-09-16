@@ -57,7 +57,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         import LevelZeroMapEntryWriter.Level0PutWriter
         val addEntry = MapEntry.Put[Slice[Byte], Memory.Put](1, put)
 
-        val slice = Slice.create[Byte](addEntry.entryBytesSize)
+        val slice = Slice.of[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -86,7 +86,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         import LevelZeroMapEntryWriter.Level0RemoveWriter
         val entry = MapEntry.Put[Slice[Byte], Memory.Remove](1, remove)
 
-        val slice = Slice.create[Byte](entry.entryBytesSize)
+        val slice = Slice.of[Byte](entry.entryBytesSize)
         entry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -115,7 +115,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         import LevelZeroMapEntryWriter.Level0UpdateWriter
         val addEntry = MapEntry.Put[Slice[Byte], Memory.Update](1, update)
 
-        val slice = Slice.create[Byte](addEntry.entryBytesSize)
+        val slice = Slice.of[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -144,7 +144,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         import LevelZeroMapEntryWriter.Level0FunctionWriter
         val addEntry = MapEntry.Put[Slice[Byte], Memory.Function](1, function)
 
-        val slice = Slice.create[Byte](addEntry.entryBytesSize)
+        val slice = Slice.of[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -174,7 +174,7 @@ class LevelZeroMapEntrySpec extends TestBase {
 
         val entry = MapEntry.Put[Slice[Byte], Memory.Range](0, inputRange)
 
-        val slice = Slice.create[Byte](entry.entryBytesSize)
+        val slice = Slice.of[Byte](entry.entryBytesSize)
         entry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -203,7 +203,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         import LevelZeroMapEntryWriter.Level0PendingApplyWriter
         val addEntry = MapEntry.Put[Slice[Byte], Memory.PendingApply](1, pendingApply)
 
-        val slice = Slice.create[Byte](addEntry.entryBytesSize)
+        val slice = Slice.of[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -263,7 +263,7 @@ class LevelZeroMapEntrySpec extends TestBase {
             MapEntry.Put[Slice[Byte], Memory.Range](10, range5) ++
             MapEntry.Put[Slice[Byte], Memory.Range](11, range6)
 
-        val slice = Slice.create[Byte](entry.entryBytesSize)
+        val slice = Slice.of[Byte](entry.entryBytesSize)
         entry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 

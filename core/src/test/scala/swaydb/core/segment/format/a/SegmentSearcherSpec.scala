@@ -53,7 +53,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
     eitherOne(Persistent.Null, Try(keyValues(index - (randomIntMax(keyValues.size) max 1))).toOption.getOrElse(Persistent.Null))
 
   def runSearchTest(keyValues: Slice[Memory], blocks: SegmentBlocks): Slice[Persistent] = {
-    val persistentKeyValues = Slice.create[Persistent](keyValues.size)
+    val persistentKeyValues = Slice.of[Persistent](keyValues.size)
 
     //TEST - hashIndexSearchOnly == false
     keyValues.foldLeft(Persistent.Null: PersistentOption) {

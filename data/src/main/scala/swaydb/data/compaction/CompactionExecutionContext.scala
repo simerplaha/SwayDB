@@ -30,6 +30,7 @@ import scala.concurrent.ExecutionContext
 
 sealed trait CompactionExecutionContext
 object CompactionExecutionContext {
+
   def create(service: ExecutorService): Create =
     Create(ExecutionContext.fromExecutorService(service))
 
@@ -40,4 +41,5 @@ object CompactionExecutionContext {
 
   sealed trait Shared extends CompactionExecutionContext
   case object Shared extends Shared
+
 }

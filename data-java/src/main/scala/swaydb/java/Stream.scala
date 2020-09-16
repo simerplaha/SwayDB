@@ -46,10 +46,10 @@ object Stream {
         stream
     }
 
-  def create[A](iterator: java.util.Iterator[A]): Stream[A] =
+  def of[A](iterator: java.util.Iterator[A]): Stream[A] =
     Stream.fromScala[A](swaydb.Stream(iterator.asScala.to(Iterable)))
 
-  def create[A](iterator: java.lang.Iterable[A]): Stream[A] =
+  def of[A](iterator: java.lang.Iterable[A]): Stream[A] =
     Stream.fromScala[A](swaydb.Stream(iterator.asScala))
 
   def range(from: Int, to: Int): Stream[Integer] =

@@ -252,9 +252,9 @@ private[core] case object SegmentBlock extends LazyLogging {
 
             val slotsRequired = segments.foldLeft(headerSize + listSegment.segmentBytes.size)(_ + _.segmentBytes.size)
 
-            val segmentBytes = Slice.create[Slice[Byte]](slotsRequired)
+            val segmentBytes = Slice.of[Slice[Byte]](slotsRequired)
 
-            val headerBytes = Slice.create[Byte](headerSize)
+            val headerBytes = Slice.of[Byte](headerSize)
             headerBytes add PersistentSegmentMany.formatId
             headerBytes addUnsignedInt listSegmentSize
 
@@ -346,7 +346,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       val maxSegmentCountBasedOnSize = (totalAllocatedSize / segmentConfig.minSize) + 1
       val maxSegmentCountBasedOnCount = (keyValuesCount / segmentConfig.maxCount) + 1
       val maxSegmentsCount = maxSegmentCountBasedOnSize max maxSegmentCountBasedOnCount
-      val segments = Slice.create[ClosedBlocksWithFooter](maxSegmentsCount)
+      val segments = Slice.of[ClosedBlocksWithFooter](maxSegmentsCount)
 
       def unwrittenTailSegmentBytes() =
         sortedIndex.compressibleBytes.unwrittenTailSize() + {

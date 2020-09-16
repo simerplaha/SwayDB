@@ -25,14 +25,12 @@
 package swaydb.data.java;
 
 import org.junit.jupiter.api.Test;
-import scala.Option;
 import swaydb.Pair;
 import swaydb.java.Stream;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -55,7 +53,7 @@ class StreamTest {
   @Test
   void mapIO() {
 
-    Stream<Integer> stream = Stream.create(source.iterator());
+    Stream<Integer> stream = Stream.of(source.iterator());
 
     List<Integer> streamIntegers =
       stream
@@ -68,11 +66,11 @@ class StreamTest {
   @Test
   void flatMapIO() {
 
-    Stream<Integer> stream = Stream.create(source.iterator());
+    Stream<Integer> stream = Stream.of(source.iterator());
 
     List<Integer> streamIntegers =
       stream
-        .flatMap(integer -> Stream.create(Collections.singletonList(integer + 20).iterator()))
+        .flatMap(integer -> Stream.of(Collections.singletonList(integer + 20).iterator()))
         .materialize();
 
     assertEquals(Arrays.asList(21, 22, 23, 24, 25), streamIntegers);
@@ -81,7 +79,7 @@ class StreamTest {
   @Test
   void partition() {
 
-    Stream<Integer> stream = Stream.create(source.iterator());
+    Stream<Integer> stream = Stream.of(source.iterator());
 
     Pair<List<Integer>, List<Integer>> streamIntegers =
       stream

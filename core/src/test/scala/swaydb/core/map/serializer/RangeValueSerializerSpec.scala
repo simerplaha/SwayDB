@@ -38,7 +38,7 @@ class RangeValueSerializerSpec extends AnyWordSpec with Matchers {
   def doAssert[R <: RangeValue](rangeValue: R)(implicit serializer: RangeValueSerializer[Unit, R]) = {
     val bytesRequired = RangeValueSerializer.bytesRequired((), rangeValue)
     //    rangeId shouldBe expectedId.id
-    val bytes = Slice.create[Byte](bytesRequired)
+    val bytes = Slice.of[Byte](bytesRequired)
 
     RangeValueSerializer.write((), rangeValue)(bytes)
     bytes.isFull shouldBe true
@@ -49,7 +49,7 @@ class RangeValueSerializerSpec extends AnyWordSpec with Matchers {
     def doAssertOption(rangeValue: RangeValue) = {
       val bytesRequired = RangeValueSerializer.bytesRequired(Value.FromValue.Null: FromValueOption, rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
       //    rangeId shouldBe expectedId.id
-      val bytes = Slice.create[Byte](bytesRequired)
+      val bytes = Slice.of[Byte](bytesRequired)
 
       RangeValueSerializer.write(Value.FromValue.Null: FromValueOption, rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
@@ -84,7 +84,7 @@ class RangeValueSerializerSpec extends AnyWordSpec with Matchers {
   def doAssert[F <: FromValue, R <: RangeValue](fromValue: F, rangeValue: R)(implicit serializer: RangeValueSerializer[F, R]) = {
     val bytesRequired = RangeValueSerializer.bytesRequired(fromValue, rangeValue)
     //    rangeId shouldBe expectedId.id
-    val bytes = Slice.create[Byte](bytesRequired)
+    val bytes = Slice.of[Byte](bytesRequired)
     RangeValueSerializer.write(fromValue, rangeValue)(bytes)
     bytes.isFull shouldBe true
 
@@ -94,7 +94,7 @@ class RangeValueSerializerSpec extends AnyWordSpec with Matchers {
     def doAssertOption(fromValue: FromValue, rangeValue: RangeValue) = {
       val bytesRequired = RangeValueSerializer.bytesRequired(fromValue: FromValueOption, rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
       //    rangeId shouldBe expectedId.id
-      val bytes = Slice.create[Byte](bytesRequired)
+      val bytes = Slice.of[Byte](bytesRequired)
       RangeValueSerializer.write(fromValue: FromValueOption, rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 

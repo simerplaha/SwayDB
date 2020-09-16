@@ -112,13 +112,13 @@ object CommonAssertions {
             case keyValue: Memory.Function =>
               Some(keyValue.getOrFetchFunction)
             case keyValue: Memory.PendingApply =>
-              val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies.runRandomIO.right.value))
+              val bytes = Slice.of[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies.runRandomIO.right.value))
               ValueSerializer.write(keyValue.getOrFetchApplies.runRandomIO.right.value)(bytes)
               Some(bytes)
             case keyValue: Memory.Remove =>
               None
             case keyValue: Memory.Range =>
-              val bytes = Slice.create[Byte](RangeValueSerializer.bytesRequired(keyValue.fromValue, keyValue.rangeValue))
+              val bytes = Slice.of[Byte](RangeValueSerializer.bytesRequired(keyValue.fromValue, keyValue.rangeValue))
               RangeValueSerializer.write(keyValue.fromValue, keyValue.rangeValue)(bytes)
               Some(bytes)
 
@@ -139,7 +139,7 @@ object CommonAssertions {
 
               applies.forall(_.isUnsliced) shouldBe true
 
-              val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(applies))
+              val bytes = Slice.of[Byte](ValueSerializer.bytesRequired(applies))
               ValueSerializer.write(applies)(bytes)
               Some(bytes)
 
@@ -151,7 +151,7 @@ object CommonAssertions {
               fromValue.forallS(_.isUnsliced) shouldBe true
               rangeValue.isUnsliced shouldBe true
 
-              val bytes = Slice.create[Byte](RangeValueSerializer.bytesRequired(fromValue, rangeValue))
+              val bytes = Slice.of[Byte](RangeValueSerializer.bytesRequired(fromValue, rangeValue))
               RangeValueSerializer.write(fromValue, rangeValue)(bytes)
               Some(bytes)
           }

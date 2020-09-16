@@ -155,7 +155,7 @@ private[swaydb] object Bytes extends ScalaByteOps {
     //if right was fully compressed just store right bytes with commonBytes integer. During read commonBytes int will be checked
     //to see if its the same size as left and the same left bytes will be returned for right as well.
     if (rightWithoutCommonBytes.isEmpty) {
-      val compressedSlice = Slice.create[Byte](left.size + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(left.size) + tail.size)
+      val compressedSlice = Slice.of[Byte](left.size + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(left.size) + tail.size)
       compressedSlice addAll left
       compressedSlice addUnsignedInt commonBytes
       compressedSlice addAll ScalaByteOps.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
@@ -169,7 +169,7 @@ private[swaydb] object Bytes extends ScalaByteOps {
           sizeOfUnsignedInt(left.size) +
           tail.size
 
-      val compressedSlice = Slice.create[Byte](size)
+      val compressedSlice = Slice.of[Byte](size)
       compressedSlice addAll left
       compressedSlice addUnsignedInt commonBytes
       compressedSlice addUnsignedInt rightWithoutCommonBytes.size
@@ -201,7 +201,7 @@ private[swaydb] object Bytes extends ScalaByteOps {
 
   def normalise(bytes: Slice[Byte], toSize: Int): Slice[Byte] = {
     assert(bytes.size < toSize, s"bytes.size(${bytes.size}) >= toSize($toSize)")
-    val finalSlice = Slice.create[Byte](toSize)
+    val finalSlice = Slice.of[Byte](toSize)
     var zeroesToAdd = toSize - bytes.size - 1
     while (zeroesToAdd > 0) {
       finalSlice add Bytes.zero
@@ -215,7 +215,7 @@ private[swaydb] object Bytes extends ScalaByteOps {
                 bytes: Slice[Byte],
                 toSize: Int): Slice[Byte] = {
     assert((appendHeader.size + bytes.size) < toSize, s"appendHeader.size(${appendHeader.size}) + bytes.size(${bytes.size}) >= toSize($toSize)")
-    val finalSlice = Slice.create[Byte](appendHeader.size + toSize)
+    val finalSlice = Slice.of[Byte](appendHeader.size + toSize)
     finalSlice addAll appendHeader
     var zeroesToAdd = toSize - appendHeader.size - bytes.size - 1
     while (zeroesToAdd > 0) {

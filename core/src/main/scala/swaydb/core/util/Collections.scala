@@ -108,8 +108,8 @@ private[swaydb] object Collections {
     } else {
       val allGroups =
         Slice
-          .create[Slice[T]](items.size)
-          .add(Slice.create[T](items.size))
+          .of[Slice[T]](items.size)
+          .add(Slice.of[T](items.size))
 
       var currentGroupSize = 0
 
@@ -123,7 +123,7 @@ private[swaydb] object Collections {
         } else {
           val tailItemsSize = items.drop(i).foldLeft(0)(_ + itemSize(_))
           if (tailItemsSize >= minGroupSize) {
-            val newGroup = Slice.create[T](items.size - i + 1)
+            val newGroup = Slice.of[T](items.size - i + 1)
             allGroups add newGroup
             currentGroupSize = 0
           } else {

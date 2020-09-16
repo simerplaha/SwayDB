@@ -39,14 +39,14 @@ object Domain {
       data match {
         case User(name) =>
           Slice
-            .create[Byte](1000)
+            .of[Byte](1000)
             .addInt(1)
             .addStringUTF8(name)
             .close()
 
         case Product(name) =>
           Slice
-            .create[Byte](1000)
+            .of[Byte](1000)
             .addInt(2)
             .addStringUTF8(name)
             .close()

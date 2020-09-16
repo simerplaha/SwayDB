@@ -121,7 +121,7 @@ private[core] object Block extends LazyLogging {
                blockName: String): CompressionResult =
     compressions.untilSome(_.compressor.compress(bytes)) match {
       case Some((compressedBytes, compression)) =>
-        val header = Slice.create[Byte](Byte.MaxValue)
+        val header = Slice.of[Byte](Byte.MaxValue)
 
         header moveWritePosition 1 //skip writing header size since it's not known.
         header add compressedBlockID
@@ -141,7 +141,7 @@ private[core] object Block extends LazyLogging {
             s"Unable to satisfy compression requirement from ${compressions.size} compression strategies for $blockName. Storing ${bytes.size}.bytes uncompressed."
         }
 
-        val header = Slice.create[Byte](Byte.MaxValue)
+        val header = Slice.of[Byte](Byte.MaxValue)
 
         header moveWritePosition 1 //skip writing header size since it's not known.
         header add uncompressedBlockId

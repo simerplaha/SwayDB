@@ -56,7 +56,7 @@ class BinarySearchEntryFormatSpec extends TestBase {
                 largestMergedKeySize = 10
               )
 
-            val bytes = Slice.create[Byte](bytesRequired)
+            val bytes = Slice.of[Byte](bytesRequired)
 
             BinarySearchEntryFormat.Reference.write(
               indexOffset = indexOffset,

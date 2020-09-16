@@ -73,7 +73,7 @@ object TransientSegment {
 
     override def flattenSegmentBytes: Slice[Byte] = {
       val size = segmentBytes.foldLeft(0)(_ + _.size)
-      val slice = Slice.create[Byte](size)
+      val slice = Slice.of[Byte](size)
       segmentBytes foreach (slice addAll _)
       assert(slice.isFull)
       slice
@@ -109,7 +109,7 @@ object TransientSegment {
 
     override def flattenSegmentBytes: Slice[Byte] = {
       val size = segmentBytes.foldLeft(0)(_ + _.size)
-      val slice = Slice.create[Byte](size)
+      val slice = Slice.of[Byte](size)
       segmentBytes foreach (slice addAll _)
       assert(slice.isFull)
       slice

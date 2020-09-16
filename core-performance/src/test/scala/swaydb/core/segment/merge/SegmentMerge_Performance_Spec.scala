@@ -43,7 +43,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
 
   "performance" in {
     val keys = (1 to 1000000).map(Slice.writeInt[Byte])
-    val keyValues = Slice.create[Memory.Put](keys.size)
+    val keyValues = Slice.of[Memory.Put](keys.size)
 
     Benchmark("Creating key-values") {
       keys.foldLeft(Option.empty[Memory.Put]) {

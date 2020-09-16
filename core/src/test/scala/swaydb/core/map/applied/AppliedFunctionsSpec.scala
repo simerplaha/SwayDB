@@ -53,7 +53,7 @@ class AppliedFunctionsSpec extends TestBase {
           import sweeper._
 
           val mapResult =
-            AppliedFunctions.create(
+            AppliedFunctions(
               dir = randomDir,
               fileSize = randomIntMax(1.kb) max 1,
               mmap = MMAP.randomForMap()

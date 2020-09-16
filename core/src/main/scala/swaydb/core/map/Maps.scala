@@ -314,7 +314,7 @@ private[core] object Maps extends LazyLogging {
   @inline def snapshot[OK, OV, K <: OK, V <: OV](minimumSize: Int,
                                                  currentMap: Map[OK, OV, K, V],
                                                  queue: ConcurrentLinkedDeque[Map[OK, OV, K, V]]): Slice[Map[OK, OV, K, V]] = {
-    var slice = Slice.create[Map[OK, OV, K, V]](minimumSize + 2)
+    var slice = Slice.of[Map[OK, OV, K, V]](minimumSize + 2)
     slice add currentMap
 
     //if currentMap is already added the queue then drop head.
@@ -333,7 +333,7 @@ private[core] object Maps extends LazyLogging {
 
           if (slice.isFull) {
             //overflow - extend the map.
-            val newSlice = Slice.create[Map[OK, OV, K, V]](slice.size * 2)
+            val newSlice = Slice.of[Map[OK, OV, K, V]](slice.size * 2)
             newSlice addAll slice
             newSlice add queuedMap
             slice = newSlice

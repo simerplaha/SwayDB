@@ -70,7 +70,7 @@ public class SliceTest {
   @Test
   void createFromArray() {
     Byte[] array = {1, 2, 3, 4, 5, 127};
-    Slice<Byte> bytes = Slice.createForJava(array);
+    Slice<Byte> bytes = Slice.ofJava(array);
 
     final ArrayList<Byte> actual = new ArrayList<>();
     bytes.asJava().forEach(actual::add);

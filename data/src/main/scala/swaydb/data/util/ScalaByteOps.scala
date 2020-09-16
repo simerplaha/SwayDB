@@ -116,7 +116,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
                           charsets: Charset): Slice[Byte] = {
     val bytes = string.getBytes(charsets)
     Slice
-      .create[Byte](sizeOfUnsignedInt(bytes.length) + bytes.length)
+      .of[Byte](sizeOfUnsignedInt(bytes.length) + bytes.length)
       .addUnsignedInt(bytes.length)
       .addAll(bytes)
   }
@@ -178,7 +178,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   }
 
   private[swaydb] def writeUnsignedIntNonZero(int: Int): Slice[Byte] = {
-    val slice = Slice.create[Byte](ByteSizeOf.varInt)
+    val slice = Slice.of[Byte](ByteSizeOf.varInt)
     writeUnsignedIntNonZero(int, slice)
     slice.close()
   }
@@ -284,7 +284,7 @@ private[swaydb] trait ScalaByteOps extends ByteOps[Byte] {
   }
 
   def writeUnsignedIntReversed(int: Int): Slice[Byte] = {
-    val slice = Slice.create[Byte](ByteSizeOf.varInt)
+    val slice = Slice.of[Byte](ByteSizeOf.varInt)
 
     slice.add((int & 0x7F).asInstanceOf[Byte])
 

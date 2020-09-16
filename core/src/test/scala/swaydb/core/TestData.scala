@@ -374,7 +374,7 @@ object TestData {
 
   implicit class ToSlice[T: ClassTag](items: Iterable[T]) {
     def toSlice: Slice[T] = {
-      val slice = Slice.create[T](items.size)
+      val slice = Slice.of[T](items.size)
       items foreach slice.add
       slice
     }
@@ -1141,7 +1141,7 @@ object TestData {
   def randomBytes(size: Int = 10) = Array.fill(size)(randomByte())
 
   def randomByteChunks(size: Int = 10, sizePerChunk: Int = 10): Slice[Slice[Byte]] = {
-    val slice = Slice.create[Slice[Byte]](size)
+    val slice = Slice.of[Slice[Byte]](size)
     (1 to size) foreach {
       _ =>
         slice add Slice(randomBytes(sizePerChunk))
@@ -1270,7 +1270,7 @@ object TestData {
                       addExpiredPutDeadlines: Boolean = false,
                       addUpdateDeadlines: Boolean = false,
                       addRanges: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] = {
-    val slice = Slice.create[Memory](count * 50) //extra space because addRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
+    val slice = Slice.of[Memory](count * 50) //extra space because addRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
     var iteration = 0
@@ -1605,7 +1605,7 @@ object TestData {
     }
 
   def unexpiredPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.Put] = {
-    val slice = Slice.create[KeyValue.Put](keyValues.size)
+    val slice = Slice.of[KeyValue.Put](keyValues.size)
     keyValues foreach {
       keyValue =>
         keyValue.asPut foreach {
@@ -1618,7 +1618,7 @@ object TestData {
   }
 
   def getPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.Put] = {
-    val slice = Slice.create[KeyValue.Put](keyValues.size)
+    val slice = Slice.of[KeyValue.Put](keyValues.size)
     keyValues foreach {
       keyValue =>
         keyValue.asPut foreach slice.add
@@ -1636,7 +1636,7 @@ object TestData {
                    deadline: Option[Deadline],
                    randomlyDropUpdates: Boolean)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] = {
     var keyUsed = keyValues.head.key.readInt() - 1
-    val updateSlice = Slice.create[Memory](keyValues.size)
+    val updateSlice = Slice.of[Memory](keyValues.size)
 
     keyValues foreach {
       keyValue =>
@@ -1823,7 +1823,7 @@ object TestData {
         prefixCompressKeysOnly = prefixCompressKeysOnly,
         compressDuplicateValues = compressDuplicateValues,
         enableAccessPositionIndex = enableAccessPositionIndex,
-        bytes = Slice.create[Byte](allocateBytes)
+        bytes = Slice.of[Byte](allocateBytes)
       )
     builder.enablePrefixCompressionForCurrentWrite = enablePrefixCompressionForCurrentWrite
     builder

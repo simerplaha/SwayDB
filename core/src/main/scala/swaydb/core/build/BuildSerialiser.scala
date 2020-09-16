@@ -41,7 +41,7 @@ sealed trait BuildSerialiser {
 
 object BuildSerialiser extends BuildSerialiser {
   override def write(buildInfo: Build.Info): Slice[Byte] = {
-    val versionBytes = Slice.create[Byte](1 + 1 + ByteSizeOf.int * 3)
+    val versionBytes = Slice.of[Byte](1 + 1 + ByteSizeOf.int * 3)
 
     versionBytes add Build.formatId
 
@@ -53,7 +53,7 @@ object BuildSerialiser extends BuildSerialiser {
 
     val crc = CRC32.forBytes(versionBytes)
 
-    val slice = Slice.create[Byte](ByteSizeOf.long + versionBytes.size)
+    val slice = Slice.of[Byte](ByteSizeOf.long + versionBytes.size)
     slice addLong crc
     slice addAll versionBytes
   }

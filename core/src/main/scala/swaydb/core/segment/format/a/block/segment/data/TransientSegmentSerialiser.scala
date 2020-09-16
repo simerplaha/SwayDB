@@ -50,7 +50,7 @@ object TransientSegmentSerialiser {
                  size: Int): Slice[Memory] =
     one.maxKey match {
       case MaxKey.Fixed(maxKey) =>
-        val value = Slice.create[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2))
+        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2))
         value add 0 //fixed maxKey id
         value addUnsignedInt offset
         value addUnsignedInt size
@@ -69,7 +69,7 @@ object TransientSegmentSerialiser {
           )
 
       case MaxKey.Range(fromKey, maxKey) =>
-        val value = Slice.create[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2) + fromKey.size)
+        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2) + fromKey.size)
         value add 1 //range maxKey id
         value addUnsignedInt offset
         value addUnsignedInt size

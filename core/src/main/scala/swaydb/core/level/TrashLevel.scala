@@ -67,7 +67,7 @@ private[core] object TrashLevel extends NextLevel {
     List.empty
 
   override def take(count: Int): Slice[Segment] =
-    Slice.create[Segment](0)
+    Slice.of[Segment](0)
 
   override def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
     ()

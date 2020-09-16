@@ -956,7 +956,7 @@ private[core] case class Level(dirs: Seq[Dir],
     //create this list which is a copy of segments. Segments can be iterable only once if it's a Java iterable.
     //this copy is for second read to delete the segments after the MapEntry is successfully created.
     logger.trace(s"{}: Removing Segments {}", pathDistributor.head, segments.map(_.path.toString))
-    val segmentsToRemove = Slice.create[Segment](segments.size)
+    val segmentsToRemove = Slice.of[Segment](segments.size)
 
     val mapEntry =
       segments

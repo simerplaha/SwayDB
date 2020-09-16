@@ -255,7 +255,7 @@ class MapEntrySpec extends TestBase {
       val entry = MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, "one"))
       entry.hasRange shouldBe false
 
-      val bytes = Slice.create[Byte](entry.entryBytesSize)
+      val bytes = Slice.of[Byte](entry.entryBytesSize)
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
@@ -277,7 +277,7 @@ class MapEntrySpec extends TestBase {
           val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
           entry.hasRange shouldBe false
 
-          val bytes = Slice.create[Byte](entry.entryBytesSize)
+          val bytes = Slice.of[Byte](entry.entryBytesSize)
           entry writeTo bytes
           bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
@@ -295,7 +295,7 @@ class MapEntrySpec extends TestBase {
       val entry = MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))
       entry.hasRange shouldBe false
 
-      val bytes = Slice.create[Byte](entry.entryBytesSize)
+      val bytes = Slice.of[Byte](entry.entryBytesSize)
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
@@ -319,7 +319,7 @@ class MapEntrySpec extends TestBase {
           val entry = MapEntry.Remove[Slice[Byte]](segment.minKey)
           entry.hasRange shouldBe false
 
-          val bytes = Slice.create[Byte](entry.entryBytesSize)
+          val bytes = Slice.of[Byte](entry.entryBytesSize)
           entry writeTo bytes
           bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
@@ -343,7 +343,7 @@ class MapEntrySpec extends TestBase {
 
       entry.hasRange shouldBe false
 
-      val bytes = Slice.create[Byte](entry.entryBytesSize)
+      val bytes = Slice.of[Byte](entry.entryBytesSize)
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
@@ -371,7 +371,7 @@ class MapEntrySpec extends TestBase {
 
       entry.hasRange shouldBe false
 
-      val bytes = Slice.create[Byte](entry.entryBytesSize)
+      val bytes = Slice.of[Byte](entry.entryBytesSize)
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
@@ -427,7 +427,7 @@ class MapEntrySpec extends TestBase {
 
           entry.hasRange shouldBe false
 
-          val bytes = Slice.create[Byte](entry.entryBytesSize)
+          val bytes = Slice.of[Byte](entry.entryBytesSize)
           entry writeTo bytes
           bytes.isFull shouldBe true //fully written! No gaps!
 

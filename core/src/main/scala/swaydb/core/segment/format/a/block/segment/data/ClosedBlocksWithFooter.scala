@@ -65,10 +65,10 @@ class ClosedBlocksWithFooter(val minKey: Slice[Byte],
                              //footer
                              val footerBlock: Slice[Byte]) {
 
-  val segmentHeader: Slice[Byte] = Slice.create[Byte](Byte.MaxValue)
+  val segmentHeader: Slice[Byte] = Slice.of[Byte](Byte.MaxValue)
 
   val segmentBytes: Slice[Slice[Byte]] = {
-    val allBytes = Slice.create[Slice[Byte]](13)
+    val allBytes = Slice.of[Slice[Byte]](13)
     allBytes add segmentHeader
 
     valuesBlockHeader foreach (allBytes add _)
@@ -112,7 +112,7 @@ class ClosedBlocksWithFooter(val minKey: Slice[Byte],
 
   def flattenSegmentBytes: Slice[Byte] = {
     val size = segmentBytes.foldLeft(0)(_ + _.size)
-    val slice = Slice.create[Byte](size)
+    val slice = Slice.of[Byte](size)
     segmentBytes foreach (slice addAll _)
     assert(slice.isFull)
     slice

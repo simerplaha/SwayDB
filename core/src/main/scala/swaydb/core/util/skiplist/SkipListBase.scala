@@ -143,7 +143,7 @@ private[core] trait SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value
     skipList.navigableKeySet()
 
   def take(count: Int)(implicit classTag: ClassTag[Value]): Slice[Value] = {
-    val slice = Slice.create[Value](count)
+    val slice = Slice.of[Value](count)
 
     @tailrec
     def doTake(nextOption: Option[(Key, Value)]): Slice[Value] =
@@ -178,7 +178,7 @@ private[core] trait SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value
     }
 
   def toSlice[V2 >: Value : ClassTag](size: Int): Slice[V2] = {
-    val slice = Slice.create[V2](size)
+    val slice = Slice.of[V2](size)
     skipList.values() forEach {
       new Consumer[Value] {
         def accept(keyValue: Value): Unit =

@@ -44,10 +44,10 @@ object Pair {
   @inline final def apply[L, R](left: L, right: R): Pair[L, R] =
     new Pair(left, right)
 
-  @inline final def create[L, R](left: L, right: R): Pair[L, R] =
+  @inline final def of[L, R](left: L, right: R): Pair[L, R] =
     new Pair(left, right)
 
-  @inline final def create[I](leftAndRight: I): Pair[I, I] =
+  @inline final def of[I](leftAndRight: I): Pair[I, I] =
     new Pair(leftAndRight, leftAndRight)
 }
 

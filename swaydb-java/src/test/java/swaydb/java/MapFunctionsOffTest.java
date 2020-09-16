@@ -126,7 +126,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void putIterable() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    List<KeyVal<Integer, String>> keyVals = asList(KeyVal.create(1, "1 value"), KeyVal.create(2, "2 value"), KeyVal.create(3, "3 value"));
+    List<KeyVal<Integer, String>> keyVals = asList(KeyVal.of(1, "1 value"), KeyVal.of(2, "2 value"), KeyVal.of(3, "3 value"));
 
     map.put(keyVals);
 
@@ -141,7 +141,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void putStream() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     foreachRange(1, 100, integer -> shouldContain(map.get(integer), integer + " value"));
 
@@ -176,7 +176,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void removeIndividual() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.remove(1);
     map.remove(50);
@@ -195,7 +195,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void removeRange() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.remove(1, 100);
 
@@ -211,7 +211,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void removeStream() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.remove(Stream.range(1, 100));
 
@@ -227,7 +227,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void removePrepare() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.commit(
       asList(
@@ -258,7 +258,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void expireIndividual() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.expire(5, Duration.ofSeconds(1));
     map.expire(1, Duration.ofSeconds(1));
@@ -276,7 +276,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void expireRange() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.expire(1, 100, Duration.ofSeconds(1));
 
@@ -291,9 +291,9 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void expireStream() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
-    map.expire(Stream.range(1, 100).map(i -> Pair.create(i, Duration.ofSeconds(1))));
+    map.expire(Stream.range(1, 100).map(i -> Pair.of(i, Duration.ofSeconds(1))));
 
     sleep(Duration.ofSeconds(1));
 
@@ -306,7 +306,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void expirePrepare() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.commit(
       asList(
@@ -332,7 +332,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void updateIndividual() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.update(5, "updated");
     map.update(5, "updated again"); //overwrites
@@ -351,9 +351,9 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void updateStream() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
-    map.update(Stream.range(1, 100).map(integer -> KeyVal.create(integer, "updated")));
+    map.update(Stream.range(1, 100).map(integer -> KeyVal.of(integer, "updated")));
 
     shouldBe(map.map(KeyVal::value), Stream.range(1, 100).map(i -> "updated"));
 
@@ -368,7 +368,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void updatePrepare() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.commit(
       asList(
@@ -394,7 +394,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void clearKeyValues() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.clearKeyValues();
 
@@ -468,7 +468,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void get() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     foreachRange(1, 100, integer -> shouldContain(map.get(integer), integer + " value"));
 
@@ -482,7 +482,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void getKey() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     foreachRange(1, 100, integer -> shouldContain(map.getKey(integer), integer));
 
@@ -496,9 +496,9 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void getKeyValue() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
-    foreachRange(1, 100, integer -> shouldContain(map.getKeyValue(integer), KeyVal.create(integer, integer + " value")));
+    foreachRange(1, 100, integer -> shouldContain(map.getKeyValue(integer), KeyVal.of(integer, integer + " value")));
 
     shouldBeEmpty(map.getKeyValue(200));
     shouldBeEmpty(map.getKeyValue(Integer.MAX_VALUE));
@@ -510,9 +510,9 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void getKeyDeadline() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
-    foreachRange(1, 100, integer -> shouldContain(map.getKeyDeadline(integer), Pair.create(integer, Optional.empty())));
+    foreachRange(1, 100, integer -> shouldContain(map.getKeyDeadline(integer), Pair.of(integer, Optional.empty())));
 
     shouldBeEmpty(map.getKeyDeadline(200));
     shouldBeEmpty(map.getKeyDeadline(Integer.MAX_VALUE));
@@ -524,9 +524,9 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void getKeyValueDeadline() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
-    foreachRange(1, 100, integer -> shouldContain(map.getKeyValueDeadline(integer), Pair.create(KeyVal.create(integer, integer + " value"), Optional.empty())));
+    foreachRange(1, 100, integer -> shouldContain(map.getKeyValueDeadline(integer), Pair.of(KeyVal.of(integer, integer + " value"), Optional.empty())));
 
     shouldBeEmpty(map.getKeyValueDeadline(200));
     shouldBeEmpty(map.getKeyValueDeadline(Integer.MAX_VALUE));
@@ -542,7 +542,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void contains() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     foreachRange(1, 100, integer -> shouldBeTrue(map.contains(integer)));
 
@@ -558,7 +558,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void mightContain() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     foreachRange(1, 100, integer -> shouldBeTrue(map.mightContain(integer)));
 
@@ -578,7 +578,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void keys() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     shouldBe(map.keys(), Stream.range(1, 100));
 
@@ -592,7 +592,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void values() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     shouldBe(map.values(), Stream.range(1, 100).map(integer -> integer + " value"));
 
@@ -605,7 +605,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void levelZeroMeter() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     shouldBe(map.levelZeroMeter().mapsCount(), 1);
 
@@ -615,7 +615,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void levelMeter() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     shouldBeEmpty(map.levelMeter(8));
 
@@ -625,9 +625,9 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void head() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
-    shouldContain(map.head(), KeyVal.create(1, "1 value"));
+    shouldContain(map.head(), KeyVal.of(1, "1 value"));
 
     map.delete();
   }
@@ -635,16 +635,15 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void stream() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     Stream<KeyVal<Integer, String>> stream =
       map
-
         .from(10)
         .drop(10)
         .takeWhile(keyValue -> true);
 
-    shouldBe(stream, Stream.range(20, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    shouldBe(stream, Stream.range(20, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     map.delete();
   }
@@ -652,11 +651,11 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void iterator() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     Iterator<KeyVal<Integer, String>> iterator = map.iterator();
 
-    shouldBeSameIterators(iterator, Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")).iterator());
+    shouldBeSameIterators(iterator, Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")).iterator());
 
     map.delete();
   }
@@ -664,7 +663,7 @@ abstract class MapFunctionsOffTest extends TestBase {
   @Test
   void clearAppliedFunctions() throws IOException {
     MapT<Integer, String, Void> map = createMap(intSerializer(), stringSerializer());
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     shouldBeEmpty(map.clearAppliedFunctions());
 
@@ -678,7 +677,7 @@ abstract class MapFunctionsOffTest extends TestBase {
     MapT<Integer, String, Void> map =
       createMap(intSerializer(), stringSerializer(), (left, right) -> left.compareTo(right) * -1);
 
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + " value")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + " value")));
 
     List<Integer> stream =
       map
@@ -756,7 +755,7 @@ abstract class MapFunctionsOffTest extends TestBase {
     map.put(key1, value1);
     map.put(key2, value2);
 
-    shouldBe(map.materialize(), asList(KeyVal.create(key1, value1), KeyVal.create(key2, value2)));
+    shouldBe(map.materialize(), asList(KeyVal.of(key1, value1), KeyVal.of(key2, value2)));
 
     map.delete();
   }

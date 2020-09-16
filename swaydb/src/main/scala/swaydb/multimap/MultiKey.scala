@@ -82,48 +82,48 @@ private[swaydb] object MultiKey {
       override def write(data: MultiKey[T, K]): Slice[Byte] =
         data match {
           case MultiKey.Start(mapId) =>
-            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+            Slice.of[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.start)
 
           case MultiKey.KeysStart(mapId) =>
-            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+            Slice.of[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.keysStart)
 
           case MultiKey.Key(mapId, dataKey) =>
             val dataKeyBytes = keySerializer.write(dataKey)
 
-            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + dataKeyBytes.size + 1)
+            Slice.of[Byte](Bytes.sizeOfUnsignedLong(mapId) + dataKeyBytes.size + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.key)
               .addAll(dataKeyBytes)
 
           case MultiKey.KeysEnd(mapId) =>
-            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+            Slice.of[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.keysEnd)
 
           case MultiKey.ChildrenStart(mapId) =>
-            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+            Slice.of[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.childrenStart)
 
           case MultiKey.Child(mapId, subMapKey) =>
             val dataKeyBytes = childKeySerializer.write(subMapKey)
 
-            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1 + dataKeyBytes.size)
+            Slice.of[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1 + dataKeyBytes.size)
               .addUnsignedLong(mapId)
               .add(MultiKey.child)
               .addAll(dataKeyBytes)
 
           case MultiKey.ChildrenEnd(mapId) =>
-            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+            Slice.of[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.childrenEnd)
 
           case MultiKey.End(mapId) =>
-            Slice.create[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
+            Slice.of[Byte](Bytes.sizeOfUnsignedLong(mapId) + 1)
               .addUnsignedLong(mapId)
               .add(MultiKey.end)
         }

@@ -50,7 +50,7 @@ class Level0MapEntrySpec extends TestBase {
     "Write random entries" in {
       def assert[V <: Memory](addEntry: MapEntry.Put[Slice[Byte], V])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], V]],
                                                                       reader: MapEntryReader[MapEntry.Put[Slice[Byte], V]]) = {
-        val slice = Slice.create[Byte](addEntry.entryBytesSize)
+        val slice = Slice.of[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
@@ -157,7 +157,7 @@ class Level0MapEntrySpec extends TestBase {
           MapEntry.Put[Slice[Byte], Memory.Range](10, range5) ++
           MapEntry.Put[Slice[Byte], Memory.Range](11, range6)
 
-      val slice = Slice.create[Byte](entry.entryBytesSize)
+      val slice = Slice.of[Byte](entry.entryBytesSize)
       entry writeTo slice
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 

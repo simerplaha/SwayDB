@@ -76,7 +76,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
                 value match {
                   case Value.NonEmpty(string) =>
                     val stringBytes = StringSerializer.write(string)
-                    val slice = Slice.create[Byte](stringBytes.size + 1)
+                    val slice = Slice.of[Byte](stringBytes.size + 1)
 
                     slice add 1
                     slice addAll stringBytes

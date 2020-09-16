@@ -239,7 +239,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
            compressDuplicateRangeValues: Boolean,
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State =
     init(
-      bytes = Slice.create[Byte](maxSize),
+      bytes = Slice.of[Byte](maxSize),
       compressDuplicateValues = compressDuplicateValues,
       compressDuplicateRangeValues = compressDuplicateRangeValues,
       sortedIndexConfig = sortedIndexConfig
@@ -413,7 +413,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         assert(state.indexEntries.size == state.secondaryIndexEntries.size, s"${state.indexEntries.size} != ${state.secondaryIndexEntries.size}")
 
         val bytesRequired = state.largestIndexEntrySize * state.entriesCount
-        val bytes = Slice.create[Byte](bytesRequired)
+        val bytes = Slice.of[Byte](bytesRequired)
 
         state.indexEntries foreach {
           entry =>

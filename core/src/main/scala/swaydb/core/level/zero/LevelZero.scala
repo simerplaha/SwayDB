@@ -139,12 +139,11 @@ private[core] object LevelZero extends LazyLogging {
                     maps =>
                       if (enableTimer) {
                         val appliedFunctionsMap =
-                          AppliedFunctions
-                            .create(
-                              dir = databaseDirectory,
-                              fileSize = appliedFunctionsMapSize,
-                              mmap = mmap
-                            )
+                          AppliedFunctions(
+                            dir = databaseDirectory,
+                            fileSize = appliedFunctionsMapSize,
+                            mmap = mmap
+                          )
 
                         appliedFunctionsMap
                           .result
@@ -167,12 +166,11 @@ private[core] object LevelZero extends LazyLogging {
                   val mmap = LevelRef.getMmapForLogOrDisable(nextLevel)
 
                   val appliedFunctionsMap =
-                    AppliedFunctions
-                      .create(
-                        dir = databaseDirectory,
-                        fileSize = appliedFunctionsMapSize,
-                        mmap = mmap
-                      )
+                    AppliedFunctions(
+                      dir = databaseDirectory,
+                      fileSize = appliedFunctionsMapSize,
+                      mmap = mmap
+                    )
 
                   appliedFunctionsMap
                     .result

@@ -146,7 +146,7 @@ abstract class MapFunctionsOnTest extends TestBase {
     MapT<Integer, String, PureFunction<Integer, String, Apply.Map<String>>> map =
       createMap(intSerializer(), stringSerializer(), Arrays.asList(appendUpdated, incrementBy1, removeMod0OrIncrementBy1, doNothingWithValue));
 
-    map.put(Stream.range(1, 100).map(integer -> KeyVal.create(integer, integer + "")));
+    map.put(Stream.range(1, 100).map(integer -> KeyVal.of(integer, integer + "")));
 
     map.applyFunction(1, appendUpdated);
     shouldContain(map.get(1), "1 updated");

@@ -149,7 +149,7 @@ abstract class SliceBase[+T](array: Array[T],
     if (size == 0)
       Slice(selfSlice)
     else
-      group(Slice.create[Slice[T]](size), selfSlice, size)
+      group(Slice.of[Slice[T]](size), selfSlice, size)
   }
 
   @throws[ArrayIndexOutOfBoundsException]
@@ -445,7 +445,7 @@ abstract class SliceBase[+T](array: Array[T],
   }
 
   override def filterNot(p: T => Boolean): Slice[T] = {
-    val filtered = Slice.create[T](size)
+    val filtered = Slice.of[T](size)
     this.foreach {
       item =>
         if (!p(item)) filtered add item
@@ -454,7 +454,7 @@ abstract class SliceBase[+T](array: Array[T],
   }
 
   override def filter(p: T => Boolean): Slice[T] = {
-    val filtered = Slice.create[T](size)
+    val filtered = Slice.of[T](size)
     this.foreach {
       item =>
         if (p(item))
@@ -486,13 +486,13 @@ abstract class SliceBase[+T](array: Array[T],
   }
 
   def ++[B >: T : ClassTag](other: Slice[B]): Slice[B] = {
-    val slice = Slice.create[B](size + other.size)
+    val slice = Slice.of[B](size + other.size)
     slice addAll selfSlice
     slice addAll other
   }
 
   def ++[B >: T : ClassTag](other: Array[B]): Slice[B] = {
-    val slice = Slice.create[B](size + other.length)
+    val slice = Slice.of[B](size + other.length)
     slice addAll selfSlice
     slice addAll other
   }
@@ -648,14 +648,14 @@ abstract class SliceBase[+T](array: Array[T],
     SliceReader[B](selfSlice)
 
   @inline final def append[B >: T : ClassTag](other: Slice[B]): Slice[B] = {
-    val merged = Slice.create[B](selfSlice.size + other.size)
+    val merged = Slice.of[B](selfSlice.size + other.size)
     merged addAll selfSlice
     merged addAll other
     merged
   }
 
   @inline final def append[B >: T : ClassTag](other: B): Slice[B] = {
-    val merged = Slice.create[B](selfSlice.size + 1)
+    val merged = Slice.of[B](selfSlice.size + 1)
     merged addAll selfSlice
     merged add other
     merged

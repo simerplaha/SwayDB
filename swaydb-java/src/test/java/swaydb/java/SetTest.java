@@ -56,7 +56,7 @@ abstract class SetTest extends TestBase {
     set.add(Arrays.asList(4, 5));
     //same with iterator
     set.add(Arrays.asList(6, 7).iterator());
-    set.add(Stream.create(Arrays.asList(8, 9)));
+    set.add(Stream.of(Arrays.asList(8, 9)));
 
     set.commit(Arrays.asList(Prepare.add(10), Prepare.add(11)));
 
@@ -168,11 +168,11 @@ abstract class SetTest extends TestBase {
 
     //add list and expire list
     set.add(Arrays.asList(3, 4));
-    set.expire(Arrays.asList(Pair.create(3, expireAfter), Pair.create(4, expireAfter)).iterator());
+    set.expire(Arrays.asList(Pair.of(3, expireAfter), Pair.of(4, expireAfter)).iterator());
 
     //add list and expire stream
     set.add(Arrays.asList(5, 6));
-    set.expire(Stream.create(Arrays.asList(Pair.create(5, expireAfter), Pair.create(6, expireAfter))));
+    set.expire(Stream.of(Arrays.asList(Pair.of(5, expireAfter), Pair.of(6, expireAfter))));
 
     set.commit(
       Arrays.asList(

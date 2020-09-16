@@ -41,7 +41,7 @@ class SliceSearchSpec extends AnyWordSpec with Matchers {
     }
 
     "slice has one element" in {
-      val slice = Slice.create[Int](1)
+      val slice = Slice.of[Int](1)
       slice add 1
       slice.binarySearch(1, Int.MinValue) shouldBe 1
     }

@@ -139,7 +139,7 @@ private[core] case object BinarySearchIndexBlock {
             format = format
           )
 
-        val bytes = Slice.create[Byte](bytesRequired)
+        val bytes = Slice.of[Byte](bytesRequired)
 
         val state =
           new State(

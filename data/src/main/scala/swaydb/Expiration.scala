@@ -31,13 +31,13 @@ import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration.Deadline
 
 object Expiration {
-  def create(scalaDeadline: Deadline) =
+  def of(scalaDeadline: Deadline) =
     new Expiration(scalaDeadline)
 
   @inline def apply(scalaDeadline: Option[Deadline]): Optional[Expiration] =
-    create(scalaDeadline)
+    of(scalaDeadline)
 
-  def create(scalaDeadline: Option[Deadline]): Optional[Expiration] =
+  def of(scalaDeadline: Option[Deadline]): Optional[Expiration] =
     scalaDeadline match {
       case Some(deadline) =>
         Optional.of(new Expiration(deadline))
