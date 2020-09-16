@@ -24,8 +24,11 @@
 
 package swaydb.data.accelerate.builder
 
+import java.time.Duration
+
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 
+import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration.FiniteDuration
 
 class BrakeBuilder {
@@ -35,6 +38,7 @@ class BrakeBuilder {
   private var brakeOnMapCount: Int = _
   private var brakeFor: FiniteDuration = _
   private var releaseRate: FiniteDuration = _
+  private var logAsWarning: Boolean = _
 }
 
 object BrakeBuilder {
@@ -68,20 +72,27 @@ object BrakeBuilder {
   }
 
   class Step4(builder: BrakeBuilder) {
-    def brakeFor(brakeFor: FiniteDuration) = {
-      builder.brakeFor = brakeFor
+    def brakeFor(brakeFor: Duration) = {
+      builder.brakeFor = brakeFor.toScala
       new Step5(builder)
     }
   }
 
   class Step5(builder: BrakeBuilder) {
-    def releaseRate(releaseRate: FiniteDuration) = {
-      builder.releaseRate = releaseRate
+    def releaseRate(releaseRate: Duration) = {
+      builder.releaseRate = releaseRate.toScala
       new Step6(builder)
     }
   }
 
   class Step6(builder: BrakeBuilder) {
+    def logAsWarning(logAsWarning: Boolean) = {
+      builder.logAsWarning = logAsWarning
+      new Step7(builder)
+    }
+  }
+
+  class Step7(builder: BrakeBuilder) {
     def levelZeroMeter(levelZeroMeter: LevelZeroMeter) =
       Accelerator.brake(
         increaseMapSizeOnMapCount = builder.increaseMapSizeOnMapCount,
@@ -89,7 +100,8 @@ object BrakeBuilder {
         maxMapSize = builder.maxMapSize,
         brakeOnMapCount = builder.brakeOnMapCount,
         brakeFor = builder.brakeFor,
-        releaseRate = builder.releaseRate
+        releaseRate = builder.releaseRate,
+        logAsWarning = builder.logAsWarning
       )(levelZeroMeter)
   }
 
