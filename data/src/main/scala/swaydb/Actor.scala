@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Bag.Implicits._
 import swaydb.IO.ExceptionHandler
 import swaydb.data.Reserve
 import swaydb.data.cache.{Cache, CacheNoIO}
@@ -41,7 +42,6 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success, Try}
-import Bag.Implicits._
 
 sealed trait ActorRef[-T, S] { self =>
 
@@ -582,7 +582,7 @@ class Actor[-T, S](val name: String,
         //if it's overflown then wakeUp Actor now!
         try {
           if (isOverflown)
-            Future(receive(overflow, wakeUpOnComplete = true))
+            Future(receive(overflow = overflow, wakeUpOnComplete = true))
 
           //if there is no task schedule based on current stash so that eventually all messages get dropped without hammering.
           if (task.isEmpty)
@@ -751,12 +751,14 @@ class Actor[-T, S](val name: String,
         }
       }
     finally {
-      weight updateAndGet {
-        new IntUnaryOperator {
-          override def applyAsInt(currentWeight: Int): Int =
-            currentWeight - processedWeight
+      if (processedWeight != 0)
+        weight updateAndGet {
+          new IntUnaryOperator {
+            override def applyAsInt(currentWeight: Int): Int =
+              currentWeight - processedWeight
+          }
         }
-      }
+
       setFree()
       //after setting busy to false fetch the totalWeight again.
 
