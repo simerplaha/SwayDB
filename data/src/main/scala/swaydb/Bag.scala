@@ -39,7 +39,7 @@ import scala.util.{Success, Try}
  *
  * [[Bag.Less]] can be used to disable effect types.
  */
-sealed trait Bag[BAG[_]] {
+sealed trait Bag[BAG[_]] { thisBag =>
   def unit: BAG[Unit]
   def none[A]: BAG[Option[A]]
   def apply[A](a: => A): BAG[A]
@@ -48,9 +48,7 @@ sealed trait Bag[BAG[_]] {
   def map[A, B](a: BAG[A])(f: A => B): BAG[B]
   def transform[A, B](a: BAG[A])(f: A => B): BAG[B]
   def flatMap[A, B](fa: BAG[A])(f: A => BAG[B]): BAG[B]
-  @inline def and[A, B](fa: BAG[A])(f: => BAG[B]): BAG[B] =
-    flatMap(fa)(_ => f)
-
+  def flatten[A](fa: BAG[BAG[A]]): BAG[A]
   def success[A](value: A): BAG[A]
   def failure[A](exception: Throwable): BAG[A]
   def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): BAG[A]
@@ -65,253 +63,186 @@ sealed trait Bag[BAG[_]] {
    */
   @inline def suspend[B](f: => BAG[B]): BAG[B]
 
-  def safe[B](f: => BAG[B]): BAG[B] =
+  @inline def and[A, B](fa: BAG[A])(f: => BAG[B]): BAG[B] =
+    flatMap(fa)(_ => f)
+
+  def safe[A](f: => BAG[A]): BAG[A] =
     flatMap(unit) {
       _ =>
         f
+    }
+
+  def getOrElseOption[A, B >: A](fa: BAG[Option[A]])(orElse: => B): BAG[B] =
+    map(fa)(_.getOrElse(orElse))
+
+  def getOrElseOptionFlatten[A, B >: A](fa: BAG[Option[A]])(orElse: => BAG[B]): BAG[B] =
+    flatMap(fa) {
+      case Some(value) =>
+        success(value)
+
+      case None =>
+        orElse
+    }
+
+  def orElseOption[A, B >: A](fa: BAG[Option[A]])(orElse: => Option[B]): BAG[Option[B]] =
+    map(fa)(_.orElse(orElse))
+
+  def orElseOptionFlatten[A, B >: A](fa: BAG[Option[A]])(orElse: => BAG[Option[B]]): BAG[Option[B]] =
+    flatMap(fa) {
+      case some @ Some(_) =>
+        success(some)
+
+      case None =>
+        orElse
+    }
+
+  def filter[A](a: BAG[A])(f: A => Boolean): BAG[A] =
+    flatMap(a) {
+      value =>
+        if (f(value))
+          a
+        else
+          failure(new NoSuchElementException("Predicate does not hold for " + value))
     }
 }
 
 object Bag extends LazyLogging {
 
-  implicit class BagImplicits[A, BAG[_]](first: BAG[A]) {
-    @inline def and[B](second: => BAG[B])(implicit bag: Bag[BAG]): BAG[B] =
-      bag.and(first)(second)
-  }
+  object Implicits {
 
-  /**
-   * Converts containers. More tags can be created from existing Bags with this trait using [[Bag.toBag]]
-   */
-  trait Transfer[A[_], B[_]] {
-    def to[T](a: A[T]): B[T]
-    def from[T](a: B[T]): A[T]
-  }
+    implicit class BagImplicits[A, BAG[_]](fa: BAG[A])(implicit bag: Bag[BAG]) {
+      @inline def and[B](b: => BAG[B]): BAG[B] =
+        bag.and(fa)(b)
 
-  object Transfer {
+      @inline def unit: BAG[Unit] =
+        bag.unit
 
-    implicit def sameBag[A[_], B[_]](implicit evd: A[_] =:= B[_]) =
-      new Transfer[A, B] {
-        override def to[T](a: A[T]): B[T] =
-          a.asInstanceOf[B[T]]
+      @inline def none: BAG[Option[A]] =
+        bag.none
 
-        override def from[T](b: B[T]): A[T] =
-          b.asInstanceOf[A[T]]
+      @inline def apply(a: => A): BAG[A] =
+        bag(a)
+
+      @inline def createSerial(): Serial[BAG] =
+        bag.createSerial()
+
+      @inline def foreach(f: A => Unit): Unit =
+        bag.foreach(fa)(f)
+
+      @inline def map[B](f: A => B): BAG[B] =
+        bag.map(fa)(f)
+
+      @inline def transform[B](f: A => B): BAG[B] =
+        bag.transform(fa)(f)
+
+      @inline def flatMap[B](f: A => BAG[B]): BAG[B] =
+        bag.flatMap(fa)(f)
+
+      @inline def flatten(fa: BAG[BAG[A]]): BAG[A] =
+        bag.flatten(fa)
+
+      @inline def success(value: A): BAG[A] =
+        bag.success(value)
+
+      @inline def failure(exception: Throwable): BAG[A] =
+        bag.failure(exception)
+
+      @inline def fromIO[E: IO.ExceptionHandler](a: IO[E, A]): BAG[A] =
+        bag.fromIO(a)
+
+      @inline def suspend(f: => BAG[A]): BAG[A] =
+        bag.suspend(f)
+
+      @inline def filter(f: A => Boolean): BAG[A] =
+        bag.filter(fa)(f)
+
+      @inline final def withFilter(p: A => Boolean): WithFilter = new WithFilter(fa, p)
+
+      final class WithFilter(a: BAG[A], p: A => Boolean) {
+        def map[U](f: A => U): BAG[U] =
+          bag.map(bag.filter[A](a)(p))(f)
+
+        def flatMap[U](f: A => BAG[U]): BAG[U] =
+          bag.flatMap(bag.filter(a)(p))(f)
+
+        def foreach(f: A => Unit): Unit =
+          bag.foreach(bag.filter(a)(p))(f)
+
+        def withFilter(b: BAG[A], q: A => Boolean): WithFilter =
+          new WithFilter(b, x => p(x) && q(x))
       }
-
-    implicit val optionToTry = new Transfer[Option, Try] {
-      override def to[T](a: Option[T]): Try[T] =
-        tryBag(a.get)
-
-      override def from[T](a: Try[T]): Option[T] =
-        a.toOption
     }
 
-    implicit val tryToOption = new Transfer[Try, Option] {
-      override def to[T](a: Try[T]): Option[T] =
-        a.toOption
+    implicit class BagOptionImplicits[A, BAG[_]](fa: BAG[Option[A]])(implicit bag: Bag[BAG]) {
 
-      override def from[T](a: Option[T]): Try[T] =
-        tryBag(a.get)
+      @inline def getOrElseOption[B >: A](orElse: => B): BAG[B] =
+        bag.getOrElseOption[A, B](fa)(orElse)
+
+      @inline def getOrElseOptionFlatten[B >: A](orElse: => BAG[B]): BAG[B] =
+        bag.getOrElseOptionFlatten[A, B](fa)(orElse)
+
+      @inline def orElseOption[B >: A](orElse: => Option[B]): BAG[Option[B]] =
+        bag.orElseOption[A, B](fa)(orElse)
+
+      @inline def orElseOptionFlatten[B >: A](orElse: => BAG[Option[B]]): BAG[Option[B]] =
+        bag.orElseOptionFlatten[A, B](fa)(orElse)
+
     }
 
-    implicit val tryToIO = new Transfer[Try, IO.ApiIO] {
-      override def to[T](a: Try[T]): ApiIO[T] =
-        IO.fromTry[Error.API, T](a)
+    implicit class BagSyncImplicits[A, BAG[_]](a: BAG[A])(implicit bag: Bag.Sync[BAG]) {
+      @inline def isSuccess: Boolean =
+        bag.isSuccess(a)
 
-      override def from[T](a: ApiIO[T]): Try[T] =
-        a.toTry
+      @inline def isFailure: Boolean =
+        bag.isFailure(a)
+
+      @inline def exception: Option[Throwable] =
+        bag.exception(a)
+
+      @inline def getOrElse[B >: A](b: => B): B =
+        bag.getOrElse[A, B](a)(b)
+
+      @inline def getUnsafe: A =
+        bag.getUnsafe(a)
+
+      @inline def orElse[B >: A](b: BAG[B]): BAG[B] =
+        bag.orElse[A, B](a)(b)
+
+      @inline def recover[B >: A](pf: PartialFunction[Throwable, B]): BAG[B] =
+        bag.recover[A, B](a)(pf)
+
+      @inline def recoverWith[B >: A](pf: PartialFunction[Throwable, BAG[B]]): BAG[B] =
+        bag.recoverWith[A, B](a)(pf)
     }
 
-    implicit val ioToTry = new Transfer[IO.ApiIO, Try] {
-      override def to[T](a: ApiIO[T]): Try[T] =
-        a.toTry
+    implicit class BagAsyncImplicits[A, BAG[_]](a: BAG[A])(implicit bag: Bag.Async[BAG]) {
+      @inline def complete(promise: Promise[A]): Unit =
+        bag.complete(promise, a)
 
-      override def from[T](a: Try[T]): ApiIO[T] =
-        IO.fromTry[Error.API, T](a)
-    }
-
-    implicit val ioToOption = new Transfer[IO.ApiIO, Option] {
-      override def to[T](a: ApiIO[T]): Option[T] =
-        a.toOption
-
-      override def from[T](a: Option[T]): ApiIO[T] =
-        IO[Error.API, T](a.get)
-    }
-
-    implicit val throwableToApiIO = new Bag.Transfer[IO.ThrowableIO, IO.ApiIO] {
-      override def to[T](a: IO.ThrowableIO[T]): IO.ApiIO[T] =
-        IO[swaydb.Error.API, T](a.get)
-
-      override def from[T](a: IO.ApiIO[T]): IO.ThrowableIO[T] =
-        IO(a.get)
-    }
-
-    implicit val throwableToTry = new Bag.Transfer[IO.ThrowableIO, Try] {
-      override def to[T](a: IO.ThrowableIO[T]): Try[T] =
-        a.toTry
-
-      override def from[T](a: Try[T]): IO.ThrowableIO[T] =
-        IO.fromTry(a)
-    }
-
-    implicit val throwableToOption = new Bag.Transfer[IO.ThrowableIO, Option] {
-      override def to[T](a: IO.ThrowableIO[T]): Option[T] =
-        a.toOption
-
-      override def from[T](a: Option[T]): IO.ThrowableIO[T] =
-        IO(a.get)
-    }
-
-    implicit val throwableToUnit = new Bag.Transfer[IO.ThrowableIO, IO.UnitIO] {
-      override def to[T](a: IO.ThrowableIO[T]): IO.UnitIO[T] =
-        IO[Unit, T](a.get)(IO.ExceptionHandler.Unit)
-
-      override def from[T](a: IO.UnitIO[T]): IO.ThrowableIO[T] =
-        IO(a.get)
-    }
-
-    implicit val throwableToNothing = new Bag.Transfer[IO.ThrowableIO, IO.NothingIO] {
-      override def to[T](a: IO.ThrowableIO[T]): IO.NothingIO[T] =
-        IO[Nothing, T](a.get)(IO.ExceptionHandler.Nothing)
-
-      override def from[T](a: IO.NothingIO[T]): IO.ThrowableIO[T] =
-        IO(a.get)
+      @inline def fromFuture(future: Future[A]): BAG[A] =
+        bag.fromFuture(future)
     }
   }
 
-  private sealed trait ToBagBase[T[_], X[_]] {
-    def base: Bag[T]
+  trait Sync[BAG[_]] extends Bag[BAG] { self =>
+    def isSuccess[A](a: BAG[A]): Boolean
+    def isFailure[A](a: BAG[A]): Boolean
+    def exception[A](a: BAG[A]): Option[Throwable]
+    def getOrElse[A, B >: A](a: BAG[A])(b: => B): B
+    def getUnsafe[A](a: BAG[A]): A
+    def orElse[A, B >: A](a: BAG[A])(b: BAG[B]): BAG[B]
+    def recover[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, B]): BAG[B]
+    def recoverWith[A, B >: A](fa: BAG[A])(pf: PartialFunction[Throwable, BAG[B]]): BAG[B]
 
-    def baseConverter: Bag.Transfer[T, X]
-
-    def unit: X[Unit] =
-      baseConverter.to(base.unit)
-
-    def none[A]: X[Option[A]] =
-      baseConverter.to(base.none)
-
-    def apply[A](a: => A): X[A] =
-      baseConverter.to(base.apply(a))
-
-    def foreach[A](a: X[A])(f: A => Unit): Unit =
-      base.foreach(baseConverter.from(a))(f)
-
-    def map[A, B](a: X[A])(f: A => B): X[B] =
-      baseConverter.to(base.map(baseConverter.from(a))(f))
-
-    def transform[A, B](a: X[A])(f: A => B): X[B] =
-      baseConverter.to(base.transform(baseConverter.from(a))(f))
-
-    def flatMap[A, B](fa: X[A])(f: A => X[B]): X[B] =
-      baseConverter.to {
-        base.flatMap(baseConverter.from(fa)) {
-          a =>
-            baseConverter.from(f(a))
-        }
-      }
-
-    def success[A](value: A): X[A] =
-      baseConverter.to(base.success(value))
-
-    def failure[A](exception: Throwable): X[A] =
-      baseConverter.to(base.failure(exception))
-
-    def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): X[A] =
-      baseConverter.to(base.fromIO(a))
   }
 
-  trait Sync[T[_]] extends Bag[T] { self =>
-    def isSuccess[A](a: T[A]): Boolean
-    def isFailure[A](a: T[A]): Boolean
-    def exception[A](a: T[A]): Option[Throwable]
-    def getOrElse[A, B >: A](a: T[A])(b: => B): B
-    def getUnsafe[A](a: T[A]): A
-    def orElse[A, B >: A](a: T[A])(b: T[B]): T[B]
-
-    def toBag[X[_]](implicit transfer: Bag.Transfer[T, X]): Bag.Sync[X] =
-      new Bag.Sync[X] with ToBagBase[T, X] {
-        override val base: Bag[T] = self
-
-        override val baseConverter: Transfer[T, X] = transfer
-
-        override def createSerial(): Serial[X] =
-          new Serial[X] {
-            val selfSerial = base.createSerial()
-
-            override def execute[F](f: => F): X[F] =
-              transfer.to(selfSerial.execute(f))
-
-            override def terminate(): X[Unit] =
-              transfer.to(selfSerial.terminate())
-
-            override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-              selfSerial.terminateBag()(bag)
-          }
-
-        override def exception[A](a: X[A]): Option[Throwable] =
-          self.exception(transfer.from(a))
-
-        override def isSuccess[A](a: X[A]): Boolean =
-          self.isSuccess(transfer.from(a))
-
-        override def isFailure[A](a: X[A]): Boolean =
-          self.isFailure(transfer.from(a))
-
-        override def getOrElse[A, B >: A](a: X[A])(b: => B): B =
-          self.getOrElse[A, B](transfer.from(a))(b)
-
-        override def getUnsafe[A](a: X[A]): A =
-          self.getUnsafe(transfer.from(a))
-
-        override def orElse[A, B >: A](a: X[A])(b: X[B]): X[B] =
-          transfer.to(self.orElse[A, B](transfer.from(a))(transfer.from(b)))
-
-        override def suspend[B](f: => X[B]): X[B] = f
-      }
-  }
-
-  trait Async[T[_]] extends Bag[T] { self =>
-    def fromPromise[A](a: Promise[A]): T[A]
-    def complete[A](promise: Promise[A], a: T[A]): Unit
+  trait Async[BAG[_]] extends Bag[BAG] { self =>
+    def fromPromise[A](a: Promise[A]): BAG[A]
+    def complete[A](promise: Promise[A], a: BAG[A]): Unit
     def executionContext: ExecutionContext
-    def fromFuture[A](a: Future[A]): T[A]
-
-    def toBag[X[_]](implicit transfer: Bag.Transfer[T, X]): Bag.Async[X] =
-      new Bag.Async[X] with ToBagBase[T, X] {
-        override val base: Bag.Async[T] = self
-
-        override val baseConverter: Transfer[T, X] = transfer
-
-        override def createSerial(): Serial[X] =
-          new Serial[X] {
-            val selfSerial = base.createSerial()
-
-            override def execute[F](f: => F): X[F] =
-              transfer.to(selfSerial.execute(f))
-
-            override def terminate(): X[Unit] =
-              transfer.to(selfSerial.terminate())
-
-            override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-              selfSerial.terminateBag()(bag)
-          }
-
-        override def fromPromise[A](a: Promise[A]): X[A] =
-          transfer.to(self.fromPromise(a))
-
-        override def complete[A](promise: Promise[A], a: X[A]): Unit =
-          self.complete(promise, transfer.from(a))
-
-        override def executionContext: ExecutionContext =
-          self.executionContext
-
-        override def fromFuture[A](a: Future[A]): X[A] =
-          transfer.to(self.fromFuture(a))
-
-        override def suspend[B](f: => X[B]): X[B] =
-          flatMap[Unit, B](unit)(_ => f)
-      }
+    def fromFuture[A](a: Future[A]): BAG[A]
   }
+
 
   object Async {
 
@@ -394,6 +325,14 @@ object Bag extends LazyLogging {
 
       override def suspend[B](f: => ThrowableIO[B]): ThrowableIO[B] =
         f
+      override def flatten[A](fa: ThrowableIO[ThrowableIO[A]]): ThrowableIO[A] =
+        fa.flatten
+
+      override def recover[A, B >: A](fa: ThrowableIO[A])(pf: PartialFunction[Throwable, B]): ThrowableIO[B] =
+        fa.recover(pf)
+
+      override def recoverWith[A, B >: A](fa: ThrowableIO[A])(pf: PartialFunction[Throwable, ThrowableIO[B]]): ThrowableIO[B] =
+        fa.recoverWith(pf)
     }
 
   implicit val apiIO: Bag.Sync[IO.ApiIO] =
@@ -463,6 +402,26 @@ object Bag extends LazyLogging {
 
       override def suspend[B](f: => ApiIO[B]): ApiIO[B] =
         f
+      override def flatten[A](fa: ApiIO[ApiIO[A]]): ApiIO[A] =
+        fa.flatten
+
+      override def recover[A, B >: A](fa: ApiIO[A])(pf: PartialFunction[Throwable, B]): ApiIO[B] =
+        fa match {
+          case right @ IO.Right(_) =>
+            right
+
+          case IO.Left(value) =>
+            IO(pf.apply(value.exception))
+        }
+
+      override def recoverWith[A, B >: A](fa: ApiIO[A])(pf: PartialFunction[Throwable, ApiIO[B]]): ApiIO[B] =
+        fa match {
+          case right @ IO.Right(_) =>
+            right
+
+          case IO.Left(value) =>
+            pf.apply(value.exception)
+        }
     }
 
   implicit val tryBag: Bag.Sync[Try] =
@@ -530,6 +489,15 @@ object Bag extends LazyLogging {
 
       override def suspend[B](f: => Try[B]): Try[B] =
         f
+
+      override def flatten[A](fa: Try[Try[A]]): Try[A] =
+        fa.flatten
+
+      override def recover[A, B >: A](fa: Try[A])(pf: PartialFunction[Throwable, B]): Try[B] =
+        fa.recover(pf)
+
+      override def recoverWith[A, B >: A](fa: Try[A])(pf: PartialFunction[Throwable, Try[B]]): Try[B] =
+        fa.recoverWith(pf)
     }
 
   type Less[A] = A
@@ -582,6 +550,12 @@ object Bag extends LazyLogging {
       override def suspend[B](f: => Less[B]): B = f
 
       override def safe[B](f: => Less[B]): B = f
+
+      override def flatten[A](fa: Less[A]): A = fa
+
+      override def recover[A, B >: A](fa: Less[A])(pf: PartialFunction[Throwable, B]): B = fa
+
+      override def recoverWith[A, B >: A](fa: Less[A])(pf: PartialFunction[Throwable, Less[B]]): Less[B] = fa
     }
 
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
@@ -655,5 +629,8 @@ object Bag extends LazyLogging {
 
       override def suspend[B](f: => Future[B]): Future[B] =
         f
+
+      override def flatten[A](fa: Future[Future[A]]): Future[A] =
+        fa.flatten
     }
 }

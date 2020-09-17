@@ -76,7 +76,7 @@ sealed trait IO[+L, +R] {
   def valueOrElse[B](f: R => B, orElse: => B): B
 
   @inline final def withFilter(p: R => Boolean): WithFilter = new WithFilter(p)
-  class WithFilter(p: R => Boolean) {
+  final class WithFilter(p: R => Boolean) {
     def map[B](f: R => B): IO[L, B] =
       IO.this filter p map f
 

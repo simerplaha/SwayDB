@@ -105,5 +105,9 @@ object Bag {
 
       override def suspend[B](f: => IO[B]): IO[B] =
         IO.suspend(f)
+
+      override def flatten[A](fa: IO[IO[A]]): IO[A] =
+        fa.flatMap(io => io)
+
     }
 }

@@ -26,7 +26,7 @@ package swaydb.core.level
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
-import swaydb.Bag._
+import swaydb.Bag.Implicits._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}

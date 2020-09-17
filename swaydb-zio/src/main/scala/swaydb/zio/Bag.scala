@@ -30,6 +30,7 @@ import swaydb.{Actor, Bag, Serial}
 import zio.Task
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.control.NoStackTrace
 import scala.util.{Failure, Try}
 
 object Bag {
@@ -106,5 +107,8 @@ object Bag {
 
       override def suspend[B](f: => Task[B]): Task[B] =
         Task.effectSuspendTotal(f)
+
+      override def flatten[A](fa: Task[Task[A]]): Task[A] =
+        fa.flatten
     }
 }

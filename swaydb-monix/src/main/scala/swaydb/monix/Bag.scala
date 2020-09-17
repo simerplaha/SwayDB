@@ -106,5 +106,8 @@ object Bag {
 
       override def suspend[B](f: => Task[B]): Task[B] =
         Task.suspend(f)
+
+      override def flatten[A](fa: Task[Task[A]]): Task[A] =
+        fa.flatten
     }
 }
