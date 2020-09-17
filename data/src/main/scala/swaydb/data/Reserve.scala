@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.concurrent.Promise
+import scala.concurrent.duration.Deadline
 
 class Reserve[T](val info: AtomicReference[Option[T]],
                  private[data] val promises: ConcurrentLinkedQueue[Promise[Unit]],
@@ -54,6 +55,12 @@ object Reserve {
     reserve.synchronized {
       while (reserve.isBusy)
         reserve.wait()
+    }
+
+  def blockUntilFree[T](reserve: Reserve[T], deadline: Deadline): Unit =
+    reserve.synchronized {
+      while (reserve.isBusy && deadline.hasTimeLeft())
+        reserve.wait(deadline.timeLeft.toMillis)
     }
 
   private def notifyBlocking[T](reserve: Reserve[T]): Unit =

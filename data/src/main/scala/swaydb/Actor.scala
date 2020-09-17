@@ -716,7 +716,16 @@ class Actor[-T, S](val name: String,
       onReceiveComplete(state)
     }
 
-  private def receive(overflow: Int, wakeUpOnComplete: Boolean): Unit = {
+  private def receive(overflow: Int, wakeUpOnComplete: Boolean): Unit =
+    receiveMessages(overflow) {
+      setFree()
+      //after setting busy to false fetch the totalWeight again.
+
+      if (wakeUpOnComplete)
+        wakeUp(currentStashed = totalWeight)
+    }
+
+  private def receiveMessages(overflow: Int)(onComplete: => Unit): Unit = {
     var processedWeight = 0
     var break = false
     try
@@ -759,11 +768,7 @@ class Actor[-T, S](val name: String,
           }
         }
 
-      setFree()
-      //after setting busy to false fetch the totalWeight again.
-
-      if (wakeUpOnComplete)
-        wakeUp(currentStashed = totalWeight)
+      onComplete
     }
   }
 
