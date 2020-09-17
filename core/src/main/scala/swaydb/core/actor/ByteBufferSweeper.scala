@@ -30,6 +30,7 @@ import java.nio.{ByteBuffer, MappedByteBuffer}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Bag.Implicits._
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
 import swaydb.core.actor.ByteBufferCleaner.Cleaner
@@ -41,8 +42,8 @@ import swaydb.data.util.FiniteDurations._
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
 
 private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
@@ -191,45 +192,30 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
    */
   case class State(var cleaner: Option[Cleaner],
                    pendingClean: mutable.HashMap[Path, mutable.HashMap[Long, Command.Clean]],
-                   pendingDeletes: mutable.HashMap[Path, Command.DeleteCommand])
+                   pendingDeletes: mutable.HashMap[Path, Command.DeleteCommand]) {
 
-  def closeAsync[BAG[_]]()(implicit sweeper: ByteBufferSweeperActor,
-                           bag: Bag.Async[BAG]): BAG[Unit] =
+    def isAllClean: Boolean =
+      pendingClean.isEmpty && pendingDeletes.isEmpty
+
+  }
+
+  def close[BAG[_]]()(implicit sweeper: ByteBufferSweeperActor,
+                      bag: Bag[BAG]): BAG[Unit] =
     sweeper.get() match {
       case Some(actor) =>
-        bag.flatMap(actor.terminateAndRecover()) {
-          _ =>
-            val ask = actor ask Command.IsTerminated(resubmitted = false)
-            bag.transform(ask) {
-              isCleaned =>
-                if (isCleaned)
-                  logger.info(s"${ByteBufferSweeper.className} terminated!")
-                else
-                  logger.error(s"Failed to terminate ${ByteBufferSweeper.className}")
-            }
-        }
-
-      case None =>
-        bag.unit
-    }
-
-  /**
-   * Closes the [[ByteBufferSweeperActor]] synchronously. This simply calls the Actor function [[Actor.terminateAndRecover]]
-   * and dispatches [[Command.IsTerminated]] to assert that all files are closed and flushed.
-   */
-  def closeSync[BAG[_]](timeout: FiniteDuration)(implicit sweeper: ByteBufferSweeperActor,
-                                                 bag: Bag.Sync[BAG],
-                                                 ec: ExecutionContext): BAG[Unit] =
-    sweeper.get() match {
-      case Some(actor) =>
-        bag.map(actor.terminateAndRecover()) {
-          _ =>
-            val future = actor ask Command.IsTerminated(resubmitted = false)
-            val isCleaned = Await.result(future, timeout)
-            if (isCleaned)
+        actor.terminateAndRecover(state => state) flatMap {
+          case Some(state) =>
+            val pendingCleanSize = state.pendingClean.size
+            val pendingDeleteSize = state.pendingDeletes.size
+            if (pendingCleanSize == 0) {
               logger.info(s"${ByteBufferSweeper.className} terminated!")
-            else
-              logger.error(s"Failed to terminate ${ByteBufferSweeper.className}")
+              bag.unit
+            } else {
+              bag.failure(new Exception(s"Pending $pendingCleanSize cleans and $pendingDeleteSize deletes."))
+            }
+
+          case None =>
+            bag.unit
         }
 
       case None =>
@@ -458,7 +444,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
    */
   private def performIsTerminatedAndCleaned(command: Command.IsTerminated[_],
                                             self: Actor[Command, State]): Unit =
-    if (self.isTerminated && self.state.pendingClean.isEmpty && self.state.pendingDeletes.isEmpty)
+    if (self.isTerminated && self.state.isAllClean)
       command.replyTo send true
     else if (command.resubmitted) //already double checked.
       command.replyTo send false

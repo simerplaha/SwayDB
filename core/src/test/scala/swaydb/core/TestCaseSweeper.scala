@@ -108,8 +108,8 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.allMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
     sweeper.blockMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
     sweeper.cacheMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
-    sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.closeSync()(sweeper, Bag.less)))
-    sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.closeSync(10.seconds)(cleaner, Bag.less, TestExecutionContext.executionContext)))
+    sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.close()(sweeper, Bag.less)))
+    sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.close()(cleaner, Bag.less)))
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
 
     //DELETE - delete after closing Levels.
@@ -143,13 +143,13 @@ object TestCaseSweeper extends LazyLogging {
   }
 
   private def receiveAll(sweeper: TestCaseSweeper): Unit = {
-    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less]()))))
-    sweeper.allMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less]))))
-    sweeper.blockMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less]))))
-    sweeper.cacheMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less]))))
-    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Less]))
-    sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Bag.Less]))
-    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Less]))))
+    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
+    sweeper.allMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
+    sweeper.blockMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
+    sweeper.cacheMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
+    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))
+    sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Bag.Less, Unit](_ => ())))
+    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
   }
 
   def apply[T](code: TestCaseSweeper => T): T = {

@@ -33,7 +33,6 @@ import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
 
 object LevelCloser extends LazyLogging {
 
@@ -46,11 +45,11 @@ object LevelCloser extends LazyLogging {
     MemorySweeper.close(keyValueMemorySweeper)
     BlockCache.close(blockCache)
 
-    FileSweeper.closeAsync()
-      .and(ByteBufferSweeper.closeAsync())
+    FileSweeper.close()
+      .and(ByteBufferSweeper.close())
   }
 
-  def closeSync[BAG[_]](timeout: FiniteDuration)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+  def closeSync[BAG[_]]()(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                  blockCache: Option[BlockCache.State],
                                                  fileSweeper: FileSweeperActor,
                                                  bufferCleaner: ByteBufferSweeperActor,
@@ -60,7 +59,7 @@ object LevelCloser extends LazyLogging {
     MemorySweeper.close(keyValueMemorySweeper)
     BlockCache.close(blockCache)
 
-    FileSweeper.closeSync[BAG]()
-      .and(ByteBufferSweeper.closeSync[BAG](timeout))
+    FileSweeper.close[BAG]()
+      .and(ByteBufferSweeper.close[BAG]())
   }
 }

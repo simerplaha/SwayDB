@@ -66,6 +66,12 @@ sealed trait Bag[BAG[_]] { thisBag =>
   @inline def and[A, B](fa: BAG[A])(f: => BAG[B]): BAG[B] =
     flatMap(fa)(_ => f)
 
+  @inline def andTransform[A, B](fa: BAG[A])(f: => B): BAG[B] =
+    transform(fa)(_ => f)
+
+  @inline def andThen[A, B](fa: BAG[A])(f: => B): BAG[B] =
+    flatMap(fa)(_ => apply(f))
+
   def safe[A](f: => BAG[A]): BAG[A] =
     flatMap(unit) {
       _ =>
@@ -113,6 +119,12 @@ object Bag extends LazyLogging {
     implicit class BagImplicits[A, BAG[_]](fa: BAG[A])(implicit bag: Bag[BAG]) {
       @inline def and[B](b: => BAG[B]): BAG[B] =
         bag.and(fa)(b)
+
+      @inline def andThen[B](b: => B): BAG[B] =
+        bag.andThen(fa)(b)
+
+      @inline def andTransform[B](b: => B): BAG[B] =
+        bag.andTransform(fa)(b)
 
       @inline def unit: BAG[Unit] =
         bag.unit

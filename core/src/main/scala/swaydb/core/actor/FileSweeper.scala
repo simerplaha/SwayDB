@@ -101,16 +101,9 @@ private[swaydb] case object FileSweeper extends LazyLogging {
         )
     }
 
-  def closeAsync[BAG[_]]()(implicit fileSweeper: FileSweeperActor,
-                           bag: Bag.Async[BAG]): BAG[Unit] =
-    bag.transform(fileSweeper.terminateAndRecover()) {
-      _ =>
-        logger.info(this.productPrefix + " terminated!")
-    }
-
-  def closeSync[BAG[_]]()(implicit fileSweeper: FileSweeperActor,
-                          bag: Bag.Sync[BAG]): BAG[Unit] =
-    bag.transform(fileSweeper.terminateAndRecover()) {
+  def close[BAG[_]]()(implicit fileSweeper: FileSweeperActor,
+                      bag: Bag[BAG]): BAG[Unit] =
+    bag.transform(fileSweeper.terminateAndRecover(_ => ())) {
       _ =>
         logger.info(this.productPrefix + " terminated!")
     }

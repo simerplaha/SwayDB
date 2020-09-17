@@ -567,7 +567,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
                 actor send i
             }
 
-            val result = actor.terminateAndRecover[Future]()
+            val result = actor.terminateAndRecover[Future, Unit](_ => ())
 
             (101 to 200) foreach {
               i =>
@@ -636,7 +636,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           //terminate here does not work because it's in the future
           //and the second send messages will get returned as success
           //so actor.terminate() is invoked before terminateAndRecover.
-          val future = actor.terminateAndRecover[Future]()
+          val future = actor.terminateAndRecover[Future, Unit](_ => ())
 
           eventual(20.seconds) {
             success.asScala.toList shouldBe (1 to 100).toList
@@ -747,7 +747,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
 
             //if it's not already terminates then terminate it so that cache Actors also drop their
             //stashed messages.
-            actor.terminateAndRecover[Future]().await(1.minute)
+            actor.terminateAndRecover[Future, Unit](_ => ()).await(1.minute)
 
             println(s"Messages sent. Success: ${success.size()}. Recovered messages: ${recovered.size()}")
 

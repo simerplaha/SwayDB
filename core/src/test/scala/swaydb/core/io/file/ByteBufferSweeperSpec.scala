@@ -78,7 +78,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
 
           val innerFile = file.file.asInstanceOf[MMAPFile]
 
-          fileSweeper.terminateAndRecover[Bag.Less]()
+          fileSweeper.terminateAndRecover[Bag.Less, Unit](_ => ())
 
           eventual(2.seconds) {
             innerFile.isBufferEmpty shouldBe true
@@ -138,7 +138,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
           //keep this test running for a few seconds.
           sleep(timeout)
 
-          fileSweeper.terminateAndRecover().await(10.seconds)
+          fileSweeper.terminateAndRecover(_ => ()).await(10.seconds)
           fileSweeper.messageCount shouldBe 0
           closing.await(1.second)
           Future.sequence(readingFutures).await(1.second)
@@ -545,7 +545,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
             }
 
             //execute all pending Delete commands.
-            cleaner.actor.receiveAllForce[Bag.Less]()
+            cleaner.actor.receiveAllForce[Bag.Less, Unit](_ => ())
 
             //there might me some delete messages waiting to be scheduled.
             eventual(1.minute) {
@@ -616,7 +616,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
 
             //execute all pending Delete commands.
             eventual(1.minute) {
-              cleaner.actor.terminateAndRecover[Future]().await(1.minute)
+              cleaner.actor.terminateAndRecover[Future, Unit](_ => ()).await(1.minute)
             }
 
             eventual(1.minute) {

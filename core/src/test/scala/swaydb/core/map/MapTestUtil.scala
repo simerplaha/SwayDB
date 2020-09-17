@@ -75,7 +75,7 @@ object MapTestUtil {
      */
     def ensureClose(): Unit = {
       map.close()
-      map.bufferCleaner.actor.receiveAllForce[Bag.Less]()
+      map.bufferCleaner.actor.receiveAllForce[Bag.Less, Unit](_ => ())
 
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future

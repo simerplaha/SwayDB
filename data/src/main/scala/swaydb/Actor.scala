@@ -41,6 +41,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success, Try}
+import Bag.Implicits._
 
 sealed trait ActorRef[-T, S] { self =>
 
@@ -76,7 +77,7 @@ sealed trait ActorRef[-T, S] { self =>
   def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
     recover[M, Throwable](f)
 
-  def receiveAllForce[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
+  def receiveAllForce[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[R]
 
   def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
@@ -94,7 +95,7 @@ sealed trait ActorRef[-T, S] { self =>
 
   def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
-  def terminateAndRecover[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
+  def terminateAndRecover[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[Option[R]]
 }
 
 object Actor {
@@ -128,8 +129,8 @@ object Actor {
       override def onPostTerminate(f: Actor[T, S] => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
       override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
       override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
-      override def terminateAndRecover[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
-      override def receiveAllForce[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = throw new Exception("Dead Actor")
+      def terminateAndRecover[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[Option[R]] = throw new Exception("Dead Actor")
+      def receiveAllForce[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[R] = throw new Exception("Dead Actor")
     }
 
   def cacheFromConfig[T](config: ActorConfig,
@@ -705,10 +706,14 @@ class Actor[-T, S](val name: String,
 
   /**
    * Forces the Actor to process all queued messages.
+   *
+   * @note afterReceive can be called multiple times but only the final
+   *       result will be returned.
    */
-  def receiveAllForce[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+  def receiveAllForce[BAG[_], R](onReceiveComplete: S => R)(implicit bag: Bag[BAG]): BAG[R] =
     whileNotBusy(continueIfNonEmpty = true) {
       receive(overflow = Int.MaxValue, wakeUpOnComplete = false)
+      onReceiveComplete(state)
     }
 
   private def receive(overflow: Int, wakeUpOnComplete: Boolean): Unit = {
@@ -838,18 +843,26 @@ class Actor[-T, S](val name: String,
    *
    * If [[recover]] function  is not specified then all queues messages are cleared.
    */
-  def terminateAndRecover[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+  def terminateAndRecover[BAG[_], R](f: S => R)(implicit bag: Bag[BAG]): BAG[Option[R]] =
     bag.suspend {
       if (compareSetTerminated())
-        bag.flatMap(runPreTerminate()) {
+        runPreTerminate() flatMap {
           executedPreTermination =>
             if (recovery.isDefined)
-              bag.and(receiveAllForce())(runPostTerminate(executedPreTermination))
+              receiveAllForce(f) flatMap {
+                result =>
+                  runPostTerminate(executedPreTermination) transform {
+                    _ =>
+                      Option(result)
+                  }
+              }
             else
-              bag.and(terminateAndClear())(runPostTerminate(executedPreTermination))
+              terminateAndClear()
+                .and(runPostTerminate(executedPreTermination))
+                .and(bag.none)
         }
       else
-        bag.unit
+        bag.none
     }
 
   override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
