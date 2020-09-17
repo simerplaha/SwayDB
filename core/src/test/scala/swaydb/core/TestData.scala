@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{Bag, IO}
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
 import swaydb.compression.CompressionInternal
@@ -250,13 +250,12 @@ object TestData {
     def tryReopen(segmentSize: Int = level.minSegmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Level] = {
-      implicit val ec = TestExecutionContext.executionContext
 
       val closeResult =
         if (OperatingSystem.isWindows && level.hasMMAP)
           IO {
             import swaydb.data.RunThis._
-            level.close().await(10.seconds)
+            level.close[Bag.Less]()
           }
         else
           level.closeNoSweep()
@@ -296,10 +295,8 @@ object TestData {
                clearAppliedFunctionsOnBoot: Boolean = false)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                              sweeper: TestCaseSweeper): LevelZero = {
 
-      if (OperatingSystem.isWindows && level.hasMMAP) {
-        import swaydb.data.RunThis._
-        level.close()(TestExecutionContext.executionContext).await(10.seconds)
-      }
+      if (OperatingSystem.isWindows && level.hasMMAP)
+        level.close[Bag.Less]()
 
       val reopened =
         level.releaseLocks flatMap {

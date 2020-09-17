@@ -28,7 +28,7 @@ import java.nio.channels.OverlappingFileLockException
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.IO
+import swaydb.{Bag, IO}
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data._
@@ -164,7 +164,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
             level.put(segment).value.value should not be empty
 
             if (segment.isMMAP && OperatingSystem.isWindows) {
-              level.close().await(10.seconds)
+              level.close[Bag.Less]()
               sweeper.receiveAll()
             }
 

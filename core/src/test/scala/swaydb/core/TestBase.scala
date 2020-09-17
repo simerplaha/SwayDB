@@ -697,13 +697,13 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             }
             .flatMap {
               _ =>
-                level0.close()
+                level0.close[Future]()
             }
 
         termination.await(10.seconds)
     }
 
-    level0.delete().await(10.seconds)
+    level0.delete[Future]().await(10.seconds)
 
     if (!throttleOn)
       assertLevel(

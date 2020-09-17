@@ -26,6 +26,7 @@ package swaydb.core.level.tool
 
 import java.nio.file.NoSuchFileException
 
+import swaydb.Bag
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -70,7 +71,7 @@ class AppendixRepairerSpec extends TestBase {
             level.putKeyValuesTest(randomizedKeyValues(10000)).value
 
             if (level.hasMMAP && OperatingSystem.isWindows)
-              level.close().await(10.seconds)
+              level.close[Bag.Less]()
 
             level.segmentsCount() should be > 2
             val segmentsBeforeRepair = level.segmentsInLevel()
@@ -96,7 +97,7 @@ class AppendixRepairerSpec extends TestBase {
             val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Disabled(TestForceSave.channel())))
 
             if (level.hasMMAP && OperatingSystem.isWindows) {
-              level.close().await(10.seconds)
+              level.close[Bag.Less]()
               eventual(10.seconds) {
                 sweeper.receiveAll()
                 Effect.walkDelete(level.appendixPath)
@@ -136,7 +137,7 @@ class AppendixRepairerSpec extends TestBase {
             level.putKeyValuesTest(keyValues).value
 
             if (level.hasMMAP && OperatingSystem.isWindows)
-              level.close().await(10.seconds)
+              level.close[Bag.Less]()
 
             level.segmentsCount() should be > 2
             val segmentsBeforeRepair = level.segmentsInLevel()
@@ -191,7 +192,7 @@ class AppendixRepairerSpec extends TestBase {
           val segmentsBeforeRepair = level.segmentsInLevel()
 
           if (level.hasMMAP && OperatingSystem.isWindows) {
-            level.close().await(10.seconds)
+            level.close[Bag.Less]()
             sweeper.receiveAll()
           }
 

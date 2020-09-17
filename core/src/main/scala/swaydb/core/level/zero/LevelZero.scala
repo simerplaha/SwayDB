@@ -28,6 +28,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.Exception.FunctionNotFound
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -53,13 +54,11 @@ import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
-import swaydb.data.util.Futures.FutureImplicits
-import swaydb.data.util.{Futures, Options}
-import swaydb.{Actor, Error, IO, OK}
+import swaydb.data.util.Options
+import swaydb.{Actor, Bag, Error, IO, OK}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, _}
-import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
 private[core] object LevelZero extends LazyLogging {
@@ -1113,13 +1112,13 @@ private[swaydb] case class LevelZero(path: Path,
       )
       .and(releaseLocks)
 
-  override def close()(implicit executionContext: ExecutionContext): Future[Unit] =
-    closeMaps
-      .toFuture
+  override def close[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+    bag
+      .fromIO(closeMaps)
       .and(
         nextLevel
           .map(_.close())
-          .getOrElse(Futures.unit)
+          .getOrElse(bag.unit)
       )
       .andIO(releaseLocks)
 
@@ -1128,13 +1127,13 @@ private[swaydb] case class LevelZero(path: Path,
       .map(_.closeSegments())
       .getOrElse(IO.unit)
 
-  override def delete()(implicit executionContext: ExecutionContext): Future[Unit] =
-    closeMaps
-      .toFuture
+  override def delete[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+    bag
+      .fromIO(closeMaps)
       .and(
         nextLevel
           .map(_.delete())
-          .getOrElse(Futures.unit)
+          .getOrElse(bag.unit)
       )
       .andIO(releaseLocks)
       .andIO(IO(Effect.walkDelete(path.getParent)))

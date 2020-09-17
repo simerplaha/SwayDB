@@ -26,40 +26,24 @@ package swaydb.core.level
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
-import swaydb.Bag.Implicits._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
-
-import scala.concurrent.ExecutionContext
+import Bag.Implicits._
 
 object LevelCloser extends LazyLogging {
 
-  def closeAsync[BAG[_]]()(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                           blockCache: Option[BlockCache.State],
-                           fileSweeper: FileSweeperActor,
-                           bufferCleaner: ByteBufferSweeperActor,
-                           bag: Bag.Async[BAG]): BAG[Unit] = {
+  def close[BAG[_]]()(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                      blockCache: Option[BlockCache.State],
+                      fileSweeper: FileSweeperActor,
+                      bufferCleaner: ByteBufferSweeperActor,
+                      bag: Bag[BAG]): BAG[Unit] = {
 
     MemorySweeper.close(keyValueMemorySweeper)
     BlockCache.close(blockCache)
 
     FileSweeper.close()
       .and(ByteBufferSweeper.close())
-  }
-
-  def closeSync[BAG[_]]()(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                 blockCache: Option[BlockCache.State],
-                                                 fileSweeper: FileSweeperActor,
-                                                 bufferCleaner: ByteBufferSweeperActor,
-                                                 ec: ExecutionContext,
-                                                 bag: Bag.Sync[BAG]): BAG[Unit] = {
-
-    MemorySweeper.close(keyValueMemorySweeper)
-    BlockCache.close(blockCache)
-
-    FileSweeper.close[BAG]()
-      .and(ByteBufferSweeper.close[BAG]())
   }
 }

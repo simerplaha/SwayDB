@@ -26,18 +26,17 @@ package swaydb.core.level
 
 import java.nio.file.Path
 
-import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.{Bag, IO}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
 
 object LevelRef {
 
@@ -262,7 +261,7 @@ private[core] trait LevelRef {
 
   def sizeOfSegments: Long
 
-  def close()(implicit executionContext: ExecutionContext): Future[Unit]
+  def close[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
   def closeNoSweep: IO[swaydb.Error.Level, Unit]
 
@@ -280,7 +279,7 @@ private[core] trait LevelRef {
 
   def nextCompactionDelay: FiniteDuration
 
-  def delete()(implicit executionContext: ExecutionContext): Future[Unit]
+  def delete[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
   def hasMMAP: Boolean =
     LevelRef.hasMMAP(this)

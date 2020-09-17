@@ -219,15 +219,15 @@ private[core] object TrashLevel extends NextLevel {
 
   override def deleteNoSweep: IO[swaydb.Error.Delete, Unit] = IO.unit
 
-  override def close()(implicit executionContext: ExecutionContext): Future[Unit] =
-    Futures.unit
-
-  override def delete()(implicit executionContext: ExecutionContext): Future[Unit] =
-    Futures.unit
-
   override def closeNoSweepNoRelease(): IO[Error.Level, Unit] =
     IO.unit
 
   override def deleteNoSweepNoClose(): IO[Error.Level, Unit] =
     IO.unit
+
+  def close[BAG[_]]()(implicit bag: swaydb.Bag[BAG]): BAG[Unit] =
+    bag.unit
+
+  def delete[BAG[_]]()(implicit bag: swaydb.Bag[BAG]): BAG[Unit] =
+    bag.unit
 }

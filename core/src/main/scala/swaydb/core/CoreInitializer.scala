@@ -307,7 +307,7 @@ private[core] object CoreInitializer extends LazyLogging {
             IO[swaydb.Error.Boot, Core[Bag.Less]](core)
 
           case IO.Left(createError) =>
-            IO(LevelCloser.closeSync[Bag.Less]()) match {
+            IO(LevelCloser.close[Bag.Less]()) match {
               case IO.Right(_) =>
                 IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createError.exception)
 

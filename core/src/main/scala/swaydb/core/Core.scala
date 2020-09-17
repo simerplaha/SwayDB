@@ -28,6 +28,8 @@ import java.nio.file.Path
 import java.util.function.Supplier
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Bag.Implicits._
+import swaydb._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.build.BuildValidator
 import swaydb.core.data.{Memory, SwayFunction, Value}
@@ -44,9 +46,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.Futures.FutureImplicits
 import swaydb.data.util.TupleOrNone
-import swaydb._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -366,8 +366,6 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
    */
 
   private def shutdownCompaction(): Future[Unit] = {
-    implicit val futureBag = Bag.future(shutdownExecutionContext)
-
     logger.info("Stopping compaction ...")
     compactor
       .ask
@@ -386,31 +384,26 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
     closeWithBag()(this.bag)
 
   def closeWithBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-    if (coreState.isNotRunning) {
+    if (coreState.isNotRunning)
       bag.unit
-    } else {
-      val closeResult =
-        bag
-          .and {
-            coreState setState CoreState.Closing
-            serial.terminateBag()
-          } {
-            IO
-              .fromFuture(shutdownCompaction().and(zero.close()))
-              .run(0)
-          }
-
-      bag.transform(closeResult) {
-        unit =>
+    else
+      bag
+        .suspend {
+          coreState setState CoreState.Closing
+          serial.terminateBag()
+        }
+        .and {
+          IO.fromFuture(shutdownCompaction()).run(0)
+        }
+        .and {
+          IO.Defer(zero.close()).run(0)
+        }
+        .andTransform {
           coreState setState CoreState.Closed
-          unit
-      }
-    }
+        }
 
   def delete(): BAG[Unit] =
-    bag.and(close()) {
-      IO.fromFuture(zero.delete()).run(0)
-    }
+    close().and(zero.delete())
 
   def state: CoreState.State =
     coreState.getState

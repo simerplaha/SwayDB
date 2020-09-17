@@ -89,8 +89,6 @@ object TestCaseSweeper extends LazyLogging {
   private def terminate(sweeper: TestCaseSweeper): Unit = {
     logger.info(s"Terminating ${classOf[TestCaseSweeper].getSimpleName}")
 
-    implicit val ec = TestExecutionContext.executionContext
-
     sweeper.actors.foreach(_.terminateAndClear[Bag.Less]())
     sweeper.actorWires.foreach(_.terminateAndClear[Bag.Less]())
 
@@ -101,7 +99,7 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.mapFiles.foreach(_.close())
     sweeper.maps.foreach(_.delete().get)
     sweeper.segments.foreach(_.close)
-    sweeper.levels.foreach(_.close().await(30.seconds))
+    sweeper.levels.foreach(_.close[Bag.Less]())
 
     //TERMINATE - terminate all initialised actors
     sweeper.keyValueMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
@@ -113,7 +111,7 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
 
     //DELETE - delete after closing Levels.
-    sweeper.levels.foreach(_.delete().await(30.seconds))
+    sweeper.levels.foreach(_.delete[Bag.Less]())
 
     sweeper.segments.foreach {
       segment =>

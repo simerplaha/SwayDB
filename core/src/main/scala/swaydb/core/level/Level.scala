@@ -28,6 +28,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -56,13 +57,12 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.data.util.FiniteDurations
-import swaydb.data.util.Futures.FutureImplicits
-import swaydb.{Error, IO}
+import swaydb.{Bag, Error, IO}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Promise
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.jdk.CollectionConverters._
 
 private[core] object Level extends LazyLogging {
@@ -1592,10 +1592,10 @@ private[core] case class Level(dirs: Seq[Dir],
       .and(closeAppendixInThisLevel())
       .and(closeSegmentsInThisLevel())
 
-  def close()(implicit executionContext: ExecutionContext): Future[Unit] =
-    closeNoSweepNoRelease() //close all the files first without releasing locks
-      .toFuture
-      .and(LevelCloser.closeAsync[Future]()) //close background Actors and Caches if any.
+  def close[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+    bag
+      .fromIO(closeNoSweepNoRelease()) //close all the files first without releasing locks
+      .and(LevelCloser.close()) //close background Actors and Caches if any.
       .andIO(releaseLocks) //finally release locks
 
   def closeNoSweep(): IO[swaydb.Error.Level, Unit] =
@@ -1628,7 +1628,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .and(deleteNoSweepNoClose())
       .and(deleteFiles())
 
-  override def delete()(implicit executionContext: ExecutionContext): Future[Unit] =
+  override def delete[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     close()
       .andIO(
         nextLevel

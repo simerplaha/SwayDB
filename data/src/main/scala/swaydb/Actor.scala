@@ -649,7 +649,7 @@ class Actor[-T, S](val name: String,
       logger.info(s"""Actor("$name") is busy. Listening to be free. isTerminated = $isTerminated.""")
       Reserve.promise(busy).future flatMap {
         _ =>
-          logger.debug(s"""Actor("$name") up.""")
+          logger.debug(s"""Actor("$name") is free.""")
           whileNotBusyAsync(continueIfNonEmpty)(releaseFunction)
       }
     }
@@ -674,9 +674,9 @@ class Actor[-T, S](val name: String,
           failure
       }
     } else {
-      logger.info(s"""Actor("$name") is busy. Blocking untilFree. isTerminated = $isTerminated.""")
+      logger.info(s"""Actor("$name") is busy. Blocking until free. isTerminated = $isTerminated.""")
       Reserve.blockUntilFree(busy)
-      logger.info(s"""Actor("$name") up.""")
+      logger.info(s"""Actor("$name") is free.""")
       whileNotBusySync(continueIfNonEmpty)(releaseFunction)
     }
 
