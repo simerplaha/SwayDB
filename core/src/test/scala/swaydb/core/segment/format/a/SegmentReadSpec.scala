@@ -37,7 +37,7 @@ import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, SegmentIO}
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core._
 import swaydb.data.MaxKey
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
@@ -1020,6 +1020,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     }
 
     "return deadline if one of the Segments contains deadline" in {
+      implicit val ec = TestExecutionContext.executionContext
+
       runThisParallel(10.times) {
         TestCaseSweeper {
           implicit sweeper =>
@@ -1059,6 +1061,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     }
 
     "return deadline" in {
+      implicit val ec = TestExecutionContext.executionContext
+
       runThisParallel(10.times) {
         TestCaseSweeper {
           implicit sweeper =>

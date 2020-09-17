@@ -28,17 +28,18 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Error, IO}
-import swaydb.data.RunThis._
+import swaydb.data.Base._
 import swaydb.data.Reserve
+import swaydb.data.RunThis._
 import swaydb.data.config.IOStrategy
+import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
+import scala.collection.parallel.CollectionConverters._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
-import scala.collection.parallel.CollectionConverters._
-import swaydb.data.Base._
 
 class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 

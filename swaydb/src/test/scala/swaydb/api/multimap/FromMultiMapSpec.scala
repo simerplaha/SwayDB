@@ -29,7 +29,7 @@ import swaydb.Bag.Less
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
 import swaydb.data.RunThis._
-import swaydb.core.TestCaseSweeper
+import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{Bag, MultiMap}
@@ -154,6 +154,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
     }
 
     "Sibling maps" in {
+      implicit val ec = TestExecutionContext.executionContext
+
       TestCaseSweeper {
         implicit sweeper =>
 
@@ -198,6 +200,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
     }
 
     "nested maps" in {
+      implicit val ec = TestExecutionContext.executionContext
+
       TestCaseSweeper {
         implicit sweeper =>
 
@@ -244,6 +248,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
     }
 
     "if the map contains multiple non empty subMap" in {
+      implicit val ec = TestExecutionContext.executionContext
+
       runThis(100.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>

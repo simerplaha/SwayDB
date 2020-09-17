@@ -88,12 +88,18 @@ object RunThis extends Eventually {
         f
     }
 
-  def runThisParallel(times: Int, log: Boolean = false, otherInfo: String = "")(f: => Unit): Unit =
-    (1 to times).par foreach {
+  def runThisParallel(times: Int, log: Boolean = false, otherInfo: String = "")(f: => Unit)(implicit ec: ExecutionContext): Unit = {
+    val futures =
+    (1 to times) map {
       i =>
-        if (log) println(s"Iteration: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}/$times")
-        f
+        Future {
+          if (log) println(s"Iteration: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}/$times")
+          f
+        }
     }
+
+    Future.sequence(futures).await(10.seconds)
+  }
 
   def sleep(time: FiniteDuration): Unit = {
     println(s"Sleeping for: ${time.asString}")

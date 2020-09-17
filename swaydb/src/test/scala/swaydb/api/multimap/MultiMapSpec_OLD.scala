@@ -27,7 +27,7 @@ package swaydb.api.multimap
 import org.scalatest.OptionValues._
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestCaseSweeper
+import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.core.TestCaseSweeper._
 import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
@@ -189,6 +189,8 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
 
   "childMap" should {
     "remove all entries" in {
+      implicit val ec = TestExecutionContext.executionContext
+
       runThisParallel(10.times) {
         TestCaseSweeper {
           implicit sweeper =>

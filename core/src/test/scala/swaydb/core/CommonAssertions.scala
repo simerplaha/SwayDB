@@ -69,6 +69,7 @@ import swaydb.{Bag, Error, IO}
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
 
@@ -764,7 +765,7 @@ object CommonAssertions {
           segment.mightContainKey(randomBytesSlice(100)).runRandomIO.right.value
       } should be < 1000
 
-  def assertBloomNotContains(bloom: BloomFilterBlock.State) =
+  def assertBloomNotContains(bloom: BloomFilterBlock.State)(implicit ec: ExecutionContext = TestExecutionContext.executionContext) =
     runThisParallel(1000.times) {
       val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.compressibleBytes)
       BloomFilterBlock.mightContain(
