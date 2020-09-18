@@ -93,8 +93,8 @@ object Set extends LazyLogging {
           functionStore = functionStore,
           buildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)
         ) map {
-          db =>
-            swaydb.Set[A, F, BAG](db.toBag)
+          core =>
+            swaydb.Set[A, F, BAG](core.toBag)
         }
 
       set.toBag[BAG]

@@ -86,7 +86,7 @@ object Set extends LazyLogging {
       implicit val unitSerializer: Serializer[Nothing] = Default.NothingSerializer
       val functionStore: FunctionStore = FunctionConverter.toFunctionsStore[A, Nothing, Apply.Set[Nothing], F](functions)
 
-      val core =
+      val set =
         Core(
           enableTimer = PureFunction.isOn(functionClassTag),
           cacheKeyValueIds = cacheKeyValueIds,
@@ -120,10 +120,10 @@ object Set extends LazyLogging {
           functionStore = functionStore,
           buildValidator = buildValidator
         ) map {
-          db =>
-            swaydb.Set[A, F, BAG](db.toBag)
+          core =>
+            swaydb.Set[A, F, BAG](core.toBag)
         }
 
-      core.toBag[BAG]
+      set.toBag[BAG]
     }
 }

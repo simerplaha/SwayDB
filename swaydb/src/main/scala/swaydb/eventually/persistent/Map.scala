@@ -86,7 +86,7 @@ object Map extends LazyLogging {
       implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       val functionStore = FunctionConverter.toFunctionsStore[K, V, Apply.Map[V], F](functions)
 
-      val core =
+      val map =
         Core(
           enableTimer = PureFunction.isOn(functionClassTag),
           cacheKeyValueIds = cacheKeyValueIds,
@@ -120,10 +120,10 @@ object Map extends LazyLogging {
           functionStore = functionStore,
           buildValidator = buildValidator
         ) map {
-          db =>
-            swaydb.Map[K, V, F, BAG](db.toBag)
+          core =>
+            swaydb.Map[K, V, F, BAG](core.toBag)
         }
 
-      core.toBag[BAG]
+      map.toBag[BAG]
     }
 }

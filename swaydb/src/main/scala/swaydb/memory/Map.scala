@@ -89,8 +89,8 @@ object Map extends LazyLogging {
           functionStore = functionStore,
           buildValidator = BuildValidator.DisallowOlderVersions(DataType.Map)
         ) map {
-          db =>
-            swaydb.Map[K, V, F, BAG](db.toBag)
+          core =>
+            swaydb.Map[K, V, F, BAG](core.toBag)
         }
 
       map.toBag[BAG]
