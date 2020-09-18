@@ -60,6 +60,9 @@ abstract class Source[K, T, BAG[_]](implicit bag: Bag[BAG]) extends Stream[T, BA
   def reverse: Source[K, T, BAG] =
     Source(free.reverse)
 
+  def stream: Source[K, T, BAG] =
+    this
+
   private[swaydb] def transformValue[B](f: T => B): Source[K, B, BAG] =
     Source(free.transformValue(f))
 }

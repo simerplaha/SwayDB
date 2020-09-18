@@ -38,7 +38,10 @@ object Base {
 
   implicit class AwaitImplicits[T](f: Future[T]) {
     def await: T =
-      Await.result(f, 10.seconds)
+      await(10.seconds)
+
+    def await(seconds: FiniteDuration): T =
+      Await.result(f, seconds)
   }
 
   def busyErrors(busyBoolean: Reserve[Unit] = Reserve.free(name = "busyError")): List[swaydb.Error.Recoverable] =

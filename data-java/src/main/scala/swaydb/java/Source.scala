@@ -57,4 +57,7 @@ trait Source[K, T] extends Stream[T] {
 
   def reverse: Source[K, T] =
     Source(asScalaStream.reverse)
+
+  def stream: Source[K, T] =
+    this
 }
