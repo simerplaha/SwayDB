@@ -343,6 +343,7 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
     else
       bag
         .suspend {
+          logger.info("********* Shutting down *********")
           coreState setState CoreState.Closing
           serial.terminate()
         }
@@ -351,6 +352,9 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
             case (result, compactor) =>
               result and compactor.terminateAndClear()
           }
+        }
+        .andTransform {
+          logger.info("Compaction terminated!")
         }
         .and {
           IO.Defer(zero.close()).run(0)

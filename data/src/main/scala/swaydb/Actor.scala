@@ -661,7 +661,7 @@ class Actor[-T, S](val name: String,
       logger.info(s"""Actor("$name") is busy. Listening to be free. isTerminated = $isTerminated.""")
       Reserve.promise(busy).future flatMap {
         _ =>
-          logger.info(s"""Actor("$name") is free.""")
+          logger.info(s"""Actor("$name") is available.""")
           whileNotReceivingAsync(continueIfNonEmpty)(releaseFunction)
       }
     }
@@ -705,7 +705,7 @@ class Actor[-T, S](val name: String,
     } else {
       logger.info(s"""Actor("$name") is busy. Blocking until free. isTerminated = $isTerminated.""")
       Reserve.blockUntilFree(busy)
-      logger.info(s"""Actor("$name") is free.""")
+      logger.info(s"""Actor("$name") is available.""")
       whileNotReceivingSync(continueIfNonEmpty)(releaseFunction)
     }
   }
@@ -906,10 +906,7 @@ class Actor[-T, S](val name: String,
     }
 
   override def terminateAndClear[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-    bag.transform(terminate()) {
-      _ =>
-        clear()
-    }
+    terminate().andTransform(clear())
 
   /**
    * We cannot invoke terminate from within the Actor itself via block because [[busy]] is already set to true
@@ -918,17 +915,24 @@ class Actor[-T, S](val name: String,
    *
    * Currently there is no use to terminate from within the Actor itself.
    */
-  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = {
+    def doPostTerminate(preTerminateExecuted: Boolean) =
+      if (postTerminate.isDefined)
+        runPostTerminate(preTerminateExecuted)
+      else
+        bag.unit
+
     bag.suspend {
       if (compareSetTerminated())
       //invoke terminator function
-        bag.flatMap(runPreTerminate()) {
-          executed =>
-            runPostTerminate(executed)
-        }
+        if (preTerminate.isDefined)
+          runPreTerminate().flatMap(doPostTerminate)
+        else
+          doPostTerminate(true)
       else
         bag.unit
     }
+  }
 
   def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = {
     scheduler.value(()).task(timeout)(this.terminate[Future]())
