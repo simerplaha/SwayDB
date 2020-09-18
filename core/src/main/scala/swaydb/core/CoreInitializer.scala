@@ -293,7 +293,7 @@ private[core] object CoreInitializer extends LazyLogging {
                               zero = zero,
                               coreState = CoreState(),
                               threadStateCache = threadStateCache,
-                              serial = Serial.sync(Bag.less),
+                              serial = Serial.synchronised(Bag.less),
                               readStates = readStates
                             )
 

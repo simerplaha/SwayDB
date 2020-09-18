@@ -35,17 +35,15 @@ sealed trait Serial[T[_]] {
 
   def execute[F](f: => F): T[F]
 
-  def terminate(): T[Unit]
-
-  def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
+  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
 }
 
 object Serial {
 
-  trait Sync[T[_]] extends Serial[T]
+  trait Synchronised[T[_]] extends Serial[T]
 
-  trait SingleThread[T[_]] extends Serial[T] {
+  trait SingleThreaded[T[_]] extends Serial[T] {
     def executor: ExecutorService
   }
 
@@ -56,32 +54,39 @@ object Serial {
   def from[BAG[_]](implicit bag: Bag[BAG]): Serial[BAG] =
     bag match {
       case bag: Bag.Sync[BAG] =>
-        sync(bag)
+        synchronised(bag)
 
       case bag: Bag.Async[BAG] =>
         singleThread(bag)
     }
 
-  def sync[BAG[_]](implicit bag: Bag.Sync[BAG]): Serial.Sync[BAG] =
-    new Serial.Sync[BAG] {
+  def synchronised[BAG[_]](implicit bag: Bag[BAG]): Serial.Synchronised[BAG] =
+    new Serial.Synchronised[BAG] {
       override def execute[F](f: => F): BAG[F] =
         bag.apply(f)
 
-      override def terminate(): BAG[Unit] =
-        bag.unit
-
-      override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
         bag.unit
     }
 
-  def singleThread[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.SingleThread[BAG] = {
+  def singleThread[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.SingleThreaded[BAG] = {
     val ec: ExecutorService = Executors.newSingleThreadExecutor(SerialThreadFactory.create())
     singleThread(bag, ec)
   }
 
+  def actor[BAG[_]](implicit bag: Bag.Async[BAG],
+                    ec: ExecutionContext): Serial.Actor[BAG] = {
+    val actor = Actor[() => Unit]("Actor Serial") {
+      (run, _) =>
+        run()
+    }(ec, QueueOrder.FIFO)
+
+    Serial.actor(bag, actor)
+  }
+
   def singleThread[BAG[_]](implicit bag: Bag.Async[BAG],
-                           ec: ExecutorService): Serial.SingleThread[BAG] =
-    new Serial.SingleThread[BAG] {
+                           ec: ExecutorService): Serial.SingleThreaded[BAG] =
+    new Serial.SingleThreaded[BAG] {
 
       override def executor: ExecutorService =
         ec
@@ -99,22 +104,9 @@ object Serial {
         bag.fromPromise(promise)
       }
 
-      override def terminate(): BAG[Unit] =
-        bag.fromIO(IO(ec.awaitTermination(10, TimeUnit.SECONDS)))
-
-      override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
         bag.fromIO(IO(ec.awaitTermination(10, TimeUnit.SECONDS)))
     }
-
-  def actor[BAG[_]](implicit bag: Bag.Async[BAG],
-                    ec: ExecutionContext): Serial.Actor[BAG] = {
-    val actor = Actor[() => Unit]("Actor Serial") {
-      (run, _) =>
-        run()
-    }(ec, QueueOrder.FIFO)
-
-    Serial.actor(bag, actor)
-  }
 
   def actor[BAG[_]](implicit bag: Bag.Async[BAG],
                     actor: ActorRef[() => Unit, Unit]): Serial.Actor[BAG] =
@@ -129,30 +121,26 @@ object Serial {
         bag.fromPromise(promise)
       }
 
-      override def terminate(): BAG[Unit] =
-        actor.terminateAndClear[BAG]()
-
-      override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
         actor.terminateAndClear[BAG]()(bag)
-
     }
 
   def transfer[BAG1[_], BAG2[_]](from: Serial[BAG1])(implicit bag1: Bag[BAG1],
                                                      bag2: Bag[BAG2]): Serial[BAG2] =
     from match {
-      case _: Serial.Sync[BAG1] =>
+      case _: Serial.Synchronised[BAG1] =>
         bag2 match {
           case bag2: Bag.Sync[BAG2] =>
-            Serial.sync[BAG2](bag2)
+            Serial.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
             Serial.singleThread[BAG2](bag2)
         }
 
-      case from: Serial.SingleThread[BAG1] =>
+      case from: Serial.SingleThreaded[BAG1] =>
         bag2 match {
           case bag2: Bag.Sync[BAG2] =>
-            Serial.sync[BAG2](bag2)
+            Serial.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
             Serial.singleThread[BAG2](bag2, from.executor)
@@ -161,7 +149,7 @@ object Serial {
       case from: Serial.Actor[BAG1] =>
         bag2 match {
           case bag2: Bag.Sync[BAG2] =>
-            Serial.sync[BAG2](bag2)
+            Serial.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
             Serial.actor[BAG2](bag2, from.actor)

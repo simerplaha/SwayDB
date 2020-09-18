@@ -344,7 +344,7 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
       bag
         .suspend {
           coreState setState CoreState.Closing
-          serial.terminateBag()
+          serial.terminate()
         }
         .andThen {
           compactors.foldLeft(bag.unit) {
