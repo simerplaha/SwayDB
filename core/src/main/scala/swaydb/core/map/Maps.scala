@@ -24,6 +24,7 @@
 
 package swaydb.core.map
 
+import java.nio.ReadOnlyBufferException
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.function.Consumer
@@ -49,6 +50,8 @@ import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
 private[core] object Maps extends LazyLogging {
+
+  val closeErrorMessage = "Cannot perform write on a closed instance."
 
   def memory[OK, OV, K <: OK, V <: OV](nullKey: OK,
                                        nullValue: OV,
@@ -362,6 +365,8 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
                                                                                                         val timer: Timer,
                                                                                                         forceSaveApplier: ForceSaveApplier) extends LazyLogging { self =>
 
+  @volatile private var closed: Boolean = false
+
   //this listener is invoked when currentMap is full.
   private var onNextMapListener: () => Unit = () => ()
   // This is crucial for write performance use null instead of Option.
@@ -418,6 +423,9 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
       try
         currentMap writeNoSync entry
       catch {
+        case exception: Throwable if self.closed =>
+          throw swaydb.Exception.InvalidAccessException(Maps.closeErrorMessage, exception)
+
         case throwable: Throwable =>
           //If there is a failure writing an Entry to the Map. Start a new Map immediately! This ensures that
           //if the failure was due to a corruption in the current Map, all the new Entries do not value submitted
@@ -567,16 +575,17 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
     currentMap
 
   def close(): IO[swaydb.Error.Map, Unit] =
-    IO(timer.close)
-      .onLeftSideEffect {
-        failure =>
-          logger.error("Failed to close timer file", failure.exception)
-      }
-      .and {
-        snapshot()
-          .foreachIO(map => IO(map.close()), failFast = false)
-          .getOrElse(IO.unit)
-      }
+    IO {
+      closed = true
+      timer.close
+    }.onLeftSideEffect {
+      failure =>
+        logger.error("Failed to close timer file", failure.exception)
+    }.and {
+      snapshot()
+        .foreachIO(map => IO(map.close()), failFast = false)
+        .getOrElse(IO.unit)
+    }
 
   def delete(): IO[Error.Map, Unit] =
     close()
@@ -594,6 +603,9 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
 
   def stateId: Long =
     totalMapsCount
+
+  def isClosed =
+    closed
 
   def queuedMaps =
     maps.asScala

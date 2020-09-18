@@ -55,6 +55,8 @@ object Exception {
   case object NotSentToNextLevel extends Exception("Not sent to next Level")
   case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
 
+  case class InvalidAccessException(message: String, cause: Throwable) extends Exception(message, cause)
+
   /**
    * Report missing functions.
    */
