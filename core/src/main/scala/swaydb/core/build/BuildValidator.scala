@@ -57,15 +57,6 @@ sealed trait BuildValidator { self =>
 
 object BuildValidator {
 
-  def ignore(): BuildValidator.Ignore =
-    BuildValidator.Ignore
-
-  sealed trait Ignore extends BuildValidator
-  case object Ignore extends Ignore {
-    override def validate[E: IO.ExceptionHandler](previousBuild: Build, thisVersion: Build.Version): IO[E, Option[DataType]] =
-      IO.none
-  }
-
   /**
    * This validate does not allow SwayDB boot-up on version that are older than 0.14.0 or
    * if no build.info exist.

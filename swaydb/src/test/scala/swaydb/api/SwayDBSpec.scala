@@ -475,29 +475,6 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       }
     }
 
-    "allow different data-types on same directory" when {
-      "ignore validator is used" in {
-        TestCaseSweeper {
-          implicit sweeper =>
-            val dir = randomDir
-            val map = swaydb.persistent.Map[Int, Int, Nothing, Bag.Less](dir)
-            map.path shouldBe dir
-            map.put(1, 1)
-            map.close()
-
-            implicit val validator = BuildValidator.Ignore
-            val set = swaydb.persistent.Set[Int, Nothing, Bag.Less](dir)
-            set.add(2)
-            set.contains(2) shouldBe true
-            set.close()
-
-            val reopened = swaydb.persistent.Set[Int, Nothing, Bag.Less](dir).sweep(_.delete())
-            reopened.contains(2) shouldBe true
-            reopened.contains(1) shouldBe true
-        }
-      }
-    }
-
     //    "eventually remove all Segments from the database when remove range is submitted" in {
     //      val db = newDB()
     //
