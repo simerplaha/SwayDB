@@ -42,13 +42,13 @@ sealed trait Serial[T[_]] {
 
 case object Serial {
 
-  sealed trait Synchronised[T[_]] extends Serial[T]
+  sealed trait Synchronised[BAG[_]] extends Serial[BAG]
 
-  sealed trait SingleThread[T[_]] extends Serial[T] {
+  sealed trait SingleThread[BAG[_]] extends Serial[BAG] {
     def executor: ExecutorService
   }
 
-  sealed trait Actor[T[_]] extends Serial[T] {
+  sealed trait Actor[BAG[_]] extends Serial[BAG] {
     def actor: ActorRef[() => Unit, Unit]
   }
 

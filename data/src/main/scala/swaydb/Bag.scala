@@ -26,11 +26,10 @@ package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.{ApiIO, ThrowableIO}
-import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.util.Futures
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Success, Try}
+import scala.util.Try
 
 /**
  * [[Bag]]s implement functions for managing side-effect. You can use any external effect type like Try, Future etc.
@@ -268,9 +267,9 @@ object Bag extends LazyLogging {
      * isComplete is required to add stack-safe read retries if there were failures like
      * async closed files during reads etc.
      */
-    trait Retryable[T[_]] extends Bag.Async[T] { self =>
-      def isComplete[A](a: T[A]): Boolean
-      def isIncomplete[A](a: T[A]): Boolean =
+    trait Retryable[BAG[_]] extends Bag.Async[BAG] { self =>
+      def isComplete[A](a: BAG[A]): Boolean
+      def isIncomplete[A](a: BAG[A]): Boolean =
         !isComplete(a)
     }
   }
