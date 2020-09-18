@@ -41,6 +41,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.core.segment.ThreadReadState
+import swaydb.data.NonEmptyList
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
@@ -49,7 +50,6 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Core defines the interface to SwayDB's internals. User level APIs interact with SwayDB via this instance only
@@ -156,9 +156,8 @@ private[swaydb] object Core {
 private[swaydb] class Core[BAG[_]](zero: LevelZero,
                                    coreState: CoreState,
                                    threadStateCache: ThreadStateCache)(implicit bag: Bag[BAG],
-                                                                       compactor: ActorWire[Compactor[ThrottleState], ThrottleState],
-                                                                       private[swaydb] val bufferSweeper: ByteBufferSweeperActor,
-                                                                       shutdownExecutionContext: ExecutionContext) extends LazyLogging {
+                                                                       compactors: NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]],
+                                                                       private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
 
   private val serial = bag.createSerial()
 
@@ -358,28 +357,6 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
   def isFunctionApplied(functionId: Slice[Byte]): Boolean =
     zero.isFunctionApplied(functionId)
 
-  /**
-   * This does the final clean up on all Levels.
-   *
-   * - Releases all locks on all system folders
-   * - Flushes all files and persists them to disk for persistent databases.
-   */
-
-  private def shutdownCompaction(): Future[Unit] = {
-    logger.info("Stopping compaction ...")
-    compactor
-      .ask
-      .flatMap {
-        (impl, state, self) =>
-          impl.terminate(state, self)
-      }
-      .recoverWith {
-        case exception =>
-          logger.error("Failed compaction shutdown.", exception)
-          Future.failed(exception)
-      }
-  }
-
   def close(): BAG[Unit] =
     closeWithBag()(this.bag)
 
@@ -392,8 +369,11 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
           coreState setState CoreState.Closing
           serial.terminateBag()
         }
-        .and {
-          IO.fromFuture(shutdownCompaction()).run(0)
+        .andThen {
+          compactors.foldLeft(bag.unit) {
+            case (result, compactor) =>
+              result and compactor.terminateAndClear()
+          }
         }
         .and {
           IO.Defer(zero.close()).run(0)
@@ -414,7 +394,6 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
       coreState = coreState,
       threadStateCache = threadStateCache,
     )(bag = bag,
-      compactor = compactor,
-      bufferSweeper = bufferSweeper,
-      shutdownExecutionContext = shutdownExecutionContext)
+      compactors = compactors,
+      bufferSweeper = bufferSweeper)
 }

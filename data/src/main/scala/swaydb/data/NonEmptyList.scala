@@ -36,15 +36,15 @@ case class NonEmptyList[F](override val head: F, override val tail: Iterable[F])
 
   override def iterator: Iterator[F] =
     new Iterator[F] {
-      var started = false
+      var processedHead = false
       val tailIterator = self.tail.iterator
 
       override def hasNext: Boolean =
-        head != null && (!started || tailIterator.hasNext)
+        !processedHead || tailIterator.hasNext
 
       override def next(): F =
-        if (!started) {
-          started = true
+        if (!processedHead) {
+          processedHead = true
           head
         } else {
           tailIterator.next()

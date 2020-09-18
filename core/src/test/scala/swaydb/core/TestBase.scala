@@ -31,7 +31,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import swaydb.ActorWire
+import swaydb.{ActorWire, Bag}
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
@@ -53,6 +53,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
+import swaydb.data.NonEmptyList
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, MMAP, RecoveryMode}
@@ -565,16 +566,20 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[ActorWire[Compactor[ThrottleState], ThrottleState]] =
-      if (throttleOn)
-        Some(
+    val compaction: Option[NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
+      if (throttleOn) {
+        val compactors =
           CoreInitializer.initialiseCompaction(
             zero = level0,
             executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared)
-          ) get
-        )
-      else
+          ).value
+
+        compactors should have size 1
+
+        Some(compactors)
+      } else {
         None
+      }
 
     println("Levels started")
 
@@ -684,26 +689,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     runAsserts(asserts)
 
-    import swaydb.data.RunThis._
-
-    compaction foreach {
-      implicit compaction =>
-        val termination =
-          compaction
-            .ask
-            .flatMap {
-              (impl, state, self) =>
-                impl.terminate(state, self)
-            }
-            .flatMap {
-              _ =>
-                level0.close[Future]()
-            }
-
-        termination.await(10.seconds)
-    }
-
-    level0.delete[Future]().await(10.seconds)
+    compaction.foreach(_.foreach(_.terminateAndClear[Bag.Less]()))
+    level0.delete[Bag.Less]()
 
     if (!throttleOn)
       assertLevel(

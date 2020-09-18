@@ -38,7 +38,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Promise}
 
 /**
- * [[ThrottleCompaction]] does not implement any concurrency which should be handled by an Actor (see [[ThrottleCompactor.createActor]]).
+ * [[ThrottleCompaction]] does not implement any concurrency which should be handled by an Actor (see [[ThrottleCompactor.createActors]]).
  *
  * This just implements compaction functions that mutate the state ([[ThrottleState]]) of Levels by executing compaction functions
  * of a Level.

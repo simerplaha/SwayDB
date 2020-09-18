@@ -472,7 +472,12 @@ class Actor[-T, S](val name: String,
 
   //only a single thread can invoke preTerminate.
   private val terminated = new AtomicBoolean(false)
+  //used to wakeUp a sleeping actor when messages arrive or when timer is overdue.
   private val busy = Reserve.free[Unit](name + "-busy-reserve")
+  //used for cases where on processing messages in thread-safe manner is important than the ordered
+  //like when the actor is terminated and we just to apply recovery on all dropped messages eg: closing MMAP files.
+  private val priority = AtomicThreadLocalBoolean()
+
   private val weight = new AtomicInteger(0)
   private val isBasic = interval.isEmpty
   private val isTimerLoop = interval.exists(_.isLoop)
@@ -554,14 +559,14 @@ class Actor[-T, S](val name: String,
 
   @inline private def terminatedWakeUp(): Unit =
     if (isNotEmpty && compareSetBusy())
-      Future(receive(overflow = Int.MaxValue, wakeUpOnComplete = true))
+      Future(receive(overflow = Int.MaxValue, wakeUpOnComplete = true, isPriorityReceive = false))
 
   @inline private def basicWakeUp(currentStashed: Int): Unit = {
     val overflow = currentStashed - fixedStashSize
     val isOverflown = overflow > 0
     //do not check for terminated actor here for receive to apply recovery.
     if (isOverflown && compareSetBusy())
-      Future(receive(overflow, wakeUpOnComplete = true))
+      Future(receive(overflow, wakeUpOnComplete = true, isPriorityReceive = false))
   }
 
   /**
@@ -582,7 +587,7 @@ class Actor[-T, S](val name: String,
         //if it's overflown then wakeUp Actor now!
         try {
           if (isOverflown)
-            Future(receive(overflow = overflow, wakeUpOnComplete = true))
+            Future(receive(overflow = overflow, wakeUpOnComplete = true, isPriorityReceive = false))
 
           //if there is no task schedule based on current stash so that eventually all messages get dropped without hammering.
           if (task.isEmpty)
@@ -631,44 +636,69 @@ class Actor[-T, S](val name: String,
     }
 
   /**
-   * Executes the release function in a blocking manner. This is used in testing.
+   * Executes the release function in a non blocking manner.
    *
    * @param continueIfNonEmpty if true will continue executing releaseFunction until the queue is empty
-   * @param releaseFunction    the function to execute
+   * @param releaseFunction    the function to execute that takes a Boolean indicating if this execution is
+   *                           a priority execution. Priority execution don't setFree the busy Boolean.
    */
-  @inline private def whileNotBusyAsync[A](continueIfNonEmpty: Boolean)(releaseFunction: => A): Future[A] =
-    if (compareSetBusy()) {
-      Future(releaseFunction) flatMap {
+  @inline private def whileNotReceivingAsync[A](continueIfNonEmpty: Boolean)(releaseFunction: Boolean => A): Future[A] = {
+    val busySet = compareSetBusy()
+    val isPriorityReceive = if (busySet) false else priority.compareAndSet(expect = false, update = true)
+
+    if (busySet || isPriorityReceive) {
+      //if unable to set busy via busy AtomicBoolean then set via receiving to make this execution a priority.
+      //in this functions case receiving is used because at the API level is the Await.result is used we want
+      //to make sure that we process the messages which in this thread without waiting for busy to be released.
+      Future(releaseFunction(isPriorityReceive)) flatMap {
         result =>
           if (!continueIfNonEmpty || isEmpty)
             Future.successful(result)
           else
-            whileNotBusyAsync(continueIfNonEmpty)(releaseFunction)
+            whileNotReceivingAsync(continueIfNonEmpty)(releaseFunction)
       }
     } else {
       logger.info(s"""Actor("$name") is busy. Listening to be free. isTerminated = $isTerminated.""")
       Reserve.promise(busy).future flatMap {
         _ =>
-          logger.debug(s"""Actor("$name") is free.""")
-          whileNotBusyAsync(continueIfNonEmpty)(releaseFunction)
+          logger.info(s"""Actor("$name") is free.""")
+          whileNotReceivingAsync(continueIfNonEmpty)(releaseFunction)
       }
     }
+  }
 
   /**
-   * Executes the release function in a blocking manner. This is used in testing.
+   * Executes the release function in a blocking manner. Do not block block until it's absolutely
+   * necessary. Using the [[priority]] AtomicBoolean overwrites [[busy]] if another thread has already set
+   * it to true allowing this thread to invoke the [[receive]] function.
+   *
+   * Why is this needed? To avoid deadlocks when blocking [[Bag]] is used and [[ExecutionContext]] has
+   * a very small number of threads in it's thread pool.
+   *
+   * [[compareSetBusy()]] could get set to true without being able to allocate a [[Future]] because threads are being
+   * blocked by this function. So to overwrite blocking, [[priority]] is used. If the Future is unable to get a thread
+   * then at least we can using the current thread to process the messages which would eventually release the thread
+   * allowing a Future thread to get allocated.
    *
    * @param continueIfNonEmpty if true will continue executing releaseFunction until the queue is empty
-   * @param releaseFunction    the function to execute
+   * @param releaseFunction    the function to execute given if this is a priority execution. Priority execution
+   *                           do not free
    */
   @tailrec
-  @inline private def whileNotBusySync[A](continueIfNonEmpty: Boolean)(releaseFunction: => A): Try[A] =
-    if (compareSetBusy()) {
-      Try(releaseFunction) match {
+  @inline private def whileNotReceivingSync[A](continueIfNonEmpty: Boolean)(releaseFunction: Boolean => A): Try[A] = {
+    val busySet = compareSetBusy()
+    val isPriorityReceive = if (busySet) false else priority.compareAndSet(expect = false, update = true)
+
+    if (busySet || isPriorityReceive) {
+      //if unable to set busy via busy AtomicBoolean then set via receiving to make this execution a priority.
+      //in this functions case receiving is used so that blocking does not occur when compareSetBusy is set to
+      //true but the Future is unable to spawn a thread because they are blocked.
+      Try(releaseFunction(isPriorityReceive)) match {
         case success @ Success(_) =>
           if (!continueIfNonEmpty || isEmpty)
             success
           else
-            whileNotBusySync(continueIfNonEmpty)(releaseFunction)
+            whileNotReceivingSync(continueIfNonEmpty)(releaseFunction)
 
         case failure @ Failure(_) =>
           failure
@@ -677,29 +707,30 @@ class Actor[-T, S](val name: String,
       logger.info(s"""Actor("$name") is busy. Blocking until free. isTerminated = $isTerminated.""")
       Reserve.blockUntilFree(busy)
       logger.info(s"""Actor("$name") is free.""")
-      whileNotBusySync(continueIfNonEmpty)(releaseFunction)
+      whileNotReceivingSync(continueIfNonEmpty)(releaseFunction)
     }
+  }
 
   /**
    * Release function will get executed when the thread was able to set [[busy]] to true but
-   * busy.set(false) should be invoked by the input releaseFunction similar to [[receive(*, *)]] function
+   * busy.set(false) should be invoked by the input releaseFunction similar to [[receive]] function
    * under try & finally.
    *
    * @param continueIfNonEmpty will continue executing the function while the queue is non-empty.
    */
-  @inline def whileNotBusy[BAG[_], A](continueIfNonEmpty: Boolean)(releaseFunction: => A)(implicit bag: Bag[BAG]): BAG[A] =
+  @inline def whileNotReceiving[BAG[_], A](continueIfNonEmpty: Boolean)(releaseFunction: Boolean => A)(implicit bag: Bag[BAG]): BAG[A] =
     bag match {
       case _: Bag.Sync[BAG] =>
         bag.fromIO {
           IO.fromTry {
-            whileNotBusySync(continueIfNonEmpty)(releaseFunction)
+            whileNotReceivingSync(continueIfNonEmpty)(releaseFunction)
           }
         }
 
       case bag: Bag.Async[BAG] =>
         bag.suspend {
           bag.fromFuture {
-            whileNotBusyAsync(continueIfNonEmpty)(releaseFunction)
+            whileNotReceivingAsync(continueIfNonEmpty)(releaseFunction)
           }
         }
     }
@@ -711,54 +742,50 @@ class Actor[-T, S](val name: String,
    *       result will be returned.
    */
   def receiveAllForce[BAG[_], R](onReceiveComplete: S => R)(implicit bag: Bag[BAG]): BAG[R] =
-    whileNotBusy(continueIfNonEmpty = true) {
-      receive(overflow = Int.MaxValue, wakeUpOnComplete = false)
-      onReceiveComplete(state)
+    whileNotReceiving(continueIfNonEmpty = true) {
+      isPriorityReceive =>
+        receive(overflow = Int.MaxValue, wakeUpOnComplete = false, isPriorityReceive = isPriorityReceive)
+        onReceiveComplete(state)
     }
 
-  private def receive(overflow: Int, wakeUpOnComplete: Boolean): Unit =
-    receiveMessages(overflow) {
-      setFree()
-      //after setting busy to false fetch the totalWeight again.
-
-      if (wakeUpOnComplete)
-        wakeUp(currentStashed = totalWeight)
-    }
-
-  private def receiveMessages(overflow: Int)(onComplete: => Unit): Unit = {
+  //receive can be invoked by busy or receiving booleans. busy is always tried first
+  //or receiving is used for priority execution.
+  private def receive(overflow: Int, wakeUpOnComplete: Boolean, isPriorityReceive: Boolean): Unit = {
     var processedWeight = 0
     var break = false
     try
-      while (!break && processedWeight < overflow) {
-        val messageAndWeight = queue.poll()
-        if (messageAndWeight == null) {
-          break = true
-        } else {
-          val (message, messageWeight) = messageAndWeight
+      //Execute if this the current thread the already set receiving to true or set to true now.
+      if (priority.isExecutingThread() || priority.compareAndSet(expect = false, update = true))
+        while (!break && processedWeight < overflow) {
+          val messageAndWeight = queue.poll()
+          if (messageAndWeight == null) {
+            break = true
+          } else {
+            val (message, messageWeight) = messageAndWeight
 
-          if (terminated.get())
-            try //apply recovery if actor is terminated.
-              recovery foreach {
-                f =>
-                  f(message, IO.Right(Actor.Error.TerminatedActor), self)
-              }
-            finally
-              processedWeight += messageWeight
-          else // else if the actor is not terminated, process the message.
-            try
-              execution(message, self)
-            catch {
-              case throwable: Throwable =>
-                //apply recovery if failed to process messages.
+            if (terminated.get())
+              try //apply recovery if actor is terminated.
                 recovery foreach {
                   f =>
-                    f(message, IO.Left(throwable), self)
+                    f(message, IO.Right(Actor.Error.TerminatedActor), self)
                 }
-            } finally {
-              processedWeight += messageWeight
-            }
+              finally
+                processedWeight += messageWeight
+            else // else if the actor is not terminated, process the message.
+              try
+                execution(message, self)
+              catch {
+                case throwable: Throwable =>
+                  //apply recovery if failed to process messages.
+                  recovery foreach {
+                    f =>
+                      f(message, IO.Left(throwable), self)
+                  }
+              } finally {
+                processedWeight += messageWeight
+              }
+          }
         }
-      }
     finally {
       if (processedWeight != 0)
         weight updateAndGet {
@@ -768,7 +795,14 @@ class Actor[-T, S](val name: String,
           }
         }
 
-      onComplete
+      priority.setFree()
+
+      if (!isPriorityReceive && busy.isBusy) //because receive can always be invoked through whileNotBusy
+        setFree()
+      //after setting busy to false fetch the totalWeight again.
+
+      if (wakeUpOnComplete)
+        wakeUp(currentStashed = totalWeight)
     }
   }
 
@@ -908,31 +942,35 @@ class Actor[-T, S](val name: String,
    * @return returns the token which can be used to execute [[runPostTerminate(*)]].
    */
   private def runPreTerminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Boolean] =
-    whileNotBusy(continueIfNonEmpty = false) {
-      try {
-        preTerminate.foreach(_ (self))
-        true
-      } catch {
-        case exception: Throwable =>
-          logger.error(s"""Actor("$name") - Exception in running Pre-termination. Post termination will continue.""", exception)
+    whileNotReceiving(continueIfNonEmpty = false) {
+      isPriorityReceive =>
+        try {
+          preTerminate.foreach(_ (self))
           true
-      } finally {
-        setFree()
-      }
+        } catch {
+          case exception: Throwable =>
+            logger.error(s"""Actor("$name") - Exception in running Pre-termination. Post termination will continue.""", exception)
+            true
+        } finally {
+          if (!isPriorityReceive)
+            setFree()
+        }
     }
 
   private def runPostTerminate[BAG[_]](executedPreTerminate: Boolean)(implicit bag: Bag[BAG]): BAG[Unit] =
     if (executedPreTerminate)
-      whileNotBusy(continueIfNonEmpty = false) {
-        try
-          postTerminate.foreach(_ (self))
-        catch {
-          case exception: Throwable =>
-            logger.error(s"""Actor("$name") - Exception in running Post-Termination. Termination will continue.""", exception)
-        } finally {
-          scheduler.get().foreach(_.terminate())
-          setFree()
-        }
+      whileNotReceiving(continueIfNonEmpty = false) {
+        isPriorityReceive =>
+          try
+            postTerminate.foreach(_ (self))
+          catch {
+            case exception: Throwable =>
+              logger.error(s"""Actor("$name") - Exception in running Post-Termination. Termination will continue.""", exception)
+          } finally {
+            scheduler.get().foreach(_.terminate())
+            if (!isPriorityReceive)
+              setFree()
+          }
       }
     else
       bag.unit

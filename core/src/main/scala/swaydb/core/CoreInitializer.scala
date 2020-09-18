@@ -41,6 +41,7 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.data.NonEmptyList
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -48,8 +49,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.{ActorRef, ActorWire, Bag, Error, IO}
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.sys.ShutdownHookThread
 
 /**
@@ -77,17 +76,11 @@ private[core] object CoreInitializer extends LazyLogging {
       executionContext(config.level1).toList ++
       config.otherLevels.flatMap(executionContext)
 
-  def shutdownExecutionContext(contexts: Seq[CompactionExecutionContext]): ExecutionContext =
-    contexts collectFirst {
-      case CompactionExecutionContext.Create(executionContext) =>
-        executionContext
-    } getOrElse scala.concurrent.ExecutionContext.Implicits.global
-
   /**
    * Boots up compaction Actor and start listening to changes in levels.
    */
   def initialiseCompaction(zero: LevelZero,
-                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[Error.Level, ActorWire[Compactor[ThrottleState], ThrottleState]] =
+                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
       executionContexts = executionContexts
@@ -178,8 +171,6 @@ private[core] object CoreInitializer extends LazyLogging {
 
         val contexts = executionContexts(config)
 
-        implicit val shutdownEC: ExecutionContext = shutdownExecutionContext(contexts)
-
         lazy val memoryLevelPath = MemoryPathGenerator.next()
 
         def createLevel(id: Long,
@@ -268,7 +259,7 @@ private[core] object CoreInitializer extends LazyLogging {
                         implicit compactor =>
 
                           //trigger initial wakeUp.
-                          sendInitialWakeUp(compactor)
+                          sendInitialWakeUp(compactor.head)
 
                           val core =
                             new Core[Bag.Less](

@@ -79,7 +79,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
   override def deleteFiles = false
 
-  "createActor" should {
+  "createActors" should {
     "build compaction hierarchy" when {
       "there are two Levels and one new ExecutionContext" in {
         TestCaseSweeper {
@@ -87,8 +87,8 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel()
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-            val actor =
-              ThrottleCompactor.createActor(
+            val actors =
+              ThrottleCompactor.createActors(
                 List(zero, nextLevel),
                 List(
                   CompactionExecutionContext.Create(TestExecutionContext.executionContext),
@@ -96,10 +96,12 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
                 )
               ).get
 
+            actors should have size 1
+            val actor = actors.head
+
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
             actor.state.await.child shouldBe empty
-
         }
       }
 
@@ -109,14 +111,17 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel()
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-            val actor =
-              ThrottleCompactor.createActor(
+            val actors =
+              ThrottleCompactor.createActors(
                 List(zero, nextLevel),
                 List(
                   CompactionExecutionContext.Create(TestExecutionContext.executionContext),
                   CompactionExecutionContext.Create(TestExecutionContext.executionContext)
                 )
               ).get
+
+            actors should have size 2
+            val actor = actors.head
 
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) should contain only zero.rootPath
@@ -135,8 +140,8 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-            val actor =
-              ThrottleCompactor.createActor(
+            val actors =
+              ThrottleCompactor.createActors(
                 List(zero, nextLevel, nextLevel2),
                 List(
                   CompactionExecutionContext.Create(TestExecutionContext.executionContext),
@@ -144,6 +149,9 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
                   CompactionExecutionContext.Shared
                 )
               ).get
+
+            actors should have size 1
+            val actor = actors.head
 
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath, nextLevel2.rootPath)
@@ -158,8 +166,8 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-            val actor =
-              ThrottleCompactor.createActor(
+            val actors =
+              ThrottleCompactor.createActors(
                 List(zero, nextLevel, nextLevel2),
                 List(
                   CompactionExecutionContext.Create(TestExecutionContext.executionContext),
@@ -167,6 +175,9 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
                   CompactionExecutionContext.Create(TestExecutionContext.executionContext)
                 )
               ).get
+
+            actors should have size 2
+            val actor = actors.head
 
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
