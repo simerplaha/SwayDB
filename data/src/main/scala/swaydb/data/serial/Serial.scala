@@ -30,6 +30,7 @@ import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorRef, Bag, IO}
 
 import scala.concurrent.{ExecutionContext, Promise}
+import scala.util.Try
 
 sealed trait Serial[T[_]] {
 
@@ -39,26 +40,17 @@ sealed trait Serial[T[_]] {
 
 }
 
-object Serial {
+case object Serial {
 
-  trait Synchronised[T[_]] extends Serial[T]
+  sealed trait Synchronised[T[_]] extends Serial[T]
 
-  trait SingleThreaded[T[_]] extends Serial[T] {
+  sealed trait SingleThread[T[_]] extends Serial[T] {
     def executor: ExecutorService
   }
 
-  trait Actor[T[_]] extends Serial[T] {
+  sealed trait Actor[T[_]] extends Serial[T] {
     def actor: ActorRef[() => Unit, Unit]
   }
-
-  def from[BAG[_]](implicit bag: Bag[BAG]): Serial[BAG] =
-    bag match {
-      case bag: Bag.Sync[BAG] =>
-        synchronised(bag)
-
-      case bag: Bag.Async[BAG] =>
-        singleThread(bag)
-    }
 
   def synchronised[BAG[_]](implicit bag: Bag[BAG]): Serial.Synchronised[BAG] =
     new Serial.Synchronised[BAG] {
@@ -69,61 +61,20 @@ object Serial {
         bag.unit
     }
 
-  def singleThread[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.SingleThreaded[BAG] = {
+  def thread[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.SingleThread[BAG] = {
     val ec: ExecutorService = Executors.newSingleThreadExecutor(SerialThreadFactory.create())
-    singleThread(bag, ec)
+    thread(bag, ec)
   }
 
   def actor[BAG[_]](implicit bag: Bag.Async[BAG],
                     ec: ExecutionContext): Serial.Actor[BAG] = {
-    val actor = Actor[() => Unit]("Actor Serial") {
+    val actor = Actor[() => Unit](s"Actor - ${this.productPrefix}") {
       (run, _) =>
         run()
     }(ec, QueueOrder.FIFO)
 
     Serial.actor(bag, actor)
   }
-
-  def singleThread[BAG[_]](implicit bag: Bag.Async[BAG],
-                           ec: ExecutorService): Serial.SingleThreaded[BAG] =
-    new Serial.SingleThreaded[BAG] {
-
-      override def executor: ExecutorService =
-        ec
-
-      override def execute[F](f: => F): BAG[F] = {
-        val promise = Promise[F]
-
-        ec.submit {
-          new Callable[Unit] {
-            override def call(): Unit =
-              promise.success(f) //no need to watch for failure here because they are caught at the API Level.
-          }
-        }
-
-        bag.fromPromise(promise)
-      }
-
-      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-        bag.fromIO(IO(ec.awaitTermination(10, TimeUnit.SECONDS)))
-    }
-
-  def actor[BAG[_]](implicit bag: Bag.Async[BAG],
-                    actor: ActorRef[() => Unit, Unit]): Serial.Actor[BAG] =
-    new Serial.Actor[BAG] {
-
-      override def actor: ActorRef[() => Unit, Unit] =
-        actor
-
-      override def execute[F](f: => F): BAG[F] = {
-        val promise = Promise[F]()
-        actor.send(() => promise.success(f))
-        bag.fromPromise(promise)
-      }
-
-      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-        actor.terminateAndClear[BAG]()(bag)
-    }
 
   def transfer[BAG1[_], BAG2[_]](from: Serial[BAG1])(implicit bag1: Bag[BAG1],
                                                      bag2: Bag[BAG2]): Serial[BAG2] =
@@ -134,16 +85,16 @@ object Serial {
             Serial.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
-            Serial.singleThread[BAG2](bag2)
+            Serial.thread[BAG2](bag2)
         }
 
-      case from: Serial.SingleThreaded[BAG1] =>
+      case from: Serial.SingleThread[BAG1] =>
         bag2 match {
           case bag2: Bag.Sync[BAG2] =>
             Serial.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
-            Serial.singleThread[BAG2](bag2, from.executor)
+            Serial.thread[BAG2](bag2, from.executor)
         }
 
       case from: Serial.Actor[BAG1] =>
@@ -155,5 +106,46 @@ object Serial {
           case bag2: Bag.Async[BAG2] =>
             Serial.actor[BAG2](bag2, from.actor)
         }
+    }
+
+  private def thread[BAG[_]](implicit bag: Bag.Async[BAG],
+                                   ec: ExecutorService): Serial.SingleThread[BAG] =
+    new Serial.SingleThread[BAG] {
+
+      override def executor: ExecutorService =
+        ec
+
+      override def execute[F](f: => F): BAG[F] = {
+        val promise = Promise[F]
+
+        ec.submit {
+          new Callable[Boolean] {
+            override def call(): Boolean =
+              promise.tryComplete(Try(f))
+          }
+        }
+
+        bag.fromPromise(promise)
+      }
+
+      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+        bag.fromIO(IO(ec.awaitTermination(10, TimeUnit.SECONDS)))
+    }
+
+  private def actor[BAG[_]](implicit bag: Bag.Async[BAG],
+                            actor: ActorRef[() => Unit, Unit]): Serial.Actor[BAG] =
+    new Serial.Actor[BAG] {
+
+      override def actor: ActorRef[() => Unit, Unit] =
+        actor
+
+      override def execute[F](f: => F): BAG[F] = {
+        val promise = Promise[F]()
+        actor.send(() => promise.tryComplete(Try(f)))
+        bag.fromPromise(promise)
+      }
+
+      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+        actor.terminateAndClear[BAG]()(bag)
     }
 }
