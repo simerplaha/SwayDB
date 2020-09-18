@@ -46,7 +46,8 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
-import swaydb.{Serial, _}
+import swaydb._
+import swaydb.data.serial.Serial
 
 import scala.concurrent.duration._
 

@@ -48,9 +48,10 @@ import swaydb.data.NonEmptyList
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
-import swaydb.{ActorRef, ActorWire, Bag, Error, IO, Serial}
+import swaydb.{ActorRef, ActorWire, Bag, Error, IO}
 
 import scala.sys.ShutdownHookThread
 

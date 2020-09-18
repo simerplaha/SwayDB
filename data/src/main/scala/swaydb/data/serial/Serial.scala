@@ -22,15 +22,14 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb
+package swaydb.data.serial
 
 import java.util.concurrent.{Callable, ExecutorService, Executors, TimeUnit}
 
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.data.serial.SerialThreadFactory
+import swaydb.{Actor, ActorRef, Bag, IO}
 
 import scala.concurrent.{ExecutionContext, Promise}
-import scala.util.Try
 
 sealed trait Serial[T[_]] {
 
