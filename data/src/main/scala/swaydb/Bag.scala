@@ -43,7 +43,6 @@ sealed trait Bag[BAG[_]] { thisBag =>
   def unit: BAG[Unit]
   def none[A]: BAG[Option[A]]
   def apply[A](a: => A): BAG[A]
-  def createSerial(): Serial[BAG]
   def foreach[A](a: BAG[A])(f: A => Unit): Unit
   def map[A, B](a: BAG[A])(f: A => B): BAG[B]
   def transform[A, B](a: BAG[A])(f: A => B): BAG[B]
@@ -140,9 +139,6 @@ object Bag extends LazyLogging {
 
       @inline def apply(a: => A): BAG[A] =
         bag(a)
-
-      @inline def createSerial(): Serial[BAG] =
-        bag.createSerial()
 
       @inline def foreach(f: A => Unit): Unit =
         bag.foreach(fa)(f)
@@ -287,18 +283,6 @@ object Bag extends LazyLogging {
       override def none[A]: IO.ThrowableIO[Option[A]] =
         IO.none
 
-      override def createSerial(): Serial[ThrowableIO] =
-        new Serial[ThrowableIO] {
-          override def execute[F](f: => F): ThrowableIO[F] =
-            IO(f)
-
-          override def terminate(): ThrowableIO[Unit] =
-            IO.unit
-
-          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-            bag.unit
-        }
-
       override def apply[A](a: => A): IO.ThrowableIO[A] =
         IO(a)
 
@@ -385,18 +369,6 @@ object Bag extends LazyLogging {
       override def apply[A](a: => A): ApiIO[A] =
         IO(a)
 
-      override def createSerial(): Serial[ApiIO] =
-        new Serial[ApiIO] {
-          override def execute[F](f: => F): ApiIO[F] =
-            IO(f)
-
-          override def terminate(): ApiIO[Unit] =
-            IO.unit
-
-          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-            bag.unit
-        }
-
       override def foreach[A](a: ApiIO[A])(f: A => Unit): Unit =
         a.foreach(f)
 
@@ -472,18 +444,6 @@ object Bag extends LazyLogging {
       override def apply[A](a: => A): Try[A] =
         Try(a)
 
-      override def createSerial(): Serial[Try] =
-        new Serial[Try] {
-          override def execute[F](f: => F): Try[F] =
-            Try(f)
-
-          override def terminate(): Try[Unit] =
-            Success(())
-
-          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-            bag.unit
-        }
-
       override def foreach[A](a: Try[A])(f: A => Unit): Unit =
         a.foreach(f)
 
@@ -540,17 +500,6 @@ object Bag extends LazyLogging {
 
       override def apply[A](a: => A): A = a
 
-      override def createSerial(): Serial[Less] =
-        new Serial[Less] {
-          override def execute[F](f: => F): F = f
-
-          override def terminate(): Less[Unit] =
-            ()
-
-          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-            bag.unit
-        }
-
       override def foreach[A](a: Less[A])(f: A => Unit): Unit = f(a)
 
       override def map[A, B](a: Less[A])(f: A => B): B = f(a)
@@ -581,27 +530,6 @@ object Bag extends LazyLogging {
 
       override def executionContext: ExecutionContext =
         ec
-
-      override def createSerial(): Serial[Future] =
-        new Serial[Future] {
-
-          val actor = Actor[() => Unit]("Future Serial Actor") {
-            (run, _) =>
-              run()
-          }(ec, QueueOrder.FIFO)
-
-          override def execute[F](f: => F): Future[F] = {
-            val promise = Promise[F]()
-            actor.send(() => promise.tryComplete(Try(f)))
-            promise.future
-          }
-
-          override def terminate(): Future[Unit] =
-            actor.terminateAndClear[Future]()(self)
-
-          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-            actor.terminateAndClear[BAG]()(bag)
-        }
 
       override val unit: Future[Unit] =
         Futures.unit

@@ -25,13 +25,10 @@
 package swaydb.zio
 
 import swaydb.Bag.Async
-import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, Bag, Serial}
 import zio.Task
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.control.NoStackTrace
-import scala.util.{Failure, Try}
+import scala.util.Failure
 
 object Bag {
 
@@ -40,31 +37,6 @@ object Bag {
 
       override def executionContext: ExecutionContext =
         runTime.platform.executor.asEC
-
-      override def createSerial(): Serial[Task] =
-        new Serial[Task] {
-
-          /**
-           * May be use zio.Actor instead since fromFuture is ignoring the ec.
-           */
-          val actor = Actor[() => Unit]("ZIO Serial Actor") {
-            (run, _) =>
-              run()
-          }(executionContext, QueueOrder.FIFO)
-
-          override def execute[F](f: => F): Task[F] = {
-            val promise = Promise[F]
-            actor.send(() => promise.tryComplete(Try(f)))
-            //ok may be zio.Actor is required here.
-            Task.fromFuture(_ => promise.future)
-          }
-
-          override def terminate(): Task[Unit] =
-            actor.terminateAndClear[Task]()(self)
-
-          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-            actor.terminateAndClear[BAG]()(bag)
-        }
 
       override val unit: Task[Unit] =
         Task.unit

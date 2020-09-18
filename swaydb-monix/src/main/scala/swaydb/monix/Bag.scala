@@ -26,11 +26,10 @@ package swaydb.monix
 
 import monix.eval._
 import swaydb.Bag.Async
-import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, Bag, IO, Serial}
+import swaydb.IO
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Try}
+import scala.util.Failure
 
 object Bag {
 
@@ -39,31 +38,6 @@ object Bag {
 
       override def executionContext: ExecutionContext =
         scheduler
-
-      override def createSerial(): Serial[Task] =
-        new Serial[Task] {
-
-          /**
-           * If there another preferred way to execute tasks serially in Monix instead of using an Actor
-           * that should be used here.
-           */
-          val actor = Actor[() => Unit]("Monix Serial Actor") {
-            (run, _) =>
-              run()
-          }(scheduler, QueueOrder.FIFO)
-
-          override def execute[F](f: => F): Task[F] = {
-            val promise = Promise[F]
-            actor.send(() => promise.tryComplete(Try(f)))
-            Task.fromFuture(promise.future)
-          }
-
-          override def terminate(): Task[Unit] =
-            actor.terminateAndClear[Task]()(self)
-
-          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-            actor.terminateAndClear[BAG]()(bag)
-        }
 
       override val unit: Task[Unit] =
         Task.unit

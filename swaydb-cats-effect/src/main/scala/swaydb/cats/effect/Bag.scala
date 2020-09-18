@@ -26,11 +26,10 @@ package swaydb.cats.effect
 
 import cats.effect.{ContextShift, IO}
 import swaydb.Bag.Async
-import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, Bag, Serial, IO => SwayIO}
+import swaydb.{IO => SwayIO}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Try}
+import scala.util.Failure
 
 object Bag {
 
@@ -43,26 +42,6 @@ object Bag {
 
       override def executionContext: ExecutionContext =
         ec
-
-      override def createSerial(): Serial[IO] =
-        new Serial[IO] {
-          val actor = Actor[() => Unit]("Cats-effect serial Actor") {
-            (run, _) =>
-              run()
-          }(ec, QueueOrder.FIFO)
-
-          override def execute[F](f: => F): IO[F] = {
-            val promise = Promise[F]()
-            actor.send(() => promise.tryComplete(Try(f)))
-            IO.fromFuture(IO(promise.future))
-          }
-
-          override def terminate(): IO[Unit] =
-            actor.terminateAndClear[IO]()(self)
-
-          override def terminateBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-            actor.terminateAndClear[BAG]()(bag)
-        }
 
       override val unit: IO[Unit] =
         IO.unit

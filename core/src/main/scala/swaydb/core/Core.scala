@@ -25,11 +25,9 @@
 package swaydb.core
 
 import java.nio.file.Path
-import java.util.function.Supplier
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
-import swaydb._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.build.BuildValidator
 import swaydb.core.data.{Memory, SwayFunction, Value}
@@ -48,6 +46,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
+import swaydb.{Serial, _}
 
 import scala.concurrent.duration._
 
@@ -155,34 +154,11 @@ private[swaydb] object Core {
 
 private[swaydb] class Core[BAG[_]](zero: LevelZero,
                                    coreState: CoreState,
-                                   threadStateCache: ThreadStateCache)(implicit bag: Bag[BAG],
-                                                                       compactors: NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]],
-                                                                       private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
-
-  private val serial = bag.createSerial()
-
-  protected[swaydb] val readStates =
-    ThreadLocal.withInitial[ThreadReadState] {
-      new Supplier[ThreadReadState] {
-        override def get(): ThreadReadState =
-          threadStateCache match {
-            case ThreadStateCache.Limit(hashMapMaxSize, maxProbe) =>
-              ThreadReadState.limitHashMap(
-                maxSize = hashMapMaxSize,
-                probe = maxProbe
-              )
-
-            case ThreadStateCache.NoLimit =>
-              ThreadReadState.hashMap()
-
-            case ThreadStateCache.Disable =>
-              ThreadReadState.limitHashMap(
-                maxSize = 0,
-                probe = 0
-              )
-          }
-      }
-    }
+                                   threadStateCache: ThreadStateCache,
+                                   serial: Serial[BAG],
+                                   val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
+                                                                                 compactors: NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]],
+                                                                                 private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
 
   def zeroPath: Path =
     zero.path
@@ -388,12 +364,14 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
   def state: CoreState.State =
     coreState.getState
 
-  def toBag[BAG[_]](implicit bag: Bag[BAG]): Core[BAG] =
-    new Core[BAG](
+  def toBag[BAG2[_]](implicit bag2: Bag[BAG2]): Core[BAG2] =
+    new Core[BAG2](
       zero = zero,
       coreState = coreState,
       threadStateCache = threadStateCache,
-    )(bag = bag,
+      serial = Serial.transfer[BAG, BAG2](serial),
+      readStates = readStates,
+    )(bag = bag2,
       compactors = compactors,
       bufferSweeper = bufferSweeper)
 }

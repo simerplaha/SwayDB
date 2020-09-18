@@ -24,6 +24,8 @@
 
 package swaydb.core
 
+import java.util.function.Supplier
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -36,6 +38,7 @@ import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelCloser, NextLevel, TrashLevel}
+import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
@@ -47,7 +50,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
-import swaydb.{ActorRef, ActorWire, Bag, Error, IO}
+import swaydb.{ActorRef, ActorWire, Bag, Error, IO, Serial}
 
 import scala.sys.ShutdownHookThread
 
@@ -261,11 +264,36 @@ private[core] object CoreInitializer extends LazyLogging {
                           //trigger initial wakeUp.
                           sendInitialWakeUp(compactor.head)
 
+                          val readStates: ThreadLocal[ThreadReadState] =
+                            ThreadLocal.withInitial[ThreadReadState] {
+                              new Supplier[ThreadReadState] {
+                                override def get(): ThreadReadState =
+                                  threadStateCache match {
+                                    case ThreadStateCache.Limit(hashMapMaxSize, maxProbe) =>
+                                      ThreadReadState.limitHashMap(
+                                        maxSize = hashMapMaxSize,
+                                        probe = maxProbe
+                                      )
+
+                                    case ThreadStateCache.NoLimit =>
+                                      ThreadReadState.hashMap()
+
+                                    case ThreadStateCache.Disable =>
+                                      ThreadReadState.limitHashMap(
+                                        maxSize = 0,
+                                        probe = 0
+                                      )
+                                  }
+                              }
+                            }
+
                           val core =
                             new Core[Bag.Less](
                               zero = zero,
+                              coreState = CoreState(),
                               threadStateCache = threadStateCache,
-                              coreState = CoreState()
+                              serial = Serial.sync(Bag.less),
+                              readStates = readStates
                             )
 
                           addShutdownHook(core = core)
