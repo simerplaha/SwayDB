@@ -24,6 +24,7 @@
 
 package swaydb.core
 
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.CommonAssertions._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
@@ -37,19 +38,19 @@ import scala.concurrent.duration._
 private[swaydb] object TestSweeper {
 
   def createMemorySweeperMax(): Option[MemorySweeper.All] =
-    MemorySweeper(MemoryCache.All(4096, 1.mb / 2, 600.mb, None, false, ActorConfig.TimeLoop("TimeLoop test", 10.seconds, TestExecutionContext.executionContext)))
+    MemorySweeper(MemoryCache.All(4096, 1.mb / 2, 600.mb, None, false, ActorConfig.TimeLoop("TimeLoop test", 10.seconds, DefaultExecutionContext.sweeperEC)))
       .map(_.asInstanceOf[MemorySweeper.All])
 
   def createMemorySweeper10(): Option[MemorySweeper.All] =
-    MemorySweeper(MemoryCache.All(4096, 1.mb / 2, 600.mb, Some(1), false, ActorConfig.TimeLoop("TimeLoop test 2", 10.seconds, TestExecutionContext.executionContext)))
+    MemorySweeper(MemoryCache.All(4096, 1.mb / 2, 600.mb, Some(1), false, ActorConfig.TimeLoop("TimeLoop test 2", 10.seconds, DefaultExecutionContext.sweeperEC)))
       .map(_.asInstanceOf[MemorySweeper.All])
 
   def createMemoryBlockSweeper(): Option[MemorySweeper.BlockSweeper] =
-    MemorySweeper(MemoryCache.ByteCacheOnly(4096, 1.mb / 2, 600.mb, ActorConfig.Basic("Basic Actor", TestExecutionContext.executionContext)))
+    MemorySweeper(MemoryCache.ByteCacheOnly(4096, 1.mb / 2, 600.mb, ActorConfig.Basic("Basic Actor", DefaultExecutionContext.sweeperEC)))
       .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
 
   def createKeyValueSweeperBlock(): Option[MemorySweeper.KeyValueSweeper] =
-    MemorySweeper(MemoryCache.KeyValueCacheOnly(600.mb, Some(100), Some(ActorConfig.Basic("Basic Actor 2", TestExecutionContext.executionContext))))
+    MemorySweeper(MemoryCache.KeyValueCacheOnly(600.mb, Some(100), Some(ActorConfig.Basic("Basic Actor 2", DefaultExecutionContext.sweeperEC))))
       .map(_.asInstanceOf[MemorySweeper.KeyValueSweeper])
 
   def createMemorySweeperRandom(): Option[MemorySweeper.All] =
@@ -75,10 +76,10 @@ private[swaydb] object TestSweeper {
     orNone(createBlockCache(createMemorySweeperRandom()))
 
   def createFileSweeper(): FileSweeperActor =
-    FileSweeper(1000, ActorConfig.Basic("Basic test 3", TestExecutionContext.executionContext)).value(())
+    FileSweeper(1000, ActorConfig.Basic("Basic test 3", DefaultExecutionContext.sweeperEC)).value(())
 
   def createBufferCleaner(): ByteBufferSweeperActor =
-    ByteBufferSweeper()(TestExecutionContext.executionContext)
+    ByteBufferSweeper()(DefaultExecutionContext.sweeperEC)
 
   def createRandomCacheSweeper(): Option[MemorySweeper.Cache] =
     eitherOne(

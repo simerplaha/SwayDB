@@ -32,7 +32,6 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
-import swaydb.data.slice.Slice
 
 class StreamFutureSpec extends StreamSpec[Future]()(Bag.future(TestExecutionContext.executionContext)) {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)

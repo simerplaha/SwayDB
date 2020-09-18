@@ -681,8 +681,7 @@ class Actor[-T, S](val name: String,
    * allowing a Future thread to get allocated.
    *
    * @param continueIfNonEmpty if true will continue executing releaseFunction until the queue is empty
-   * @param releaseFunction    the function to execute given if this is a priority execution. Priority execution
-   *                           do not free
+   * @param releaseFunction    the function to execute given if it's is a priority execution or normal.
    */
   @tailrec
   @inline private def whileNotReceivingSync[A](continueIfNonEmpty: Boolean)(releaseFunction: Boolean => A): Try[A] = {

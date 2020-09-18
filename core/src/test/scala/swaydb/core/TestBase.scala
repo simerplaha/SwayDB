@@ -31,8 +31,8 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import swaydb.{ActorWire, Bag}
 import swaydb.IOValues._
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
@@ -62,8 +62,8 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
+import swaydb.{ActorWire, Bag}
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -533,8 +533,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                   level2KeyValues: TestTimer => Slice[Memory] = _ => Slice.empty,
                   assertLevel2: (Slice[Memory], LevelRef) => Unit = (_, _) => (),
                   assertAllLevels: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                  throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                               ec: ExecutionContext = TestExecutionContext.executionContext): Unit = {
+                  throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit = {
 
     def iterationMessage =
       s"Thread: ${Thread.currentThread().getId} - throttleOn: $throttleOn"
@@ -571,7 +570,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         val compactors =
           CoreInitializer.initialiseCompaction(
             zero = level0,
-            executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared)
+            executionContexts = CompactionExecutionContext.Create(DefaultExecutionContext.compactionEC) +: List.fill(4)(CompactionExecutionContext.Shared)
           ).value
 
         compactors should have size 1
@@ -781,7 +780,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                        binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                        hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                        bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                    ec: ExecutionContext = TestExecutionContext.executionContext,
                                                                                                     sweeper: TestCaseSweeper,
                                                                                                     segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")

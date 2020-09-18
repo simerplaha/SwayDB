@@ -27,6 +27,7 @@ package swaydb.core
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
@@ -67,7 +68,7 @@ object TestCaseSweeper extends LazyLogging {
       keyValueMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.KeyValue]](true, true, None)((_, _) => createMemorySweeperRandom())),
       blockMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Block]](true, true, None)((_, _) => createMemoryBlockSweeper())),
       cacheMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.Cache]](true, true, None)((_, _) => createRandomCacheSweeper())),
-      schedulers = ListBuffer(Cache.noIO[Unit, Scheduler](true, true, None)((_, _) => Scheduler()(TestExecutionContext.executionContext))),
+      schedulers = ListBuffer(Cache.noIO[Unit, Scheduler](true, true, None)((_, _) => Scheduler()(DefaultExecutionContext.sweeperEC))),
       levels = ListBuffer.empty,
       segments = ListBuffer.empty,
       mapFiles = ListBuffer.empty,
