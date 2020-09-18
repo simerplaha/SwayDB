@@ -28,6 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.{ApiIO, ThrowableIO}
 import swaydb.data.util.Futures
 
+import scala.annotation.unchecked.uncheckedVariance
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
@@ -479,7 +480,7 @@ object Bag extends LazyLogging {
 
   type Less[+A] = A
 
-  implicit val less: Bag.Sync[Less] =
+  implicit val less: Bag.Sync[Less]@uncheckedVariance =
     new Bag.Sync[Less] {
       override def isSuccess[A](a: Less[A]): Boolean = true
 
