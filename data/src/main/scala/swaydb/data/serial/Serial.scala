@@ -149,6 +149,7 @@ object Serial {
       case from: Serial.Actor[BAG1] =>
         bag2 match {
           case bag2: Bag.Sync[BAG2] =>
+            //no need to terminate the Actor since it's scheduler is not being used.
             Serial.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>

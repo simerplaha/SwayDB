@@ -78,7 +78,7 @@ object Bag {
         Task.fromFuture(_ => a)
 
       override def suspend[B](f: => Task[B]): Task[B] =
-        Task.effectSuspendTotal(f)
+        Task.effectSuspend(f)
 
       override def flatten[A](fa: Task[Task[A]]): Task[A] =
         fa.flatten
