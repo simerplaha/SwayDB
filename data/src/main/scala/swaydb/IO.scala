@@ -132,23 +132,23 @@ object IO {
   /**
    * [[IO]] type with Throwable error type. Here all errors are returned as exception.
    */
-  type ThrowableIO[T] = IO[Throwable, T]
+  type ThrowableIO[+T] = IO[Throwable, T]
   /**
    * [[IO]] type with Nothing error type. Nothing indicates this IO type can never result in an error.
    */
-  type NothingIO[T] = IO[Nothing, T]
+  type NothingIO[+T] = IO[Nothing, T]
   /**
    * [[IO]] type with Unit error type. Unit indicates this IO type can never result in an error.
    */
-  type UnitIO[T] = IO[Unit, T]
+  type UnitIO[+T] = IO[Unit, T]
   /**
    * [[IO]] type used to access database APIs.
    */
-  type ApiIO[T] = IO[Error.API, T]
+  type ApiIO[+T] = IO[Error.API, T]
   /**
    * [[IO]] type for database boot up.
    */
-  type BootIO[T] = IO[Error.Boot, T]
+  type BootIO[+T] = IO[Error.Boot, T]
 
   val unit: IO.Right[Nothing, Unit] = IO.Right(())(IO.ExceptionHandler.Nothing)
   val unitUnit: IO.Right[Nothing, IO.Right[Nothing, Unit]] = IO.Right(IO.Right(())(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)

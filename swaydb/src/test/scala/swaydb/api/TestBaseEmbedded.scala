@@ -27,6 +27,7 @@ import swaydb._
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.{Core, TestBase, TestExecutionContext}
 import swaydb.data.RunThis._
+import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.multimap.{MultiKey, MultiValue}
 
@@ -56,9 +57,20 @@ trait TestBaseEmbedded extends TestBase {
     root.invokePrivate(function())
   }
 
-  def getCore[K, V, F, BAG[_]](root: Map[K, V, F, BAG]): Core[BAG] = {
+  def getCore[K, V, BAG[_]](root: SetMapT[K, V, BAG]): Core[BAG] = {
     val function = PrivateMethod[Core[BAG]](Symbol("core"))
     root.invokePrivate(function())
+  }
+
+  def getSerial[K, V, BAG[_]](root: SetMapT[K, V, BAG]): Serial[BAG] = {
+    val function = PrivateMethod[Core[BAG]](Symbol("core"))
+    val core = root.invokePrivate(function())
+    getSerial(core)
+  }
+
+  def getSerial[BAG[_]](core: Core[BAG]): Serial[BAG] = {
+    val function = PrivateMethod[Serial[BAG]](Symbol("serial"))
+    core.invokePrivate(function())
   }
 
   def printMap[BAG[_]](root: MultiMap[_, _, _, _, BAG]): Unit = {

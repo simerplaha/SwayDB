@@ -61,18 +61,17 @@ case object Serial {
         bag.unit
     }
 
-  def thread[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.SingleThread[BAG] =
-    thread(
+  def singleThread[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.SingleThread[BAG] =
+    singleThread(
       bag = bag,
       ec = Executors.newSingleThreadExecutor(SerialThreadFactory.create())
     )
 
-  def actor[BAG[_]](implicit bag: Bag.Async[BAG],
-                    ec: ExecutionContext): Serial.Actor[BAG] = {
+  def actor[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.Actor[BAG] = {
     val actor = Actor[() => Unit](s"Actor - ${this.productPrefix}") {
       (run, _) =>
         run()
-    }(ec, QueueOrder.FIFO)
+    }(bag.executionContext, QueueOrder.FIFO)
 
     Serial.actor(bag, actor)
   }
@@ -86,7 +85,7 @@ case object Serial {
             Serial.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
-            Serial.thread[BAG2](bag2)
+            Serial.singleThread[BAG2](bag2)
         }
 
       case from: Serial.SingleThread[BAG1] =>
@@ -95,7 +94,7 @@ case object Serial {
             Serial.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
-            Serial.thread[BAG2](bag2, from.executor)
+            Serial.singleThread[BAG2](bag2, from.executor)
         }
 
       case from: Serial.Actor[BAG1] =>
@@ -109,8 +108,8 @@ case object Serial {
         }
     }
 
-  private def thread[BAG[_]](implicit bag: Bag.Async[BAG],
-                             ec: ExecutorService): Serial.SingleThread[BAG] =
+  private def singleThread[BAG[_]](implicit bag: Bag.Async[BAG],
+                                   ec: ExecutorService): Serial.SingleThread[BAG] =
     new Serial.SingleThread[BAG] {
 
       override def executor: ExecutorService =
@@ -134,11 +133,11 @@ case object Serial {
     }
 
   private def actor[BAG[_]](implicit bag: Bag.Async[BAG],
-                            actor: ActorRef[() => Unit, Unit]): Serial.Actor[BAG] =
+                            actorRef: ActorRef[() => Unit, Unit]): Serial.Actor[BAG] =
     new Serial.Actor[BAG] {
 
       override def actor: ActorRef[() => Unit, Unit] =
-        actor
+        actorRef
 
       override def execute[F](f: => F): BAG[F] = {
         val promise = Promise[F]()

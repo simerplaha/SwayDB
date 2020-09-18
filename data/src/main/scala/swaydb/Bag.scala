@@ -478,7 +478,7 @@ object Bag extends LazyLogging {
         fa.recoverWith(pf)
     }
 
-  type Less[A] = A
+  type Less[+A] = A
 
   implicit val less: Bag.Sync[Less] =
     new Bag.Sync[Less] {

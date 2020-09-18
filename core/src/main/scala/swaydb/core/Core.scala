@@ -156,7 +156,7 @@ private[swaydb] object Core {
 private[swaydb] class Core[BAG[_]](zero: LevelZero,
                                    coreState: CoreState,
                                    threadStateCache: ThreadStateCache,
-                                   serial: Serial[BAG],
+                                   private val serial: Serial[BAG],
                                    val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
                                                                                  compactors: NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                                                                  private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
