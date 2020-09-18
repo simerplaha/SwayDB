@@ -33,6 +33,7 @@ import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{DataType, Functions}
@@ -75,8 +76,9 @@ object Map extends LazyLogging {
                                                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
                                                                                                                                                          valueSerializer: Serializer[V],
                                                                                                                                                          functionClassTag: ClassTag[F],
-                                                                                                                                                         bag: swaydb.Bag[BAG],
                                                                                                                                                          functions: Functions[F],
+                                                                                                                                                         bag: swaydb.Bag[BAG],
+                                                                                                                                                         serial: Serial[BAG] = null,
                                                                                                                                                          byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                          typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                                          compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
@@ -121,7 +123,7 @@ object Map extends LazyLogging {
           buildValidator = buildValidator
         ) map {
           core =>
-            swaydb.Map[K, V, F, BAG](core.toBag)
+            swaydb.Map[K, V, F, BAG](core.toBag(serial))
         }
 
       map.toBag[BAG]

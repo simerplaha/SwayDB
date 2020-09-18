@@ -61,10 +61,11 @@ case object Serial {
         bag.unit
     }
 
-  def thread[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.SingleThread[BAG] = {
-    val ec: ExecutorService = Executors.newSingleThreadExecutor(SerialThreadFactory.create())
-    thread(bag, ec)
-  }
+  def thread[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.SingleThread[BAG] =
+    thread(
+      bag = bag,
+      ec = Executors.newSingleThreadExecutor(SerialThreadFactory.create())
+    )
 
   def actor[BAG[_]](implicit bag: Bag.Async[BAG],
                     ec: ExecutionContext): Serial.Actor[BAG] = {
@@ -109,7 +110,7 @@ case object Serial {
     }
 
   private def thread[BAG[_]](implicit bag: Bag.Async[BAG],
-                                   ec: ExecutorService): Serial.SingleThread[BAG] =
+                             ec: ExecutorService): Serial.SingleThread[BAG] =
     new Serial.SingleThread[BAG] {
 
       override def executor: ExecutorService =

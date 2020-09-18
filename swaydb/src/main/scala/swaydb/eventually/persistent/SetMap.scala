@@ -33,6 +33,7 @@ import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
+import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{DataType, Functions}
@@ -66,6 +67,7 @@ object SetMap extends LazyLogging {
                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
                                                                                                                             valueSerializer: Serializer[V],
                                                                                                                             bag: swaydb.Bag[BAG],
+                                                                                                                            serial: Serial[BAG] = null,
                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
@@ -101,6 +103,7 @@ object SetMap extends LazyLogging {
         )(serializer = serialiser,
           functionClassTag = ClassTag.Nothing,
           bag = bag,
+          serial = serial,
           functions = Functions.nothing,
           byteKeyOrder = ordering,
           compactionEC = compactionEC,

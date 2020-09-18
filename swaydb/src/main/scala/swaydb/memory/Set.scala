@@ -33,6 +33,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{DataType, Functions}
@@ -59,8 +60,9 @@ object Set extends LazyLogging {
                                                  lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
                                                  threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                                                    functionClassTag: ClassTag[F],
-                                                                                                                                                   bag: swaydb.Bag[BAG],
                                                                                                                                                    functions: Functions[F],
+                                                                                                                                                   bag: swaydb.Bag[BAG],
+                                                                                                                                                   serial: Serial[BAG] = null,
                                                                                                                                                    byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                    typedKeyOrder: KeyOrder[A] = null,
                                                                                                                                                    compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Set[A, F, BAG]] =
@@ -94,7 +96,7 @@ object Set extends LazyLogging {
           buildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)
         ) map {
           core =>
-            swaydb.Set[A, F, BAG](core.toBag)
+            swaydb.Set[A, F, BAG](core.toBag(serial))
         }
 
       set.toBag[BAG]

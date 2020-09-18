@@ -375,4 +375,15 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
     )(bag = bag2,
       compactors = compactors,
       bufferSweeper = bufferSweeper)
+
+  def toBag[BAG2[_]](serialOrNull: Serial[BAG2])(implicit bag2: Bag[BAG2]): Core[BAG2] =
+    new Core[BAG2](
+      zero = zero,
+      coreState = coreState,
+      threadStateCache = threadStateCache,
+      serial = if (serialOrNull == null) Serial.transfer[BAG, BAG2](serial) else serialOrNull,
+      readStates = readStates,
+    )(bag = bag2,
+      compactors = compactors,
+      bufferSweeper = bufferSweeper)
 }

@@ -31,6 +31,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
+import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
@@ -53,6 +54,7 @@ object Queue extends LazyLogging {
                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                          bag: Bag[BAG],
+                                                                                                                         serial: Serial[BAG] = null,
                                                                                                                          compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =
