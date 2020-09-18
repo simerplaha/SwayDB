@@ -104,7 +104,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
 
                     val actor =
                       Actor.wire[Compactor[ThrottleState], ThrottleState](
-                        name = s"Compaction Wire Actor - ${jobs.size - index}",
+                        name = s"Compaction Wire Actor - $index",
                         impl = ThrottleCompactor,
                         state = state
                       )(state.executionContext)

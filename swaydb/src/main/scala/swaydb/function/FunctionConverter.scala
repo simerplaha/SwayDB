@@ -36,7 +36,7 @@ import swaydb.{Apply, Expiration, MultiMap, PureFunction, PureFunctionJava, Pure
 
 import scala.concurrent.duration.Deadline
 
-object FunctionConverter {
+private[swaydb] case object FunctionConverter {
 
   def toCore[K, V, R <: Apply[V], F <: PureFunction[K, V, R]](function: F)(implicit keySerializer: Serializer[K],
                                                                            valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction =

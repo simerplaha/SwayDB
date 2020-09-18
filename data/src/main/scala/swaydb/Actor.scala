@@ -797,10 +797,10 @@ class Actor[-T, S](val name: String,
 
       priority.setFree()
 
-      if (!isPriorityReceive && busy.isBusy) //because receive can always be invoked through whileNotBusy
+      if (!isPriorityReceive) //because receive can always be invoked through whileNotBusy
         setFree()
-      //after setting busy to false fetch the totalWeight again.
 
+      //after setting busy to false fetch the totalWeight again.
       if (wakeUpOnComplete)
         wakeUp(currentStashed = totalWeight)
     }
