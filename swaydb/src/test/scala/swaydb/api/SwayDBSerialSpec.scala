@@ -39,16 +39,6 @@ class SwayDBSerialSpec0 extends SwayDBSerialSpec {
   override val keyValueCount: Int = 100
 }
 
-class SwayDB_Serial_SetMap_Spec0 extends SwayDBSerialSpec {
-  def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
-                       serial: Serial[BAG],
-                       bag: Bag[BAG]): BAG[SetMap[Int, String, BAG]] =
-    swaydb.persistent.SetMap[Int, String, BAG](randomDir)
-
-  override val keyValueCount: Int = 100
-}
-
-
 class SwayDBSerialSpec3 extends SwayDBSerialSpec {
 
   override val keyValueCount: Int = 100
@@ -57,24 +47,6 @@ class SwayDBSerialSpec3 extends SwayDBSerialSpec {
                        serial: Serial[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
     swaydb.memory.Map[Int, String, Nothing, BAG]()
-}
-
-class MultiMapSwayDBSerialSpec4 extends SwayDBSerialSpec {
-  val keyValueCount: Int = 10000
-
-  def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
-                       serial: Serial[BAG],
-                       bag: Bag[BAG]): BAG[MultiMap[Int, Int, String, Nothing, BAG]] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, BAG](dir = randomDir)
-}
-
-class MultiMapSwayDBSerialSpec5 extends SwayDBSerialSpec {
-  val keyValueCount: Int = 10000
-
-  def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
-                       serial: Serial[BAG],
-                       bag: Bag[BAG]): BAG[MultiMap[Int, Int, String, Nothing, BAG]] =
-    swaydb.memory.MultiMap[Int, Int, String, Nothing, BAG]()
 }
 
 sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
