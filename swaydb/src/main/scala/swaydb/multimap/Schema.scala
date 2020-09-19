@@ -36,7 +36,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 /**
  * Provides APIs to manage children/nested maps/child maps of [[MultiMap]].
  */
-abstract class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
+abstract class Schema[M, K, V, F, BAG[_]](multiMap: Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG],
                                           mapId: Long,
                                           defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
                                                                                childKeySerializer: Serializer[M],
@@ -153,7 +153,7 @@ abstract class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiVal
         if (buffer.isEmpty)
           bag.success(false)
         else
-          bag.transform(innerMap.commit(buffer)) {
+          bag.transform(multiMap.commit(buffer)) {
             _ =>
               true
           }
@@ -213,10 +213,10 @@ abstract class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiVal
         buffer += Prepare.Put(MultiKey.ChildrenEnd(childIdOrNew), MultiValue.None, expiration)
         buffer += Prepare.Put(MultiKey.End(childIdOrNew), MultiValue.None, expiration)
 
-        bag.transform(innerMap.commit(buffer)) {
+        bag.transform(multiMap.commit(buffer)) {
           _ =>
             MultiMap(
-              innerMap = innerMap,
+              multiMap = multiMap,
               mapKey = childKey,
               mapId = childIdOrNew,
               defaultExpiration = expiration
@@ -322,11 +322,11 @@ abstract class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiVal
     getNarrow(mapKey)
 
   private def getNarrow[K2 <: K, V2 <: V, F2 <: F](mapKey: M): BAG[Option[MultiMap[M, K2, V2, F2, BAG]]] = {
-    bag.map(innerMap.getKeyValueDeadline(Child(mapId, mapKey), bag)) {
+    bag.map(multiMap.getKeyValueDeadline(Child(mapId, mapKey), bag)) {
       case Some(((key: Child[M], value: MultiValue.MapId), deadline)) =>
         val map =
           MultiMap[M, K, V, F, BAG](
-            innerMap = innerMap,
+            multiMap = multiMap,
             mapKey = key.childKey,
             mapId = value.id,
             defaultExpiration = deadline
@@ -360,7 +360,7 @@ abstract class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiKey[M, K], MultiVal
    * Keys of all child Maps.
    */
   def childKeys: Stream[M, BAG] =
-    innerMap
+    multiMap
       .toSet
       .after(MultiKey.ChildrenStart(mapId))
       .takeWhile {

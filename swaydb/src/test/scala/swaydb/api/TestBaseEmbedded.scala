@@ -41,14 +41,14 @@ trait TestBaseEmbedded extends TestBase {
   val keyValueCount: Int
 
   implicit class MultiMapInnerMap[M, K, V, F, BAG[_]](root: MultiMap[M, K, V, F, BAG]) {
-    def innerMapReflection = {
-      val function = PrivateMethod[Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG]](Symbol("innerMap"))
+    def multiMapReflection = {
+      val function = PrivateMethod[Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG]](Symbol("multiMap"))
       root.invokePrivate(function())
     }
   }
 
   def getInnerMap[M, K, V, F, BAG[_]](root: MultiMap[M, K, V, F, BAG]): Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG] = {
-    val function = PrivateMethod[Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG]](Symbol("innerMap"))
+    val function = PrivateMethod[Map[MultiKey[M, K], MultiValue[V], PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]], BAG]](Symbol("multiMap"))
     root.invokePrivate(function())
   }
 
@@ -74,7 +74,7 @@ trait TestBaseEmbedded extends TestBase {
   }
 
   def printMap[BAG[_]](root: MultiMap[_, _, _, _, BAG]): Unit = {
-    root.innerMapReflection.toBag[Bag.Less].materialize.foreach {
+    root.multiMapReflection.toBag[Bag.Less].materialize.foreach {
       map =>
         println(map)
         map._1 match {
