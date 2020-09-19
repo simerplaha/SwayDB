@@ -244,16 +244,19 @@ private[core] object CoreInitializer extends LazyLogging {
                 config = config.level1
               ) flatMap {
                 level1 =>
+                  val coreState = CoreState()
+
                   LevelZero(
                     mapSize = config.level0.mapSize,
-                    storage = config.level0.storage,
                     appliedFunctionsMapSize = config.level0.appliedFunctionsMapSize,
                     clearAppliedFunctionsOnBoot = config.level0.clearAppliedFunctionsOnBoot,
+                    storage = config.level0.storage,
                     enableTimer = enableTimer,
                     cacheKeyValueIds = cacheKeyValueIds,
+                    coreState= coreState,
                     nextLevel = Some(level1),
-                    throttle = config.level0.throttle,
-                    acceleration = config.level0.acceleration
+                    acceleration = config.level0.acceleration,
+                    throttle = config.level0.throttle
                   ) flatMap {
                     zero: LevelZero =>
                       initialiseCompaction(
@@ -291,7 +294,7 @@ private[core] object CoreInitializer extends LazyLogging {
                           val core =
                             new Core[Bag.Less](
                               zero = zero,
-                              coreState = CoreState(),
+                              coreState = coreState,
                               threadStateCache = threadStateCache,
                               serial = Serial.synchronised(Bag.less),
                               readStates = readStates

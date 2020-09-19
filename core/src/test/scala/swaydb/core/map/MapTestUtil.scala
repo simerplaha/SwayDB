@@ -24,6 +24,7 @@
 
 package swaydb.core.map
 
+import org.scalatest.matchers.should.Matchers._
 import swaydb.Bag
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
@@ -33,12 +34,13 @@ import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.counter.{Counter, PersistentCounter}
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.map.timer.Timer
+import swaydb.core.map.timer.Timer.PersistentTimer
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import org.scalatest.matchers.should.Matchers._
 import swaydb.data.util.OperatingSystem
 
 import scala.concurrent.duration.DurationInt
@@ -49,13 +51,12 @@ object MapTestUtil {
   //we cant reopen without cleaning it first because reopen will re-read the file's content
   //using FileChannel, and flushes it's content to a new file deleting the old File. But if it's
   //was previously opened as MMAP file (in a test) then it cannot be deleted without clean.
-  def ensureCleanedForWindows(mmap: MMAP.Map, bufferCleaner: ByteBufferSweeperActor) = {
+  def ensureCleanedForWindows(mmap: MMAP.Map)(implicit bufferCleaner: ByteBufferSweeperActor): Unit =
     if (OperatingSystem.isWindows && mmap.isMMAP) {
-      val cleaner = bufferCleaner.value(())
+      val cleaner = bufferCleaner.actor
       val state = cleaner.receiveAllForce[Bag.Less, State](state => state)
-      eventual(10.seconds)(state.pendingClean.isEmpty)
+      eventual(30.seconds)(state.pendingClean.isEmpty shouldBe true)
     }
-  }
 
   //cannot be added to TestBase because PersistentMap cannot leave the map package.
   implicit class ReopenMap[OK, OV, K <: OK, V <: OV](map: PersistentMap[OK, OV, K, V]) {
@@ -70,7 +71,7 @@ object MapTestUtil {
       implicit val cleaner = map.bufferCleaner
       implicit val sweeper = map.fileSweeper
 
-      ensureCleanedForWindows(map.mmap, cleaner)
+      ensureCleanedForWindows(map.mmap)
 
       Map.persistent[OK, OV, K, V](
         folder = map.path,
@@ -91,7 +92,7 @@ object MapTestUtil {
      */
     def ensureClose(): Unit = {
       map.close()
-      ensureCleanedForWindows(map.mmap, map.bufferCleaner)
+      ensureCleanedForWindows(map.mmap)(map.bufferCleaner)
 
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
@@ -108,7 +109,7 @@ object MapTestUtil {
                reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]],
                testCaseSweeper: TestCaseSweeper): PersistentCounter = {
       counter.close
-      ensureCleanedForWindows(counter.mmap, bufferCleaner)
+      ensureCleanedForWindows(counter.mmap)
 
       Counter.persistent(
         dir = counter.path,
@@ -119,4 +120,26 @@ object MapTestUtil {
     }
   }
 
+  implicit class ReopenTimer(timer: PersistentTimer) {
+    def reopen(implicit bufferCleaner: ByteBufferSweeperActor,
+               forceSaveApplier: ForceSaveApplier,
+               writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
+               reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]],
+               testCaseSweeper: TestCaseSweeper): PersistentTimer = {
+      timer.close
+      ensureCleanedForWindows(timer.counter.mmap)
+
+      val newTimer =
+        Timer.persistent(
+          path = timer.counter.path.getParent,
+          mmap = MMAP.randomForMap(),
+          mod = timer.counter.mod,
+          fileSize = timer.counter.fileSize
+        ).value
+
+      newTimer.counter.sweep()
+
+      newTimer
+    }
+  }
 }

@@ -47,7 +47,7 @@ import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.MinMax
-import swaydb.core.{MemoryPathGenerator, map}
+import swaydb.core.{CoreState, MemoryPathGenerator, map}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.MMAP
@@ -69,6 +69,7 @@ private[core] object LevelZero extends LazyLogging {
             storage: Level0Storage,
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
+            coreState: CoreState,
             nextLevel: Option[NextLevel],
             acceleration: LevelZeroMeter => Accelerator,
             throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -220,6 +221,7 @@ private[core] object LevelZero extends LazyLogging {
             inMemory = storage.memory,
             throttle = throttle,
             appliedFunctionsMap = appliedFunctions,
+            coreState = coreState,
             lock = lock
           )
 
@@ -248,6 +250,7 @@ private[swaydb] case class LevelZero(path: Path,
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => FiniteDuration,
                                      appliedFunctionsMap: Option[map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]],
+                                     coreState: CoreState,
                                      private val lock: Option[FileLocker])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                                            functionStore: FunctionStore) extends LevelRef with LazyLogging {

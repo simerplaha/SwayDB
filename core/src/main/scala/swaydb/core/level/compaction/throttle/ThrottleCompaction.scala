@@ -223,9 +223,13 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
       case IO.Right(IO.Left(error)) =>
         error match {
+          case _ if zero.coreState.isNotRunning =>
+            logger.debug(s"Level(${zero.levelNumber}): Failed to push due to shutdown.", error.exception)
+
           //do not log the stack if the IO.Left to merge was ContainsOverlappingBusySegments.
           case swaydb.Error.OverlappingPushSegment =>
             logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
+
           case _ =>
             logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
         }

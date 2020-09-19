@@ -30,13 +30,14 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
+import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.counter.Counter
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, MapEntryReader, MapEntryWriter}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.{OperatingSystem, ScalaByteOps}
+import swaydb.data.util.OperatingSystem
 
 import scala.concurrent.ExecutionContext
 
@@ -95,8 +96,7 @@ sealed trait TimerSpec extends TestBase {
             range foreach {
               i =>
                 val nextTime = timer.next.time
-                val nextTimeLong = ScalaByteOps.readUnsignedLong(nextTime)
-                nextTimeLong shouldBe i
+                nextTime.readUnsignedLong() shouldBe i
             }
 
           val dir = randomDir
@@ -104,29 +104,21 @@ sealed trait TimerSpec extends TestBase {
           write((Counter.startId.toInt + 1) to 1000, timer)
           timer.close
 
-          if (persistent) {
-            val reopenedTimer =
-              Timer.persistent(
-                path = dir,
-                mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
-                mod = 100,
-                fileSize = 1000
-              ).get
+          timer match {
+            case timer: Timer.PersistentTimer =>
+              val reopenedTimer = timer.reopen
 
-            write(1000 + 101 to 2000 + 201, reopenedTimer)
-            reopenedTimer.close
+              write(1000 + 101 to 2000 + 201, reopenedTimer)
 
-            val reopenedTimer2 =
-              Timer.persistent(
-                path = dir,
-                mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
-                mod = 100,
-                fileSize = 1000
-              ).get
+              val reopenedTimer2 = reopenedTimer.reopen
 
-            write(2000 + 201 to 300 + 301, reopenedTimer2)
-            reopenedTimer2.close
+              write(2000 + 201 to 300 + 301, reopenedTimer2)
+              reopenedTimer2.close
+
+            case _ =>
+              //cannot reopen non-persistent timers.
           }
+
       }
     }
   }

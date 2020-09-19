@@ -35,6 +35,7 @@ import swaydb.Error.IO.ExceptionHandler
 import swaydb._
 import swaydb.core.actor.ByteBufferCleaner.Cleaner
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
+import swaydb.core.util.English
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.ForceSave
@@ -42,7 +43,7 @@ import swaydb.data.util.FiniteDurations._
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 
 private[swaydb] case object ByteBufferSweeper extends LazyLogging {
@@ -203,19 +204,35 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
                       bag: Bag[BAG]): BAG[Unit] =
     sweeper.get() match {
       case Some(actor) =>
-        actor.terminateAndRecover(state => state) flatMap {
-          case Some(state) =>
-            val pendingCleanSize = state.pendingClean.size
-            val pendingDeleteSize = state.pendingDeletes.size
-            if (pendingCleanSize == 0) {
-              logger.info(s"${ByteBufferSweeper.className} terminated!")
-              bag.unit
-            } else {
-              bag.failure(new Exception(s"Pending $pendingCleanSize cleans and $pendingDeleteSize deletes."))
-            }
 
-          case None =>
+        def prepareResponse(isCleaned: Boolean): BAG[Unit] =
+          if (isCleaned) {
+            logger.info(s"${ByteBufferSweeper.className} terminated!")
             bag.unit
+          } else {
+            val message = s"Incomplete terminate of ${ByteBufferSweeper.className}. There are files pending clean or delete. Undeleted files will be deleted on next reboot."
+            logger.info(message)
+            bag.unit
+          }
+
+        actor.terminateAndRecover(state => state) flatMap {
+          state =>
+            val pendingFiles = state.map(_.pendingClean.size).getOrElse(0)
+            logger.info(s"Checking memory-mapped files cleanup. Pending $pendingFiles ${English.plural(pendingFiles, "file")}.")
+
+            bag match {
+              case _: Bag.Sync[BAG] =>
+                //The bag is blocking. Check for termination using Await.
+                implicit val ec: ExecutionContext = sweeper.actor.executionContext
+                val future = actor ask Command.IsTerminated(resubmitted = false)
+                val isCleaned = Await.result(future, 30.seconds)
+                prepareResponse(isCleaned)
+
+              case bag: Bag.Async[BAG] =>
+                implicit val asyncBag: Bag.Async[BAG] = bag
+                val response = actor ask Command.IsTerminated(resubmitted = false)
+                response flatMap prepareResponse
+            }
         }
 
       case None =>
@@ -344,14 +361,14 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
           var count = 1
 
           while (command.hasReference() && count <= maxCount) {
-            logger.warn(s"No. $count: Clean submitted for path '${command.filePath}' on terminated Actor. Retry after blocking for ${blockTime.asString}.")
+            logger.warn(s"Clean submitted for path '${command.filePath}' on terminated Actor. Retry after blocking for ${blockTime.asString(0)}.")
             count += 1
             Thread.sleep(blockTime.toMillis)
           }
 
           //If the file still has reference this ignore cleaning the file because clearing it even without a reference could lead to fatal JVM errors.
           if (count > maxCount) {
-            val errorMessage = s"Could not clean file ${command.filePath} on terminated Actor after blocking for ${(blockTime * maxCount).asString}."
+            val errorMessage = s"Could not clean file ${command.filePath} on terminated Actor after blocking for ${(blockTime * maxCount).asString(0)}."
             logger.error(errorMessage, new Exception(errorMessage))
           } else {
             performClean(command = command, self = self, messageReschedule = messageReschedule)
@@ -453,6 +470,9 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
   def runPostTerminate(self: Actor[Command, State],
                        maxDeleteRetries: Int) = {
+    if(self.state.pendingClean.nonEmpty)
+      logger.info(s"Cleaning ${self.state.pendingClean.size} memory-mapped ${English.plural(self.state.pendingClean.size, "file")}")
+
     self.state.pendingClean foreach {
       case (_, commands) =>
         commands foreach {
@@ -467,7 +487,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
     val filesToDelete =
       if (self.state.pendingClean.nonEmpty) {
-        val message = s"Could not clean all files. Pending ${self.state.pendingClean.size} files."
+        val message = s"Could not clean all files. Pending ${self.state.pendingClean.size} ${English.plural(self.state.pendingClean.size, "file")}."
         logger.error(message, new Exception(message))
 
         self.state.pendingDeletes.filterNot {
@@ -477,6 +497,9 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
       } else {
         self.state.pendingDeletes
       }
+
+    if(filesToDelete.nonEmpty)
+      logger.info(s"Deleting ${filesToDelete.size} ${English.plural(self.state.pendingDeletes.size, "file")}.")
 
     filesToDelete foreach {
       case (_, delete) =>

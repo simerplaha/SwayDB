@@ -35,9 +35,12 @@ private[swaydb] object FiniteDurations {
 
   implicit class FiniteDurationImplicits(duration: Duration) {
 
-    @inline final def asString: String = {
+    @inline final def asString: String =
+      asString(scale = 6)
+
+    @inline final def asString(scale: Int): String = {
       val seconds: Double = duration.toMillis / 1000D
-      val scaledSeconds = Maths.round(seconds)
+      val scaledSeconds = Maths.round(seconds, scale)
       s"$scaledSeconds seconds"
     }
   }

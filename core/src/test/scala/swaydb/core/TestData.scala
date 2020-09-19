@@ -309,14 +309,15 @@ object TestData {
                   mapSize = mapSize,
                   appliedFunctionsMapSize = appliedFunctionsMapSize,
                   clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
-                  enableTimer = true,
                   storage =
                     Level0Storage.Persistent(
                       mmap = MMAP.enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap()),
                       dir = level.path.getParent,
                       recovery = RecoveryMode.ReportFailure
                     ),
+                  enableTimer = true,
                   cacheKeyValueIds = randomBoolean(),
+                  coreState = level.coreState,
                   nextLevel = level.nextLevel,
                   acceleration = Accelerator.brake(),
                   throttle = level.throttle

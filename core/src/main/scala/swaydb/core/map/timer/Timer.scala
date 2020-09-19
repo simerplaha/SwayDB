@@ -31,7 +31,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.data.Time
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map.MapEntry
-import swaydb.core.map.counter.Counter
+import swaydb.core.map.counter.{Counter, PersistentCounter}
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
@@ -49,6 +49,10 @@ private[core] object Timer {
   val defaultKey = Slice.emptyBytes
 
   val folderName = "def-timer"
+
+  trait PersistentTimer extends Timer {
+    def counter: PersistentCounter
+  }
 
   def memory(): Timer =
     new Timer {
@@ -80,7 +84,7 @@ private[core] object Timer {
                  mmap: MMAP.Map,
                  mod: Long = 100000,
                  fileSize: Long = 1.mb)(implicit bufferCleaner: ByteBufferSweeperActor,
-                                        forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, Timer] = {
+                                        forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, PersistentTimer] = {
     implicit val writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]] = CounterMapEntryWriter.CounterPutMapEntryWriter
     implicit val reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] = CounterMapEntryReader.CounterPutMapEntryReader
 
@@ -93,16 +97,19 @@ private[core] object Timer {
       mod = mod,
       fileSize = fileSize
     ) transform {
-      counter =>
-        new Timer {
+      persistentCounter =>
+        new PersistentTimer {
           override val isEmptyTimer: Boolean =
             false
 
           override def next: Time =
-            Time(counter.next)
+            Time(persistentCounter.next)
 
           override def close: Unit =
-            counter.close
+            persistentCounter.close
+
+          override def counter: PersistentCounter =
+            persistentCounter
         }
     }
   }
