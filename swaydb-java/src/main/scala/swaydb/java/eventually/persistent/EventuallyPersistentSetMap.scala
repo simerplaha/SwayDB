@@ -74,7 +74,6 @@ object EventuallyPersistentSetMap {
                            private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[K] = null,
                            private var compactionEC: Option[ExecutionContext] = None,
-                           private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap),
                            keySerializer: Serializer[K],
                            valueSerializer: Serializer[V]) {
 
@@ -193,11 +192,6 @@ object EventuallyPersistentSetMap {
       this
     }
 
-    def setBuildValidator(buildValidator: BuildValidator) = {
-      this.buildValidator = buildValidator
-      this
-    }
-
     def get(): swaydb.java.SetMap[K, V] = {
       val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -235,8 +229,7 @@ object EventuallyPersistentSetMap {
           valueSerializer = valueSerializer,
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
-          buildValidator = buildValidator
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
       swaydb.java.SetMap[K, V](scalaMap)

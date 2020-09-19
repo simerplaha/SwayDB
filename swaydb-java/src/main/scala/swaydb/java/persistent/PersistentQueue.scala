@@ -74,7 +74,6 @@ object PersistentQueue {
                         private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                         private var compactionEC: Option[ExecutionContext] = None,
-                        private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Queue),
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {
@@ -202,11 +201,6 @@ object PersistentQueue {
       this
     }
 
-    def setBuildValidator(buildValidator: BuildValidator) = {
-      this.buildValidator = buildValidator
-      this
-    }
-
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
         swaydb.persistent.Queue[A, Bag.Less](
@@ -237,8 +231,7 @@ object PersistentQueue {
           levelSixThrottle = levelSixThrottle.asScala
         )(serializer = serializer,
           bag = Bag.less,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
-          buildValidator = buildValidator
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
       swaydb.java.Queue[A](scalaQueue)

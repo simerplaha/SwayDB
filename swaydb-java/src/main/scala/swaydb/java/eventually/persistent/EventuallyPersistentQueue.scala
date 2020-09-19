@@ -72,7 +72,6 @@ object EventuallyPersistentQueue {
                         private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                         private var typedComparator: KeyComparator[A] = null,
                         private var compactionEC: Option[ExecutionContext] = None,
-                        private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Queue),
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {
@@ -190,11 +189,6 @@ object EventuallyPersistentQueue {
       this
     }
 
-    def setBuildValidator(buildValidator: BuildValidator) = {
-      this.buildValidator = buildValidator
-      this
-    }
-
     def get(): swaydb.java.Queue[A] = {
       val scalaMap =
         swaydb.eventually.persistent.Queue[A, Bag.Less](
@@ -221,8 +215,7 @@ object EventuallyPersistentQueue {
           threadStateCache = threadStateCache
         )(serializer = serializer,
           bag = Bag.less,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
-          buildValidator = buildValidator
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
       swaydb.java.Queue[A](scalaMap)

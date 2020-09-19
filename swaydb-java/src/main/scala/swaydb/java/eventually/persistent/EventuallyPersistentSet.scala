@@ -76,8 +76,7 @@ object EventuallyPersistentSet {
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[A] = null,
-                           private var compactionEC: Option[ExecutionContext] = None,
-                           private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set))(implicit functionClassTag: ClassTag[F],
+                           private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
                                                                                                                             serializer: Serializer[A],
                                                                                                                             functions: Functions[F],
                                                                                                                             evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
@@ -207,11 +206,6 @@ object EventuallyPersistentSet {
       this
     }
 
-    def setBuildValidator(buildValidator: BuildValidator) = {
-      this.buildValidator = buildValidator
-      this
-    }
-
     def get(): swaydb.java.Set[A, F] = {
       val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[A]] =
         Eithers.nullCheck(
@@ -252,8 +246,7 @@ object EventuallyPersistentSet {
           bag = Bag.less,
           functions = functions.asInstanceOf[Functions[PureFunction.Set[A]]],
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
-          buildValidator = buildValidator
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
       swaydb.java.Set[A, F](scalaMap.asInstanceOf[swaydb.Set[A, F, Bag.Less]])

@@ -82,8 +82,7 @@ object PersistentMultiMap {
                                  private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                  private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                                  private var typedComparator: KeyComparator[K] = null,
-                                 private var compactionEC: Option[ExecutionContext] = None,
-                                 private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap))(implicit functionClassTag: ClassTag[F],
+                                 private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
                                                                                                                                        keySerializer: Serializer[K],
                                                                                                                                        mapKeySerializer: Serializer[M],
                                                                                                                                        valueSerializer: Serializer[V],
@@ -235,11 +234,6 @@ object PersistentMultiMap {
       this
     }
 
-    def setBuildValidator(buildValidator: BuildValidator) = {
-      this.buildValidator = buildValidator
-      this
-    }
-
     def get(): swaydb.java.MultiMap[M, K, V, F] = {
       val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -286,8 +280,7 @@ object PersistentMultiMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
-          buildValidator = buildValidator
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
       swaydb.java.MultiMap[M, K, V, F](scalaMap.asInstanceOf[swaydb.MultiMap[M, K, V, F, Bag.Less]])

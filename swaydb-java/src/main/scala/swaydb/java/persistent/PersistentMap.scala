@@ -82,8 +82,7 @@ object PersistentMap {
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                               private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                               private var typedComparator: KeyComparator[K] = null,
-                              private var compactionEC: Option[ExecutionContext] = None,
-                              private var buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map))(implicit functionClassTag: ClassTag[F],
+                              private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
                                                                                                                                keySerializer: Serializer[K],
                                                                                                                                valueSerializer: Serializer[V],
                                                                                                                                functions: Functions[F],
@@ -234,11 +233,6 @@ object PersistentMap {
       this
     }
 
-    def setBuildValidator(buildValidator: BuildValidator) = {
-      this.buildValidator = buildValidator
-      this
-    }
-
     def get(): swaydb.java.Map[K, V, F] = {
       val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -284,8 +278,7 @@ object PersistentMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.less,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC),
-          buildValidator = buildValidator
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
       swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Bag.Less]])
