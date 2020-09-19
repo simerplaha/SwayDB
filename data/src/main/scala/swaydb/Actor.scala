@@ -658,10 +658,9 @@ class Actor[-T, S](val name: String,
             whileNotReceivingAsync(continueIfNonEmpty)(releaseFunction)
       }
     } else {
-      logger.info(s"""Actor("$name") is busy. Listening to be free. isTerminated = $isTerminated.""")
+      logger.info(s"""$name is processing $messageCount tasks. isTerminated = $isTerminated.""")
       Reserve.promise(busy).future flatMap {
         _ =>
-          logger.info(s"""Actor("$name") is available.""")
           whileNotReceivingAsync(continueIfNonEmpty)(releaseFunction)
       }
     }
@@ -703,9 +702,8 @@ class Actor[-T, S](val name: String,
           failure
       }
     } else {
-      logger.info(s"""Actor("$name") is busy. Blocking until free. isTerminated = $isTerminated.""")
+      logger.info(s"""$name is processing $messageCount tasks. isTerminated = $isTerminated.""")
       Reserve.blockUntilFree(busy)
-      logger.info(s"""Actor("$name") is available.""")
       whileNotReceivingSync(continueIfNonEmpty)(releaseFunction)
     }
   }
@@ -915,24 +913,19 @@ class Actor[-T, S](val name: String,
    *
    * Currently there is no use to terminate from within the Actor itself.
    */
-  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = {
-    def doPostTerminate(preTerminateExecuted: Boolean) =
-      if (postTerminate.isDefined)
-        runPostTerminate(preTerminateExecuted)
-      else
-        bag.unit
-
+  def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.suspend {
+      //preTerminate and postTerminate should always run even if
+      //they are not set so that all pending messages in the Actor are
+      //processed. Specially for windows where cleaning MMAP files are required.
       if (compareSetTerminated())
-      //invoke terminator function
-        if (preTerminate.isDefined)
-          runPreTerminate().flatMap(doPostTerminate)
-        else
-          doPostTerminate(true)
+        bag.flatMap(runPreTerminate()) {
+          executed =>
+            runPostTerminate(executed)
+        }
       else
         bag.unit
     }
-  }
 
   def terminateAfter(timeout: FiniteDuration): ActorRef[T, S] = {
     scheduler.value(()).task(timeout)(this.terminate[Future]())

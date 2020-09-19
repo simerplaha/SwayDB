@@ -135,8 +135,8 @@ object TestCaseSweeper extends LazyLogging {
         map.pathOption.foreach(deleteParentPath)
     }
 
-    sweeper.functions.foreach(_ ())
     sweeper.dbFiles.foreach(_.delete())
+    sweeper.functions.foreach(_ ())
 
     sweeper.paths.foreach {
       path =>

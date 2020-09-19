@@ -198,24 +198,27 @@ private[core] object Level extends LazyLogging {
                     IO.unit
 
                 deletedUnCommittedSegments
-                  .transform {
+                  .andThen {
+                    new Level(
+                      dirs = levelStorage.dirs,
+                      bloomFilterConfig = bloomFilterConfig,
+                      hashIndexConfig = hashIndexConfig,
+                      binarySearchIndexConfig = binarySearchIndexConfig,
+                      sortedIndexConfig = sortedIndexConfig,
+                      valuesConfig = valuesConfig,
+                      segmentConfig = segmentConfig,
+                      inMemory = levelStorage.memory,
+                      throttle = throttle,
+                      nextLevel = nextLevel,
+                      appendix = appendix,
+                      lock = lock,
+                      pathDistributor = paths,
+                      removeDeletedRecords = Level.removeDeletes(nextLevel)
+                    )
+                  }
+                  .onLeftSideEffect {
                     _ =>
-                      new Level(
-                        dirs = levelStorage.dirs,
-                        bloomFilterConfig = bloomFilterConfig,
-                        hashIndexConfig = hashIndexConfig,
-                        binarySearchIndexConfig = binarySearchIndexConfig,
-                        sortedIndexConfig = sortedIndexConfig,
-                        valuesConfig = valuesConfig,
-                        segmentConfig = segmentConfig,
-                        inMemory = levelStorage.memory,
-                        throttle = throttle,
-                        nextLevel = nextLevel,
-                        appendix = appendix,
-                        lock = lock,
-                        pathDistributor = paths,
-                        removeDeletedRecords = Level.removeDeletes(nextLevel)
-                      )
+                      appendix.close()
                   }
             }
         }

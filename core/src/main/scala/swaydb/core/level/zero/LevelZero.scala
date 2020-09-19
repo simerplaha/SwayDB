@@ -133,7 +133,10 @@ private[core] object LevelZero extends LazyLogging {
                       recovery = recovery,
                       nullKey = Slice.Null,
                       nullValue = Memory.Null
-                    )
+                    ).onLeftSideEffect {
+                      _ =>
+                        timer.close
+                    }
 
                   maps flatMap {
                     maps =>
@@ -148,11 +151,20 @@ private[core] object LevelZero extends LazyLogging {
                         appliedFunctionsMap
                           .result
                           .andThen((maps, Some(appliedFunctionsMap.item), levelZeroDirectory, Some(lock)))
+                          .onLeftSideEffect {
+                            _ =>
+                              timer.close
+                              appliedFunctionsMap.item.close()
+                              maps.close().get
+                          }
 
                       } else {
                         IO.Right((maps, None, levelZeroDirectory, Some(lock)))
                       }
                   }
+              } onLeftSideEffect {
+                _ =>
+                  timer.close
               }
           }
 
@@ -184,6 +196,10 @@ private[core] object LevelZero extends LazyLogging {
                       timer =>
                         (timer, Some(appliedFunctionsMap.item))
                     }
+                    .onLeftSideEffect {
+                      _ =>
+                        appliedFunctionsMap.item.close()
+                    }
 
                 case None =>
                   IO.Right((Timer.memory(), None))
@@ -210,36 +226,39 @@ private[core] object LevelZero extends LazyLogging {
           }
       }
 
-    mapsAndPathAndLock flatMap {
-      case (maps, appliedFunctions, path, lock: Option[FileLocker]) =>
-        val zero =
-          new LevelZero(
-            path = path,
-            mapSize = mapSize,
-            maps = maps,
-            nextLevel = nextLevel,
-            inMemory = storage.memory,
-            throttle = throttle,
-            appliedFunctionsMap = appliedFunctions,
-            coreState = coreState,
-            lock = lock
-          )
+    mapsAndPathAndLock
+      .flatMap {
+        case (maps, appliedFunctions, path, lock: Option[FileLocker]) =>
+          val zero =
+            new LevelZero(
+              path = path,
+              mapSize = mapSize,
+              maps = maps,
+              nextLevel = nextLevel,
+              inMemory = storage.memory,
+              throttle = throttle,
+              appliedFunctionsMap = appliedFunctions,
+              coreState = coreState,
+              lock = lock
+            )
 
-        appliedFunctions match {
-          case Some(appliedFunctions) =>
-            if (clearAppliedFunctionsOnBoot)
-              IO(zero.clearAppliedFunctions())
-                .and(AppliedFunctions.validate(appliedFunctions, functionStore))
-                .andThen(zero)
-            else
-              AppliedFunctions
-                .validate(appliedFunctions, functionStore)
-                .andThen(zero)
+          appliedFunctions match {
+            case Some(appliedFunctions) =>
+              if (clearAppliedFunctionsOnBoot)
+                IO(zero.clearAppliedFunctions())
+                  .and(AppliedFunctions.validate(appliedFunctions, functionStore))
+                  .andThen(zero)
+                  .onLeftSideEffect(_ => zero.close[Bag.Less]())
+              else
+                AppliedFunctions
+                  .validate(appliedFunctions, functionStore)
+                  .andThen(zero)
+                  .onLeftSideEffect(_ => zero.close[Bag.Less]())
 
-          case None =>
-            IO.Right(zero)
-        }
-    }
+            case None =>
+              IO.Right(zero)
+          }
+      }
   }
 }
 
@@ -1141,7 +1160,7 @@ private[swaydb] case class LevelZero(path: Path,
           .getOrElse(bag.unit)
       )
       .andIO(releaseLocks)
-      .andIO(IO(Effect.walkDelete(path.getParent)))
+      .and(bag(Effect.walkDelete(path.getParent)))
 
   def mmap: MMAP =
     maps.mmap

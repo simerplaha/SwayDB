@@ -39,7 +39,7 @@ object DefaultExecutionContext extends LazyLogging {
    * You can overwrite this when creating your SwayDB instance.
    */
   lazy val compactionEC: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2, DefaultThreadFactory.create()))
+    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3, DefaultThreadFactory.create()))
 
   /**
    * ExecutionContext used for [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]] Actors.
@@ -48,6 +48,6 @@ object DefaultExecutionContext extends LazyLogging {
    * configurations.
    */
   lazy val sweeperEC: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2, DefaultThreadFactory.create()))
+    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3, DefaultThreadFactory.create()))
 
 }

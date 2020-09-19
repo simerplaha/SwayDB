@@ -26,6 +26,7 @@ package swaydb.data.serial
 
 import java.util.concurrent.{Callable, ExecutorService, Executors, TimeUnit}
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorRef, Bag, IO}
 
@@ -40,7 +41,7 @@ sealed trait Serial[T[_]] {
 
 }
 
-case object Serial {
+case object Serial extends LazyLogging {
 
   sealed trait Synchronised[BAG[_]] extends Serial[BAG]
 
@@ -129,7 +130,10 @@ case object Serial {
       }
 
       override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
-        bag.fromIO(IO(ec.awaitTermination(10, TimeUnit.SECONDS)))
+        bag {
+          logger.info("Terminating Serial ExecutorService.")
+          ec.awaitTermination(10, TimeUnit.SECONDS)
+        }
     }
 
   private def actor[BAG[_]](implicit bag: Bag.Async[BAG],
@@ -145,7 +149,9 @@ case object Serial {
         bag.fromPromise(promise)
       }
 
-      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
+      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = {
+        logger.info("Terminating Serial Actor.")
         actor.terminateAndClear[BAG]()(bag)
+      }
     }
 }

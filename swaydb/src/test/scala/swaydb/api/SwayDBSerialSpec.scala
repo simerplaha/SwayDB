@@ -22,6 +22,7 @@ package swaydb.api
 import org.scalatest.OptionValues._
 import swaydb.Bag.Implicits._
 import swaydb._
+import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.data.RunThis.FutureImplicits
 import swaydb.data.serial.Serial
@@ -34,7 +35,7 @@ class SwayDBSerialSpec0 extends SwayDBSerialSpec {
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
                        serial: Serial[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
-    swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir)
+    swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir).map(_.sweep(_.toBag[Bag.Less].delete()))
 
   override val keyValueCount: Int = 100
 }
@@ -46,7 +47,7 @@ class SwayDBSerialSpec3 extends SwayDBSerialSpec {
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
                        serial: Serial[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
-    swaydb.memory.Map[Int, String, Nothing, BAG]()
+    swaydb.memory.Map[Int, String, Nothing, BAG]().map(_.sweep(_.toBag[Bag.Less].delete()))
 }
 
 sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
@@ -105,8 +106,6 @@ sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
 
             map.put(1, "one").await
             map.get(1).await.value shouldBe "one"
-
-            map.delete().await
         }
       }
     }

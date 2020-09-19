@@ -26,6 +26,7 @@ import swaydb.core.TestData._
 import swaydb.data.RunThis.runThis
 import swaydb.core.CommonAssertions._
 import scala.util.Random
+import TestCaseSweeper._
 
 class SwayDBBooPickleSpec extends TestBaseEmbedded {
 
@@ -48,7 +49,7 @@ class SwayDBBooPickleSpec extends TestBaseEmbedded {
         TestCaseSweeper {
           implicit sweeper =>
 
-            val db = swaydb.persistent.Map[User, Info, Nothing, Bag.Less](randomDir)
+            val db = swaydb.persistent.Map[User, Info, Nothing, Bag.Less](randomDir).sweep(_.delete())
 
             val keyValues =
               (1 to 10000) map {
