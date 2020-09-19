@@ -35,6 +35,7 @@ import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.map.Maps
+import swaydb.core.map.counter.Counter
 import swaydb.core.segment.Segment
 import swaydb.data.RunThis._
 import swaydb.data.cache.{Cache, CacheNoIO}
@@ -76,6 +77,7 @@ object TestCaseSweeper extends LazyLogging {
       dbFiles = ListBuffer.empty,
       paths = ListBuffer.empty,
       actors = ListBuffer.empty,
+      counters = ListBuffer.empty,
       actorWires = ListBuffer.empty,
       functions = ListBuffer.empty
     )
@@ -101,6 +103,7 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.maps.foreach(_.delete().get)
     sweeper.segments.foreach(_.close)
     sweeper.levels.foreach(_.close[Bag.Less]())
+    sweeper.counters.foreach(_.close)
 
     //TERMINATE - terminate all initialised actors
     sweeper.keyValueMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
@@ -228,6 +231,11 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepActor actor
   }
 
+  implicit class CountersSweeperImplicits[C <: Counter](counter: C) {
+    def sweep()(implicit sweeper: TestCaseSweeper): C =
+      sweeper sweepCounter counter
+  }
+
   implicit class ActorWiresSweeperImplicits[T, S](actor: ActorWire[T, S]) {
     def sweep()(implicit sweeper: TestCaseSweeper): ActorWire[T, S] =
       sweeper sweepWireActor actor
@@ -269,6 +277,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
                       private val actorWires: ListBuffer[ActorWire[_, _]],
+                      private val counters: ListBuffer[Counter],
                       private val functions: ListBuffer[() => Unit]) {
 
 
@@ -374,6 +383,11 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   def sweepWireActor[T, S](actor: ActorWire[T, S]): ActorWire[T, S] = {
     actorWires += actor
     actor
+  }
+
+  def sweepCounter[C <: Counter](counter: C): C = {
+    counters += counter
+    counter
   }
 
   def sweepItem[T](item: T, sweepable: T => Unit): T = {

@@ -98,7 +98,7 @@ object MapTestUtil {
         fileSize = counter.fileSize,
         mmap = MMAP.randomForMap(),
         mod = counter.mod
-      ).value.sweep(_.close)
+      ).value.sweep()
     }
   }
 

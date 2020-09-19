@@ -1115,6 +1115,7 @@ private[swaydb] case class LevelZero(path: Path,
   override def close[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag
       .fromIO(closeMaps)
+      .andThen(appliedFunctionsMap.foreach(_.close()))
       .and(
         nextLevel
           .map(_.close())
@@ -1130,6 +1131,7 @@ private[swaydb] case class LevelZero(path: Path,
   override def delete[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag
       .fromIO(closeMaps)
+      .andThen(appliedFunctionsMap.foreach(_.close()))
       .and(
         nextLevel
           .map(_.delete())

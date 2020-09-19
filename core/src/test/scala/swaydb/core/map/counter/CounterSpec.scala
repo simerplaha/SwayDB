@@ -80,7 +80,7 @@ class CounterSpec extends TestBase {
               fileSize = randomIntMax(100) max 1,
               mmap = MMAP.randomForMap(),
               mod = mod
-            ).value.sweep(_.close)
+            ).value.sweep()
 
           val expectedNext = Counter.startId + 1
           map.next shouldBe expectedNext
@@ -113,7 +113,7 @@ class CounterSpec extends TestBase {
               fileSize = randomIntMax(1.kb) max 1,
               mmap = MMAP.randomForMap(),
               mod = mod
-            ).value.sweep(_.close)
+            ).value.sweep()
 
           val expectedStart = Counter.startId + 1
           val expectedLast = expectedStart + maxIteration

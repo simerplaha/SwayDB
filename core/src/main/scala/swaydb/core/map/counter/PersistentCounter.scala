@@ -125,6 +125,8 @@ private[core] class PersistentCounter(val mod: Long,
 
   def fileSize = map.fileSize
 
+  def mmap = map.mmap
+
   override def next: Long =
     synchronized {
       count += 1
