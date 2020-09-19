@@ -191,7 +191,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
     "remove all entries" in {
       implicit val ec = TestExecutionContext.executionContext
 
-      runThisParallel(10.times) {
+      runThis(10.times) {
         TestCaseSweeper {
           implicit sweeper =>
 

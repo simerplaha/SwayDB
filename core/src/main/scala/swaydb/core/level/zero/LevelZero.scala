@@ -416,6 +416,7 @@ private[swaydb] case class LevelZero(path: Path,
         val totalAppliedFunctions = appliedFunctions.size
         logger.info(s"Checking for applied functions to clear from $totalAppliedFunctions registered functions.")
 
+        //used for logging progress information
         var progress = 0
 
         val cleared =
@@ -449,6 +450,7 @@ private[swaydb] case class LevelZero(path: Path,
     val totalAppliedFunctions = functionStore.size
     logger.info(s"Checking for applied registered functions to clear from $totalAppliedFunctions registered functions.")
 
+    //vars used for logging progress information
     var progress = 0
     var registeredFunctionsCleared = 0
 

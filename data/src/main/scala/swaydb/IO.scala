@@ -644,7 +644,7 @@ object IO {
    * **********************
    */
 
-  final case class Left[+L, +R](value: L)(implicit exceptionHandler: IO.ExceptionHandler[L]) extends IO[L, R] {
+  final case class Left[+L, +R](value: L)(implicit exceptionHandler: IO.ExceptionHandler[L]) extends IO[L, R] with LazyLogging {
     def exception: Throwable =
       IO.ExceptionHandler.toException(value)
 
@@ -741,7 +741,12 @@ object IO {
       scala.util.Failure(exception)
 
     override def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO.Left[L, R] = {
-      try f(this) finally {}
+      try
+        f(this)
+      catch {
+        case throwable: Throwable =>
+          logger.error("Failed to apply error side effect", throwable)
+      }
       this
     }
 
