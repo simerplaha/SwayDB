@@ -1177,40 +1177,41 @@ class MapSpec extends TestBase {
   }
 
   "reopening after each write" in {
-    TestCaseSweeper {
-      implicit sweeper =>
-        import LevelZeroMapEntryReader._
-        import LevelZeroMapEntryWriter._
-        import sweeper._
+    runThis(1.times, log = true) {
+      TestCaseSweeper {
+        implicit sweeper =>
+          import LevelZeroMapEntryReader._
+          import LevelZeroMapEntryWriter._
+          import sweeper._
 
-        val map1 =
-          Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-            nullKey = Slice.Null,
-            nullValue = Memory.Null,
-            folder = createRandomDir,
-            mmap = MMAP.randomForMap(),
-            flushOnOverflow = true,
-            fileSize = 1.mb,
-            dropCorruptedTailEntries = false
-          ).item.sweep()
+          val map1 =
+            Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+              nullKey = Slice.Null,
+              nullValue = Memory.Null,
+              folder = createRandomDir,
+              mmap = MMAP.randomForMap(),
+              flushOnOverflow = true,
+              fileSize = 1.mb,
+              dropCorruptedTailEntries = false
+            ).item.sweep()
 
-        (1 to 100) foreach {
-          i =>
-            map1.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
-        }
+          (1 to 100) foreach {
+            i =>
+              map1.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
+          }
 
-        (1 to 100).foldLeft(map1) {
-          case (map, i) =>
-            map.size shouldBe 100
+          (1 to 100).foldLeft(map1) {
+            case (map, i) =>
+              map.size shouldBe 100
 
-            map.get(i).getUnsafe shouldBe Memory.put(i: Slice[Byte], i: Slice[Byte])
+              map.get(i).getUnsafe shouldBe Memory.put(i: Slice[Byte], i: Slice[Byte])
 
-            if (randomBoolean())
-              map
-            else
-              map.reopen
-        }
-
+              if (randomBoolean())
+                map
+              else
+                map.reopen
+          }
+      }
     }
   }
 }

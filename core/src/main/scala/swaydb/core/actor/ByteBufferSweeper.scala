@@ -301,7 +301,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
           ByteBufferSweeper.recordCleanSuccessful(command, state.pendingClean)
 
         case exception: Throwable =>
-          val errorMessage = s"Failed to clean MappedByteBuffer at path '${command.filePath.toString}'."
+          val errorMessage = s"Failed to clean MappedByteBuffer at path '${command.filePath}'."
           logger.error(errorMessage, exception)
       }
   }
@@ -451,6 +451,44 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
     else
       self send command.copy(resubmitted = true)(command.replyTo) //resubmit so that if Actor's receiveAll is in progress then this message goes last.
 
+  def runPostTerminate(self: Actor[Command, State],
+                       maxDeleteRetries: Int) = {
+    self.state.pendingClean foreach {
+      case (_, commands) =>
+        commands foreach {
+          case (_, command) =>
+            performClean(
+              command = command,
+              self = self,
+              messageReschedule = None
+            )
+        }
+    }
+
+    val filesToDelete =
+      if (self.state.pendingClean.nonEmpty) {
+        val message = s"Could not clean all files. Pending ${self.state.pendingClean.size} files."
+        logger.error(message, new Exception(message))
+
+        self.state.pendingDeletes.filterNot {
+          case (path, _) =>
+            self.state.pendingClean.contains(path)
+        }
+      } else {
+        self.state.pendingDeletes
+      }
+
+    filesToDelete foreach {
+      case (_, delete) =>
+        performDelete(
+          command = delete,
+          self = self,
+          maxDeleteRetries = maxDeleteRetries,
+          messageReschedule = None
+        )
+    }
+  }
+
   def apply(maxDeleteRetries: Int = 5,
             messageReschedule: FiniteDuration = 5.seconds)(implicit executionContext: ExecutionContext,
                                                            actorQueueOrder: QueueOrder[Nothing] = QueueOrder.FIFO): ByteBufferSweeperActor =
@@ -546,40 +584,7 @@ private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 
     } onPostTerminate {
       self =>
-
-        self.state.pendingClean foreach {
-          case (_, commands) =>
-            commands foreach {
-              case (_, command) =>
-                performClean(
-                  command = command,
-                  self = self,
-                  messageReschedule = None
-                )
-            }
-        }
-
-        val filesToDelete =
-          if (self.state.pendingClean.nonEmpty) {
-            val message = s"Could not clean all files. Pending ${self.state.pendingClean.size} files."
-            logger.error(message, new Exception(message))
-
-            self.state.pendingDeletes.filterNot {
-              case (path, _) =>
-                self.state.pendingClean.contains(path)
-            }
-          } else {
-            self.state.pendingDeletes
-          }
-
-        filesToDelete foreach {
-          case (_, delete) =>
-            performDelete(
-              command = delete,
-              self = self,
-              maxDeleteRetries = maxDeleteRetries,
-              messageReschedule = None
-            )
-        }
+        runPostTerminate(self, maxDeleteRetries)
     }
+
 }
