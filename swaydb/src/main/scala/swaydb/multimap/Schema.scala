@@ -350,10 +350,10 @@ abstract class Schema[M, K, V, F, BAG[_]](multiMap: Map[MultiKey[M, K], MultiVal
    *
    * Requires a [[Bag.Sync]] instead of [[Bag.Async]].
    */
-  def flattenChildren: Stream[MultiMap[M, K, V, F, BAG], BAG] =
+  def childrenFlatten: Stream[MultiMap[M, K, V, F, BAG], BAG] =
     children flatMap {
       child =>
-        Stream.join(child, child.flattenChildren)
+        Stream.join(child, child.childrenFlatten)
     }
 
   /**

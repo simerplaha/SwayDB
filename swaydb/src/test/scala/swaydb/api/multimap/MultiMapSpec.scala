@@ -471,9 +471,9 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
             .child(3)
             .child(4)
 
-          root.flattenChildren.materialize.toList should have size 4
+          root.childrenFlatten.materialize.toList should have size 4
 
-          root.flattenChildren.map(_.mapKey).materialize.toList shouldBe (1 to 4)
+          root.childrenFlatten.map(_.mapKey).materialize.toList shouldBe (1 to 4)
       }
     }
 
@@ -580,7 +580,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
                   parent
             }
             //100 children in total are created
-            root.flattenChildren.materialize should have size 100
+            root.childrenFlatten.materialize should have size 100
             //root should have more than one child
             root.childKeys.materialize.size should be >= 1
 

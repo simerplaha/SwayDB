@@ -96,8 +96,8 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
         .child("child4")
         .child("child5");
 
-    shouldBe(root.flattenChildren().map(MultiMap::mapKey), asList("child1", "child2", "child3", "child4", "child5"));
-    shouldHaveSize(root.flattenChildren(), 5);
+    shouldBe(root.childrenFlatten().map(MultiMap::mapKey), asList("child1", "child2", "child3", "child4", "child5"));
+    shouldHaveSize(root.childrenFlatten(), 5);
 
     shouldContain(root.get(1), "root value");
     shouldBeTrue(child1.isEmpty());
@@ -112,16 +112,16 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
     MultiMap<String, Integer, String, Void> child2 = root.child("child2");
     MultiMap<String, Integer, String, Void> child3 = root.child("child3");
 
-    shouldBe(root.flattenChildren().map(MultiMap::mapKey), asList("child1", "child2", "child3"));
+    shouldBe(root.childrenFlatten().map(MultiMap::mapKey), asList("child1", "child2", "child3"));
 
     root.removeChild(child1.mapKey());
-    shouldBe(root.flattenChildren().map(MultiMap::mapKey), asList("child2", "child3"));
+    shouldBe(root.childrenFlatten().map(MultiMap::mapKey), asList("child2", "child3"));
 
     root.removeChild(child2.mapKey());
-    shouldBe(root.flattenChildren().map(MultiMap::mapKey), asList("child3"));
+    shouldBe(root.childrenFlatten().map(MultiMap::mapKey), asList("child3"));
 
     root.removeChild(child3.mapKey());
-    shouldBeEmpty(root.flattenChildren());
+    shouldBeEmpty(root.childrenFlatten());
   }
 
   /**
