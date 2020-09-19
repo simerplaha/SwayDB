@@ -60,7 +60,7 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestCaseSweeper) =
-    swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
+    swaydb.eventually.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
       //      mmapMaps = MMAP.randomForMap(),
