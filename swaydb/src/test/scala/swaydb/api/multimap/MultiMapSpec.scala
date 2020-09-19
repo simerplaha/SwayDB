@@ -391,6 +391,35 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           child2.childrenKeys.materialize.toList shouldBe List(3)
       }
     }
+
+    "remove map's key-values" in {
+      TestCaseSweeper {
+        implicit sweeper =>
+          val root = newDB()
+          root.put(1, "one")
+          root.put(2, "two")
+
+          val child1 = root.child(1)
+          child1.put(1, "one")
+          child1.put(2, "two")
+
+          val child2 = child1.child(2)
+          child2.put(1, "one")
+          child2.put(2, "two")
+
+          //remove child 2
+          child1.removeChild(2)
+          child1.getChild(2) shouldBe empty
+          child2.get(1) shouldBe empty
+          child2.get(2) shouldBe empty
+
+          child1.get(1).value shouldBe "one"
+          child1.get(2).value shouldBe "two"
+
+          root.get(1).value shouldBe "one"
+          root.get(2).value shouldBe "two"
+      }
+    }
   }
 
   "expire child map" in {
