@@ -36,7 +36,7 @@ import swaydb.data.Reserve
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.data.util.{AtomicThreadLocalBoolean, Functions, Options}
+import swaydb.data.util.{AtomicThreadLocalBoolean, FunctionSafe, Options}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -240,7 +240,7 @@ object Actor {
       state = state,
       queue = ActorQueue(queueOrder),
       stashCapacity = stashCapacity,
-      weigher = Functions.safe((_: T) => 1, weigher),
+      weigher = FunctionSafe.safe((_: T) => 1, weigher),
       cached = true,
       execution = execution,
       scheduler = Cache.noIO[Unit, Scheduler](synchronised = true, stored = true, initial = None)((_, _) => Scheduler()),

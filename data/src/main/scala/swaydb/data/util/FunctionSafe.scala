@@ -26,7 +26,7 @@ package swaydb.data.util
 
 import com.typesafe.scalalogging.LazyLogging
 
-private[swaydb] object Functions extends LazyLogging {
+private[swaydb] object FunctionSafe extends LazyLogging {
 
   def safe[T](default: => T, function: => T): T =
     try

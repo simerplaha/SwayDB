@@ -36,7 +36,7 @@ import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Maybe.{Maybe, _}
-import swaydb.data.util.{Functions, Maybe}
+import swaydb.data.util.{FunctionSafe, Maybe}
 
 import scala.annotation.tailrec
 
@@ -77,9 +77,9 @@ private[core] case object BinarySearchIndexBlock {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectly,
             fullIndex = true,
-            ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
+            ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
             compressions =
-              Functions.safe(
+              FunctionSafe.safe(
                 default = _ => Seq.empty[CompressionInternal],
                 function = enable.compression(_) map CompressionInternal.apply
               )
@@ -92,9 +92,9 @@ private[core] case object BinarySearchIndexBlock {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectlyIfPreNormalised,
             fullIndex = false,
-            ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
+            ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
             compressions =
-              Functions.safe(
+              FunctionSafe.safe(
                 default = _ => Seq.empty[CompressionInternal],
                 function = enable.compression(_) map CompressionInternal.apply
               )

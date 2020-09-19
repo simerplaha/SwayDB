@@ -36,7 +36,7 @@ import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.{ByteSizeOf, Functions}
+import swaydb.data.util.{ByteSizeOf, FunctionSafe}
 
 import scala.annotation.tailrec
 import scala.beans.BeanProperty
@@ -79,10 +79,10 @@ private[core] case object HashIndexBlock extends LazyLogging {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             minimumNumberOfHits = enable.minimumNumberOfHits,
             format = HashIndexEntryFormat(enable.indexFormat),
-            allocateSpace = Functions.safe(_.requiredSpace, enable.allocateSpace),
-            ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
+            allocateSpace = FunctionSafe.safe(_.requiredSpace, enable.allocateSpace),
+            ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
             compressions =
-              Functions.safe(
+              FunctionSafe.safe(
                 default = _ => Seq.empty[CompressionInternal],
                 function = enable.compression(_) map CompressionInternal.apply
               )

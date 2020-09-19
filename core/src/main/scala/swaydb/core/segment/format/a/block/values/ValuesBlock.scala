@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
-import swaydb.data.util.Functions
+import swaydb.data.util.FunctionSafe
 
 private[core] case object ValuesBlock {
 
@@ -63,9 +63,9 @@ private[core] case object ValuesBlock {
       Config(
         compressDuplicateValues = enable.compressDuplicateValues,
         compressDuplicateRangeValues = enable.compressDuplicateRangeValues,
-        ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
+        ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
         compressions =
-          Functions.safe(
+          FunctionSafe.safe(
             default = _ => Seq.empty[CompressionInternal],
             function = enable.compression(_) map CompressionInternal.apply
           )

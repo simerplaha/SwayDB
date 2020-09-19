@@ -28,7 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
-import swaydb.data.util.{Functions, Options}
+import swaydb.data.util.{FunctionSafe, Options}
 
 sealed trait CacheOrNull[+E, -I, +O]
 
@@ -155,7 +155,7 @@ private[swaydb] object Cache {
     val cache =
       Cache.noIO[I, Cache[E, I, O]](synchronised = true, stored = true, initial = initialInner) {
         (i, _) =>
-          val ioStrategy: IOStrategy = Functions.safe((_: I) => IOStrategy.SynchronisedIO(false), strategy)(i)
+          val ioStrategy: IOStrategy = FunctionSafe.safe((_: I) => IOStrategy.SynchronisedIO(false), strategy)(i)
           innerCache(ioStrategy, None)
       }
 

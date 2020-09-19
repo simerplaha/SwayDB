@@ -39,7 +39,7 @@ import swaydb.data.MaxKey
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.{ByteSizeOf, FiniteDurations, Functions}
+import swaydb.data.util.{ByteSizeOf, FiniteDurations, FunctionSafe}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -86,14 +86,14 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
     def apply(enable: swaydb.data.config.SortedKeyIndex.Enable): Config =
       Config(
-        ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
+        ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
         shouldPrefixCompress = enable.prefixCompression.shouldCompress,
         prefixCompressKeysOnly = enable.prefixCompression.enabled && enable.prefixCompression.keysOnly,
         enableAccessPositionIndex = enable.enablePositionIndex,
         normaliseIndex = enable.prefixCompression.normaliseIndexForBinarySearch,
         enablePrefixCompression = enable.prefixCompression.enabled && !enable.prefixCompression.normaliseIndexForBinarySearch,
         compressions =
-          Functions.safe(
+          FunctionSafe.safe(
             default = (_: UncompressedBlockInfo) => Iterable.empty[CompressionInternal],
             function = enable.compressions(_: UncompressedBlockInfo) map CompressionInternal.apply
           )
