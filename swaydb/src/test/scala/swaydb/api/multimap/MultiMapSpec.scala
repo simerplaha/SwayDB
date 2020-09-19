@@ -129,11 +129,11 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     child22.put(12, "twelve")
 
     root.get(0).value shouldBe "zero"
-    root.childKeys.materialize.toList shouldBe List(1, 2)
+    root.childrenKeys.materialize.toList shouldBe List(1, 2)
 
     child1.get(1).value shouldBe "one"
     child1.get(2).value shouldBe "two"
-    child1.childKeys.materialize.toList shouldBe List(11, 12)
+    child1.childrenKeys.materialize.toList shouldBe List(11, 12)
     child11.get(3).value shouldBe "three"
     child11.get(4).value shouldBe "four"
     child12.get(5).value shouldBe "five"
@@ -277,7 +277,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
             child.hasChildren shouldBe false
           }
           //root has only 1 child
-          root.childKeys.materialize.toList should contain only 1
+          root.childrenKeys.materialize.toList should contain only 1
       }
     }
 
@@ -304,7 +304,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
 
             //child map is expired
             eventual(2.seconds) {
-              root.childKeys.materialize.toList shouldBe empty
+              root.childrenKeys.materialize.toList shouldBe empty
             }
 
             child1.isEmpty shouldBe true
@@ -346,13 +346,13 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           //check 2nd child has it's key-values
           child1.materialize.toList.map(_._1) shouldBe List(1, 2)
           //all maps exists.
-          root.childKeys.materialize.toList shouldBe List(1)
-          child1.childKeys.materialize.toList shouldBe List(2)
-          child2.childKeys.materialize.toList shouldBe List(3, 4)
+          root.childrenKeys.materialize.toList shouldBe List(1)
+          child1.childrenKeys.materialize.toList shouldBe List(2)
+          child2.childrenKeys.materialize.toList shouldBe List(3, 4)
 
           //remove child1
           root.removeChild(1)
-          root.childKeys.materialize.toList shouldBe empty
+          root.childrenKeys.materialize.toList shouldBe empty
           child1.materialize.toList shouldBe empty
           child2.materialize.toList shouldBe empty
       }
@@ -386,9 +386,9 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           child2.removeChild(4)
 
           //all maps exists.
-          root.childKeys.materialize.toList shouldBe List(1)
-          child1.childKeys.materialize.toList shouldBe List(2)
-          child2.childKeys.materialize.toList shouldBe List(3)
+          root.childrenKeys.materialize.toList shouldBe List(1)
+          child1.childrenKeys.materialize.toList shouldBe List(2)
+          child2.childrenKeys.materialize.toList shouldBe List(3)
       }
     }
   }
@@ -424,7 +424,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         //parent child of last child is not empty
         child1.materialize.toList should not be empty
         //parent child of last child has no child maps.
-        child1.childKeys.materialize.toList shouldBe empty
+        child1.childrenKeys.materialize.toList shouldBe empty
     }
   }
 
@@ -509,7 +509,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           //replace last with expiration
           child2 = child1.replaceChild(2, 3.second)
           //child1 now only have one child 2 removing 3 and 4
-          child1.childKeys.materialize.toList should contain only 2
+          child1.childrenKeys.materialize.toList should contain only 2
 
           child2.isEmpty shouldBe true //last has no key-values
           child2.put(1, "one") //add a key-value
@@ -519,7 +519,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
           child4.isEmpty shouldBe true
 
           eventual(4.seconds)(child2.isEmpty shouldBe true) //which eventually expires
-          child1.childKeys.materialize.toList shouldBe empty
+          child1.childrenKeys.materialize.toList shouldBe empty
       }
     }
 
@@ -582,12 +582,12 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
             //100 children in total are created
             root.childrenFlatten.materialize should have size 100
             //root should have more than one child
-            root.childKeys.materialize.size should be >= 1
+            root.childrenKeys.materialize.size should be >= 1
 
             //random set a deadline
             val deadline = randomDeadlineOption(false)
             //replace all children of root map.
-            root.childKeys.materialize.foreach(child => root.replaceChild(child, deadline))
+            root.childrenKeys.materialize.foreach(child => root.replaceChild(child, deadline))
 
             //root's children do not contain any children of their own.
             root.children.materialize.foreach {
@@ -631,7 +631,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
 
             //re-init with updated expiration should expire everything.
             child1 = root.child(1, 0.second)
-            child1.childKeys.materialize.toList shouldBe empty
+            child1.childrenKeys.materialize.toList shouldBe empty
             child1.isEmpty shouldBe true
 
             //re-init the same expired map with a new map does not set expiration.

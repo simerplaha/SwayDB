@@ -241,11 +241,11 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
             child1.materialize.toList shouldBe ListBuffer((1, "one"), (2, "two"))
           )
 
-          rootMap.childKeys.materialize.toList shouldBe List(1, 2)
+          rootMap.childrenKeys.materialize.toList shouldBe List(1, 2)
           rootMap.removeChild(1)
-          rootMap.childKeys.materialize.toList shouldBe List(2)
+          rootMap.childrenKeys.materialize.toList shouldBe List(2)
           rootMap.removeChild(2)
-          rootMap.childKeys.materialize.toList shouldBe empty
+          rootMap.childrenKeys.materialize.toList shouldBe empty
       }
     }
 
@@ -827,11 +827,11 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
             third.materialize shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
             fourth.materialize shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
 
-            root.childKeys.materialize.toList should contain only 1
-            first.childKeys.materialize.toList should contain only 2
-            second.childKeys.materialize.toList should contain only 3
-            third.childKeys.materialize.toList should contain only 4
-            fourth.childKeys.materialize.toList shouldBe empty
+            root.childrenKeys.materialize.toList should contain only 1
+            first.childrenKeys.materialize.toList should contain only 2
+            second.childrenKeys.materialize.toList should contain only 3
+            third.childrenKeys.materialize.toList should contain only 4
+            fourth.childrenKeys.materialize.toList shouldBe empty
 
             //submit put on second map and assert that all it's contents are replaced.
             first.replaceChild(2)

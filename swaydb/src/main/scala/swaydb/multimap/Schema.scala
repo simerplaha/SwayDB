@@ -359,7 +359,7 @@ abstract class Schema[M, K, V, F, BAG[_]](multiMap: Map[MultiKey[M, K], MultiVal
   /**
    * Keys of all child Maps.
    */
-  def childKeys: Stream[M, BAG] =
+  def childrenKeys: Stream[M, BAG] =
     multiMap
       .toSet
       .after(MultiKey.ChildrenStart(mapId))
@@ -376,7 +376,7 @@ abstract class Schema[M, K, V, F, BAG[_]](multiMap: Map[MultiKey[M, K], MultiVal
       }
 
   def children: Stream[MultiMap[M, K, V, F, BAG], BAG] =
-    childKeys
+    childrenKeys
       .map(key => getChild(key))
       .flatten
       .collect {
@@ -384,7 +384,7 @@ abstract class Schema[M, K, V, F, BAG[_]](multiMap: Map[MultiKey[M, K], MultiVal
       }
 
   def hasChildren: BAG[Boolean] =
-    bag.transform(childKeys.headOrNull) {
+    bag.transform(childrenKeys.headOrNull) {
       head =>
         head != null
     }

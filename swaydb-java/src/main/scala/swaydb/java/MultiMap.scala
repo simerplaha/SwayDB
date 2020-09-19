@@ -323,8 +323,8 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   /**
    * Keys of all child Maps.
    */
-  def childKeys: Stream[M] =
-    Stream.fromScala(asScala.childKeys)
+  def childrenKeys: Stream[M] =
+    Stream.fromScala(asScala.childrenKeys)
 
   def childrenFlatten: Stream[MultiMap[M, K, V, F]] =
     Stream.fromScala(asScala.childrenFlatten.map(MultiMap(_)))

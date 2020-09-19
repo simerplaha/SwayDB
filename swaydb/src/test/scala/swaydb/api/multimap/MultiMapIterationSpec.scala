@@ -81,10 +81,10 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
           val subMap2 = secondMap.child(4)
 
           firstMap.materialize.toList shouldBe empty
-          firstMap.childKeys.materialize.toList should contain only 2
+          firstMap.childrenKeys.materialize.toList should contain only 2
 
           secondMap.materialize.toList shouldBe empty
-          secondMap.childKeys.materialize.toList should contain only(3, 4)
+          secondMap.childrenKeys.materialize.toList should contain only(3, 4)
 
           subMap1.materialize.toList shouldBe empty
           subMap2.materialize.toList shouldBe empty
@@ -103,7 +103,7 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
           val secondMap = firstMap.child(2)
 
           firstMap.materialize.toList shouldBe empty
-          firstMap.childKeys.materialize.toList should contain only 2
+          firstMap.childrenKeys.materialize.toList should contain only 2
 
           secondMap.put(1, "one")
           secondMap.count shouldBe 1
@@ -176,7 +176,7 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
           subMap2.put(4, "four")
 
           rootMap.materialize.toList shouldBe empty
-          rootMap.childKeys.materialize.toList should contain only(2, 3)
+          rootMap.childrenKeys.materialize.toList should contain only(2, 3)
 
           //FIRST MAP ITERATIONS
           subMap1.count shouldBe 2
@@ -235,17 +235,17 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
           subMap2.put(4, "four")
 
           rootMap.materialize.toList shouldBe empty
-          rootMap.childKeys.materialize.toList should contain only 2
+          rootMap.childrenKeys.materialize.toList should contain only 2
 
           //FIRST MAP ITERATIONS
           subMap1.count shouldBe 2
           subMap1.head.value shouldBe ((1, "one"))
           subMap1.last.value shouldBe ((2, "two"))
-          subMap1.childKeys.lastOption.value shouldBe 3
+          subMap1.childrenKeys.lastOption.value shouldBe 3
           subMap1.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((1, "one"), (2, "two"))
-          subMap1.childKeys.materialize.toList shouldBe List(3)
+          subMap1.childrenKeys.materialize.toList shouldBe List(3)
           subMap1.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
-          subMap1.childKeys.foldLeft(List.empty[Int]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List(3)
+          subMap1.childrenKeys.foldLeft(List.empty[Int]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List(3)
           subMap1.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((2, "two"), (1, "one"))
           subMap1.reverse.map(keyValue => keyValue).materialize.toList shouldBe List((2, "two"), (1, "one"))
           subMap1.reverse.take(100).materialize.toList shouldBe List((2, "two"), (1, "one"))
@@ -255,11 +255,11 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
           subMap1.take(2).materialize.toList should contain only((1, "one"), (2, "two"))
           subMap1.take(1).materialize.toList should contain only ((1, "one"))
           subMap1.reverse.drop(1).materialize.toList should contain only ((1, "one"))
-          subMap1.childKeys.drop(1).materialize.toList shouldBe empty
+          subMap1.childrenKeys.drop(1).materialize.toList shouldBe empty
           subMap1.drop(1).materialize.toList should contain only ((2, "two"))
           subMap1.children.drop(1).materialize.toList shouldBe empty
           subMap1.reverse.drop(0).materialize.toList shouldBe List((2, "two"), (1, "one"))
-          subMap1.childKeys.drop(0).materialize.toList shouldBe List(3)
+          subMap1.childrenKeys.drop(0).materialize.toList shouldBe List(3)
           subMap1.drop(0).materialize.toList shouldBe List((1, "one"), (2, "two"))
 
           //KEYS ONLY ITERATIONS - TODO - Key iterations are currently not supported for MultiMap.

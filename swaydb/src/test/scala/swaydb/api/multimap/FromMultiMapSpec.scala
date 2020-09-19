@@ -93,8 +93,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
               map.from(1).reverse.materialize.toList shouldBe empty
           }
 
-          root.childKeys.materialize.toList should contain only(1, 2)
-          child1.childKeys.materialize.toList shouldBe empty
+          root.childrenKeys.materialize.toList should contain only(1, 2)
+          child1.childrenKeys.materialize.toList shouldBe empty
       }
     }
 
@@ -222,7 +222,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
               () => subMap1.from(4).materialize.toList shouldBe empty,
               () => subMap1.after(3).materialize.toList shouldBe empty,
               () => subMap1.from(1).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
-              () => subMap1.childKeys.materialize.toList should contain only 3,
+              () => subMap1.childrenKeys.materialize.toList should contain only 3,
               () => subMap1.fromOrBefore(2).materialize.toList should contain only ((2, "two")),
 
               () => subMap1.fromOrBefore(1).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
@@ -230,7 +230,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
               () => subMap1.fromOrAfter(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
               () => subMap1.count shouldBe 2,
               () => subMap1.head.value shouldBe ((1, "one")),
-              () => subMap1.childKeys.lastOption.value shouldBe 3,
+              () => subMap1.childrenKeys.lastOption.value shouldBe 3,
 
               () => subMap2.from(5).materialize.toList shouldBe empty,
               () => subMap2.after(4).materialize.toList shouldBe empty,
@@ -314,7 +314,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
                 //randomly also perform insert which would just create duplicate data.
                 () => eitherOne(doInserts(skipRandomly = true), (), ()),
 
-                () => rootMap.childKeys.materialize.toList should contain only(2, 3),
+                () => rootMap.childrenKeys.materialize.toList should contain only(2, 3),
                 () => rootMap.from(1).materialize.toList shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
                 //reverse from the map.
                 () => rootMap.before(2).reverse.map { case (key, value) => (key, value) }.materialize shouldBe List((1, "one")),
