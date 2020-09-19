@@ -67,6 +67,8 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
 
     root.put(1, "root value");
     shouldContain(root.get(1), "root value");
+
+    root.delete();
   }
 
   @Test
@@ -81,6 +83,8 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
 
     shouldContain(root.get(1), "root value");
     shouldBeTrue(child1.isEmpty());
+
+    root.delete();
   }
 
   @Test
@@ -101,6 +105,8 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
 
     shouldContain(root.get(1), "root value");
     shouldBeTrue(child1.isEmpty());
+
+    root.delete();
   }
 
   @Test
@@ -122,6 +128,8 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
 
     root.removeChild(child3.mapKey());
     shouldBeEmpty(root.childrenFlatten());
+
+    root.delete();
   }
 
   /**
@@ -154,5 +162,7 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
     foreachRange(1, 10, i -> products.put(ProductKey.of(i), ProductValue.of(i)));
     System.out.println("Products\n"); //print that data.
     products.forEach(System.out::println);
+
+    root.delete();
   }
 }

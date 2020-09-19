@@ -102,6 +102,8 @@ abstract class MapFunctionsOnTest extends TestBase {
     Exception.FunctionNotFound functionNotFound = assertThrows(Exception.FunctionNotFound.class, () -> map.applyFunction(1, missingFunction));
     shouldInclude(functionNotFound.getMessage(), missingFunction.id());
     shouldIncludeIgnoreCase(functionNotFound.getMessage(), "not found");
+
+    map.delete();
   }
 
   @Test
@@ -119,6 +121,8 @@ abstract class MapFunctionsOnTest extends TestBase {
     Exception.MissingFunctions exception = assertThrows(Exception.MissingFunctions.class, () -> createMap(intSerializer(), stringSerializer(), Collections.emptyList()));
 
     shouldContainTheSameElementsAs(exception.asJava(), Arrays.asList(appendUpdated.id(), removeMod0OrIncrementBy1.id()));
+
+    map.delete();
   }
 
   @Test
@@ -139,6 +143,8 @@ abstract class MapFunctionsOnTest extends TestBase {
     //closed databases cannot process messages
     IllegalAccessException illegalAccessException = assertThrows(IllegalAccessException.class, () -> map.get(1));
     shouldBe(illegalAccessException.getMessage(), Core.closedMessage());
+
+    reopened.delete();
   }
 
   @Test
@@ -153,7 +159,6 @@ abstract class MapFunctionsOnTest extends TestBase {
 
     map.applyFunction(10, 20, incrementBy1);
     foreachRange(10, 20, key -> shouldContain(map.get(key), key + 1 + ""));
-
 
     map.applyFunction(21, 50, removeMod0OrIncrementBy1);
 
