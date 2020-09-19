@@ -24,11 +24,17 @@
 
 package swaydb.core.util
 
+import java.util.function.Supplier
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.util.Maths
 
-
 object Benchmark extends LazyLogging {
+
+  @FunctionalInterface
+  trait Code {
+    def run(): Unit
+  }
 
   def doPrint(message: String,
               useLazyLogging: Boolean,
@@ -77,4 +83,16 @@ object Benchmark extends LazyLogging {
       inlinePrint = inlinePrint,
       useLazyLogging = useLazyLogging
     )(benchmarkThis)._2
+
+  def java[R](message: String, supplier: Supplier[R]): R =
+    apply(message)(supplier.get())
+
+  def java(message: String, code: Code): Unit =
+    apply(message)(code.run())
+
+  def java[R](supplier: Supplier[R]): R =
+    apply("")(supplier.get())
+
+  def java(code: Code): Unit =
+    apply("")(code.run())
 }
