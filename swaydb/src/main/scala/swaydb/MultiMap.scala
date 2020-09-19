@@ -42,7 +42,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object MultiMap {
 
-  val folderName = "multimap-gen"
+  val folderName = "gen-multimap"
 
   //this should start from 1 because 0 will be used for format changes.
   val rootMapId: Long = Counter.startId

@@ -28,6 +28,12 @@ import swaydb.data.util.StorageUnits._
 
 object StorageUnits {
 
+  @inline final def bytes(measure: Int): Int =
+    measure
+
+  @inline final def byte(measure: Int): Int =
+    measure
+
   @inline final def mb(measure: Double): Int =
     measure.mb
 

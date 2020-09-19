@@ -27,52 +27,52 @@ package swaydb.java
 import java.time.Duration
 import java.util.Optional
 
-import swaydb.{Expiration, KeyVal, OK, Pair, Prepare}
+import swaydb.{Expiration, KeyVal, Pair, Prepare}
 
 /**
  * Base trait for a basic SwayDB Map type.
  */
 trait MapT[K, V, F] extends SetMapT[K, V] { self =>
 
-  def remove(from: K, to: K): OK
+  def remove(from: K, to: K): Unit
 
-  def expire(from: K, to: K, after: Duration): OK
+  def expire(from: K, to: K, after: Duration): Unit
 
-  def expire(keys: Stream[Pair[K, java.time.Duration]]): OK
+  def expire(keys: Stream[Pair[K, java.time.Duration]]): Unit
 
-  def expire(keys: java.lang.Iterable[Pair[K, java.time.Duration]]): OK
+  def expire(keys: java.lang.Iterable[Pair[K, java.time.Duration]]): Unit
 
-  def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): OK
+  def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): Unit
 
-  def update(key: K, value: V): OK
+  def update(key: K, value: V): Unit
 
-  def update(from: K, to: K, value: V): OK
+  def update(from: K, to: K, value: V): Unit
 
-  def update(keyValues: Stream[KeyVal[K, V]]): OK
+  def update(keyValues: Stream[KeyVal[K, V]]): Unit
 
-  def update(keyValues: java.lang.Iterable[KeyVal[K, V]]): OK
+  def update(keyValues: java.lang.Iterable[KeyVal[K, V]]): Unit
 
-  def update(keyValues: java.util.Iterator[KeyVal[K, V]]): OK
+  def update(keyValues: java.util.Iterator[KeyVal[K, V]]): Unit
 
   def clearAppliedFunctions(): java.lang.Iterable[String]
 
   def clearAppliedAndRegisteredFunctions(): java.lang.Iterable[String]
 
-  def isFunctionApplied(functionId: F): java.lang.Boolean
+  def isFunctionApplied(functionId: F): Boolean
 
-  def applyFunction(key: K, function: F): OK
+  def applyFunction(key: K, function: F): Unit
 
-  def applyFunction(from: K, to: K, function: F): OK
+  def applyFunction(from: K, to: K, function: F): Unit
 
-  def commit(prepare: Stream[Prepare[K, V, F]]): OK
+  def commit(prepare: Stream[Prepare[K, V, F]]): Unit
 
-  def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): OK
+  def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): Unit
 
   def getKeyDeadline(key: K): Optional[Pair[K, Optional[Expiration]]]
 
   def getKeyValueDeadline(key: K): Optional[Pair[KeyVal[K, V], Optional[Expiration]]]
 
-  def mightContainFunction(function: F): java.lang.Boolean
+  def mightContainFunction(function: F): Boolean
 
   def keySize(key: K): Int
 

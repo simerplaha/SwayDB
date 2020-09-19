@@ -29,7 +29,6 @@ import java.util.Optional
 import java.util.function.Supplier
 
 import swaydb.Bag.Less
-import swaydb.OK
 
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
@@ -39,19 +38,19 @@ case class Queue[A](asScala: swaydb.Queue[A]) extends Stream[A] {
   def path: Path =
     asScala.path
 
-  def push(elem: A): OK =
+  def push(elem: A): Unit =
     asScala.push(elem)
 
-  def push(elem: A, expireAfter: java.time.Duration): OK =
+  def push(elem: A, expireAfter: java.time.Duration): Unit =
     asScala.push(elem, expireAfter.toScala)
 
-  def push(elems: Stream[A]): OK =
+  def push(elems: Stream[A]): Unit =
     asScala.push(elems.asScalaStream)
 
-  def push(elems: java.lang.Iterable[A]): OK =
+  def push(elems: java.lang.Iterable[A]): Unit =
     asScala.push(elems.asScala)
 
-  def push(elems: java.util.Iterator[A]): OK =
+  def push(elems: java.util.Iterator[A]): Unit =
     asScala.push(elems.asScala)
 
   def pop(): Optional[A] =

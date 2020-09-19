@@ -106,7 +106,7 @@ object Exception {
 
   case class GetOnIncompleteDeferredFutureIO(reserve: Reserve[Unit]) extends Exception("Get invoked on in-complete Future within Deferred IO.")
 
-  case class InvalidDirectoryType(invalidType: DataType, expected: DataType) extends Exception(s"Wrong data type ${invalidType.name} for the directory of type ${expected.name}.")
+  case class InvalidDirectoryType(invalidType: DataType, expected: DataType) extends Exception(s"Invalid data type ${invalidType.name} for the directory of type ${expected.name}.")
   case class MissingMultiMapGenFolder(path: Path) extends Exception(s"Missing multimap gen file or folder: $path")
 
   case class IncompatibleVersions(previous: String, current: String)

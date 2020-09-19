@@ -47,40 +47,40 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
   def path: Path =
     asScala.path
 
-  def put(key: K, value: V): swaydb.OK =
+  def put(key: K, value: V): Unit =
     asScala.put(key, value)
 
-  def put(key: K, value: V, expireAfter: java.time.Duration): swaydb.OK =
+  def put(key: K, value: V, expireAfter: java.time.Duration): Unit =
     asScala.put(key, value, expireAfter.toScala)
 
-  def put(keyValues: java.lang.Iterable[KeyVal[K, V]]): swaydb.OK =
+  def put(keyValues: java.lang.Iterable[KeyVal[K, V]]): Unit =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
-  def put(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
+  def put(keyValues: Stream[KeyVal[K, V]]): Unit =
     asScala.put(keyValues.asScalaStream.map(_.toTuple))
 
-  def put(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
+  def put(keyValues: java.util.Iterator[KeyVal[K, V]]): Unit =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
-  def remove(key: K): swaydb.OK =
+  def remove(key: K): Unit =
     asScala.remove(key)
 
-  def remove(keys: java.lang.Iterable[K]): swaydb.OK =
+  def remove(keys: java.lang.Iterable[K]): Unit =
     asScala.remove(keys.asScala)
 
-  def remove(keys: Stream[K]): swaydb.OK =
+  def remove(keys: Stream[K]): Unit =
     asScala.remove(keys.asScalaStream)
 
-  def remove(keys: java.util.Iterator[K]): swaydb.OK =
+  def remove(keys: java.util.Iterator[K]): Unit =
     asScala.remove(keys.asScala)
 
-  def expire(key: K, after: java.time.Duration): swaydb.OK =
+  def expire(key: K, after: java.time.Duration): Unit =
     asScala.expire(key, after.toScala)
 
   def expiration(key: K): Optional[Expiration] =
     asScala.expiration(key).asJavaMap(_.asJava)
 
-  def clearKeyValues(): swaydb.OK =
+  def clearKeyValues(): Unit =
     asScala.clearKeyValues()
 
   def get(key: K): Optional[V] =
@@ -92,10 +92,10 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
   def getKeyValue(key: K): Optional[KeyVal[K, V]] =
     asScala.getKeyValue(key).asJavaMap(KeyVal(_))
 
-  def contains(key: K): java.lang.Boolean =
+  def contains(key: K): Boolean =
     asScala.contains(key)
 
-  def mightContain(key: K): java.lang.Boolean =
+  def mightContain(key: K): Boolean =
     asScala.mightContain(key)
 
   def levelZeroMeter: LevelZeroMeter =
@@ -122,10 +122,10 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
   def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries
 
-  def isEmpty: java.lang.Boolean =
+  def isEmpty: Boolean =
     asScala.isEmpty
 
-  def nonEmpty: java.lang.Boolean =
+  def nonEmpty: Boolean =
     asScala.nonEmpty
 
   def last: Optional[KeyVal[K, V]] =

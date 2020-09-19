@@ -48,43 +48,43 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
   def path: Path =
     asScala.path
 
-  def put(key: K, value: V): swaydb.OK =
+  def put(key: K, value: V): Unit =
     asScala.put(key, value)
 
-  def put(key: K, value: V, expireAfter: java.time.Duration): swaydb.OK =
+  def put(key: K, value: V, expireAfter: java.time.Duration): Unit =
     asScala.put(key, value, expireAfter.toScala)
 
-  def put(keyValues: java.lang.Iterable[KeyVal[K, V]]): swaydb.OK =
+  def put(keyValues: java.lang.Iterable[KeyVal[K, V]]): Unit =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
-  def put(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
+  def put(keyValues: Stream[KeyVal[K, V]]): Unit =
     asScala.put(keyValues.asScalaStream.map(_.toTuple))
 
-  def put(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
+  def put(keyValues: java.util.Iterator[KeyVal[K, V]]): Unit =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
-  def remove(key: K): swaydb.OK =
+  def remove(key: K): Unit =
     asScala.remove(key)
 
-  def remove(from: K, to: K): swaydb.OK =
+  def remove(from: K, to: K): Unit =
     asScala.remove(from, to)
 
-  def remove(keys: java.lang.Iterable[K]): swaydb.OK =
+  def remove(keys: java.lang.Iterable[K]): Unit =
     asScala.remove(keys.asScala)
 
-  def remove(keys: Stream[K]): swaydb.OK =
+  def remove(keys: Stream[K]): Unit =
     asScala.remove(keys.asScalaStream)
 
-  def remove(keys: java.util.Iterator[K]): swaydb.OK =
+  def remove(keys: java.util.Iterator[K]): Unit =
     asScala.remove(keys.asScala)
 
-  def expire(key: K, after: java.time.Duration): swaydb.OK =
+  def expire(key: K, after: java.time.Duration): Unit =
     asScala.expire(key, after.toScala)
 
-  def expire(from: K, to: K, after: java.time.Duration): swaydb.OK =
+  def expire(from: K, to: K, after: java.time.Duration): Unit =
     asScala.expire(from, to, after.toScala)
 
-  def expire(keys: java.lang.Iterable[Pair[K, java.time.Duration]]): swaydb.OK =
+  def expire(keys: java.lang.Iterable[Pair[K, java.time.Duration]]): Unit =
     asScala.expire(
       keys.asScala map {
         keyValue =>
@@ -92,43 +92,43 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
       }
     )
 
-  def expire(keys: Stream[Pair[K, java.time.Duration]]): swaydb.OK =
+  def expire(keys: Stream[Pair[K, java.time.Duration]]): Unit =
     asScala.expire(keys.asScalaStream.map(_.toScala))
 
-  def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): swaydb.OK =
+  def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): Unit =
     asScala.expire(keys.asScala.map(_.asScalaDeadline))
 
   def expiration(key: K): Optional[Expiration] =
     asScala.expiration(key).asJavaMap(_.asJava)
 
-  def update(key: K, value: V): swaydb.OK =
+  def update(key: K, value: V): Unit =
     asScala.update(key, value)
 
-  def update(from: K, to: K, value: V): swaydb.OK =
+  def update(from: K, to: K, value: V): Unit =
     asScala.update(from, to, value)
 
-  def update(keyValues: java.lang.Iterable[KeyVal[K, V]]): swaydb.OK =
+  def update(keyValues: java.lang.Iterable[KeyVal[K, V]]): Unit =
     asScala.update(keyValues.asScala.map(_.toTuple))
 
-  def update(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
+  def update(keyValues: Stream[KeyVal[K, V]]): Unit =
     asScala.update(keyValues.asScalaStream.map(_.toTuple))
 
-  def update(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
+  def update(keyValues: java.util.Iterator[KeyVal[K, V]]): Unit =
     asScala.update(keyValues.asScala.map(_.toTuple))
 
-  def clearKeyValues(): swaydb.OK =
+  def clearKeyValues(): Unit =
     asScala.clearKeyValues()
 
-  def applyFunction(key: K, function: F): swaydb.OK =
+  def applyFunction(key: K, function: F): Unit =
     asScala.applyFunction(key, function)
 
-  def applyFunction(from: K, to: K, function: F): swaydb.OK =
+  def applyFunction(from: K, to: K, function: F): Unit =
     asScala.applyFunction(from, to, function)
 
-  def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): swaydb.OK =
+  def commit(prepare: java.lang.Iterable[Prepare[K, V, F]]): Unit =
     asScala.commit(prepare.asScala)
 
-  def commit(prepare: Stream[Prepare[K, V, F]]): swaydb.OK =
+  def commit(prepare: Stream[Prepare[K, V, F]]): Unit =
     asScala.commit(prepare.asScalaStream)
 
   def get(key: K): Optional[V] =
@@ -158,13 +158,13 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
         Optional.empty()
     }
 
-  def contains(key: K): java.lang.Boolean =
+  def contains(key: K): Boolean =
     asScala.contains(key)
 
-  def mightContain(key: K): java.lang.Boolean =
+  def mightContain(key: K): Boolean =
     asScala.mightContain(key)
 
-  def mightContainFunction(function: F): java.lang.Boolean =
+  def mightContainFunction(function: F): Boolean =
     asScala.mightContainFunction(function)
 
   def toSet: Set[K, Void] =
@@ -203,10 +203,10 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
   def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries
 
-  def isEmpty: java.lang.Boolean =
+  def isEmpty: Boolean =
     asScala.isEmpty
 
-  def nonEmpty: java.lang.Boolean =
+  def nonEmpty: Boolean =
     asScala.nonEmpty
 
   def last: Optional[KeyVal[K, V]] =
@@ -218,7 +218,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
   def clearAppliedAndRegisteredFunctions(): lang.Iterable[String] =
     asScala.clearAppliedAndRegisteredFunctions().asJava
 
-  def isFunctionApplied(function: F): java.lang.Boolean =
+  def isFunctionApplied(function: F): Boolean =
     asScala.isFunctionApplied(function)
 
   def asJava: util.Map[K, V] =

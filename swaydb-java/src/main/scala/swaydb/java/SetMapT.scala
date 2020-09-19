@@ -30,7 +30,7 @@ import java.util.Optional
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.{Expiration, KeyVal, OK}
+import swaydb.{Expiration, KeyVal}
 
 /**
  * Base trait for a basic SwayDB SetMap type.
@@ -39,27 +39,27 @@ trait SetMapT[K, V] extends swaydb.java.Source[K, KeyVal[K, V]] {
 
   def path: Path
 
-  def put(key: K, value: V): OK
+  def put(key: K, value: V): Unit
 
-  def put(key: K, value: V, expireAfter: Duration): OK
+  def put(key: K, value: V, expireAfter: Duration): Unit
 
-  def put(keyValues: Stream[KeyVal[K, V]]): OK
+  def put(keyValues: Stream[KeyVal[K, V]]): Unit
 
-  def put(keyValues: java.lang.Iterable[KeyVal[K, V]]): OK
+  def put(keyValues: java.lang.Iterable[KeyVal[K, V]]): Unit
 
-  def put(keyValues: java.util.Iterator[KeyVal[K, V]]): OK
+  def put(keyValues: java.util.Iterator[KeyVal[K, V]]): Unit
 
-  def remove(key: K): OK
+  def remove(key: K): Unit
 
-  def remove(keys: Stream[K]): OK
+  def remove(keys: Stream[K]): Unit
 
-  def remove(keys: java.lang.Iterable[K]): OK
+  def remove(keys: java.lang.Iterable[K]): Unit
 
-  def remove(keys: java.util.Iterator[K]): OK
+  def remove(keys: java.util.Iterator[K]): Unit
 
-  def expire(key: K, after: Duration): OK
+  def expire(key: K, after: Duration): Unit
 
-  def clearKeyValues(): OK
+  def clearKeyValues(): Unit
 
   def get(key: K): Optional[V]
 
@@ -67,9 +67,9 @@ trait SetMapT[K, V] extends swaydb.java.Source[K, KeyVal[K, V]] {
 
   def getKeyValue(key: K): Optional[KeyVal[K, V]]
 
-  def contains(key: K): java.lang.Boolean
+  def contains(key: K): Boolean
 
-  def mightContain(key: K): java.lang.Boolean
+  def mightContain(key: K): Boolean
 
   def levelZeroMeter: LevelZeroMeter
 
@@ -89,9 +89,9 @@ trait SetMapT[K, V] extends swaydb.java.Source[K, KeyVal[K, V]] {
 
   def sizeOfBloomFilterEntries: Int
 
-  def isEmpty: java.lang.Boolean
+  def isEmpty: Boolean
 
-  def nonEmpty: java.lang.Boolean
+  def nonEmpty: Boolean
 
   def last: Optional[KeyVal[K, V]]
 

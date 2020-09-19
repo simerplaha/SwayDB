@@ -58,43 +58,43 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
   def mightContainFunction(function: F): Boolean =
     asScala.mightContainFunction(function)
 
-  def add(elem: A): swaydb.OK =
+  def add(elem: A): Unit =
     asScala add elem
 
-  def add(elem: A, expireAfter: java.time.Duration): swaydb.OK =
+  def add(elem: A, expireAfter: java.time.Duration): Unit =
     asScala.add(elem, expireAfter.toScala)
 
-  def add(elems: java.lang.Iterable[A]): swaydb.OK =
+  def add(elems: java.lang.Iterable[A]): Unit =
     asScala.add(elems.asScala)
 
-  def add(elems: Stream[A]): swaydb.OK =
+  def add(elems: Stream[A]): Unit =
     asScala.add(elems.asScalaStream)
 
-  def add(elems: java.util.Iterator[A]): swaydb.OK =
+  def add(elems: java.util.Iterator[A]): Unit =
     asScala.add(elems.asScala)
 
-  def remove(elem: A): swaydb.OK =
+  def remove(elem: A): Unit =
     asScala.remove(elem)
 
-  def remove(from: A, to: A): swaydb.OK =
+  def remove(from: A, to: A): Unit =
     asScala.remove(from, to)
 
-  def remove(elems: java.lang.Iterable[A]): swaydb.OK =
+  def remove(elems: java.lang.Iterable[A]): Unit =
     asScala.remove(elems.asScala)
 
-  def remove(elems: Stream[A]): swaydb.OK =
+  def remove(elems: Stream[A]): Unit =
     asScala.remove(elems.asScalaStream)
 
-  def remove(elems: java.util.Iterator[A]): swaydb.OK =
+  def remove(elems: java.util.Iterator[A]): Unit =
     asScala.remove(elems.asScala)
 
-  def expire(elem: A, after: java.time.Duration): swaydb.OK =
+  def expire(elem: A, after: java.time.Duration): Unit =
     asScala.expire(elem, after.toScala)
 
-  def expire(from: A, to: A, after: java.time.Duration): swaydb.OK =
+  def expire(from: A, to: A, after: java.time.Duration): Unit =
     asScala.expire(from, to, after.toScala)
 
-  def expire(elems: java.lang.Iterable[Pair[A, java.time.Duration]]): swaydb.OK =
+  def expire(elems: java.lang.Iterable[Pair[A, java.time.Duration]]): Unit =
     asScala.expire {
       elems.asScala.map {
         pair =>
@@ -102,7 +102,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
       }
     }
 
-  def expire(elems: Stream[Pair[A, java.time.Duration]]): swaydb.OK =
+  def expire(elems: Stream[Pair[A, java.time.Duration]]): Unit =
     asScala.expire {
       elems.asScalaStream.map {
         pair =>
@@ -110,7 +110,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
       }
     }
 
-  def expire(elems: java.util.Iterator[Pair[A, java.time.Duration]]): swaydb.OK =
+  def expire(elems: java.util.Iterator[Pair[A, java.time.Duration]]): Unit =
     asScala.expire {
       elems.asScala map {
         pair =>
@@ -118,19 +118,19 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
       }
     }
 
-  def clear(): swaydb.OK =
+  def clear(): Unit =
     asScala.clear()
 
-  def applyFunction(from: A, to: A, function: F): swaydb.OK =
+  def applyFunction(from: A, to: A, function: F): Unit =
     asScala.applyFunction(from, to, function)
 
-  def applyFunction(elem: A, function: F): swaydb.OK =
+  def applyFunction(elem: A, function: F): Unit =
     asScala.applyFunction(elem, function)
 
-  def commit(prepare: java.lang.Iterable[Prepare[A, Void, F]]): swaydb.OK =
+  def commit(prepare: java.lang.Iterable[Prepare[A, Void, F]]): Unit =
     asScala.commit(prepare.asScala.asInstanceOf[Iterable[Prepare[A, Nothing, F]]])
 
-  def commit(prepare: Stream[Prepare[A, Void, F]]): swaydb.OK =
+  def commit(prepare: Stream[Prepare[A, Void, F]]): Unit =
     asScala.commit(prepare.asInstanceOf[Stream[Prepare[A, Nothing, F]]].asScalaStream)
 
   def levelZeroMeter: LevelZeroMeter =
