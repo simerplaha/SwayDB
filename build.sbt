@@ -23,11 +23,11 @@ val scala213 = "2.13.3"
 
 val inlining =
   Seq(
-    //        "-opt:l:inline",
-    //        "-opt-warnings",
-    //        "-opt-inline-from:swaydb.**",
-    //        "-Yopt-log-inline",
-    //        "_"
+    "-opt:l:inline",
+    "-opt-warnings",
+    "-opt-inline-from:swaydb.**",
+    "-Yopt-log-inline",
+    "_"
   )
 
 val scalaOptions =

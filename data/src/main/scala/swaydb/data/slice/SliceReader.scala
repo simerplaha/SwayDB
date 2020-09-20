@@ -31,8 +31,8 @@ import swaydb.data.util.ByteOps
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-private[swaydb] case class SliceReader[B](slice: Slice[B],
-                                          private var position: Int = 0)(implicit val byteOps: ByteOps[B]) extends Reader[B] {
+case class SliceReader[B](slice: Slice[B],
+                          private var position: Int = 0)(implicit val byteOps: ByteOps[B]) extends Reader[B] {
 
   def path = Paths.get(this.productPrefix)
 
@@ -42,15 +42,14 @@ private[swaydb] case class SliceReader[B](slice: Slice[B],
   def hasAtLeast(size: Long): Boolean =
     (slice.size - position) >= size
 
-  def read(size: Int): Slice[B] = {
-    if (size <= 0)
+  def read(size: Int): Slice[B] =
+    if (size <= 0) {
       Slice.empty
-    else {
+    } else {
       val bytes = slice.take(position, size)
       position += size
       bytes
     }
-  }
 
   def moveTo(newPosition: Long): SliceReader[B] = {
     position = newPosition.toInt max 0

@@ -33,7 +33,7 @@ import swaydb.{IO, Pair}
 
 import scala.annotation.tailrec
 
-private[swaydb] trait ReaderBase[B] { self =>
+trait ReaderBase[B] { self =>
 
   def byteOps: ByteOps[B]
 
