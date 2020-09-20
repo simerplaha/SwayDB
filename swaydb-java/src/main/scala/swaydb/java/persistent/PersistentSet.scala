@@ -85,9 +85,9 @@ object PersistentSet {
                            private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[A] = null,
                            private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
-                                                                                                                            serializer: Serializer[A],
-                                                                                                                            functions: Functions[F],
-                                                                                                                            evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
+                                                                                      serializer: Serializer[A],
+                                                                                      functions: Functions[F],
+                                                                                      evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize

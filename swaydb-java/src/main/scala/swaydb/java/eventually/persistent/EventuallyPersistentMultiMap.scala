@@ -77,11 +77,11 @@ object EventuallyPersistentMultiMap {
                                  private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                                  private var typedComparator: KeyComparator[K] = null,
                                  private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
-                                                                                                                                       keySerializer: Serializer[K],
-                                                                                                                                       mapKeySerializer: Serializer[M],
-                                                                                                                                       valueSerializer: Serializer[V],
-                                                                                                                                       functions: Functions[F],
-                                                                                                                                       evd: F <:< PureFunction[K, V, Apply.Map[V]]) {
+                                                                                            keySerializer: Serializer[K],
+                                                                                            mapKeySerializer: Serializer[M],
+                                                                                            valueSerializer: Serializer[V],
+                                                                                            functions: Functions[F],
+                                                                                            evd: F <:< PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
