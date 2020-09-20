@@ -571,7 +571,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         val compactors =
           CoreInitializer.initialiseCompaction(
             zero = level0,
-            executionContexts = CompactionExecutionContext.Create(DefaultExecutionContext.compactionEC) +: List.fill(4)(CompactionExecutionContext.Shared)
+            executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared)
           ).value
 
         compactors should have size 1

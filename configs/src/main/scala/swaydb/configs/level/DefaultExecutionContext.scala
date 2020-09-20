@@ -33,29 +33,33 @@ import scala.concurrent.ExecutionContext
 object DefaultExecutionContext extends LazyLogging {
 
   /**
-   * ExecutionContext used for Compaction. This is a lazy val so once initialised
-   * it will be used for all SwayDB instances that use default ExecutionContext. If you
-   * are using multiple SwayDB instance create these fixed ThreadPool for each instance.
+   * A new compaction ExecutionContext is created for each new SwayDB instance.
    *
    * You can overwrite this when creating your SwayDB instance.
    *
-   * Needs at least 2 threads. 1 for compaction because default configuration uses
-   * single threaded compaction and another thread for scheduling (if required).
+   * Needs at least 1-2 threads. 1 for compaction because default configuration uses
+   * single threaded compaction and another thread optionally for scheduling. For majority
+   * of the cases only 1 thread will be active.
    */
-  lazy val compactionEC: ExecutionContext =
+  def compactionEC: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2, DefaultThreadFactory.create()))
 
   /**
-   * ExecutionContext used for [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]] Actors.
+   * ExecutionContext used for [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]].
    *
-   * You can overwrite this by provided your own [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]]
-   * configurations.
+   * Initialised lazily and used globally for all SwayDB instances. Sweepers are cache/memory and
+   * file(close, clean & delete) managers and their execution is needed at machine level so that
+   * we do not hit memory overflow or run into too many open files. So this ExecutionContext is required
+   * at machine level.
    *
-   * Needs at least 3 threads. 1 for processing, 1 scheduling and 1 for termination (during shutdown)
-   * when [[swaydb.Bag.Sync]] bag is used. If the API is using [[swaydb.Bag.Async]] bag then only 2
-   * threads are needed.
+   * If you have multiple SwayDB instances this CachedThreadPool should be enough as thread counts
+   * will adjust dynamically or else you can overwrite this by provided your own [[swaydb.data.config.FileCache]]
+   * and [[swaydb.data.config.MemoryCache]] configurations.
+   *
+   * For a single instance it needs at least 2-3 threads. 1 for processing, 1 scheduling and optionally 1
+   * when [[swaydb.Bag.Sync]] bag is used for termination (during shutdown). But for majority of the cases only 1
+   * thread will be active. If [[swaydb.Bag.Async]] bag is used then only 2 threads are needed per instance.
    */
-  lazy val sweeperEC: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3, DefaultThreadFactory.create()))
+  lazy val sweeperEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool(DefaultThreadFactory.create()))
 
 }
