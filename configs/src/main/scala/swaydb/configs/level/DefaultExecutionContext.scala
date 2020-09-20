@@ -34,18 +34,26 @@ object DefaultExecutionContext extends LazyLogging {
 
   /**
    * ExecutionContext used for Compaction. This is a lazy val so once initialised
-   * it will be used for all SwayDB instances that use default ExecutionContext.
+   * it will be used for all SwayDB instances that use default ExecutionContext. If you
+   * are using multiple SwayDB instance create these fixed ThreadPool for each instance.
    *
    * You can overwrite this when creating your SwayDB instance.
+   *
+   * Needs at least 2 threads. 1 for compaction because default configuration uses
+   * single threaded compaction and another thread for scheduling (if required).
    */
   lazy val compactionEC: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3, DefaultThreadFactory.create()))
+    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2, DefaultThreadFactory.create()))
 
   /**
    * ExecutionContext used for [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]] Actors.
    *
    * You can overwrite this by provided your own [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]]
    * configurations.
+   *
+   * Needs at least 3 threads. 1 for processing, 1 scheduling and 1 for termination (during shutdown)
+   * when [[swaydb.Bag.Sync]] bag is used. If the API is using [[swaydb.Bag.Async]] bag then only 2
+   * threads are needed.
    */
   lazy val sweeperEC: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newFixedThreadPool(3, DefaultThreadFactory.create()))
