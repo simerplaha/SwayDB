@@ -449,7 +449,6 @@ protected case class PersistentSegmentMany(file: DBFile,
 
         segments
           .values()
-          .asScala
           .foreach {
             nextSegmentRef =>
               if (nextSegmentRef.path != previousPath) {

@@ -28,6 +28,7 @@ import java.util
 import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.Bagged
+import swaydb.core.util.HashedMap
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -71,14 +72,10 @@ private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: 
   def last(): OptionValue
   def head(): OptionValue
   def headKeyValue: Option[(Key, Value)]
-  def values(): util.Collection[Value]
-  def keys(): util.NavigableSet[Key]
-  def take(count: Int)(implicit classTag: ClassTag[Value]): Slice[Value]
+  def values(): Iterable[Value]
   def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R
   def foreach[R](f: (Key, Value) => R): Unit
-  def subMap(from: Key, to: Key): util.NavigableMap[Key, Value]
-  def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): util.NavigableMap[Key, Value]
-  def asScala: mutable.Map[Key, Value]
+  def asScala: Iterable[(Key, Value)]
 
   @inline final def toOptionValue(entry: java.util.Map.Entry[Key, Value]): OptionValue =
     if (entry == null)
@@ -131,10 +128,12 @@ private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: 
 
 private[core] object SkipList {
   object Batch {
+
     case class Remove[Key](key: Key) extends Batch[Key, Nothing] {
       override def apply[VV >: Nothing](skipList: SkipList[_, _, Key, VV]): Unit =
         skipList.remove(key)
     }
+
     case class Put[Key, Value](key: Key, value: Value) extends Batch[Key, Value] {
       override def apply[VV >: Value](skipList: SkipList[_, _, Key, VV]): Unit =
         skipList.put(key, value)
@@ -190,4 +189,17 @@ private[core] object SkipList {
       nullValue = nullValue
     )
 
+
+  def slice[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
+                                                                            extendBy: Int,
+                                                                            enableHashIndex: Boolean,
+                                                                            nullKey: OptionKey,
+                                                                            nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =
+    new SliceSkipList[OptionKey, OptionValue, Key, Value](
+      slice = Slice.of(size),
+      hashIndex = if (enableHashIndex) Some(HashedMap.concurrent(nullValue, Some(size))) else None,
+      nullKey = nullKey,
+      nullValue = nullValue,
+      extendBy = extendBy
+    )
 }

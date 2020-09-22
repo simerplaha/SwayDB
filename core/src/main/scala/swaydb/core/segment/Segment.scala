@@ -407,7 +407,7 @@ private[core] object Segment extends LazyLogging {
 
       case memory: MemorySegment =>
         copyToPersist(
-          keyValues = memory.skipList.values().asScala,
+          keyValues = memory.skipList.values(),
           createdInLevel = createdInLevel,
           pathsDistributor = pathsDistributor,
           removeDeletes = removeDeletes,

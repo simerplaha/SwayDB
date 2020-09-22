@@ -998,7 +998,7 @@ private[swaydb] case class LevelZero(path: Path,
       nullResult = false,
       matcher =
         map =>
-          map.values().asScala exists {
+          map.values() exists {
             case _: Memory.Put | _: Memory.Remove | _: Memory.Update =>
               false
 

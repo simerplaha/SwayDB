@@ -1094,7 +1094,7 @@ class MapSpec extends TestBase {
                 keyValues =>
                   map.writeSync(keyValues.toMapEntry.value) shouldBe true
               }
-              map.values().asScala shouldBe keyValues
+              map.values() shouldBe keyValues
 
               //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
               val updatedValues = randomizedKeyValues(1000, startId = Some(keyValues.head.key.readInt()), addPut = true)
@@ -1156,7 +1156,7 @@ class MapSpec extends TestBase {
                 keyValues =>
                   map.writeSync(keyValues.toMapEntry.value) shouldBe true
               }
-              map.values().asScala shouldBe keyValues
+              map.values() shouldBe keyValues
 
               //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
               val updatedValues = randomizedKeyValues(100, startId = Some(keyValues.head.key.readInt()), addPut = true)

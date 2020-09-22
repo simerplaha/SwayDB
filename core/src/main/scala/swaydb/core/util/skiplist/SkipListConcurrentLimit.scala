@@ -123,19 +123,15 @@ private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: Optio
 
   override def headKeyValue: Option[(Key, Value)] = skipList.headKeyValue
 
-  override def values(): util.Collection[Value] = skipList.values()
+  override def values(): Iterable[Value] = skipList.values()
 
-  override def keys(): util.NavigableSet[Key] = skipList.keys()
+  def keys(): util.NavigableSet[Key] = skipList.keys()
 
-  override def take(count: Int)(implicit classTag: ClassTag[Value]): Slice[Value] = skipList.take(count)
+  def take(count: Int)(implicit classTag: ClassTag[Value]): Slice[Value] = skipList.take(count)
 
   override def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R = skipList.foldLeft(r)(f)
 
   override def foreach[R](f: (Key, Value) => R): Unit = skipList.foreach(f)
-
-  override def subMap(from: Key, to: Key): util.NavigableMap[Key, Value] = skipList.subMap(from, to)
-
-  override def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): util.NavigableMap[Key, Value] = skipList.subMap(from, fromInclusive, to, toInclusive)
 
   override def asScala: mutable.Map[Key, Value] = skipList.asScala
 }

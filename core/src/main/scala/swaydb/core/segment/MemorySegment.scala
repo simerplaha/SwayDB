@@ -225,11 +225,9 @@ protected case class MemorySegment(path: Path,
       throw swaydb.Exception.NoSuchFile(path)
     } else {
       val slice = Slice.newAggregator[Memory](skipList.size)
-      skipList.values() forEach {
-        new Consumer[Memory] {
-          override def accept(value: Memory): Unit =
-            slice add value
-        }
+      skipList.values() foreach {
+        value =>
+          slice add value
       }
       slice.result
     }
@@ -238,7 +236,7 @@ protected case class MemorySegment(path: Path,
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
-      skipList.values().iterator().asScala
+      skipList.values().iterator
 
   override def delete: Unit = {
     //cache should not be cleared.

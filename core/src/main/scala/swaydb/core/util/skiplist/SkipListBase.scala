@@ -136,8 +136,8 @@ private[core] trait SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value
   def head(): OptionValue =
     toOptionValue(skipList.firstEntry())
 
-  def values(): util.Collection[Value] =
-    skipList.values()
+  def values(): Iterable[Value] =
+    skipList.values().asScala
 
   def keys(): util.NavigableSet[Key] =
     skipList.navigableKeySet()

@@ -175,8 +175,8 @@ private[core] object Level extends LazyLogging {
           appendix =>
             logger.debug("{}: Checking Segments exist.", levelStorage.dir)
             //check that all existing Segments in appendix also exists on disk or else return error message.
-            appendix.asScala foreachIO {
-              case (_, segment) =>
+            appendix.values() foreachIO {
+              segment =>
                 if (segment.existsOnDisk)
                   IO.unit
                 else
@@ -186,14 +186,14 @@ private[core] object Level extends LazyLogging {
                 IO.Left(error)
 
               case None =>
-                val allSegments = appendix.values().asScala
+                val allSegments = appendix.values()
                 implicit val segmentIDGenerator = IDGenerator(initial = largestSegmentId(allSegments))
                 implicit val reserveRange = ReserveRange.create[Unit]()
                 val paths: PathsDistributor = PathsDistributor(levelStorage.dirs, () => allSegments)
 
                 val deletedUnCommittedSegments =
                   if (appendixStorage.persistent)
-                    deleteUncommittedSegments(levelStorage.dirs, appendix.values().asScala)
+                    deleteUncommittedSegments(levelStorage.dirs, appendix.values())
                   else
                     IO.unit
 
@@ -452,7 +452,7 @@ private[core] case class Level(dirs: Seq[Dir],
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
         inputSegments = segments,
-        targetSegments = appendix.values().asScala
+        targetSegments = appendix.values()
       )
     } map {
       assigned =>
@@ -484,7 +484,7 @@ private[core] case class Level(dirs: Seq[Dir],
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
         map = map,
-        targetSegments = appendix.values().asScala
+        targetSegments = appendix.values()
       )
     } map {
       assigned =>
@@ -612,7 +612,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def put(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
     reserveAndRelease(segments) {
-      val appendixSegments = appendix.values().asScala
+      val appendixSegments = appendix.values()
       val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
       put(
         segmentsToMerge = segmentToMerge,
@@ -701,11 +701,11 @@ private[core] case class Level(dirs: Seq[Dir],
   def put(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.count())
     reserveAndRelease(map) {
-      val appendixValues = appendix.values().asScala
+      val appendixValues = appendix.values()
       if (Segment.overlaps(map, appendixValues))
         putKeyValues(
           keyValuesCount = map.skipListKeyValuesMaxCount,
-          keyValues = map.values().asScala,
+          keyValues = map.values(),
           targetSegments = appendixValues,
           appendEntry = None
         ) transform {
@@ -793,7 +793,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
       if (inMemory)
         Segment.copyToMemory(
-          keyValues = map.values().iterator().asScala,
+          keyValues = map.values().iterator,
           pathsDistributor = pathDistributor,
           removeDeletes = removeDeletedRecords,
           minSegmentSize = minSegmentSize,
@@ -802,7 +802,7 @@ private[core] case class Level(dirs: Seq[Dir],
         )
       else
         Segment.copyToPersist(
-          keyValues = map.values().asScala,
+          keyValues = map.values(),
           segmentConfig = segmentConfig,
           createdInLevel = levelNumber,
           pathsDistributor = pathDistributor,
@@ -1233,7 +1233,6 @@ private[core] case class Level(dirs: Seq[Dir],
   private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): Boolean =
     appendix
       .values()
-      .asScala
       .exists {
         segment =>
           segment
@@ -1443,9 +1442,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix.foreach(f)
 
   def segmentsInLevel(): Iterable[Segment] =
-    appendix
-      .values()
-      .asScala
+    appendix.values()
 
   def hasNextLevel: Boolean =
     nextLevel.isDefined
@@ -1474,21 +1471,18 @@ private[core] case class Level(dirs: Seq[Dir],
   override def takeSegments(size: Int, condition: Segment => Boolean): Iterable[Segment] =
     appendix
       .values()
-      .asScala
       .filter(condition)
       .take(size)
 
   override def takeLargeSegments(size: Int): Iterable[Segment] =
     appendix
       .values()
-      .asScala
       .filter(_.segmentSize > minSegmentSize)
       .take(size)
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
     appendix
       .values()
-      .asScala
       .filter(Level.isSmallSegment(_, minSegmentSize))
       .take(size)
 
@@ -1514,7 +1508,6 @@ private[core] case class Level(dirs: Seq[Dir],
   def hasSmallSegments: Boolean =
     appendix
       .values()
-      .asScala
       .exists(Level.isSmallSegment(_, minSegmentSize))
 
   def shouldSelfCompactOrExpire: Boolean =
