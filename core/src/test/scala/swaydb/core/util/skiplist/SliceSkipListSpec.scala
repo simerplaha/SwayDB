@@ -26,35 +26,68 @@ package swaydb.core.util.skiplist
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.util.Benchmark
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.serializers.Default._
+import swaydb.serializers._
 
-class SliceSkipListSpec extends AnyWordSpec with Matchers {
+import scala.util.Random
 
-  "Dsds" in {
-    val max = 1000000
+class Concurrent_HashIndex_Disabled_Spec extends SliceSkipListSpec {
+  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V] =
+    SkipList.sliceConcurrent[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
+}
 
-    implicit val ordering = KeyOrder(Ordering.Int)
-    //        val skipList = SkipList.concurrent[Int, Int, Int, Int](-1, -1)
-    val skipList = SkipList.slice[Int, Int, Int, Int](size = max + 1, extendBy = 2, enableHashIndex = true, nullKey = -1, nullValue = -1)
+class Concurrent_HashIndex_Enabled_Spec extends SliceSkipListSpec {
+  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V] =
+    SkipList.sliceConcurrent[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
+}
 
-    Benchmark("put") {
-      (0 to max) foreach {
-        i =>
-          skipList.put(i, i)
-      }
-    }
+class HashIndex_Disabled_Spec extends SliceSkipListSpec {
+  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V] =
+    SkipList.slice[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
+}
 
-    //    val shuffle = Random.shuffle((1 to max).toList)
+class HashIndex_Enabled_Spec extends SliceSkipListSpec {
+  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V] =
+    SkipList.slice[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
+}
 
-    Benchmark("get") {
-      (0 to max) foreach {
-        index =>
-          skipList.get(index)
-        //          println(index + " - " + skipList.get(index))
-      }
-    }
+sealed trait SliceSkipListSpec extends AnyWordSpec with Matchers {
 
+  sealed trait ValueOption
+  object Value {
+    final case object Null extends ValueOption
+    case class Some(value: Int) extends ValueOption
   }
 
+  implicit val ordering = KeyOrder.integer
+
+  def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V]
+
+  def create(): SliceSkipList[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some] =
+    create[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some](Slice.Null, Value.Null)
+
+  "maintain index" in {
+    val skipList = create()
+    val random = Random.shuffle(List.range(0, 1000))
+    random foreach {
+      int =>
+        skipList.put(int, Value.Some(int))
+    }
+
+    skipList.slice.foreach {
+      keyValue =>
+        keyValue.index shouldBe keyValue.key.readInt()
+    }
+
+    skipList.hashIndex.foreach {
+      hashIndex =>
+        hashIndex forEach {
+          (key: Slice[Byte], value: KeyValue.Some[Slice[Byte], Value.Some]) =>
+            value.index shouldBe key.readInt()
+        }
+
+    }
+  }
 }

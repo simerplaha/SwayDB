@@ -168,9 +168,9 @@ private[core] object SkipList {
       nullValue = nullValue
     )
 
-  def map[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
-                                                                          nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListMap[OptionKey, OptionValue, Key, Value] =
-    new SkipListMap[OptionKey, OptionValue, Key, Value](
+  def treeMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
+                                                                              nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListTreeMap[OptionKey, OptionValue, Key, Value] =
+    new SkipListTreeMap[OptionKey, OptionValue, Key, Value](
       skipper = new util.TreeMap[Key, Value](ordering),
       nullKey = nullKey,
       nullValue = nullValue
@@ -191,6 +191,19 @@ private[core] object SkipList {
     )
 
 
+  def sliceConcurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
+                                                                                      extendBy: Int,
+                                                                                      enableHashIndex: Boolean,
+                                                                                      nullKey: OptionKey,
+                                                                                      nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =
+    new SliceSkipList[OptionKey, OptionValue, Key, Value](
+      slice = Slice.of(size),
+      hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(size)) else None,
+      nullKey = nullKey,
+      nullValue = nullValue,
+      extendBy = extendBy
+    )
+
   def slice[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
                                                                             extendBy: Int,
                                                                             enableHashIndex: Boolean,
@@ -198,7 +211,7 @@ private[core] object SkipList {
                                                                             nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =
     new SliceSkipList[OptionKey, OptionValue, Key, Value](
       slice = Slice.of(size),
-      hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(size)) else None,
+      hashIndex = if (enableHashIndex) Some(new util.HashMap(size)) else None,
       nullKey = nullKey,
       nullValue = nullValue,
       extendBy = extendBy
