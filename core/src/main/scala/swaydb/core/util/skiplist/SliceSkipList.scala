@@ -24,7 +24,8 @@
 
 package swaydb.core.util.skiplist
 
-import swaydb.core.util.HashedMap
+import java.util.concurrent.ConcurrentHashMap
+
 import swaydb.core.util.skiplist.KeyValue.Some
 import swaydb.data.slice.Slice
 import swaydb.data.util.SomeOrNoneCovariant
@@ -64,33 +65,36 @@ object SliceSkipList {
 
   private def get[K, V](target: K,
                         slice: Slice[KeyValue.Some[K, V]],
-                        hashIndex: Option[HashedMap.Concurrent[K, V, _]])(implicit ordering: Ordering[K]): KeyValue[K, V] = {
-//    hashIndex match {
-//      case scala.Some(hashIndex) =>
-//        val value= hashIndex.get(target)
-//        if(value)
-//      case None =>
-//    }
-
-    var start = 0
-    var end = slice.size - 1
-
-    while (start <= end) {
-      val mid = start + (end - start) / 2
-      val found = slice.get(mid)
-      val compare = ordering.compare(found.key, target)
-      if (compare == 0)
-        if (found.value == null)
-          return KeyValue.None
+                        hashIndex: Option[ConcurrentHashMap[K, KeyValue.Some[K, V]]])(implicit ordering: Ordering[K]): KeyValue[K, V] = {
+    hashIndex match {
+      case scala.Some(hashIndex) =>
+        val value = hashIndex.get(target)
+        if (value == null)
+          KeyValue.None
         else
-          return found
-      else if (compare < 0)
-        start = mid + 1
-      else
-        end = mid - 1
-    }
+          value
 
-    KeyValue.None
+      case None =>
+        var start = 0
+        var end = slice.size - 1
+
+        while (start <= end) {
+          val mid = start + (end - start) / 2
+          val found = slice.get(mid)
+          val compare = ordering.compare(found.key, target)
+          if (compare == 0)
+            if (found.value == null)
+              return KeyValue.None
+            else
+              return found
+          else if (compare < 0)
+            start = mid + 1
+          else
+            end = mid - 1
+        }
+
+        KeyValue.None
+    }
   }
 
   private def lower[K, V](target: K, slice: Slice[KeyValue.Some[K, V]])(implicit ordering: Ordering[K]): KeyValue[K, V] = {
@@ -243,7 +247,7 @@ object SliceSkipList {
 }
 
 class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private var slice: Slice[KeyValue.Some[K, V]],
-                                              hashIndex: Option[HashedMap.Concurrent[K, V, OV]],
+                                              hashIndex: Option[ConcurrentHashMap[K, KeyValue.Some[K, V]]],
                                               val nullKey: OK,
                                               val nullValue: OV,
                                               val extendBy: Double)(implicit ordering: Ordering[K]) extends SkipList[OK, OV, K, V] { self =>
@@ -279,12 +283,14 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private var slice: Slice
     val lastOrNull = slice.lastOrNull
     if (lastOrNull == null) {
       if (slice.isFull) extend()
-      slice add KeyValue.Some(key, value)
-      hashIndex foreach (_.put(key, value))
+      val keyValue = KeyValue.Some(key, value)
+      slice add keyValue
+      hashIndex foreach (_.put(key, keyValue))
     } else if (ordering.gt(key, lastOrNull.key)) {
       if (slice.isFull) extend()
-      slice add KeyValue.Some(key, value)
-      hashIndex foreach (_.put(key, value))
+      val keyValue = KeyValue.Some(key, value)
+      slice add keyValue
+      hashIndex foreach (_.put(key, keyValue))
     } else {
       SliceSkipList.get(key, slice, hashIndex) match {
         case some: Some[K, V] =>
@@ -299,9 +305,12 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private var slice: Slice
 
               if (ordering.gt(key, old.key)) {
                 val tail = slice.drop(newSlice.size)
-                newSlice add KeyValue.Some(key, value)
-                hashIndex foreach (_.put(key, value))
+                val keyValue = KeyValue.Some(key, value)
+
+                newSlice add keyValue
+                hashIndex foreach (_.put(key, keyValue))
                 newSlice addAll tail
+
                 this.slice = newSlice
                 return
               }
@@ -318,7 +327,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private var slice: Slice
         put(key, value)
         true
 
-      case some: Some[_, _] =>
+      case _: Some[K, V] =>
         false
     }
 
@@ -332,7 +341,11 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private var slice: Slice
     }
 
   override def remove(key: K): Unit =
-    SliceSkipList.get(key, slice, hashIndex).foreachC(_.value == null)
+    SliceSkipList.get(key, slice, hashIndex).foreachC {
+      some =>
+        hashIndex.foreach(_.remove(key))
+        some.value == null
+    }
 
   override def lower(key: K): OV =
     SliceSkipList.lower(key, slice) match {

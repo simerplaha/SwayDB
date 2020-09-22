@@ -36,7 +36,7 @@ class SliceSkipListSpec extends AnyWordSpec with Matchers {
 
     implicit val ordering = KeyOrder(Ordering.Int)
     //        val skipList = SkipList.concurrent[Int, Int, Int, Int](-1, -1)
-    val skipList = SkipList.slice[Int, Int, Int, Int](size = max + 1, extendBy = 2, enableHashIndex = false, nullKey = -1, nullValue = -1)
+    val skipList = SkipList.slice[Int, Int, Int, Int](size = max + 1, extendBy = 2, enableHashIndex = true, nullKey = -1, nullValue = -1)
 
     Benchmark("put") {
       (0 to max) foreach {

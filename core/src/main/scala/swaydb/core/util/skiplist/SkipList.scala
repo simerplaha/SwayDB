@@ -25,12 +25,13 @@
 package swaydb.core.util.skiplist
 
 import java.util
-import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 
 import swaydb.Bagged
 import swaydb.core.util.HashedMap
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.serializers.toSlice
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -197,7 +198,7 @@ private[core] object SkipList {
                                                                             nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =
     new SliceSkipList[OptionKey, OptionValue, Key, Value](
       slice = Slice.of(size),
-      hashIndex = if (enableHashIndex) Some(HashedMap.concurrent(nullValue, Some(size))) else None,
+      hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(size)) else None,
       nullKey = nullKey,
       nullValue = nullValue,
       extendBy = extendBy
