@@ -26,13 +26,16 @@ package swaydb.core.util.skiplist
 
 import java.util.concurrent.ConcurrentSkipListMap
 
+//@formatter:off
 private[core] class SkipListConcurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: ConcurrentSkipListMap[Key, Value],
                                                                                                        val nullKey: OptionKey,
-                                                                                                       val nullValue: OptionValue) extends SkipListBatchableBase[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]](skipper) {
+                                                                                                       val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]](skipper)
+                                                                                                                                      with SkipListBase[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]] {
+//@formatter:on
   /**
-   * FIXME - [[SkipListBatchableBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
+   * FIXME - [[SkipListBatchableImpl]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
    * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
-   * to [[SkipListBatchableBase]] without storing a reference of the original skipList in this instance.
+   * to [[SkipListBatchableImpl]] without storing a reference of the original skipList in this instance.
    */
   skipper = null
 

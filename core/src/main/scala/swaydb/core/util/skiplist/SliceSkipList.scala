@@ -296,8 +296,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var sl
                                               private[skiplist] val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]],
                                               val nullKey: OK,
                                               val nullValue: OV,
-                                              val extendBy: Double)(implicit ordering: Ordering[K]) extends SkipList[OK, OV, K, V] with LazyLogging { self =>
-
+                                              val extendBy: Double)(implicit ordering: Ordering[K]) extends SkipListBatchable[OK, OV, K, V] with SkipList[OK, OV, K, V] with LazyLogging { self =>
   private var extensionCount = 0
 
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
@@ -600,6 +599,12 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var sl
       override def iterator: Iterator[(K, V)] =
         self.iterator().map(_.toTuple)
     }
+
   override def subMap(from: K, to: K): Iterable[(K, V)] = ???
+
   override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = ???
+
+  override def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit = ???
+
+  override def put(keyValues: Iterable[(K, V)]): Unit = ???
 }

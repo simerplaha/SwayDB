@@ -24,14 +24,12 @@
 
 package swaydb.core.level.zero
 
-import java.util.function.Consumer
-
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
+import swaydb.core.util.skiplist.{SkipList, SkipListBatchable}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -53,9 +51,9 @@ object LevelZeroMapCache {
  *
  * reverse on the merge results ensures that changes happen atomically.
  */
-class LevelZeroMapCache(val skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                functionStore: FunctionStore) extends MapCache[Slice[Byte], Memory] {
+class LevelZeroMapCache(val skipList: SkipListBatchable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                               timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                               functionStore: FunctionStore) extends MapCache[Slice[Byte], Memory] {
 
   @volatile var skipListKeyValuesMaxCount: Int = skipList.size
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'

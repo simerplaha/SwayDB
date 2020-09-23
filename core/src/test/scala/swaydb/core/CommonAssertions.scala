@@ -57,7 +57,7 @@ import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCac
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
+import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
 import swaydb.data.RunThis._
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -280,13 +280,13 @@ object CommonAssertions {
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
-                          expected: Memory): SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
+                          expected: Memory): SkipListBatchable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipListBatchable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
     val cache = LevelZeroMapCache.builder.create()
     (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => cache.write(MapEntry.Put(memory.key, memory)))
