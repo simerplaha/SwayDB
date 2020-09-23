@@ -26,9 +26,9 @@ package swaydb.core.util.skiplist
 
 import java.util
 
-protected abstract class SkipListBatchable[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]](@volatile var skipList: SL) extends SkipListBase[OptionKey, OptionValue, Key, Value, SL] {
+protected abstract class SkipListBatchableBase[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]](@volatile var skipList: SL) extends SkipListBase[OptionKey, OptionValue, Key, Value, SL] {
 
-  def cloneInstance(skipList: SL): SkipListBatchable[OptionKey, OptionValue, Key, Value, SL]
+  def cloneInstance(skipList: SL): SkipListBatchableBase[OptionKey, OptionValue, Key, Value, SL]
 
   /**
    * Does not support concurrent batch writes since it's only being used by [[swaydb.core.level.Level]] which

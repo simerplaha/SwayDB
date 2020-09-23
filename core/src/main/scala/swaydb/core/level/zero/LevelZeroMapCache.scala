@@ -130,13 +130,11 @@ class LevelZeroMapCache(val skipList: SkipListConcurrent[SliceOption[Byte], Memo
     if (conflictingKeyValues.isEmpty) {
       skipList.put(insert.key, insert)
     } else {
-      val oldKeyValues = Slice.of[Memory](conflictingKeyValues.size())
+      val oldKeyValues = Slice.of[Memory](conflictingKeyValues.size)
 
-      conflictingKeyValues.values() forEach {
-        new Consumer[Memory] {
-          override def accept(keyValue: Memory): Unit =
-            oldKeyValues add keyValue
-        }
+      conflictingKeyValues foreach {
+        case (_, keyValue) =>
+          oldKeyValues add keyValue
       }
 
       val builder = MergeStats.buffer[Memory, ListBuffer](ListBuffer.newBuilder)

@@ -600,4 +600,6 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var sl
       override def iterator: Iterator[(K, V)] =
         self.iterator().map(_.toTuple)
     }
+  override def subMap(from: K, to: K): Iterable[(K, V)] = ???
+  override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = ???
 }

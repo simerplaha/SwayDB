@@ -382,8 +382,8 @@ class MapEntrySpec extends TestBase {
       skipList should have size 10001
       skipList.headKey.getC shouldBe (0: Slice[Byte])
       skipList.lastKey.getC shouldBe (10000: Slice[Byte])
-      skipList.subMap(0, true, 4999, true).asScala.foreach(_._2.isInstanceOf[Memory.Put] shouldBe true)
-      skipList.subMap(5000, true, 10000, true).asScala.foreach(_._2.isInstanceOf[Memory.Remove] shouldBe true)
+      skipList.subMap(0, true, 4999, true).foreach(_._2.isInstanceOf[Memory.Put] shouldBe true)
+      skipList.subMap(5000, true, 10000, true).foreach(_._2.isInstanceOf[Memory.Remove] shouldBe true)
     }
 
     "be written and read for Appendix" in {
