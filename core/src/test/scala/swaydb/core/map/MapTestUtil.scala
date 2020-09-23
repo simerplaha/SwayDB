@@ -25,7 +25,7 @@
 package swaydb.core.map
 
 import org.scalatest.matchers.should.Matchers._
-import swaydb.Bag
+import swaydb.{Bag, OK}
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
@@ -59,13 +59,13 @@ object MapTestUtil {
     }
 
   //cannot be added to TestBase because PersistentMap cannot leave the map package.
-  implicit class ReopenMap[OK, OV, K <: OK, V <: OV](map: PersistentMap[OK, OV, K, V]) {
+  implicit class ReopenMap[K, V, C <: MapCache[K, V]](map: PersistentMap[K, V, C]) {
     def reopen(implicit keyOrder: KeyOrder[K],
                reader: MapEntryReader[MapEntry[K, V]],
-               testCaseSweeper: TestCaseSweeper) = {
+               testCaseSweeper: TestCaseSweeper,
+               mapCacheBuilder: MapCacheBuilder[C]) = {
       map.close()
 
-      implicit val skipListMerger = map.skipListMerger
       implicit val writer = map.writer
       implicit val forceSaveApplied = map.forceSaveApplier
       implicit val cleaner = map.bufferCleaner
@@ -73,19 +73,17 @@ object MapTestUtil {
 
       ensureCleanedForWindows(map.mmap)
 
-      Map.persistent[OK, OV, K, V](
+      Map.persistent[K, V, C](
         folder = map.path,
         mmap = MMAP.randomForMap(),
         flushOnOverflow = map.flushOnOverflow,
         fileSize = map.fileSize,
         dropCorruptedTailEntries = false,
-        nullValue = map.nullValue,
-        nullKey = map.nullKey
       ).runRandomIO.right.value.item.sweep()
     }
   }
 
-  implicit class PersistentMapImplicit[OK, OV, K <: OK, V <: OV](map: PersistentMap[OK, OV, K, V]) {
+  implicit class PersistentMapImplicit[K, V](map: PersistentMap[K, V, _]) {
     /**
      * Manages closing of Map accouting for Windows where
      * Memory-mapped files require in-memory ByteBuffer be cleared.

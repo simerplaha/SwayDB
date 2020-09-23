@@ -28,6 +28,7 @@ import java.nio.file.{Path, Paths}
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory, MemoryOption}
+import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -150,7 +151,7 @@ private[core] object TrashLevel extends NextLevel {
 
   override def inMemory: Boolean = true
 
-  override def isCopyable(map: swaydb.core.map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Boolean =
+  override def isCopyable(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean =
     true
 
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
@@ -162,7 +163,7 @@ private[core] object TrashLevel extends NextLevel {
   override def put(segment: Segment): IO[Nothing, IO.Right[Nothing, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
-  override def put(map: swaydb.core.map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
   override def put(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =

@@ -171,12 +171,12 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepSegment segment
   }
 
-  implicit class TestMapFilesSweeperImplicits[M <: swaydb.core.map.Map[_, _, _, _]](map: M) {
+  implicit class TestMapFilesSweeperImplicits[M <: swaydb.core.map.Map[_, _, _]](map: M) {
     def sweep()(implicit sweeper: TestCaseSweeper): M =
       sweeper sweepMap map
   }
 
-  implicit class TestMapsSweeperImplicits[M <: swaydb.core.map.Maps[_, _, _, _]](map: M) {
+  implicit class TestMapsSweeperImplicits[M <: swaydb.core.map.Maps[_, _, _]](map: M) {
     def sweep()(implicit sweeper: TestCaseSweeper): M =
       sweeper sweepMaps map
   }
@@ -271,8 +271,8 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val schedulers: ListBuffer[CacheNoIO[Unit, Scheduler]],
                       private val levels: ListBuffer[LevelRef],
                       private val segments: ListBuffer[Segment],
-                      private val mapFiles: ListBuffer[map.Map[_, _, _, _]],
-                      private val maps: ListBuffer[Maps[_, _, _, _]],
+                      private val mapFiles: ListBuffer[map.Map[_, _, _]],
+                      private val maps: ListBuffer[Maps[_, _, _]],
                       private val dbFiles: ListBuffer[DBFile],
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
@@ -306,12 +306,12 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
     segment
   }
 
-  def sweepMap[M <: swaydb.core.map.Map[_, _, _, _]](map: M): M = {
+  def sweepMap[M <: swaydb.core.map.Map[_, _, _]](map: M): M = {
     mapFiles += map
     map
   }
 
-  def sweepMaps[M <: Maps[_, _, _, _]](maps: M): M = {
+  def sweepMaps[M <: Maps[_, _, _]](maps: M): M = {
     this.maps += maps
     maps
   }

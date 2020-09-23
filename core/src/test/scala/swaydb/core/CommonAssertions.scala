@@ -39,7 +39,7 @@ import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
 import swaydb.core.io.file.Effect
 import swaydb.core.io.reader.Reader
-import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
+import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.map.{MapEntry, Maps}
@@ -287,11 +287,11 @@ object CommonAssertions {
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
-    val merger = LevelZeroSkipListMerger()
-    val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(KeyOrder.default)
-    (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => merger.insert(memory.key, memory, skipList))
-    skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList
-    skipList
+    import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
+    val cache = LevelZeroMapCache.builder.create()
+    (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => cache.write(MapEntry.Put(memory.key, memory)))
+    cache.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList
+    cache.skipList
   }
 
   def assertMerge(newKeyValue: KeyValue,
@@ -1773,7 +1773,7 @@ object CommonAssertions {
         }
     }
 
-  implicit class MapsImplicit[OK, OV, K <: OK, V <: OV](maps: Maps[OK, OV, K, V]) {
+  implicit class MapsImplicit[OK, OV, K <: OK, V <: OV](maps: Maps[K, V, _]) {
 
     /**
      * Manages closing of Map accouting for Windows where

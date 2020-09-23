@@ -31,7 +31,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
@@ -75,8 +75,6 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
   //  override def deleteFiles: Boolean =
   //    false
-
-  implicit val skipListMerger = LevelZeroSkipListMerger
 
   "put KeyValues" should {
     "write a key-values to the Level" in {

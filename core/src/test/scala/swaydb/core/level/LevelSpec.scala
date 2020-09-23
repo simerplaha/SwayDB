@@ -34,7 +34,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
-import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
@@ -83,8 +83,6 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
 
   //    override def deleteFiles: Boolean =
   //      false
-
-  implicit val skipListMerger = LevelZeroSkipListMerger
 
   "acquireLock" should {
     "create a lock file for only the root directory and not allow more locks" in {

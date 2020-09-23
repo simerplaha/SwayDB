@@ -290,7 +290,7 @@ object TestData {
     def reopen(implicit sweeper: TestCaseSweeper): LevelZero =
       reopen()
 
-    def reopen(mapSize: Long = level.maps.map.size,
+    def reopen(mapSize: Long = level.maps.map.fileSize,
                appliedFunctionsMapSize: Long = level.appliedFunctionsMap.map(_.fileSize).getOrElse(0),
                clearAppliedFunctionsOnBoot: Boolean = false)(implicit timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                              sweeper: TestCaseSweeper): LevelZero = {

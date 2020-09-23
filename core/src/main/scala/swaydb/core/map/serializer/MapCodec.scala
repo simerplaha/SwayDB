@@ -30,7 +30,6 @@ import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.{MapEntry, RecoveryResult}
 import swaydb.core.util.CRC32
-import swaydb.core.util.skiplist.SkipList
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -40,14 +39,14 @@ private[core] object MapCodec extends LazyLogging {
   //    crc         +     length
     ByteSizeOf.long + ByteSizeOf.int
 
-  def toMapEntry[K, V](map: SkipList[_, _, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Option[MapEntry[K, V]] =
-    map.asScala.foldLeft(Option.empty[MapEntry[K, V]]) {
+  def toMapEntry[K, V](map: Iterable[(K, V)])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Option[MapEntry[K, V]] =
+    map.foldLeft(Option.empty[MapEntry[K, V]]) {
       case (mapEntry, (key, value)) =>
         val nextEntry = MapEntry.Put(key, value)
         mapEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
     }
 
-  def write[K, V](map: SkipList[_, _, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Slice[Byte] =
+  def write[K, V](map: Iterable[(K, V)])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Slice[Byte] =
     toMapEntry(map).map(write[K, V]) getOrElse Slice.emptyBytes
 
   def write[K, V](mapEntries: MapEntry[K, V]): Slice[Byte] = {

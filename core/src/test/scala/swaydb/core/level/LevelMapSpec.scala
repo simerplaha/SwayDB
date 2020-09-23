@@ -32,14 +32,14 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.map.{Map, MapEntry, SkipListMerger}
+import swaydb.core.level.zero.LevelZeroMapCache
+import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -75,21 +75,16 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val skipListMerger = LevelZeroSkipListMerger
-
   "putMap on a single Level" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger()
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
       import sweeper._
 
       val map =
         if (persistent)
-          Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-            nullKey = Slice.Null,
-            nullValue = Memory.Null,
+          Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
             folder = randomIntDirectory,
             mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
             flushOnOverflow = true,
@@ -97,10 +92,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             dropCorruptedTailEntries = false
           ).runRandomIO.right.value.item.sweep()
         else
-          Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-            nullKey = Slice.Null,
-            nullValue = Memory.Null
-          )
+          Map.memory[Slice[Byte], Memory, LevelZeroMapCache]()
 
       val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
       keyValues foreach {
@@ -167,26 +159,20 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   "putMap on two Level" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger()
 
     def createTestMap()(implicit sweeper: TestCaseSweeper) = {
       import sweeper._
 
       val map =
         if (persistent)
-          Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-            nullKey = Slice.Null,
-            nullValue = Memory.Null,
+          Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
             folder = randomIntDirectory,
             mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
             flushOnOverflow = true,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false).runRandomIO.right.value.item.sweep()
         else
-          Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-            nullKey = Slice.Null,
-            nullValue = Memory.Null
-          )
+          Map.memory[Slice[Byte], Memory, LevelZeroMapCache]()
 
       val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
       keyValues foreach {
@@ -207,14 +193,14 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
             (nextLevel.isTrash _).expects() returning false
 
-            (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+            (nextLevel.isCopyable(_: Map[Slice[Byte], Memory, LevelZeroMapCache])) expects * onCall {
+              putMap: Map[Slice[Byte], Memory, LevelZeroMapCache] =>
                 putMap.pathOption shouldBe map.pathOption
                 true
             }
 
-            (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+            (nextLevel.put(_: Map[Slice[Byte], Memory, LevelZeroMapCache])) expects * onCall {
+              putMap: Map[Slice[Byte], Memory, LevelZeroMapCache] =>
                 putMap.pathOption shouldBe map.pathOption
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -240,14 +226,14 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
             (nextLevel.isTrash _).expects() returning false
 
-            (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+            (nextLevel.isCopyable(_: Map[Slice[Byte], Memory, LevelZeroMapCache])) expects * onCall {
+              putMap: Map[Slice[Byte], Memory, LevelZeroMapCache] =>
                 putMap.pathOption shouldBe map.pathOption
                 true
             }
 
-            (nextLevel.put(_: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])) expects * onCall {
-              putMap: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+            (nextLevel.put(_: Map[Slice[Byte], Memory, LevelZeroMapCache])) expects * onCall {
+              putMap: Map[Slice[Byte], Memory, LevelZeroMapCache] =>
                 putMap.pathOption shouldBe map.pathOption
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))

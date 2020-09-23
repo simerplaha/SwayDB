@@ -25,7 +25,6 @@
 package swaydb.core.map
 
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
@@ -34,7 +33,6 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.util.IDGenerator
-import swaydb.core.util.skiplist.{SkipList, SkipListBase}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.StorageUnits._
@@ -46,66 +44,54 @@ private[core] object Map extends LazyLogging {
    */
   private[map] val uniqueFileNumberGenerator = IDGenerator()
 
-  def persistent[OK, OV, K <: OK, V <: OV](nullKey: OK,
-                                           nullValue: OV,
-                                           folder: Path,
-                                           mmap: MMAP.Map,
-                                           flushOnOverflow: Boolean,
-                                           fileSize: Long,
-                                           dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                              fileSweeper: FileSweeperActor,
-                                                                              bufferCleaner: ByteBufferSweeperActor,
-                                                                              writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                              reader: MapEntryReader[MapEntry[K, V]],
-                                                                              skipListMerge: SkipListMerger[OK, OV, K, V],
-                                                                              forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentMap[OK, OV, K, V]] =
+  def persistent[K, V, C <: MapCache[K, V]](folder: Path,
+                                            mmap: MMAP.Map,
+                                            flushOnOverflow: Boolean,
+                                            fileSize: Long,
+                                            dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                               fileSweeper: FileSweeperActor,
+                                                                               bufferCleaner: ByteBufferSweeperActor,
+                                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                               reader: MapEntryReader[MapEntry[K, V]],
+                                                                               cacheBuilder: MapCacheBuilder[C],
+                                                                               forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentMap[K, V, C]] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize,
-      dropCorruptedTailEntries = dropCorruptedTailEntries,
-      nullKey = nullKey,
-      nullValue = nullValue
+      dropCorruptedTailEntries = dropCorruptedTailEntries
     )
 
-  def persistent[OK, OV, K <: OK, V <: OV](nullKey: OK,
-                                           nullValue: OV,
-                                           folder: Path,
-                                           mmap: MMAP.Map,
-                                           flushOnOverflow: Boolean,
-                                           fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                           fileSweeper: FileSweeperActor,
-                                                           bufferCleaner: ByteBufferSweeperActor,
-                                                           writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                           skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                           forceSaveApplier: ForceSaveApplier): PersistentMap[OK, OV, K, V] =
+  def persistent[K, V, C <: MapCache[K, V]](folder: Path,
+                                            mmap: MMAP.Map,
+                                            flushOnOverflow: Boolean,
+                                            fileSize: Long)(implicit keyOrder: KeyOrder[K],
+                                                            fileSweeper: FileSweeperActor,
+                                                            bufferCleaner: ByteBufferSweeperActor,
+                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                            cacheBuilder: MapCacheBuilder[C],
+                                                            forceSaveApplier: ForceSaveApplier): PersistentMap[K, V, C] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
       flushOnOverflow = flushOnOverflow,
-      fileSize = fileSize,
-      nullKey = nullKey,
-      nullValue = nullValue
+      fileSize = fileSize
     )
 
-  def memory[OK, OV, K <: OK, V <: OV](nullKey: OK,
-                                       nullValue: OV,
-                                       fileSize: Long = 0.byte,
-                                       flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
-                                                                        skipListMerge: SkipListMerger[OK, OV, K, V]): MemoryMap[OK, OV, K, V] =
-    new MemoryMap[OK, OV, K, V](
-      _skipList = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder),
+  def memory[K, V, C <: MapCache[K, V]](fileSize: Long = 0.byte,
+                                        flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
+                                                                         cacheBuilder: MapCacheBuilder[C]): MemoryMap[K, V, C] =
+    new MemoryMap[K, V, C](
+      cache = cacheBuilder.create(),
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize
     )
 }
 
-private[core] trait Map[OK, OV, K <: OK, V <: OV] extends SkipListBase[OK, OV, K, V, ConcurrentSkipListMap[K, V]] {
+private[core] trait Map[K, V, C <: MapCache[K, V]] {
 
-  def hasRange: Boolean
-
-  def skipListKeyValuesMaxCount: Int
+  def cache: C
 
   def mmap: MMAP.Map
 

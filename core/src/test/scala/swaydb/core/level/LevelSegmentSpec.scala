@@ -35,7 +35,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
-import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.PipeOps._
@@ -81,8 +81,6 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
   //  override def deleteFiles: Boolean =
   //    false
-
-  implicit val skipListMerger = LevelZeroSkipListMerger
 
   "writing Segments to single level" should {
     "succeed" when {

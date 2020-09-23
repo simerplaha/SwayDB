@@ -28,7 +28,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
@@ -69,8 +69,6 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
 
   //  override def deleteFiles: Boolean =
   //    false
-
-  implicit val skipListMerger = LevelZeroSkipListMerger
 
   "removeSegments" should {
     "remove segments from disk and remove them from appendix" in {

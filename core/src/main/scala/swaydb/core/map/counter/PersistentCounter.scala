@@ -32,15 +32,13 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
+import swaydb.core.map.{Map, MapEntry, PersistentMap}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice
 import swaydb.{Actor, ActorRef, IO}
 
-private[core] object PersistentCounter extends LazyLogging {
-
-  private implicit object CounterSkipListMerger extends SkipListMerger.Disabled[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]]("CounterSkipListMerger")
+private[core] case object PersistentCounter extends LazyLogging {
 
   /**
    * If startId greater than mod then mod needs
@@ -67,49 +65,50 @@ private[core] object PersistentCounter extends LazyLogging {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
     IO {
-      Map.persistent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]](
+      Map.persistent[Slice[Byte], Slice[Byte], PersistentCounterCache](
         folder = path,
         mmap = mmap,
         flushOnOverflow = true,
         fileSize = fileSize,
-        dropCorruptedTailEntries = false,
-        nullKey = Slice.Null,
-        nullValue = Slice.Null
+        dropCorruptedTailEntries = false
       ).item
     } flatMap {
       map =>
-        map.head() match {
-          case usedCount: Slice[Byte] =>
-            val nextStartId = usedCount.readLong()
-            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](nextStartId + mod))) flatMap {
-              wrote =>
-                if (wrote)
-                  IO {
-                    new PersistentCounter(
-                      mod = mod,
-                      startId = nextStartId,
-                      map = map
-                    )
-                  }
-                else
-                  IO.Left(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentCounter.")))
+
+        def writeEntry(startId: Long, commitId: Long) =
+          map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](commitId))) flatMap {
+            wrote =>
+              if (wrote)
+                IO {
+                  new PersistentCounter(
+                    mod = mod,
+                    startId = startId,
+                    map = map
+                  )
+                }
+              else
+                IO.Left(swaydb.Error.Fatal(new Exception(s"Failed to initialise ${this.productPrefix}.")))
+          }
+
+        map.cache.entryOrNull match {
+          case null =>
+            val commitId = nextCommit(mod, Counter.startId)
+            writeEntry(Counter.startId, commitId)
+
+          case MapEntry.Put(_, value) =>
+            val nextStartId = value.readLong()
+            writeEntry(nextStartId, nextStartId + mod)
+
+          case entry: MapEntry[Slice[Byte], Slice[Byte]] =>
+            //just write the last entry, everything else can be ignored.
+            entry.entries.last match {
+              case MapEntry.Put(_, value) =>
+                val nextStartId = value.readLong()
+                writeEntry(nextStartId, nextStartId + mod)
             }
 
-          case Slice.Null =>
-            val startId = nextCommit(mod, Counter.startId)
-            map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](startId))) flatMap {
-              wrote =>
-                if (wrote)
-                  IO {
-                    new PersistentCounter(
-                      mod = mod,
-                      startId = Counter.startId,
-                      map = map
-                    )
-                  }
-                else
-                  IO.Left(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentCounter.")))
-            }
+          case entry =>
+            IO.Left(swaydb.Error.Fatal(new Exception(s"Invalid ${entry.getClass.getName} in ${this.productPrefix}.")))
         }
     }
   }
@@ -117,7 +116,7 @@ private[core] object PersistentCounter extends LazyLogging {
 
 private[core] class PersistentCounter(val mod: Long,
                                       val startId: Long,
-                                      map: PersistentMap[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Counter with LazyLogging {
+                                      map: PersistentMap[Slice[Byte], Slice[Byte], PersistentCounterCache])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Counter with LazyLogging {
 
   private var count = startId
 

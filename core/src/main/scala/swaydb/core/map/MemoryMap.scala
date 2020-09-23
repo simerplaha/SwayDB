@@ -24,32 +24,18 @@
 
 package swaydb.core.map
 
-import java.util.concurrent.ConcurrentSkipListMap
-
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.config.{ForceSave, MMAP}
 
-protected class MemoryMap[OK, OV, K <: OK, V <: OV](_skipList: SkipListConcurrent[OK, OV, K, V],
-                                                    flushOnOverflow: Boolean,
-                                                    val fileSize: Long)(implicit skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
+protected class MemoryMap[K, V, C <: MapCache[K, V]](val cache: C,
+                                                     flushOnOverflow: Boolean,
+                                                     val fileSize: Long) extends Map[K, V, C] with LazyLogging {
 
   private var currentBytesWritten: Long = 0
   var skipListKeyValuesMaxCount: Int = 0
 
   override val uniqueFileNumber: Long =
     Map.uniqueFileNumberGenerator.nextID
-
-  @volatile private var _hasRange: Boolean = false
-
-  override protected def skipList: ConcurrentSkipListMap[K, V] =
-    _skipList.skipList
-
-  override def nullKey: OK = _skipList.nullKey
-
-  override def nullValue: OV = _skipList.nullValue
-
-  override def hasRange: Boolean = _hasRange
 
   def delete: Unit = ()
 
@@ -59,14 +45,7 @@ protected class MemoryMap[OK, OV, K <: OK, V <: OV](_skipList: SkipListConcurren
   override def writeNoSync(entry: MapEntry[K, V]): Boolean = {
     val entryTotalByteSize = entry.totalByteSize
     if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entryTotalByteSize) <= fileSize)) {
-      if (entry.hasRange) {
-        _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
-        skipListMerger.insert(entry, _skipList)
-      } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
-        skipListMerger.insert(entry, _skipList)
-      } else {
-        entry applyTo _skipList
-      }
+      cache.write(entry)
       skipListKeyValuesMaxCount += entry.entriesCount
       currentBytesWritten += entryTotalByteSize
       true

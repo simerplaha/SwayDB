@@ -699,7 +699,7 @@ private[core] object Segment extends LazyLogging {
                segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     segments.exists(segment => overlaps(minKey, maxKey, maxKeyInclusive, segment))
 
-  def overlaps(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+  def overlaps(map: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     Segment.minMaxKey(map) exists {
       case (minKey, maxKey, maxKeyInclusive) =>
@@ -825,7 +825,7 @@ private[core] object Segment extends LazyLogging {
         }
     }
 
-  def tempMinMaxKeyValues(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Slice[Memory] = {
+  def tempMinMaxKeyValues(map: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Slice[Memory] = {
     for {
       minKey <- map.head().mapS(memory => Memory.Put(memory.key, Slice.Null, None, Time.empty))
       maxKey <- map.last() mapS {
@@ -839,7 +839,7 @@ private[core] object Segment extends LazyLogging {
       Slice(minKey, maxKey)
   } getOrElse Slice.of[Memory](0)
 
-  def minMaxKey(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
+  def minMaxKey(map: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     for {
       minKey <- map.head().mapS(_.key)
       maxKey <- map.last() mapS {
@@ -870,7 +870,7 @@ private[core] object Segment extends LazyLogging {
     Slice.minMax(Segment.minMaxKey(left), Segment.minMaxKey(right))
 
   def minMaxKey(left: Iterable[Segment],
-                right: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
+                right: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     Slice.minMax(Segment.minMaxKey(left), Segment.minMaxKey(right))
 
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
@@ -891,7 +891,7 @@ private[core] object Segment extends LazyLogging {
       ).nonEmpty
     }
 
-  def overlapsWithBusySegments(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+  def overlapsWithBusySegments(map: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     if (busySegments.isEmpty)

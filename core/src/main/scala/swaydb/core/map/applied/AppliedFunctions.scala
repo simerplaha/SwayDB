@@ -32,11 +32,11 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map
+import swaydb.core.map.RecoveryResult
 import swaydb.core.map.serializer.{AppliedFunctionsMapEntryReader, AppliedFunctionsMapEntryWriter}
-import swaydb.core.map.{RecoveryResult, SkipListMerger}
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice
 import swaydb.{Actor, Error, IO}
 
 import scala.collection.mutable.ListBuffer
@@ -48,19 +48,16 @@ case object AppliedFunctions extends LazyLogging {
   def apply(dir: Path,
             fileSize: Long,
             mmap: MMAP.Map)(implicit bufferCleaner: ByteBufferSweeperActor,
-                            forceSaveApplier: ForceSaveApplier): RecoveryResult[map.PersistentMap[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]] = {
+                            forceSaveApplier: ForceSaveApplier): RecoveryResult[map.PersistentMap[Slice[Byte], Slice.Null.type, AppliedFunctionsCache]] = {
     val folder = dir.resolve(folderName)
     Effect.createDirectoriesIfAbsent(folder)
 
     implicit val functionsEntryWriter = AppliedFunctionsMapEntryWriter.FunctionsPutMapEntryWriter
     implicit val functionsEntryReader = AppliedFunctionsMapEntryReader.FunctionsMapEntryReader
-    implicit val skipListMerger = SkipListMerger.Disabled[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](folder.toString)
     implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
     implicit val keyOrder = KeyOrder.default
 
-    map.Map.persistent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type](
-      nullKey = Slice.Null,
-      nullValue = Slice.Null,
+    map.Map.persistent[Slice[Byte], Slice.Null.type, AppliedFunctionsCache](
       folder = folder,
       mmap = mmap,
       flushOnOverflow = true,
@@ -69,13 +66,12 @@ case object AppliedFunctions extends LazyLogging {
     )
   }
 
-
-  def validate(appliedFunctions: map.Map[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type],
+  def validate(appliedFunctions: map.Map[Slice[Byte], Slice.Null.type, AppliedFunctionsCache],
                functionStore: FunctionStore): IO[Error.Level, Unit] = {
     val missingFunctions = ListBuffer.empty[String]
     logger.debug("Checking for missing functions.")
 
-    appliedFunctions.foreach {
+    appliedFunctions.cache.asScala.foreach {
       case (functionId, _) =>
         if (functionStore.notContains(functionId))
           missingFunctions += functionId.readString()

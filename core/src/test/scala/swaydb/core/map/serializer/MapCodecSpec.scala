@@ -50,7 +50,7 @@ class MapCodecSpec extends TestBase {
     "write and read empty bytes" in {
       import LevelZeroMapEntryWriter.Level0MapEntryPutWriter
       val map = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
-      val bytes = MapCodec.write(map)
+      val bytes = MapCodec.write(map.asScala)
       bytes.isFull shouldBe true
 
       import LevelZeroMapEntryReader.Level0Reader
@@ -66,7 +66,7 @@ class MapCodecSpec extends TestBase {
           map.put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))
       }
 
-      val bytes = MapCodec.write(map)
+      val bytes = MapCodec.write(map.asScala)
       bytes.isFull shouldBe true
 
       //re-read the bytes written to map and it should contain all the original entries
@@ -102,7 +102,7 @@ class MapCodecSpec extends TestBase {
 
       import LevelZeroMapEntryWriter.Level0MapEntryPutWriter
       //first write creates bytes that have no empty bytes
-      val bytes = MapCodec.write(map)
+      val bytes = MapCodec.write(map.asScala)
       bytes.isFull shouldBe true
 
       //1 empty byte.
@@ -136,8 +136,8 @@ class MapCodecSpec extends TestBase {
       val skipList2 = createKeyValueSkipList(keyValues2)
 
       import LevelZeroMapEntryWriter.Level0MapEntryPutWriter
-      val bytes1 = MapCodec.write(skipList1)
-      val bytes2 = MapCodec.write(skipList2)
+      val bytes1 = MapCodec.write(skipList1.asScala)
+      val bytes2 = MapCodec.write(skipList2.asScala)
       //combined the bytes of both the entries so that are in one single file.
       val allBytes = Slice((bytes1 ++ bytes2).toArray)
 

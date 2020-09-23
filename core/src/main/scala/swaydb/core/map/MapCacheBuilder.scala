@@ -17,20 +17,13 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.level
+package swaydb.core.map
 
-import swaydb.core.map.SkipListMerger
-import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.data.slice.{Slice, SliceOption}
-
-
-/**
- * Default [[SkipListMerger]] implementation for Level's Appendix. Currently appendix does not implement
- * Range APIs so merger should never be used.
- */
-object AppendixSkipListMerger extends SkipListMerger.Disabled[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]("AppendixSkipListMerger")
+trait MapCacheBuilder[C] {
+  def create(): C
+}

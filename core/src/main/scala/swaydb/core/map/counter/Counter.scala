@@ -43,7 +43,7 @@ private[swaydb] trait Counter {
 private[swaydb] object Counter {
   val startId = 10L //use 10 instead of 0 to allow format changes.
 
-  val defaultKey = Slice.emptyBytes
+  val defaultKey: Slice[Byte] = Slice.emptyBytes
 
   def memory(): MemoryCounter =
     MemoryCounter()

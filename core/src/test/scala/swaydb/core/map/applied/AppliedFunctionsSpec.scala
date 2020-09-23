@@ -76,14 +76,14 @@ class AppliedFunctionsSpec extends TestBase {
           //should contain
           functionIds foreach {
             functionId =>
-              map.contains(functionId) shouldBe true
+              map.cache.skipList.contains(functionId) shouldBe true
           }
 
           //randomly reopening results in the same skipList
           functionIds.foldLeft(map.reopen) {
             case (reopened, functionId) =>
-              reopened.size shouldBe functionIds.size
-              reopened.contains(functionId) shouldBe true
+              reopened.cache.skipList.size shouldBe functionIds.size
+              reopened.cache.skipList.contains(functionId) shouldBe true
 
               if (randomBoolean())
                 reopened

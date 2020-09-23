@@ -41,7 +41,7 @@ import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
-import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -203,23 +203,18 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               flushOnOverflow: Boolean = false,
               mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                               timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                              sweeper: TestCaseSweeper): map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+                                                                                              sweeper: TestCaseSweeper): map.Map[Slice[Byte], Memory, LevelZeroMapCache] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-      implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerger()
       import sweeper._
 
       val testMap =
         if (levelStorage.memory)
-          map.Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-            nullKey = Slice.Null,
-            nullValue = Memory.Null,
+          map.Map.memory[Slice[Byte], Memory, LevelZeroMapCache](
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow
           )
         else
-          map.Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-            nullKey = Slice.Null,
-            nullValue = Memory.Null,
+          map.Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,

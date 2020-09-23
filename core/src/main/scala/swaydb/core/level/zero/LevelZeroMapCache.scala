@@ -28,7 +28,7 @@ import java.util.function.Consumer
 
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
-import swaydb.core.map.{MapEntry, SkipListMerger}
+import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
@@ -37,15 +37,29 @@ import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.collection.mutable.ListBuffer
 
+object LevelZeroMapCache {
+  implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]],
+                       timeOrder: TimeOrder[Slice[Byte]],
+                       functionStore: FunctionStore): MapCacheBuilder[LevelZeroMapCache] =
+    () =>
+      new LevelZeroMapCache(
+        skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)
+      )
+}
+
 /**
  * When inserting key-values that alter existing Range key-values in the skipList, they should be inserted into the skipList atomically and should only
  * replace existing keys if all the new inserts have overwritten all the key ranges in the conflicting Range key-value.
  *
  * reverse on the merge results ensures that changes happen atomically.
  */
-case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                     timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore) extends SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] {
+class LevelZeroMapCache(val skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                functionStore: FunctionStore) extends MapCache[Slice[Byte], Memory] {
+
+  @volatile var skipListKeyValuesMaxCount: Int = skipList.size
+  //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
+  @volatile private var _hasRange: Boolean = false
 
   import keyOrder._
 
@@ -62,8 +76,7 @@ case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Slice[Byte]],
   /**
    * Inserts a [[Memory.Fixed]] key-value into skipList.
    */
-  def insert(insert: Memory.Fixed,
-             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit =
+  def insert(insert: Memory.Fixed): Unit =
     skipList.floor(insert.key) match {
       case floorEntry: Memory =>
         floorEntry match {
@@ -102,8 +115,7 @@ case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Slice[Byte]],
    * Inserts the input [[Memory.Range]] key-value into skipList and always maintaining the previous state of
    * the skipList before applying the new state so that all read queries read the latest write.
    */
-  def insert(insert: Memory.Range,
-             skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit = {
+  def insert(insert: Memory.Range): Unit = {
     //value the start position of this range to fetch the range's start and end key-values for the skipList.
     val startKey =
       skipList.floor(insert.fromKey) mapS {
@@ -163,31 +175,52 @@ case class LevelZeroSkipListMerger()(implicit keyOrder: KeyOrder[Slice[Byte]],
     }
   }
 
-  override def insert(insertKey: Slice[Byte],
-                      insertValue: Memory,
-                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit =
+  @inline private def insert(insertValue: Memory): Unit =
     insertValue match {
       //if insert value is fixed, check the floor entry
       case insertValue: Memory.Fixed =>
-        insert(insertValue, skipList)
+        insert(insertValue)
 
       //slice the skip list to keep on the range's key-values.
       //if the insert is a Range stash the edge non-overlapping key-values and keep only the ranges in the skipList
       //that fall within the inserted range before submitting fixed values to the range for further splits.
       case insertRange: Memory.Range =>
-        insert(insertRange, skipList)
+        insert(insertRange)
     }
 
-  override def insert(entry: MapEntry[Slice[Byte], Memory],
-                      skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Unit =
+  @inline private def insert(entry: MapEntry[Slice[Byte], Memory]): Unit =
     entry match {
-      case MapEntry.Put(key, value: Memory) =>
-        insert(key, value, skipList)
+      case MapEntry.Put(_, value: Memory) =>
+        insert(value)
 
       case MapEntry.Remove(_) =>
         entry applyTo skipList
 
       case _ =>
-        entry.entries.foreach(insert(_, skipList))
+        entry.entries.foreach(write)
     }
+
+  override def write(entry: MapEntry[Slice[Byte], Memory]): Unit = {
+    if (entry.hasRange) {
+      _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
+      insert(entry)
+    } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
+      insert(entry)
+    } else {
+      entry applyTo skipList
+    }
+    skipListKeyValuesMaxCount += entry.entriesCount
+  }
+
+  def hasRange =
+    _hasRange
+
+  override def isEmpty: Boolean =
+    skipList.isEmpty
+
+  override def size: Int =
+    skipList.size
+
+  override def asScala: Iterable[(Slice[Byte], Memory)] =
+    skipList.asScala
 }

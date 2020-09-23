@@ -26,6 +26,7 @@ package swaydb.core.level
 
 import swaydb.IO
 import swaydb.core.data.{Memory, MemoryOption}
+import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -70,7 +71,7 @@ trait NextLevel extends LevelRef {
 
   def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
 
-  def isCopyable(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Boolean
+  def isCopyable(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
@@ -78,7 +79,7 @@ trait NextLevel extends LevelRef {
 
   def put(segment: Segment): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
 
-  def put(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
+  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
 
   def put(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
 

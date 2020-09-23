@@ -29,7 +29,7 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
@@ -69,8 +69,6 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   val keyValuesCount = 100
-
-  implicit val skipListMerger = LevelZeroSkipListMerger
 
   "refresh" should {
     "remove expired key-values" in {

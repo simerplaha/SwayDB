@@ -29,7 +29,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{PersistentSegment, Segment, ThreadReadState}
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
@@ -72,8 +72,6 @@ sealed trait LevelCollapseSpec extends TestBase {
 
   //  override def deleteFiles: Boolean =
   //    false
-
-  implicit val skipListMerger = LevelZeroSkipListMerger
 
   "collapse" should {
     "collapse small Segments to 50% of the size when the Segment's size was reduced by deleting 50% of it's key-values" in {

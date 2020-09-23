@@ -155,7 +155,7 @@ class AppendixMapEntrySpec extends TestBase {
           }
           //write skip list to bytes should result in the same skip list as before
           import appendixReader.AppendixReader
-          val bytes = MapCodec.write[Slice[Byte], Segment](skipList)
+          val bytes = MapCodec.write[Slice[Byte], Segment](skipList.asScala)
           val crcEntries = MapCodec.read[Slice[Byte], Segment](bytes, false).value.item.value
           skipList.clear()
           crcEntries applyTo skipList
