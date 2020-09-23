@@ -30,6 +30,7 @@ import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListBatchable}
+import swaydb.data.OptimiseWrites
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -38,11 +39,21 @@ import scala.collection.mutable.ListBuffer
 object LevelZeroMapCache {
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]],
                        timeOrder: TimeOrder[Slice[Byte]],
-                       functionStore: FunctionStore): MapCacheBuilder[LevelZeroMapCache] =
+                       functionStore: FunctionStore,
+                       optimiseWrites: OptimiseWrites): MapCacheBuilder[LevelZeroMapCache] =
     () =>
-      new LevelZeroMapCache(
-        skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)
-      )
+      optimiseWrites match {
+        case OptimiseWrites.RandomOrder =>
+          new LevelZeroMapCache(
+            skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)
+          )
+
+        case OptimiseWrites.SequentialOrder(enableHashIndex, maxArrayLength) =>
+          new LevelZeroMapCache(
+            skipList = SkipList.sliceConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](maxArrayLength, 0.25, enableHashIndex, Slice.Null, Memory.Null)
+          )
+      }
+
 }
 
 /**
@@ -189,8 +200,9 @@ class LevelZeroMapCache(val skipList: SkipListBatchable[SliceOption[Byte], Memor
       case MapEntry.Put(_, value: Memory) =>
         insert(value)
 
-      case MapEntry.Remove(_) =>
-        entry applyTo skipList
+      case remove @ MapEntry.Remove(_) =>
+        //this does not occur in reality and should be type-safe instead of having this Exception. FIXME
+        throw new IllegalAccessException(s"${LevelZero.productPrefix} does not allow ${remove.productPrefix} entires.")
 
       case _ =>
         entry.entries.foreach(write)

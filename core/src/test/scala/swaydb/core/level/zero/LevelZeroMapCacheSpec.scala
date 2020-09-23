@@ -28,12 +28,12 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.core.data.{Memory, MemoryOption, Value}
+import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
-import swaydb.core.util.skiplist.SkipList
+import swaydb.data.OptimiseWrites
 import swaydb.data.order.TimeOrder
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -41,6 +41,8 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
   implicit val keyOrder = swaydb.data.order.KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder = TimeOrder.long
+
+  implicit def optimiseWrites: OptimiseWrites = OptimiseWrites.random
 
   import LevelZeroMapEntryWriter._
 
@@ -56,6 +58,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "insert multiple fixed key-values" in {
+
       val cache = LevelZeroMapCache.builder.create()
 
       (0 to 9) foreach {

@@ -35,7 +35,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions}
+import swaydb.data.{DataType, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
 import swaydb.{Apply, KeyOrderConverter, PureFunction}
@@ -51,6 +51,7 @@ object Map extends LazyLogging {
                                                        maxKeyValuesPerSegment: Int = Int.MaxValue,
                                                        fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                        deleteSegmentsEventually: Boolean = true,
+                                                       optimiseWrites: OptimiseWrites = OptimiseWrites.RandomOrder,
                                                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                        levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                                                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
@@ -75,14 +76,15 @@ object Map extends LazyLogging {
           config =
             DefaultMemoryConfig(
               mapSize = mapSize,
-              appliedFunctionsMapSize = 0, //memory instance don't use appliedFunctionsMap.
-              clearAppliedFunctionsOnBoot = false,
+              appliedFunctionsMapSize = 0,
+              clearAppliedFunctionsOnBoot = false, //memory instance don't use appliedFunctionsMap.
               minSegmentSize = minSegmentSize,
               maxKeyValuesPerSegment = maxKeyValuesPerSegment,
               deleteSegmentsEventually = deleteSegmentsEventually,
+              acceleration = acceleration,
               levelZeroThrottle = levelZeroThrottle,
               lastLevelThrottle = lastLevelThrottle,
-              acceleration = acceleration
+              optimiseWrites = optimiseWrites
             ),
           fileCache = fileCache,
           memoryCache = MemoryCache.Disable

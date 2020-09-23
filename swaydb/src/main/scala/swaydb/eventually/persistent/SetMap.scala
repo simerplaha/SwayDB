@@ -36,7 +36,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions}
+import swaydb.data.{DataType, Functions, OptimiseWrites}
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
@@ -55,6 +55,7 @@ object SetMap extends LazyLogging {
                           cacheKeyValueIds: Boolean = true,
                           mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                           deleteMemorySegmentsEventually: Boolean = true,
+                          optimiseWrites: OptimiseWrites = OptimiseWrites.RandomOrder,
                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                           persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                           persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -90,6 +91,7 @@ object SetMap extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          optimiseWrites = optimiseWrites,
           acceleration = acceleration,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
           persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,

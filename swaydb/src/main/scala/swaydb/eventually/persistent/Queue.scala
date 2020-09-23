@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
-import swaydb.data.DataType
+import swaydb.data.{DataType, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
@@ -59,6 +59,7 @@ object Queue extends LazyLogging {
                        cacheKeyValueIds: Boolean = true,
                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                        deleteMemorySegmentsEventually: Boolean = true,
+                       optimiseWrites: OptimiseWrites = OptimiseWrites.SequentialOrder(enableHashIndex = true, maxArrayLength = 100000),
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                        persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -90,6 +91,7 @@ object Queue extends LazyLogging {
           memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           otherDirs = otherDirs,
+          optimiseWrites = optimiseWrites,
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,

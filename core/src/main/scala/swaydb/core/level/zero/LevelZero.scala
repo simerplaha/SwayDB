@@ -48,6 +48,7 @@ import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.MinMax
 import swaydb.core.{CoreState, MemoryPathGenerator, map}
+import swaydb.data.OptimiseWrites
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.MMAP
@@ -60,7 +61,7 @@ import swaydb.{Actor, Bag, Error, IO, OK}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, _}
 
-private[core] object LevelZero extends LazyLogging {
+private[core] case object LevelZero extends LazyLogging {
 
   def apply(mapSize: Long,
             appliedFunctionsMapSize: Long,
@@ -75,7 +76,8 @@ private[core] object LevelZero extends LazyLogging {
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         functionStore: FunctionStore,
-                                                        forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, LevelZero] = {
+                                                        forceSaveApplier: ForceSaveApplier,
+                                                        optimiseWrites: OptimiseWrites): IO[swaydb.Error.Level, LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 

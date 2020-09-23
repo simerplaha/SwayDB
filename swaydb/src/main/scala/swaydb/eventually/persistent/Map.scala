@@ -36,7 +36,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions}
+import swaydb.data.{DataType, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
 import swaydb.{Apply, KeyOrderConverter, PureFunction}
@@ -64,6 +64,7 @@ object Map extends LazyLogging {
                                                        cacheKeyValueIds: Boolean = true,
                                                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                        deleteMemorySegmentsEventually: Boolean = true,
+                                                       optimiseWrites: OptimiseWrites = OptimiseWrites.RandomOrder,
                                                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                        persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                        persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -115,7 +116,8 @@ object Map extends LazyLogging {
               persistentLevelMightContainKeyIndex = mightContainKeyIndex,
               persistentLevelValuesConfig = valuesConfig,
               persistentLevelSegmentConfig = segmentConfig,
-              acceleration = acceleration
+              acceleration = acceleration,
+              optimiseWrites = optimiseWrites
             )
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,

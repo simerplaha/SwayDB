@@ -195,7 +195,7 @@ private[core] object SkipList {
 
 
   def sliceConcurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
-                                                                                      extendBy: Int,
+                                                                                      extendBy: Double,
                                                                                       enableHashIndex: Boolean,
                                                                                       nullKey: OptionKey,
                                                                                       nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =
@@ -208,7 +208,7 @@ private[core] object SkipList {
     )
 
   def slice[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
-                                                                            extendBy: Int,
+                                                                            extendBy: Double,
                                                                             enableHashIndex: Boolean,
                                                                             nullKey: OptionKey,
                                                                             nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =

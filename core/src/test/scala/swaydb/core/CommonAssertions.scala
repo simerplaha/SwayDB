@@ -58,6 +58,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
+import swaydb.data.OptimiseWrites
 import swaydb.data.RunThis._
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -288,6 +289,7 @@ object CommonAssertions {
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipListBatchable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
+    implicit val optimiseWrites = OptimiseWrites.random
     val cache = LevelZeroMapCache.builder.create()
     (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => cache.write(MapEntry.Put(memory.key, memory)))
     cache.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList
@@ -1747,6 +1749,14 @@ object CommonAssertions {
         valuesBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
         segmentFooterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved)
       )
+  }
+
+  implicit class OptimiseWritesImplicits(optimise: OptimiseWrites.type) {
+    def random =
+      if (randomBoolean())
+        OptimiseWrites.RandomOrder
+      else
+        OptimiseWrites.SequentialOrder(randomBoolean(), randomIntMax(100000) max 1)
   }
 
   implicit val keyMatcherResultEquality: Equality[KeyMatcher.Result] =

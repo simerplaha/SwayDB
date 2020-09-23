@@ -38,7 +38,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.serial.Serial
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions}
+import swaydb.data.{DataType, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.{Default, Serializer}
 import swaydb.{Apply, KeyOrderConverter, PureFunction}
@@ -62,6 +62,7 @@ object Set extends LazyLogging {
                                                  appendixFlushCheckpointSize: Int = 2.mb,
                                                  otherDirs: Seq[Dir] = Seq.empty,
                                                  cacheKeyValueIds: Boolean = true,
+                                                 optimiseWrites: OptimiseWrites = OptimiseWrites.RandomOrder,
                                                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                  threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                  sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -114,6 +115,7 @@ object Set extends LazyLogging {
               mightContainKeyIndex = mightContainKeyIndex,
               valuesConfig = valuesConfig,
               segmentConfig = segmentConfig,
+              optimiseWrites = optimiseWrites,
               acceleration = acceleration,
               levelZeroThrottle = levelZeroThrottle,
               levelOneThrottle = levelOneThrottle,

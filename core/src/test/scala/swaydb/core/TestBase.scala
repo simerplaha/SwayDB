@@ -53,7 +53,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
-import swaydb.data.NonEmptyList
+import swaydb.data.{NonEmptyList, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, MMAP, RecoveryMode}
@@ -206,6 +206,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                                                                                               sweeper: TestCaseSweeper): map.Map[Slice[Byte], Memory, LevelZeroMapCache] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       import sweeper._
+
+      implicit val optimiseWrites = OptimiseWrites.random
 
       val testMap =
         if (levelStorage.memory)
@@ -383,7 +385,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                               sweeper: TestCaseSweeper): LevelZero = {
+                                                                               sweeper: TestCaseSweeper,
+                                                                               optimiseWrites: OptimiseWrites = OptimiseWrites.random): LevelZero = {
       import sweeper._
 
       LevelZero(

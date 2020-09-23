@@ -39,9 +39,10 @@ import swaydb.core.level.AppendixMapCache
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.serializer._
-import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
+import swaydb.core.segment.{Segment, SegmentIO}
 import swaydb.core.util.skiplist.SkipList
 import swaydb.core.util.{BlockCacheFileIDGenerator, Extension}
+import swaydb.data.OptimiseWrites
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -51,14 +52,13 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.jdk.CollectionConverters._
-
 class MapSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO = SegmentIO.random
+  implicit def optimiseWrites: OptimiseWrites = OptimiseWrites.random
 
   "Map" should {
     "initialise a memory level0" in {

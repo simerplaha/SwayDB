@@ -26,6 +26,7 @@ package swaydb.data.config
 
 import java.nio.file.Path
 
+import swaydb.data.OptimiseWrites
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.builder.{MemoryLevelConfigBuilder, MemoryLevelZeroConfigBuilder, PersistentLevelConfigBuilder, PersistentLevelZeroConfigBuilder}
@@ -52,6 +53,7 @@ object ConfigWizard {
                            mmap: MMAP.Map,
                            recoveryMode: RecoveryMode,
                            compactionExecutionContext: CompactionExecutionContext.Create,
+                           optimiseWrites: OptimiseWrites,
                            acceleration: LevelZeroMeter => Accelerator,
                            throttle: LevelZeroMeter => FiniteDuration): PersistentLevelZeroConfig =
     PersistentLevelZeroConfig(
@@ -60,6 +62,7 @@ object ConfigWizard {
       clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
       storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
       compactionExecutionContext = compactionExecutionContext,
+      optimiseWrites = optimiseWrites,
       acceleration = acceleration,
       throttle = throttle
     )
@@ -71,6 +74,7 @@ object ConfigWizard {
                        appliedFunctionsMapSize: Long,
                        clearAppliedFunctionsOnBoot: Boolean,
                        compactionExecutionContext: CompactionExecutionContext.Create,
+                       optimiseWrites: OptimiseWrites,
                        acceleration: LevelZeroMeter => Accelerator,
                        throttle: LevelZeroMeter => FiniteDuration): MemoryLevelZeroConfig =
     MemoryLevelZeroConfig(
@@ -79,6 +83,7 @@ object ConfigWizard {
       clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
       storage = Level0Storage.Memory,
       compactionExecutionContext = compactionExecutionContext,
+      optimiseWrites = optimiseWrites,
       acceleration = acceleration,
       throttle = throttle
     )
@@ -90,6 +95,7 @@ sealed trait LevelZeroConfig {
   val clearAppliedFunctionsOnBoot: Boolean
   val storage: Level0Storage
   val compactionExecutionContext: CompactionExecutionContext.Create
+  val optimiseWrites: OptimiseWrites
 
   def acceleration: LevelZeroMeter => Accelerator
   def throttle: LevelZeroMeter => FiniteDuration
@@ -105,6 +111,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
                                              clearAppliedFunctionsOnBoot: Boolean,
                                              storage: Level0Storage,
                                              compactionExecutionContext: CompactionExecutionContext.Create,
+                                             optimiseWrites: OptimiseWrites,
                                              acceleration: LevelZeroMeter => Accelerator,
                                              throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
   def withPersistentLevel1(dir: Path,
@@ -184,6 +191,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
                                  clearAppliedFunctionsOnBoot: Boolean,
                                  storage: Level0Storage,
                                  compactionExecutionContext: CompactionExecutionContext.Create,
+                                 optimiseWrites: OptimiseWrites,
                                  acceleration: LevelZeroMeter => Accelerator,
                                  throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
 

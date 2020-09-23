@@ -246,6 +246,8 @@ private[core] object CoreInitializer extends LazyLogging {
                 level1 =>
                   val coreState = CoreState()
 
+                  implicit val optimiseWrites = config.level0.optimiseWrites
+
                   LevelZero(
                     mapSize = config.level0.mapSize,
                     appliedFunctionsMapSize = config.level0.appliedFunctionsMapSize,
