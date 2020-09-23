@@ -24,63 +24,115 @@
 
 package swaydb.core.util.slice
 
-import java.util
-
 import swaydb.data.slice.Slice
 
-import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 object Slices {
 
   @inline def apply[T: ClassTag](lengthPerSlice: Int): Slices[T] = {
     val sizePerSlice = lengthPerSlice max 1 //size cannot be 0
-    val list = new util.ArrayList[Slice[T]](1)
+    val list = Slice.of[Slice[T]](2)
     list add Slice.of[T](sizePerSlice)
 
     new Slices(
-      list = list,
+      slices = list,
       lengthPerSlice = sizePerSlice
     )
   }
 
+  def empty[T: ClassTag]: Slices[T] =
+    apply[T](0)
+
 }
 
-class Slices[T: ClassTag](list: util.ArrayList[Slice[T]], lengthPerSlice: Int) extends Iterable[T] {
+class Slices[T: ClassTag](@volatile private var slices: Slice[Slice[T]], lengthPerSlice: Int) {
 
   private var _size = 0
 
   def get(index: Int): T =
     if (index < lengthPerSlice) {
-      val array = list.get(0)
+      val array = slices.get(0)
       array(index)
     } else {
       val listIndex = index / lengthPerSlice
       val indexInArray = index - (lengthPerSlice * listIndex)
 
-      val array = list.get(listIndex)
+      val array = slices.get(listIndex)
       array(indexInArray)
     }
 
   def add(item: T): Unit = {
-    val last = list.get(list.size() - 1)
-    if (last.isFull)
-      list.add(Slice.of[T](lengthPerSlice).add(item))
-    else
+    val last = slices.get(slices.size - 1)
+    if (last.isFull) {
+      val newSlice = Slice.of[T](lengthPerSlice).add(item)
+
+      if (slices.isFull) {
+        val newSlices = Slice.of[Slice[T]](slices.size + 1)
+        slices.foreach(newSlices.add)
+        newSlices add newSlice
+        slices = newSlices
+      } else {
+        slices.add(newSlice)
+      }
+    } else {
       last.add(item)
+    }
 
     _size += 1
   }
 
-  override def size: Int =
+  def lastOrNull: T =
+    slices.get(slices.size - 1).lastOrNull
+
+  def headOrNull: T =
+    slices.get(0).headOrNull
+
+  def size: Int =
     _size
 
-  override def iterator: Iterator[T] =
+  def findReverse[R >: T](from: Int, result: R)(f: T => Boolean): R = {
+    var start = from
+
+    while (start >= 0) {
+      val next = get(start)
+      if (f(next))
+        return next
+
+      start -= 1
+    }
+
+    result
+  }
+
+  def find[R >: T](from: Int, result: R)(f: T => Boolean): R = {
+    var start = from
+
+    while (start < _size) {
+      val next = get(start)
+      if (f(next))
+        return next
+
+      start += 1
+    }
+
+    result
+  }
+
+  def foreach(from: Int)(f: T => Unit): Unit = {
+    var start = from
+
+    while (start < _size) {
+      f(get(start))
+      start += 1
+    }
+  }
+
+  def iteratorFlatten: Iterator[T] =
     new Iterator[T] {
       val iterators =
-        list
-          .iterator()
-          .asScala
+        slices
+          .iterator
           .flatMap(_.iterator)
 
       override def hasNext: Boolean = iterators.hasNext

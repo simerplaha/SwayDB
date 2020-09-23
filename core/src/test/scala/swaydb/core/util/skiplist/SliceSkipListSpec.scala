@@ -76,7 +76,7 @@ sealed trait SliceSkipListSpec extends AnyWordSpec with Matchers {
         skipList.put(int, Value.Some(int))
     }
 
-    skipList.slice.foreach {
+    skipList.slices.foreach(0) {
       keyValue =>
         keyValue.index shouldBe keyValue.key.readInt()
     }
