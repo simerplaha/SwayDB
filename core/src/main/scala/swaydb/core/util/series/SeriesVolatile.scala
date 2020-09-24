@@ -24,21 +24,29 @@
 
 package swaydb.core.util.series
 
-private class Item[T](@volatile var value: T)
-class SeriesVolatile[T >: Null](array: Array[Item[T]]) extends Series[T] {
-  override def getOrNull(index: Int): T = {
-    val value = array(index)
-    if (value == null)
-      null
-    else
-      value.value
-  }
+object SeriesVolatile {
 
-  override def set(index: Int, item: T): Unit =
+  def apply[T >: Null](limit: Int): SeriesVolatile[T] =
+    new SeriesVolatile[T](Array.fill[Item[T]](limit)(new Item[T](null)))
+
+}
+
+
+class SeriesVolatile[T >: Null](array: Array[Item[T]]) extends Series[T] {
+  override def getOrNull(index: Int): T =
+    array(index).value
+
+  def set(index: Int, item: T): Unit =
     array(index).value = item
 
   override def length: Int =
     array.length
+
+  def lastOrNull: T =
+    array(array.length - 1).value
+
+  def headOrNull: T =
+    array(0).value
 
   override def iterator: Iterator[T] =
     array

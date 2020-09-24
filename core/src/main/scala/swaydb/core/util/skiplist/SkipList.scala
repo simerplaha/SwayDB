@@ -28,7 +28,7 @@ import java.util
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 
 import swaydb.Bagged
-import swaydb.core.util.slice.Slices
+import swaydb.core.util.series.SeriesGrowable
 import swaydb.data.order.KeyOrder
 
 private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue] {
@@ -195,7 +195,7 @@ private[core] object SkipList {
                                                                                       nullKey: OptionKey,
                                                                                       nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =
     new SliceSkipList[OptionKey, OptionValue, Key, Value](
-      slices = Slices(size),
+      series = SeriesGrowable.volatile(size),
       hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(size)) else None,
       nullKey = nullKey,
       nullValue = nullValue,
@@ -208,7 +208,7 @@ private[core] object SkipList {
                                                                             nullKey: OptionKey,
                                                                             nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =
     new SliceSkipList[OptionKey, OptionValue, Key, Value](
-      slices = Slices(size),
+      series = SeriesGrowable.volatile(size), //TODO - volatile is not required here
       hashIndex = if (enableHashIndex) Some(new util.HashMap(size)) else None,
       nullKey = nullKey,
       nullValue = nullValue,

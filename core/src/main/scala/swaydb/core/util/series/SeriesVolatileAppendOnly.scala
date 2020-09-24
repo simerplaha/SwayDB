@@ -24,9 +24,51 @@
 
 package swaydb.core.util.series
 
-private[swaydb] trait Series[T] extends Iterable[T] {
-  def getOrNull(index: Int): T
-  def set(index: Int, item: T): Unit
-  def length: Int
-  def isConcurrent: Boolean
+
+object SeriesVolatileAppendOnly {
+
+  def apply[T >: Null](limit: Int): SeriesVolatileAppendOnly[T] =
+    new SeriesVolatileAppendOnly[T](Array.fill[Item[T]](limit)(new Item[T](null)))
+
+}
+
+class SeriesVolatileAppendOnly[T >: Null](array: Array[Item[T]]) { self =>
+  //Not volatile because series do not allow concurrent writes only concurrent reads.
+  private var writePosition = 0
+
+  def get(index: Int): T =
+    if (index >= writePosition)
+      throw new ArrayIndexOutOfBoundsException(index)
+    else
+      array(index).value
+
+  def add(item: T): Unit = {
+    array(writePosition).value = item
+    writePosition += 1
+  }
+
+  def length: Int =
+    writePosition
+
+  def innerArrayLength =
+    array.length
+
+  def lastOrNull: T =
+    if (writePosition == 0)
+      null
+    else
+      array(writePosition - 1).value
+
+  def isFull =
+    array.length == writePosition
+
+  def headOrNull: T =
+    array(0).value
+
+  def iterator: Iterator[T] =
+    array
+      .iterator
+      .take(writePosition)
+      .map(_.value)
+
 }

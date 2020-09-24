@@ -26,7 +26,7 @@ package swaydb.core.util
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import swaydb.core.util.series.Series
+import swaydb.core.util.series.{Series, SeriesBasic, SeriesVolatile}
 
 import scala.annotation.tailrec
 import scala.util.Random
@@ -59,43 +59,43 @@ private[swaydb] object LimitHashMap {
       new Empty[K, V]
     else if (maxProbe <= 0)
       new NoProbe[K, V](
-        series = Series.basic[(K, V)](limit)
+        series = SeriesBasic[(K, V)](limit)
       )
     else
       new Probed[K, V](
-        series = Series.basic(limit),
+        series = SeriesBasic(limit),
         maxProbe = maxProbe,
         overwriteOldest = true,
         overwriteRandom = false
       )
 
-  def concurrent[K, V >: Null](limit: Int,
-                               maxProbe: Int): LimitHashMap[K, V] =
+  def volatile[K, V >: Null](limit: Int,
+                             maxProbe: Int): LimitHashMap[K, V] =
     if (limit <= 0)
       new Empty[K, V]
     else if (maxProbe <= 0)
       new NoProbe[K, V](
-        series = Series.volatile[(K, V)](limit)
+        series = SeriesVolatile[(K, V)](limit)
       )
     else
       new Probed[K, V](
-        series = Series.volatile[(K, V, Int)](limit),
+        series = SeriesVolatile[(K, V, Int)](limit),
         maxProbe = maxProbe,
         overwriteOldest = true,
         overwriteRandom = false
       )
 
-  def concurrentBucket[K, V >: Null](limit: Int,
-                                     maxProbe: Int): LimitHashMap[K, V] =
+  def volatileBucket[K, V >: Null](limit: Int,
+                                   maxProbe: Int): LimitHashMap[K, V] =
     if (limit <= 0)
       new Empty[K, V]
     else if (maxProbe <= 0)
       new NoProbe[K, V](
-        series = Series.volatile[(K, V)](limit)
+        series = SeriesVolatile[(K, V)](limit)
       )
     else
       new Probed[K, V](
-        series = Series.volatile[(K, V, Int)](limit),
+        series = SeriesVolatile[(K, V, Int)](limit),
         maxProbe = maxProbe,
         overwriteOldest = true,
         overwriteRandom = false
@@ -109,15 +109,15 @@ private[swaydb] object LimitHashMap {
       new Empty[K, V]
     else
       new NoProbe[K, V](
-        series = Series.basic[(K, V)](limit)
+        series = SeriesBasic[(K, V)](limit)
       )
 
-  def concurrent[K, V >: Null](limit: Int): LimitHashMap[K, V] =
+  def volatile[K, V >: Null](limit: Int): LimitHashMap[K, V] =
     if (limit <= 0)
       new Empty[K, V]
     else
       new NoProbe[K, V](
-        series = Series.volatile[(K, V)](limit)
+        series = SeriesVolatile[(K, V)](limit)
       )
 
   private class Probed[K, V >: Null](series: Series[(K, V, Int)],

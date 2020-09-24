@@ -26,11 +26,18 @@ package swaydb.core.util.series
 
 import java.util.concurrent.atomic.AtomicReferenceArray
 
+object SeriesAtomic {
+
+  def apply[T](limit: Int): SeriesAtomic[T] =
+    new SeriesAtomic[T](new AtomicReferenceArray[T](limit))
+
+}
+
 class SeriesAtomic[T](array: AtomicReferenceArray[T]) extends Series[T] {
   override def getOrNull(index: Int): T =
     array.get(index)
 
-  override def set(index: Int, item: T): Unit =
+  def set(index: Int, item: T): Unit =
     array.set(index, item)
 
   override def length: Int =

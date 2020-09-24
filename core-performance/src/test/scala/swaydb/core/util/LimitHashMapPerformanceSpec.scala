@@ -35,7 +35,7 @@ class LimitHashMapPerformanceSpec extends AnyFlatSpec with Matchers {
 
     val limit = 1000000
 
-    val map = LimitHashMap.concurrent[String, Integer](limit, 20)
+    val map = LimitHashMap.volatile[String, Integer](limit, 20)
     //    val map = new ConcurrentHashMap[String, Integer]()
 
     Benchmark("") {

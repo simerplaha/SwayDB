@@ -24,11 +24,18 @@
 
 package swaydb.core.util.series
 
+import scala.reflect.ClassTag
+
+object SeriesBasic {
+  def apply[T: ClassTag](limit: Int): SeriesBasic[T] =
+    new SeriesBasic[T](new Array[T](limit))
+}
+
 class SeriesBasic[T](array: Array[T]) extends Series[T] {
   override def getOrNull(index: Int): T =
     array(index)
 
-  override def set(index: Int, item: T): Unit =
+  def set(index: Int, item: T): Unit =
     array(index) = item
 
   override def length: Int =

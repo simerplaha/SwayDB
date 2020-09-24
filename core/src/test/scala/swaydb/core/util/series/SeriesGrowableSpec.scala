@@ -22,32 +22,56 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.util.slice
+package swaydb.core.util.series
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestData._
+import swaydb.core.util
+import swaydb.core.util.Benchmark
 import swaydb.data.RunThis._
 
-class SlicesSpec extends AnyWordSpec with Matchers {
+class SeriesGrowableSpec extends AnyWordSpec with Matchers {
 
   "it" should {
     "increment on overflow" in {
       runThis(10.times, log = true) {
-        val slices = Slices[Int](randomIntMax(20))
+        val series = SeriesGrowable.volatile[Integer](randomIntMax(20))
 
         val range = 0 to 10000
         range foreach {
           i =>
-            slices add i
-            slices.get(i) shouldBe i
+            series add i
+            series.get(i) shouldBe i
         }
 
         range foreach {
           i =>
-            slices.get(i) shouldBe i
+            series.get(i) shouldBe i
         }
       }
+    }
+
+    "benchamr" in {
+      val series = SeriesGrowable.volatile[Integer](100000)
+
+      val range = 0 to 1000000
+
+      Benchmark("") {
+        range foreach {
+          i =>
+            series add i
+        }
+      }
+
+      Benchmark("") {
+        range foreach {
+          i =>
+            series.get(i) shouldBe i
+        }
+      }
+
+//      series.iteratorFlatten.foreach(println)
     }
   }
 
