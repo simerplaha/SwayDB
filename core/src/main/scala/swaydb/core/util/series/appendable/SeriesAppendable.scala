@@ -22,10 +22,23 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.util.series.growable
+package swaydb.core.util.series.appendable
 
-trait SeriesGrowCreator[S] {
+trait SeriesAppendable[T >: Null] {
 
-  def create(limit: Int): S
+  def get(index: Int): T
 
+  def add(item: T): Unit
+
+  def length: Int
+
+  def innerArrayLength: Int
+
+  def lastOrNull: T
+
+  def isFull: Boolean
+
+  def headOrNull: T
+
+  def iterator: Iterator[T]
 }

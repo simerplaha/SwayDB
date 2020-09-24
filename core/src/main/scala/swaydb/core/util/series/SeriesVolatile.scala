@@ -27,12 +27,12 @@ package swaydb.core.util.series
 object SeriesVolatile {
 
   def apply[T >: Null](limit: Int): SeriesVolatile[T] =
-    new SeriesVolatile[T](Array.fill[Item[T]](limit)(new Item[T](null)))
+    new SeriesVolatile[T](Array.fill[VolatileValue[T]](limit)(new VolatileValue[T](null)))
 
 }
 
 
-class SeriesVolatile[T >: Null](array: Array[Item[T]]) extends Series[T] {
+class SeriesVolatile[T >: Null](array: Array[VolatileValue[T]]) extends Series[T] {
   override def getOrNull(index: Int): T =
     array(index).value
 

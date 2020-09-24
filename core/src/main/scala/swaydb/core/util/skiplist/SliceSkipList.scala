@@ -26,7 +26,6 @@ package swaydb.core.util.skiplist
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.series.growable.SeriesGrowable
-import swaydb.core.util.skiplist.KeyValue.Some
 import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.unchecked.uncheckedVariance
@@ -74,7 +73,7 @@ object SliceSkipList {
         else
           value
 
-      case None =>
+      case scala.None =>
         var start = 0
         var end = series.size - 1
 
@@ -111,7 +110,7 @@ object SliceSkipList {
           else
             return series.findReverse(found.index - 1, KeyValue.None)(_.value != null)
 
-        case None =>
+        case scala.None =>
           series.size - 1
       }
 
@@ -150,7 +149,7 @@ object SliceSkipList {
           else
             return found
 
-        case None =>
+        case scala.None =>
           series.size - 1
       }
 
@@ -188,7 +187,7 @@ object SliceSkipList {
           else
             return series.find(found.index + 1, KeyValue.None)(_.value != null)
 
-        case None =>
+        case scala.None =>
           0
       }
 
@@ -228,7 +227,7 @@ object SliceSkipList {
           else
             return found
 
-        case None =>
+        case scala.None =>
           0
       }
 
@@ -265,7 +264,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
 
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
-      var nextOne: Some[K, V] = null
+      var nextOne: KeyValue.Some[K, V] = null
       val sliceIterator = self.series.iteratorFlatten
 
       override def hasNext: Boolean =
@@ -279,7 +278,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
           false
         }
 
-      override def next(): Some[K, V] =
+      override def next(): KeyValue.Some[K, V] =
         nextOne
     }
 
@@ -295,7 +294,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       hashIndex foreach (_.put(key, keyValue))
     } else {
       SliceSkipList.get(key, series, hashIndex) match {
-        case some: Some[K, V] =>
+        case some: KeyValue.Some[K, V] =>
           some.value = value
 
         case KeyValue.None =>
@@ -341,7 +340,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
         put(key, value)
         true
 
-      case _: Some[K, V] =>
+      case _: KeyValue.Some[K, V] =>
         false
     }
 
@@ -350,7 +349,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         nullValue
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         some.value
     }
 
@@ -366,7 +365,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         nullValue
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         some.value
     }
 
@@ -375,7 +374,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         nullKey
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         some.key
     }
 
@@ -384,7 +383,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         nullValue
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         some.value
     }
 
@@ -393,7 +392,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         scala.None
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         scala.Some(some.toTuple)
     }
 
@@ -402,7 +401,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         nullValue
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         some.value
     }
 
@@ -411,7 +410,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         nullKey
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         some.key
     }
 
@@ -420,7 +419,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         scala.None
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         scala.Some(some.toTuple)
     }
 
@@ -429,7 +428,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         nullValue
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         some.value
     }
 
@@ -438,7 +437,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case KeyValue.None =>
         nullKey
 
-      case some: Some[K, V] =>
+      case some: KeyValue.Some[K, V] =>
         some.key
     }
 
@@ -447,7 +446,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       case scala.Some(value) =>
         value.isEmpty
 
-      case None =>
+      case scala.None =>
         iterator().isEmpty
     }
 
@@ -465,7 +464,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
   override def contains(key: K): Boolean =
     SliceSkipList.get(key, series, hashIndex).isSomeC
 
-  private def headOrNullSome(): Some[K, V] = {
+  private def headOrNullSome(): KeyValue.Some[K, V] = {
     val head = series.headOrNull
     if (head == null)
       null
@@ -475,7 +474,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       head
   }
 
-  private def lastOrNullSome(): Some[K, V] = {
+  private def lastOrNullSome(): KeyValue.Some[K, V] = {
     val last = series.lastOrNull
     if (last == null)
       null

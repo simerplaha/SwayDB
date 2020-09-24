@@ -22,18 +22,18 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.util.series.growable
+package swaydb.core.util.series.appendable
 
-import swaydb.core.util.series.Item
+import scala.reflect.ClassTag
 
-object SeriesGrowVolatile {
+private[series] object SeriesAppendableBasic {
 
-  def apply[T >: Null](limit: Int): SeriesGrowVolatile[T] =
-    new SeriesGrowVolatile[T](Array.fill[Item[T]](limit)(new Item[T](null)))
+  def apply[T >: Null : ClassTag](limit: Int): SeriesAppendableBasic[T] =
+    new SeriesAppendableBasic[T](Array.fill[T](limit)(null))
 
 }
 
-class SeriesGrowVolatile[T >: Null](array: Array[Item[T]]) extends SeriesGrow[T] { self =>
+private[series] class SeriesAppendableBasic[T >: Null](array: Array[T]) extends SeriesAppendable[T] { self =>
   //Not volatile because series do not allow concurrent writes only concurrent reads.
   private var writePosition = 0
 
@@ -41,10 +41,10 @@ class SeriesGrowVolatile[T >: Null](array: Array[Item[T]]) extends SeriesGrow[T]
     if (index >= writePosition)
       throw new ArrayIndexOutOfBoundsException(index)
     else
-      array(index).value
+      array(index)
 
   def add(item: T): Unit = {
-    array(writePosition).value = item
+    array(writePosition) = item
     writePosition += 1
   }
 
@@ -58,18 +58,17 @@ class SeriesGrowVolatile[T >: Null](array: Array[Item[T]]) extends SeriesGrow[T]
     if (writePosition == 0)
       null
     else
-      array(writePosition - 1).value
+      array(writePosition - 1)
 
   def isFull =
     array.length == writePosition
 
   def headOrNull: T =
-    array(0).value
+    array(0)
 
   def iterator: Iterator[T] =
     array
       .iterator
       .take(writePosition)
-      .map(_.value)
 
 }

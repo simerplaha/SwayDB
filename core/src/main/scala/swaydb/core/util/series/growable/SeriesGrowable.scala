@@ -24,6 +24,8 @@
 
 package swaydb.core.util.series.growable
 
+import swaydb.core.util.series.appendable.SeriesAppendableVolatile
+
 import scala.reflect.ClassTag
 
 object SeriesGrowable {
@@ -31,8 +33,8 @@ object SeriesGrowable {
   @inline def volatile[T >: Null : ClassTag](lengthPerSlice: Int): SeriesGrowable[T] = {
     val sizePerSeries = lengthPerSlice max 1 //size cannot be 0
 
-    val series = SeriesGrowVolatile[SeriesGrowVolatile[T]](2)
-    val items = SeriesGrowVolatile[T](sizePerSeries)
+    val series = SeriesAppendableVolatile[SeriesAppendableVolatile[T]](2)
+    val items = SeriesAppendableVolatile[T](sizePerSeries)
     series.add(items)
 
     new SeriesGrowable(
@@ -41,14 +43,14 @@ object SeriesGrowable {
     )
   }
 
-  @inline private def extend[T >: Null : ClassTag](series: SeriesGrowVolatile[SeriesGrowVolatile[T]],
-                                                   item: T): SeriesGrowVolatile[SeriesGrowVolatile[T]] = {
-    val newSeriesList = SeriesGrowVolatile[SeriesGrowVolatile[T]](series.length + 1)
+  @inline private def extend[T >: Null : ClassTag](series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
+                                                   item: T): SeriesAppendableVolatile[SeriesAppendableVolatile[T]] = {
+    val newSeriesList = SeriesAppendableVolatile[SeriesAppendableVolatile[T]](series.length + 1)
     series.iterator foreach newSeriesList.add
 
     val sizePerSlice = series.headOrNull.innerArrayLength
 
-    val newSeries = SeriesGrowVolatile[T](sizePerSlice)
+    val newSeries = SeriesAppendableVolatile[T](sizePerSlice)
     newSeries add item
 
     newSeriesList add newSeries
@@ -59,7 +61,7 @@ object SeriesGrowable {
     volatile[T](0)
 }
 
-class SeriesGrowable[T >: Null : ClassTag](@volatile private var series: SeriesGrowVolatile[SeriesGrowVolatile[T]],
+class SeriesGrowable[T >: Null : ClassTag](@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
                                            lengthPerSlice: Int) {
 
   private var _size = 0
@@ -146,6 +148,12 @@ class SeriesGrowable[T >: Null : ClassTag](@volatile private var series: SeriesG
       start += 1
     }
   }
+
+  def isEmpty: Boolean =
+    _size == 0
+
+  def nonEmpty: Boolean =
+    !isEmpty
 
   def iteratorFlatten: Iterator[T] =
     new Iterator[T] {
