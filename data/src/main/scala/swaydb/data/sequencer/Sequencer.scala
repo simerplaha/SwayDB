@@ -22,18 +22,18 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.serial
+package swaydb.data.sequencer
 
 import java.util.concurrent.{Callable, ExecutorService, Executors, TimeUnit}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, ActorRef, Bag, IO}
+import swaydb.{Actor, ActorRef, Bag}
 
-import scala.concurrent.{ExecutionContext, Promise}
+import scala.concurrent.Promise
 import scala.util.Try
 
-sealed trait Serial[T[_]] {
+sealed trait Sequencer[T[_]] {
 
   def execute[F](f: => F): T[F]
 
@@ -41,20 +41,20 @@ sealed trait Serial[T[_]] {
 
 }
 
-case object Serial extends LazyLogging {
+case object Sequencer extends LazyLogging {
 
-  sealed trait Synchronised[BAG[_]] extends Serial[BAG]
+  sealed trait Synchronised[BAG[_]] extends Sequencer[BAG]
 
-  sealed trait SingleThread[BAG[_]] extends Serial[BAG] {
+  sealed trait SingleThread[BAG[_]] extends Sequencer[BAG] {
     def executor: ExecutorService
   }
 
-  sealed trait Actor[BAG[_]] extends Serial[BAG] {
+  sealed trait Actor[BAG[_]] extends Sequencer[BAG] {
     def actor: ActorRef[() => Unit, Unit]
   }
 
-  def synchronised[BAG[_]](implicit bag: Bag[BAG]): Serial.Synchronised[BAG] =
-    new Serial.Synchronised[BAG] {
+  def synchronised[BAG[_]](implicit bag: Bag[BAG]): Sequencer.Synchronised[BAG] =
+    new Sequencer.Synchronised[BAG] {
       override def execute[F](f: => F): BAG[F] =
         bag.apply(f)
 
@@ -62,56 +62,56 @@ case object Serial extends LazyLogging {
         bag.unit
     }
 
-  def singleThread[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.SingleThread[BAG] =
+  def singleThread[BAG[_]](implicit bag: Bag.Async[BAG]): Sequencer.SingleThread[BAG] =
     singleThread(
       bag = bag,
-      ec = Executors.newSingleThreadExecutor(SerialThreadFactory.create())
+      ec = Executors.newSingleThreadExecutor(SequencerThreadFactory.create())
     )
 
-  def actor[BAG[_]](implicit bag: Bag.Async[BAG]): Serial.Actor[BAG] = {
+  def actor[BAG[_]](implicit bag: Bag.Async[BAG]): Sequencer.Actor[BAG] = {
     val actor = Actor[() => Unit](s"Actor - ${this.productPrefix}") {
       (run, _) =>
         run()
     }(bag.executionContext, QueueOrder.FIFO)
 
-    Serial.actor(bag, actor)
+    Sequencer.actor(bag, actor)
   }
 
-  def transfer[BAG1[_], BAG2[_]](from: Serial[BAG1])(implicit bag1: Bag[BAG1],
-                                                     bag2: Bag[BAG2]): Serial[BAG2] =
+  def transfer[BAG1[_], BAG2[_]](from: Sequencer[BAG1])(implicit bag1: Bag[BAG1],
+                                                        bag2: Bag[BAG2]): Sequencer[BAG2] =
     from match {
-      case _: Serial.Synchronised[BAG1] =>
+      case _: Sequencer.Synchronised[BAG1] =>
         bag2 match {
           case bag2: Bag.Sync[BAG2] =>
-            Serial.synchronised[BAG2](bag2)
+            Sequencer.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
-            Serial.singleThread[BAG2](bag2)
+            Sequencer.singleThread[BAG2](bag2)
         }
 
-      case from: Serial.SingleThread[BAG1] =>
+      case from: Sequencer.SingleThread[BAG1] =>
         bag2 match {
           case bag2: Bag.Sync[BAG2] =>
-            Serial.synchronised[BAG2](bag2)
+            Sequencer.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
-            Serial.singleThread[BAG2](bag2, from.executor)
+            Sequencer.singleThread[BAG2](bag2, from.executor)
         }
 
-      case from: Serial.Actor[BAG1] =>
+      case from: Sequencer.Actor[BAG1] =>
         bag2 match {
           case bag2: Bag.Sync[BAG2] =>
             //no need to terminate the Actor since it's scheduler is not being used.
-            Serial.synchronised[BAG2](bag2)
+            Sequencer.synchronised[BAG2](bag2)
 
           case bag2: Bag.Async[BAG2] =>
-            Serial.actor[BAG2](bag2, from.actor)
+            Sequencer.actor[BAG2](bag2, from.actor)
         }
     }
 
   private def singleThread[BAG[_]](implicit bag: Bag.Async[BAG],
-                                   ec: ExecutorService): Serial.SingleThread[BAG] =
-    new Serial.SingleThread[BAG] {
+                                   ec: ExecutorService): Sequencer.SingleThread[BAG] =
+    new Sequencer.SingleThread[BAG] {
 
       override def executor: ExecutorService =
         ec
@@ -137,8 +137,8 @@ case object Serial extends LazyLogging {
     }
 
   private def actor[BAG[_]](implicit bag: Bag.Async[BAG],
-                            actorRef: ActorRef[() => Unit, Unit]): Serial.Actor[BAG] =
-    new Serial.Actor[BAG] {
+                            actorRef: ActorRef[() => Unit, Unit]): Sequencer.Actor[BAG] =
+    new Sequencer.Actor[BAG] {
 
       override def actor: ActorRef[() => Unit, Unit] =
         actorRef

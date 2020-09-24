@@ -34,7 +34,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
-import swaydb.data.serial.Serial
+import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{DataType, Functions, OptimiseWrites}
@@ -74,7 +74,7 @@ object SetMap extends LazyLogging {
                           levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit keySerializer: Serializer[K],
                                                                                                       valueSerializer: Serializer[V],
                                                                                                       bag: swaydb.Bag[BAG],
-                                                                                                      serial: Serial[BAG] = null,
+                                                                                                      serial: Sequencer[BAG] = null,
                                                                                                       byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                       typedKeyOrder: KeyOrder[K] = null,
                                                                                                       compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,

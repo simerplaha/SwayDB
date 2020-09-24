@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.series.growable.SeriesGrowable
+import swaydb.data.OptimiseWrites
 import swaydb.data.order.KeyOrder
 
 import scala.annotation.unchecked.uncheckedVariance
@@ -62,6 +63,9 @@ private[skiplist] case object KeyValue {
 }
 
 private[core] object SkipListSeries {
+
+  val randomWriteWarning =
+    s"Performance warning! Random write inserted. ${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.SequentialOrder].getName} is not optimised for random writes. Consider using ${OptimiseWrites.productPrefix}.${OptimiseWrites.RandomOrder.productPrefix}"
 
   private[skiplist] class State[K, V](@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
                                       val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])
@@ -325,8 +329,8 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         some.value = value
 
       case KeyValue.None =>
-        //cannot overwrite an existing value. This is a random insert
-        //start a new series
+        logger.warn(SkipListSeries.randomWriteWarning)
+        //cannot overwrite an existing value. This is a random insert, start a new series!
         val newSeries =
           SkipListSeries[OK, OV, K, V](
             lengthPerSeries = state.series.length + 1, //1+ for the new entry just in-case this was the last entry.
@@ -665,6 +669,8 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
 
   override def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit =
     if (batches.size > 1) {
+      logger.warn(SkipListSeries.randomWriteWarning)
+
       val newSkipList =
         SkipListSeries[OK, OV, K, V](
           lengthPerSeries = this.size + batches.size,

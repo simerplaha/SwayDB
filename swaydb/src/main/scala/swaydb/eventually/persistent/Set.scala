@@ -34,7 +34,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.serial.Serial
+import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{DataType, Functions, OptimiseWrites}
@@ -79,7 +79,7 @@ object Set extends LazyLogging {
                                                                                                                                                    functionClassTag: ClassTag[F],
                                                                                                                                                    functions: Functions[F],
                                                                                                                                                    bag: swaydb.Bag[BAG],
-                                                                                                                                                   serial: Serial[BAG] = null,
+                                                                                                                                                   serial: Sequencer[BAG] = null,
                                                                                                                                                    byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                    typedKeyOrder: KeyOrder[A] = null,
                                                                                                                                                    compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,

@@ -47,7 +47,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
 import swaydb._
-import swaydb.data.serial.Serial
+import swaydb.data.sequencer.Sequencer
 
 import scala.concurrent.duration._
 
@@ -156,7 +156,7 @@ private[swaydb] object Core {
 private[swaydb] class Core[BAG[_]](zero: LevelZero,
                                    coreState: CoreState,
                                    threadStateCache: ThreadStateCache,
-                                   private val serial: Serial[BAG],
+                                   private val serial: Sequencer[BAG],
                                    val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
                                                                                  compactors: NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                                                                  private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
@@ -374,18 +374,18 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
       zero = zero,
       coreState = coreState,
       threadStateCache = threadStateCache,
-      serial = Serial.transfer[BAG, BAG2](serial),
+      serial = Sequencer.transfer[BAG, BAG2](serial),
       readStates = readStates,
     )(bag = bag2,
       compactors = compactors,
       bufferSweeper = bufferSweeper)
 
-  def toBag[BAG2[_]](serialOrNull: Serial[BAG2])(implicit bag2: Bag[BAG2]): Core[BAG2] =
+  def toBag[BAG2[_]](serialOrNull: Sequencer[BAG2])(implicit bag2: Bag[BAG2]): Core[BAG2] =
     new Core[BAG2](
       zero = zero,
       coreState = coreState,
       threadStateCache = threadStateCache,
-      serial = if (serialOrNull == null) Serial.transfer[BAG, BAG2](serial) else serialOrNull,
+      serial = if (serialOrNull == null) Sequencer.transfer[BAG, BAG2](serial) else serialOrNull,
       readStates = readStates,
     )(bag = bag2,
       compactors = compactors,

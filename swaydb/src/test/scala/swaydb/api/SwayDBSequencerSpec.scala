@@ -25,35 +25,35 @@ import swaydb._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.{TestCaseSweeper, TestExecutionContext}
 import swaydb.data.RunThis.FutureImplicits
-import swaydb.data.serial.Serial
+import swaydb.data.sequencer.Sequencer
 import swaydb.serializers.Default._
 
 import scala.concurrent.Future
 import scala.util.Try
 
-class SwayDBSerialSpec0 extends SwayDBSerialSpec {
+class SwayDBSequencerSpec0 extends SwayDBSequencerSpec {
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
-                       serial: Serial[BAG],
+                       serial: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
     swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir).map(_.sweep(_.toBag[Bag.Less].delete()))
 
   override val keyValueCount: Int = 100
 }
 
-class SwayDBSerialSpec3 extends SwayDBSerialSpec {
+class SwayDBSequencerSpec3 extends SwayDBSequencerSpec {
 
   override val keyValueCount: Int = 100
 
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
-                       serial: Serial[BAG],
+                       serial: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
     swaydb.memory.Map[Int, String, Nothing, BAG]().map(_.sweep(_.toBag[Bag.Less].delete()))
 }
 
-sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
+sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
 
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
-                       serial: Serial[BAG],
+                       serial: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[SetMapT[Int, String, BAG]]
 
   "Synchronised bags" should {
@@ -63,13 +63,13 @@ sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
           implicit sweeper =>
 
             def doTest[BAG[+_]](implicit bag: Bag.Sync[BAG]) = {
-              implicit val serial: Serial[BAG] = null
+              implicit val serial: Sequencer[BAG] = null
 
               val map = newDB[BAG]().getUnsafe
 
               val coresSerial = getSerial(map)
 
-              coresSerial shouldBe a[Serial.Synchronised[BAG]]
+              coresSerial shouldBe a[Sequencer.Synchronised[BAG]]
 
               map.put(1, "one")
               map.get(1).getUnsafe.value shouldBe "one"
@@ -96,13 +96,13 @@ sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
 
             implicit val bag = Bag.future(TestExecutionContext.executionContext)
 
-            implicit val serial: Serial[Future] = null
+            implicit val serial: Sequencer[Future] = null
 
             val map = newDB[Future]().await
 
             val coresSerial = getSerial(map)
 
-            coresSerial shouldBe a[Serial.SingleThread[Future]]
+            coresSerial shouldBe a[Sequencer.SingleThread[Future]]
 
             map.put(1, "one").await
             map.get(1).await.value shouldBe "one"
@@ -117,12 +117,12 @@ sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
         "Synchronised" in {
           TestCaseSweeper {
             implicit sweeper =>
-              implicit val serial: Serial[Bag.Less] = null
+              implicit val serial: Sequencer[Bag.Less] = null
               val map = newDB[Bag.Less]()
-              getSerial(map) shouldBe a[Serial.Synchronised[Bag.Less]]
+              getSerial(map) shouldBe a[Sequencer.Synchronised[Bag.Less]]
 
               val ioMap = map.toBag[IO.ApiIO]
-              getSerial(ioMap) shouldBe a[Serial.Synchronised[IO.ApiIO]]
+              getSerial(ioMap) shouldBe a[Sequencer.Synchronised[IO.ApiIO]]
 
               ioMap.put(1, "one").getUnsafe
               ioMap.get(1).getUnsafe.value shouldBe "one"
@@ -132,13 +132,13 @@ sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
         "SingleThread" in {
           TestCaseSweeper {
             implicit sweeper =>
-              implicit val serial: Serial[Bag.Less] = null
+              implicit val serial: Sequencer[Bag.Less] = null
               val map = newDB[Bag.Less]()
-              getSerial(map) shouldBe a[Serial.Synchronised[Bag.Less]]
+              getSerial(map) shouldBe a[Sequencer.Synchronised[Bag.Less]]
 
               implicit val bag = Bag.future(TestExecutionContext.executionContext)
               val futureMap = map.toBag[Future]
-              getSerial(futureMap) shouldBe a[Serial.SingleThread[IO.ApiIO]]
+              getSerial(futureMap) shouldBe a[Sequencer.SingleThread[IO.ApiIO]]
 
               futureMap.put(1, "one").await
               futureMap.get(1).await.value shouldBe "one"
@@ -152,13 +152,13 @@ sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
             implicit sweeper =>
 
               implicit val bag = Bag.future(TestExecutionContext.executionContext)
-              implicit val serial: Serial[Future] = Serial.singleThread
+              implicit val serial: Sequencer[Future] = Sequencer.singleThread
 
               val map = newDB[Future]().await
-              getSerial(map) shouldBe a[Serial.SingleThread[Bag.Less]]
+              getSerial(map) shouldBe a[Sequencer.SingleThread[Bag.Less]]
 
               val lessMap = map.toBag[Bag.Less]
-              getSerial(lessMap) shouldBe a[Serial.Synchronised[Bag.Less]]
+              getSerial(lessMap) shouldBe a[Sequencer.Synchronised[Bag.Less]]
 
               lessMap.put(1, "one")
               lessMap.get(1).value shouldBe "one"
@@ -174,13 +174,13 @@ sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
         implicit sweeper =>
 
           implicit val bag = Bag.future(TestExecutionContext.executionContext)
-          implicit val actorSerial: Serial[Future] = Serial.actor
+          implicit val actorSerial: Sequencer[Future] = Sequencer.actor
 
           val map = newDB[Future]().await
-          getSerial(map) shouldBe a[Serial.Actor[Bag.Less]]
+          getSerial(map) shouldBe a[Sequencer.Actor[Bag.Less]]
 
           val lessMap = map.toBag[Bag.Less]
-          getSerial(lessMap) shouldBe a[Serial.Synchronised[Bag.Less]]
+          getSerial(lessMap) shouldBe a[Sequencer.Synchronised[Bag.Less]]
 
           lessMap.put(1, "one")
           lessMap.get(1).value shouldBe "one"
@@ -192,16 +192,16 @@ sealed trait SwayDBSerialSpec extends TestBaseEmbedded {
         implicit sweeper =>
 
           implicit val bag = Bag.future(TestExecutionContext.executionContext)
-          implicit val actorSerial: Serial.Actor[Future] = Serial.actor
+          implicit val actorSerial: Sequencer.Actor[Future] = Sequencer.actor
 
           val map = newDB[Future]().await
-          getSerial(map) shouldBe a[Serial.Actor[Future]]
+          getSerial(map) shouldBe a[Sequencer.Actor[Future]]
 
           val anotherFutureMap = map.toBag[Future]
           val anotherFutureSerial = getSerial(anotherFutureMap)
-          anotherFutureSerial shouldBe a[Serial.Actor[Future]]
+          anotherFutureSerial shouldBe a[Sequencer.Actor[Future]]
 
-          actorSerial.actor shouldBe anotherFutureSerial.asInstanceOf[Serial.Actor[Future]].actor
+          actorSerial.actor shouldBe anotherFutureSerial.asInstanceOf[Sequencer.Actor[Future]].actor
 
           anotherFutureMap.put(1, "one").await
           anotherFutureMap.get(1).await.value shouldBe "one"
