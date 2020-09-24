@@ -35,7 +35,7 @@ private[series] object SeriesAppendableVolatile {
 
 }
 
-private[series] class SeriesAppendableVolatile[T >: Null](array: Array[VolatileValue[T]]) extends SeriesAppendable[T] { self =>
+private[series] class SeriesAppendableVolatile[T >: Null] private(array: Array[VolatileValue[T]]) extends SeriesAppendable[T] { self =>
   //Not volatile because series do not allow concurrent writes only concurrent reads.
   private var writePosition = 0
 
@@ -62,11 +62,14 @@ private[series] class SeriesAppendableVolatile[T >: Null](array: Array[VolatileV
     else
       array(writePosition - 1).value
 
+  def headOrNull: T =
+    if (writePosition == 0)
+      null
+    else
+      array(0).value
+
   def isFull =
     array.length == writePosition
-
-  def headOrNull: T =
-    array(0).value
 
   def iterator: Iterator[T] =
     array

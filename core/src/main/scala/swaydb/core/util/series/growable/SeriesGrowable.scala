@@ -30,18 +30,21 @@ import scala.reflect.ClassTag
 
 object SeriesGrowable {
 
-  @inline def volatile[T >: Null : ClassTag](lengthPerSlice: Int): SeriesGrowable[T] = {
-    val sizePerSeries = lengthPerSlice max 1 //size cannot be 0
+  @inline def volatile[T >: Null : ClassTag](lengthPerSeries: Int): SeriesGrowable[T] = {
+    val sizePerSeries = lengthPerSeries max 1 //size cannot be 0
 
-    val series = SeriesAppendableVolatile[SeriesAppendableVolatile[T]](2)
+    val series = SeriesAppendableVolatile[SeriesAppendableVolatile[T]](1)
     val items = SeriesAppendableVolatile[T](sizePerSeries)
     series.add(items)
 
     new SeriesGrowable(
       series = series,
-      lengthPerSlice = sizePerSeries
+      lengthPerSeries = sizePerSeries
     )
   }
+
+  def empty[T >: Null : ClassTag]: SeriesGrowable[T] =
+    volatile[T](0)
 
   @inline private def extend[T >: Null : ClassTag](series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
                                                    item: T): SeriesAppendableVolatile[SeriesAppendableVolatile[T]] = {
@@ -57,25 +60,33 @@ object SeriesGrowable {
     newSeriesList
   }
 
-  def empty[T >: Null : ClassTag]: SeriesGrowable[T] =
-    volatile[T](0)
 }
 
-class SeriesGrowable[T >: Null : ClassTag](@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
-                                           lengthPerSlice: Int) {
+class SeriesGrowable[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
+                                                   lengthPerSeries: Int) {
 
-  private var _size = 0
+  private var _written = 0
+
+  def add(item: T): Unit = {
+    val last = series.lastOrNull
+    if (last.isFull)
+      series = SeriesGrowable.extend(series, item)
+    else
+      last.add(item)
+
+    _written += 1
+  }
 
   def get(index: Int): T = {
     val foundOrNull =
-      if (index < lengthPerSlice) {
+      if (index < lengthPerSeries) {
         series
           .get(0)
           .get(index)
 
       } else {
-        val listIndex = index / lengthPerSlice
-        val indexInArray = index - (lengthPerSlice * listIndex)
+        val listIndex = index / lengthPerSeries
+        val indexInArray = index - (lengthPerSeries * listIndex)
 
         series
           .get(listIndex)
@@ -88,31 +99,19 @@ class SeriesGrowable[T >: Null : ClassTag](@volatile private var series: SeriesA
       foundOrNull
   }
 
-  def add(item: T): Unit = {
-    val last = series.lastOrNull
-    if (last.isFull)
-      series = SeriesGrowable.extend(series, item)
-    else
-      last.add(item)
 
-    _size += 1
-  }
-
+  //parent series is always non-empty
   def lastOrNull: T =
     series.lastOrNull.lastOrNull
 
-  def headOrNull: T = {
-    val headOrNull = series.headOrNull
-    if (headOrNull == null)
-      null.asInstanceOf[T]
-    else
-      headOrNull.headOrNull
-  }
+  //parent series is always non-empty
+  def headOrNull: T =
+    series.headOrNull.headOrNull
 
-  def size: Int =
-    _size
+  def length: Int =
+    _written
 
-  def findReverse[R >: T](from: Int, result: R)(f: T => Boolean): R = {
+  def findReverse[R >: T](from: Int, nonResult: R)(f: T => Boolean): R = {
     var start = from
 
     while (start >= 0) {
@@ -123,13 +122,13 @@ class SeriesGrowable[T >: Null : ClassTag](@volatile private var series: SeriesA
       start -= 1
     }
 
-    result
+    nonResult
   }
 
-  def find[R >: T](from: Int, result: R)(f: T => Boolean): R = {
+  def find[R >: T](from: Int, nonResult: R)(f: T => Boolean): R = {
     var start = from
 
-    while (start < _size) {
+    while (start < _written) {
       val next = get(start)
       if (f(next))
         return next
@@ -137,20 +136,23 @@ class SeriesGrowable[T >: Null : ClassTag](@volatile private var series: SeriesA
       start += 1
     }
 
-    result
+    nonResult
   }
 
   def foreach(from: Int)(f: T => Unit): Unit = {
     var start = from
 
-    while (start < _size) {
+    while (start < _written) {
       f(get(start))
       start += 1
     }
   }
 
+  def depth =
+    series.length
+
   def isEmpty: Boolean =
-    _size == 0
+    _written == 0
 
   def nonEmpty: Boolean =
     !isEmpty

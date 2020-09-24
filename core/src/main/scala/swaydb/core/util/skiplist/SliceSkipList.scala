@@ -75,7 +75,7 @@ object SliceSkipList {
 
       case scala.None =>
         var start = 0
-        var end = series.size - 1
+        var end = series.length - 1
 
         while (start <= end) {
           val mid = start + (end - start) / 2
@@ -106,12 +106,12 @@ object SliceSkipList {
         case scala.Some(hashIndex) =>
           val found = hashIndex.get(target)
           if (found == null)
-            series.size - 1
+            series.length - 1
           else
             return series.findReverse(found.index - 1, KeyValue.None)(_.value != null)
 
         case scala.None =>
-          series.size - 1
+          series.length - 1
       }
 
     while (start <= end) {
@@ -145,12 +145,12 @@ object SliceSkipList {
         case scala.Some(hashIndex) =>
           val found = hashIndex.get(target)
           if (found == null)
-            series.size - 1
+            series.length - 1
           else
             return found
 
         case scala.None =>
-          series.size - 1
+          series.length - 1
       }
 
     while (start <= end) {
@@ -191,14 +191,14 @@ object SliceSkipList {
           0
       }
 
-    var end = series.size - 1
+    var end = series.length - 1
 
     while (start <= end) {
       val mid = start + (end - start) / 2
       val found = series.get(mid)
       val compare = ordering.compare(found.key, target)
       if (compare == 0)
-        if (mid == series.size - 1)
+        if (mid == series.length - 1)
           return KeyValue.None
         else
           return series.find(mid + 1, KeyValue.None)(_.value != null)
@@ -209,7 +209,7 @@ object SliceSkipList {
         end = mid - 1
     }
 
-    if (end >= series.size - 1)
+    if (end >= series.length - 1)
       KeyValue.None
     else
       series.find(end + 1, KeyValue.None)(_.value != null)
@@ -231,7 +231,7 @@ object SliceSkipList {
           0
       }
 
-    var end = series.size - 1
+    var end = series.length - 1
 
     while (start <= end) {
       val mid = start + (end - start) / 2
@@ -249,7 +249,7 @@ object SliceSkipList {
         end = mid - 1
     }
 
-    if (end >= series.size - 1)
+    if (end >= series.length - 1)
       KeyValue.None
     else
       series.find(end + 1, KeyValue.None)(_.value != null)
@@ -288,7 +288,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
         some.value = value
 
       case KeyValue.None =>
-        val newSeries = SeriesGrowable.volatile[KeyValue.Some[K, V]](series.size + 1)
+        val newSeries = SeriesGrowable.volatile[KeyValue.Some[K, V]](series.length + 1)
 
         series.foreach(from = 0) {
           existing =>
@@ -297,15 +297,15 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
             if (existingKeyCompare < 0) {
               newSeries add existing
             } else if (existingKeyCompare > 0) {
-              val newSliceSizeBeforeAdd = newSeries.size
-              val keyValue = KeyValue.Some(key, value, newSeries.size)
+              val newSliceSizeBeforeAdd = newSeries.length
+              val keyValue = KeyValue.Some(key, value, newSeries.length)
 
               newSeries add keyValue
               hashIndex foreach (_.put(key, keyValue))
 
               series.foreach(newSliceSizeBeforeAdd) {
                 tail =>
-                  val keyValue = KeyValue.Some(tail.key, tail.value, newSeries.size)
+                  val keyValue = KeyValue.Some(tail.key, tail.value, newSeries.length)
                   newSeries add keyValue
                   hashIndex foreach (_.put(tail.key, keyValue))
               }
@@ -325,11 +325,11 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
   override def put(key: K, value: V): Unit = {
     val lastOrNull = series.lastOrNull
     if (lastOrNull == null) {
-      val keyValue = KeyValue.Some(key, value, series.size)
+      val keyValue = KeyValue.Some(key, value, series.length)
       series add keyValue
       hashIndex foreach (_.put(key, keyValue))
     } else if (ordering.gt(key, lastOrNull.key)) {
-      val keyValue = KeyValue.Some(key, value, series.size)
+      val keyValue = KeyValue.Some(key, value, series.length)
       series add keyValue
       hashIndex foreach (_.put(key, keyValue))
     } else {
@@ -462,7 +462,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
   }
 
   override def size: Int =
-    series.size
+    series.length
 
   override def contains(key: K): Boolean =
     SliceSkipList.get(key, series, hashIndex).isSomeC
@@ -482,7 +482,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     if (last == null)
       null
     else if (last.value == null)
-      series.findReverse(series.size - 1, null)(_.value != null)
+      series.findReverse(series.length - 1, null)(_.value != null)
     else
       last
   }

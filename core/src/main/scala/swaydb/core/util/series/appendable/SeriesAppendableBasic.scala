@@ -33,7 +33,7 @@ private[series] object SeriesAppendableBasic {
 
 }
 
-private[series] class SeriesAppendableBasic[T >: Null](array: Array[T]) extends SeriesAppendable[T] { self =>
+private[series] class SeriesAppendableBasic[T >: Null] private(array: Array[T]) extends SeriesAppendable[T] { self =>
   //Not volatile because series do not allow concurrent writes only concurrent reads.
   private var writePosition = 0
 
@@ -60,15 +60,17 @@ private[series] class SeriesAppendableBasic[T >: Null](array: Array[T]) extends 
     else
       array(writePosition - 1)
 
+  def headOrNull: T =
+    if (writePosition == 0)
+      null
+    else
+      array(0)
+
   def isFull =
     array.length == writePosition
-
-  def headOrNull: T =
-    array(0)
 
   def iterator: Iterator[T] =
     array
       .iterator
       .take(writePosition)
-
 }
