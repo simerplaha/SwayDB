@@ -24,13 +24,6 @@
 
 package swaydb.core.util.skiplist
 
-import java.util
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
-
-import swaydb.Bagged
-import swaydb.core.util.series.growable.SeriesGrowable
-import swaydb.data.order.KeyOrder
-
 private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue] {
   def nullKey: OptionKey
   def nullValue: OptionValue
@@ -136,21 +129,6 @@ private[core] object SkipList {
     case class Put[Key, Value](key: Key, value: Value) extends Batch[Key, Value] {
       override def apply[VV >: Value](skipList: SkipList[_, _, Key, VV]): Unit =
         skipList.put(key, value)
-    }
-  }
-
-  sealed trait KeyValue[Key, Value] extends Bagged[(Key, Value), Option]
-  object KeyValue {
-    case class Some[Key, Value](key: Key, value: Value) extends KeyValue[Key, Value] {
-      def tuple: (Key, Value) =
-        (key, value)
-
-      override def get: Option[(Key, Value)] =
-        Option(tuple)
-    }
-
-    case object None extends KeyValue[Nothing, Nothing] {
-      override def get = Option.empty
     }
   }
 
