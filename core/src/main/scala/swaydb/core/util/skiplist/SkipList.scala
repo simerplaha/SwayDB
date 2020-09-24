@@ -192,8 +192,8 @@ private[core] object SkipList {
   def seriesVolatile[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
                                                                                      enableHashIndex: Boolean,
                                                                                      nullKey: OptionKey,
-                                                                                     nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SeriesSkipList[OptionKey, OptionValue, Key, Value] =
-    new SeriesSkipList[OptionKey, OptionValue, Key, Value](
+                                                                                     nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListSeries[OptionKey, OptionValue, Key, Value] =
+    new SkipListSeries[OptionKey, OptionValue, Key, Value](
       series = SeriesGrowable.volatile(size),
       hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(size)) else None,
       nullKey = nullKey,

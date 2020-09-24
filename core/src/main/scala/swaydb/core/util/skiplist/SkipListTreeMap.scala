@@ -28,7 +28,7 @@ import java.util
 
 private[core] class SkipListTreeMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: util.TreeMap[Key, Value],
                                                                                                     val nullKey: OptionKey,
-                                                                                                    val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]](skipper) with SkipListBase[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]] {
+                                                                                                    val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]](skipper) with SkipListNavigable[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]] {
   /**
    * FIXME - [[SkipListBatchableImpl]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
    * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic

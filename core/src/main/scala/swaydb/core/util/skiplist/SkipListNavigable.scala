@@ -36,7 +36,7 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-private[core] trait SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]] extends SkipList[OptionKey, OptionValue, Key, Value] {
+private[core] trait SkipListNavigable[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]] extends SkipList[OptionKey, OptionValue, Key, Value] {
 
   protected def skipList: SL
 

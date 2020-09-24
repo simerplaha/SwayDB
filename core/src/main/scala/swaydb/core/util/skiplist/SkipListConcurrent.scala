@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 private[core] class SkipListConcurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: ConcurrentSkipListMap[Key, Value],
                                                                                                        val nullKey: OptionKey,
                                                                                                        val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]](skipper)
-                                                                                                                                      with SkipListBase[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]] {
+                                                                                                                                      with SkipListNavigable[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]] {
 //@formatter:on
   /**
    * FIXME - [[SkipListBatchableImpl]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
