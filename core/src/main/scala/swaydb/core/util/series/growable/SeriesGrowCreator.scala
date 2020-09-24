@@ -22,10 +22,10 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.map
+package swaydb.core.util.series.growable
 
-trait MapCacheBuilder[C] {
+trait SeriesGrowCreator[S] {
 
-  def create(): C
+  def create(limit: Int): S
 
 }

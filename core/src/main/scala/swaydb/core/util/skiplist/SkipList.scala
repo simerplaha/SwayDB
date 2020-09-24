@@ -28,7 +28,7 @@ import java.util
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 
 import swaydb.Bagged
-import swaydb.core.util.series.SeriesGrowable
+import swaydb.core.util.series.growable.SeriesGrowable
 import swaydb.data.order.KeyOrder
 
 private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue] {

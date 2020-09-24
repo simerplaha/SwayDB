@@ -22,7 +22,7 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.util.series
+package swaydb.core.util.series.growable
 
 import scala.reflect.ClassTag
 
@@ -31,8 +31,8 @@ object SeriesGrowable {
   @inline def volatile[T >: Null : ClassTag](lengthPerSlice: Int): SeriesGrowable[T] = {
     val sizePerSeries = lengthPerSlice max 1 //size cannot be 0
 
-    val series = SeriesVolatileAppendOnly[SeriesVolatileAppendOnly[T]](2)
-    val items = SeriesVolatileAppendOnly[T](sizePerSeries)
+    val series = SeriesGrowVolatile[SeriesGrowVolatile[T]](2)
+    val items = SeriesGrowVolatile[T](sizePerSeries)
     series.add(items)
 
     new SeriesGrowable(
@@ -41,14 +41,14 @@ object SeriesGrowable {
     )
   }
 
-  @inline private def extend[T >: Null : ClassTag](series: SeriesVolatileAppendOnly[SeriesVolatileAppendOnly[T]],
-                                                   item: T): SeriesVolatileAppendOnly[SeriesVolatileAppendOnly[T]] = {
-    val newSeriesList = SeriesVolatileAppendOnly[SeriesVolatileAppendOnly[T]](series.length + 1)
+  @inline private def extend[T >: Null : ClassTag](series: SeriesGrowVolatile[SeriesGrowVolatile[T]],
+                                                   item: T): SeriesGrowVolatile[SeriesGrowVolatile[T]] = {
+    val newSeriesList = SeriesGrowVolatile[SeriesGrowVolatile[T]](series.length + 1)
     series.iterator foreach newSeriesList.add
 
     val sizePerSlice = series.headOrNull.innerArrayLength
 
-    val newSeries = SeriesVolatileAppendOnly[T](sizePerSlice)
+    val newSeries = SeriesGrowVolatile[T](sizePerSlice)
     newSeries add item
 
     newSeriesList add newSeries
@@ -59,7 +59,7 @@ object SeriesGrowable {
     volatile[T](0)
 }
 
-class SeriesGrowable[T >: Null : ClassTag](@volatile private var series: SeriesVolatileAppendOnly[SeriesVolatileAppendOnly[T]],
+class SeriesGrowable[T >: Null : ClassTag](@volatile private var series: SeriesGrowVolatile[SeriesGrowVolatile[T]],
                                            lengthPerSlice: Int) {
 
   private var _size = 0

@@ -25,7 +25,7 @@
 package swaydb.core.util.skiplist
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.series.SeriesGrowable
+import swaydb.core.util.series.growable.SeriesGrowable
 import swaydb.core.util.skiplist.KeyValue.Some
 import swaydb.data.util.SomeOrNoneCovariant
 

@@ -22,10 +22,53 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.map
+package swaydb.core.util.series.growable
 
-trait MapCacheBuilder[C] {
+import scala.reflect.ClassTag
 
-  def create(): C
+object SeriesGrowBasic {
+
+  def apply[T >: Null : ClassTag](limit: Int): SeriesGrowBasic[T] =
+    new SeriesGrowBasic[T](Array.fill[T](limit)(null))
+
+}
+
+class SeriesGrowBasic[T >: Null](array: Array[T]) extends SeriesGrow[T] { self =>
+  //Not volatile because series do not allow concurrent writes only concurrent reads.
+  private var writePosition = 0
+
+  def get(index: Int): T =
+    if (index >= writePosition)
+      throw new ArrayIndexOutOfBoundsException(index)
+    else
+      array(index)
+
+  def add(item: T): Unit = {
+    array(writePosition) = item
+    writePosition += 1
+  }
+
+  def length: Int =
+    writePosition
+
+  def innerArrayLength =
+    array.length
+
+  def lastOrNull: T =
+    if (writePosition == 0)
+      null
+    else
+      array(writePosition - 1)
+
+  def isFull =
+    array.length == writePosition
+
+  def headOrNull: T =
+    array(0)
+
+  def iterator: Iterator[T] =
+    array
+      .iterator
+      .take(writePosition)
 
 }
