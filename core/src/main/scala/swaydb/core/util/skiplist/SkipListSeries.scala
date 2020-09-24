@@ -32,6 +32,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.unchecked.uncheckedVariance
+import scala.collection.mutable.ListBuffer
 
 private sealed trait KeyValue[+K, +V] extends SomeOrNoneCovariant[KeyValue[K, V], KeyValue.Some[K, V]] {
   override def noneC: KeyValue[Nothing, Nothing] = KeyValue.None
@@ -568,7 +569,68 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         self.iterator().map(_.toTuple)
     }
 
-  override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = ???
+  override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = {
+    val compare = ordering.compare(from, to)
+
+    if (compare == 0) {
+      if (fromInclusive && toInclusive) {
+        val found = get(from)
+        if (found == nullValue)
+          Iterable.empty
+        else
+          Iterable((from, found.asInstanceOf[V]))
+      } else {
+        Iterable.empty
+      }
+    } else if (compare > 0) {
+      //following Java's ConcurrentSkipListMap's Exception.
+      throw new IllegalArgumentException("Invalid input. fromKey cannot be greater than toKey.")
+    } else {
+      val fromResult =
+        if (fromInclusive)
+          SkipListSeries.ceiling(from, series, hashIndex)
+        else
+          SkipListSeries.higher(from, series, hashIndex)
+
+      val fromFound: KeyValue.Some[K, V] =
+        fromResult match {
+          case KeyValue.None =>
+            //terminate early no need to run toSearch
+            return Iterable.empty
+
+          case some: KeyValue.Some[K, V] =>
+            some
+        }
+
+      val toResult =
+        if (toInclusive)
+          SkipListSeries.floor(to, series, hashIndex)
+        else
+          SkipListSeries.lower(to, series, hashIndex)
+
+      val toFound =
+        toResult match {
+          case KeyValue.None =>
+            //terminate - no need to compare
+            return Iterable.empty
+
+          case some: KeyValue.Some[K, V] =>
+            some
+        }
+
+      val compare = ordering.compare(fromFound.key, toFound.key)
+
+      if (compare == 0)
+        Iterable((fromFound.key, fromFound.value))
+      else if (compare > 0)
+        Iterable.empty
+      else
+        series.foldLeft(fromFound.index, toFound.index, ListBuffer.empty[(K, V)]) {
+          case (buffer, keyValue) =>
+            buffer += ((keyValue.key, keyValue.value))
+        }
+    }
+  }
 
   override def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit = ???
 

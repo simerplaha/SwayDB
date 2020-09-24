@@ -140,12 +140,43 @@ class SeriesGrowable[T >: Null : ClassTag] private(@volatile private var series:
   }
 
   def foreach(from: Int)(f: T => Unit): Unit = {
-    var start = from
+    var index = from
 
-    while (start < _written) {
-      f(get(start))
-      start += 1
+    while (index < _written) {
+      f(get(index))
+      index += 1
     }
+  }
+
+  def foreach(from: Int, to: Int)(f: T => Unit): Unit = {
+    var index = from
+
+    while (index < _written && index <= to) {
+      f(get(index))
+      index += 1
+    }
+  }
+
+  def foldLeft[R](from: Int, r: R)(f: (R, T) => R): R = {
+    var result = r
+
+    foreach(from) {
+      item =>
+        result = f(result, item)
+    }
+
+    result
+  }
+
+  def foldLeft[R](from: Int, to: Int, r: R)(f: (R, T) => R): R = {
+    var result = r
+
+    foreach(from, to) {
+      item =>
+        result = f(result, item)
+    }
+
+    result
   }
 
   def depth =

@@ -24,31 +24,37 @@
 
 package swaydb.core.util.skiplist
 
+import java.util.concurrent.ConcurrentSkipListMap
+
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.data.RunThis._
 
+import scala.jdk.CollectionConverters._
 import scala.util.Random
 
-class ConcurrentSpec extends SkipListSpec {
+class Concurrent_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
     SkipListConcurrent[NK, NV, K, V](nullKey, nullValue)
 }
 
-class TreeMap_Spec extends SkipListSpec {
+class TreeMap_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
     SkipListTreeMap[NK, NV, K, V](nullKey, nullValue)
 }
 
-class SliceConcurrent_HashIndex_Disabled_Spec extends SkipListSpec {
+class Series_HashIndex_Disabled_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
     SkipListSeries[NK, NV, K, V](size = 10, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
 }
 
-class SliceConcurrent_HashIndex_Enabled_Spec extends SkipListSpec {
+class Series_HashIndex_Enabled_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
     SkipListSeries[NK, NV, K, V](size = 10, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
 }
@@ -212,6 +218,59 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
       int =>
         skipList.floor(int) shouldBe Value.Some(int)
         skipList.ceiling(int) shouldBe Value.Some(int)
+    }
+  }
+
+  "subMap" when {
+    "empty" in {
+      val skipList = create()
+
+      (1 to 10) foreach {
+        i =>
+          skipList.subMap(from = 1, fromInclusive = true, to = i, toInclusive = true) shouldBe empty
+          skipList.subMap(from = 1, fromInclusive = true, to = i, toInclusive = false) shouldBe empty
+          skipList.subMap(from = 1, fromInclusive = false, to = i, toInclusive = true) shouldBe empty
+          skipList.subMap(from = 1, fromInclusive = false, to = i, toInclusive = false) shouldBe empty
+      }
+    }
+
+    "inconsistentRanges" in {
+      val skipList = create()
+
+      assertThrows[IllegalArgumentException](skipList.subMap(from = 1, fromInclusive = true, to = 0, toInclusive = true))
+      assertThrows[IllegalArgumentException](skipList.subMap(from = 1, fromInclusive = true, to = 0, toInclusive = false))
+      assertThrows[IllegalArgumentException](skipList.subMap(from = 1, fromInclusive = false, to = 0, toInclusive = true))
+      assertThrows[IllegalArgumentException](skipList.subMap(from = 1, fromInclusive = false, to = 0, toInclusive = false))
+    }
+
+    "result same as ConcurrentSkipListMap" in {
+      runThis(100.times, log = true) {
+        val scalaSkipList = create()
+        val javaSkipList = new ConcurrentSkipListMap[Slice[Byte], Value.Some](ordering)
+
+        val max = randomIntMax(100)
+
+        (1 to max) foreach {
+          i =>
+            scalaSkipList.put(i, Value.Some(i))
+            javaSkipList.put(i, Value.Some(i))
+        }
+
+        runThis(10.times) {
+          val from = eitherOne(0, randomIntMax(max max 1))
+          val to = eitherOne(from, from + 1, randomIntMax(max max 1) max from, from + randomIntMax(max max 1))
+
+          runThis(20.times) {
+            val fromInclusive = randomBoolean()
+            val toInclusive = randomBoolean()
+
+            val scalaResult: List[(Slice[Byte], Value.Some)] = scalaSkipList.subMap(from, fromInclusive, to, toInclusive).toList
+            val javaResult: List[(Slice[Byte], Value.Some)] = javaSkipList.subMap(from, fromInclusive, to, toInclusive).asScala.toList
+
+            scalaResult shouldBe javaResult
+          }
+        }
+      }
     }
   }
 }

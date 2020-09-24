@@ -33,12 +33,12 @@ import swaydb.serializers._
 
 import scala.util.Random
 
-class Concurrent_HashIndex_Disabled_Spec extends SkipListSeriesSpec {
+class HashIndex_Disabled_SkipListSeriesSpec extends SkipListSeriesSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipListSeries[NK, NV, K, V] =
     SkipListSeries[NK, NV, K, V](size = 10, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
 }
 
-class Concurrent_HashIndex_Enabled_Spec extends SkipListSeriesSpec {
+class HashIndex_Enabled_SkipListSeriesSpec extends SkipListSeriesSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipListSeries[NK, NV, K, V] =
     SkipListSeries[NK, NV, K, V](size = 10, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
 }
@@ -77,7 +77,6 @@ sealed trait SkipListSeriesSpec extends AnyWordSpec with Matchers {
           (key: Slice[Byte], value: KeyValue.Some[Slice[Byte], Value.Some]) =>
             value.index shouldBe key.readInt()
         }
-
     }
   }
 }
