@@ -66,12 +66,12 @@ sealed trait SkipListSeriesSpec extends AnyWordSpec with Matchers {
         skipList.put(int, Value.Some(int))
     }
 
-    skipList.series.foreach(0) {
+    skipList.state.series.foreach(0) {
       keyValue =>
         keyValue.index shouldBe keyValue.key.readInt()
     }
 
-    skipList.hashIndex.foreach {
+    skipList.state.hashIndex.foreach {
       hashIndex =>
         hashIndex forEach {
           (key: Slice[Byte], value: KeyValue.Some[Slice[Byte], Value.Some]) =>
