@@ -147,9 +147,6 @@ private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: Optio
   def take(count: Int)(implicit classTag: ClassTag[Value]): Slice[Value] =
     skipList.take(count)
 
-  override def subMap(from: Key, to: Key) =
-    skipList.subMap(from, to)
-
   override def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): Iterable[(Key, Value)] =
     skipList.subMap(from, fromInclusive, to, toInclusive)
 

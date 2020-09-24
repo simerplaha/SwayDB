@@ -49,9 +49,6 @@ private[core] trait SkipListNavigable[OptionKey, OptionValue, Key <: OptionKey, 
   override def put(key: Key, value: Value): Unit =
     skipList.put(key, value)
 
-  def subMap(from: Key, to: Key): Iterable[(Key, Value)] =
-    subMap(from = from, fromInclusive = true, to = to, toInclusive = false)
-
   def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): Iterable[(Key, Value)] =
     skipList.subMap(from, fromInclusive, to, toInclusive).asScala
 

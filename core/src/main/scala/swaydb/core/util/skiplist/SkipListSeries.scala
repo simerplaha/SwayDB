@@ -568,8 +568,6 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         self.iterator().map(_.toTuple)
     }
 
-  override def subMap(from: K, to: K): Iterable[(K, V)] = ???
-
   override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = ???
 
   override def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit = ???

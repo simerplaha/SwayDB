@@ -54,7 +54,6 @@ private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: 
   def notContains(key: Key): Boolean =
     !contains(key)
 
-  def subMap(from: Key, to: Key): Iterable[(Key, Value)]
   def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): Iterable[(Key, Value)]
 
   def headKey: OptionKey
