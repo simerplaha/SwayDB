@@ -36,7 +36,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.collection.mutable.ListBuffer
 
-object LevelZeroMapCache {
+private[core] object LevelZeroMapCache {
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]],
                        timeOrder: TimeOrder[Slice[Byte]],
                        functionStore: FunctionStore,
@@ -69,9 +69,9 @@ object LevelZeroMapCache {
  *
  * reverse on the merge results ensures that changes happen atomically.
  */
-class LevelZeroMapCache(val skipList: SkipListBatchable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                               functionStore: FunctionStore) extends MapCache[Slice[Byte], Memory] {
+private[core] class LevelZeroMapCache private(val skipList: SkipListBatchable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                                     functionStore: FunctionStore) extends MapCache[Slice[Byte], Memory] {
 
   @volatile var skipListKeyValuesMaxCount: Int = skipList.size
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
@@ -212,6 +212,8 @@ class LevelZeroMapCache(val skipList: SkipListBatchable[SliceOption[Byte], Memor
         throw new IllegalAccessException(s"${LevelZero.productPrefix} does not allow ${remove.productPrefix} entries.")
 
       case _ =>
+        //TODO - https://github.com/simerplaha/SwayDB/issues/124
+        //       reads are not atomic.
         entry.entries.foreach(write)
     }
 

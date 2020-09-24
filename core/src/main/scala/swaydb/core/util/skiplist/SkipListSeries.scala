@@ -125,7 +125,6 @@ private[core] object SkipListSeries {
     }
   }
 
-
   private def lower[K, V](target: K,
                           series: SeriesGrowable[KeyValue.Some[K, V]],
                           hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])(implicit ordering: Ordering[K]): KeyValue[K, V] = {
@@ -291,7 +290,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
 
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
-      var nextOne: KeyValue.Some[K, V] = null
+      var nextOne: KeyValue.Some[K, V] = _
       val sliceIterator = self.state.series.iteratorFlatten
 
       override def hasNext: Boolean =
@@ -315,40 +314,39 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         some.value = value
 
       case KeyValue.None =>
-        val newSeries = SeriesGrowable.volatile[KeyValue.Some[K, V]](state.series.length + 1)
+        //cannot overwrite an existing value. This is a random insert
+        //start a new series
+        val newSeries =
+          SkipListSeries[OK, OV, K, V](
+            lengthPerSeries = state.series.length + 1, //1+ for the new entry just in-case this was the last entry.
+            enableHashIndex = state.hashIndex.isDefined,
+            nullKey = nullKey,
+            nullValue = nullValue
+          )
+
+        var putSuccessful = false
 
         state.series.foreach(from = 0) {
           existing =>
-            val existingKeyCompare = keyOrder.compare(existing.key, key)
-
-            if (existingKeyCompare < 0) {
-              newSeries add existing
-            } else if (existingKeyCompare > 0) {
-              val newSliceSizeBeforeAdd = newSeries.length
-              val keyValue = KeyValue.Some(key, value, newSeries.length)
-
-              newSeries add keyValue
-              state.hashIndex foreach (_.put(key, keyValue))
-
-              state
-                .series
-                .foreach(newSliceSizeBeforeAdd) {
-                  tail =>
-                    val keyValue = KeyValue.Some(tail.key, tail.value, newSeries.length)
-                    newSeries add keyValue
-                    state.hashIndex foreach (_.put(tail.key, keyValue))
-                }
-
-              state.series = newSeries
-              return
+            if (putSuccessful) {
+              newSeries.put(existing.key, existing.value)
             } else {
-              //the above get which uses binarySearch and hashIndex should've already
-              //handled cases where put key exists.
-              throw new Exception("Get should updated this.")
+              val existingKeyCompare = keyOrder.compare(existing.key, key)
+              if (existingKeyCompare < 0) {
+                newSeries.put(existing.key, existing.value)
+              } else if (existingKeyCompare > 0) {
+                newSeries.put(key, value)
+                newSeries.put(existing.key, existing.value)
+                putSuccessful = true
+              } else {
+                //the above get which uses binarySearch and hashIndex should've already
+                //handled cases where put key exists.
+                throw new Exception("Get should updated this.")
+              }
             }
         }
 
-        state.series = newSeries
+        this.state = newSeries.state
     }
 
   override def put(key: K, value: V): Unit = {

@@ -95,27 +95,35 @@ private[swaydb] object MapEntry {
   def distinct[V](newEntry: MapEntry[Slice[Byte], V],
                   oldEntry: MapEntry[Slice[Byte], V])(implicit keyOrder: KeyOrder[Slice[Byte]]): MapEntry[Slice[Byte], V] = {
     import keyOrder._
-    (oldEntry.entries filterNot {
-      case MapEntry.Put(oldKey, _) =>
-        newEntry.entries.exists {
-          case MapEntry.Put(newKey, _) =>
-            newKey equiv oldKey
-          case MapEntry.Remove(newKey) =>
-            newKey equiv oldKey
-        }
-      case MapEntry.Remove(oldKey) =>
-        newEntry.entries.exists {
-          case MapEntry.Put(newKey, _) =>
-            newKey equiv oldKey
-          case MapEntry.Remove(newKey) =>
-            newKey equiv oldKey
-        }
-    }).foldLeft(newEntry) {
+
+    val olderEntriesUnique =
+      oldEntry.entries filterNot {
+        case MapEntry.Put(oldKey, _) =>
+          newEntry.entries.exists {
+            case MapEntry.Put(newKey, _) =>
+              newKey equiv oldKey
+
+            case MapEntry.Remove(newKey) =>
+              newKey equiv oldKey
+          }
+
+        case MapEntry.Remove(oldKey) =>
+          newEntry.entries.exists {
+            case MapEntry.Put(newKey, _) =>
+              newKey equiv oldKey
+
+            case MapEntry.Remove(newKey) =>
+              newKey equiv oldKey
+          }
+      }
+
+    olderEntriesUnique.foldLeft(newEntry) {
       case (newEntry, oldEntry) =>
         newEntry ++ {
           oldEntry match {
             case entry @ MapEntry.Put(_, _) =>
               entry.copySingle()
+
             case entry @ MapEntry.Remove(_) =>
               entry.copySingle()
           }
@@ -143,7 +151,7 @@ private[swaydb] object MapEntry {
         //          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))
 
         override def applyTo[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit = {
-          val batches: ListBuffer[SkipList.Batch[K, V]] =
+          val batches =
             _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] map {
               case MapEntry.Put(key, value) =>
                 SkipList.Batch.Put[K, V](key, value)

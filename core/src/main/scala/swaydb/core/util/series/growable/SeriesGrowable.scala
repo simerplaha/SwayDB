@@ -85,12 +85,12 @@ class SeriesGrowable[T >: Null : ClassTag] private(@volatile private var series:
           .get(index)
 
       } else {
-        val listIndex = index / lengthPerSeries
-        val indexInArray = index - (lengthPerSeries * listIndex)
+        val blockIndex = index / lengthPerSeries
+        val arrayIndex = index - (lengthPerSeries * blockIndex)
 
         series
-          .get(listIndex)
-          .get(indexInArray)
+          .get(blockIndex)
+          .get(arrayIndex)
       }
 
     if (foundOrNull == null)
