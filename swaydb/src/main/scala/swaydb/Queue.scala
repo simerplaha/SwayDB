@@ -189,7 +189,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
     catch {
       case throwable: Throwable =>
         retryQueue add nextId
-        logger.error(s"Failed to process taskId: $nextId", throwable)
+        logger.warn(s"Failed to process taskId: $nextId. Added it to retry queue.", throwable)
         nullA
     }
 
