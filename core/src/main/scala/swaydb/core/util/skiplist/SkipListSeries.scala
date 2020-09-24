@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.series.growable.SeriesGrowable
 import swaydb.data.order.KeyOrder
-import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable.ListBuffer
@@ -320,7 +319,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         nextOne
     }
 
-  private def putRandom(key: K, value: V): Unit =
+  @inline private def putRandom(key: K, value: V): Unit =
     SkipListSeries.get(key, state.series, state.hashIndex) match {
       case some: KeyValue.Some[K, V] =>
         some.value = value
@@ -361,19 +360,19 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         this.state = newSeries.state
     }
 
+  @inline private def putSequential(keyValue: KeyValue.Some[K, V]) = {
+    state.series add keyValue
+    state.hashIndex foreach (_.put(keyOrder.comparableKey(keyValue.key), keyValue))
+  }
+
   override def put(key: K, value: V): Unit = {
     val lastOrNull = state.series.lastOrNull
-    if (lastOrNull == null) {
-      val keyValue = KeyValue.Some(key, value, state.series.length)
-      state.hashIndex foreach (_.put(keyOrder.comparableKey(key), keyValue))
-      state.series add keyValue
-    } else if (keyOrder.gt(key, lastOrNull.key)) {
-      val keyValue = KeyValue.Some(key, value, state.series.length)
-      state.hashIndex foreach (_.put(keyOrder.comparableKey(key), keyValue))
-      state.series add keyValue
-    } else {
+    if (lastOrNull == null)
+      putSequential(KeyValue.Some(key, value, state.series.length))
+    else if (keyOrder.gt(key, lastOrNull.key))
+      putSequential(KeyValue.Some(key, value, state.series.length))
+    else
       putRandom(key, value)
-    }
   }
 
   override def putIfAbsent(key: K, value: V): Boolean =
@@ -398,8 +397,8 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
   override def remove(key: K): Unit =
     SkipListSeries.get(key, state.series, state.hashIndex) match {
       case some: KeyValue.Some[K, V] =>
-        state.hashIndex.foreach(_.remove(keyOrder.comparableKey(key)))
         some.value = null.asInstanceOf[V]
+        state.hashIndex.foreach(_.remove(keyOrder.comparableKey(key)))
 
       case KeyValue.None =>
     }
@@ -498,8 +497,8 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     !isEmpty
 
   override def clear(): Unit = {
-    state.hashIndex.foreach(_.clear())
     state.series = SeriesGrowable.empty
+    state.hashIndex.foreach(_.clear())
   }
 
   override def size: Int =
