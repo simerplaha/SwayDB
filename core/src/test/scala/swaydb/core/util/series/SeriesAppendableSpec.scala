@@ -121,6 +121,4 @@ sealed trait SeriesAppendableSpec extends AnyWordSpec with Matchers {
     series.lastOrNull shouldBe 5
     series.length shouldBe 5
   }
-
-
 }

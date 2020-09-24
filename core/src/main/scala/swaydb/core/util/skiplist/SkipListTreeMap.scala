@@ -42,9 +42,6 @@ private[core] class SkipListTreeMap[OptionKey, OptionValue, Key <: OptionKey, Va
   override def batch(batches: Iterable[SkipList.Batch[Key, Value]]): Unit =
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
 
-  override def put(keyValues: Iterable[(Key, Value)]): Unit =
-    throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
-
   // only single put is allowed. Used during the creation of this skipList.
   // override def put(key: Key, value: Value): Unit
 

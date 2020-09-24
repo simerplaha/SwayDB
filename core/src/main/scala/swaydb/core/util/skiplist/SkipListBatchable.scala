@@ -28,6 +28,4 @@ trait SkipListBatchable[OK, OV, K <: OK, V <: OV] extends SkipList[OK, OV, K, V]
 
   def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit
 
-  def put(keyValues: Iterable[(K, V)]): Unit
-
 }

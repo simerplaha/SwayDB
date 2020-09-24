@@ -560,5 +560,4 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
 
   override def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit = ???
 
-  override def put(keyValues: Iterable[(K, V)]): Unit = ???
 }

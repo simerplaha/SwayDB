@@ -53,22 +53,4 @@ protected abstract class SkipListBatchableImpl[OptionKey, OptionValue, Key <: Op
       this.skipList = targetSkipList.skipList
   }
 
-  def put(keyValues: Iterable[(Key, Value)]): Unit = {
-    var cloned = false
-    val targetSkipList =
-      if (keyValues.size > 1) {
-        cloned = true
-        this.cloneInstance(skipList).skipList
-      } else {
-        skipList
-      }
-
-    keyValues foreach {
-      case (key, value) =>
-        targetSkipList.put(key, value)
-    }
-
-    if (cloned)
-      this.skipList = targetSkipList
-  }
 }
