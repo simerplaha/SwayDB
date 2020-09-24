@@ -282,6 +282,46 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
         nextOne
     }
 
+  private def putRandom(key: K, value: V): Unit =
+    SliceSkipList.get(key, series, hashIndex) match {
+      case some: KeyValue.Some[K, V] =>
+        some.value = value
+
+      case KeyValue.None =>
+        val newSeries = SeriesGrowable.volatile[KeyValue.Some[K, V]](series.size + 1)
+
+        series.foreach(from = 0) {
+          existing =>
+            val existingKeyCompare = ordering.compare(existing.key, key)
+
+            if (existingKeyCompare < 0) {
+              newSeries add existing
+            } else if (existingKeyCompare > 0) {
+              val newSliceSizeBeforeAdd = newSeries.size
+              val keyValue = KeyValue.Some(key, value, newSeries.size)
+
+              newSeries add keyValue
+              hashIndex foreach (_.put(key, keyValue))
+
+              series.foreach(newSliceSizeBeforeAdd) {
+                tail =>
+                  val keyValue = KeyValue.Some(tail.key, tail.value, newSeries.size)
+                  newSeries add keyValue
+                  hashIndex foreach (_.put(tail.key, keyValue))
+              }
+
+              this.series = newSeries
+              return
+            } else {
+              //the above get which uses binarySearch and hashIndex should've already
+              //handled cases where put key exists.
+              throw new Exception("Get should updated this.")
+            }
+        }
+
+        this.series = newSeries
+    }
+
   override def put(key: K, value: V): Unit = {
     val lastOrNull = series.lastOrNull
     if (lastOrNull == null) {
@@ -293,44 +333,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
       series add keyValue
       hashIndex foreach (_.put(key, keyValue))
     } else {
-      SliceSkipList.get(key, series, hashIndex) match {
-        case some: KeyValue.Some[K, V] =>
-          some.value = value
-
-        case KeyValue.None =>
-          val newSeries = SeriesGrowable.volatile[KeyValue.Some[K, V]](series.size + 1)
-
-          series.foreach(from = 0) {
-            existing =>
-              val existingKeyCompare = ordering.compare(existing.key, key)
-
-              if (existingKeyCompare < 0) {
-                newSeries add existing
-              } else if (existingKeyCompare > 0) {
-                val newSliceSizeBeforeAdd = newSeries.size
-                val keyValue = KeyValue.Some(key, value, newSeries.size)
-
-                newSeries add keyValue
-                hashIndex foreach (_.put(key, keyValue))
-
-                series.foreach(newSliceSizeBeforeAdd) {
-                  tail =>
-                    val keyValue = KeyValue.Some(tail.key, tail.value, newSeries.size)
-                    newSeries add keyValue
-                    hashIndex foreach (_.put(tail.key, keyValue))
-                }
-
-                this.series = newSeries
-                return
-              } else {
-                //the above get which uses binarySearch and hashIndex should've already
-                //handled cases where put key exists.
-                throw new Exception("Get should updated this.")
-              }
-          }
-
-          this.series = newSeries
-      }
+      putRandom(key, value)
     }
   }
 
