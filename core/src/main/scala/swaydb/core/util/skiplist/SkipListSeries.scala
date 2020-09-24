@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.series.growable.SeriesGrowable
-import swaydb.core.util.skiplist
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.SomeOrNoneCovariant
 
@@ -78,15 +77,15 @@ private[core] object SkipListSeries {
                                       val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])
 
 
-  def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
+  def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](lengthPerSeries: Int,
                                                                             enableHashIndex: Boolean,
                                                                             nullKey: OptionKey,
                                                                             nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListSeries[OptionKey, OptionValue, Key, Value] =
     new SkipListSeries[OptionKey, OptionValue, Key, Value](
       state =
         new State(
-          series = SeriesGrowable.volatile(size),
-          hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(size)) else None
+          series = SeriesGrowable.volatile(lengthPerSeries),
+          hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(lengthPerSeries)) else None
         ),
       nullKey = nullKey,
       nullValue = nullValue
@@ -288,7 +287,7 @@ private[core] object SkipListSeries {
 
 private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var state: SkipListSeries.State[K, V],
                                                                      val nullKey: OK,
-                                                                     val nullValue: OV)(implicit ordering: Ordering[K]) extends SkipListBatchable[OK, OV, K, V] with SkipList[OK, OV, K, V] with LazyLogging { self =>
+                                                                     val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipListBatchable[OK, OV, K, V] with SkipList[OK, OV, K, V] with LazyLogging { self =>
 
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
@@ -320,7 +319,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
 
         state.series.foreach(from = 0) {
           existing =>
-            val existingKeyCompare = ordering.compare(existing.key, key)
+            val existingKeyCompare = keyOrder.compare(existing.key, key)
 
             if (existingKeyCompare < 0) {
               newSeries add existing
@@ -358,7 +357,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
       val keyValue = KeyValue.Some(key, value, state.series.length)
       state.series add keyValue
       state.hashIndex foreach (_.put(key, keyValue))
-    } else if (ordering.gt(key, lastOrNull.key)) {
+    } else if (keyOrder.gt(key, lastOrNull.key)) {
       val keyValue = KeyValue.Some(key, value, state.series.length)
       state.series add keyValue
       state.hashIndex foreach (_.put(key, keyValue))
@@ -585,7 +584,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = {
-    val compare = ordering.compare(from, to)
+    val compare = keyOrder.compare(from, to)
 
     if (compare == 0) {
       if (fromInclusive && toInclusive) {
@@ -633,7 +632,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
             some
         }
 
-      val compare = ordering.compare(fromFound.key, toFound.key)
+      val compare = keyOrder.compare(fromFound.key, toFound.key)
 
       if (compare == 0)
         Iterable((fromFound.key, fromFound.value))
@@ -647,24 +646,35 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
   }
 
-  override def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit = {
-    //    var cloned = false
-    //    val targetSkipList =
-    //      if (batches.size > 1) {
-    //        cloned = true
-    //        this.cloneInstance(skipList)
-    //      } else {
-    //        this
-    //      }
-    //
-    //    batches foreach {
-    //      batch =>
-    //        batch apply targetSkipList
-    //    }
-    //
-    //    if (cloned)
-    //      this.skipList = targetSkipList.skipList
+  override def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit =
+    if (batches.size > 1) {
+      val newSkipList =
+        SkipListSeries[OK, OV, K, V](
+          lengthPerSeries = this.size + batches.size,
+          enableHashIndex = this.state.hashIndex.isDefined,
+          nullKey = this.nullKey,
+          nullValue = this.nullValue
+        )
 
-  }
+      val sortedBatches = batches.toArray.sortBy(_.key)(keyOrder)
+      var batchIndex = 0
 
+      state.series.foreach(0) {
+        keyValue =>
+          if (batchIndex < sortedBatches.length && keyOrder.gt(sortedBatches(batchIndex).key, keyValue.key)) {
+            sortedBatches(batchIndex) apply newSkipList
+            batchIndex += 1
+          }
+
+          newSkipList.put(keyValue.key, keyValue.value)
+      }
+
+      this.state = newSkipList.state
+    } else {
+
+      batches foreach {
+        batch =>
+          batch apply self
+      }
+    }
 }

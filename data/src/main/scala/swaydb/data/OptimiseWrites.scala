@@ -28,6 +28,6 @@ sealed trait OptimiseWrites
 object OptimiseWrites {
 
   case object RandomOrder extends OptimiseWrites
-  case class SequentialOrder(enableHashIndex: Boolean, maxArrayLength: Int) extends OptimiseWrites
+  case class SequentialOrder(enableHashIndex: Boolean, initialLength: Int) extends OptimiseWrites
 
 }

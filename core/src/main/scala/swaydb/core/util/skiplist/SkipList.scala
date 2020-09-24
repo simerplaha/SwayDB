@@ -132,6 +132,8 @@ private[core] object SkipList {
   }
 
   sealed trait Batch[Key, +Value] {
+    def key: Key
+
     def apply[VV >: Value](skipList: SkipList[_, _, Key, VV]): Unit
   }
 }

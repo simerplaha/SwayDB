@@ -45,12 +45,20 @@ object LevelZeroMapCache {
       optimiseWrites match {
         case OptimiseWrites.RandomOrder =>
           new LevelZeroMapCache(
-            skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)
+            SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+              nullKey = Slice.Null,
+              nullValue = Memory.Null
+            )
           )
 
-        case OptimiseWrites.SequentialOrder(enableHashIndex, maxArrayLength) =>
+        case OptimiseWrites.SequentialOrder(enableHashIndex, initialLength) =>
           new LevelZeroMapCache(
-            skipList = SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](maxArrayLength, enableHashIndex, Slice.Null, Memory.Null)
+            SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+              lengthPerSeries = initialLength,
+              enableHashIndex = enableHashIndex,
+              nullKey = Slice.Null,
+              nullValue = Memory.Null
+            )
           )
       }
 }
@@ -201,7 +209,7 @@ class LevelZeroMapCache(val skipList: SkipListBatchable[SliceOption[Byte], Memor
 
       case remove @ MapEntry.Remove(_) =>
         //this does not occur in reality and should be type-safe instead of having this Exception. FIXME
-        throw new IllegalAccessException(s"${LevelZero.productPrefix} does not allow ${remove.productPrefix} entires.")
+        throw new IllegalAccessException(s"${LevelZero.productPrefix} does not allow ${remove.productPrefix} entries.")
 
       case _ =>
         entry.entries.foreach(write)

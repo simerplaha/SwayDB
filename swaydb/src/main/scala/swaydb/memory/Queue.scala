@@ -50,7 +50,7 @@ object Queue extends LazyLogging {
                        maxKeyValuesPerSegment: Int = Int.MaxValue,
                        fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                        deleteSegmentsEventually: Boolean = true,
-                       optimiseWrites: OptimiseWrites = OptimiseWrites.SequentialOrder(enableHashIndex = true, maxArrayLength = 100000),
+                       optimiseWrites: OptimiseWrites = OptimiseWrites.SequentialOrder(enableHashIndex = true, initialLength = 100000),
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
