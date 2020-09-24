@@ -189,29 +189,14 @@ private[core] object SkipList {
     )
 
 
-  def sliceConcurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
-                                                                                      extendBy: Double,
-                                                                                      enableHashIndex: Boolean,
-                                                                                      nullKey: OptionKey,
-                                                                                      nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =
-    new SliceSkipList[OptionKey, OptionValue, Key, Value](
+  def seriesVolatile[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
+                                                                                     enableHashIndex: Boolean,
+                                                                                     nullKey: OptionKey,
+                                                                                     nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SeriesSkipList[OptionKey, OptionValue, Key, Value] =
+    new SeriesSkipList[OptionKey, OptionValue, Key, Value](
       series = SeriesGrowable.volatile(size),
       hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(size)) else None,
       nullKey = nullKey,
-      nullValue = nullValue,
-      extendBy = extendBy
-    )
-
-  def slice[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
-                                                                            extendBy: Double,
-                                                                            enableHashIndex: Boolean,
-                                                                            nullKey: OptionKey,
-                                                                            nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SliceSkipList[OptionKey, OptionValue, Key, Value] =
-    new SliceSkipList[OptionKey, OptionValue, Key, Value](
-      series = SeriesGrowable.volatile(size), //TODO - volatile is not required here
-      hashIndex = if (enableHashIndex) Some(new util.HashMap(size)) else None,
-      nullKey = nullKey,
-      nullValue = nullValue,
-      extendBy = extendBy
+      nullValue = nullValue
     )
 }

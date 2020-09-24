@@ -30,11 +30,11 @@ import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.unchecked.uncheckedVariance
 
-sealed trait KeyValue[+K, +V] extends SomeOrNoneCovariant[KeyValue[K, V], KeyValue.Some[K, V]] {
+private sealed trait KeyValue[+K, +V] extends SomeOrNoneCovariant[KeyValue[K, V], KeyValue.Some[K, V]] {
   override def noneC: KeyValue[Nothing, Nothing] = KeyValue.None
 }
 
-case object KeyValue {
+private case object KeyValue {
 
   case object None extends KeyValue[Nothing, Nothing] {
     override def isNoneC: Boolean = true
@@ -60,7 +60,7 @@ case object KeyValue {
   }
 }
 
-object SliceSkipList {
+object SeriesSkipList {
 
   private def get[K, V](target: K,
                         series: SeriesGrowable[KeyValue.Some[K, V]],
@@ -256,11 +256,10 @@ object SliceSkipList {
   }
 }
 
-class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
-                                              private[skiplist] val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]],
-                                              val nullKey: OK,
-                                              val nullValue: OV,
-                                              val extendBy: Double)(implicit ordering: Ordering[K]) extends SkipListBatchable[OK, OV, K, V] with SkipList[OK, OV, K, V] with LazyLogging { self =>
+class SeriesSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
+                                               private[skiplist] val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]],
+                                               val nullKey: OK,
+                                               val nullValue: OV)(implicit ordering: Ordering[K]) extends SkipListBatchable[OK, OV, K, V] with SkipList[OK, OV, K, V] with LazyLogging { self =>
 
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
@@ -283,7 +282,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   private def putRandom(key: K, value: V): Unit =
-    SliceSkipList.get(key, series, hashIndex) match {
+    SeriesSkipList.get(key, series, hashIndex) match {
       case some: KeyValue.Some[K, V] =>
         some.value = value
 
@@ -338,7 +337,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
   }
 
   override def putIfAbsent(key: K, value: V): Boolean =
-    SliceSkipList.get(key, series, hashIndex) match {
+    SeriesSkipList.get(key, series, hashIndex) match {
       case KeyValue.None =>
         put(key, value)
         true
@@ -348,7 +347,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def get(target: K): OV =
-    SliceSkipList.get(target, series, hashIndex) match {
+    SeriesSkipList.get(target, series, hashIndex) match {
       case KeyValue.None =>
         nullValue
 
@@ -357,14 +356,14 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def remove(key: K): Unit =
-    SliceSkipList.get(key, series, hashIndex).foreachC {
+    SeriesSkipList.get(key, series, hashIndex).foreachC {
       some =>
         hashIndex.foreach(_.remove(key))
         some.value = null.asInstanceOf[V]
     }
 
   override def lower(key: K): OV =
-    SliceSkipList.lower(key, series, hashIndex) match {
+    SeriesSkipList.lower(key, series, hashIndex) match {
       case KeyValue.None =>
         nullValue
 
@@ -373,7 +372,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def lowerKey(key: K): OK =
-    SliceSkipList.lower(key, series, hashIndex) match {
+    SeriesSkipList.lower(key, series, hashIndex) match {
       case KeyValue.None =>
         nullKey
 
@@ -382,7 +381,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def floor(key: K): OV =
-    SliceSkipList.floor(key, series, hashIndex) match {
+    SeriesSkipList.floor(key, series, hashIndex) match {
       case KeyValue.None =>
         nullValue
 
@@ -391,7 +390,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def floorKeyValue(key: K): Option[(K, V)] =
-    SliceSkipList.floor(key, series, hashIndex) match {
+    SeriesSkipList.floor(key, series, hashIndex) match {
       case KeyValue.None =>
         scala.None
 
@@ -400,7 +399,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def higher(key: K): OV =
-    SliceSkipList.higher(key, series, hashIndex) match {
+    SeriesSkipList.higher(key, series, hashIndex) match {
       case KeyValue.None =>
         nullValue
 
@@ -409,7 +408,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def higherKey(key: K): OK =
-    SliceSkipList.higher(key, series, hashIndex) match {
+    SeriesSkipList.higher(key, series, hashIndex) match {
       case KeyValue.None =>
         nullKey
 
@@ -418,7 +417,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def higherKeyValue(key: K): Option[(K, V)] =
-    SliceSkipList.higher(key, series, hashIndex) match {
+    SeriesSkipList.higher(key, series, hashIndex) match {
       case KeyValue.None =>
         scala.None
 
@@ -427,7 +426,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def ceiling(key: K): OV =
-    SliceSkipList.ceiling(key, series, hashIndex) match {
+    SeriesSkipList.ceiling(key, series, hashIndex) match {
       case KeyValue.None =>
         nullValue
 
@@ -436,7 +435,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     }
 
   override def ceilingKey(key: K): OK =
-    SliceSkipList.ceiling(key, series, hashIndex) match {
+    SeriesSkipList.ceiling(key, series, hashIndex) match {
       case KeyValue.None =>
         nullKey
 
@@ -465,7 +464,7 @@ class SliceSkipList[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var se
     series.length
 
   override def contains(key: K): Boolean =
-    SliceSkipList.get(key, series, hashIndex).isSomeC
+    SeriesSkipList.get(key, series, hashIndex).isSomeC
 
   private def headOrNullSome(): KeyValue.Some[K, V] = {
     val head = series.headOrNull

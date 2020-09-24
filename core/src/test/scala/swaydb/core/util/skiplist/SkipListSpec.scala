@@ -45,22 +45,12 @@ class TreeMap_Spec extends SkipListSpec {
 
 class SliceConcurrent_HashIndex_Disabled_Spec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipList.sliceConcurrent[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
+    SkipList.seriesVolatile[NK, NV, K, V](size = 10, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
 }
 
 class SliceConcurrent_HashIndex_Enabled_Spec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipList.sliceConcurrent[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
-}
-
-class Slice_HashIndex_Disabled_Spec extends SkipListSpec {
-  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipList.slice[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
-}
-
-class Slice_HashIndex_Enabled_Spec extends SkipListSpec {
-  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipList.slice[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
+    SkipList.seriesVolatile[NK, NV, K, V](size = 10, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
 }
 
 sealed trait SkipListSpec extends AnyWordSpec with Matchers {

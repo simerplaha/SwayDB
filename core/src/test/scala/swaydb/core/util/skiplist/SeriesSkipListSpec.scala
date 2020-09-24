@@ -33,27 +33,17 @@ import swaydb.serializers._
 
 import scala.util.Random
 
-class Concurrent_HashIndex_Disabled_Spec extends SliceSkipListSpec {
-  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V] =
-    SkipList.sliceConcurrent[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
+class Concurrent_HashIndex_Disabled_Spec extends SeriesSkipListSpec {
+  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SeriesSkipList[NK, NV, K, V] =
+    SkipList.seriesVolatile[NK, NV, K, V](size = 10, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
 }
 
-class Concurrent_HashIndex_Enabled_Spec extends SliceSkipListSpec {
-  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V] =
-    SkipList.sliceConcurrent[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
+class Concurrent_HashIndex_Enabled_Spec extends SeriesSkipListSpec {
+  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SeriesSkipList[NK, NV, K, V] =
+    SkipList.seriesVolatile[NK, NV, K, V](size = 10, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
 }
 
-class HashIndex_Disabled_Spec extends SliceSkipListSpec {
-  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V] =
-    SkipList.slice[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
-}
-
-class HashIndex_Enabled_Spec extends SliceSkipListSpec {
-  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V] =
-    SkipList.slice[NK, NV, K, V](size = 10, extendBy = 2, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
-}
-
-sealed trait SliceSkipListSpec extends AnyWordSpec with Matchers {
+sealed trait SeriesSkipListSpec extends AnyWordSpec with Matchers {
 
   sealed trait ValueOption
   object Value {
@@ -63,9 +53,9 @@ sealed trait SliceSkipListSpec extends AnyWordSpec with Matchers {
 
   implicit val ordering = KeyOrder.integer
 
-  def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SliceSkipList[NK, NV, K, V]
+  def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SeriesSkipList[NK, NV, K, V]
 
-  def create(): SliceSkipList[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some] =
+  def create(): SeriesSkipList[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some] =
     create[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some](Slice.Null, Value.Null)
 
   "maintain index" in {

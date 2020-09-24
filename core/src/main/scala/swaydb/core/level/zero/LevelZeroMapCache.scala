@@ -50,10 +50,9 @@ object LevelZeroMapCache {
 
         case OptimiseWrites.SequentialOrder(enableHashIndex, maxArrayLength) =>
           new LevelZeroMapCache(
-            skipList = SkipList.sliceConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](maxArrayLength, 0.25, enableHashIndex, Slice.Null, Memory.Null)
+            skipList = SkipList.seriesVolatile[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](maxArrayLength, enableHashIndex, Slice.Null, Memory.Null)
           )
       }
-
 }
 
 /**
