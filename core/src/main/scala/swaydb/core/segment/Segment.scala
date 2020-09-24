@@ -48,7 +48,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
-import swaydb.core.util.skiplist.SkipList
+import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -90,7 +90,7 @@ private[core] object Segment extends LazyLogging {
     } else {
       val segments = ListBuffer.empty[MemorySegment]
 
-      var skipList = SkipList.treeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      var skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       var minMaxFunctionId: Option[MinMax[Slice[Byte]]] = None
       var nearestDeadline: Option[Deadline] = None
       var hasRange: Boolean = false
@@ -101,7 +101,7 @@ private[core] object Segment extends LazyLogging {
       var lastKeyValue: Memory = null
 
       def setClosed(): Unit = {
-        skipList = SkipList.treeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         minMaxFunctionId = None
         nearestDeadline = None
         hasRange = false

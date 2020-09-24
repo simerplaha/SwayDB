@@ -26,9 +26,22 @@ package swaydb.core.util.skiplist
 
 import java.util
 
-private[core] class SkipListTreeMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: util.TreeMap[Key, Value],
-                                                                                                    val nullKey: OptionKey,
-                                                                                                    val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]](skipper) with SkipListNavigable[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]] {
+import swaydb.data.order.KeyOrder
+
+object SkipListTreeMap {
+  def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
+                                                                            nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListTreeMap[OptionKey, OptionValue, Key, Value] =
+    new SkipListTreeMap[OptionKey, OptionValue, Key, Value](
+      skipper = new util.TreeMap[Key, Value](ordering),
+      nullKey = nullKey,
+      nullValue = nullValue
+    )
+
+}
+
+private[core] class SkipListTreeMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue] private(private var skipper: util.TreeMap[Key, Value],
+                                                                                                            val nullKey: OptionKey,
+                                                                                                            val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]](skipper) with SkipListNavigable[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]] {
   /**
    * FIXME - [[SkipListBatchableImpl]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
    * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic

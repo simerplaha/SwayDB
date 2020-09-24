@@ -26,12 +26,21 @@ package swaydb.core.util.skiplist
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-//@formatter:off
-private[core] class SkipListConcurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: ConcurrentSkipListMap[Key, Value],
-                                                                                                       val nullKey: OptionKey,
-                                                                                                       val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]](skipper)
-                                                                                                                                      with SkipListNavigable[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]] {
-//@formatter:on
+import swaydb.data.order.KeyOrder
+
+object SkipListConcurrent {
+  def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
+                                                                            nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListConcurrent[OptionKey, OptionValue, Key, Value] =
+    new SkipListConcurrent[OptionKey, OptionValue, Key, Value](
+      skipper = new ConcurrentSkipListMap[Key, Value](ordering),
+      nullKey = nullKey,
+      nullValue = nullValue
+    )
+}
+
+private[core] class SkipListConcurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue] private(private var skipper: ConcurrentSkipListMap[Key, Value],
+                                                                                                               val nullKey: OptionKey,
+                                                                                                               val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]](skipper) with SkipListNavigable[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]] {
   /**
    * FIXME - [[SkipListBatchableImpl]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
    * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic

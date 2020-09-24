@@ -29,7 +29,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.util.skiplist.{SkipList, SkipListBatchable}
+import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent, SkipListSeries}
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -45,12 +45,12 @@ object LevelZeroMapCache {
       optimiseWrites match {
         case OptimiseWrites.RandomOrder =>
           new LevelZeroMapCache(
-            skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)
+            skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)
           )
 
         case OptimiseWrites.SequentialOrder(enableHashIndex, maxArrayLength) =>
           new LevelZeroMapCache(
-            skipList = SkipList.seriesVolatile[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](maxArrayLength, enableHashIndex, Slice.Null, Memory.Null)
+            skipList = SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](maxArrayLength, enableHashIndex, Slice.Null, Memory.Null)
           )
       }
 }

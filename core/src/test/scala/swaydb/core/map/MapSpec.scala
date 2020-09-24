@@ -40,7 +40,7 @@ import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO}
-import swaydb.core.util.skiplist.SkipList
+import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.core.util.{BlockCacheFileIDGenerator, Extension}
 import swaydb.data.OptimiseWrites
 import swaydb.data.RunThis._
@@ -730,7 +730,7 @@ class MapSpec extends TestBase {
               cache = cache
             ).sweep()
 
-          val nextFileSkipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+          val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           val nextFileBytes = DBFile.channelRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).readAll
           val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
           mapEntries applyTo nextFileSkipList

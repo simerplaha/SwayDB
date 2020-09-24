@@ -24,8 +24,11 @@
 
 package swaydb.core.util.skiplist
 
+import java.util.concurrent.ConcurrentHashMap
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.series.growable.SeriesGrowable
+import swaydb.data.order.KeyOrder
 import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.unchecked.uncheckedVariance
@@ -61,6 +64,18 @@ private case object KeyValue {
 }
 
 private[core] object SkipListSeries {
+
+
+  def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
+                                                                            enableHashIndex: Boolean,
+                                                                            nullKey: OptionKey,
+                                                                            nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListSeries[OptionKey, OptionValue, Key, Value] =
+    new SkipListSeries[OptionKey, OptionValue, Key, Value](
+      series = SeriesGrowable.volatile(size),
+      hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(size)) else None,
+      nullKey = nullKey,
+      nullValue = nullValue
+    )
 
   private def get[K, V](target: K,
                         series: SeriesGrowable[KeyValue.Some[K, V]],
@@ -256,10 +271,10 @@ private[core] object SkipListSeries {
   }
 }
 
-private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV](@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
-                                                             private[skiplist] val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]],
-                                                             val nullKey: OK,
-                                                             val nullValue: OV)(implicit ordering: Ordering[K]) extends SkipListBatchable[OK, OV, K, V] with SkipList[OK, OV, K, V] with LazyLogging { self =>
+private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
+                                                                     private[skiplist] val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]],
+                                                                     val nullKey: OK,
+                                                                     val nullValue: OV)(implicit ordering: Ordering[K]) extends SkipListBatchable[OK, OV, K, V] with SkipList[OK, OV, K, V] with LazyLogging { self =>
 
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {

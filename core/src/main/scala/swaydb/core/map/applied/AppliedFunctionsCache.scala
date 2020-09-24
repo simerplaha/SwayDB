@@ -34,7 +34,7 @@ object AppliedFunctionsCache {
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]]) =
     new MapCacheBuilder[AppliedFunctionsCache] {
       override def create(): AppliedFunctionsCache =
-        AppliedFunctionsCache(SkipList.concurrent(Slice.Null, Slice.Null))
+        AppliedFunctionsCache(SkipListConcurrent(Slice.Null, Slice.Null))
     }
 }
 

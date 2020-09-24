@@ -157,46 +157,4 @@ private[core] object SkipList {
   sealed trait Batch[Key, +Value] {
     def apply[VV >: Value](skipList: SkipList[_, _, Key, VV]): Unit
   }
-
-  def concurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
-                                                                                 nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListConcurrent[OptionKey, OptionValue, Key, Value] =
-    new SkipListConcurrent[OptionKey, OptionValue, Key, Value](
-      skipper = new ConcurrentSkipListMap[Key, Value](ordering),
-      nullKey = nullKey,
-      nullValue = nullValue
-    )
-
-  def treeMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
-                                                                              nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListTreeMap[OptionKey, OptionValue, Key, Value] =
-    new SkipListTreeMap[OptionKey, OptionValue, Key, Value](
-      skipper = new util.TreeMap[Key, Value](ordering),
-      nullKey = nullKey,
-      nullValue = nullValue
-    )
-
-  def concurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
-                                                                                 nullKey: OptionKey,
-                                                                                 nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListConcurrentLimit[OptionKey, OptionValue, Key, Value] =
-    new SkipListConcurrentLimit[OptionKey, OptionValue, Key, Value](
-      limit = limit,
-      skipList =
-        SkipList.concurrent[OptionKey, OptionValue, Key, Value](
-          nullKey = nullKey,
-          nullValue = nullValue
-        ),
-      nullKey = nullKey,
-      nullValue = nullValue
-    )
-
-
-  def seriesVolatile[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](size: Int,
-                                                                                     enableHashIndex: Boolean,
-                                                                                     nullKey: OptionKey,
-                                                                                     nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListSeries[OptionKey, OptionValue, Key, Value] =
-    new SkipListSeries[OptionKey, OptionValue, Key, Value](
-      series = SeriesGrowable.volatile(size),
-      hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(size)) else None,
-      nullKey = nullKey,
-      nullValue = nullValue
-    )
 }

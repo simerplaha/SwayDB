@@ -34,6 +34,23 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.Random
 
+object SkipListConcurrentLimit {
+  def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
+                                                                            nullKey: OptionKey,
+                                                                            nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListConcurrentLimit[OptionKey, OptionValue, Key, Value] =
+    new SkipListConcurrentLimit[OptionKey, OptionValue, Key, Value](
+      limit = limit,
+      skipList =
+        SkipListConcurrent[OptionKey, OptionValue, Key, Value](
+          nullKey = nullKey,
+          nullValue = nullValue
+        ),
+      nullKey = nullKey,
+      nullValue = nullValue
+    )
+
+}
+
 private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
                                                                                                             skipList: SkipListConcurrent[OptionKey, OptionValue, Key, Value],
                                                                                                             val nullKey: OptionKey,

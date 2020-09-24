@@ -31,7 +31,7 @@ import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
-import swaydb.core.util.skiplist.SkipList
+import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -84,7 +84,7 @@ class MapEntrySpec extends TestBase {
 
     "put Level0 single Put entry to skipList" in {
       import LevelZeroMapEntryWriter._
-      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
       val entry = MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, "one"))
       entry.hasRange shouldBe false
@@ -96,7 +96,7 @@ class MapEntrySpec extends TestBase {
 
     "put Level0 single Remote entry to skipList" in {
       import LevelZeroMapEntryWriter._
-      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
       val entry = MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))
       entry.hasRange shouldBe false
@@ -108,7 +108,7 @@ class MapEntrySpec extends TestBase {
 
     "put Level0 single Put Range entry to skipList" in {
       import LevelZeroMapEntryWriter._
-      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
       val range1 = Memory.Range(1, 10, Value.put("one"), Value.update("range one"))
       val entry1 = MapEntry.Put[Slice[Byte], Memory.Range](1, range1)
@@ -129,7 +129,7 @@ class MapEntrySpec extends TestBase {
 
     "put Level0 single Remove Range entry to skipList" in {
       import LevelZeroMapEntryWriter._
-      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
       val range1 = Memory.Range(1, 10, Value.remove(None), Value.remove(None))
       val entry1 = MapEntry.Put[Slice[Byte], Memory.Range](1, range1)
@@ -151,7 +151,7 @@ class MapEntrySpec extends TestBase {
     "batch multiple Level0 key-value to skipList" in {
       import LevelZeroMapEntryWriter._
 
-      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 
       val entry =
         (MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, "one")): MapEntry[Slice[Byte], Memory]) ++
@@ -185,7 +185,7 @@ class MapEntrySpec extends TestBase {
           import AppendixMapEntryWriter._
           val segment = TestSegment(keyValues)
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
 
           val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
           entry.hasRange shouldBe false
@@ -202,7 +202,7 @@ class MapEntrySpec extends TestBase {
           import AppendixMapEntryWriter._
           val segment = TestSegment(keyValues)
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
 
           val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
           entry.hasRange shouldBe false
@@ -221,7 +221,7 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import AppendixMapEntryWriter._
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           val segment1 = TestSegment().runRandomIO.right.value
           val segment2 = TestSegment().runRandomIO.right.value
           val segment3 = TestSegment().runRandomIO.right.value
@@ -377,7 +377,7 @@ class MapEntrySpec extends TestBase {
 
       val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(bytes)).runRandomIO.right.value
 
-      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       readMapEntry applyTo skipList
       skipList should have size 10001
       skipList.headKey.getC shouldBe (0: Slice[Byte])
@@ -433,7 +433,7 @@ class MapEntrySpec extends TestBase {
 
           val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(bytes))
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readMapEntry applyTo skipList
           skipList should have size 50
           skipList.headKey.getC shouldBe (0: Slice[Byte])

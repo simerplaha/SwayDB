@@ -31,7 +31,7 @@ import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
-import swaydb.core.util.skiplist.SkipList
+import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -70,7 +70,7 @@ class AppendixMapEntrySpec extends TestBase {
           val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice))
           readEntry shouldBe entry
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readEntry applyTo skipList
           val scalaSkipList = skipList.asScala
 
@@ -101,7 +101,7 @@ class AppendixMapEntrySpec extends TestBase {
           val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice))
           readEntry shouldBe entry
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readEntry applyTo skipList
           skipList shouldBe empty
       }
@@ -138,7 +138,7 @@ class AppendixMapEntrySpec extends TestBase {
           val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice))
           readEntry shouldBe entry
 
-          val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readEntry applyTo skipList
 
           def scalaSkipList = skipList.asScala

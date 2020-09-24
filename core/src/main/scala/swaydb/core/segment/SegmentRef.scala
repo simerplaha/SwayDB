@@ -41,7 +41,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.MinMax
-import swaydb.core.util.skiplist.SkipList
+import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -80,14 +80,14 @@ private[core] object SegmentRef {
         sweeper =>
           sweeper.maxKeyValuesPerSegment match {
             case Some(maxKeyValuesPerSegment) =>
-              SkipList.concurrent(
+              SkipListConcurrentLimit(
                 limit = maxKeyValuesPerSegment,
                 nullKey = Slice.Null,
                 nullValue = Persistent.Null
               )
 
             case None =>
-              SkipList.concurrent(
+              SkipListConcurrent(
                 nullKey = Slice.Null,
                 nullValue = Persistent.Null
               )

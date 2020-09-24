@@ -39,7 +39,7 @@ object AppendixMapCache {
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]]) =
     new MapCacheBuilder[AppendixMapCache] {
       override def create(): AppendixMapCache =
-        new AppendixMapCache(SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null))
+        new AppendixMapCache(SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null))
     }
 }
 

@@ -35,22 +35,22 @@ import scala.util.Random
 
 class ConcurrentSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipList.concurrent[NK, NV, K, V](nullKey, nullValue)
+    SkipListConcurrent[NK, NV, K, V](nullKey, nullValue)
 }
 
 class TreeMap_Spec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipList.treeMap[NK, NV, K, V](nullKey, nullValue)
+    SkipListTreeMap[NK, NV, K, V](nullKey, nullValue)
 }
 
 class SliceConcurrent_HashIndex_Disabled_Spec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipList.seriesVolatile[NK, NV, K, V](size = 10, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
+    SkipListSeries[NK, NV, K, V](size = 10, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
 }
 
 class SliceConcurrent_HashIndex_Enabled_Spec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipList.seriesVolatile[NK, NV, K, V](size = 10, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
+    SkipListSeries[NK, NV, K, V](size = 10, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
 }
 
 sealed trait SkipListSpec extends AnyWordSpec with Matchers {
