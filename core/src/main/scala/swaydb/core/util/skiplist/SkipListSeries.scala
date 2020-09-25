@@ -38,13 +38,7 @@ private[skiplist] sealed trait KeyValue[+K, +V]
 
 private[skiplist] case object KeyValue {
 
-  case object None extends KeyValue[Nothing, Nothing] {
-  }
-
-  object Some {
-    @inline def apply[K, V](key: K, value: V, index: Int): Some[K, V] =
-      new Some(key, value, index)
-  }
+  case object None extends KeyValue[Nothing, Nothing]
 
   /**
    * Stores key-value of for this SkipList. Being write optimised
@@ -56,10 +50,10 @@ private[skiplist] case object KeyValue {
                    @volatile var value: V,
                    val index: Int) extends KeyValue[K, V] {
 
-    @inline def toTuple =
+    @inline final def toTuple: (K, V) =
       (key, value)
 
-    def copy(): KeyValue.Some[K, V] =
+    final def copy(): KeyValue.Some[K, V] =
       new Some[K, V](
         key = key,
         value = value,
@@ -392,9 +386,9 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
   override def put(key: K, value: V): Unit = {
     val lastOrNull = state.series.lastOrNull
     if (lastOrNull == null)
-      putSequential(KeyValue.Some(key, value, state.series.length))
+      putSequential(new KeyValue.Some(key, value, state.series.length))
     else if (keyOrder.gt(key, lastOrNull.key))
-      putSequential(KeyValue.Some(key, value, state.series.length))
+      putSequential(new KeyValue.Some(key, value, state.series.length))
     else
       putRandom(key, value)
   }
