@@ -333,8 +333,8 @@ private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLi
             startedNewTransaction = false
           )
 
-        assert(result.isEmpty, "Atomic write occurred")
-
+        if (result.nonEmpty)
+          throw new IllegalStateException("InvalidState! atomic write occurred for non-atomic request.")
 
       case Nil =>
         ()
@@ -351,7 +351,7 @@ private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLi
       .asScala
       .flatMap(_.skipList.asScala)
 
-  val mergedKeyValuesCache: CacheNoIO[Unit, Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]]] =
+  val mergedKeyValuesCache =
     Cache.noIO[Unit, Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]]](synchronised = true, stored = true, initial = None) {
       (_, _) =>
         if (leveledSkipList.queueSize == 1)
