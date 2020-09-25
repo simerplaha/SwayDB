@@ -89,6 +89,8 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
 private[swaydb] object MapEntry {
 
+  val emptyListMemory = List.empty[MapEntry[Slice[Byte], Memory]]
+
   /**
    * Returns a combined Entry with duplicates removed from oldEntry, favouring newer duplicate entries.
    */

@@ -26,7 +26,6 @@ package swaydb.core.map
 
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedDeque
-import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
@@ -47,6 +46,7 @@ import swaydb.{Error, IO}
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
+import scala.reflect.ClassTag
 
 private[core] object Maps extends LazyLogging {
 
@@ -295,35 +295,34 @@ private[core] object Maps extends LazyLogging {
    *       happen if [[fileSize]] is too small < 10.bytes otherwise the performance
    *       cost is negligible.
    */
-  @inline def snapshot[K, V, C <: MapCache[K, V]](minimumSize: Int,
-                                                  currentMap: Map[K, V, C],
-                                                  queue: ConcurrentLinkedDeque[Map[K, V, C]]): Slice[Map[K, V, C]] = {
-    var slice = Slice.of[Map[K, V, C]](minimumSize + 2)
-    slice add currentMap
+  @inline def flatMap[K, V, C <: MapCache[K, V], R: ClassTag](minimumSize: Int,
+                                                              currentMap: Map[K, V, C],
+                                                              queue: ConcurrentLinkedDeque[Map[K, V, C]])(flatten: Map[K, V, C] => Iterable[R]): Slice[R] = {
+    val initial = flatten(currentMap)
+    var slice = Slice.of[R]((minimumSize + initial.size) * 2)
+    slice addAll initial
 
     //if currentMap is already added the queue then drop head.
     var staleCurrentMap = false
 
     queue forEach {
-      new Consumer[Map[K, V, C]] {
-        override def accept(queuedMap: Map[K, V, C]): Unit = {
-          // As the writes are in progress currentMap could get added to the
-          // queue and the more maps could also possibly get added to the map.
-          // For those cases we need see if currentMap is already in the Map.
-          // If it is then we drop the currentMap and work off the queue directly.
+      (queuedMap: Map[K, V, C]) => {
+        // As the writes are in progress currentMap could get added to the
+        // queue and the more maps could also possibly get added to the map.
+        // For those cases we need see if currentMap is already in the Map.
+        // If it is then we drop the currentMap and work off the queue directly.
 
-          if (queuedMap.uniqueFileNumber == currentMap.uniqueFileNumber)
-            staleCurrentMap = true
+        if (queuedMap.uniqueFileNumber == currentMap.uniqueFileNumber)
+          staleCurrentMap = true
 
-          if (slice.isFull) {
-            //overflow - extend the map.
-            val newSlice = Slice.of[Map[K, V, C]](slice.size * 2)
-            newSlice addAll slice
-            newSlice add queuedMap
-            slice = newSlice
-          } else {
-            slice add queuedMap
-          }
+        if (slice.isFull) {
+          //overflow - extend the map.
+          val newSlice = Slice.of[R](slice.size * 2)
+          newSlice addAll slice
+          newSlice addAll flatten(queuedMap)
+          slice = newSlice
+        } else {
+          slice addAll flatten(queuedMap)
         }
       }
     }
@@ -368,12 +367,12 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDe
   private[core] def onNextMapCallback(event: () => Unit): Unit =
     onNextMapListener = event
 
-  def snapshot(): Slice[Map[K, V, C]] =
-    Maps.snapshot(
+  @inline def flatMap[R: ClassTag](f: Map[K, V, C] => Iterable[R]): Slice[R] =
+    Maps.flatMap(
       minimumSize = currentMapsCount,
       currentMap = currentMap,
       queue = maps
-    )
+    )(f)
 
   def write(mapEntry: Timer => MapEntry[K, V]): Unit =
     synchronized {
@@ -435,22 +434,24 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDe
     }
   }
 
-  @inline final private def findFirst[R](nullResult: R, f: Map[K, V, C] => R): R = {
-    val iterator = maps.iterator()
+  @inline final private def findFirst[A >: Null, B](nullResult: B,
+                                                    flatMap: Map[K, V, C] => Iterable[A],
+                                                    finder: A => B): B = {
+    val iterator = flatMap(currentMap).iterator ++ maps.iterator().asScala.flatMap(flatMap)
 
     def getNext() = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
-    def find(next: Map[K, V, C]): R = {
-      val foundOrNullR = f(next)
-      if (foundOrNullR == nullResult) {
+    def find(next: A): B = {
+      val foundOrNullResult = finder(next)
+      if (foundOrNullResult == nullResult) {
         val next = getNext()
         if (next == null)
           nullResult
         else
           find(next)
       } else {
-        foundOrNullR
+        foundOrNullResult
       }
     }
 
@@ -461,17 +462,18 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDe
       find(next)
   }
 
-  @inline final private def findAndReduce[R](nullResult: R,
-                                             initial: R,
-                                             applier: Map[K, V, C] => R,
-                                             reducer: (R, R) => R): R = {
-    val iterator = maps.iterator()
+  @inline final def reduce[A >: Null, B](nullResult: B,
+                                         flatMap: Map[K, V, C] => Iterable[A],
+                                         applier: A => B,
+                                         reducer: (B, B) => B): B = {
 
-    def getNextOrNull() = if (iterator.hasNext) iterator.next() else null
+    val iterator = flatMap(currentMap).iterator ++ maps.iterator().asScala.flatMap(map => flatMap(map))
+
+    def getNextOrNull(): A = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
-    def find(nextOrNull: Map[K, V, C],
-             previousResult: R): R =
+    def find(nextOrNull: A,
+             previousResult: B): B =
       if (nextOrNull == null) {
         previousResult
       } else {
@@ -486,25 +488,16 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDe
         }
       }
 
-    find(getNextOrNull(), initial)
+    find(getNextOrNull(), nullResult)
   }
 
-  def find[R](nullResult: R, matcher: Map[K, V, C] => R): R = {
-    val currentMatch = matcher(currentMap)
-    if (currentMatch == nullResult)
-      findFirst(nullResult, matcher)
-    else
-      currentMatch
-  }
-
-  def reduce[R](nullValue: R,
-                applier: Map[K, V, C] => R,
-                reduce: (R, R) => R): R =
-    findAndReduce(
-      nullResult = nullValue,
-      initial = applier(currentMap),
-      applier = applier,
-      reducer = reduce
+  def find[A >: Null, B](nullResult: B,
+                         flatMap: Map[K, V, C] => Iterable[A],
+                         matcher: A => B): B =
+    findFirst[A, B](
+      nullResult = nullResult,
+      flatMap = flatMap,
+      finder = matcher
     )
 
   def lastOption(): Option[Map[K, V, C]] =
@@ -528,10 +521,11 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDe
     }
 
   def keyValueCount: Int =
-    reduce[Int](
-      nullValue = 0,
-      applier = map => map.cache.size,
-      reduce = _ + _
+    reduce[Integer, Int](
+      nullResult = 0,
+      flatMap = map => Seq(map.cache.maxKeyValueCount),
+      applier = size => size,
+      reducer = _ + _
     )
 
   def queuedMapsCount =
@@ -554,7 +548,8 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDe
       failure =>
         logger.error("Failed to close timer file", failure.exception)
     }.and {
-      snapshot()
+      self
+        .flatMap(Array(_))
         .foreachIO(map => IO(map.close()), failFast = false)
         .getOrElse(IO.unit)
     }
@@ -562,7 +557,8 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDe
   def delete(): IO[Error.Map, Unit] =
     close()
       .and {
-        snapshot()
+        self
+          .flatMap(Array(_))
           .foreachIO(map => IO(map.delete))
           .getOrElse(IO.unit)
       }

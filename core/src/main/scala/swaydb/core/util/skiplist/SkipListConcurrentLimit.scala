@@ -35,13 +35,13 @@ import scala.reflect.ClassTag
 import scala.util.Random
 
 object SkipListConcurrentLimit {
-  def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
-                                                                            nullKey: OptionKey,
-                                                                            nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListConcurrentLimit[OptionKey, OptionValue, Key, Value] =
-    new SkipListConcurrentLimit[OptionKey, OptionValue, Key, Value](
+  def apply[OK, OV, K <: OK, V <: OV](limit: Int,
+                                      nullKey: OK,
+                                      nullValue: OV)(implicit ordering: KeyOrder[K]): SkipListConcurrentLimit[OK, OV, K, V] =
+    new SkipListConcurrentLimit[OK, OV, K, V](
       limit = limit,
       skipList =
-        SkipListConcurrent[OptionKey, OptionValue, Key, Value](
+        SkipListConcurrent[OK, OV, K, V](
           nullKey = nullKey,
           nullValue = nullValue
         ),
@@ -51,108 +51,96 @@ object SkipListConcurrentLimit {
 
 }
 
-private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
-                                                                                                            skipList: SkipListConcurrent[OptionKey, OptionValue, Key, Value],
-                                                                                                            val nullKey: OptionKey,
-                                                                                                            val nullValue: OptionValue)(implicit ordering: KeyOrder[Key]) extends SkipList[OptionKey, OptionValue, Key, Value] {
-  val skipListSize = new AtomicInteger(0)
+private[core] class SkipListConcurrentLimit[OK, OV, K <: OK, V <: OV](limit: Int,
+                                                                      skipList: SkipListConcurrent[OK, OV, K, V],
+                                                                      val nullKey: OK,
+                                                                      val nullValue: OV)(implicit ordering: KeyOrder[K]) extends SkipList[OK, OV, K, V] {
 
-  def dropOverflow(key: Key): Unit =
-    while (skipListSize.get() > limit)
+  def dropOverflow(key: K): Unit =
+    while (skipList.size > limit)
       try {
         val firstKey = skipList.headKeyOrNull
-        val poll =
-          if (ordering.lteq(key, firstKey)) {
-            skipList.pollLastEntry()
-          } else {
-            val lastKey = skipList.lastKeyOrNull
-            if (lastKey != null)
-              if (ordering.gteq(key, lastKey) || Random.nextBoolean())
-                skipList.pollLastEntry()
-              else
-                skipList.pollFirstEntry()
+        if (ordering.lteq(key, firstKey)) {
+          skipList.pollLastEntry()
+        } else {
+          val lastKey = skipList.lastKeyOrNull
+          if (lastKey != null)
+            if (ordering.gteq(key, lastKey) || Random.nextBoolean())
+              skipList.pollLastEntry()
             else
-              null
-          }
-
-        if (poll != null) skipListSize.decrementAndGet()
+              skipList.pollFirstEntry()
+          else
+            null
+        }
       } catch {
         case _: Exception =>
       }
 
-  override def put(key: Key, value: Value): Unit = {
+  override def put(key: K, value: V): Unit = {
     dropOverflow(key)
     skipList.put(key, value)
-    skipListSize.incrementAndGet()
   }
 
-  override def putIfAbsent(key: Key, value: Value): Boolean = {
+  override def putIfAbsent(key: K, value: V): Boolean = {
     dropOverflow(key)
-    val put = skipList.putIfAbsent(key, value)
-    if (put) skipListSize.incrementAndGet()
-    put
+    skipList.putIfAbsent(key, value)
   }
 
-  override def get(key: Key): OptionValue = skipList.get(key)
+  override def get(key: K): OV = skipList.get(key)
 
-  override def remove(key: Key): Unit = skipList.remove(key)
+  override def remove(key: K): Unit = skipList.remove(key)
 
-  override def floor(key: Key): OptionValue = skipList.floor(key)
+  override def floor(key: K): OV = skipList.floor(key)
 
-  override def floorKeyValue(key: Key): Option[(Key, Value)] = skipList.floorKeyValue(key)
+  override def floorKeyValue(key: K): Option[(K, V)] = skipList.floorKeyValue(key)
 
-  override def higher(key: Key): OptionValue = skipList.higher(key)
+  override def higher(key: K): OV = skipList.higher(key)
 
-  override def higherKey(key: Key): OptionKey = skipList.higherKey(key)
+  override def higherKey(key: K): OK = skipList.higherKey(key)
 
-  override def higherKeyValue(key: Key): Option[(Key, Value)] = skipList.higherKeyValue(key)
+  override def higherKeyValue(key: K): Option[(K, V)] = skipList.higherKeyValue(key)
 
-  override def ceiling(key: Key): OptionValue = skipList.ceiling(key)
+  override def ceiling(key: K): OV = skipList.ceiling(key)
 
-  override def ceilingKey(key: Key): OptionKey = skipList.ceilingKey(key)
+  override def ceilingKey(key: K): OK = skipList.ceilingKey(key)
 
   override def isEmpty: Boolean = skipList.isEmpty
 
   override def nonEmpty: Boolean = skipList.nonEmpty
 
-  override def clear(): Unit = {
-    skipListSize.set(0)
-    skipList.clear()
-  }
+  override def clear(): Unit = skipList.clear()
 
   override def size: Int = skipList.size
 
-  override def contains(key: Key): Boolean = skipList.contains(key)
+  override def contains(key: K): Boolean = skipList.contains(key)
 
-  override def headKey: OptionKey = skipList.headKey
+  override def headKey: OK = skipList.headKey
 
-  override def lastKey: OptionKey = skipList.lastKey
+  override def lastKey: OK = skipList.lastKey
 
-  override def lower(key: Key): OptionValue = skipList.lower(key)
+  override def lower(key: K): OV = skipList.lower(key)
 
-  override def lowerKey(key: Key): OptionKey = skipList.lowerKey(key)
+  override def lowerKey(key: K): OK = skipList.lowerKey(key)
 
   override def count(): Int = skipList.count()
 
-  override def last(): OptionValue = skipList.last()
+  override def last(): OV = skipList.last()
 
-  override def head(): OptionValue = skipList.head()
+  override def head(): OV = skipList.head()
 
-  override def headKeyValue: Option[(Key, Value)] = skipList.headKeyValue
+  override def headKeyValue: Option[(K, V)] = skipList.headKeyValue
 
-  override def values(): Iterable[Value] = skipList.values()
+  override def values(): Iterable[V] = skipList.values()
 
-  def keys(): util.NavigableSet[Key] = skipList.keys()
+  def keys(): util.NavigableSet[K] = skipList.keys()
 
-  def take(count: Int)(implicit classTag: ClassTag[Value]): Slice[Value] =
-    skipList.take(count)
+  def take(count: Int)(implicit classTag: ClassTag[V]): Slice[V] = skipList.take(count)
 
-  override def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): Iterable[(Key, Value)] =
-    skipList.subMap(from, fromInclusive, to, toInclusive)
+  override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = skipList.subMap(from, fromInclusive, to, toInclusive)
 
-  override def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R = skipList.foldLeft(r)(f)
+  override def foldLeft[R](r: R)(f: (R, (K, V)) => R): R = skipList.foldLeft(r)(f)
 
-  override def foreach[R](f: (Key, Value) => R): Unit = skipList.foreach(f)
+  override def foreach[R](f: (K, V) => R): Unit = skipList.foreach(f)
 
-  override def asScala: mutable.Map[Key, Value] = skipList.asScala
+  override def asScala: mutable.Map[K, V] = skipList.asScala
 }

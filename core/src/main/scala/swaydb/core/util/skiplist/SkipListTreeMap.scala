@@ -29,38 +29,28 @@ import java.util
 import swaydb.data.order.KeyOrder
 
 object SkipListTreeMap {
-  def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
-                                                                            nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListTreeMap[OptionKey, OptionValue, Key, Value] =
-    new SkipListTreeMap[OptionKey, OptionValue, Key, Value](
-      skipper = new util.TreeMap[Key, Value](ordering),
+
+  def apply[OK, OV, K <: OK, V <: OV](nullKey: OK,
+                                      nullValue: OV)(implicit ordering: KeyOrder[K]): SkipListTreeMap[OK, OV, K, V] =
+    new SkipListTreeMap[OK, OV, K, V](
+      skipList = new util.TreeMap[K, V](ordering),
       nullKey = nullKey,
       nullValue = nullValue
     )
 
 }
 
-private[core] class SkipListTreeMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue] private(private var skipper: util.TreeMap[Key, Value],
-                                                                                                            val nullKey: OptionKey,
-                                                                                                            val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]](skipper) with SkipListNavigable[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]] {
-  /**
-   * FIXME - [[SkipListBatchableImpl]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
-   * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
-   * to [[SkipListBatchableImpl]] without storing a reference of the original skipList in this instance.
-   */
-  skipper = null
+private[core] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(val skipList: util.TreeMap[K, V],
+                                                                      val nullKey: OK,
+                                                                      val nullValue: OV) extends SkipListNavigable[OK, OV, K, V, util.TreeMap[K, V]](skipList.size()) {
 
-  override def remove(key: Key): Unit =
-    throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
-
-  override def batch(batches: Iterable[SkipList.Batch[Key, Value]]): Unit =
+  override def remove(key: K): Unit =
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
 
   // only single put is allowed. Used during the creation of this skipList.
-  // override def put(key: Key, value: Value): Unit
+  // override def put(key: K, value: V): Unit
 
-  override def putIfAbsent(key: Key, value: Value): Boolean =
+  override def putIfAbsent(key: K, value: V): Boolean =
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
 
-  override def cloneInstance(skipList: util.TreeMap[Key, Value]): SkipListTreeMap[OptionKey, OptionValue, Key, Value] =
-    throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
 }

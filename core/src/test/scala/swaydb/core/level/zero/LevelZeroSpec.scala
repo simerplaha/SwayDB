@@ -291,6 +291,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
           val keyValues = randomIntKeyStringValues(1)
+
           keyValues foreach {
             keyValue =>
               zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO
@@ -306,19 +307,22 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     }
 
     "remove all key-values" in {
-      TestCaseSweeper {
-        implicit sweeper =>
-          val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
-          val keyValues = randomIntKeyStringValues(keyValuesCount)
-          keyValues foreach {
-            keyValue =>
-              zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO
-          }
+      runThis(10.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
+            val keyValues = randomIntKeyStringValues(randomIntMax(20) max keyValuesCount)
 
-          zero.clear(ThreadReadState.random).runRandomIO.get
+            keyValues foreach {
+              keyValue =>
+                zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO
+            }
 
-          zero.head(ThreadReadState.random).toOptionPut shouldBe empty
-          zero.last(ThreadReadState.random).toOptionPut shouldBe empty
+            zero.clear(ThreadReadState.random).runRandomIO.get
+
+            zero.head(ThreadReadState.random).toOptionPut shouldBe empty
+            zero.last(ThreadReadState.random).toOptionPut shouldBe empty
+        }
       }
     }
   }

@@ -45,7 +45,7 @@ protected class MemoryMap[K, V, C <: MapCache[K, V]](val cache: C,
   override def writeNoSync(entry: MapEntry[K, V]): Boolean = {
     val entryTotalByteSize = entry.totalByteSize
     if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entryTotalByteSize) <= fileSize)) {
-      cache.write(entry)
+      cache.writeAtomic(entry)
       skipListKeyValuesMaxCount += entry.entriesCount
       currentBytesWritten += entryTotalByteSize
       true

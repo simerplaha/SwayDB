@@ -60,12 +60,13 @@ import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
 import swaydb.data.OptimiseWrites
 import swaydb.data.RunThis._
+import swaydb.data.cache.CacheNoIO
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{Bag, Error, IO}
+import swaydb.{Bag, Error, IO, OK}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -281,19 +282,27 @@ object CommonAssertions {
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
-                          expected: Memory): SkipListBatchable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
+                          expected: Memory): Iterable[Memory] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipListBatchable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Iterable[Memory] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
     implicit val optimiseWrites = OptimiseWrites.random
     val cache = LevelZeroMapCache.builder.create()
-    (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => cache.write(MapEntry.Put(memory.key, memory)))
-    cache.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList
-    cache.skipList
+    (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach {
+      memory =>
+        //        if (randomBoolean())
+        //          cache.writeNonAtomic(MapEntry.Put(memory.key, memory))
+        //        else
+        cache.writeAtomic(MapEntry.Put(memory.key, memory))
+    }
+
+    val cachedKeyValues = cache.mergedKeyValuesIterable
+    cachedKeyValues shouldBe expected.map(_.toMemory).toList
+    cachedKeyValues
   }
 
   def assertMerge(newKeyValue: KeyValue,
@@ -1756,7 +1765,7 @@ object CommonAssertions {
       if (randomBoolean())
         OptimiseWrites.RandomOrder
       else
-        OptimiseWrites.SequentialOrder(randomBoolean(), randomIntMax(100000) max 1)
+        OptimiseWrites.SequentialOrder(randomBoolean(), randomIntMax(100) max 1)
   }
 
   implicit val keyMatcherResultEquality: Equality[KeyMatcher.Result] =
@@ -1796,6 +1805,58 @@ object CommonAssertions {
       maps.bufferCleaner.actor.receiveAllForce[Bag.Less, Unit](_ => ())
       (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
     }
+  }
+
+  implicit class EitherKeyValuesImplicits[OK, OV, K <: OK, V <: OV](cache: CacheNoIO[Unit, Either[SkipList[OK, OV, K, V], Slice[V]]]) {
+    def expectSkipList: SkipList[OK, OV, K, V] =
+      cache.value(()) match {
+        case Left(value) =>
+          cache.clear()
+          value
+
+        case Right(value) =>
+          fail(s"Expected SkipList, got ${value.getClass.getSimpleName}")
+      }
+
+    def expectSlice: Slice[V] =
+      cache.value(()) match {
+        case Left(value) =>
+          fail(s"Expected Slice], got ${value.getClass.getSimpleName}")
+
+        case Right(value) =>
+          cache.clear()
+          value
+      }
+  }
+
+  implicit class LevelZeroMapCacheTestImplicits(cache: LevelZeroMapCache) {
+    def expectSkipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
+      cache.mergedKeyValuesCache.expectSkipList
+
+    /**
+     * [[cache.mergedKeyValuesCache]] can be either SkipList or Slice. This will
+     * always returns a SkipList. Used for testing the merged outcome.
+     */
+    def getMergedSkipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
+      cache.mergedKeyValuesCache.value(()) match {
+        case Left(value) =>
+          cache.mergedKeyValuesCache.clear()
+          value
+
+        case Right(value) =>
+          //asMergedSkipList can be called multiples times within the test. Clear asMergedSkipList to re-cache.
+          cache.mergedKeyValuesCache.clear()
+          val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(cache.keyOrder)
+          value.foreach {
+            memory =>
+              skipList.put(memory.key, memory)
+          }
+
+          skipList
+      }
+
+    def expectSlice: Slice[Memory] =
+      cache.mergedKeyValuesCache.expectSlice
   }
 }
 

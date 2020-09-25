@@ -44,8 +44,20 @@ object AppendixMapCache {
 }
 
 class AppendixMapCache(val skipList: SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]) extends MapCache[Slice[Byte], Segment] {
-  override def write(entry: MapEntry[Slice[Byte], Segment]): Unit =
+  override def writeAtomic(entry: MapEntry[Slice[Byte], Segment]): Unit =
     entry applyTo skipList
+
+  override def writeNonAtomic(entry: MapEntry[Slice[Byte], Segment]): Unit =
+    entry match {
+      case MapEntry.Put(key, value) =>
+        skipList.put(key, value)
+
+      case MapEntry.Remove(key) =>
+        skipList.remove(key)
+
+      case entry =>
+        entry.entries.foreach(writeNonAtomic)
+    }
 
   override def asScala: Iterable[(Slice[Byte], Segment)] =
     skipList.asScala
@@ -53,6 +65,8 @@ class AppendixMapCache(val skipList: SkipListConcurrent[SliceOption[Byte], Segme
   override def isEmpty: Boolean =
     skipList.isEmpty
 
-  override def size: Int =
+  override def maxKeyValueCount: Int =
     skipList.size
+
+
 }

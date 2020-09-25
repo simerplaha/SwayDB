@@ -40,7 +40,7 @@ import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO}
-import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
+import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.core.util.{BlockCacheFileIDGenerator, Extension}
 import swaydb.data.OptimiseWrites
 import swaydb.data.RunThis._
@@ -74,22 +74,23 @@ class MapSpec extends TestBase {
 
           map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
           map.writeSync(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
-          map.cache.skipList.get(1) shouldBe Memory.put(1, 1)
-          map.cache.skipList.get(2) shouldBe Memory.put(2, 2)
+          map.cache.getMergedSkipList.get(1) shouldBe Memory.put(1, 1)
+          map.cache.getMergedSkipList.get(2) shouldBe Memory.put(2, 2)
 
           map.cache.hasRange shouldBe false
 
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
-          map.cache.skipList.get(1) shouldBe Memory.remove(1)
-          map.cache.skipList.get(2) shouldBe Memory.remove(2)
+          map.cache.getMergedSkipList.get(1) shouldBe Memory.remove(1)
+          map.cache.getMergedSkipList.get(2) shouldBe Memory.remove(2)
 
           map.cache.hasRange shouldBe false
 
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
-          map.cache.skipList.get(1) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
-          map.cache.skipList.get(11) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
+
+          map.cache.expectSlice(0) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
+          map.cache.expectSlice(1) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
 
           map.cache.hasRange shouldBe true
       }
@@ -137,7 +138,7 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             ).item.sweep()
 
-          map.cache.skipList.isEmpty shouldBe true
+          map.cache.getMergedSkipList.isEmpty shouldBe true
           map.close()
           //recover from an empty map
           val recovered =
@@ -196,10 +197,10 @@ class MapSpec extends TestBase {
           import sweeper._
 
           def assertReads(map: PersistentMap[Slice[Byte], Memory, LevelZeroMapCache]) = {
-            map.cache.skipList.get(1) shouldBe Memory.put(1, 1)
-            map.cache.skipList.get(2) shouldBe Memory.remove(2)
-            map.cache.skipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-            map.cache.skipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+            map.cache.getMergedSkipList.get(1) shouldBe Memory.put(1, 1)
+            map.cache.getMergedSkipList.get(2) shouldBe Memory.remove(2)
+            map.cache.getMergedSkipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+            map.cache.getMergedSkipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
             map.cache.hasRange shouldBe true
           }
 
@@ -352,14 +353,14 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             ).item.sweep()
 
-          map1Recovered.cache.skipList.get(1) shouldBe Memory.put(1, 1)
-          map1Recovered.cache.skipList.get(2) shouldBe Memory.put(2, 22) //second file overrides 2's value to be 22
-          map1Recovered.cache.skipList.get(3) shouldBe Memory.put(3, 3)
-          map1Recovered.cache.skipList.get(4) shouldBe Memory.put(4, 4)
-          map1Recovered.cache.skipList.get(5) shouldBe Memory.put(5, 5)
-          map1Recovered.cache.skipList.get(6).toOptionS shouldBe empty
-          map1Recovered.cache.skipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          map1Recovered.cache.skipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          map1Recovered.cache.getMergedSkipList.get(1) shouldBe Memory.put(1, 1)
+          map1Recovered.cache.getMergedSkipList.get(2) shouldBe Memory.put(2, 22) //second file overrides 2's value to be 22
+          map1Recovered.cache.getMergedSkipList.get(3) shouldBe Memory.put(3, 3)
+          map1Recovered.cache.getMergedSkipList.get(4) shouldBe Memory.put(4, 4)
+          map1Recovered.cache.getMergedSkipList.get(5) shouldBe Memory.put(5, 5)
+          map1Recovered.cache.getMergedSkipList.get(6).toOptionS shouldBe empty
+          map1Recovered.cache.getMergedSkipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          map1Recovered.cache.getMergedSkipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 
           //recovered file's id is 2.log
           map1Recovered.path.files(Extension.Log).map(_.fileId) should contain only ((2, Extension.Log))
@@ -555,11 +556,11 @@ class MapSpec extends TestBase {
           recoveredFile.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
 
           cache.isEmpty shouldBe false
-          cache.skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          cache.skipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
-          cache.skipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
-          cache.skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          cache.skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          cache.getMergedSkipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
+          cache.getMergedSkipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
+          cache.getMergedSkipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
+          cache.getMergedSkipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          cache.getMergedSkipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
       }
     }
 
@@ -617,11 +618,11 @@ class MapSpec extends TestBase {
           recoveredFile.path.resolveSibling(5.toLogFileId).exists shouldBe false //5.log gets deleted
 
           cache.isEmpty shouldBe false
-          cache.skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          cache.skipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
-          cache.skipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
-          cache.skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          cache.skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          cache.getMergedSkipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
+          cache.getMergedSkipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
+          cache.getMergedSkipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
+          cache.getMergedSkipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          cache.getMergedSkipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 
           if (OperatingSystem.isWindows) {
             recoveredFile.close()
@@ -646,11 +647,11 @@ class MapSpec extends TestBase {
           recoveredFile2.path.resolveSibling(6.toLogFileId).exists shouldBe false //6.log gets deleted
 
           cache2.isEmpty shouldBe false
-          cache2.skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          cache2.skipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
-          cache2.skipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
-          cache2.skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          cache2.skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          cache2.getMergedSkipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
+          cache2.getMergedSkipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
+          cache2.getMergedSkipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
+          cache2.getMergedSkipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          cache2.getMergedSkipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
       }
     }
 
@@ -707,11 +708,16 @@ class MapSpec extends TestBase {
           import sweeper._
 
           val cache = LevelZeroMapCache.builder.create()
-          cache.skipList.put(1, Memory.put(1, 1))
-          cache.skipList.put(2, Memory.put(2, 2))
-          cache.skipList.put(3, Memory.remove(3))
-          cache.skipList.put(10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))
-          cache.skipList.put(15, Memory.Range(15, 20, Value.put(15), Value.update(14)))
+          cache.writeAtomic(MapEntry.Put(1, Memory.put(1, 1)))
+          cache.writeAtomic(MapEntry.Put(2, Memory.put(2, 2)))
+          cache.writeAtomic(MapEntry.Put(3, Memory.remove(3)))
+          cache.writeAtomic(MapEntry.Put(3, Memory.remove(3)))
+          cache.writeAtomic(MapEntry.Put(10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))))
+          cache.writeAtomic(MapEntry.Put(15, Memory.Range(15, 20, Value.put(15), Value.update(14))))
+          cache.writeAtomic(MapEntry.Put(15, Memory.Range(15, 20, Value.put(15), Value.update(14))))
+
+          //no overlapping key-values.
+          cache.leveledSkipList.queueSize shouldBe 1
 
           val currentFile =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
@@ -732,6 +738,7 @@ class MapSpec extends TestBase {
 
           val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           val nextFileBytes = DBFile.channelRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).readAll
+          nextFileBytes.size should be > 0
           val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
           mapEntries applyTo nextFileSkipList
 
@@ -766,7 +773,7 @@ class MapSpec extends TestBase {
               map.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
           }
 
-          map.cache.skipList.size shouldBe 100
+          map.cache.getMergedSkipList.size shouldBe 100
           val allBytes = Effect.readAllBytes(map.currentFilePath)
 
           def assertRecover =
@@ -807,7 +814,7 @@ class MapSpec extends TestBase {
             i =>
               map.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
           }
-          map.cache.skipList.size shouldBe 100
+          map.cache.getMergedSkipList.size shouldBe 100
           val allBytes = Effect.readAllBytes(map.currentFilePath)
 
           //recover again with SkipLogOnCorruption, since the last entry is corrupted, the first two entries will still value read
@@ -824,9 +831,9 @@ class MapSpec extends TestBase {
 
           (1 to 99) foreach {
             i =>
-              recoveredMap.cache.skipList.get(i) shouldBe Memory.put(i, i)
+              recoveredMap.cache.getMergedSkipList.get(i) shouldBe Memory.put(i, i)
           }
-          recoveredMap.cache.skipList.contains(100) shouldBe false
+          recoveredMap.cache.getMergedSkipList.contains(100) shouldBe false
 
           //if the top entry is corrupted.
           Effect.overwrite(recoveredMap.currentFilePath, allBytes.drop(1))
@@ -840,7 +847,7 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = true
             ).item.sweep()
 
-          recoveredMap2.cache.skipList.isEmpty shouldBe true
+          recoveredMap2.cache.getMergedSkipList.isEmpty shouldBe true
       }
     }
   }
@@ -921,15 +928,15 @@ class MapSpec extends TestBase {
           //recovery state contains failure because the WAL file is partially recovered.
           recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
           //count instead of size because skipList's actual size can be higher.
-          recoveredMapWith0LogCorrupted.item.cache.skipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
 
           //checking the recovered entries
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(1) shouldBe Memory.put(1, 1)
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(2) shouldBe Memory.put(2, 2)
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(3).toOptionS shouldBe empty //since the last byte of 0.log file is corrupted, the last entry is missing
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(4) shouldBe Memory.put(4, 4)
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(5) shouldBe Memory.put(5, 5)
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(6) shouldBe Memory.put(6, 6)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(1) shouldBe Memory.put(1, 1)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(2) shouldBe Memory.put(2, 2)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(3).toOptionS shouldBe empty //since the last byte of 0.log file is corrupted, the last entry is missing
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(4) shouldBe Memory.put(4, 4)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(5) shouldBe Memory.put(5, 5)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(6) shouldBe Memory.put(6, 6)
       }
     }
   }
@@ -1008,15 +1015,15 @@ class MapSpec extends TestBase {
           //recovery state contains failure because the WAL file is partially recovered.
           recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
           //count instead of size because skipList's actual size can be higher.
-          recoveredMapWith0LogCorrupted.item.cache.skipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
 
           //checking the recovered entries
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(1) shouldBe Memory.put(1, 1)
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(2) shouldBe Memory.put(2)
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(3) shouldBe Memory.put(3, 3)
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(4) shouldBe Memory.put(4, 4)
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(5) shouldBe Memory.put(5, 5)
-          recoveredMapWith0LogCorrupted.item.cache.skipList.get(6).toOptionS shouldBe empty
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(1) shouldBe Memory.put(1, 1)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(2) shouldBe Memory.put(2)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(3) shouldBe Memory.put(3, 3)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(4) shouldBe Memory.put(4, 4)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(5) shouldBe Memory.put(5, 5)
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(6).toOptionS shouldBe empty
       }
     }
   }
@@ -1030,44 +1037,45 @@ class MapSpec extends TestBase {
           import sweeper._
 
           //run this test multiple times to randomly generate multiple combinations of overlapping key-value with optionally & randomly added Put, Remove, Range or Update.
-          (1 to 100) foreach {
-            _ =>
-              implicit val testTimer: TestTimer = TestTimer.Incremental()
+          runThis(100.times, log = true) {
+            implicit val testTimer: TestTimer = TestTimer.Incremental()
 
-              //create a Map with randomly max size so that this test also covers when multiple maps are created. Also set flushOnOverflow to true so that the same Map gets written.
-              val map =
-                Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
-                  folder = createRandomDir,
-                  mmap = MMAP.randomForMap(),
-                  flushOnOverflow = true,
-                  fileSize = randomIntMax(1.mb),
-                  dropCorruptedTailEntries = false
-                ).item.sweep()
+            //create a Map with randomly max size so that this test also covers when multiple maps are created. Also set flushOnOverflow to true so that the same Map gets written.
+            val map =
+              Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
+                folder = createRandomDir,
+                mmap = MMAP.randomForMap(),
+                flushOnOverflow = true,
+                fileSize = randomIntMax(1.mb),
+                dropCorruptedTailEntries = false
+              ).item.sweep()
 
-              //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
-              val keyValues = randomizedKeyValues(1000, addPut = true)
-              //slice write them to that if map's randomly selected size is too small and multiple maps are written to.
-              keyValues.groupedSlice(5) foreach {
-                keyValues =>
-                  map.writeSync(keyValues.toMapEntry.value) shouldBe true
-              }
-              map.cache.skipList.values() shouldBe keyValues
+            //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
+            val keyValues = randomizedKeyValues(10, addPut = true)
+            //slice write them to that if map's randomly selected size is too small and multiple maps are written to.
+            keyValues.groupedSlice(5) foreach {
+              keyValues =>
+                map.writeSync(keyValues.toMapEntry.value) shouldBe true
+            }
 
-              //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
-              val updatedValues = randomizedKeyValues(1000, startId = Some(keyValues.head.key.readInt()), addPut = true)
-              val updatedEntries = updatedValues.toMapEntry.value
-              map.writeSync(updatedEntries) shouldBe true
+            map.cache.getMergedSkipList.values() shouldBe keyValues
 
-              //reopening the map should return in the original skipList.
-              val reopened = map.reopen.sweep()
-              reopened.cache.skipList.size shouldBe map.cache.skipList.size
-              reopened.cache.skipList.asScala shouldBe map.cache.skipList.asScala
-              reopened.delete
+            //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
+            val updatedValues = randomizedKeyValues(10, startId = Some(keyValues.head.key.readInt()), addPut = true)
+            val updatedEntries = updatedValues.toMapEntry.value
+            map.writeSync(updatedEntries) shouldBe true
+
+            //reopening the map should return in the original skipList.
+            val reopened = map.reopen.sweep()
+
+            reopened.cache.getMergedSkipList.size shouldBe map.cache.getMergedSkipList.size
+            reopened.cache.getMergedSkipList.asScala.toList shouldBe map.cache.getMergedSkipList.asScala.toList
+
+            reopened.delete
           }
       }
     }
   }
-
 
   "inserting data" when {
     "fileSize is too small that it overflows" should {
@@ -1111,7 +1119,7 @@ class MapSpec extends TestBase {
                 keyValues =>
                   map.writeSync(keyValues.toMapEntry.value) shouldBe true
               }
-              map.cache.skipList.values() shouldBe keyValues
+              map.cache.getMergedSkipList.values() shouldBe keyValues
 
               //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
               val updatedValues = randomizedKeyValues(100, startId = Some(keyValues.head.key.readInt()), addPut = true)
@@ -1120,9 +1128,9 @@ class MapSpec extends TestBase {
 
               //reopening the map should return in the original skipList.
               val reopened = map.reopen.sweep()
-              reopened.cache.skipList.size shouldBe map.cache.skipList.size
+              reopened.cache.getMergedSkipList.size shouldBe map.cache.getMergedSkipList.size
 
-              reopened.cache.skipList.asScala shouldBe map.cache.skipList.asScala
+              reopened.cache.getMergedSkipList.asScala shouldBe map.cache.getMergedSkipList.asScala
 
               reopened.delete
             }
@@ -1155,9 +1163,9 @@ class MapSpec extends TestBase {
 
           (1 to 100).foldLeft(map1) {
             case (map, i) =>
-              map.cache.skipList.size shouldBe 100
+              map.cache.getMergedSkipList.size shouldBe 100
 
-              map.cache.skipList.get(i).getUnsafe shouldBe Memory.put(i: Slice[Byte], i: Slice[Byte])
+              map.cache.getMergedSkipList.get(i).getUnsafe shouldBe Memory.put(i: Slice[Byte], i: Slice[Byte])
 
               if (randomBoolean())
                 map

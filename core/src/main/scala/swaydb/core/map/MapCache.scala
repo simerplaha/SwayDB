@@ -26,12 +26,17 @@ package swaydb.core.map
 
 trait MapCache[K, V] {
 
-  def write(entry: MapEntry[K, V]): Unit
+  def writeAtomic(entry: MapEntry[K, V]): Unit
+
+  def writeNonAtomic(entry: MapEntry[K, V]): Unit
 
   def asScala: Iterable[(K, V)]
 
   def isEmpty: Boolean
 
-  def size: Int
+  /**
+   * Max and not exact but [[swaydb.core.util.skiplist.SkipListSeries]] could've nulled key-values.
+   */
+  def maxKeyValueCount: Int
 
 }

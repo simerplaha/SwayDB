@@ -29,29 +29,47 @@ import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.data.order.KeyOrder
 
 object SkipListConcurrent {
-  def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
-                                                                            nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListConcurrent[OptionKey, OptionValue, Key, Value] =
-    new SkipListConcurrent[OptionKey, OptionValue, Key, Value](
-      skipper = new ConcurrentSkipListMap[Key, Value](ordering),
+  def apply[OK, OV, K <: OK, V <: OV](nullKey: OK,
+                                      nullValue: OV)(implicit ordering: KeyOrder[K]): SkipListConcurrent[OK, OV, K, V] =
+    new SkipListConcurrent[OK, OV, K, V](
+      skipList = new ConcurrentSkipListMap[K, V](ordering),
       nullKey = nullKey,
       nullValue = nullValue
     )
 }
 
-private[core] class SkipListConcurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue] private(private var skipper: ConcurrentSkipListMap[Key, Value],
-                                                                                                               val nullKey: OptionKey,
-                                                                                                               val nullValue: OptionValue) extends SkipListBatchableImpl[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]](skipper) with SkipListNavigable[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]] {
-  /**
-   * FIXME - [[SkipListBatchableImpl]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
-   * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
-   * to [[SkipListBatchableImpl]] without storing a reference of the original skipList in this instance.
-   */
-  skipper = null
+private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volatile var skipList: ConcurrentSkipListMap[K, V],
+                                                                         val nullKey: OK,
+                                                                         val nullValue: OV) extends SkipListNavigable[OK, OV, K, V, ConcurrentSkipListMap[K, V]](skipList.size()) with SkipListBatchable[OK, OV, K, V] {
 
-  override def cloneInstance(skipList: ConcurrentSkipListMap[Key, Value]): SkipListConcurrent[OptionKey, OptionValue, Key, Value] =
-    new SkipListConcurrent(
-      skipper = skipList.clone(),
-      nullKey = nullKey,
-      nullValue = nullValue
-    )
+  /**
+   * Does not support concurrent batch writes since it's only being used by [[swaydb.core.level.Level]] which
+   * write to appendix concurrently.
+   */
+  def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit = {
+    var cloned = false
+    val targetSkipList =
+      if (batches.size > 1) {
+        cloned = true
+
+        new SkipListConcurrent(
+          skipList = skipList.clone(),
+          nullKey = nullKey,
+          nullValue = nullValue
+        )
+      } else {
+        this
+      }
+
+    batches foreach {
+      batch =>
+        batch apply targetSkipList
+    }
+
+    if (cloned) {
+      this.skipList = targetSkipList.skipList
+      sizer.set(this.skipList.size())
+    }
+  }
+
 }

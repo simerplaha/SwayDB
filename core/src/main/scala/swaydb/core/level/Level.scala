@@ -51,6 +51,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
+import swaydb.core.util.skiplist.SkipList
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
@@ -64,7 +65,6 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Promise
 import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
 
 private[core] object Level extends LazyLogging {
 
@@ -474,14 +474,14 @@ private[core] case class Level(dirs: Seq[Dir],
   private[level] implicit def reserve(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
-        map = map.cache.skipList,
+        keyValues = map.cache.mergedKeyValuesCache.value(()),
         targetSegments = appendix.cache.skipList.values()
       )
     } map {
       assigned =>
         Segment.minMaxKey(
           left = assigned,
-          right = map.cache.skipList
+          right = map.cache.mergedKeyValuesCache.value(())
         ) match {
           case Some((minKey, maxKey, toInclusive)) =>
             ReserveRange.reserveOrListen(
@@ -536,7 +536,7 @@ private[core] case class Level(dirs: Seq[Dir],
    */
   def isCopyable(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean =
     Segment
-      .minMaxKey(map.cache.skipList)
+      .minMaxKey(map.cache.mergedKeyValuesCache.value(()))
       .forall {
         case (minKey, maxKey, maxInclusive) =>
           isCopyable(
@@ -690,13 +690,15 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
-    logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.count())
+    logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.mergeKeyValuesCount)
     reserveAndRelease(map) {
+
       val appendixValues = appendix.cache.skipList.values()
-      if (Segment.overlaps(map.cache.skipList, appendixValues))
+      val keyValues = map.cache.mergedKeyValuesCache.value(())
+
+      if (Segment.overlaps(keyValues, appendixValues))
         putKeyValues(
-          keyValuesCount = map.cache.skipListKeyValuesMaxCount,
-          keyValues = map.cache.skipList.values(),
+          keyValues = keyValues,
           targetSegments = appendixValues,
           appendEntry = None
         ) transform {
@@ -782,9 +784,18 @@ private[core] case class Level(dirs: Seq[Dir],
     IO {
       logger.trace(s"{}: Copying {} Map", pathDistributor.head, map.pathOption)
 
+      val keyValues: Iterable[Memory] =
+        map.cache.mergedKeyValuesCache.value(()) match {
+          case util.Left(skipList) =>
+            skipList.values()
+
+          case util.Right(slice) =>
+            slice
+        }
+
       if (inMemory)
         Segment.copyToMemory(
-          keyValues = map.cache.skipList.values().iterator,
+          keyValues = keyValues.iterator,
           pathsDistributor = pathDistributor,
           removeDeletes = removeDeletedRecords,
           minSegmentSize = minSegmentSize,
@@ -793,7 +804,7 @@ private[core] case class Level(dirs: Seq[Dir],
         )
       else
         Segment.copyToPersist(
-          keyValues = map.cache.skipList.values(),
+          keyValues = keyValues,
           segmentConfig = segmentConfig,
           createdInLevel = levelNumber,
           pathsDistributor = pathDistributor,
@@ -991,7 +1002,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def collapse(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
     logger.trace(s"{}: Collapsing '{}' segments", pathDistributor.head, segments.size)
-    if (segments.isEmpty || appendix.cache.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
+    if (segments.isEmpty || appendix.cache.maxKeyValueCount == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](IO.zero)(IO.ExceptionHandler.PromiseUnit)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
@@ -1059,6 +1070,27 @@ private[core] case class Level(dirs: Seq[Dir],
           )
       }
   }
+
+  private[core] def putKeyValues(keyValues: Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]],
+                                 targetSegments: Iterable[Segment],
+                                 appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] =
+    keyValues match {
+      case util.Left(keyValues) =>
+        putKeyValues(
+          keyValuesCount = keyValues.size,
+          keyValues = keyValues.values(),
+          targetSegments = targetSegments,
+          appendEntry = appendEntry
+        )
+
+      case util.Right(keyValues) =>
+        putKeyValues(
+          keyValuesCount = keyValues.size,
+          keyValues = keyValues,
+          targetSegments = targetSegments,
+          appendEntry = appendEntry
+        )
+    }
 
   /**
    * @return Newly created Segments.

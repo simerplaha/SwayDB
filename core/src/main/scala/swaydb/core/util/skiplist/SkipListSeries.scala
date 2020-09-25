@@ -31,7 +31,7 @@ import swaydb.core.util.series.growable.SeriesGrowable
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.KeyOrder
 
-import scala.annotation.unchecked.uncheckedVariance
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 
 private[skiplist] sealed trait KeyValue[+K, +V]
@@ -46,9 +46,15 @@ private[skiplist] case object KeyValue {
       new Some(key, value, index)
   }
 
-  class Some[+K, +V](@volatile var key: K@uncheckedVariance = null.asInstanceOf[K],
-                     @volatile var value: V@uncheckedVariance = null.asInstanceOf[K],
-                     val index: Int) extends KeyValue[K, V] {
+  /**
+   * Stores key-value of for this SkipList. Being write optimised
+   * this SkipList does not remove key-value but sets the value to
+   * null indicating removed key-value. Removed key-value get omitted
+   * from Iterators and other operations that search.
+   */
+  class Some[K, V](val key: K,
+                   @volatile var value: V,
+                   val index: Int) extends KeyValue[K, V] {
 
     @inline def toTuple =
       (key, value)
@@ -85,16 +91,24 @@ private[core] object SkipListSeries {
       nullValue = nullValue
     )
 
+  /**
+   * @param keepNullValue if true will return the [[KeyValue]] if it's value is set to null (means removed).
+   *                      This is needed for inserting a new key-value if it's existing value was previously
+   *                      removed.
+   */
   private def get[K, V](target: K,
                         series: SeriesGrowable[KeyValue.Some[K, V]],
-                        hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
+                        hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]],
+                        keepNullValue: Boolean)(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
     hashIndex match {
       case scala.Some(hashIndex) =>
-        val value = hashIndex.get(ordering.comparableKey(target))
-        if (value == null)
+        val found = hashIndex.get(ordering.comparableKey(target))
+        if (found == null)
+          KeyValue.None
+        else if (!keepNullValue && found.value == null)
           KeyValue.None
         else
-          value
+          found
 
       case scala.None =>
         var start = 0
@@ -105,7 +119,7 @@ private[core] object SkipListSeries {
           val found = series.get(mid)
           val compare = ordering.compare(found.key, target)
           if (compare == 0)
-            if (found.value == null)
+            if (!keepNullValue && found.value == null)
               return KeyValue.None
             else
               return found
@@ -168,6 +182,8 @@ private[core] object SkipListSeries {
           val found = hashIndex.get(ordering.comparableKey(target))
           if (found == null)
             series.length - 1
+          else if (found.value == null)
+            return series.findReverse(found.index - 1, KeyValue.None)(_.value != null)
           else
             return found
 
@@ -246,6 +262,8 @@ private[core] object SkipListSeries {
           val found = hashIndex.get(ordering.comparableKey(target))
           if (found == null)
             0
+          else if (found.value == null)
+            return series.find(found.index + 1, KeyValue.None)(_.value != null)
           else
             return found
 
@@ -279,7 +297,8 @@ private[core] object SkipListSeries {
 }
 
 /**
- * SkipList optimised for sequential writes.
+ * SkipList that is sequential write efficient. Used for Queue data-type.
+ * Ranomly writes are expensive.
  *
  * Random writes to this skipList is expensive and requires a full clone.
  *
@@ -305,10 +324,10 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
 
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
-      var nextOne: KeyValue.Some[K, V] = _
+      var nextOne: KeyValue.Some[K, V] = null
       val sliceIterator = self.state.series.iteratorFlatten
 
-      override def hasNext: Boolean =
+      override def hasNext: Boolean = {
         if (sliceIterator.hasNext) {
           nextOne = sliceIterator.next()
           while (nextOne.value == null && sliceIterator.hasNext)
@@ -318,13 +337,14 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         } else {
           false
         }
+      }
 
       override def next(): KeyValue.Some[K, V] =
         nextOne
     }
 
   @inline private def putRandom(key: K, value: V): Unit =
-    SkipListSeries.get(key, state.series, state.hashIndex) match {
+    SkipListSeries.get(target = key, series = state.series, hashIndex = state.hashIndex, keepNullValue = true) match {
       case some: KeyValue.Some[K, V] =>
         some.value = value
 
@@ -380,7 +400,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
   }
 
   override def putIfAbsent(key: K, value: V): Boolean =
-    SkipListSeries.get(key, state.series, state.hashIndex) match {
+    SkipListSeries.get(key, state.series, state.hashIndex, keepNullValue = false) match {
       case KeyValue.None =>
         put(key, value)
         true
@@ -390,7 +410,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def get(target: K): OV =
-    SkipListSeries.get(target, state.series, state.hashIndex) match {
+    SkipListSeries.get(target, state.series, state.hashIndex, keepNullValue = false) match {
       case KeyValue.None =>
         nullValue
 
@@ -399,10 +419,11 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def remove(key: K): Unit =
-    SkipListSeries.get(key, state.series, state.hashIndex) match {
+    SkipListSeries.get(key, state.series, state.hashIndex, keepNullValue = false) match {
       case some: KeyValue.Some[K, V] =>
+        //do not clear from HashIndex. Mutate this value is only needed for reads to properly
+        //perform searches.
         some.value = null.asInstanceOf[V]
-        state.hashIndex.foreach(_.remove(keyOrder.comparableKey(key)))
 
       case KeyValue.None =>
     }
@@ -489,13 +510,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def isEmpty: Boolean =
-    state.hashIndex match {
-      case scala.Some(value) =>
-        value.isEmpty
-
-      case scala.None =>
-        iterator().isEmpty
-    }
+    iterator().isEmpty
 
   override def nonEmpty: Boolean =
     !isEmpty
@@ -509,11 +524,11 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     state.series.length
 
   override def contains(key: K): Boolean =
-    SkipListSeries.get(key, state.series, state.hashIndex) match {
+    SkipListSeries.get(key, state.series, state.hashIndex, keepNullValue = false) match {
       case KeyValue.None =>
         false
 
-      case some: KeyValue.Some[_, _] =>
+      case _: KeyValue.Some[_, _] =>
         true
     }
 
@@ -599,10 +614,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def asScala: Iterable[(K, V)] =
-    new Iterable[(K, V)] {
-      override def iterator: Iterator[(K, V)] =
-        self.iterator().map(_.toTuple)
-    }
+    self.iterator().map(_.toTuple).to(Iterable)
 
   override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = {
     val compare = keyOrder.compare(from, to)
@@ -662,7 +674,10 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
       else
         state.series.foldLeft(fromFound.index, toFound.index, ListBuffer.empty[(K, V)]) {
           case (buffer, keyValue) =>
-            buffer += ((keyValue.key, keyValue.value))
+            if (keyValue.value != null)
+              buffer += ((keyValue.key, keyValue.value))
+            else
+              buffer
         }
     }
   }

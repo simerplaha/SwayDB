@@ -39,9 +39,23 @@ private[core] object SegmentAssigner {
                              targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
     SegmentAssigner.assignUnsafe(2 * inputSegments.size, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
 
-  def assignMinMaxOnlyUnsafe(map: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+  def assignMinMaxOnlyUnsafe(keyValues: Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]],
                              targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(map), targetSegments).keys
+    keyValues match {
+      case Left(value) =>
+        assignMinMaxOnlyUnsafe(value, targetSegments)
+
+      case Right(value) =>
+        assignMinMaxOnlyUnsafe(value, targetSegments)
+    }
+
+  def assignMinMaxOnlyUnsafe(input: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+    SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(input), targetSegments).keys
+
+  def assignMinMaxOnlyUnsafe(input: Slice[Memory],
+                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+    SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(input), targetSegments).keys
 
   def assignUnsafe(keyValues: Slice[KeyValue],
                    segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] =

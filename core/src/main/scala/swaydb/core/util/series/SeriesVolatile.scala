@@ -31,7 +31,6 @@ object SeriesVolatile {
 
 }
 
-
 class SeriesVolatile[T >: Null](array: Array[VolatileValue[T]]) extends Series[T] {
   override def getOrNull(index: Int): T =
     array(index).value

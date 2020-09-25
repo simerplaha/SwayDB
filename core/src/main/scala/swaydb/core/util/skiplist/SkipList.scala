@@ -24,75 +24,75 @@
 
 package swaydb.core.util.skiplist
 
-private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue] {
-  def nullKey: OptionKey
-  def nullValue: OptionValue
+private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
+  def nullKey: OK
+  def nullValue: OV
 
-  def put(key: Key, value: Value): Unit
-  def putIfAbsent(key: Key, value: Value): Boolean
-  def get(key: Key): OptionValue
-  def remove(key: Key): Unit
+  def put(key: K, value: V): Unit
+  def putIfAbsent(key: K, value: V): Boolean
+  def get(key: K): OV
+  def remove(key: K): Unit
 
-  def lower(key: Key): OptionValue
-  def lowerKey(key: Key): OptionKey
+  def lower(key: K): OV
+  def lowerKey(key: K): OK
 
-  def floor(key: Key): OptionValue
-  def floorKeyValue(key: Key): Option[(Key, Value)]
+  def floor(key: K): OV
+  def floorKeyValue(key: K): Option[(K, V)]
 
-  def higher(key: Key): OptionValue
-  def higherKey(key: Key): OptionKey
-  def higherKeyValue(key: Key): Option[(Key, Value)]
+  def higher(key: K): OV
+  def higherKey(key: K): OK
+  def higherKeyValue(key: K): Option[(K, V)]
 
-  def ceiling(key: Key): OptionValue
-  def ceilingKey(key: Key): OptionKey
+  def ceiling(key: K): OV
+  def ceilingKey(key: K): OK
 
   def isEmpty: Boolean
   def nonEmpty: Boolean
   def clear(): Unit
   def size: Int
-  def contains(key: Key): Boolean
-  def notContains(key: Key): Boolean =
+  def contains(key: K): Boolean
+  def notContains(key: K): Boolean =
     !contains(key)
 
-  def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): Iterable[(Key, Value)]
+  def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)]
 
-  def headKey: OptionKey
-  def lastKey: OptionKey
+  def headKey: OK
+  def lastKey: OK
 
   def count(): Int
-  def last(): OptionValue
-  def head(): OptionValue
-  def headKeyValue: Option[(Key, Value)]
-  def values(): Iterable[Value]
-  def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R
-  def foreach[R](f: (Key, Value) => R): Unit
-  def asScala: Iterable[(Key, Value)]
+  def last(): OV
+  def head(): OV
+  def headKeyValue: Option[(K, V)]
+  def values(): Iterable[V]
+  def foldLeft[R](r: R)(f: (R, (K, V)) => R): R
+  def foreach[R](f: (K, V) => R): Unit
+  def asScala: Iterable[(K, V)]
 
-  @inline final def toOptionValue(entry: java.util.Map.Entry[Key, Value]): OptionValue =
+  @inline final def toOptionValue(entry: java.util.Map.Entry[K, V]): OV =
     if (entry == null)
       nullValue
     else
       entry.getValue
 
-  @inline final def toOptionValue(value: Value): OptionValue =
+  @inline final def toOptionValue(value: V): OV =
     if (value == null)
       nullValue
     else
       value
 
-  @inline final def toOptionKey(key: Key): OptionKey =
+  @inline final def toOptionKey(key: K): OK =
     if (key == null)
       nullKey
     else
       key
 
-  @inline final def toOptionKeyValue(entry: java.util.Map.Entry[Key, Value]): Option[(Key, Value)] =
+  @inline final def toOptionKeyValue(entry: java.util.Map.Entry[K, V]): Option[(K, V)] =
     if (entry == null)
       None
     else
       Option((entry.getKey, entry.getValue))
 
-  @inline final def tryOptionValue(block: => java.util.Map.Entry[Key, Value]): OptionValue =
+  @inline final def tryOptionValue(block: => java.util.Map.Entry[K, V]): OV =
     try
       toOptionValue(block)
     catch {
@@ -100,7 +100,7 @@ private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: 
         nullValue
     }
 
-  @inline final def tryOptionKey(block: => Key): OptionKey =
+  @inline final def tryOptionKey(block: => K): OK =
     try
       toOptionKey(block)
     catch {
@@ -108,7 +108,7 @@ private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: 
         nullKey
     }
 
-  @inline final def tryOptionKeyValue(block: => java.util.Map.Entry[Key, Value]): Option[(Key, Value)] =
+  @inline final def tryOptionKeyValue(block: => java.util.Map.Entry[K, V]): Option[(K, V)] =
     try
       toOptionKeyValue(block)
     catch {
@@ -120,20 +120,20 @@ private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: 
 private[core] object SkipList {
   object Batch {
 
-    case class Remove[Key](key: Key) extends Batch[Key, Nothing] {
-      override def apply[VV >: Nothing](skipList: SkipList[_, _, Key, VV]): Unit =
+    case class Remove[K](key: K) extends Batch[K, Nothing] {
+      override def apply[VV >: Nothing](skipList: SkipList[_, _, K, VV]): Unit =
         skipList.remove(key)
     }
 
-    case class Put[Key, Value](key: Key, value: Value) extends Batch[Key, Value] {
-      override def apply[VV >: Value](skipList: SkipList[_, _, Key, VV]): Unit =
+    case class Put[K, V](key: K, value: V) extends Batch[K, V] {
+      override def apply[VV >: V](skipList: SkipList[_, _, K, VV]): Unit =
         skipList.put(key, value)
     }
   }
 
-  sealed trait Batch[Key, +Value] {
-    def key: Key
+  sealed trait Batch[K, +V] {
+    def key: K
 
-    def apply[VV >: Value](skipList: SkipList[_, _, Key, VV]): Unit
+    def apply[VV >: V](skipList: SkipList[_, _, K, VV]): Unit
   }
 }

@@ -38,8 +38,11 @@ object PersistentCounterCache {
 class PersistentCounterCache extends MapCache[Slice[Byte], Slice[Byte]] {
   var entryOrNull: MapEntry[Slice[Byte], Slice[Byte]] = _
 
-  override def write(entry: MapEntry[Slice[Byte], Slice[Byte]]): Unit =
+  override def writeAtomic(entry: MapEntry[Slice[Byte], Slice[Byte]]): Unit =
     this.entryOrNull = entry
+
+  override def writeNonAtomic(entry: MapEntry[Slice[Byte], Slice[Byte]]): Unit =
+    writeAtomic(entry)
 
   override def asScala: Iterable[(Slice[Byte], Slice[Byte])] =
     entryOrNull match {
@@ -59,9 +62,10 @@ class PersistentCounterCache extends MapCache[Slice[Byte], Slice[Byte]] {
   override def isEmpty: Boolean =
     entryOrNull == null
 
-  override def size: Int =
+  override def maxKeyValueCount: Int =
     if (entryOrNull == null)
       0
     else
       1
+
 }

@@ -292,6 +292,8 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOption {
 
 private[swaydb] object Memory {
 
+  val emtpySeq = Seq.empty[Memory]
+
   final case object Null extends MemoryOption with KeyValue.Null {
     override val isNoneS: Boolean = true
 

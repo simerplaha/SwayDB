@@ -39,8 +39,12 @@ object AppliedFunctionsCache {
 }
 
 case class AppliedFunctionsCache(skipList: SkipListConcurrent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]) extends MapCache[Slice[Byte], Slice.Null.type] {
-  override def write(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
+
+  override def writeAtomic(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
     entry applyTo skipList
+
+  override def writeNonAtomic(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
+    writeAtomic(entry)
 
   override def asScala: Iterable[(Slice[Byte], Slice.Null.type)] =
     skipList.asScala
@@ -48,6 +52,7 @@ case class AppliedFunctionsCache(skipList: SkipListConcurrent[SliceOption[Byte],
   override def isEmpty: Boolean =
     skipList.isEmpty
 
-  override def size: Int =
+  override def maxKeyValueCount: Int =
     skipList.size
+
 }

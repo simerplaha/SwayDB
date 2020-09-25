@@ -781,31 +781,31 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           //     1-2, 3-4, ---, 7-8, 9-10
           var inputMap = TestMap(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
           var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4))), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))))
-          Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe false
+          Segment.overlapsWithBusySegments(inputMap.cache.getMergedSkipList, busySegments, targetSegments) shouldBe false
 
           //     1-2
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
           inputMap = TestMap(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
-          Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe false
+          Segment.overlapsWithBusySegments(inputMap.cache.getMergedSkipList, busySegments, targetSegments) shouldBe false
 
           //          3-4
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
           inputMap = TestMap(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2)))
-          Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe true
+          Segment.overlapsWithBusySegments(inputMap.cache.getMergedSkipList, busySegments, targetSegments) shouldBe true
 
           //               5-6
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
           inputMap = TestMap(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
-          Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe true
+          Segment.overlapsWithBusySegments(inputMap.cache.getMergedSkipList, busySegments, targetSegments) shouldBe true
 
           //                         9-10
           //          3-4       7-8
           //     1-2, 3-4, ---, 7-8, 9-10
           inputMap = TestMap(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)))
-          Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe false
+          Segment.overlapsWithBusySegments(inputMap.cache.getMergedSkipList, busySegments, targetSegments) shouldBe false
 
           //               5-6
           //     1-2            7-8
@@ -816,13 +816,13 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
               TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
               Nil
           }
-          Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe true
+          Segment.overlapsWithBusySegments(inputMap.cache.getMergedSkipList, busySegments, targetSegments) shouldBe true
 
           //               5-6
           //     1-2                 9-10
           //     1-2, 3-4, ---, 7-8, 9-10
           busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))))
-          Segment.overlapsWithBusySegments(inputMap.cache.skipList, busySegments, targetSegments) shouldBe false
+          Segment.overlapsWithBusySegments(inputMap.cache.getMergedSkipList, busySegments, targetSegments) shouldBe false
       }
     }
   }

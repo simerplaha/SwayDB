@@ -26,6 +26,7 @@ package swaydb.core.util.skiplist
 
 import java.util
 import java.util.Map
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.{BiConsumer, Consumer}
 
 import swaydb.core.util.NullOps
@@ -36,41 +37,47 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-private[core] trait SkipListNavigable[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]] extends SkipList[OptionKey, OptionValue, Key, Value] {
+private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV, SL <: util.NavigableMap[K, V]] private(val sizer: AtomicInteger) extends SkipList[OK, OV, K, V] {
 
   protected def skipList: SL
 
-  override def get(key: Key): OptionValue =
+  def this(int: Int) {
+    this(new AtomicInteger(int))
+  }
+
+  override def get(key: K): OV =
     toOptionValue(skipList.get(key))
 
-  override def remove(key: Key): Unit =
-    skipList.remove(key)
+  override def remove(key: K): Unit =
+    if (skipList.remove(key) != null)
+      sizer.decrementAndGet()
 
-  override def put(key: Key, value: Value): Unit =
-    skipList.put(key, value)
+  override def put(key: K, value: V): Unit =
+    if (skipList.put(key, value) == null)
+      sizer.incrementAndGet()
 
-  def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): Iterable[(Key, Value)] =
+  override def putIfAbsent(key: K, value: V): Boolean = {
+    val added = skipList.putIfAbsent(key, value) == null
+    if (added) sizer.incrementAndGet()
+    added
+  }
+
+  def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] =
     skipList.subMap(from, fromInclusive, to, toInclusive).asScala
 
-  /**
-   * @return true
-   */
-  override def putIfAbsent(key: Key, value: Value): Boolean =
-    skipList.putIfAbsent(key, value) == null
-
-  override def floor(key: Key): OptionValue =
+  override def floor(key: K): OV =
     toOptionValue(skipList.floorEntry(key))
 
-  override def floorKeyValue(key: Key): Option[(Key, Value)] =
+  override def floorKeyValue(key: K): Option[(K, V)] =
     toOptionKeyValue(skipList.floorEntry(key))
 
-  override def higher(key: Key): OptionValue =
+  override def higher(key: K): OV =
     toOptionValue(skipList.higherEntry(key))
 
-  override def higherKeyValue(key: Key): Option[(Key, Value)] =
+  override def higherKeyValue(key: K): Option[(K, V)] =
     toOptionKeyValue(skipList.higherEntry(key))
 
-  override def ceiling(key: Key): OptionValue =
+  override def ceiling(key: K): OV =
     toOptionValue(skipList.ceilingEntry(key))
 
   def isEmpty: Boolean =
@@ -79,71 +86,79 @@ private[core] trait SkipListNavigable[OptionKey, OptionValue, Key <: OptionKey, 
   override def nonEmpty: Boolean =
     !isEmpty
 
-  override def clear(): Unit =
+  override def clear(): Unit = {
     skipList.clear()
+    sizer.set(0)
+  }
 
-  def size: Int =
-    skipList.size()
-
-  def contains(key: Key): Boolean =
+  def contains(key: K): Boolean =
     skipList.containsKey(key)
 
-  def headKey: OptionKey =
+  def headKey: OK =
     tryOptionKey(skipList.firstKey())
 
-  def headKeyOrNull: Key =
-    NullOps.tryOrNull(skipList.firstKey()).asInstanceOf[Key]
+  def headKeyOrNull: K =
+    NullOps.tryOrNull(skipList.firstKey()).asInstanceOf[K]
 
-  def pollLastEntry(): Map.Entry[Key, Value] =
-    skipList.pollLastEntry()
+  def pollLastEntry(): Map.Entry[K, V] = {
+    val entry = skipList.pollLastEntry()
+    if (entry != null) sizer.decrementAndGet()
+    entry
+  }
 
-  def pollFirstEntry(): Map.Entry[Key, Value] =
-    skipList.pollFirstEntry()
+  def pollFirstEntry(): Map.Entry[K, V] = {
+    val entry = skipList.pollFirstEntry()
+    if (entry != null) sizer.decrementAndGet()
+    entry
+  }
 
-  def headKeyValue: Option[(Key, Value)] =
+  def size =
+    sizer.get()
+
+  def headKeyValue: Option[(K, V)] =
     tryOptionKeyValue(skipList.firstEntry())
 
-  def lastKeyValue: Option[(Key, Value)] =
+  def lastKeyValue: Option[(K, V)] =
     tryOptionKeyValue(skipList.lastEntry())
 
-  def lastKey: OptionKey =
+  def lastKey: OK =
     tryOptionKey(skipList.lastKey())
 
-  def lastKeyOrNull: Key =
-    NullOps.tryOrNull(skipList.lastKey()).asInstanceOf[Key]
+  def lastKeyOrNull: K =
+    NullOps.tryOrNull(skipList.lastKey()).asInstanceOf[K]
 
-  def ceilingKey(key: Key): OptionKey =
+  def ceilingKey(key: K): OK =
     toOptionKey(skipList.ceilingKey(key))
 
-  def higherKey(key: Key): OptionKey =
+  def higherKey(key: K): OK =
     toOptionKey(skipList.higherKey(key))
 
-  def lower(key: Key): OptionValue =
+  def lower(key: K): OV =
     toOptionValue(skipList.lowerEntry(key))
 
-  def lowerKey(key: Key): OptionKey =
+  def lowerKey(key: K): OK =
     toOptionKey(skipList.lowerKey(key))
 
   def count() =
     skipList.size()
 
-  def last(): OptionValue =
+  def last(): OV =
     toOptionValue(skipList.lastEntry())
 
-  def head(): OptionValue =
+  def head(): OV =
     toOptionValue(skipList.firstEntry())
 
-  def values(): Iterable[Value] =
+  def values(): Iterable[V] =
     skipList.values().asScala
 
-  def keys(): util.NavigableSet[Key] =
+  def keys(): util.NavigableSet[K] =
     skipList.navigableKeySet()
 
-  def take(count: Int)(implicit classTag: ClassTag[Value]): Slice[Value] = {
-    val slice = Slice.of[Value](count)
+  def take(count: Int)(implicit classTag: ClassTag[V]): Slice[V] = {
+    val slice = Slice.of[V](count)
 
     @tailrec
-    def doTake(nextOption: Option[(Key, Value)]): Slice[Value] =
+    def doTake(nextOption: Option[(K, V)]): Slice[V] =
       if (slice.isFull || nextOption.isEmpty)
         slice
       else {
@@ -155,36 +170,36 @@ private[core] trait SkipListNavigable[OptionKey, OptionValue, Key <: OptionKey, 
     doTake(headKeyValue).close()
   }
 
-  def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R = {
+  def foldLeft[R](r: R)(f: (R, (K, V)) => R): R = {
     var result = r
     skipList.forEach {
-      new BiConsumer[Key, Value] {
-        override def accept(key: Key, value: Value): Unit =
+      new BiConsumer[K, V] {
+        override def accept(key: K, value: V): Unit =
           result = f(result, (key, value))
       }
     }
     result
   }
 
-  def foreach[R](f: (Key, Value) => R): Unit =
+  def foreach[R](f: (K, V) => R): Unit =
     skipList.forEach {
-      new BiConsumer[Key, Value] {
-        override def accept(key: Key, value: Value): Unit =
+      new BiConsumer[K, V] {
+        override def accept(key: K, value: V): Unit =
           f(key, value)
       }
     }
 
-  def toSlice[V2 >: Value : ClassTag](size: Int): Slice[V2] = {
+  def toSlice[V2 >: V : ClassTag](size: Int): Slice[V2] = {
     val slice = Slice.of[V2](size)
     skipList.values() forEach {
-      new Consumer[Value] {
-        def accept(keyValue: Value): Unit =
+      new Consumer[V] {
+        def accept(keyValue: V): Unit =
           slice add keyValue
       }
     }
     slice
   }
 
-  override def asScala: mutable.Map[Key, Value] =
+  override def asScala: mutable.Map[K, V] =
     skipList.asScala
 }

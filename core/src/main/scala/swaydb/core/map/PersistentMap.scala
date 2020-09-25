@@ -170,7 +170,7 @@ private[map] object PersistentMap extends LazyLogging {
                 //Use the merger to write key-values to skipList if the there a range, update or remove(with deadline).
                 //else simply write the key-values to the skipList. This logic should be abstracted out to a common function.
                 //See MapSpec for tests.
-                cache write entry
+                cache writeNonAtomic entry
                 size + entry.entriesCount
             }
 
@@ -328,7 +328,7 @@ protected case class PersistentMap[K, V, C <: MapCache[K, V]](path: Path,
     if ((bytesWritten + entryTotalByteSize) <= actualFileSize) {
       currentFile.append(MapCodec.write(entry))
       //if this main contains range then use skipListMerge.
-      cache.write(entry)
+      cache.writeAtomic(entry)
       bytesWritten += entryTotalByteSize
       allowedPostFlushEntriesBeforeWarn -= 1 //decrement the number on successful write
       true

@@ -28,7 +28,7 @@ import swaydb.core.util.series.appendable.SeriesAppendableVolatile
 
 import scala.reflect.ClassTag
 
-object SeriesGrowable {
+private[core] object SeriesGrowable {
 
   @inline def volatile[T >: Null : ClassTag](lengthPerSeries: Int): SeriesGrowable[T] = {
     val sizePerSeries = lengthPerSeries max 1 //size cannot be 0
@@ -62,8 +62,8 @@ object SeriesGrowable {
 
 }
 
-class SeriesGrowable[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
-                                                   lengthPerSeries: Int) {
+private[core] class SeriesGrowable[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
+                                                                 lengthPerSeries: Int) {
 
   private var _written = 0
 

@@ -29,76 +29,76 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent, SkipListSeries}
+import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.data.OptimiseWrites
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
+import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 private[core] object LevelZeroMapCache {
+
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]],
                        timeOrder: TimeOrder[Slice[Byte]],
                        functionStore: FunctionStore,
                        optimiseWrites: OptimiseWrites): MapCacheBuilder[LevelZeroMapCache] =
-    () =>
-      optimiseWrites match {
-        case OptimiseWrites.RandomOrder =>
-          new LevelZeroMapCache(
-            SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-              nullKey = Slice.Null,
-              nullValue = Memory.Null
-            )
+    () => {
+      val skipList = newLevelZeroSkipList()
+
+      val skipLists = LeveledSkipLists(skipList = skipList, hasRange = false, keyValueCount = 0)
+
+      new LevelZeroMapCache(skipLists)
+    }
+
+  private def newLevelZeroSkipList()(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                     optimiseWrites: OptimiseWrites): LevelSkipList =
+    optimiseWrites match {
+      case OptimiseWrites.RandomOrder =>
+        val skipList =
+          SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            nullKey = Slice.Null,
+            nullValue = Memory.Null
           )
 
-        case OptimiseWrites.SequentialOrder(enableHashIndex, initialLength) =>
-          new LevelZeroMapCache(
-            SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-              lengthPerSeries = initialLength,
-              enableHashIndex = enableHashIndex,
-              nullKey = Slice.Null,
-              nullValue = Memory.Null
-            )
+        LevelSkipList(skipList = skipList, hasRange = false)
+
+      case OptimiseWrites.SequentialOrder(enableHashIndex, initialLength) =>
+        val skipList =
+          SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            lengthPerSeries = initialLength,
+            enableHashIndex = enableHashIndex,
+            nullKey = Slice.Null,
+            nullValue = Memory.Null
           )
-      }
-}
 
-/**
- * When inserting key-values that alter existing Range key-values in the skipList, they should be inserted into the skipList atomically and should only
- * replace existing keys if all the new inserts have overwritten all the key ranges in the conflicting Range key-value.
- *
- * reverse on the merge results ensures that changes happen atomically.
- */
-private[core] class LevelZeroMapCache private(val skipList: SkipListBatchable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                     functionStore: FunctionStore) extends MapCache[Slice[Byte], Memory] {
-
-  @volatile var skipListKeyValuesMaxCount: Int = skipList.size
-  //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
-  @volatile private var _hasRange: Boolean = false
-
-  import keyOrder._
-
-  //.get is no good. Memory key-values will never result in failure since they do not perform IO (no side-effects).
-  //But this is a temporary solution until applyValue is updated to accept type classes to perform side effect.
-  def applyValue(newKeyValue: Memory.Fixed,
-                 oldKeyValue: Memory.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): Memory.Fixed =
-    FixedMerger(
-      newKeyValue = newKeyValue,
-      oldKeyValue = oldKeyValue
-    ).asInstanceOf[Memory.Fixed]
+        LevelSkipList(skipList = skipList, hasRange = false)
+    }
 
   /**
    * Inserts a [[Memory.Fixed]] key-value into skipList.
    */
-  def insert(insert: Memory.Fixed): Unit =
-    skipList.floor(insert.key) match {
+  def insert(insert: Memory.Fixed,
+             level: LevelSkipList,
+             atomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                              timeOrder: TimeOrder[Slice[Byte]],
+                              functionStore: FunctionStore): Iterable[Memory] =
+    level.skipList.floor(insert.key) match {
       case floorEntry: Memory =>
+        import keyOrder._
+
         floorEntry match {
           //if floor entry for input Fixed entry & if they keys match, do applyValue else simply add the new key-value.
           case floor: Memory.Fixed if floor.key equiv insert.key =>
-            skipList.put(insert.key, applyValue(insert, floor))
+            val mergedKeyValue =
+              FixedMerger(
+                newKeyValue = insert,
+                oldKeyValue = floor
+              ).asInstanceOf[Memory.Fixed]
+
+            level.skipList.put(insert.key, mergedKeyValue)
+            Memory.emtpySeq
 
           //if the floor entry is a range try to do a merge.
           case floorRange: Memory.Range if insert.key < floorRange.toKey =>
@@ -111,30 +111,44 @@ private[core] class LevelZeroMapCache private(val skipList: SkipListBatchable[Sl
               isLastLevel = false
             )
 
-            skipList batch {
-              builder.keyValues map {
+            val mergedKeyValues = builder.keyValues
+
+            if (mergedKeyValues.size <= 1 || !atomic) {
+              mergedKeyValues foreach {
                 merged: Memory =>
-                  SkipList.Batch.Put(merged.key, merged)
+                  if (merged.isRange) level.setHasRange(true)
+                  level.skipList.put(merged.key, merged)
               }
+              Memory.emtpySeq
+            } else {
+              mergedKeyValues
             }
 
           case _ =>
-            skipList.put(insert.key, insert)
+            level.skipList.put(insert.key, insert)
+            Memory.emtpySeq
         }
 
       //if there is no floor, simply put.
       case Memory.Null =>
-        skipList.put(insert.key, insert)
+        level.skipList.put(insert.key, insert)
+        Memory.emtpySeq
     }
 
   /**
    * Inserts the input [[Memory.Range]] key-value into skipList and always maintaining the previous state of
    * the skipList before applying the new state so that all read queries read the latest write.
    */
-  def insert(insert: Memory.Range): Unit = {
+  def insert(insert: Memory.Range,
+             level: LevelSkipList,
+             atomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                              timeOrder: TimeOrder[Slice[Byte]],
+                              functionStore: FunctionStore): Iterable[Memory] = {
+    import keyOrder._
+
     //value the start position of this range to fetch the range's start and end key-values for the skipList.
     val startKey =
-      skipList.floor(insert.fromKey) mapS {
+      level.skipList.floor(insert.fromKey) mapS {
         case range: Memory.Range if insert.fromKey < range.toKey =>
           range.fromKey
 
@@ -142,9 +156,11 @@ private[core] class LevelZeroMapCache private(val skipList: SkipListBatchable[Sl
           insert.fromKey
       } getOrElse insert.fromKey
 
-    val conflictingKeyValues = skipList.subMap(startKey, true, insert.toKey, false)
+    val conflictingKeyValues = level.skipList.subMap(startKey, true, insert.toKey, false)
     if (conflictingKeyValues.isEmpty) {
-      skipList.put(insert.key, insert)
+      level.setHasRange(true) //set this before put so reads know to floor this skipList.
+      level.skipList.put(insert.key, insert)
+      Memory.emtpySeq
     } else {
       val oldKeyValues = Slice.of[Memory](conflictingKeyValues.size)
 
@@ -162,82 +178,214 @@ private[core] class LevelZeroMapCache private(val skipList: SkipListBatchable[Sl
         isLastLevel = false
       )
 
-      val batches = ListBuffer.empty[SkipList.Batch[Slice[Byte], Memory]]
+      if (builder.keyValues.size <= 1 || !atomic) {
+        level.setHasRange(true) //set this before put so reads know to floor this skipList.
 
-      oldKeyValues foreach {
-        oldKeyValue =>
-          batches += SkipList.Batch.Remove(oldKeyValue.key)
+        oldKeyValues foreach {
+          oldKeyValue =>
+            level.skipList.remove(oldKeyValue.key)
+        }
+
+        builder.keyValues foreach {
+          keyValue =>
+            level.skipList.put(keyValue.key, keyValue)
+        }
+
+        Memory.emtpySeq
+      } else {
+        builder.keyValues
       }
-
-      builder.keyValues map {
-        keyValue =>
-          batches += SkipList.Batch.Put(keyValue.key, keyValue)
-      }
-
-      skipList batch batches
-
-      //while inserting also clear any conflicting key-values that are not replaced by new inserts.
-      //      mergedKeyValues.reverse.foldLeft(Option.empty[Slice[Byte]]) {
-      //        case (previousInsertedKey, transient: Memory) =>
-      //          skipList.put(transient.key, transient.toMemory)
-      //          //remove any entries that are greater than transient.key to the previously inserted entry.
-      //          val toKey = previousInsertedKey.getOrElse(conflictingKeyValues.lastKey())
-      //          if (transient.key < toKey)
-      //            conflictingKeyValues.subMap(transient.key, false, toKey, previousInsertedKey.isEmpty).clear()
-      //          Some(transient.key)
-      //      }
     }
   }
 
-  @inline private def insert(insertValue: Memory): Unit =
-    insertValue match {
+  private def doWrite(memory: Memory,
+                      level: LevelSkipList,
+                      writeNonAtomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                               timeOrder: TimeOrder[Slice[Byte]],
+                                               functionStore: FunctionStore,
+                                               optimiseWrites: OptimiseWrites): Iterable[Memory] =
+    memory match {
       //if insert value is fixed, check the floor entry
       case insertValue: Memory.Fixed =>
-        insert(insertValue)
+        LevelZeroMapCache.insert(insert = insertValue, level = level, atomic = writeNonAtomic)
 
       //slice the skip list to keep on the range's key-values.
       //if the insert is a Range stash the edge non-overlapping key-values and keep only the ranges in the skipList
       //that fall within the inserted range before submitting fixed values to the range for further splits.
       case insertRange: Memory.Range =>
-        insert(insertRange)
+        LevelZeroMapCache.insert(insert = insertRange, level = level, atomic = writeNonAtomic)
     }
 
-  @inline private def insert(entry: MapEntry[Slice[Byte], Memory]): Unit =
-    entry match {
-      case MapEntry.Put(_, value: Memory) =>
-        insert(value)
+  @tailrec
+  private def doWrite(head: MapEntry[Slice[Byte], Memory],
+                      tail: List[MapEntry[Slice[Byte], Memory]],
+                      skipList: LevelSkipList,
+                      atomic: Boolean,
+                      startedNewTransaction: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                      functionStore: FunctionStore,
+                                                      optimiseWrites: OptimiseWrites): Option[LevelSkipList] =
+    if (head.entriesCount <= 1 || head.hasRange || head.hasUpdate || head.hasRemoveDeadline || skipList.hasRange)
+      head match {
+        case head @ MapEntry.Remove(_) =>
+          //this does not occur in reality and should be type-safe instead of having this Exception.
+          throw new IllegalAccessException(s"${head.productPrefix} is not allowed in ${LevelZero.productPrefix} .")
 
-      case remove @ MapEntry.Remove(_) =>
-        //this does not occur in reality and should be type-safe instead of having this Exception. FIXME
-        throw new IllegalAccessException(s"${LevelZero.productPrefix} does not allow ${remove.productPrefix} entries.")
+        case head @ MapEntry.Put(_, entry: Memory) =>
+          val insertResult = doWrite(entry, skipList, atomic)
 
-      case _ =>
-        //TODO - https://github.com/simerplaha/SwayDB/issues/124
-        //       reads are not atomic.
-        entry.entries.foreach(write)
+          if (insertResult.nonEmpty) {
+            assert(!startedNewTransaction, "Cannot create multiple transactional skipLists")
+            doWrite(head = head, tail = tail, skipList = newLevelZeroSkipList(), atomic = false, startedNewTransaction = true)
+          } else {
+            tail match {
+              case head :: tail =>
+                doWrite(head = head, tail = tail, skipList = skipList, atomic = atomic, startedNewTransaction = startedNewTransaction)
+
+              case Nil =>
+                if (startedNewTransaction)
+                  Some(skipList)
+                else
+                  None
+            }
+          }
+
+        case _ =>
+          assert(head.entries.size == 1, s"Entries == ${head.entries.size}")
+          doWrite(head = head.entries.head, tail = tail, skipList = skipList, atomic = atomic, startedNewTransaction = startedNewTransaction)
+      }
+    else
+      head.entries match {
+        case head :: tail =>
+          assert(!startedNewTransaction, "Cannot create multiple transactional skipLists")
+          doWrite(head = head, tail = tail, skipList = newLevelZeroSkipList(), atomic = false, startedNewTransaction = true)
+
+        case Nil =>
+          if (startedNewTransaction)
+            Some(skipList)
+          else
+            None
+      }
+
+  @inline private def runMerge(skipLists: LeveledSkipLists)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                            timeOrder: TimeOrder[Slice[Byte]],
+                                                            functionStore: FunctionStore): Slice[Memory] =
+
+    skipLists.asScala.foldLeft(Slice.empty[Memory]) {
+      (newerKeyValues, oldKeyValues) =>
+        val oldKeyValuesSlice = oldKeyValues.toSliceRemoveNullFromSeries
+
+        if (newerKeyValues.isEmpty) {
+          oldKeyValuesSlice
+        } else {
+          val maxSize = (newerKeyValues.size + oldKeyValuesSlice.size) * 3
+          val builder = MergeStats.memory(Slice.newBuilder(maxSize))(MergeStats.memoryToMemory)
+
+          SegmentMerger.merge(
+            newKeyValues = newerKeyValues,
+            oldKeyValues = oldKeyValuesSlice,
+            stats = builder,
+            isLastLevel = false
+          )
+
+          builder.keyValues
+        }
+    }
+}
+
+/**
+ * Ensures atomic and guarantee all or none writes to in-memory SkipList.
+ *
+ * Creates multi-layered SkipList.
+ */
+private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLists)(implicit val keyOrder: KeyOrder[Slice[Byte]],
+                                                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                                                     functionStore: FunctionStore,
+                                                                                     optimiseWrites: OptimiseWrites) extends MapCache[Slice[Byte], Memory] {
+
+  override def writeAtomic(entry: MapEntry[Slice[Byte], Memory]): Unit =
+    entry.entries match {
+      case head :: tail =>
+        LevelZeroMapCache.doWrite(
+          head = head,
+          tail = tail,
+          skipList = leveledSkipList.current,
+          atomic = true,
+          startedNewTransaction = false
+        ) foreach {
+          newSkipList =>
+            leveledSkipList.addFirst(newSkipList)
+        }
+
+      case Nil =>
+        ()
     }
 
-  override def write(entry: MapEntry[Slice[Byte], Memory]): Unit = {
-    if (entry.hasRange) {
-      _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
-      insert(entry)
-    } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
-      insert(entry)
-    } else {
-      entry applyTo skipList
-    }
-    skipListKeyValuesMaxCount += entry.entriesCount
-  }
+  override def writeNonAtomic(entry: MapEntry[Slice[Byte], Memory]): Unit =
+    entry.entries match {
+      case head :: tail =>
+        val result =
+          LevelZeroMapCache.doWrite(
+            head = head,
+            tail = tail,
+            skipList = leveledSkipList.current,
+            atomic = false,
+            startedNewTransaction = false
+          )
 
-  def hasRange =
-    _hasRange
+        assert(result.isEmpty, "Atomic write occurred")
+
+
+      case Nil =>
+        ()
+    }
 
   override def isEmpty: Boolean =
-    skipList.isEmpty
+    leveledSkipList.isEmpty
 
-  override def size: Int =
-    skipList.size
+  override def maxKeyValueCount: Int =
+    leveledSkipList.size
 
   override def asScala: Iterable[(Slice[Byte], Memory)] =
-    skipList.asScala
+    leveledSkipList
+      .asScala
+      .flatMap(_.skipList.asScala)
+
+  val mergedKeyValuesCache: CacheNoIO[Unit, Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]]] =
+    Cache.noIO[Unit, Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]]](synchronised = true, stored = true, initial = None) {
+      (_, _) =>
+        if (leveledSkipList.queueSize == 1)
+          leveledSkipList.current.skipList match {
+            case _: SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+              Right(leveledSkipList.current.toSliceRemoveNullFromSeries)
+
+            case skipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+              Left(skipList)
+          }
+        else
+          Right(LevelZeroMapCache.runMerge(leveledSkipList))
+    }
+
+  def mergedKeyValuesIterable: Iterable[Memory] =
+    mergedKeyValuesCache.value(()) match {
+      case Left(value) =>
+        value.values()
+
+      case Right(value) =>
+        value
+    }
+
+
+  def mergeKeyValuesCount: Int =
+    mergedKeyValuesCache.value(()) match {
+      case Left(value) =>
+        value.size
+
+      case Right(value) =>
+        value.size
+    }
+
+  @inline def hasRange =
+    leveledSkipList.hasRange
+
 }
