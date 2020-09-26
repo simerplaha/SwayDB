@@ -46,19 +46,35 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
   }
 
   override def get(key: K): OV =
-    toOptionValue(state.skipList.get(key))
+    toOptionValue {
+      state.hashMap match {
+        case Some(hashMap) =>
+          hashMap.get(key)
+
+        case None =>
+          state.skipList.get(key)
+      }
+    }
 
   override def remove(key: K): Unit =
-    if (state.skipList.remove(key) != null)
+    if (state.skipList.remove(key) != null) {
+      state.hashMap.foreach(_.remove(key))
       sizer.decrementAndGet()
+    }
 
-  override def put(key: K, value: V): Unit =
+  override def put(key: K, value: V): Unit = {
     if (state.skipList.put(key, value) == null)
       sizer.incrementAndGet()
 
+    state.hashMap.foreach(_.put(key, value))
+  }
+
   override def putIfAbsent(key: K, value: V): Boolean = {
     val added = state.skipList.putIfAbsent(key, value) == null
-    if (added) sizer.incrementAndGet()
+    if (added) {
+      sizer.incrementAndGet()
+      state.skipList.put(key, value)
+    }
     added
   }
 
@@ -87,12 +103,19 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
     !isEmpty
 
   override def clear(): Unit = {
+    state.hashMap.foreach(_.clear())
     state.skipList.clear()
     sizer.set(0)
   }
 
   def contains(key: K): Boolean =
-    state.skipList.containsKey(key)
+    state.hashMap match {
+      case Some(hashMap) =>
+        hashMap.containsKey(key)
+
+      case None =>
+        state.skipList.containsKey(key)
+    }
 
   def headKey: OK =
     tryOptionKey(state.skipList.firstKey())
@@ -102,13 +125,19 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
 
   def pollLastEntry(): Map.Entry[K, V] = {
     val entry = state.skipList.pollLastEntry()
-    if (entry != null) sizer.decrementAndGet()
+    if (entry != null) {
+      state.hashMap.foreach(_.remove(entry.getKey))
+      sizer.decrementAndGet()
+    }
     entry
   }
 
   def pollFirstEntry(): Map.Entry[K, V] = {
     val entry = state.skipList.pollFirstEntry()
-    if (entry != null) sizer.decrementAndGet()
+    if (entry != null) {
+      state.hashMap.foreach(_.remove(entry.getKey))
+      sizer.decrementAndGet()
+    }
     entry
   }
 

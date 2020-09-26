@@ -67,7 +67,7 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
   def writeTo(slice: Slice[Byte]): Unit
 
-  protected val _entries: ListBuffer[MapEntry.Fixed[K, _]]
+  protected val _entries: ListBuffer[MapEntry.Point[K, _]]
 
   def asString(keyParser: K => String, valueParser: V => String): String = {
     this match {
@@ -137,7 +137,7 @@ private[swaydb] object MapEntry {
     def ++(right: MapEntry[K, V]): MapEntry[K, V] =
       new Batch[K, V] {
 
-        override protected val _entries: ListBuffer[MapEntry.Fixed[K, _]] =
+        override protected val _entries: ListBuffer[MapEntry.Point[K, _]] =
           left._entries ++= right._entries
 
         override val entryBytesSize: Int =
@@ -153,21 +153,15 @@ private[swaydb] object MapEntry {
         //          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))
 
         override def applyTo[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit = {
-          val entries = _entries.asInstanceOf[ListBuffer[MapEntry.Fixed[K, V]]]
+          val entries = _entries.asInstanceOf[ListBuffer[MapEntry.Point[K, V]]]
 
           if (entries.size <= 1)
-            entries.headOption match {
-              case Some(entry) =>
-                entry match {
-                  case MapEntry.Put(key, value) =>
-                    skipList.put(key, value)
+            entries.headOption foreach {
+              case MapEntry.Put(key, value) =>
+                skipList.put(key, value)
 
-                  case MapEntry.Remove(key) =>
-                    skipList.remove(key)
-                }
-
-              case None =>
-                ()
+              case MapEntry.Remove(key) =>
+                skipList.remove(key)
             }
           else
             skipList batch {
@@ -195,15 +189,15 @@ private[swaydb] object MapEntry {
           _entries.size
       }
 
-    def entries: List[MapEntry[K, V]] =
-      left._entries.toList.asInstanceOf[List[MapEntry[K, V]]]
+    def entries: List[MapEntry.Point[K, V]] =
+      left._entries.toList.asInstanceOf[List[MapEntry.Point[K, V]]]
   }
 
   sealed trait Batch[K, +V] extends MapEntry[K, V]
-  sealed trait Fixed[K, +V] extends MapEntry[K, V]
+  sealed trait Point[K, +V] extends MapEntry[K, V]
 
   case class Put[K, V](key: K,
-                       value: V)(implicit serializer: MapEntryWriter[MapEntry.Put[K, V]]) extends MapEntry.Fixed[K, V] {
+                       value: V)(implicit serializer: MapEntryWriter[MapEntry.Put[K, V]]) extends MapEntry.Point[K, V] {
 
     private var calculatedEntriesByteSize: Int = -1
     def hasRange: Boolean = serializer.isRange
@@ -238,11 +232,11 @@ private[swaydb] object MapEntry {
     def copySingle() =
       copy()
 
-    override protected val _entries: ListBuffer[Fixed[K, _]] = ListBuffer(this)
+    override protected val _entries: ListBuffer[MapEntry.Point[K, _]] = ListBuffer(this)
 
   }
 
-  case class Remove[K](key: K)(implicit serializer: MapEntryWriter[MapEntry.Remove[K]]) extends MapEntry.Fixed[K, Nothing] {
+  case class Remove[K](key: K)(implicit serializer: MapEntryWriter[MapEntry.Remove[K]]) extends MapEntry.Point[K, Nothing] {
 
     private var calculatedEntriesByteSize: Int = -1
     def hasRange: Boolean = serializer.isRange
@@ -271,6 +265,6 @@ private[swaydb] object MapEntry {
     def copySingle() =
       copy()
 
-    override protected val _entries: ListBuffer[Fixed[K, _]] = ListBuffer(this)
+    override protected val _entries: ListBuffer[MapEntry.Point[K, _]] = ListBuffer(this)
   }
 }

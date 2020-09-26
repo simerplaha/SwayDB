@@ -152,14 +152,14 @@ private[core] object Level extends LazyLogging {
                     flushOnOverflow = true,
                     fileSize = appendixFlushCheckpointSize,
                     dropCorruptedTailEntries = false,
-                    enableHashIndex = hashIndexConfig.isHashIndexEnabledForMemory
+                    enableHashIndex = false
                   ).item
                 }
               }
 
             case AppendixStorage.Memory =>
               logger.info("{}: Initialising appendix for in-memory Level", levelStorage.dir)
-              IO(Map.memory[Slice[Byte], Segment, AppendixMapCache](enableHashIndex = hashIndexConfig.isHashIndexEnabledForMemory))
+              IO(Map.memory[Slice[Byte], Segment, AppendixMapCache](enableHashIndex = false))
           }
 
         //initialise Level

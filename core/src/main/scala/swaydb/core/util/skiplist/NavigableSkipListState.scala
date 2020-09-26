@@ -26,5 +26,5 @@ package swaydb.core.util.skiplist
 
 import java.util
 
-private[skiplist] class NavigableSkipListState[K, V, +SL <: util.NavigableMap[K, V], +HM <: util.Map[K, V]](private[skiplist] val skipList: SL,
-                                                                                                            private[skiplist] val hashMap: Option[HM])
+private[skiplist] class NavigableSkipListState[K, V, +SL <: util.NavigableMap[K, V], +HM <: util.Map[K, V]](val skipList: SL,
+                                                                                                            val hashMap: Option[HM])
