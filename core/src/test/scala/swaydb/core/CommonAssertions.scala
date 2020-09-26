@@ -614,9 +614,9 @@ object CommonAssertions {
           val exp = expected.asInstanceOf[MapEntry.Remove[Slice[Byte]]]
           key shouldBe exp.key
 
-        case _ => //MapEntry is a batch of other MapEntries, iterate and assert.
-          expected.entries.size shouldBe actual.entries.size
-          expected.entries.zip(actual.entries) foreach {
+        case batch: MapEntry.Batch[Slice[Byte], Memory] => //MapEntry is a batch of other MapEntries, iterate and assert.
+          expected.entries.size shouldBe batch.entries.size
+          expected.entries.zip(batch.entries) foreach {
             case (expected, actual) =>
               actual shouldBe expected
           }

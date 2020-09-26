@@ -24,9 +24,10 @@
 
 package swaydb.core.level
 
+import swaydb.core.map.MapEntry.Batch
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
+import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -57,8 +58,8 @@ class AppendixMapCache(val skipList: SkipListConcurrent[SliceOption[Byte], Segme
       case MapEntry.Remove(key) =>
         skipList.remove(key)
 
-      case entry =>
-        entry.entries.foreach(writeNonAtomic)
+      case batch: Batch[Slice[Byte], Segment] =>
+        batch.entries.foreach(writeNonAtomic)
     }
 
   override def asScala: Iterable[(Slice[Byte], Segment)] =

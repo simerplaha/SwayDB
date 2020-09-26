@@ -135,7 +135,7 @@ private[swaydb] object MapEntry {
 
   implicit class MapEntriesBatch[K, V](left: MapEntry[K, V]) {
     def ++(right: MapEntry[K, V]): MapEntry[K, V] =
-      new MapEntry[K, V] {
+      new Batch[K, V] {
 
         override protected val _entries: ListBuffer[MapEntry[K, _]] =
           left._entries ++= right._entries
@@ -180,6 +180,8 @@ private[swaydb] object MapEntry {
     def entries: List[MapEntry[K, V]] =
       left._entries.toList.asInstanceOf[List[MapEntry[K, V]]]
   }
+
+  sealed trait Batch[K, +V] extends MapEntry[K, V]
 
   case class Put[K, V](key: K,
                        value: V)(implicit serializer: MapEntryWriter[MapEntry.Put[K, V]]) extends MapEntry[K, V] {

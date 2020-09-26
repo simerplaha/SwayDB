@@ -250,9 +250,9 @@ private[core] object LevelZeroMapCache {
             }
           }
 
-        case _ =>
-          assert(head.entries.size == 1, s"Entries == ${head.entries.size}")
-          doWrite(head = head.entries.head, tail = tail, skipList = skipList, atomic = atomic, startedNewTransaction = startedNewTransaction)
+        case batch: MapEntry.Batch[Slice[Byte], Memory] =>
+          assert(batch.entries.size == 1, s"Entries == ${batch.entries.size}")
+          doWrite(head = batch.entries.head, tail = tail, skipList = skipList, atomic = atomic, startedNewTransaction = startedNewTransaction)
       }
     else
       head.entries match {
