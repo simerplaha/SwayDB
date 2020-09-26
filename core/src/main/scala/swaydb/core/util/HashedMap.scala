@@ -31,16 +31,16 @@ import scala.jdk.CollectionConverters._
 
 private[swaydb] object HashedMap {
 
-  def concurrent[K, V <: OV, OV](nullValue: OV, initialCapacity: Option[Int] = None): Concurrent[K, V, OV] =
+  def concurrent[K, OV, V <: OV](nullValue: OV, initialCapacity: Option[Int] = None): Concurrent[K, OV, V] =
     initialCapacity match {
       case Some(capacity) =>
-        new Concurrent[K, V, OV](new ConcurrentHashMap(capacity), nullValue)
+        new Concurrent[K, OV, V](new ConcurrentHashMap(capacity), nullValue)
 
       case None =>
-        new Concurrent[K, V, OV](new ConcurrentHashMap(), nullValue)
+        new Concurrent[K, OV, V](new ConcurrentHashMap(), nullValue)
     }
 
-  class Concurrent[K, V <: OV, OV](map: ConcurrentHashMap[K, V], nullValue: OV) {
+  class Concurrent[K, OV, V <: OV](map: ConcurrentHashMap[K, V], nullValue: OV) {
     def get(key: K): OV = {
       val got = map.get(key)
       if (got == null)

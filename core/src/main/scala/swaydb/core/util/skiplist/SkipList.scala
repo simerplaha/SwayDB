@@ -118,22 +118,14 @@ private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
 }
 
 private[core] object SkipList {
-  object Batch {
-
-    case class Remove[K](key: K) extends Batch[K, Nothing] {
-      override def apply[VV >: Nothing](skipList: SkipList[_, _, K, VV]): Unit =
-        skipList.remove(key)
-    }
-
-    case class Put[K, V](key: K, value: V) extends Batch[K, V] {
-      override def apply[VV >: V](skipList: SkipList[_, _, K, VV]): Unit =
-        skipList.put(key, value)
-    }
-  }
 
   sealed trait Batch[K, +V] {
     def key: K
-
-    def apply[VV >: V](skipList: SkipList[_, _, K, VV]): Unit
   }
+
+  object Batch {
+    class Remove[K](val key: K) extends Batch[K, Nothing]
+    class Put[K, V](val key: K, val value: V) extends Batch[K, V]
+  }
+
 }

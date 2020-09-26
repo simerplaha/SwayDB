@@ -26,6 +26,7 @@ package swaydb.core.util.skiplist
 
 import java.util.concurrent.ConcurrentSkipListMap
 
+import swaydb.core.util.skiplist.SkipList.Batch
 import swaydb.data.order.KeyOrder
 
 object SkipListConcurrent {
@@ -62,8 +63,11 @@ private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volati
       }
 
     batches foreach {
-      batch =>
-        batch apply targetSkipList
+      case remove: Batch.Remove[K] =>
+        skipList.remove(remove.key)
+
+      case put: Batch.Put[K, V] =>
+        skipList.put(put.key, put.value)
     }
 
     if (cloned) {

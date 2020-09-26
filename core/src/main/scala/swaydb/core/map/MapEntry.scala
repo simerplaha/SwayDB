@@ -137,7 +137,7 @@ private[swaydb] object MapEntry {
     def ++(right: MapEntry[K, V]): MapEntry[K, V] =
       new MapEntry[K, V] {
 
-        override protected val _entries =
+        override protected val _entries: ListBuffer[MapEntry[K, _]] =
           left._entries ++= right._entries
 
         override val entryBytesSize: Int =
@@ -156,10 +156,10 @@ private[swaydb] object MapEntry {
           val batches =
             _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] map {
               case MapEntry.Put(key, value) =>
-                SkipList.Batch.Put[K, V](key, value)
+                new SkipList.Batch.Put[K, V](key, value)
 
               case MapEntry.Remove(key) =>
-                SkipList.Batch.Remove[K](key)
+                new SkipList.Batch.Remove[K](key)
             }
 
           skipList batch batches

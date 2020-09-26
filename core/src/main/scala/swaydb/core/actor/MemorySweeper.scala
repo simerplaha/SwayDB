@@ -52,7 +52,7 @@ private[core] object Command {
 
   private[actor] class BlockCache(val key: BlockCache.Key,
                                   val valueSize: Int,
-                                  val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte], SliceOption[Byte]]) extends Command
+                                  val map: HashedMap.Concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]]) extends Command
 
 }
 
@@ -201,7 +201,7 @@ private[core] object MemorySweeper extends LazyLogging {
 
     def add(key: BlockCache.Key,
             value: Slice[Byte],
-            map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte], SliceOption[Byte]]): Unit =
+            map: HashedMap.Concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]]): Unit =
       actor foreach {
         actor =>
           actor send new Command.BlockCache(
