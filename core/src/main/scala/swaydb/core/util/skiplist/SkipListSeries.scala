@@ -314,7 +314,7 @@ private[core] object SkipListSeries {
  */
 private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var state: SkipListSeries.State[K, V],
                                                                      val nullKey: OK,
-                                                                     val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipListBatchable[OK, OV, K, V] with SkipList[OK, OV, K, V] with LazyLogging { self =>
+                                                                     val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] with LazyLogging { self =>
 
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
@@ -675,38 +675,4 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         }
     }
   }
-
-  override def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit =
-    if (batches.size > 1) {
-      logger.warn(SkipListSeries.randomWriteWarning)
-
-      val newSkipList =
-        SkipListSeries[OK, OV, K, V](
-          lengthPerSeries = this.size + batches.size,
-          enableHashIndex = this.state.hashIndex.isDefined,
-          nullKey = this.nullKey,
-          nullValue = this.nullValue
-        )
-
-      val sortedBatches = batches.toArray.sortBy(_.key)(keyOrder)
-      var batchIndex = 0
-
-      state.series.foreach(0) {
-        keyValue =>
-          if (batchIndex < sortedBatches.length && keyOrder.gt(sortedBatches(batchIndex).key, keyValue.key)) {
-            sortedBatches(batchIndex) apply newSkipList
-            batchIndex += 1
-          }
-
-          newSkipList.put(keyValue.key, keyValue.value)
-      }
-
-      this.state = newSkipList.state
-    } else {
-
-      batches foreach {
-        batch =>
-          batch apply self
-      }
-    }
 }

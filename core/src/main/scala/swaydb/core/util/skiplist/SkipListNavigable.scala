@@ -37,7 +37,7 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV, SL <: util.NavigableMap[K, V]] private(val sizer: AtomicInteger) extends SkipList[OK, OV, K, V] {
+private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV, SL <: util.NavigableMap[K, V]] private(protected val sizer: AtomicInteger) extends SkipList[OK, OV, K, V] {
 
   protected def skipList: SL
 
