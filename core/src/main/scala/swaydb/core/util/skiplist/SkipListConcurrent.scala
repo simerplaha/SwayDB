@@ -37,7 +37,7 @@ object SkipListConcurrent {
       state =
         new NavigableSkipListState(
           skipList = new ConcurrentSkipListMap[K, V](ordering),
-          hashMap = if (enableHashIndex) Some(new ConcurrentHashMap()) else None
+          hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap()) else None
         ),
       nullKey = nullKey,
       nullValue = nullValue
@@ -46,7 +46,7 @@ object SkipListConcurrent {
 
 private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volatile protected var state: NavigableSkipListState[K, V, ConcurrentSkipListMap[K, V], ConcurrentHashMap[K, V]],
                                                                          val nullKey: OK,
-                                                                         val nullValue: OV) extends SkipListNavigable[OK, OV, K, V](state.skipList.size()) with SkipListBatchable[OK, OV, K, V] {
+                                                                         val nullValue: OV)(implicit ordering: KeyOrder[K]) extends SkipListNavigable[OK, OV, K, V](state.skipList.size()) with SkipListBatchable[OK, OV, K, V] {
 
   /**
    * Does not support concurrent batch writes since it's only being used by [[swaydb.core.level.Level]] which
@@ -55,7 +55,7 @@ private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volati
   def batch(transaction: SkipListConcurrent[OK, OV, K, V] => Unit): Unit = {
 
     val cloneHashMap =
-      state.hashMap map {
+      state.hashIndex map {
         oldHashMap =>
           new ConcurrentHashMap[K, V](oldHashMap)
       }
@@ -63,7 +63,7 @@ private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volati
     val clonedState =
       new NavigableSkipListState[K, V, ConcurrentSkipListMap[K, V], ConcurrentHashMap[K, V]](
         skipList = state.skipList.clone(),
-        hashMap = cloneHashMap
+        hashIndex = cloneHashMap
       )
 
     val newSkipList =

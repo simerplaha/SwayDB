@@ -37,7 +37,7 @@ object SkipListTreeMap {
       state =
         new NavigableSkipListState(
           skipList = new util.TreeMap[K, V](ordering),
-          hashMap = if (enableHashIndex) Some(new util.HashMap()) else None
+          hashIndex = if (enableHashIndex) Some(new util.HashMap()) else None
         ),
       nullKey = nullKey,
       nullValue = nullValue
@@ -47,7 +47,7 @@ object SkipListTreeMap {
 
 private[core] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(protected val state: NavigableSkipListState[K, V, util.TreeMap[K, V], util.HashMap[K, V]],
                                                                       val nullKey: OK,
-                                                                      val nullValue: OV) extends SkipListNavigable[OK, OV, K, V](state.skipList.size()) {
+                                                                      val nullValue: OV)(implicit ordering: KeyOrder[K]) extends SkipListNavigable[OK, OV, K, V](state.skipList.size()) {
 
   override def remove(key: K): Unit =
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")

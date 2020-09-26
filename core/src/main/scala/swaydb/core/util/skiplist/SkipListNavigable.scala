@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.{BiConsumer, Consumer}
 
 import swaydb.core.util.NullOps
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -37,19 +38,19 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private(protected val sizer: AtomicInteger) extends SkipList[OK, OV, K, V] {
+private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private(protected val sizer: AtomicInteger)(implicit ordering: KeyOrder[K]) extends SkipList[OK, OV, K, V] {
 
   protected def state: NavigableSkipListState[K, V, util.NavigableMap[K, V], util.Map[K, V]]
 
-  def this(int: Int) {
+  def this(int: Int)(implicit ordering: KeyOrder[K]) {
     this(new AtomicInteger(int))
   }
 
   override def get(key: K): OV =
     toOptionValue {
-      state.hashMap match {
-        case Some(hashMap) =>
-          hashMap.get(key)
+      state.hashIndex match {
+        case Some(hashIndex) =>
+          hashIndex.get(ordering.comparableKey(key))
 
         case None =>
           state.skipList.get(key)
@@ -58,7 +59,7 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
 
   override def remove(key: K): Unit =
     if (state.skipList.remove(key) != null) {
-      state.hashMap.foreach(_.remove(key))
+      state.hashIndex.foreach(_.remove(ordering.comparableKey(key)))
       sizer.decrementAndGet()
     }
 
@@ -66,7 +67,7 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
     if (state.skipList.put(key, value) == null)
       sizer.incrementAndGet()
 
-    state.hashMap.foreach(_.put(key, value))
+    state.hashIndex.foreach(_.put(ordering.comparableKey(key), value))
   }
 
   override def putIfAbsent(key: K, value: V): Boolean = {
@@ -103,15 +104,15 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
     !isEmpty
 
   override def clear(): Unit = {
-    state.hashMap.foreach(_.clear())
+    state.hashIndex.foreach(_.clear())
     state.skipList.clear()
     sizer.set(0)
   }
 
   def contains(key: K): Boolean =
-    state.hashMap match {
-      case Some(hashMap) =>
-        hashMap.containsKey(key)
+    state.hashIndex match {
+      case Some(hashIndex) =>
+        hashIndex.containsKey(ordering.comparableKey(key))
 
       case None =>
         state.skipList.containsKey(key)
@@ -126,7 +127,7 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
   def pollLastEntry(): Map.Entry[K, V] = {
     val entry = state.skipList.pollLastEntry()
     if (entry != null) {
-      state.hashMap.foreach(_.remove(entry.getKey))
+      state.hashIndex.foreach(_.remove(ordering.comparableKey(entry.getKey)))
       sizer.decrementAndGet()
     }
     entry
@@ -135,7 +136,7 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
   def pollFirstEntry(): Map.Entry[K, V] = {
     val entry = state.skipList.pollFirstEntry()
     if (entry != null) {
-      state.hashMap.foreach(_.remove(entry.getKey))
+      state.hashIndex.foreach(_.remove(ordering.comparableKey(entry.getKey)))
       sizer.decrementAndGet()
     }
     entry
