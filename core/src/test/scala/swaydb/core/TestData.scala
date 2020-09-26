@@ -183,6 +183,7 @@ object TestData {
             pathsDistributor = level.pathDistributor,
             removeDeletes = false,
             minSegmentSize = Int.MaxValue,
+            enableHashIndex = level.hashIndexConfig.isHashIndexEnabledForMemory,
             maxKeyValueCountPerSegment = Int.MaxValue,
             createdInLevel = level.levelNumber
           )

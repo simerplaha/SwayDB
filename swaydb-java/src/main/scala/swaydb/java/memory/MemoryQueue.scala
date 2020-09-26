@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
+import swaydb.data.OptimiseWrites
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
@@ -47,6 +48,8 @@ object MemoryQueue {
                         private var minSegmentSize: Int = 2.mb,
                         private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                         private var deleteSegmentsEventually: Boolean = true,
+                        private var enableHashIndexForSegments: Boolean = true,
+                        private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWritesForQueue(),
                         private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -62,6 +65,16 @@ object MemoryQueue {
 
     def setMinSegmentSize(minSegmentSize: Int) = {
       this.minSegmentSize = minSegmentSize
+      this
+    }
+
+    def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
+      this.optimiseWrites = optimiseWrites
+      this
+    }
+
+    def setEnableHashIndexForSegments(boolean: Boolean) = {
+      this.enableHashIndexForSegments = boolean
       this
     }
 
@@ -113,6 +126,8 @@ object MemoryQueue {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
+          optimiseWrites = optimiseWrites,
+          enableHashIndexForSegments = enableHashIndexForSegments,
           acceleration = acceleration.asScala,
           levelZeroThrottle = levelZeroThrottle.asScala,
           lastLevelThrottle = lastLevelThrottle.asScala,

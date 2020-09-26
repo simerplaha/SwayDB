@@ -37,7 +37,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions}
+import swaydb.data.{DataType, Functions, OptimiseWrites}
 import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}
@@ -64,6 +64,8 @@ object EventuallyPersistentMap {
                               private var cacheKeyValueIds: Boolean = true,
                               private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                               private var deleteMemorySegmentsEventually: Boolean = true,
+                              private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                              private var enableHashIndexForMemorySegments: Boolean = true,
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                               private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                               private var persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -84,6 +86,16 @@ object EventuallyPersistentMap {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
+      this.optimiseWrites = optimiseWrites
+      this
+    }
+
+    def setEnableHashIndexForMemorySegments(boolean: Boolean) = {
+      this.enableHashIndexForMemorySegments = boolean
       this
     }
 
@@ -232,6 +244,8 @@ object EventuallyPersistentMap {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          enableHashIndexForMemorySegments = enableHashIndexForMemorySegments,
+          optimiseWrites = optimiseWrites,
           acceleration = acceleration.apply,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
           persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,

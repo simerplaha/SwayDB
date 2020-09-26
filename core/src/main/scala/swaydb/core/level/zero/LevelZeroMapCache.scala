@@ -44,22 +44,29 @@ private[core] object LevelZeroMapCache {
                        timeOrder: TimeOrder[Slice[Byte]],
                        functionStore: FunctionStore,
                        optimiseWrites: OptimiseWrites): MapCacheBuilder[LevelZeroMapCache] =
-    () => {
-      val skipList = newLevelZeroSkipList()
+    (enableHashIndex: Boolean) => {
+      implicit val updatedOptimiseWrites: OptimiseWrites =
+        if (enableHashIndex && !optimiseWrites.enableHashIndex)
+          optimiseWrites.copyWithEnableHashIndex(enableHashIndex)
+        else
+          optimiseWrites
+
+      val skipList = newLevelZeroSkipList()(keyOrder, updatedOptimiseWrites)
 
       val skipLists = LeveledSkipLists(skipList = skipList, hasRange = false, keyValueCount = 0)
 
-      new LevelZeroMapCache(skipLists)
+      new LevelZeroMapCache(skipLists)(keyOrder, timeOrder, functionStore, updatedOptimiseWrites)
     }
 
   private def newLevelZeroSkipList()(implicit keyOrder: KeyOrder[Slice[Byte]],
                                      optimiseWrites: OptimiseWrites): LevelSkipList =
     optimiseWrites match {
-      case OptimiseWrites.RandomOrder =>
+      case OptimiseWrites.RandomOrder(enableHashIndex) =>
         val skipList =
           SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
             nullKey = Slice.Null,
-            nullValue = Memory.Null
+            nullValue = Memory.Null,
+            enableHashIndex = enableHashIndex
           )
 
         LevelSkipList(skipList = skipList, hasRange = false)

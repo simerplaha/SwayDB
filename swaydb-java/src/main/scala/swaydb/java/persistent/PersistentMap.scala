@@ -38,7 +38,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions}
+import swaydb.data.{DataType, Functions, OptimiseWrites}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.persistent.DefaultConfigs
@@ -66,6 +66,7 @@ object PersistentMap {
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                               private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                               private var randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                              private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                               private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                               private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                               private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
@@ -95,6 +96,11 @@ object PersistentMap {
 
     def setAppliedFunctionsMapSize(size: Int) = {
       this.appliedFunctionsMapSize = size
+      this
+    }
+
+    def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
+      this.optimiseWrites = optimiseWrites
       this
     }
 
@@ -255,6 +261,7 @@ object PersistentMap {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
+          optimiseWrites = optimiseWrites,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

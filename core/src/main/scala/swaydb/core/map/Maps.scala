@@ -53,6 +53,7 @@ private[core] object Maps extends LazyLogging {
   val closeErrorMessage = "Cannot perform write on a closed instance."
 
   def memory[K, V, C <: MapCache[K, V]](fileSize: Long,
+                                        enableHashIndex: Boolean,
                                         acceleration: LevelZeroMeter => Accelerator)(implicit keyOrder: KeyOrder[K],
                                                                                      fileSweeper: FileSweeperActor,
                                                                                      bufferCleaner: ByteBufferSweeperActor,
@@ -64,10 +65,12 @@ private[core] object Maps extends LazyLogging {
       maps = new ConcurrentLinkedDeque[Map[K, V, C]](),
       fileSize = fileSize,
       acceleration = acceleration,
+      enableHashIndex = enableHashIndex,
       currentMap =
         Map.memory[K, V, C](
           fileSize = fileSize,
-          flushOnOverflow = false
+          flushOnOverflow = false,
+          enableHashIndex = enableHashIndex
         )
     )
 
@@ -75,21 +78,23 @@ private[core] object Maps extends LazyLogging {
                                             mmap: MMAP.Map,
                                             fileSize: Long,
                                             acceleration: LevelZeroMeter => Accelerator,
-                                            recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
-                                                                    fileSweeper: FileSweeperActor,
-                                                                    bufferCleaner: ByteBufferSweeperActor,
-                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                    reader: MapEntryReader[MapEntry[K, V]],
-                                                                    cacheBuilder: MapCacheBuilder[C],
-                                                                    timer: Timer,
-                                                                    forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, Maps[K, V, C]] = {
+                                            recovery: RecoveryMode,
+                                            enableHashIndex: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                      fileSweeper: FileSweeperActor,
+                                                                      bufferCleaner: ByteBufferSweeperActor,
+                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                      reader: MapEntryReader[MapEntry[K, V]],
+                                                                      cacheBuilder: MapCacheBuilder[C],
+                                                                      timer: Timer,
+                                                                      forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, Maps[K, V, C]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
     recover[K, V, C](
       folder = path,
       mmap = mmap,
       fileSize = fileSize,
-      recovery = recovery
+      recovery = recovery,
+      enableHashIndex = enableHashIndex
     ).map(_.reverse) flatMap {
       recoveredMapsReversed =>
         logger.info(s"{}: Recovered {} ${if (recoveredMapsReversed.isEmpty || recoveredMapsReversed.size > 1) "logs" else "log"}.", path, recoveredMapsReversed.size)
@@ -122,12 +127,19 @@ private[core] object Maps extends LazyLogging {
                 mmap = mmap,
                 flushOnOverflow = false,
                 fileSize = fileSize,
-                dropCorruptedTailEntries = recovery.drop
+                dropCorruptedTailEntries = recovery.drop,
+                enableHashIndex = enableHashIndex
               )
             } map {
               nextMap =>
                 logger.debug(s"{}: Next map created with ID {}.", path, nextMapId)
-                new Maps[K, V, C](queue, fileSize, acceleration, nextMap.item)
+                new Maps[K, V, C](
+                  maps = queue,
+                  fileSize = fileSize,
+                  acceleration = acceleration,
+                  enableHashIndex = enableHashIndex,
+                  currentMap = nextMap.item
+                )
             }
         }
     }
@@ -136,6 +148,7 @@ private[core] object Maps extends LazyLogging {
   private def recover[K, V, C <: MapCache[K, V]](folder: Path,
                                                  mmap: MMAP.Map,
                                                  fileSize: Long,
+                                                 enableHashIndex: Boolean,
                                                  recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
                                                                          fileSweeper: FileSweeperActor,
                                                                          bufferCleaner: ByteBufferSweeperActor,
@@ -210,6 +223,7 @@ private[core] object Maps extends LazyLogging {
               mmap = mmap,
               flushOnOverflow = false,
               fileSize = fileSize,
+              enableHashIndex = enableHashIndex,
               dropCorruptedTailEntries = recovery.drop
             )
           } match {
@@ -259,6 +273,7 @@ private[core] object Maps extends LazyLogging {
   }
 
   def nextMapUnsafe[K, V, C <: MapCache[K, V]](nextMapSize: Long,
+                                               enableHashIndex: Boolean,
                                                currentMap: Map[K, V, C])(implicit keyOrder: KeyOrder[K],
                                                                          fileSweeper: FileSweeperActor,
                                                                          bufferCleaner: ByteBufferSweeperActor,
@@ -272,13 +287,15 @@ private[core] object Maps extends LazyLogging {
           folder = currentMap.path.incrementFolderId,
           mmap = currentMap.mmap,
           flushOnOverflow = false,
-          fileSize = nextMapSize
+          fileSize = nextMapSize,
+          enableHashIndex = enableHashIndex
         )
 
       case _ =>
         Map.memory[K, V, C](
           fileSize = nextMapSize,
-          flushOnOverflow = false
+          flushOnOverflow = false,
+          enableHashIndex = enableHashIndex
         )
     }
 
@@ -337,6 +354,7 @@ private[core] object Maps extends LazyLogging {
 private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDeque[Map[K, V, C]],
                                                     fileSize: Long,
                                                     acceleration: LevelZeroMeter => Accelerator,
+                                                    enableHashIndex: Boolean,
                                                     @volatile private var currentMap: Map[K, V, C])(implicit keyOrder: KeyOrder[K],
                                                                                                     fileSweeper: FileSweeperActor,
                                                                                                     val bufferCleaner: ByteBufferSweeperActor,
@@ -381,7 +399,13 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDe
     }
 
   private def initNextMap(mapSize: Long) = {
-    val nextMap = Maps.nextMapUnsafe(mapSize, currentMap)
+    val nextMap =
+      Maps.nextMapUnsafe(
+        nextMapSize = mapSize,
+        enableHashIndex = enableHashIndex,
+        currentMap = currentMap
+      )
+
     maps addFirst currentMap
     currentMap = nextMap
     totalMapsCount += 1

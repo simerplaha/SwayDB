@@ -291,7 +291,7 @@ object CommonAssertions {
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Iterable[Memory] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
     implicit val optimiseWrites = OptimiseWrites.random
-    val cache = LevelZeroMapCache.builder.create()
+    val cache = LevelZeroMapCache.builder.create(randomBoolean())
     (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach {
       memory =>
         //        if (randomBoolean())
@@ -629,10 +629,10 @@ object CommonAssertions {
     def shouldBe(expected: MapEntry[Slice[Byte], Segment]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
 
-      val actualMap = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
+      val actualMap = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null, randomBoolean())(KeyOrder.default)
       actual.applyTo(actualMap)
 
-      val expectedMap = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
+      val expectedMap = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null, randomBoolean())(KeyOrder.default)
       expected.applyTo(expectedMap)
 
       actualMap.size shouldBe expectedMap.size
@@ -1761,9 +1761,9 @@ object CommonAssertions {
   }
 
   implicit class OptimiseWritesImplicits(optimise: OptimiseWrites.type) {
-    def random =
+    def random: OptimiseWrites =
       if (randomBoolean())
-        OptimiseWrites.RandomOrder
+        OptimiseWrites.RandomOrder(randomBoolean())
       else
         OptimiseWrites.SequentialOrder(randomBoolean(), randomIntMax(100) max 1)
   }
@@ -1846,7 +1846,7 @@ object CommonAssertions {
         case Right(value) =>
           //asMergedSkipList can be called multiples times within the test. Clear asMergedSkipList to re-cache.
           cache.mergedKeyValuesCache.clear()
-          val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(cache.keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, randomBoolean())(cache.keyOrder)
           value.foreach {
             memory =>
               skipList.put(memory.key, memory)

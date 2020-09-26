@@ -68,7 +68,7 @@ private[core] object SkipListSeries {
   def randomWriteWarning(count: Int) =
     s"Performance warning! Random write inserted $count ${English.plural(count, "time")}. " +
       s"${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.SequentialOrder].getSimpleName} is not optimised for random writes. " +
-      s"Consider using ${OptimiseWrites.productPrefix}.${OptimiseWrites.RandomOrder.productPrefix}."
+      s"Consider using ${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.RandomOrder].getSimpleName}."
 
   private[skiplist] class State[K, V](@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
                                       val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])

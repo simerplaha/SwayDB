@@ -92,10 +92,11 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
             flushOnOverflow = true,
             fileSize = 1.mb,
+            enableHashIndex = optimiseWrites.enableHashIndex,
             dropCorruptedTailEntries = false
           ).runRandomIO.right.value.item.sweep()
         else
-          Map.memory[Slice[Byte], Memory, LevelZeroMapCache]()
+          Map.memory[Slice[Byte], Memory, LevelZeroMapCache](enableHashIndex = optimiseWrites.enableHashIndex)
 
       val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
       keyValues foreach {
@@ -175,9 +176,10 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
             flushOnOverflow = true,
             fileSize = 1.mb,
-            dropCorruptedTailEntries = false).runRandomIO.right.value.item.sweep()
+            dropCorruptedTailEntries = false,
+            enableHashIndex = optimiseWrites.enableHashIndex).runRandomIO.right.value.item.sweep()
         else
-          Map.memory[Slice[Byte], Memory, LevelZeroMapCache]()
+          Map.memory[Slice[Byte], Memory, LevelZeroMapCache](enableHashIndex = optimiseWrites.enableHashIndex)
 
       val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
       keyValues foreach {

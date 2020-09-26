@@ -24,6 +24,7 @@
 
 package swaydb.eventually.persistent
 
+import swaydb.data.OptimiseWrites
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
 import swaydb.data.util.StorageUnits._
@@ -143,4 +144,10 @@ object DefaultConfigs {
           ec = ec
         )
     )
+
+  def optimiseWrites(): OptimiseWrites.RandomOrder =
+    OptimiseWrites.RandomOrder(enableHashIndex = false)
+
+  def optimiseWritesForQueue(): OptimiseWrites.SequentialOrder =
+    OptimiseWrites.SequentialOrder(enableHashIndex = true, initialLength = 100000)
 }

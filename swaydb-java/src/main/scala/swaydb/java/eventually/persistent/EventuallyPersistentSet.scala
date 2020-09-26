@@ -37,7 +37,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions}
+import swaydb.data.{DataType, Functions, OptimiseWrites}
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
@@ -64,6 +64,8 @@ object EventuallyPersistentSet {
                            private var cacheKeyValueIds: Boolean = true,
                            private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                            private var deleteMemorySegmentsEventually: Boolean = true,
+                           private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                           private var enableHashIndexForMemorySegments: Boolean = true,
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -83,6 +85,16 @@ object EventuallyPersistentSet {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
+      this.optimiseWrites = optimiseWrites
+      this
+    }
+
+    def setEnableHashIndexForMemorySegments(boolean: Boolean) = {
+      this.enableHashIndexForMemorySegments = boolean
       this
     }
 
@@ -229,8 +241,10 @@ object EventuallyPersistentSet {
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
+          enableHashIndexForMemorySegments = enableHashIndexForMemorySegments,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          optimiseWrites = optimiseWrites,
           acceleration = acceleration.apply,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
           persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,

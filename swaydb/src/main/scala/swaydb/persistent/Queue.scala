@@ -58,7 +58,7 @@ object Queue extends LazyLogging {
                        cacheKeyValueIds: Boolean = true,
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                       optimiseWrites: OptimiseWrites = OptimiseWrites.SequentialOrder(enableHashIndex = true, initialLength = 100000),
+                       optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWritesForQueue(),
                        sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                        randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
                        binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),

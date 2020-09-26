@@ -45,6 +45,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             mapSize: Int,
             appliedFunctionsMapSize: Int,
             clearAppliedFunctionsOnBoot: Boolean,
+            enableHashIndexForMemorySegments: Boolean,
             maxMemoryLevelSize: Int,
             maxSegmentsToPush: Int,
             memoryLevelMinSegmentSize: Int,
@@ -73,6 +74,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
       .withMemoryLevel1(
         minSegmentSize = memoryLevelMinSegmentSize,
         maxKeyValuesPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
+        enableHashIndexForSegments = enableHashIndexForMemorySegments,
         copyForward = false,
         deleteSegmentsEventually = deleteMemorySegmentsEventually,
         compactionExecutionContext = CompactionExecutionContext.Shared,

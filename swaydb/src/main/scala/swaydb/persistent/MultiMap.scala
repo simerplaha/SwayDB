@@ -68,7 +68,7 @@ object MultiMap extends LazyLogging {
                                                           appendixFlushCheckpointSize: Int = 2.mb,
                                                           otherDirs: Seq[Dir] = Seq.empty,
                                                           cacheKeyValueIds: Boolean = true,
-                                                          optimiseWrites: OptimiseWrites = OptimiseWrites.RandomOrder,
+                                                          optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                                                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                           sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),

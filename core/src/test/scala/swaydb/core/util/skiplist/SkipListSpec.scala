@@ -39,14 +39,24 @@ import swaydb.data.RunThis._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
 
-class Concurrent_SkipListSpec extends SkipListSpec {
+class Concurrent_HashIndex_Disabled_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipListConcurrent[NK, NV, K, V](nullKey, nullValue)
+    SkipListConcurrent[NK, NV, K, V](nullKey, nullValue, enableHashIndex = false)
 }
 
-class TreeMap_SkipListSpec extends SkipListSpec {
+class Concurrent_HashIndex_Enabled_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipListTreeMap[NK, NV, K, V](nullKey, nullValue)
+    SkipListConcurrent[NK, NV, K, V](nullKey, nullValue, enableHashIndex = true)
+}
+
+class TreeMap_HashIndex_Disabled_SkipListSpec extends SkipListSpec {
+  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
+    SkipListTreeMap[NK, NV, K, V](nullKey, nullValue, enableHashIndex = false)
+}
+
+class TreeMap_HashIndex_Enabled_SkipListSpec extends SkipListSpec {
+  override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
+    SkipListTreeMap[NK, NV, K, V](nullKey, nullValue, enableHashIndex = true)
 }
 
 class Series_HashIndex_Disabled_SkipListSpec extends SkipListSpec {

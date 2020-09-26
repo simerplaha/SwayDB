@@ -43,7 +43,8 @@ object SkipListConcurrentLimit {
       skipList =
         SkipListConcurrent[OK, OV, K, V](
           nullKey = nullKey,
-          nullValue = nullValue
+          nullValue = nullValue,
+          enableHashIndex = false
         ),
       nullKey = nullKey,
       nullValue = nullValue

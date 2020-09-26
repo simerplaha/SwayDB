@@ -24,6 +24,7 @@
 
 package swaydb.persistent
 
+import swaydb.data.OptimiseWrites
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
@@ -48,6 +49,9 @@ object DefaultConfigs {
         )
     )
 
+  def optimiseWritesForQueue(): OptimiseWrites.SequentialOrder =
+    OptimiseWrites.SequentialOrder(enableHashIndex = true, initialLength = 100000)
+
   def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.Enable =
     SortedKeyIndex.Enable(
       prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
@@ -58,6 +62,9 @@ object DefaultConfigs {
       },
       compressions = _ => Seq.empty
     )
+
+  def optimiseWrites(): OptimiseWrites.RandomOrder =
+    OptimiseWrites.RandomOrder(enableHashIndex = false)
 
   def randomKeyIndex(cacheDataBlockOnAccess: Boolean = true): RandomKeyIndex.Enable =
     RandomKeyIndex.Enable(

@@ -51,7 +51,8 @@ object Map extends LazyLogging {
                                                        maxKeyValuesPerSegment: Int = Int.MaxValue,
                                                        fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                        deleteSegmentsEventually: Boolean = true,
-                                                       optimiseWrites: OptimiseWrites = OptimiseWrites.RandomOrder,
+                                                       optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                                                       enableHashIndexForSegments: Boolean = true,
                                                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                        levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                                                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
@@ -77,10 +78,11 @@ object Map extends LazyLogging {
             DefaultMemoryConfig(
               mapSize = mapSize,
               appliedFunctionsMapSize = 0,
-              clearAppliedFunctionsOnBoot = false, //memory instance don't use appliedFunctionsMap.
-              minSegmentSize = minSegmentSize,
+              clearAppliedFunctionsOnBoot = false,
+              minSegmentSize = minSegmentSize, //memory instance don't use appliedFunctionsMap.
               maxKeyValuesPerSegment = maxKeyValuesPerSegment,
               deleteSegmentsEventually = deleteSegmentsEventually,
+              enableHashIndexForSegments = enableHashIndexForSegments,
               acceleration = acceleration,
               levelZeroThrottle = levelZeroThrottle,
               lastLevelThrottle = lastLevelThrottle,

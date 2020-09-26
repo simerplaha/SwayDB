@@ -36,6 +36,7 @@ class MemoryLevelConfigBuilder {
   private var maxKeyValuesPerSegment: Int = _
   private var copyForward: Boolean = _
   private var deleteSegmentsEventually: Boolean = _
+  private var enableHashIndexForSegments: Boolean = _
   private var compactionExecutionContext: CompactionExecutionContext = _
 }
 
@@ -77,6 +78,13 @@ object MemoryLevelConfigBuilder {
   }
 
   class Step5(builder: MemoryLevelConfigBuilder) {
+    def enableHashIndexForSegments(enableHashIndexForSegments: Boolean) = {
+      builder.enableHashIndexForSegments = enableHashIndexForSegments
+      new Step6(builder)
+    }
+  }
+
+  class Step6(builder: MemoryLevelConfigBuilder) {
     def throttle(throttle: JavaFunction[LevelMeter, Throttle]) =
       new MemoryLevelConfig(
         minSegmentSize = builder.minSegmentSize,
@@ -84,6 +92,7 @@ object MemoryLevelConfigBuilder {
         copyForward = builder.copyForward,
         deleteSegmentsEventually = builder.deleteSegmentsEventually,
         compactionExecutionContext = builder.compactionExecutionContext,
+        enableHashIndexForSegments = builder.enableHashIndexForSegments,
         throttle = throttle.apply
       )
   }

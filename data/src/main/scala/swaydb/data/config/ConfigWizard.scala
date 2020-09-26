@@ -157,6 +157,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
                        maxKeyValuesPerSegment: Int,
                        copyForward: Boolean,
                        deleteSegmentsEventually: Boolean,
+                       enableHashIndexSegments: Boolean,
                        compactionExecutionContext: CompactionExecutionContext,
                        throttle: LevelMeter => Throttle) =
     SwayDBPersistentConfig(
@@ -166,6 +167,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           copyForward = copyForward,
+          enableHashIndexForSegments = enableHashIndexSegments,
           deleteSegmentsEventually = deleteSegmentsEventually,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
@@ -238,6 +240,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
                        maxKeyValuesPerSegment: Int,
                        copyForward: Boolean,
                        deleteSegmentsEventually: Boolean,
+                       enableHashIndexForSegments: Boolean,
                        compactionExecutionContext: CompactionExecutionContext,
                        throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
     SwayDBMemoryConfig(
@@ -247,6 +250,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           copyForward = copyForward,
+          enableHashIndexForSegments = enableHashIndexForSegments,
           deleteSegmentsEventually = deleteSegmentsEventually,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
@@ -275,8 +279,13 @@ case class MemoryLevelConfig(minSegmentSize: Int,
                              maxKeyValuesPerSegment: Int,
                              copyForward: Boolean,
                              deleteSegmentsEventually: Boolean,
+                             enableHashIndexForSegments: Boolean,
                              compactionExecutionContext: CompactionExecutionContext,
                              throttle: LevelMeter => Throttle) extends LevelConfig {
+
+  def copyWithEnableHashIndexForSegments(enableHashIndex: Boolean) =
+    this.copy(enableHashIndexForSegments = enableHashIndex)
+
   def copyWithMinSegmentSize(minSegmentSize: Int) =
     this.copy(minSegmentSize = minSegmentSize)
 
@@ -425,6 +434,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
                       maxKeyValuesPerSegment: Int,
                       copyForward: Boolean,
                       deleteSegmentsEventually: Boolean,
+                      enableHashIndexForSegments: Boolean,
                       compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
@@ -433,6 +443,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
         minSegmentSize = minSegmentSize,
         maxKeyValuesPerSegment = maxKeyValuesPerSegment,
         copyForward = copyForward,
+        enableHashIndexForSegments = enableHashIndexForSegments,
         deleteSegmentsEventually = deleteSegmentsEventually,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
@@ -489,6 +500,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                       maxKeyValuesPerSegment: Int,
                       copyForward: Boolean,
                       deleteSegmentsEventually: Boolean,
+                      enableHashIndexForSegments: Boolean,
                       compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
 
@@ -498,6 +510,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           copyForward = copyForward,
+          enableHashIndexForSegments = enableHashIndexForSegments,
           deleteSegmentsEventually = deleteSegmentsEventually,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle

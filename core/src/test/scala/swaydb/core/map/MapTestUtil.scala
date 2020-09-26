@@ -79,6 +79,7 @@ object MapTestUtil {
         flushOnOverflow = map.flushOnOverflow,
         fileSize = map.fileSize,
         dropCorruptedTailEntries = false,
+        enableHashIndex = randomBoolean()
       ).runRandomIO.right.value.item.sweep()
     }
   }

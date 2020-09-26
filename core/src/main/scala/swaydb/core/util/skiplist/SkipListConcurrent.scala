@@ -24,23 +24,29 @@
 
 package swaydb.core.util.skiplist
 
-import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 
 import swaydb.data.order.KeyOrder
 
 object SkipListConcurrent {
+
   def apply[OK, OV, K <: OK, V <: OV](nullKey: OK,
-                                      nullValue: OV)(implicit ordering: KeyOrder[K]): SkipListConcurrent[OK, OV, K, V] =
+                                      nullValue: OV,
+                                      enableHashIndex: Boolean)(implicit ordering: KeyOrder[K]): SkipListConcurrent[OK, OV, K, V] =
     new SkipListConcurrent[OK, OV, K, V](
-      skipList = new ConcurrentSkipListMap[K, V](ordering),
+      state =
+        new NavigableSkipListState(
+          skipList = new ConcurrentSkipListMap[K, V](ordering),
+          hashMap = if (enableHashIndex) Some(new ConcurrentHashMap()) else None
+        ),
       nullKey = nullKey,
       nullValue = nullValue
     )
 }
 
-private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volatile protected var skipList: ConcurrentSkipListMap[K, V],
+private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volatile protected var state: NavigableSkipListState[K, V, ConcurrentSkipListMap[K, V], ConcurrentHashMap[K, V]],
                                                                          val nullKey: OK,
-                                                                         val nullValue: OV) extends SkipListNavigable[OK, OV, K, V, ConcurrentSkipListMap[K, V]](skipList.size()) with SkipListBatchable[OK, OV, K, V] {
+                                                                         val nullValue: OV) extends SkipListNavigable[OK, OV, K, V](state.skipList.size()) with SkipListBatchable[OK, OV, K, V] {
 
   /**
    * Does not support concurrent batch writes since it's only being used by [[swaydb.core.level.Level]] which
@@ -48,17 +54,29 @@ private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volati
    */
   def batch(transaction: SkipListConcurrent[OK, OV, K, V] => Unit): Unit = {
 
+    val cloneHashMap =
+      state.hashMap map {
+        oldHashMap =>
+          new ConcurrentHashMap[K, V](oldHashMap)
+      }
+
+    val clonedState =
+      new NavigableSkipListState[K, V, ConcurrentSkipListMap[K, V], ConcurrentHashMap[K, V]](
+        skipList = state.skipList.clone(),
+        hashMap = cloneHashMap
+      )
+
     val newSkipList =
       new SkipListConcurrent(
-        skipList = skipList.clone(),
+        state = clonedState,
         nullKey = nullKey,
         nullValue = nullValue
       )
 
     transaction(newSkipList)
 
-    this.skipList = newSkipList.skipList
-    sizer.set(this.skipList.size())
+    this.state = newSkipList.state
+    sizer.set(this.state.skipList.size())
   }
 
 }

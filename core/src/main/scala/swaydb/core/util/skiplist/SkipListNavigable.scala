@@ -37,77 +37,77 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV, SL <: util.NavigableMap[K, V]] private(protected val sizer: AtomicInteger) extends SkipList[OK, OV, K, V] {
+private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private(protected val sizer: AtomicInteger) extends SkipList[OK, OV, K, V] {
 
-  protected def skipList: SL
+  protected def state: NavigableSkipListState[K, V, util.NavigableMap[K, V], util.Map[K, V]]
 
   def this(int: Int) {
     this(new AtomicInteger(int))
   }
 
   override def get(key: K): OV =
-    toOptionValue(skipList.get(key))
+    toOptionValue(state.skipList.get(key))
 
   override def remove(key: K): Unit =
-    if (skipList.remove(key) != null)
+    if (state.skipList.remove(key) != null)
       sizer.decrementAndGet()
 
   override def put(key: K, value: V): Unit =
-    if (skipList.put(key, value) == null)
+    if (state.skipList.put(key, value) == null)
       sizer.incrementAndGet()
 
   override def putIfAbsent(key: K, value: V): Boolean = {
-    val added = skipList.putIfAbsent(key, value) == null
+    val added = state.skipList.putIfAbsent(key, value) == null
     if (added) sizer.incrementAndGet()
     added
   }
 
   def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] =
-    skipList.subMap(from, fromInclusive, to, toInclusive).asScala
+    state.skipList.subMap(from, fromInclusive, to, toInclusive).asScala
 
   override def floor(key: K): OV =
-    toOptionValue(skipList.floorEntry(key))
+    toOptionValue(state.skipList.floorEntry(key))
 
   override def floorKeyValue(key: K): Option[(K, V)] =
-    toOptionKeyValue(skipList.floorEntry(key))
+    toOptionKeyValue(state.skipList.floorEntry(key))
 
   override def higher(key: K): OV =
-    toOptionValue(skipList.higherEntry(key))
+    toOptionValue(state.skipList.higherEntry(key))
 
   override def higherKeyValue(key: K): Option[(K, V)] =
-    toOptionKeyValue(skipList.higherEntry(key))
+    toOptionKeyValue(state.skipList.higherEntry(key))
 
   override def ceiling(key: K): OV =
-    toOptionValue(skipList.ceilingEntry(key))
+    toOptionValue(state.skipList.ceilingEntry(key))
 
   def isEmpty: Boolean =
-    skipList.isEmpty
+    state.skipList.isEmpty
 
   override def nonEmpty: Boolean =
     !isEmpty
 
   override def clear(): Unit = {
-    skipList.clear()
+    state.skipList.clear()
     sizer.set(0)
   }
 
   def contains(key: K): Boolean =
-    skipList.containsKey(key)
+    state.skipList.containsKey(key)
 
   def headKey: OK =
-    tryOptionKey(skipList.firstKey())
+    tryOptionKey(state.skipList.firstKey())
 
   def headKeyOrNull: K =
-    NullOps.tryOrNull(skipList.firstKey()).asInstanceOf[K]
+    NullOps.tryOrNull(state.skipList.firstKey()).asInstanceOf[K]
 
   def pollLastEntry(): Map.Entry[K, V] = {
-    val entry = skipList.pollLastEntry()
+    val entry = state.skipList.pollLastEntry()
     if (entry != null) sizer.decrementAndGet()
     entry
   }
 
   def pollFirstEntry(): Map.Entry[K, V] = {
-    val entry = skipList.pollFirstEntry()
+    val entry = state.skipList.pollFirstEntry()
     if (entry != null) sizer.decrementAndGet()
     entry
   }
@@ -116,43 +116,43 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV, SL <: u
     sizer.get()
 
   def headKeyValue: Option[(K, V)] =
-    tryOptionKeyValue(skipList.firstEntry())
+    tryOptionKeyValue(state.skipList.firstEntry())
 
   def lastKeyValue: Option[(K, V)] =
-    tryOptionKeyValue(skipList.lastEntry())
+    tryOptionKeyValue(state.skipList.lastEntry())
 
   def lastKey: OK =
-    tryOptionKey(skipList.lastKey())
+    tryOptionKey(state.skipList.lastKey())
 
   def lastKeyOrNull: K =
-    NullOps.tryOrNull(skipList.lastKey()).asInstanceOf[K]
+    NullOps.tryOrNull(state.skipList.lastKey()).asInstanceOf[K]
 
   def ceilingKey(key: K): OK =
-    toOptionKey(skipList.ceilingKey(key))
+    toOptionKey(state.skipList.ceilingKey(key))
 
   def higherKey(key: K): OK =
-    toOptionKey(skipList.higherKey(key))
+    toOptionKey(state.skipList.higherKey(key))
 
   def lower(key: K): OV =
-    toOptionValue(skipList.lowerEntry(key))
+    toOptionValue(state.skipList.lowerEntry(key))
 
   def lowerKey(key: K): OK =
-    toOptionKey(skipList.lowerKey(key))
+    toOptionKey(state.skipList.lowerKey(key))
 
   def count() =
-    skipList.size()
+    state.skipList.size()
 
   def last(): OV =
-    toOptionValue(skipList.lastEntry())
+    toOptionValue(state.skipList.lastEntry())
 
   def head(): OV =
-    toOptionValue(skipList.firstEntry())
+    toOptionValue(state.skipList.firstEntry())
 
   def values(): Iterable[V] =
-    skipList.values().asScala
+    state.skipList.values().asScala
 
   def keys(): util.NavigableSet[K] =
-    skipList.navigableKeySet()
+    state.skipList.navigableKeySet()
 
   def take(count: Int)(implicit classTag: ClassTag[V]): Slice[V] = {
     val slice = Slice.of[V](count)
@@ -172,7 +172,7 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV, SL <: u
 
   def foldLeft[R](r: R)(f: (R, (K, V)) => R): R = {
     var result = r
-    skipList.forEach {
+    state.skipList.forEach {
       new BiConsumer[K, V] {
         override def accept(key: K, value: V): Unit =
           result = f(result, (key, value))
@@ -182,7 +182,7 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV, SL <: u
   }
 
   def foreach[R](f: (K, V) => R): Unit =
-    skipList.forEach {
+    state.skipList.forEach {
       new BiConsumer[K, V] {
         override def accept(key: K, value: V): Unit =
           f(key, value)
@@ -191,7 +191,7 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV, SL <: u
 
   def toSlice[V2 >: V : ClassTag](size: Int): Slice[V2] = {
     val slice = Slice.of[V2](size)
-    skipList.values() forEach {
+    state.skipList.values() forEach {
       new Consumer[V] {
         def accept(keyValue: V): Unit =
           slice add keyValue
@@ -201,5 +201,5 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV, SL <: u
   }
 
   override def asScala: mutable.Map[K, V] =
-    skipList.asScala
+    state.skipList.asScala
 }

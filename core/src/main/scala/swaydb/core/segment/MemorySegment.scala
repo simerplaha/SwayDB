@@ -102,6 +102,7 @@ protected case class MemorySegment(path: Path,
           maxKeyValueCountPerSegment = segmentConfig.maxCount,
           pathsDistributor = pathsDistributor,
           createdInLevel = createdInLevel,
+          enableHashIndex = hashIndexConfig.isHashIndexEnabledForMemory,
           keyValues = stats.close
         )
     }
@@ -134,6 +135,7 @@ protected case class MemorySegment(path: Path,
         maxKeyValueCountPerSegment = segmentConfig.maxCount,
         pathsDistributor = pathsDistributor,
         createdInLevel = createdInLevel,
+        enableHashIndex = hashIndexConfig.isHashIndexEnabledForMemory,
         keyValues = mergeStats
       )
     }

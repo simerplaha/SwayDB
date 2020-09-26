@@ -31,18 +31,23 @@ import swaydb.data.order.KeyOrder
 object SkipListTreeMap {
 
   def apply[OK, OV, K <: OK, V <: OV](nullKey: OK,
-                                      nullValue: OV)(implicit ordering: KeyOrder[K]): SkipListTreeMap[OK, OV, K, V] =
+                                      nullValue: OV,
+                                      enableHashIndex: Boolean)(implicit ordering: KeyOrder[K]): SkipListTreeMap[OK, OV, K, V] =
     new SkipListTreeMap[OK, OV, K, V](
-      skipList = new util.TreeMap[K, V](ordering),
+      state =
+        new NavigableSkipListState(
+          skipList = new util.TreeMap[K, V](ordering),
+          hashMap = if (enableHashIndex) Some(new util.HashMap()) else None
+        ),
       nullKey = nullKey,
       nullValue = nullValue
     )
 
 }
 
-private[core] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(protected val skipList: util.TreeMap[K, V],
+private[core] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(protected val state: NavigableSkipListState[K, V, util.TreeMap[K, V], util.HashMap[K, V]],
                                                                       val nullKey: OK,
-                                                                      val nullValue: OV) extends SkipListNavigable[OK, OV, K, V, util.TreeMap[K, V]](skipList.size()) {
+                                                                      val nullValue: OV) extends SkipListNavigable[OK, OV, K, V](state.skipList.size()) {
 
   override def remove(key: K): Unit =
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")

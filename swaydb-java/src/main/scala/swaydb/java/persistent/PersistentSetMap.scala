@@ -33,7 +33,7 @@ import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
-import swaydb.data.DataType
+import swaydb.data.{DataType, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -70,6 +70,7 @@ object PersistentSetMap {
                            private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                            private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
+                           private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                            private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -87,6 +88,11 @@ object PersistentSetMap {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
+      this.optimiseWrites = optimiseWrites
       this
     }
 
@@ -240,6 +246,7 @@ object PersistentSetMap {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
+          optimiseWrites = optimiseWrites,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

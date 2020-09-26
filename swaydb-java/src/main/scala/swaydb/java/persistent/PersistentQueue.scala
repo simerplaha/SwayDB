@@ -31,7 +31,7 @@ import java.util.concurrent.ExecutorService
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
-import swaydb.data.DataType
+import swaydb.data.{DataType, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -61,6 +61,7 @@ object PersistentQueue {
                         private var randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
                         private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                         private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+                        private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWritesForQueue(),
                         private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                         private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                         private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -83,6 +84,11 @@ object PersistentQueue {
 
     def setMmapMaps(mmapMaps: MMAP.Map) = {
       this.mmapMaps = mmapMaps
+      this
+    }
+
+    def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
+      this.optimiseWrites = optimiseWrites
       this
     }
 
@@ -214,6 +220,7 @@ object PersistentQueue {
           cacheKeyValueIds = cacheKeyValueIds,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
+          optimiseWrites = optimiseWrites,
           sortedKeyIndex = sortedKeyIndex,
           randomKeyIndex = randomKeyIndex,
           binarySearchIndex = binarySearchIndex,

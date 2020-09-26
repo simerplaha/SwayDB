@@ -24,10 +24,22 @@
 
 package swaydb.data
 
-sealed trait OptimiseWrites
+sealed trait OptimiseWrites {
+  def enableHashIndex: Boolean
+
+  def copyWithEnableHashIndex(enableHashIndex: Boolean): OptimiseWrites
+}
+
 case object OptimiseWrites {
 
-  case object RandomOrder extends OptimiseWrites
-  case class SequentialOrder(enableHashIndex: Boolean, initialLength: Int) extends OptimiseWrites
+  case class RandomOrder(enableHashIndex: Boolean) extends OptimiseWrites {
+    override def copyWithEnableHashIndex(enableHashIndex: Boolean): RandomOrder =
+      copy(enableHashIndex = enableHashIndex)
+  }
+
+  case class SequentialOrder(enableHashIndex: Boolean, initialLength: Int) extends OptimiseWrites {
+    override def copyWithEnableHashIndex(enableHashIndex: Boolean): SequentialOrder =
+      copy(enableHashIndex = enableHashIndex)
+  }
 
 }

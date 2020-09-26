@@ -36,6 +36,7 @@ protected sealed trait SegmentReadStateOption extends SomeOrNone[SegmentReadStat
 }
 
 protected object SegmentReadState {
+
   final case object Null extends SegmentReadStateOption {
     override def isNoneS: Boolean = true
     override def getS: SegmentReadState = throw new Exception("SegmentState is of type Null")

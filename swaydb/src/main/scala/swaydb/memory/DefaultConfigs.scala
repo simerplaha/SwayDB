@@ -24,6 +24,7 @@
 
 package swaydb.memory
 
+import swaydb.data.OptimiseWrites
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{ActorConfig, FileCache}
@@ -49,4 +50,10 @@ object DefaultConfigs {
 
   def lastLevelThrottle(meter: LevelMeter): Throttle =
     swaydb.persistent.DefaultConfigs.levelSixThrottle(meter)
+
+  def optimiseWrites(): OptimiseWrites.RandomOrder =
+    OptimiseWrites.RandomOrder(enableHashIndex = false)
+
+  def optimiseWritesForQueue(): OptimiseWrites.SequentialOrder =
+    OptimiseWrites.SequentialOrder(enableHashIndex = true, initialLength = 100000)
 }

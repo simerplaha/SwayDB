@@ -32,7 +32,7 @@ import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
-import swaydb.data.DataType
+import swaydb.data.{DataType, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
@@ -61,6 +61,8 @@ object EventuallyPersistentSetMap {
                            private var cacheKeyValueIds: Boolean = true,
                            private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                            private var deleteMemorySegmentsEventually: Boolean = true,
+                           private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                           private var enableHashIndexForMemorySegments: Boolean = true,
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -79,6 +81,16 @@ object EventuallyPersistentSetMap {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
+      this.optimiseWrites = optimiseWrites
+      this
+    }
+
+    def setEnableHashIndexForMemorySegments(boolean: Boolean) = {
+      this.enableHashIndexForMemorySegments = boolean
       this
     }
 
@@ -215,6 +227,8 @@ object EventuallyPersistentSetMap {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          optimiseWrites = optimiseWrites,
+          enableHashIndexForMemorySegments = enableHashIndexForMemorySegments,
           acceleration = acceleration.apply,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
           persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,

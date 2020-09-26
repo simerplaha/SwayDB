@@ -186,7 +186,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
               Level(
                 bloomFilterConfig = BloomFilterBlock.Config.disabled,
-                hashIndexConfig = block.hashindex.HashIndexBlock.Config.disabled,
+                hashIndexConfig = if (config.enableHashIndexForSegments) block.hashindex.HashIndexBlock.Config.enabledForMemory else block.hashindex.HashIndexBlock.Config.disabled,
                 binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config.disabled,
                 sortedIndexConfig = SortedIndexBlock.Config.disabled,
                 valuesConfig = ValuesBlock.Config.disabled,
@@ -255,7 +255,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     storage = config.level0.storage,
                     enableTimer = enableTimer,
                     cacheKeyValueIds = cacheKeyValueIds,
-                    coreState= coreState,
+                    coreState = coreState,
                     nextLevel = Some(level1),
                     acceleration = config.level0.acceleration,
                     throttle = config.level0.throttle

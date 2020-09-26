@@ -62,6 +62,7 @@ case object AppliedFunctions extends LazyLogging {
       mmap = mmap,
       flushOnOverflow = true,
       fileSize = fileSize,
+      enableHashIndex = false,
       dropCorruptedTailEntries = false
     )
   }

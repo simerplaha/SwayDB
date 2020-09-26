@@ -25,7 +25,7 @@
 package swaydb.core.map.applied
 
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
-import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
+import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -33,8 +33,14 @@ import swaydb.data.slice.{Slice, SliceOption}
 object AppliedFunctionsCache {
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]]) =
     new MapCacheBuilder[AppliedFunctionsCache] {
-      override def create(): AppliedFunctionsCache =
-        AppliedFunctionsCache(SkipListConcurrent(Slice.Null, Slice.Null))
+      override def create(enableHashIndex: Boolean): AppliedFunctionsCache =
+        AppliedFunctionsCache(
+          SkipListConcurrent(
+            nullKey = Slice.Null,
+            nullValue = Slice.Null,
+            enableHashIndex = false //not need for AppliedFunctions. Used for BootUp only.
+          )
+        )
     }
 }
 

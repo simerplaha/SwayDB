@@ -76,7 +76,7 @@ protected case object PersistentSegmentMany {
       if (segment.segments.isEmpty) {
         None
       } else {
-        val skipList = SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
+        val skipList = SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null, false)
         implicit val blockMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
         val firstSegmentOffset =
@@ -312,7 +312,7 @@ protected case object PersistentSegmentMany {
         footerCacheable = None
       )
 
-    val skipList = SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
+    val skipList = SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null, false)
 
 
     //this will also clear all the SegmentRef's

@@ -60,18 +60,13 @@ private[core] case object HashIndexBlock extends LazyLogging {
         compressions = _ => Seq.empty
       )
 
+    val enabledForMemory =
+      disabled.copy(maxProbe = 1)
+
     def apply(config: swaydb.data.config.RandomKeyIndex): Config =
       config match {
         case swaydb.data.config.RandomKeyIndex.Disable =>
-          Config(
-            maxProbe = -1,
-            minimumNumberOfKeys = Int.MaxValue,
-            allocateSpace = _ => Int.MinValue,
-            minimumNumberOfHits = Int.MaxValue,
-            format = HashIndexEntryFormat.Reference,
-            ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-            compressions = _ => Seq.empty
-          )
+          Config.disabled
 
         case enable: swaydb.data.config.RandomKeyIndex.Enable =>
           Config(
@@ -96,7 +91,10 @@ private[core] case object HashIndexBlock extends LazyLogging {
                     format: HashIndexEntryFormat,
                     allocateSpace: RandomKeyIndex.RequiredSpace => Int,
                     ioStrategy: IOAction => IOStrategy,
-                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
+                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+    def isHashIndexEnabledForMemory: Boolean =
+      maxProbe > 0
+  }
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 

@@ -22,10 +22,9 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.map
+package swaydb.core.util.skiplist
 
-trait MapCacheBuilder[C] {
+import java.util
 
-  def create(enableHashIndex: Boolean): C
-
-}
+private[skiplist] class NavigableSkipListState[K, V, +SL <: util.NavigableMap[K, V], +HM <: util.Map[K, V]](private[skiplist] val skipList: SL,
+                                                                                                            private[skiplist] val hashMap: Option[HM])

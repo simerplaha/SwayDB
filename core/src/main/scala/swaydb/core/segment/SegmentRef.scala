@@ -89,7 +89,8 @@ private[core] object SegmentRef {
             case None =>
               SkipListConcurrent(
                 nullKey = Slice.Null,
-                nullValue = Persistent.Null
+                nullValue = Persistent.Null,
+                enableHashIndex = false
               )
           }
       }
