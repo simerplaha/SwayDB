@@ -51,7 +51,7 @@ object Queue extends LazyLogging {
                        fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                        deleteSegmentsEventually: Boolean = true,
                        optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWritesForQueue(),
-                       enableHashIndexForSegments: Boolean = true,
+                       enableHashIndexForSegments: Boolean = false,
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,

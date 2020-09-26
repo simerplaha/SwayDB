@@ -53,7 +53,7 @@ object MemoryMap {
                               private var minSegmentSize: Int = 2.mb,
                               private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                               private var deleteSegmentsEventually: Boolean = true,
-                              private var enableHashIndexForSegments: Boolean = true,
+                              private var enableHashIndexForSegments: Boolean = false,
                               private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                               private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),

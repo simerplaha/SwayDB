@@ -54,7 +54,7 @@ object MemorySet {
                            private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                            private var deleteSegmentsEventually: Boolean = true,
                            private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                           private var enableHashIndexForSegments: Boolean = true,
+                           private var enableHashIndexForSegments: Boolean = false,
                            private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,

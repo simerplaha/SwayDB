@@ -62,7 +62,7 @@ object MultiMap extends LazyLogging {
                                                           fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                           deleteSegmentsEventually: Boolean = true,
                                                           optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                                                          enableHashIndexForSegments: Boolean = true,
+                                                          enableHashIndexForSegments: Boolean = false,
                                                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                           levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                                                           lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,

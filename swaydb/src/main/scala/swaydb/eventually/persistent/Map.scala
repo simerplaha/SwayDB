@@ -64,7 +64,7 @@ object Map extends LazyLogging {
                                                        cacheKeyValueIds: Boolean = true,
                                                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                        deleteMemorySegmentsEventually: Boolean = true,
-                                                       enableHashIndexForMemorySegments: Boolean = true,
+                                                       enableHashIndexForMemorySegments: Boolean = false,
                                                        optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                                                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                        persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
