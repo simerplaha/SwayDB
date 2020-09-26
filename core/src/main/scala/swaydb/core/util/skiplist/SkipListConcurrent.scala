@@ -38,7 +38,7 @@ object SkipListConcurrent {
     )
 }
 
-private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volatile var skipList: ConcurrentSkipListMap[K, V],
+private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volatile protected var skipList: ConcurrentSkipListMap[K, V],
                                                                          val nullKey: OK,
                                                                          val nullValue: OV) extends SkipListNavigable[OK, OV, K, V, ConcurrentSkipListMap[K, V]](skipList.size()) with SkipListBatchable[OK, OV, K, V] {
 

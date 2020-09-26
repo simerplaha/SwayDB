@@ -40,7 +40,7 @@ object SkipListTreeMap {
 
 }
 
-private[core] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(val skipList: util.TreeMap[K, V],
+private[core] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(protected val skipList: util.TreeMap[K, V],
                                                                       val nullKey: OK,
                                                                       val nullValue: OV) extends SkipListNavigable[OK, OV, K, V, util.TreeMap[K, V]](skipList.size()) {
 
@@ -48,8 +48,6 @@ private[core] class SkipListTreeMap[OK, OV, K <: OK, V <: OV] private(val skipLi
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
 
   // only single put is allowed. Used during the creation of this skipList.
-  // override def put(key: K, value: V): Unit
-
   override def putIfAbsent(key: K, value: V): Boolean =
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
 
