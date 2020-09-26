@@ -223,6 +223,9 @@ private[core] object LevelZeroMapCache {
         LevelZeroMapCache.insert(insert = insertRange, level = level, atomic = writeNonAtomic)
     }
 
+  /**
+   * @return the new SkipList is this write started a transactional write.
+   */
   @tailrec
   private def doWrite(head: MapEntry[Slice[Byte], Memory],
                       tail: List[MapEntry[Slice[Byte], Memory]],

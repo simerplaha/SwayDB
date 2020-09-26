@@ -59,7 +59,7 @@ object Queue extends LazyLogging {
                        cacheKeyValueIds: Boolean = true,
                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                        deleteMemorySegmentsEventually: Boolean = true,
-                       optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWritesForQueue(),
+                       optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                        enableHashIndexForMemorySegments: Boolean = false,
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),

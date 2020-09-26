@@ -61,7 +61,7 @@ object PersistentQueue {
                         private var randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
                         private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                         private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
-                        private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWritesForQueue(),
+                        private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                         private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                         private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                         private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),

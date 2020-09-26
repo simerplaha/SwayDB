@@ -49,9 +49,6 @@ object DefaultConfigs {
         )
     )
 
-  def optimiseWritesForQueue(): OptimiseWrites.SequentialOrder =
-    OptimiseWrites.SequentialOrder(enableHashIndex = true, initialLength = 100000)
-
   def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.Enable =
     SortedKeyIndex.Enable(
       prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),

@@ -147,7 +147,4 @@ object DefaultConfigs {
 
   def optimiseWrites(): OptimiseWrites.RandomOrder =
     OptimiseWrites.RandomOrder(enableHashIndex = false)
-
-  def optimiseWritesForQueue(): OptimiseWrites.SequentialOrder =
-    OptimiseWrites.SequentialOrder(enableHashIndex = true, initialLength = 100000)
 }
