@@ -27,6 +27,7 @@ package swaydb.core.util.skiplist
 import java.util.concurrent.ConcurrentHashMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.util.{English, WhenOccurs}
 import swaydb.core.util.series.growable.SeriesGrowable
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.KeyOrder
@@ -64,8 +65,10 @@ private[skiplist] case object KeyValue {
 
 private[core] object SkipListSeries {
 
-  val randomWriteWarning =
-    s"Performance warning! Random write inserted. ${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.SequentialOrder].getName} is not optimised for random writes. Consider using ${OptimiseWrites.productPrefix}.${OptimiseWrites.RandomOrder.productPrefix}"
+  def randomWriteWarning(count: Int) =
+    s"Performance warning! Random write inserted $count ${English.plural(count, "time")}. " +
+      s"${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.SequentialOrder].getSimpleName} is not optimised for random writes. " +
+      s"Consider using ${OptimiseWrites.productPrefix}.${OptimiseWrites.RandomOrder.productPrefix}."
 
   private[skiplist] class State[K, V](@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
                                       val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])
@@ -316,6 +319,8 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
                                                                      val nullKey: OK,
                                                                      val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] with LazyLogging { self =>
 
+  private val randomWriteWarning = WhenOccurs(500)(times => logger.warn(SkipListSeries.randomWriteWarning(times)))
+
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
       var nextOne: KeyValue.Some[K, V] = null
@@ -343,7 +348,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         some.value = value
 
       case KeyValue.None =>
-        logger.warn(SkipListSeries.randomWriteWarning)
+        randomWriteWarning.occurs()
         //cannot overwrite an existing value. This is a random insert, start a new series!
         val newSeries =
           SkipListSeries[OK, OV, K, V](
