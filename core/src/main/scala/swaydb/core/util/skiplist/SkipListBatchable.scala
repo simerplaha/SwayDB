@@ -26,6 +26,6 @@ package swaydb.core.util.skiplist
 
 trait SkipListBatchable[OK, OV, K <: OK, V <: OV] extends SkipList[OK, OV, K, V] {
 
-  def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit
+  def batch(transaction: SkipListConcurrent[OK, OV, K, V] => Unit): Unit
 
 }

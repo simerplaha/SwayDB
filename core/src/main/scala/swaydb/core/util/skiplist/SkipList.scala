@@ -116,16 +116,3 @@ private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
         None
     }
 }
-
-private[core] object SkipList {
-
-  sealed trait Batch[K, +V] {
-    def key: K
-  }
-
-  object Batch {
-    class Remove[K](val key: K) extends Batch[K, Nothing]
-    class Put[K, V](val key: K, val value: V) extends Batch[K, V]
-  }
-
-}

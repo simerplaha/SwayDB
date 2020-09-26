@@ -26,7 +26,6 @@ package swaydb.core.util.skiplist
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.util.skiplist.SkipList.Batch
 import swaydb.data.order.KeyOrder
 
 object SkipListConcurrent {
@@ -45,35 +44,21 @@ private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volati
 
   /**
    * Does not support concurrent batch writes since it's only being used by [[swaydb.core.level.Level]] which
-   * write to appendix concurrently.
+   * write to appendix sequentially.
    */
-  def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit = {
-    var cloned = false
-    val targetSkipList =
-      if (batches.size > 1) {
-        cloned = true
+  def batch(transaction: SkipListConcurrent[OK, OV, K, V] => Unit): Unit = {
 
-        new SkipListConcurrent(
-          skipList = skipList.clone(),
-          nullKey = nullKey,
-          nullValue = nullValue
-        )
-      } else {
-        this
-      }
+    val newSkipList =
+      new SkipListConcurrent(
+        skipList = skipList.clone(),
+        nullKey = nullKey,
+        nullValue = nullValue
+      )
 
-    batches foreach {
-      case remove: Batch.Remove[K] =>
-        skipList.remove(remove.key)
+    transaction(newSkipList)
 
-      case put: Batch.Put[K, V] =>
-        skipList.put(put.key, put.value)
-    }
-
-    if (cloned) {
-      this.skipList = targetSkipList.skipList
-      sizer.set(this.skipList.size())
-    }
+    this.skipList = newSkipList.skipList
+    sizer.set(this.skipList.size())
   }
 
 }

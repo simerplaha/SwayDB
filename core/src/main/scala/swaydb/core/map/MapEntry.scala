@@ -27,7 +27,7 @@ package swaydb.core.map
 import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer.{MapCodec, MapEntryWriter}
-import swaydb.core.util.skiplist.{SkipList, SkipListBatchable}
+import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -152,18 +152,17 @@ private[swaydb] object MapEntry {
         //        override def applyTo[T >: V](skipList: ConcurrentSkipList[K, T]): Unit =
         //          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))
 
-        override def applyTo[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit = {
-          val batches =
-            _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] map {
-              case MapEntry.Put(key, value) =>
-                new SkipList.Batch.Put[K, V](key, value)
+        override def applyTo[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit =
+          skipList batch {
+            skipList: SkipListConcurrent[_, _, K, T] =>
+              _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] map {
+                case MapEntry.Put(key, value) =>
+                  skipList.put(key, value)
 
-              case MapEntry.Remove(key) =>
-                new SkipList.Batch.Remove[K](key)
-            }
-
-          skipList batch batches
-        }
+                case MapEntry.Remove(key) =>
+                  skipList.remove(key)
+              }
+          }
 
         override val hasRange: Boolean =
           left.hasRange || right.hasRange
