@@ -39,7 +39,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.data.RunThis._
 
-class AppliedFunctionsSpec extends TestBase {
+class AppliedFunctionsMapSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
@@ -53,7 +53,7 @@ class AppliedFunctionsSpec extends TestBase {
           import sweeper._
 
           val mapResult =
-            AppliedFunctions(
+            AppliedFunctionsMap(
               dir = randomDir,
               fileSize = randomIntMax(1.kb) max 1,
               mmap = MMAP.randomForMap()

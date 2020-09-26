@@ -26,7 +26,7 @@ package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.map.counter.Counter
+import swaydb.core.map.counter.CounterMap
 import swaydb.data.{Functions, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -110,7 +110,7 @@ object MultiMap extends LazyLogging {
 
       bag.flatMap(map) {
         map =>
-          implicit val counter = Counter.memory()
+          implicit val counter = CounterMap.memory()
 
           swaydb.MultiMap[M, K, V, F, BAG](map)
       }

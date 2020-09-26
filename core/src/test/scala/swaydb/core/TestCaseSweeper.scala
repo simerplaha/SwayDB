@@ -35,7 +35,7 @@ import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.map.Maps
-import swaydb.core.map.counter.Counter
+import swaydb.core.map.counter.CounterMap
 import swaydb.core.segment.Segment
 import swaydb.data.RunThis._
 import swaydb.data.cache.{Cache, CacheNoIO}
@@ -231,7 +231,7 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepActor actor
   }
 
-  implicit class CountersSweeperImplicits[C <: Counter](counter: C) {
+  implicit class CountersSweeperImplicits[C <: CounterMap](counter: C) {
     def sweep()(implicit sweeper: TestCaseSweeper): C =
       sweeper sweepCounter counter
   }
@@ -277,7 +277,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val paths: ListBuffer[Path],
                       private val actors: ListBuffer[ActorRef[_, _]],
                       private val actorWires: ListBuffer[ActorWire[_, _]],
-                      private val counters: ListBuffer[Counter],
+                      private val counters: ListBuffer[CounterMap],
                       private val functions: ListBuffer[() => Unit]) {
 
 
@@ -385,7 +385,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
     actor
   }
 
-  def sweepCounter[C <: Counter](counter: C): C = {
+  def sweepCounter[C <: CounterMap](counter: C): C = {
     counters += counter
     counter
   }

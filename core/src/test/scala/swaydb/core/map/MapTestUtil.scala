@@ -32,7 +32,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, State}
 import swaydb.core.io.file.ForceSaveApplier
-import swaydb.core.map.counter.{Counter, PersistentCounter}
+import swaydb.core.map.counter.{CounterMap, PersistentCounterMap}
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.timer.Timer.PersistentTimer
@@ -101,16 +101,16 @@ object MapTestUtil {
   }
 
   //cannot be added to TestBase because PersistentMap cannot leave the map package.
-  implicit class ReopenCounter(counter: PersistentCounter) {
+  implicit class ReopenCounter(counter: PersistentCounterMap) {
     def reopen(implicit bufferCleaner: ByteBufferSweeperActor,
                forceSaveApplier: ForceSaveApplier,
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]],
-               testCaseSweeper: TestCaseSweeper): PersistentCounter = {
+               testCaseSweeper: TestCaseSweeper): PersistentCounterMap = {
       counter.close
       ensureCleanedForWindows(counter.mmap)
 
-      Counter.persistent(
+      CounterMap.persistent(
         dir = counter.path,
         fileSize = counter.fileSize,
         mmap = MMAP.randomForMap(),

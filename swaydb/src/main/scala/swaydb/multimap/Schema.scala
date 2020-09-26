@@ -24,7 +24,7 @@
 
 package swaydb.multimap
 
-import swaydb.core.map.counter.Counter
+import swaydb.core.map.counter.CounterMap
 import swaydb.core.util.Times._
 import swaydb.multimap.MultiKey.Child
 import swaydb.serializers._
@@ -41,7 +41,7 @@ abstract class Schema[M, K, V, F, BAG[_]](multiMap: Map[MultiKey[M, K], MultiVal
                                           defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
                                                                                childKeySerializer: Serializer[M],
                                                                                valueSerializer: Serializer[V],
-                                                                               counter: Counter,
+                                                                               counter: CounterMap,
                                                                                bag: Bag[BAG]) extends Source[K, (K, V), BAG] {
 
   /**

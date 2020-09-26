@@ -28,7 +28,7 @@ import java.nio.file.Path
 
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.io.file.ForceSaveApplier
-import swaydb.core.map.counter.Counter
+import swaydb.core.map.counter.CounterMap
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
@@ -45,7 +45,7 @@ object MultiMap {
   val folderName = "gen-multimap"
 
   //this should start from 1 because 0 will be used for format changes.
-  val rootMapId: Long = Counter.startId
+  val rootMapId: Long = CounterMap.startId
 
   private[swaydb] def withPersistentCounter[M, K, V, F, BAG[_]](path: Path,
                                                                 mmap: swaydb.data.config.MMAP.Map,
@@ -58,14 +58,14 @@ object MultiMap {
     implicit val core: ByteBufferSweeperActor = map.protectedSweeper
     implicit val forceSaveApplier = ForceSaveApplier.Enabled
 
-    Counter.persistent(
+    CounterMap.persistent(
       dir = path.resolve(MultiMap.folderName),
       mmap = mmap,
       mod = 1000,
       fileSize = 1.mb
     ) match {
       case IO.Right(counter) =>
-        implicit val implicitCounter: Counter = counter
+        implicit val implicitCounter: CounterMap = counter
         swaydb.MultiMap[M, K, V, F, BAG](map)
 
       case IO.Left(error) =>
@@ -80,7 +80,7 @@ object MultiMap {
                                                                                                                                                                                 keySerializer: Serializer[K],
                                                                                                                                                                                 mapKeySerializer: Serializer[M],
                                                                                                                                                                                 valueSerializer: Serializer[V],
-                                                                                                                                                                                counter: Counter): BAG[MultiMap[M, K, V, F, BAG]] =
+                                                                                                                                                                                counter: CounterMap): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.flatMap(rootMap.isEmpty) {
       isEmpty =>
 
@@ -184,7 +184,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
                                                 defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
                                                                                             mapKeySerializer: Serializer[M],
                                                                                             valueSerializer: Serializer[V],
-                                                                                            counter: Counter,
+                                                                                            counter: CounterMap,
                                                                                             override val bag: Bag[BAG]) extends Schema[M, K, V, F, BAG](multiMap = multiMap, mapId = mapId, defaultExpiration = defaultExpiration) with MapT[K, V, F, BAG] { self =>
 
   override def path: Path =

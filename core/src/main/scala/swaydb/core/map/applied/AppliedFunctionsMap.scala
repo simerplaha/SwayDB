@@ -41,14 +41,14 @@ import swaydb.{Actor, Error, IO}
 
 import scala.collection.mutable.ListBuffer
 
-case object AppliedFunctions extends LazyLogging {
+case object AppliedFunctionsMap extends LazyLogging {
 
   val folderName = "def-applied"
 
   def apply(dir: Path,
             fileSize: Long,
             mmap: MMAP.Map)(implicit bufferCleaner: ByteBufferSweeperActor,
-                            forceSaveApplier: ForceSaveApplier): RecoveryResult[map.PersistentMap[Slice[Byte], Slice.Null.type, AppliedFunctionsCache]] = {
+                            forceSaveApplier: ForceSaveApplier): RecoveryResult[map.PersistentMap[Slice[Byte], Slice.Null.type, AppliedFunctionsMapCache]] = {
     val folder = dir.resolve(folderName)
     Effect.createDirectoriesIfAbsent(folder)
 
@@ -57,7 +57,7 @@ case object AppliedFunctions extends LazyLogging {
     implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
     implicit val keyOrder = KeyOrder.default
 
-    map.Map.persistent[Slice[Byte], Slice.Null.type, AppliedFunctionsCache](
+    map.Map.persistent[Slice[Byte], Slice.Null.type, AppliedFunctionsMapCache](
       folder = folder,
       mmap = mmap,
       flushOnOverflow = true,
@@ -67,7 +67,7 @@ case object AppliedFunctions extends LazyLogging {
     )
   }
 
-  def validate(appliedFunctions: map.Map[Slice[Byte], Slice.Null.type, AppliedFunctionsCache],
+  def validate(appliedFunctions: map.Map[Slice[Byte], Slice.Null.type, AppliedFunctionsMapCache],
                functionStore: FunctionStore): IO[Error.Level, Unit] = {
     val missingFunctions = ListBuffer.empty[String]
     logger.debug("Checking for missing functions.")

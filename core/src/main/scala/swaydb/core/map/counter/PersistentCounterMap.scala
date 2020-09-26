@@ -38,7 +38,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.{Actor, ActorRef, IO}
 
-private[core] case object PersistentCounter extends LazyLogging {
+private[core] case object PersistentCounterMap extends LazyLogging {
 
   /**
    * If startId greater than mod then mod needs
@@ -59,13 +59,13 @@ private[core] case object PersistentCounter extends LazyLogging {
                              fileSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
                                              forceSaveApplier: ForceSaveApplier,
                                              writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                             reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] = {
+                                             reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounterMap] = {
     //Disabled because autoClose is not required here.
     implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] = Actor.deadActor()
     implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
     IO {
-      Map.persistent[Slice[Byte], Slice[Byte], PersistentCounterCache](
+      Map.persistent[Slice[Byte], Slice[Byte], PersistentCounterMapCache](
         folder = path,
         mmap = mmap,
         flushOnOverflow = true,
@@ -77,11 +77,11 @@ private[core] case object PersistentCounter extends LazyLogging {
       map =>
 
         def writeEntry(startId: Long, commitId: Long) =
-          map.writeSafe(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](commitId))) flatMap {
+          map.writeSafe(MapEntry.Put(CounterMap.defaultKey, Slice.writeLong[Byte](commitId))) flatMap {
             wrote =>
               if (wrote)
                 IO {
-                  new PersistentCounter(
+                  new PersistentCounterMap(
                     mod = mod,
                     startId = startId,
                     map = map
@@ -93,8 +93,8 @@ private[core] case object PersistentCounter extends LazyLogging {
 
         map.cache.entryOrNull match {
           case null =>
-            val commitId = nextCommit(mod, Counter.startId)
-            writeEntry(Counter.startId, commitId)
+            val commitId = nextCommit(mod, CounterMap.startId)
+            writeEntry(CounterMap.startId, commitId)
 
           case MapEntry.Put(_, value) =>
             val nextStartId = value.readLong()
@@ -115,9 +115,9 @@ private[core] case object PersistentCounter extends LazyLogging {
   }
 }
 
-private[core] class PersistentCounter(val mod: Long,
-                                      val startId: Long,
-                                      map: PersistentMap[Slice[Byte], Slice[Byte], PersistentCounterCache])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Counter with LazyLogging {
+private[core] class PersistentCounterMap(val mod: Long,
+                                         val startId: Long,
+                                         map: PersistentMap[Slice[Byte], Slice[Byte], PersistentCounterMapCache])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends CounterMap with LazyLogging {
 
   private var count = startId
 
@@ -137,14 +137,14 @@ private[core] class PersistentCounter(val mod: Long,
        * Why throw exception?
        * Writes are ALWAYS expected to succeed but unexpected failures can still occur.
        * Since nextTime is called for each written key-value having an IO wrapper
-       * for each [[PersistentCounter.next]] call can increase in-memory objects which can cause
+       * for each [[PersistentCounterMap.next]] call can increase in-memory objects which can cause
        * performance issues.
        *
        * Throwing exception on failure is temporarily solution since failures are not expected and if failure does occur
        * it would be due to file system permission issue and should be reported back up with the stacktrace.
        */
       if (count % mod == 0)
-        if (!map.writeNoSync(MapEntry.Put(Counter.defaultKey, Slice.writeLong[Byte](count + mod)))) {
+        if (!map.writeNoSync(MapEntry.Put(CounterMap.defaultKey, Slice.writeLong[Byte](count + mod)))) {
           val message = s"Failed to write counter entry: $count"
           logger.error(message)
           throw IO.throwable(message) //:O see note above

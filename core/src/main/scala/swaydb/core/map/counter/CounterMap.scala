@@ -34,19 +34,19 @@ import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
 
-private[swaydb] trait Counter {
+private[swaydb] trait CounterMap {
   def next: Long
 
   def close: Unit
 }
 
-private[swaydb] object Counter {
+private[swaydb] object CounterMap {
   val startId = 10L //use 10 instead of 0 to allow format changes.
 
   val defaultKey: Slice[Byte] = Slice.emptyBytes
 
-  def memory(): MemoryCounter =
-    MemoryCounter()
+  def memory(): MemoryCounterMap =
+    MemoryCounterMap()
 
   def persistent(dir: Path,
                  mmap: MMAP.Map,
@@ -54,8 +54,8 @@ private[swaydb] object Counter {
                  fileSize: Long)(implicit bufferCleaner: ByteBufferSweeperActor,
                                  forceSaveApplier: ForceSaveApplier,
                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                 reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounter] =
-    PersistentCounter(
+                                 reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentCounterMap] =
+    PersistentCounterMap(
       path = dir,
       mmap = mmap,
       mod = mod,

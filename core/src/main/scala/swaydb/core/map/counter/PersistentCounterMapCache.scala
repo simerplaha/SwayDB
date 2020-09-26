@@ -22,43 +22,50 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.map.applied
+package swaydb.core.map.counter
 
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
-import swaydb.core.util.skiplist.SkipListConcurrent
-import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice
 
-
-object AppliedFunctionsCache {
-  implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]]) =
-    new MapCacheBuilder[AppliedFunctionsCache] {
-      override def create(enableHashIndex: Boolean): AppliedFunctionsCache =
-        AppliedFunctionsCache(
-          SkipListConcurrent(
-            nullKey = Slice.Null,
-            nullValue = Slice.Null,
-            enableHashIndex = false //not need for AppliedFunctions. Used for BootUp only.
-          )
-        )
+object PersistentCounterMapCache {
+  implicit def builder =
+    new MapCacheBuilder[PersistentCounterMapCache] {
+      override def create(enableHashIndex: Boolean): PersistentCounterMapCache =
+        new PersistentCounterMapCache
     }
 }
 
-case class AppliedFunctionsCache(skipList: SkipListConcurrent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]) extends MapCache[Slice[Byte], Slice.Null.type] {
+class PersistentCounterMapCache extends MapCache[Slice[Byte], Slice[Byte]] {
+  var entryOrNull: MapEntry[Slice[Byte], Slice[Byte]] = _
 
-  override def writeAtomic(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
-    entry applyTo skipList
+  override def writeAtomic(entry: MapEntry[Slice[Byte], Slice[Byte]]): Unit =
+    this.entryOrNull = entry
 
-  override def writeNonAtomic(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
+  override def writeNonAtomic(entry: MapEntry[Slice[Byte], Slice[Byte]]): Unit =
     writeAtomic(entry)
 
-  override def asScala: Iterable[(Slice[Byte], Slice.Null.type)] =
-    skipList.asScala
+  override def asScala: Iterable[(Slice[Byte], Slice[Byte])] =
+    entryOrNull match {
+      case null =>
+        Seq.empty
+
+      case MapEntry.Put(key, value) =>
+        Seq((key, value))
+
+      case entry: MapEntry[Slice[Byte], Slice[Byte]] =>
+        entry.entries map {
+          case MapEntry.Put(key, value) =>
+            (key, value)
+        }
+    }
 
   override def isEmpty: Boolean =
-    skipList.isEmpty
+    entryOrNull == null
 
   override def maxKeyValueCount: Int =
-    skipList.size
+    if (entryOrNull == null)
+      0
+    else
+      1
 
 }

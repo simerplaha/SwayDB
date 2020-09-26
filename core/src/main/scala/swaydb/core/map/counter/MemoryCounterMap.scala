@@ -26,12 +26,12 @@ package swaydb.core.map.counter
 
 import java.util.concurrent.atomic.AtomicLong
 
-private[core] object MemoryCounter {
-  def apply(): MemoryCounter =
-    new MemoryCounter(new AtomicLong(Counter.startId))
+private[core] object MemoryCounterMap {
+  def apply(): MemoryCounterMap =
+    new MemoryCounterMap(new AtomicLong(CounterMap.startId))
 }
 
-private[core] class MemoryCounter(count: AtomicLong) extends Counter {
+private[core] class MemoryCounterMap(count: AtomicLong) extends CounterMap {
 
   def next: Long =
     count.incrementAndGet()

@@ -38,7 +38,7 @@ import swaydb.data.RunThis._
 
 import scala.collection.mutable.ListBuffer
 
-class CounterSpec extends TestBase {
+class CounterMapSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
@@ -48,20 +48,20 @@ class CounterSpec extends TestBase {
   "nextCommit" should {
     "reserve greater startId" when {
       "startId is greater than mod" in {
-        PersistentCounter.nextCommit(mod = 1, startId = 0) shouldBe 1
-        PersistentCounter.nextCommit(mod = 1, startId = 2) shouldBe 3
+        PersistentCounterMap.nextCommit(mod = 1, startId = 0) shouldBe 1
+        PersistentCounterMap.nextCommit(mod = 1, startId = 2) shouldBe 3
 
-        PersistentCounter.nextCommit(mod = 5, startId = 4) shouldBe 5
-        PersistentCounter.nextCommit(mod = 5, startId = 6) shouldBe 10
-        PersistentCounter.nextCommit(mod = 5, startId = 7) shouldBe 10
-        PersistentCounter.nextCommit(mod = 5, startId = 8) shouldBe 10
-        PersistentCounter.nextCommit(mod = 5, startId = 9) shouldBe 10
-        PersistentCounter.nextCommit(mod = 5, startId = 10) shouldBe 15
-        PersistentCounter.nextCommit(mod = 5, startId = 11) shouldBe 15
-        PersistentCounter.nextCommit(mod = 5, startId = 12) shouldBe 15
-        PersistentCounter.nextCommit(mod = 5, startId = 13) shouldBe 15
-        PersistentCounter.nextCommit(mod = 5, startId = 14) shouldBe 15
-        PersistentCounter.nextCommit(mod = 5, startId = 15) shouldBe 20
+        PersistentCounterMap.nextCommit(mod = 5, startId = 4) shouldBe 5
+        PersistentCounterMap.nextCommit(mod = 5, startId = 6) shouldBe 10
+        PersistentCounterMap.nextCommit(mod = 5, startId = 7) shouldBe 10
+        PersistentCounterMap.nextCommit(mod = 5, startId = 8) shouldBe 10
+        PersistentCounterMap.nextCommit(mod = 5, startId = 9) shouldBe 10
+        PersistentCounterMap.nextCommit(mod = 5, startId = 10) shouldBe 15
+        PersistentCounterMap.nextCommit(mod = 5, startId = 11) shouldBe 15
+        PersistentCounterMap.nextCommit(mod = 5, startId = 12) shouldBe 15
+        PersistentCounterMap.nextCommit(mod = 5, startId = 13) shouldBe 15
+        PersistentCounterMap.nextCommit(mod = 5, startId = 14) shouldBe 15
+        PersistentCounterMap.nextCommit(mod = 5, startId = 15) shouldBe 20
       }
     }
   }
@@ -75,14 +75,14 @@ class CounterSpec extends TestBase {
           val mod = randomIntMax(10) max 1
 
           val map =
-            Counter.persistent(
+            CounterMap.persistent(
               dir = randomDir,
               fileSize = randomIntMax(100) max 1,
               mmap = MMAP.randomForMap(),
               mod = mod
             ).value.sweep()
 
-          val expectedNext = Counter.startId + 1
+          val expectedNext = CounterMap.startId + 1
           map.next shouldBe expectedNext
           map.next shouldBe expectedNext + 1
           map.next shouldBe expectedNext + 2
@@ -108,14 +108,14 @@ class CounterSpec extends TestBase {
           val usedIds = ListBuffer.empty[Long]
 
           val map =
-            Counter.persistent(
+            CounterMap.persistent(
               dir = randomDir,
               fileSize = randomIntMax(1.kb) max 1,
               mmap = MMAP.randomForMap(),
               mod = mod
             ).value.sweep()
 
-          val expectedStart = Counter.startId + 1
+          val expectedStart = CounterMap.startId + 1
           val expectedLast = expectedStart + maxIteration
           (expectedStart to expectedLast) foreach {
             i =>

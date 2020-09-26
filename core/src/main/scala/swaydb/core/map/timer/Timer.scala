@@ -31,7 +31,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.data.Time
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map.MapEntry
-import swaydb.core.map.counter.{Counter, PersistentCounter}
+import swaydb.core.map.counter.{CounterMap, PersistentCounterMap}
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, MapEntryReader, MapEntryWriter}
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
@@ -51,12 +51,12 @@ private[core] object Timer {
   val folderName = "def-timer"
 
   trait PersistentTimer extends Timer {
-    def counter: PersistentCounter
+    def counter: PersistentCounterMap
   }
 
   def memory(): Timer =
     new Timer {
-      val memory = Counter.memory()
+      val memory = CounterMap.memory()
 
       override val isEmptyTimer: Boolean =
         false
@@ -91,7 +91,7 @@ private[core] object Timer {
     val timerFolder = path.resolve(folderName)
     Effect createDirectoriesIfAbsent timerFolder
 
-    Counter.persistent(
+    CounterMap.persistent(
       dir = timerFolder,
       mmap = mmap,
       mod = mod,
@@ -108,7 +108,7 @@ private[core] object Timer {
           override def close: Unit =
             persistentCounter.close
 
-          override def counter: PersistentCounter =
+          override def counter: PersistentCounterMap =
             persistentCounter
         }
     }

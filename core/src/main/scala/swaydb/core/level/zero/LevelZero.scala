@@ -40,7 +40,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
-import swaydb.core.map.applied.{AppliedFunctions, AppliedFunctionsCache}
+import swaydb.core.map.applied.{AppliedFunctionsMap, AppliedFunctionsMapCache}
 import swaydb.core.map.serializer.AppliedFunctionsMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps}
@@ -140,7 +140,7 @@ private[core] case object LevelZero extends LazyLogging {
                     maps =>
                       if (enableTimer) {
                         val appliedFunctionsMap =
-                          AppliedFunctions(
+                          AppliedFunctionsMap(
                             dir = databaseDirectory,
                             fileSize = appliedFunctionsMapSize,
                             mmap = mmap
@@ -176,7 +176,7 @@ private[core] case object LevelZero extends LazyLogging {
                   val mmap = LevelRef.getMmapForLogOrDisable(nextLevel)
 
                   val appliedFunctionsMap =
-                    AppliedFunctions(
+                    AppliedFunctionsMap(
                       dir = databaseDirectory,
                       fileSize = appliedFunctionsMapSize,
                       mmap = mmap
@@ -243,11 +243,11 @@ private[core] case object LevelZero extends LazyLogging {
             case Some(appliedFunctions) =>
               if (clearAppliedFunctionsOnBoot)
                 IO(zero.clearAppliedFunctions())
-                  .and(AppliedFunctions.validate(appliedFunctions, functionStore))
+                  .and(AppliedFunctionsMap.validate(appliedFunctions, functionStore))
                   .andThen(zero)
                   .onLeftSideEffect(_ => zero.close[Bag.Less]())
               else
-                AppliedFunctions
+                AppliedFunctionsMap
                   .validate(appliedFunctions, functionStore)
                   .andThen(zero)
                   .onLeftSideEffect(_ => zero.close[Bag.Less]())
@@ -265,7 +265,7 @@ private[swaydb] case class LevelZero(path: Path,
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => FiniteDuration,
-                                     appliedFunctionsMap: Option[map.Map[Slice[Byte], Slice.Null.type, AppliedFunctionsCache]],
+                                     appliedFunctionsMap: Option[map.Map[Slice[Byte], Slice.Null.type, AppliedFunctionsMapCache]],
                                      coreState: CoreState,
                                      private val lock: Option[FileLocker])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                            timeOrder: TimeOrder[Slice[Byte]],

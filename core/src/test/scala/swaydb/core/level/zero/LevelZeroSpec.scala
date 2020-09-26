@@ -32,7 +32,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.file.Effect
-import swaydb.core.map.applied.AppliedFunctions
+import swaydb.core.map.applied.AppliedFunctionsMap
 import swaydb.core.map.timer.Timer
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
@@ -430,7 +430,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
               Effect.exists(timerPath) shouldBe true
 
               //applied functions are also created
-              val appliedFunctionsPath = zero.path.getParent.resolve(AppliedFunctions.folderName)
+              val appliedFunctionsPath = zero.path.getParent.resolve(AppliedFunctionsMap.folderName)
               Effect.exists(appliedFunctionsPath) shouldBe true
           }
         else
@@ -466,7 +466,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
               Effect.exists(timerPath) shouldBe true
 
               //applied functions are also created
-              val appliedFunctionsPath = persistentLevel.rootPath.getParent.resolve(AppliedFunctions.folderName)
+              val appliedFunctionsPath = persistentLevel.rootPath.getParent.resolve(AppliedFunctionsMap.folderName)
               Effect.exists(appliedFunctionsPath) shouldBe true
           }
       }
