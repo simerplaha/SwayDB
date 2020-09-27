@@ -26,14 +26,9 @@ package swaydb.core.util.series
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.util.series.appendable.{SeriesAppendable, SeriesAppendableBasic, SeriesAppendableVolatile}
+import swaydb.core.util.series.appendable.{SeriesAppendable, SeriesAppendableVolatile}
 
 import scala.reflect.ClassTag
-
-class Basic_SeriesAppendableSpec extends SeriesAppendableSpec {
-  override def create[T >: Null : ClassTag](limit: Int): SeriesAppendable[T] =
-    SeriesAppendableBasic[T](limit)
-}
 
 class Volatile_SeriesAppendableSpec extends SeriesAppendableSpec {
   override def create[T >: Null : ClassTag](limit: Int): SeriesAppendable[T] =

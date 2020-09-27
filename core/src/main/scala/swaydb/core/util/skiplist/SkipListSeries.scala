@@ -246,7 +246,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
       var nextOne: KeyValue.Some[K, V] = null
-      val sliceIterator = self.series.iteratorFlatten
+      val sliceIterator = self.series.iterator
 
       override def hasNext: Boolean = {
         if (sliceIterator.hasNext) {

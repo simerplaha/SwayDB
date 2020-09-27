@@ -72,9 +72,20 @@ private[series] class SeriesAppendableVolatile[T >: Null] private(array: Array[V
     array.length == writePosition
 
   def iterator: Iterator[T] =
-    array
-      .iterator
-      .take(writePosition)
-      .map(_.value)
+    iterator(0)
 
+  override def iterator(from: Int): Iterator[T] =
+    new Iterator[T] {
+
+      var position: Int = from
+
+      override def hasNext: Boolean =
+        position < writePosition
+
+      override def next(): T = {
+        val item = self.array(position).value
+        position += 1
+        item
+      }
+    }
 }

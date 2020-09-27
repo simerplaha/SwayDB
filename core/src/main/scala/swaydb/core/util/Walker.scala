@@ -22,25 +22,12 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.util.series.appendable
+package swaydb.core.util
 
-trait SeriesAppendable[T >: Null] {
-
-  def get(index: Int): T
-
-  def add(item: T): Unit
-
-  def length: Int
-
-  def innerArrayLength: Int
-
-  def lastOrNull: T
-
-  def isFull: Boolean
+trait Walker[T >: Null] {
 
   def headOrNull: T
 
-  def iterator: Iterator[T]
+  def dropHead(): Walker[T]
 
-  def iterator(from: Int): Iterator[T]
 }

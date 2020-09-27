@@ -24,6 +24,7 @@
 
 package swaydb.core.util.series
 
+import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.util.series.growable.SeriesGrowable
@@ -31,53 +32,103 @@ import swaydb.core.util.series.growable.SeriesGrowable
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
+
 class Volatile_SeriesGrowableSpec extends SeriesGrowableSpec {
   def create[T >: Null : ClassTag](lengthPerSeries: Int): SeriesGrowable[T] =
     SeriesGrowable.volatile[T](lengthPerSeries)
 }
 
-sealed trait SeriesGrowableSpec extends AnyWordSpec with Matchers {
+sealed trait SeriesGrowableSpec extends AnyWordSpec with Matchers with PrivateMethodTester {
 
   def create[T >: Null : ClassTag](lengthPerSlice: Int): SeriesGrowable[T]
 
-  "throw ArrayIndexOutOfBoundsException" when {
-    "empty" in {
-      val series = create[Integer](0)
-      assertThrows[ArrayIndexOutOfBoundsException](series.get(0))
-      series.depth shouldBe 1
-      series.length shouldBe 0
-    }
+  def getState[T >: Null](series: SeriesGrowable[T]): SeriesGrowable.State[T] = {
+    val function = PrivateMethod[SeriesGrowable.State[T]](Symbol("state"))
+    series.invokePrivate(function())
+  }
 
-    "nonEmpty" in {
-      val series = SeriesGrowable.volatile[Integer](1)
-      series.add(1)
-      series.get(0) shouldBe 1
-      series.iteratorFlatten.toList should contain only 1
-      series.depth shouldBe 1
-      series.length shouldBe 1
+  "initial state" in {
+    val series = create[Integer](1)
+    val state = getState(series)
+    state.startIndex shouldBe 0
+    state.endIndex shouldBe -1
 
-      assertThrows[ArrayIndexOutOfBoundsException](series.get(1))
-    }
+    state.length shouldBe 0
+
+    series.isEmpty shouldBe true
   }
 
   "add" should {
-    "increase depth" when {
+    "insert item" when {
+      "space available" in {
+        val series = create[Integer](1)
+        series.isEmpty shouldBe true
+
+        series add 10
+
+        val state = getState(series)
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 0
+        state.length shouldBe 1
+
+        series.depth shouldBe 1
+
+        series.get(0) shouldBe 10
+        assertThrows[ArrayIndexOutOfBoundsException](series.get(1))
+
+        val state2 = getState(series)
+        state2.startIndex shouldBe 0
+        state2.endIndex shouldBe 0
+        state2.length shouldBe 1
+      }
+    }
+
+    "extend" when {
       "space is not available" in {
-        val series = create[Integer](2)
+        val series = create[Integer](1)
         series.depth shouldBe 1
         series.isEmpty shouldBe true
 
+        //add
         series.add(1)
         series.depth shouldBe 1
         series.isEmpty shouldBe false
 
-        series.add(2)
-        series.depth shouldBe 1
-        series.isEmpty shouldBe false
+        //check state
+        var state = getState(series)
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 0
+        state.series.length shouldBe 1
 
-        series.add(3)
+        //add
+        series.add(2)
         series.depth shouldBe 2
         series.isEmpty shouldBe false
+
+        //check state
+        state = getState(series)
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 1
+        state.series.length shouldBe 2
+
+        //add
+        series.add(3)
+        series.depth shouldBe 3
+        series.isEmpty shouldBe false
+
+        //check state
+        state = getState(series)
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 2
+        state.series.length shouldBe 3
+
+        series.get(state.startIndex) shouldBe 1
+        series.get(state.endIndex) shouldBe 3
+
+        series.get(0) shouldBe 1
+        series.get(1) shouldBe 2
+        series.get(2) shouldBe 3
+        assertThrows[ArrayIndexOutOfBoundsException](series.get(4))
 
         series.length shouldBe 3
       }
@@ -107,6 +158,10 @@ sealed trait SeriesGrowableSpec extends AnyWordSpec with Matchers {
       series.headOrNull shouldBe 1
       series.lastOrNull shouldBe 2
       series.length shouldBe 2
+
+      (3 to 10).foreach(series.add(_))
+      series.headOrNull shouldBe 1
+      series.lastOrNull shouldBe 10
     }
   }
 
@@ -293,7 +348,175 @@ sealed trait SeriesGrowableSpec extends AnyWordSpec with Matchers {
         }
       }
     }
-
   }
 
+
+  "removeHead" when {
+    "empty" should {
+      "not change state" in {
+        val series = create[Integer](2)
+        val initialState = getState(series)
+
+        series.removeHead() shouldBe false
+        series.removeHead() shouldBe false
+
+        getState(series) shouldBe initialState
+      }
+    }
+
+    "non-empty but emptied later" should {
+      "not change state" in {
+        val series = create[Integer](2)
+        series add 1
+        series.headOrNull shouldBe 1
+
+        var state = getState(series)
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 0
+        series.length shouldBe 1
+
+        series.removeHead() shouldBe true
+        series.headOrNull shouldBe null
+
+        state = getState(series)
+        state.startIndex shouldBe 1
+        state.endIndex shouldBe 0
+
+        series.length shouldBe 0
+
+        series.removeHead() shouldBe false
+        series.removeHead() shouldBe false
+      }
+    }
+
+    "full" should {
+      "adjust end add" in {
+        //create series with already added 3 items - full
+        val series = create[Integer](3)
+        series add 1
+        series add 2
+        series add 3
+
+        def state = getState(series)
+
+        //assert initial state
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 2
+        state.length shouldBe 3
+        series.headOrNull shouldBe 1
+
+        series.removeHead()
+        state.startIndex shouldBe 1
+        state.endIndex shouldBe 2
+        state.length shouldBe 2
+        series.headOrNull shouldBe 2
+
+        series.removeHead()
+        state.startIndex shouldBe 2
+        state.endIndex shouldBe 2
+        state.length shouldBe 1
+        series.headOrNull shouldBe 3
+
+        series.removeHead()
+        state.startIndex shouldBe 3
+        state.endIndex shouldBe 2
+        state.length shouldBe 0
+        series.headOrNull shouldBe null
+
+        //the array is full
+        state.series.isFull shouldBe true
+        state.series.length shouldBe 1
+        state.series.headOrNull.length shouldBe 3
+        state.series.headOrNull.isFull shouldBe true
+
+        //adding another will extend and also remove old array
+        series.add(1)
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 0
+        series.length shouldBe 1
+        state.series.length shouldBe 1
+      }
+    }
+
+    "extended twice without remove" should {
+      "adjust end add" in {
+        //create series with already added 3 items - full
+        val series = create[Integer](3)
+        //[1, 2, 3, 4]
+        series add 1
+        series add 2
+        series add 3
+
+        series add 4
+
+        series.iterator.toList shouldBe List(1, 2, 3, 4)
+
+        def state = getState(series)
+
+        //assert initial state
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 3
+        state.length shouldBe 4
+        series.headOrNull shouldBe 1
+        series.lastOrNull shouldBe 4
+
+        //there are two arrays because the 4th added extended the array
+        state.series.length shouldBe 2
+
+        //remove the first three
+        series.removeHead() shouldBe true
+        state.length shouldBe 3
+        series.removeHead() shouldBe true
+        state.length shouldBe 2
+        series.removeHead() shouldBe true
+        state.length shouldBe 1
+
+        series.iterator.toList shouldBe List(4)
+
+        //state remains unchanged
+        state.series.length shouldBe 2
+
+        series add 5
+        series add 6
+        state.series.length shouldBe 2 //still unchanged
+
+        series.iterator.toList shouldBe List(4, 5, 6)
+
+        series add 7 //this will remove the head removed array
+
+        series.iterator.toList shouldBe List(4, 5, 6, 7)
+
+        state.series.length shouldBe 2 //length decreases to 1
+        //first removed array gets dropped
+        state.series.get(0).get(0) shouldBe 4
+
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 3
+
+        series add 8
+        series.iterator.toList shouldBe List(4, 5, 6, 7, 8)
+
+        state.startIndex shouldBe 0
+        state.endIndex shouldBe 4
+
+        //remove all
+        series.headOrNull shouldBe 4
+        series.removeHead() shouldBe true
+        series.headOrNull shouldBe 5
+        series.removeHead() shouldBe true
+        series.headOrNull shouldBe 6
+        series.removeHead() shouldBe true
+        series.headOrNull shouldBe 7
+        series.removeHead() shouldBe true
+        series.headOrNull shouldBe 8
+        series.removeHead() shouldBe true
+        series.headOrNull shouldBe null
+
+        series add 9
+        series add 10
+
+        state.series.length shouldBe 2
+      }
+    }
+  }
 }
