@@ -65,11 +65,10 @@ private[core] object LevelZeroMapCache {
 
         LevelSkipList(skipList = skipList, hasRange = false)
 
-      case OptimiseWrites.SequentialOrder(enableHashIndex, initialLength) =>
+      case OptimiseWrites.SequentialOrder(initialLength) =>
         val skipList =
           SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
             lengthPerSeries = initialLength,
-            enableHashIndex = enableHashIndex,
             nullKey = Slice.Null,
             nullValue = Memory.Null
           )

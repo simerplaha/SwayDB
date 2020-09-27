@@ -24,11 +24,9 @@
 
 package swaydb.core.util.skiplist
 
-import java.util.concurrent.ConcurrentHashMap
-
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.{English, WhenOccurs}
 import swaydb.core.util.series.growable.SeriesGrowable
+import swaydb.core.util.{English, WhenOccurs}
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.KeyOrder
 
@@ -70,20 +68,11 @@ private[core] object SkipListSeries {
       s"${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.SequentialOrder].getSimpleName} is not optimised for random writes. " +
       s"Consider using ${OptimiseWrites.productPrefix}.${OptimiseWrites.RandomOrder.productPrefix}."
 
-  private[skiplist] class State[K, V](@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
-                                      val hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])
-
-
   def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](lengthPerSeries: Int,
-                                                                            enableHashIndex: Boolean,
                                                                             nullKey: OptionKey,
                                                                             nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListSeries[OptionKey, OptionValue, Key, Value] =
     new SkipListSeries[OptionKey, OptionValue, Key, Value](
-      state =
-        new State(
-          series = SeriesGrowable.volatile(lengthPerSeries),
-          hashIndex = if (enableHashIndex) Some(new ConcurrentHashMap(lengthPerSeries)) else None
-        ),
+      series = SeriesGrowable.volatile(lengthPerSeries),
       nullKey = nullKey,
       nullValue = nullValue
     )
@@ -95,57 +84,32 @@ private[core] object SkipListSeries {
    */
   private def get[K, V](target: K,
                         series: SeriesGrowable[KeyValue.Some[K, V]],
-                        hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]],
                         keepNullValue: Boolean)(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
-    hashIndex match {
-      case scala.Some(hashIndex) =>
-        val found = hashIndex.get(ordering.comparableKey(target))
-        if (found == null)
-          KeyValue.None
-        else if (!keepNullValue && found.value == null)
-          KeyValue.None
+    var start = 0
+    var end = series.length - 1
+
+    while (start <= end) {
+      val mid = start + (end - start) / 2
+      val found = series.get(mid)
+      val compare = ordering.compare(found.key, target)
+      if (compare == 0)
+        if (!keepNullValue && found.value == null)
+          return KeyValue.None
         else
-          found
-
-      case scala.None =>
-        var start = 0
-        var end = series.length - 1
-
-        while (start <= end) {
-          val mid = start + (end - start) / 2
-          val found = series.get(mid)
-          val compare = ordering.compare(found.key, target)
-          if (compare == 0)
-            if (!keepNullValue && found.value == null)
-              return KeyValue.None
-            else
-              return found
-          else if (compare < 0)
-            start = mid + 1
-          else
-            end = mid - 1
-        }
-
-        KeyValue.None
+          return found
+      else if (compare < 0)
+        start = mid + 1
+      else
+        end = mid - 1
     }
+
+    KeyValue.None
   }
 
   private def lower[K, V](target: K,
-                          series: SeriesGrowable[KeyValue.Some[K, V]],
-                          hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
+                          series: SeriesGrowable[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
     var start = 0
-    var end =
-      hashIndex match {
-        case scala.Some(hashIndex) =>
-          val found = hashIndex.get(ordering.comparableKey(target))
-          if (found == null)
-            series.length - 1
-          else
-            return series.findReverse(found.index - 1, KeyValue.None)(_.value != null)
-
-        case scala.None =>
-          series.length - 1
-      }
+    var end = series.length - 1
 
     while (start <= end) {
       val mid = start + (end - start) / 2
@@ -170,23 +134,9 @@ private[core] object SkipListSeries {
   }
 
   private def floor[K, V](target: K,
-                          series: SeriesGrowable[KeyValue.Some[K, V]],
-                          hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
+                          series: SeriesGrowable[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
     var start = 0
-    var end =
-      hashIndex match {
-        case scala.Some(hashIndex) =>
-          val found = hashIndex.get(ordering.comparableKey(target))
-          if (found == null)
-            series.length - 1
-          else if (found.value == null)
-            return series.findReverse(found.index - 1, KeyValue.None)(_.value != null)
-          else
-            return found
-
-        case scala.None =>
-          series.length - 1
-      }
+    var end = series.length - 1
 
     while (start <= end) {
       val mid = start + (end - start) / 2
@@ -211,21 +161,8 @@ private[core] object SkipListSeries {
   }
 
   private def higher[K, V](target: K,
-                           series: SeriesGrowable[KeyValue.Some[K, V]],
-                           hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
-    var start =
-      hashIndex match {
-        case scala.Some(hashIndex) =>
-          val found = hashIndex.get(ordering.comparableKey(target))
-          if (found == null)
-            0
-          else
-            return series.find(found.index + 1, KeyValue.None)(_.value != null)
-
-        case scala.None =>
-          0
-      }
-
+                           series: SeriesGrowable[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
+    var start = 0
     var end = series.length - 1
 
     while (start <= end) {
@@ -251,23 +188,8 @@ private[core] object SkipListSeries {
   }
 
   private def ceiling[K, V](target: K,
-                            series: SeriesGrowable[KeyValue.Some[K, V]],
-                            hashIndex: Option[java.util.Map[K, KeyValue.Some[K, V]]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
-    var start =
-      hashIndex match {
-        case scala.Some(hashIndex) =>
-          val found = hashIndex.get(ordering.comparableKey(target))
-          if (found == null)
-            0
-          else if (found.value == null)
-            return series.find(found.index + 1, KeyValue.None)(_.value != null)
-          else
-            return found
-
-        case scala.None =>
-          0
-      }
-
+                            series: SeriesGrowable[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
+    var start = 0
     var end = series.length - 1
 
     while (start <= end) {
@@ -315,7 +237,7 @@ private[core] object SkipListSeries {
  * SkipListSeries HashDisabled - 0.254108 seconds
  *
  */
-private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var state: SkipListSeries.State[K, V],
+private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
                                                                      val nullKey: OK,
                                                                      val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] with LazyLogging { self =>
 
@@ -324,7 +246,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
   private def iterator(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
       var nextOne: KeyValue.Some[K, V] = null
-      val sliceIterator = self.state.series.iteratorFlatten
+      val sliceIterator = self.series.iteratorFlatten
 
       override def hasNext: Boolean = {
         if (sliceIterator.hasNext) {
@@ -343,7 +265,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   @inline private def putRandom(key: K, value: V): Unit =
-    SkipListSeries.get(target = key, series = state.series, hashIndex = state.hashIndex, keepNullValue = true) match {
+    SkipListSeries.get(target = key, series = series, keepNullValue = true) match {
       case some: KeyValue.Some[K, V] =>
         some.value = value
 
@@ -352,15 +274,14 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
         //cannot overwrite an existing value. This is a random insert, start a new series!
         val newSeries =
           SkipListSeries[OK, OV, K, V](
-            lengthPerSeries = state.series.length + 1, //1+ for the new entry just in-case this was the last entry.
-            enableHashIndex = state.hashIndex.isDefined,
+            lengthPerSeries = series.length + 1, //1+ for the new entry just in-case this was the last entry.
             nullKey = nullKey,
             nullValue = nullValue
           )
 
         var putSuccessful = false
 
-        state.series.foreach(from = 0) {
+        series.foreach(from = 0) {
           existing =>
             if (putSuccessful) {
               newSeries.put(existing.key, existing.value)
@@ -380,26 +301,24 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
             }
         }
 
-        this.state = newSeries.state
+        this.series = newSeries.series
     }
 
-  @inline private def putSequential(keyValue: KeyValue.Some[K, V]) = {
-    state.series add keyValue
-    state.hashIndex foreach (_.put(keyOrder.comparableKey(keyValue.key), keyValue))
-  }
+  @inline private def putSequential(keyValue: KeyValue.Some[K, V]) =
+    series add keyValue
 
   override def put(key: K, value: V): Unit = {
-    val lastOrNull = state.series.lastOrNull
+    val lastOrNull = series.lastOrNull
     if (lastOrNull == null)
-      putSequential(new KeyValue.Some(key, value, state.series.length))
+      putSequential(new KeyValue.Some(key, value, series.length))
     else if (keyOrder.gt(key, lastOrNull.key))
-      putSequential(new KeyValue.Some(key, value, state.series.length))
+      putSequential(new KeyValue.Some(key, value, series.length))
     else
       putRandom(key, value)
   }
 
   override def putIfAbsent(key: K, value: V): Boolean =
-    SkipListSeries.get(key, state.series, state.hashIndex, keepNullValue = false) match {
+    SkipListSeries.get(key, series, keepNullValue = false) match {
       case KeyValue.None =>
         put(key, value)
         true
@@ -409,7 +328,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def get(target: K): OV =
-    SkipListSeries.get(target, state.series, state.hashIndex, keepNullValue = false) match {
+    SkipListSeries.get(target, series, keepNullValue = false) match {
       case KeyValue.None =>
         nullValue
 
@@ -418,7 +337,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def remove(key: K): Unit =
-    SkipListSeries.get(key, state.series, state.hashIndex, keepNullValue = false) match {
+    SkipListSeries.get(key, series, keepNullValue = false) match {
       case some: KeyValue.Some[K, V] =>
         //do not clear from HashIndex. Mutate this value is only needed for reads to properly
         //perform searches.
@@ -428,7 +347,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def lower(key: K): OV =
-    SkipListSeries.lower(key, state.series, state.hashIndex) match {
+    SkipListSeries.lower(key, series) match {
       case KeyValue.None =>
         nullValue
 
@@ -437,7 +356,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def lowerKey(key: K): OK =
-    SkipListSeries.lower(key, state.series, state.hashIndex) match {
+    SkipListSeries.lower(key, series) match {
       case KeyValue.None =>
         nullKey
 
@@ -446,7 +365,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def floor(key: K): OV =
-    SkipListSeries.floor(key, state.series, state.hashIndex) match {
+    SkipListSeries.floor(key, series) match {
       case KeyValue.None =>
         nullValue
 
@@ -455,7 +374,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def floorKeyValue(key: K): Option[(K, V)] =
-    SkipListSeries.floor(key, state.series, state.hashIndex) match {
+    SkipListSeries.floor(key, series) match {
       case KeyValue.None =>
         scala.None
 
@@ -464,7 +383,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def higher(key: K): OV =
-    SkipListSeries.higher(key, state.series, state.hashIndex) match {
+    SkipListSeries.higher(key, series) match {
       case KeyValue.None =>
         nullValue
 
@@ -473,7 +392,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def higherKey(key: K): OK =
-    SkipListSeries.higher(key, state.series, state.hashIndex) match {
+    SkipListSeries.higher(key, series) match {
       case KeyValue.None =>
         nullKey
 
@@ -482,7 +401,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def higherKeyValue(key: K): Option[(K, V)] =
-    SkipListSeries.higher(key, state.series, state.hashIndex) match {
+    SkipListSeries.higher(key, series) match {
       case KeyValue.None =>
         scala.None
 
@@ -491,7 +410,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def ceiling(key: K): OV =
-    SkipListSeries.ceiling(key, state.series, state.hashIndex) match {
+    SkipListSeries.ceiling(key, series) match {
       case KeyValue.None =>
         nullValue
 
@@ -500,7 +419,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def ceilingKey(key: K): OK =
-    SkipListSeries.ceiling(key, state.series, state.hashIndex) match {
+    SkipListSeries.ceiling(key, series) match {
       case KeyValue.None =>
         nullKey
 
@@ -514,16 +433,14 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
   override def nonEmpty: Boolean =
     !isEmpty
 
-  override def clear(): Unit = {
-    state.series = SeriesGrowable.empty
-    state.hashIndex.foreach(_.clear())
-  }
+  override def clear(): Unit =
+    series = SeriesGrowable.empty
 
   override def size: Int =
-    state.series.length
+    series.length
 
   override def contains(key: K): Boolean =
-    SkipListSeries.get(key, state.series, state.hashIndex, keepNullValue = false) match {
+    SkipListSeries.get(key, series, keepNullValue = false) match {
       case KeyValue.None =>
         false
 
@@ -532,21 +449,21 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   private def headOrNullSome(): KeyValue.Some[K, V] = {
-    val head = state.series.headOrNull
+    val head = series.headOrNull
     if (head == null)
       null
     else if (head.value == null)
-      state.series.find(0, null)(_.value != null)
+      series.find(0, null)(_.value != null)
     else
       head
   }
 
   private def lastOrNullSome(): KeyValue.Some[K, V] = {
-    val last = state.series.lastOrNull
+    val last = series.lastOrNull
     if (last == null)
       null
     else if (last.value == null)
-      state.series.findReverse(state.series.length - 1, null)(_.value != null)
+      series.findReverse(series.length - 1, null)(_.value != null)
     else
       last
   }
@@ -634,9 +551,9 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     } else {
       val fromResult =
         if (fromInclusive)
-          SkipListSeries.ceiling(from, state.series, state.hashIndex)
+          SkipListSeries.ceiling(from, series)
         else
-          SkipListSeries.higher(from, state.series, state.hashIndex)
+          SkipListSeries.higher(from, series)
 
       val fromFound: KeyValue.Some[K, V] =
         fromResult match {
@@ -650,9 +567,9 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
 
       val toResult =
         if (toInclusive)
-          SkipListSeries.floor(to, state.series, state.hashIndex)
+          SkipListSeries.floor(to, series)
         else
-          SkipListSeries.lower(to, state.series, state.hashIndex)
+          SkipListSeries.lower(to, series)
 
       val toFound =
         toResult match {
@@ -671,7 +588,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
       else if (compare > 0)
         Iterable.empty
       else
-        state.series.foldLeft(fromFound.index, toFound.index, ListBuffer.empty[(K, V)]) {
+        series.foldLeft(fromFound.index, toFound.index, ListBuffer.empty[(K, V)]) {
           case (buffer, keyValue) =>
             if (keyValue.value != null)
               buffer += ((keyValue.key, keyValue.value))

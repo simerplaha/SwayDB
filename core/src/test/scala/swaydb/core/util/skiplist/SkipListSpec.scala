@@ -49,14 +49,14 @@ class TreeMap_SkipListSpec extends SkipListSpec {
     SkipListTreeMap[NK, NV, K, V](nullKey, nullValue)
 }
 
-class Series_HashIndex_Disabled_SkipListSpec extends SkipListSpec {
+class Series_Length10_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipListSeries[NK, NV, K, V](lengthPerSeries = 10, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
+    SkipListSeries[NK, NV, K, V](lengthPerSeries = 10,  nullKey = nullKey, nullValue = nullValue)
 }
 
-class Series_HashIndex_Enabled_SkipListSpec extends SkipListSpec {
+class Series_Length1_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipListSeries[NK, NV, K, V](lengthPerSeries = 10, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
+    SkipListSeries[NK, NV, K, V](lengthPerSeries = 1, nullKey = nullKey, nullValue = nullValue)
 }
 
 sealed trait SkipListSpec extends AnyWordSpec with Matchers {

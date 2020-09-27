@@ -1765,7 +1765,7 @@ object CommonAssertions {
       if (randomBoolean())
         OptimiseWrites.RandomOrder
       else
-        OptimiseWrites.SequentialOrder(randomBoolean(), randomIntMax(100) max 1)
+        OptimiseWrites.SequentialOrder(randomIntMax(100) max 1)
   }
 
   implicit val keyMatcherResultEquality: Equality[KeyMatcher.Result] =

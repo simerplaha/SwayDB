@@ -30,6 +30,6 @@ case object OptimiseWrites {
 
   case object RandomOrder extends OptimiseWrites
 
-  case class SequentialOrder(enableHashIndex: Boolean, initialLength: Int) extends OptimiseWrites
+  case class SequentialOrder(initialLength: Int) extends OptimiseWrites
 
 }

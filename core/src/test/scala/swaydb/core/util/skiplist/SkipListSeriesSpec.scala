@@ -33,14 +33,14 @@ import swaydb.serializers._
 
 import scala.util.Random
 
-class HashIndex_Disabled_SkipListSeriesSpec extends SkipListSeriesSpec {
+class Length1_SkipListSeriesSpec extends SkipListSeriesSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipListSeries[NK, NV, K, V] =
-    SkipListSeries[NK, NV, K, V](lengthPerSeries = 10, enableHashIndex = false, nullKey = nullKey, nullValue = nullValue)
+    SkipListSeries[NK, NV, K, V](lengthPerSeries = 1, nullKey = nullKey, nullValue = nullValue)
 }
 
-class HashIndex_Enabled_SkipListSeriesSpec extends SkipListSeriesSpec {
+class Length10_SkipListSeriesSpec extends SkipListSeriesSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipListSeries[NK, NV, K, V] =
-    SkipListSeries[NK, NV, K, V](lengthPerSeries = 10, enableHashIndex = true, nullKey = nullKey, nullValue = nullValue)
+    SkipListSeries[NK, NV, K, V](lengthPerSeries = 10, nullKey = nullKey, nullValue = nullValue)
 }
 
 sealed trait SkipListSeriesSpec extends AnyWordSpec with Matchers {
@@ -66,17 +66,9 @@ sealed trait SkipListSeriesSpec extends AnyWordSpec with Matchers {
         skipList.put(int, Value.Some(int))
     }
 
-    skipList.state.series.foreach(0) {
+    skipList.series.foreach(0) {
       keyValue =>
         keyValue.index shouldBe keyValue.key.readInt()
-    }
-
-    skipList.state.hashIndex.foreach {
-      hashIndex =>
-        hashIndex forEach {
-          (key: Slice[Byte], value: KeyValue.Some[Slice[Byte], Value.Some]) =>
-            value.index shouldBe key.readInt()
-        }
     }
   }
 }
