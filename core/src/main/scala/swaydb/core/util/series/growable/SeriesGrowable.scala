@@ -65,7 +65,7 @@ private[core] object SeriesGrowable {
 private[core] class SeriesGrowable[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
                                                                  lengthPerSeries: Int) {
 
-  private var _written = 0
+  @volatile private var _written = 0
 
   def add(item: T): Unit = {
     val last = series.lastOrNull

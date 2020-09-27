@@ -37,7 +37,7 @@ private[series] object SeriesAppendableVolatile {
 
 private[series] class SeriesAppendableVolatile[T >: Null] private(array: Array[VolatileValue[T]]) extends SeriesAppendable[T] { self =>
   //Not volatile because series do not allow concurrent writes only concurrent reads.
-  private var writePosition = 0
+  @volatile private var writePosition = 0
 
   def get(index: Int): T =
     if (index >= writePosition)
