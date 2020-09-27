@@ -53,7 +53,6 @@ object MemoryMap {
                               private var minSegmentSize: Int = 2.mb,
                               private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                               private var deleteSegmentsEventually: Boolean = true,
-                              private var enableHashIndexForSegments: Boolean = false,
                               private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                               private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
@@ -75,11 +74,6 @@ object MemoryMap {
 
     def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
       this.optimiseWrites = optimiseWrites
-      this
-    }
-
-    def setEnableHashIndexForSegments(boolean: Boolean) = {
-      this.enableHashIndexForSegments = boolean
       this
     }
 
@@ -156,7 +150,6 @@ object MemoryMap {
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
           optimiseWrites = optimiseWrites,
-          enableHashIndexForSegments = enableHashIndexForSegments,
           acceleration = acceleration.asScala,
           levelZeroThrottle = levelZeroThrottle.asScala,
           lastLevelThrottle = lastLevelThrottle.asScala,

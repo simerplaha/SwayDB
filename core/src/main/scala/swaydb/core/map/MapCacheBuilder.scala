@@ -26,6 +26,6 @@ package swaydb.core.map
 
 trait MapCacheBuilder[C] {
 
-  def create(enableHashIndex: Boolean): C
+  def create(): C
 
 }

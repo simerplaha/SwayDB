@@ -48,7 +48,6 @@ object MemoryQueue {
                         private var minSegmentSize: Int = 2.mb,
                         private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                         private var deleteSegmentsEventually: Boolean = true,
-                        private var enableHashIndexForSegments: Boolean = false,
                         private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                         private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
@@ -70,11 +69,6 @@ object MemoryQueue {
 
     def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
       this.optimiseWrites = optimiseWrites
-      this
-    }
-
-    def setEnableHashIndexForSegments(boolean: Boolean) = {
-      this.enableHashIndexForSegments = boolean
       this
     }
 
@@ -127,7 +121,6 @@ object MemoryQueue {
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
           optimiseWrites = optimiseWrites,
-          enableHashIndexForSegments = enableHashIndexForSegments,
           acceleration = acceleration.asScala,
           levelZeroThrottle = levelZeroThrottle.asScala,
           lastLevelThrottle = lastLevelThrottle.asScala,

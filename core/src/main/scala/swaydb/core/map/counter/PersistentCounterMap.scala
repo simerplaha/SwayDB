@@ -70,8 +70,7 @@ private[core] case object PersistentCounterMap extends LazyLogging {
         mmap = mmap,
         flushOnOverflow = true,
         fileSize = fileSize,
-        dropCorruptedTailEntries = false,
-        enableHashIndex = false
+        dropCorruptedTailEntries = false
       ).item
     } flatMap {
       map =>

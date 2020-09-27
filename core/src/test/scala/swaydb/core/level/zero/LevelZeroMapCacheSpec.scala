@@ -49,7 +49,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
   "insert" should {
     "insert a Fixed value to an empty skipList" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
 
       val put = Memory.put(1, "one")
       cache.writeAtomic(MapEntry.Put(put.key, put))
@@ -60,7 +60,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
     "insert multiple fixed key-values" in {
 
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
 
       (0 to 9) foreach {
         i =>
@@ -79,7 +79,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     "insert multiple non-overlapping ranges" in {
       //10 | 20 | 40 | 100
       //1  | 10 | 30 | 50
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
 
       cache.writeAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.FromValue.Null, Value.remove(None))))
       cache.writeAtomic(MapEntry.Put(30, Memory.Range(30, 40, Value.FromValue.Null, Value.update(40))))
@@ -100,7 +100,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       //15 | 20
       //1  | 15
 
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
 
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20))))
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 15, Value.FromValue.Null, Value.update(40))))
@@ -120,7 +120,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       //10 | 15 | 20
       //1  | 10 | 15
 
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
 
       //insert with put
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.put(10), Value.update(20))))
@@ -134,7 +134,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "insert overlapping ranges when insert fromKey is greater than existing range's fromKey" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       //10
       //1
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 15, Value.FromValue.Null, Value.update(40))))
@@ -147,7 +147,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "insert overlapping ranges when insert fromKey is greater than existing range's fromKey and fromKey is set" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       //15
       //1 (Put(1))
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 15, Value.put(1), Value.update(40))))
@@ -161,7 +161,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "insert overlapping ranges without values set and no splits required" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 5, Value.FromValue.Null, Value.update(5))))
       cache.writeNonAtomic(MapEntry.Put(5, Memory.Range(5, 10, Value.FromValue.Null, Value.update(10))))
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20))))
@@ -182,7 +182,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "insert overlapping ranges with values set and no splits required" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 5, Value.put(1), Value.update(5))))
       cache.writeNonAtomic(MapEntry.Put(5, Memory.Range(5, 10, Value.FromValue.Null, Value.update(10))))
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.put(10), Value.update(20))))
@@ -203,7 +203,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "insert overlapping ranges with values set and splits required" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 5, Value.put(1), Value.update(5))))
       cache.writeNonAtomic(MapEntry.Put(5, Memory.Range(5, 10, Value.FromValue.Null, Value.update(10))))
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.put(10), Value.update(20))))
@@ -225,7 +225,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "remove range should remove invalid entries" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       cache.writeNonAtomic(MapEntry.Put(1, Memory.put(1, 1)))
       cache.writeNonAtomic(MapEntry.Put(2, Memory.put(2, 2)))
       cache.writeNonAtomic(MapEntry.Put(4, Memory.put(4, 4)))
@@ -262,7 +262,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "remove range when cache.asMergedSkipList is empty" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       cache.writeNonAtomic(MapEntry.Put(2, Memory.Range(2, 100, Value.FromValue.Null, Value.remove(None))))
       cache.getMergedSkipList should have size 1
 
@@ -273,7 +273,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "remove range should clear removed entries when remove ranges overlaps the left edge" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       //1           -              10
       (1 to 10) foreach {
         i =>
@@ -301,7 +301,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "remove range should clear removed entries when remove ranges overlaps the right edge" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       //1           -              10
       (1 to 10) foreach {
         i =>
@@ -329,7 +329,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "insert fixed key-values into remove range" in {
-      val cache = LevelZeroMapCache.builder.create(randomBoolean())
+      val cache = LevelZeroMapCache.builder.create()
       //1           -              10
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))))
       (1 to 10) foreach {

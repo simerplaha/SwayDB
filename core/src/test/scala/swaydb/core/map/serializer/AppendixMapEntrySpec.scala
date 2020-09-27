@@ -70,7 +70,7 @@ class AppendixMapEntrySpec extends TestBase {
           val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice))
           readEntry shouldBe entry
 
-          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null, randomBoolean())(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readEntry applyBatch skipList
           val scalaSkipList = skipList.asScala
 
@@ -101,7 +101,7 @@ class AppendixMapEntrySpec extends TestBase {
           val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice))
           readEntry shouldBe entry
 
-          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null, randomBoolean())(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readEntry applyBatch skipList
           skipList shouldBe empty
       }
@@ -138,7 +138,7 @@ class AppendixMapEntrySpec extends TestBase {
           val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice))
           readEntry shouldBe entry
 
-          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null, randomBoolean())(keyOrder)
+          val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readEntry applyBatch skipList
 
           def scalaSkipList = skipList.asScala

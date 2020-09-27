@@ -17,9 +17,9 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
 package swaydb.data.config.builder
@@ -36,7 +36,6 @@ class MemoryLevelConfigBuilder {
   private var maxKeyValuesPerSegment: Int = _
   private var copyForward: Boolean = _
   private var deleteSegmentsEventually: Boolean = _
-  private var enableHashIndexForSegments: Boolean = _
   private var compactionExecutionContext: CompactionExecutionContext = _
 }
 
@@ -78,13 +77,6 @@ object MemoryLevelConfigBuilder {
   }
 
   class Step5(builder: MemoryLevelConfigBuilder) {
-    def enableHashIndexForSegments(enableHashIndexForSegments: Boolean) = {
-      builder.enableHashIndexForSegments = enableHashIndexForSegments
-      new Step6(builder)
-    }
-  }
-
-  class Step6(builder: MemoryLevelConfigBuilder) {
     def throttle(throttle: JavaFunction[LevelMeter, Throttle]) =
       new MemoryLevelConfig(
         minSegmentSize = builder.minSegmentSize,
@@ -92,7 +84,6 @@ object MemoryLevelConfigBuilder {
         copyForward = builder.copyForward,
         deleteSegmentsEventually = builder.deleteSegmentsEventually,
         compactionExecutionContext = builder.compactionExecutionContext,
-        enableHashIndexForSegments = builder.enableHashIndexForSegments,
         throttle = throttle.apply
       )
   }

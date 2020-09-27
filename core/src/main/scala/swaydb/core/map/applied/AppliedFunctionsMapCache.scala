@@ -33,12 +33,11 @@ import swaydb.data.slice.{Slice, SliceOption}
 object AppliedFunctionsMapCache {
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]]) =
     new MapCacheBuilder[AppliedFunctionsMapCache] {
-      override def create(enableHashIndex: Boolean): AppliedFunctionsMapCache =
+      override def create(): AppliedFunctionsMapCache =
         AppliedFunctionsMapCache(
           SkipListConcurrent(
             nullKey = Slice.Null,
-            nullValue = Slice.Null,
-            enableHashIndex = false //not need for AppliedFunctions. Used for BootUp only.
+            nullValue = Slice.Null
           )
         )
     }

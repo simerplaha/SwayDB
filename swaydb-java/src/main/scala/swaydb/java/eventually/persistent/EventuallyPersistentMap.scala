@@ -65,7 +65,6 @@ object EventuallyPersistentMap {
                               private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                               private var deleteMemorySegmentsEventually: Boolean = true,
                               private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                              private var enableHashIndexForMemorySegments: Boolean = false,
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                               private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                               private var persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -91,11 +90,6 @@ object EventuallyPersistentMap {
 
     def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
       this.optimiseWrites = optimiseWrites
-      this
-    }
-
-    def setEnableHashIndexForMemorySegments(boolean: Boolean) = {
-      this.enableHashIndexForMemorySegments = boolean
       this
     }
 
@@ -244,7 +238,6 @@ object EventuallyPersistentMap {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
-          enableHashIndexForMemorySegments = enableHashIndexForMemorySegments,
           optimiseWrites = optimiseWrites,
           acceleration = acceleration.apply,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,

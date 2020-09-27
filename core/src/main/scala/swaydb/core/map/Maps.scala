@@ -53,7 +53,6 @@ private[core] object Maps extends LazyLogging {
   val closeErrorMessage = "Cannot perform write on a closed instance."
 
   def memory[K, V, C <: MapCache[K, V]](fileSize: Long,
-                                        enableHashIndex: Boolean,
                                         acceleration: LevelZeroMeter => Accelerator)(implicit keyOrder: KeyOrder[K],
                                                                                      fileSweeper: FileSweeperActor,
                                                                                      bufferCleaner: ByteBufferSweeperActor,
@@ -65,12 +64,10 @@ private[core] object Maps extends LazyLogging {
       maps = new ConcurrentLinkedDeque[Map[K, V, C]](),
       fileSize = fileSize,
       acceleration = acceleration,
-      enableHashIndex = enableHashIndex,
       currentMap =
         Map.memory[K, V, C](
           fileSize = fileSize,
-          flushOnOverflow = false,
-          enableHashIndex = enableHashIndex
+          flushOnOverflow = false
         )
     )
 
@@ -78,8 +75,7 @@ private[core] object Maps extends LazyLogging {
                                             mmap: MMAP.Map,
                                             fileSize: Long,
                                             acceleration: LevelZeroMeter => Accelerator,
-                                            recovery: RecoveryMode,
-                                            enableHashIndex: Boolean)(implicit keyOrder: KeyOrder[K],
+                                            recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
                                                                       fileSweeper: FileSweeperActor,
                                                                       bufferCleaner: ByteBufferSweeperActor,
                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -93,8 +89,7 @@ private[core] object Maps extends LazyLogging {
       folder = path,
       mmap = mmap,
       fileSize = fileSize,
-      recovery = recovery,
-      enableHashIndex = enableHashIndex
+      recovery = recovery
     ).map(_.reverse) flatMap {
       recoveredMapsReversed =>
         logger.info(s"{}: Recovered {} ${if (recoveredMapsReversed.isEmpty || recoveredMapsReversed.size > 1) "logs" else "log"}.", path, recoveredMapsReversed.size)
@@ -127,8 +122,7 @@ private[core] object Maps extends LazyLogging {
                 mmap = mmap,
                 flushOnOverflow = false,
                 fileSize = fileSize,
-                dropCorruptedTailEntries = recovery.drop,
-                enableHashIndex = enableHashIndex
+                dropCorruptedTailEntries = recovery.drop
               )
             } map {
               nextMap =>
@@ -137,7 +131,6 @@ private[core] object Maps extends LazyLogging {
                   maps = queue,
                   fileSize = fileSize,
                   acceleration = acceleration,
-                  enableHashIndex = enableHashIndex,
                   currentMap = nextMap.item
                 )
             }
@@ -148,7 +141,6 @@ private[core] object Maps extends LazyLogging {
   private def recover[K, V, C <: MapCache[K, V]](folder: Path,
                                                  mmap: MMAP.Map,
                                                  fileSize: Long,
-                                                 enableHashIndex: Boolean,
                                                  recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
                                                                          fileSweeper: FileSweeperActor,
                                                                          bufferCleaner: ByteBufferSweeperActor,
@@ -223,7 +215,6 @@ private[core] object Maps extends LazyLogging {
               mmap = mmap,
               flushOnOverflow = false,
               fileSize = fileSize,
-              enableHashIndex = enableHashIndex,
               dropCorruptedTailEntries = recovery.drop
             )
           } match {
@@ -273,7 +264,6 @@ private[core] object Maps extends LazyLogging {
   }
 
   def nextMapUnsafe[K, V, C <: MapCache[K, V]](nextMapSize: Long,
-                                               enableHashIndex: Boolean,
                                                currentMap: Map[K, V, C])(implicit keyOrder: KeyOrder[K],
                                                                          fileSweeper: FileSweeperActor,
                                                                          bufferCleaner: ByteBufferSweeperActor,
@@ -287,15 +277,13 @@ private[core] object Maps extends LazyLogging {
           folder = currentMap.path.incrementFolderId,
           mmap = currentMap.mmap,
           flushOnOverflow = false,
-          fileSize = nextMapSize,
-          enableHashIndex = enableHashIndex
+          fileSize = nextMapSize
         )
 
       case _ =>
         Map.memory[K, V, C](
           fileSize = nextMapSize,
-          flushOnOverflow = false,
-          enableHashIndex = enableHashIndex
+          flushOnOverflow = false
         )
     }
 
@@ -354,7 +342,6 @@ private[core] object Maps extends LazyLogging {
 private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDeque[Map[K, V, C]],
                                                     fileSize: Long,
                                                     acceleration: LevelZeroMeter => Accelerator,
-                                                    enableHashIndex: Boolean,
                                                     @volatile private var currentMap: Map[K, V, C])(implicit keyOrder: KeyOrder[K],
                                                                                                     fileSweeper: FileSweeperActor,
                                                                                                     val bufferCleaner: ByteBufferSweeperActor,
@@ -402,7 +389,6 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDe
     val nextMap =
       Maps.nextMapUnsafe(
         nextMapSize = mapSize,
-        enableHashIndex = enableHashIndex,
         currentMap = currentMap
       )
 

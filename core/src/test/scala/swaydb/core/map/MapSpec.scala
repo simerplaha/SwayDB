@@ -69,8 +69,7 @@ class MapSpec extends TestBase {
           val map =
             Map.memory[Slice[Byte], Memory, LevelZeroMapCache](
               fileSize = 1.mb,
-              flushOnOverflow = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              flushOnOverflow = false
             ).sweep()
 
           map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
@@ -105,8 +104,7 @@ class MapSpec extends TestBase {
           val map =
             Map.memory[Slice[Byte], Segment, AppendixMapCache](
               fileSize = 1.mb,
-              flushOnOverflow = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              flushOnOverflow = false
             ).sweep()
 
           val segment1 = TestSegment()
@@ -137,8 +135,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map.cache.getMergedSkipList.isEmpty shouldBe true
@@ -150,8 +147,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           recovered.cache.isEmpty shouldBe true
@@ -173,8 +169,7 @@ class MapSpec extends TestBase {
               folder = createRandomDir,
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false, fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map.cache.skipList.isEmpty shouldBe true
@@ -186,8 +181,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           recovered.cache.skipList.isEmpty shouldBe true
@@ -217,8 +211,7 @@ class MapSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 flushOnOverflow = false,
                 fileSize = 1.mb,
-                dropCorruptedTailEntries = false,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                dropCorruptedTailEntries = false
               ).item.sweep()
 
             assertReads(recovered)
@@ -237,8 +230,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, 1))) shouldBe true
@@ -275,8 +267,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map.writeSync(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
@@ -292,8 +283,7 @@ class MapSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 flushOnOverflow = false,
                 fileSize = 1.mb,
-                dropCorruptedTailEntries = false,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                dropCorruptedTailEntries = false
               ).item.sweep()
 
             recovered.cache.skipList.get(1).getS shouldBe segment1
@@ -327,8 +317,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map1.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
@@ -342,8 +331,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map2.writeSync(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
@@ -362,8 +350,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map1Recovered.cache.getMergedSkipList.get(1) shouldBe Memory.put(1, 1)
@@ -402,8 +389,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map1.writeSync(MapEntry.Put(1, segment1)) shouldBe true
@@ -416,8 +402,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map2.writeSync(MapEntry.Put(4, segment4)) shouldBe true
@@ -435,8 +420,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map1Recovered.cache.skipList.get(1).getS shouldBe segment1
@@ -463,8 +447,7 @@ class MapSpec extends TestBase {
               folder = createRandomDir,
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
-              fileSize = 1.mb,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              fileSize = 1.mb
             ).sweep()
 
           //fails because the file already exists.
@@ -473,8 +456,7 @@ class MapSpec extends TestBase {
               folder = map.path,
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
-              fileSize = 1.mb,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              fileSize = 1.mb
             ).sweep()
           }
 
@@ -484,8 +466,7 @@ class MapSpec extends TestBase {
             mmap = MMAP.Disabled(TestForceSave.channel()),
             flushOnOverflow = false,
             fileSize = 1.mb,
-            dropCorruptedTailEntries = false,
-            enableHashIndex = optimiseWrites.enableHashIndex
+            dropCorruptedTailEntries = false
           ).item.sweep()
 
       }
@@ -500,7 +481,7 @@ class MapSpec extends TestBase {
           import LevelZeroMapEntryWriter._
           import sweeper._
 
-          val cache = LevelZeroMapCache.builder.create(randomBoolean())
+          val cache = LevelZeroMapCache.builder.create()
 
           val file =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
@@ -535,8 +516,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
@@ -550,7 +530,7 @@ class MapSpec extends TestBase {
 
           map.cache.hasRange shouldBe true
 
-          val cache = LevelZeroMapCache.builder.create(randomBoolean())
+          val cache = LevelZeroMapCache.builder.create()
 
           //PersistentMap.recover below will delete this mmap file which on Windows
           //requires this map to be closed and cleaned before deleting.
@@ -598,8 +578,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = true,
               fileSize = 1.byte,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
@@ -621,7 +600,7 @@ class MapSpec extends TestBase {
           }
 
           //reopen file
-          val cache = LevelZeroMapCache.builder.create(randomBoolean())
+          val cache = LevelZeroMapCache.builder.create()
 
           val recoveredFile =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
@@ -651,7 +630,7 @@ class MapSpec extends TestBase {
           }
 
           //reopen the recovered file
-          val cache2 = LevelZeroMapCache.builder.create(randomBoolean())
+          val cache2 = LevelZeroMapCache.builder.create()
           val recoveredFile2 =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map.path,
@@ -690,8 +669,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item
 
           map.currentFilePath.fileId shouldBe(0, Extension.Log)
@@ -700,7 +678,7 @@ class MapSpec extends TestBase {
           if (OperatingSystem.isWindows)
             sweeper.receiveAll()
 
-          val cache = LevelZeroMapCache.builder.create(randomBoolean())
+          val cache = LevelZeroMapCache.builder.create()
           val file =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map.path,
@@ -729,7 +707,7 @@ class MapSpec extends TestBase {
           import LevelZeroMapEntryWriter._
           import sweeper._
 
-          val cache = LevelZeroMapCache.builder.create(randomBoolean())
+          val cache = LevelZeroMapCache.builder.create()
           cache.writeAtomic(MapEntry.Put(1, Memory.put(1, 1)))
           cache.writeAtomic(MapEntry.Put(2, Memory.put(2, 2)))
           cache.writeAtomic(MapEntry.Put(3, Memory.remove(3)))
@@ -758,7 +736,7 @@ class MapSpec extends TestBase {
               cache = cache
             ).sweep()
 
-          val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, randomBoolean())(keyOrder)
+          val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
           val nextFileBytes = DBFile.channelRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).readAll
           nextFileBytes.size should be > 0
           val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
@@ -787,8 +765,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           (1 to 100) foreach {
@@ -806,8 +783,7 @@ class MapSpec extends TestBase {
                 mmap = MMAP.Disabled(TestForceSave.channel()),
                 flushOnOverflow = false,
                 fileSize = 4.mb,
-                dropCorruptedTailEntries = false,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                dropCorruptedTailEntries = false
               )
             }
 
@@ -831,8 +807,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           (1 to 100) foreach {
@@ -851,8 +826,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
-              dropCorruptedTailEntries = true,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = true
             ).item.sweep()
 
           (1 to 99) foreach {
@@ -870,8 +844,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
-              dropCorruptedTailEntries = true,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = true
             ).item.sweep()
 
           recoveredMap2.cache.getMergedSkipList.isEmpty shouldBe true
@@ -893,8 +866,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map1.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
@@ -907,8 +879,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map2.writeSync(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
@@ -935,8 +906,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             )
           }
           Effect.overwrite(log0, log0Bytes) //fix log0 bytes
@@ -950,8 +920,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = true,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = true
             )
 
           recoveredMapWith0LogCorrupted.item.sweep()
@@ -986,8 +955,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map1.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
@@ -1000,8 +968,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           map2.writeSync(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
@@ -1027,8 +994,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             )
           }
           Effect.overwrite(log1, log1Bytes) //fix log1 bytes
@@ -1042,8 +1008,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = true,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = true
             )
           recoveredMapWith0LogCorrupted.item.sweep()
 
@@ -1082,8 +1047,7 @@ class MapSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 flushOnOverflow = true,
                 fileSize = randomIntMax(1.mb),
-                dropCorruptedTailEntries = false,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                dropCorruptedTailEntries = false
               ).item.sweep()
 
             //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
@@ -1144,8 +1108,7 @@ class MapSpec extends TestBase {
                   flushOnOverflow = true,
                   //setting t
                   fileSize = 1.byte,
-                  dropCorruptedTailEntries = false,
-                  enableHashIndex = optimiseWrites.enableHashIndex
+                  dropCorruptedTailEntries = false
                 ).item.sweep()
 
               //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
@@ -1190,8 +1153,7 @@ class MapSpec extends TestBase {
               mmap = MMAP.randomForMap(),
               flushOnOverflow = true,
               fileSize = 1.mb,
-              dropCorruptedTailEntries = false,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              dropCorruptedTailEntries = false
             ).item.sweep()
 
           (1 to 100) foreach {

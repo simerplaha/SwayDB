@@ -213,16 +213,14 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         if (levelStorage.memory)
           map.Map.memory[Slice[Byte], Memory, LevelZeroMapCache](
             fileSize = fileSize,
-            flushOnOverflow = flushOnOverflow,
-            enableHashIndex = randomBoolean()
+            flushOnOverflow = flushOnOverflow
           )
         else
           map.Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,
-            fileSize = fileSize,
-            enableHashIndex = randomBoolean()
+            fileSize = fileSize
           ).runRandomIO.right.value
 
       keyValues foreach {
@@ -302,7 +300,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             maxKeyValueCountPerSegment = segmentConfig.maxCount,
             pathsDistributor = pathsDistributor,
             createdInLevel = createdInLevel,
-            enableHashIndex = hashIndexConfig.isHashIndexEnabledForMemory,
             keyValues = MergeStats.memoryBuilder(keyValues).close
           )
         else

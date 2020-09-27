@@ -151,15 +151,14 @@ private[core] object Level extends LazyLogging {
                     mmap = mmap,
                     flushOnOverflow = true,
                     fileSize = appendixFlushCheckpointSize,
-                    dropCorruptedTailEntries = false,
-                    enableHashIndex = false
+                    dropCorruptedTailEntries = false
                   ).item
                 }
               }
 
             case AppendixStorage.Memory =>
               logger.info("{}: Initialising appendix for in-memory Level", levelStorage.dir)
-              IO(Map.memory[Slice[Byte], Segment, AppendixMapCache](enableHashIndex = false))
+              IO(Map.memory[Slice[Byte], Segment, AppendixMapCache]())
           }
 
         //initialise Level
@@ -799,7 +798,6 @@ private[core] case class Level(dirs: Seq[Dir],
           keyValues = keyValues.iterator,
           pathsDistributor = pathDistributor,
           removeDeletes = removeDeletedRecords,
-          enableHashIndex = hashIndexConfig.isHashIndexEnabledForMemory,
           minSegmentSize = minSegmentSize,
           maxKeyValueCountPerSegment = segmentConfig.maxCount,
           createdInLevel = levelNumber
@@ -884,7 +882,6 @@ private[core] case class Level(dirs: Seq[Dir],
                 createdInLevel = levelNumber,
                 pathsDistributor = pathDistributor,
                 removeDeletes = removeDeletedRecords,
-                enableHashIndex = hashIndexConfig.isHashIndexEnabledForMemory,
                 minSegmentSize = segmentConfig.minSize,
                 maxKeyValueCountPerSegment = segmentConfig.maxCount
               )

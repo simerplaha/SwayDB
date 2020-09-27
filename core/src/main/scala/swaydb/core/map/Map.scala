@@ -48,47 +48,42 @@ private[core] object Map extends LazyLogging {
                                             mmap: MMAP.Map,
                                             flushOnOverflow: Boolean,
                                             fileSize: Long,
-                                            dropCorruptedTailEntries: Boolean,
-                                            enableHashIndex: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                      fileSweeper: FileSweeperActor,
-                                                                      bufferCleaner: ByteBufferSweeperActor,
-                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                      reader: MapEntryReader[MapEntry[K, V]],
-                                                                      cacheBuilder: MapCacheBuilder[C],
-                                                                      forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentMap[K, V, C]] =
+                                            dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                               fileSweeper: FileSweeperActor,
+                                                                               bufferCleaner: ByteBufferSweeperActor,
+                                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                               reader: MapEntryReader[MapEntry[K, V]],
+                                                                               cacheBuilder: MapCacheBuilder[C],
+                                                                               forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentMap[K, V, C]] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize,
-      dropCorruptedTailEntries = dropCorruptedTailEntries,
-      enableHashIndex = enableHashIndex
+      dropCorruptedTailEntries = dropCorruptedTailEntries
     )
 
   def persistent[K, V, C <: MapCache[K, V]](folder: Path,
                                             mmap: MMAP.Map,
                                             flushOnOverflow: Boolean,
-                                            fileSize: Long,
-                                            enableHashIndex: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                      fileSweeper: FileSweeperActor,
-                                                                      bufferCleaner: ByteBufferSweeperActor,
-                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                      cacheBuilder: MapCacheBuilder[C],
-                                                                      forceSaveApplier: ForceSaveApplier): PersistentMap[K, V, C] =
+                                            fileSize: Long)(implicit keyOrder: KeyOrder[K],
+                                                            fileSweeper: FileSweeperActor,
+                                                            bufferCleaner: ByteBufferSweeperActor,
+                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                            cacheBuilder: MapCacheBuilder[C],
+                                                            forceSaveApplier: ForceSaveApplier): PersistentMap[K, V, C] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
       flushOnOverflow = flushOnOverflow,
-      fileSize = fileSize,
-      enableHashIndex = enableHashIndex
+      fileSize = fileSize
     )
 
   def memory[K, V, C <: MapCache[K, V]](fileSize: Long = 0.byte,
-                                        flushOnOverflow: Boolean = true,
-                                        enableHashIndex: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                  cacheBuilder: MapCacheBuilder[C]): MemoryMap[K, V, C] =
+                                        flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
+                                                                         cacheBuilder: MapCacheBuilder[C]): MemoryMap[K, V, C] =
     new MemoryMap[K, V, C](
-      cache = cacheBuilder.create(enableHashIndex),
+      cache = cacheBuilder.create(),
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize
     )

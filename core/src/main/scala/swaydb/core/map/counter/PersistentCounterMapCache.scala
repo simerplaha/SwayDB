@@ -30,7 +30,7 @@ import swaydb.data.slice.Slice
 object PersistentCounterMapCache {
   implicit def builder =
     new MapCacheBuilder[PersistentCounterMapCache] {
-      override def create(enableHashIndex: Boolean): PersistentCounterMapCache =
+      override def create(): PersistentCounterMapCache =
         new PersistentCounterMapCache
     }
 }

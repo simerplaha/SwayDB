@@ -145,6 +145,6 @@ object DefaultConfigs {
         )
     )
 
-  def optimiseWrites(): OptimiseWrites.RandomOrder =
-    OptimiseWrites.RandomOrder(enableHashIndex = false)
+  def optimiseWrites(): OptimiseWrites =
+    OptimiseWrites.RandomOrder
 }

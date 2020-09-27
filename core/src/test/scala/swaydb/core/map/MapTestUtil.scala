@@ -78,8 +78,7 @@ object MapTestUtil {
         mmap = MMAP.randomForMap(),
         flushOnOverflow = map.flushOnOverflow,
         fileSize = map.fileSize,
-        dropCorruptedTailEntries = false,
-        enableHashIndex = randomBoolean()
+        dropCorruptedTailEntries = false
       ).runRandomIO.right.value.item.sweep()
     }
   }

@@ -129,8 +129,7 @@ private[core] case object LevelZero extends LazyLogging {
                       mmap = mmap,
                       fileSize = mapSize,
                       acceleration = acceleration,
-                      recovery = recovery,
-                      enableHashIndex = optimiseWrites.enableHashIndex
+                      recovery = recovery
                     ).onLeftSideEffect {
                       _ =>
                         timer.close
@@ -214,7 +213,6 @@ private[core] case object LevelZero extends LazyLogging {
               val map =
                 Maps.memory[Slice[Byte], Memory, LevelZeroMapCache](
                   fileSize = mapSize,
-                  enableHashIndex = optimiseWrites.enableHashIndex,
                   acceleration = acceleration
                 )
 

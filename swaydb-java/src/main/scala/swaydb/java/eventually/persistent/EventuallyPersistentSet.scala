@@ -65,7 +65,6 @@ object EventuallyPersistentSet {
                            private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                            private var deleteMemorySegmentsEventually: Boolean = true,
                            private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                           private var enableHashIndexForMemorySegments: Boolean = false,
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
@@ -90,11 +89,6 @@ object EventuallyPersistentSet {
 
     def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
       this.optimiseWrites = optimiseWrites
-      this
-    }
-
-    def setEnableHashIndexForMemorySegments(boolean: Boolean) = {
-      this.enableHashIndexForMemorySegments = boolean
       this
     }
 
@@ -241,7 +235,6 @@ object EventuallyPersistentSet {
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
-          enableHashIndexForMemorySegments = enableHashIndexForMemorySegments,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
           optimiseWrites = optimiseWrites,

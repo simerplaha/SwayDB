@@ -79,8 +79,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.mb,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value
 
             maps.write(_ => MapEntry.Put(1, Memory.put(1)))
@@ -104,8 +103,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.mb,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
             //adding more entries to reopened Map should contain all entries
@@ -136,8 +134,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.mb,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
@@ -156,8 +153,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.mb,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
             reopen.queuedMapsCountWithCurrent shouldBe 1
@@ -180,8 +176,7 @@ class MapsSpec extends TestBase {
           val map: Maps[Slice[Byte], Memory, LevelZeroMapCache] =
             Maps.memory[Slice[Byte], Memory, LevelZeroMapCache](
               fileSize = 1.mb,
-              acceleration = Accelerator.brake(),
-              enableHashIndex = optimiseWrites.enableHashIndex
+              acceleration = Accelerator.brake()
             )
 
           map.write(_ => MapEntry.Put(1, Memory.put(1)))
@@ -218,8 +213,7 @@ class MapsSpec extends TestBase {
               mmap = MMAP.randomForMap(),
               fileSize = 21.bytes + 31.bytes,
               acceleration = Accelerator.brake(),
-              recovery = RecoveryMode.ReportFailure,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              recovery = RecoveryMode.ReportFailure
             ).value.sweep()
 
           test(maps)
@@ -230,7 +224,6 @@ class MapsSpec extends TestBase {
           test(
             Maps.memory(
               fileSize = 21.bytes + 31.bytes,
-              enableHashIndex = randomBoolean(),
               acceleration = Accelerator.brake()
             )
           )
@@ -286,8 +279,7 @@ class MapsSpec extends TestBase {
                   mmap = MMAP.randomForMap(),
                   fileSize = 500.bytes,
                   acceleration = Accelerator.brake(),
-                  recovery = RecoveryMode.ReportFailure,
-                  enableHashIndex = optimiseWrites.enableHashIndex
+                  recovery = RecoveryMode.ReportFailure
                 ).value
               )
 
@@ -300,7 +292,6 @@ class MapsSpec extends TestBase {
             test(
               Maps.memory(
                 fileSize = 500.bytes,
-                enableHashIndex = randomBoolean(),
                 acceleration = Accelerator.brake()
               )
             )
@@ -312,8 +303,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 500.bytes,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
             maps.queuedMapsCount shouldBe 4
@@ -339,8 +329,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value
 
             maps.write(_ => MapEntry.Put(1, Memory.put(1)))
@@ -365,8 +354,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value
 
             recovered1.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
@@ -385,8 +373,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
             recovered2.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
@@ -409,8 +396,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value
 
             maps.write(_ => MapEntry.Put(1, Memory.put(1)))
@@ -428,8 +414,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
             val recoveredMapsMaps = recoveredMaps.maps.asScala
@@ -455,8 +440,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 1.byte,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value
 
             maps.write(_ => MapEntry.Put(1, Memory.put(1)))
@@ -477,8 +461,7 @@ class MapsSpec extends TestBase {
               mmap = MMAP.randomForMap(),
               fileSize = 1.byte,
               acceleration = Accelerator.brake(),
-              recovery = RecoveryMode.ReportFailure,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              recovery = RecoveryMode.ReportFailure
             ).left.value.exception shouldBe a[IllegalStateException]
         }
       }
@@ -496,8 +479,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.Disabled(TestForceSave.channel()),
                 fileSize = 50.bytes,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.ReportFailure,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.ReportFailure
               ).value
 
             maps.write(_ => MapEntry.Put(1, Memory.put(1)))
@@ -517,8 +499,7 @@ class MapsSpec extends TestBase {
                 mmap = MMAP.randomForMap(),
                 fileSize = 50.bytes,
                 acceleration = Accelerator.brake(),
-                recovery = RecoveryMode.DropCorruptedTailEntries,
-                enableHashIndex = optimiseWrites.enableHashIndex
+                recovery = RecoveryMode.DropCorruptedTailEntries
               ).value.sweep()
 
             val recoveredMaps = recovered.maps.asScala
@@ -552,8 +533,7 @@ class MapsSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               fileSize = 50.bytes,
               acceleration = Accelerator.brake(),
-              recovery = RecoveryMode.ReportFailure,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              recovery = RecoveryMode.ReportFailure
             ).value
 
           maps.write(_ => MapEntry.Put(1, Memory.put(1)))
@@ -573,8 +553,7 @@ class MapsSpec extends TestBase {
               mmap = MMAP.randomForMap(),
               fileSize = 50.bytes,
               acceleration = Accelerator.brake(),
-              recovery = RecoveryMode.DropCorruptedTailEntriesAndMaps,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              recovery = RecoveryMode.DropCorruptedTailEntriesAndMaps
             ).value.sweep()
 
           recoveredMaps.maps should have size 2
@@ -604,8 +583,7 @@ class MapsSpec extends TestBase {
               mmap = MMAP.Disabled(TestForceSave.channel()),
               fileSize = 100.bytes,
               acceleration = Accelerator.brake(),
-              recovery = RecoveryMode.ReportFailure,
-              enableHashIndex = optimiseWrites.enableHashIndex
+              recovery = RecoveryMode.ReportFailure
             ).value
 
           maps.write(_ => MapEntry.Put(1, Memory.put(1)))
@@ -630,8 +608,7 @@ class MapsSpec extends TestBase {
       (1 to max) map {
         _ =>
           Map.memory[Slice[Byte], Memory, LevelZeroMapCache](
-            fileSize = 1.mb,
-            enableHashIndex = optimiseWrites.enableHashIndex
+            fileSize = 1.mb
           )
       }
 

@@ -1040,7 +1040,6 @@ sealed trait SegmentWriteSpec extends TestBase {
               Segment.copyToMemory(
                 segment = segment,
                 pathsDistributor = pathDistributor,
-                enableHashIndex = randomBoolean(),
                 createdInLevel = 0,
                 removeDeletes = false,
                 minSegmentSize =
@@ -1076,7 +1075,6 @@ sealed trait SegmentWriteSpec extends TestBase {
               Segment.copyToMemory(
                 segment = segment,
                 createdInLevel = 0,
-                enableHashIndex = randomBoolean(),
                 pathsDistributor = pathDistributor,
                 removeDeletes = true,
                 minSegmentSize = memorySize / 1000,

@@ -54,7 +54,6 @@ object MemoryMultiMap {
                                  private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                                  private var deleteSegmentsEventually: Boolean = true,
                                  private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                                 private var enableHashIndexForSegments: Boolean = false,
                                  private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                  private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                  private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
@@ -76,11 +75,6 @@ object MemoryMultiMap {
 
     def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
       this.optimiseWrites = optimiseWrites
-      this
-    }
-
-    def setEnableHashIndexForSegments(boolean: Boolean) = {
-      this.enableHashIndexForSegments = boolean
       this
     }
 
@@ -157,7 +151,6 @@ object MemoryMultiMap {
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
           optimiseWrites = optimiseWrites,
-          enableHashIndexForSegments = enableHashIndexForSegments,
           acceleration = acceleration.asScala,
           levelZeroThrottle = levelZeroThrottle.asScala,
           lastLevelThrottle = lastLevelThrottle.asScala,

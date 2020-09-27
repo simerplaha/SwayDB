@@ -44,7 +44,6 @@ object DefaultMemoryConfig extends LazyLogging {
             minSegmentSize: Int,
             maxKeyValuesPerSegment: Int,
             deleteSegmentsEventually: Boolean,
-            enableHashIndexForSegments: Boolean,
             acceleration: LevelZeroMeter => Accelerator,
             levelZeroThrottle: LevelZeroMeter => FiniteDuration,
             lastLevelThrottle: LevelMeter => Throttle,
@@ -64,7 +63,6 @@ object DefaultMemoryConfig extends LazyLogging {
         maxKeyValuesPerSegment = maxKeyValuesPerSegment,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        enableHashIndexForSegments = enableHashIndexForSegments,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle = lastLevelThrottle
       )

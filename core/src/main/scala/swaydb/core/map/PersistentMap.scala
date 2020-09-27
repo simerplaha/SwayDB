@@ -49,17 +49,16 @@ private[map] object PersistentMap extends LazyLogging {
                                                     mmap: MMAP.Map,
                                                     flushOnOverflow: Boolean,
                                                     fileSize: Long,
-                                                    dropCorruptedTailEntries: Boolean,
-                                                    enableHashIndex: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                              fileSweeper: FileSweeperActor,
-                                                                              bufferCleaner: ByteBufferSweeperActor,
-                                                                              reader: MapEntryReader[MapEntry[K, V]],
-                                                                              writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                              cacheBuilder: MapCacheBuilder[C],
-                                                                              forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentMap[K, V, C]] = {
+                                                    dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                                       fileSweeper: FileSweeperActor,
+                                                                                       bufferCleaner: ByteBufferSweeperActor,
+                                                                                       reader: MapEntryReader[MapEntry[K, V]],
+                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                       cacheBuilder: MapCacheBuilder[C],
+                                                                                       forceSaveApplier: ForceSaveApplier): RecoveryResult[PersistentMap[K, V, C]] = {
     Effect.createDirectoryIfAbsent(folder)
 
-    val cache = cacheBuilder.create(enableHashIndex)
+    val cache = cacheBuilder.create()
 
     val fileRecoveryResult =
       recover[K, V, C](
@@ -89,13 +88,12 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def apply[K, V, C <: MapCache[K, V]](folder: Path,
                                                     mmap: MMAP.Map,
                                                     flushOnOverflow: Boolean,
-                                                    fileSize: Long,
-                                                    enableHashIndex: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                              fileSweeper: FileSweeperActor,
-                                                                              bufferCleaner: ByteBufferSweeperActor,
-                                                                              cacheBuilder: MapCacheBuilder[C],
-                                                                              writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                              forceSaveApplier: ForceSaveApplier): PersistentMap[K, V, C] = {
+                                                    fileSize: Long)(implicit keyOrder: KeyOrder[K],
+                                                                    fileSweeper: FileSweeperActor,
+                                                                    bufferCleaner: ByteBufferSweeperActor,
+                                                                    cacheBuilder: MapCacheBuilder[C],
+                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                    forceSaveApplier: ForceSaveApplier): PersistentMap[K, V, C] = {
     Effect.createDirectoryIfAbsent(folder)
 
     val file =
@@ -111,7 +109,7 @@ private[map] object PersistentMap extends LazyLogging {
       fileSize = fileSize,
       flushOnOverflow = flushOnOverflow,
       currentFile = file,
-      cache = cacheBuilder.create(enableHashIndex)
+      cache = cacheBuilder.create()
     )
   }
 

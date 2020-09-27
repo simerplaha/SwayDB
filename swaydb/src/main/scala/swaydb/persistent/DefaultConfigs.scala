@@ -60,8 +60,8 @@ object DefaultConfigs {
       compressions = _ => Seq.empty
     )
 
-  def optimiseWrites(): OptimiseWrites.RandomOrder =
-    OptimiseWrites.RandomOrder(enableHashIndex = false)
+  def optimiseWrites(): OptimiseWrites =
+    OptimiseWrites.RandomOrder
 
   def randomKeyIndex(cacheDataBlockOnAccess: Boolean = true): RandomKeyIndex.Enable =
     RandomKeyIndex.Enable(

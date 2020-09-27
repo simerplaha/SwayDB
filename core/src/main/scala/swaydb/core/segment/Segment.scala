@@ -80,7 +80,6 @@ private[core] object Segment extends LazyLogging {
              maxKeyValueCountPerSegment: Int,
              pathsDistributor: PathsDistributor,
              createdInLevel: Long,
-             enableHashIndex: Boolean,
              keyValues: MergeStats.Memory.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                             functionStore: FunctionStore,
@@ -91,7 +90,7 @@ private[core] object Segment extends LazyLogging {
     } else {
       val segments = ListBuffer.empty[MemorySegment]
 
-      var skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, enableHashIndex)(keyOrder)
+      var skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       var minMaxFunctionId: Option[MinMax[Slice[Byte]]] = None
       var nearestDeadline: Option[Deadline] = None
       var hasRange: Boolean = false
@@ -102,7 +101,7 @@ private[core] object Segment extends LazyLogging {
       var lastKeyValue: Memory = null
 
       def setClosed(): Unit = {
-        skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, enableHashIndex)(keyOrder)
+        skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         minMaxFunctionId = None
         nearestDeadline = None
         hasRange = false
@@ -468,7 +467,6 @@ private[core] object Segment extends LazyLogging {
                    createdInLevel: Int,
                    pathsDistributor: PathsDistributor,
                    removeDeletes: Boolean,
-                   enableHashIndex: Boolean,
                    minSegmentSize: Int,
                    maxKeyValueCountPerSegment: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]],
@@ -479,7 +477,6 @@ private[core] object Segment extends LazyLogging {
       keyValues = segment.iterator(),
       pathsDistributor = pathsDistributor,
       removeDeletes = removeDeletes,
-      enableHashIndex = enableHashIndex,
       minSegmentSize = minSegmentSize,
       maxKeyValueCountPerSegment = maxKeyValueCountPerSegment,
       createdInLevel = createdInLevel
@@ -488,7 +485,6 @@ private[core] object Segment extends LazyLogging {
   def copyToMemory(keyValues: Iterator[KeyValue],
                    pathsDistributor: PathsDistributor,
                    removeDeletes: Boolean,
-                   enableHashIndex: Boolean,
                    minSegmentSize: Int,
                    maxKeyValueCountPerSegment: Int,
                    createdInLevel: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -508,7 +504,6 @@ private[core] object Segment extends LazyLogging {
       createdInLevel = createdInLevel,
       maxKeyValueCountPerSegment = maxKeyValueCountPerSegment,
       keyValues = builder,
-      enableHashIndex = enableHashIndex
     )
   }
 
