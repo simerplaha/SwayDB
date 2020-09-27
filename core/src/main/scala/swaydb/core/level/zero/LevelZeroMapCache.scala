@@ -26,6 +26,7 @@ package swaydb.core.level.zero
 
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
+import swaydb.core.level.zero.LevelZeroMapCache.newLevelZeroSkipList
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
@@ -209,66 +210,44 @@ private[core] object LevelZeroMapCache {
    * @return the new SkipList is this write started a transactional write.
    */
   @tailrec
-  private def doWrite(head: MapEntry[Slice[Byte], Memory],
-                      tail: Iterable[MapEntry[Slice[Byte], Memory]],
+  private def doWrite(head: MapEntry.Point[Slice[Byte], Memory],
+                      tail: Iterable[MapEntry.Point[Slice[Byte], Memory]],
                       skipList: LevelSkipList,
                       atomic: Boolean,
                       startedNewTransaction: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
                                                       optimiseWrites: OptimiseWrites): Option[LevelSkipList] =
-    if (head.entriesCount <= 1)
-      head match {
-        case head @ MapEntry.Remove(_) =>
-          //this does not occur in reality and should be type-safe instead of having this Exception.
-          throw new IllegalAccessException(s"${head.productPrefix} is not allowed in ${LevelZero.productPrefix} .")
+    head match {
+      case head @ MapEntry.Remove(_) =>
+        //this does not occur in reality and should be type-safe instead of having this Exception.
+        throw new IllegalAccessException(s"${head.productPrefix} is not allowed in ${LevelZero.productPrefix} .")
 
-        case head @ MapEntry.Put(_, memory: Memory) =>
-          val insertResult =
-            memory match {
-              //if insert value is fixed, check the floor entry
-              case insertValue: Memory.Fixed =>
-                LevelZeroMapCache.insert(insert = insertValue, skipList = skipList, atomic = atomic)
+      case head @ MapEntry.Put(_, memory: Memory) =>
+        val insertResult =
+          memory match {
+            //if insert value is fixed, check the floor entry
+            case insertValue: Memory.Fixed =>
+              LevelZeroMapCache.insert(insert = insertValue, skipList = skipList, atomic = atomic)
 
-              //slice the skip list to keep on the range's key-values.
-              //if the insert is a Range stash the edge non-overlapping key-values and keep only the ranges in the skipList
-              //that fall within the inserted range before submitting fixed values to the range for further splits.
-              case insertRange: Memory.Range =>
-                LevelZeroMapCache.insert(insert = insertRange, skipList = skipList, atomic = atomic)
-            }
-
-          if (insertResult.nonEmpty) {
-            assert(!startedNewTransaction, "Cannot create multiple transactional skipLists")
-            doWrite(head = head, tail = tail, skipList = newLevelZeroSkipList(), atomic = false, startedNewTransaction = true)
-          } else {
-            tail match {
-              case head :: tail =>
-                doWrite(head = head, tail = tail, skipList = skipList, atomic = atomic, startedNewTransaction = startedNewTransaction)
-
-              case Nil =>
-                if (startedNewTransaction)
-                  Some(skipList)
-                else
-                  None
-            }
+            //slice the skip list to keep on the range's key-values.
+            //if the insert is a Range stash the edge non-overlapping key-values and keep only the ranges in the skipList
+            //that fall within the inserted range before submitting fixed values to the range for further splits.
+            case insertRange: Memory.Range =>
+              LevelZeroMapCache.insert(insert = insertRange, skipList = skipList, atomic = atomic)
           }
 
-        case batch: MapEntry.Batch[Slice[Byte], Memory] =>
-          assert(batch.entries.size == 1, s"Entries == ${batch.entries.size}")
-          doWrite(head = batch.entries.head, tail = tail, skipList = skipList, atomic = atomic, startedNewTransaction = startedNewTransaction)
-      }
-    else
-      head.entries match {
-        case head :: tail =>
+        if (insertResult.nonEmpty) {
           assert(!startedNewTransaction, "Cannot create multiple transactional skipLists")
           doWrite(head = head, tail = tail, skipList = newLevelZeroSkipList(), atomic = false, startedNewTransaction = true)
-
-        case Nil =>
-          if (startedNewTransaction)
-            Some(skipList)
-          else
-            None
-      }
+        } else if (tail.nonEmpty) {
+          doWrite(head = tail.head, tail = tail.tail, skipList = skipList, atomic = atomic, startedNewTransaction = startedNewTransaction)
+        } else if (startedNewTransaction) {
+          Some(skipList)
+        } else {
+          None
+        }
+    }
 
   @inline private def runMerge(skipLists: LeveledSkipLists)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                             timeOrder: TimeOrder[Slice[Byte]],
@@ -306,9 +285,24 @@ private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLi
                                                                                      functionStore: FunctionStore,
                                                                                      optimiseWrites: OptimiseWrites) extends MapCache[Slice[Byte], Memory] {
 
-  @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit =
-    if (leveledSkipList.current.hasRange || entry.hasUpdate || entry.hasRange || entry.hasRemoveDeadline || entry.entriesCount > 1) {
-      val entries = entry.entries
+  @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit = {
+    val entries = entry.entries
+
+    if (entry.entriesCount > 1)
+      LevelZeroMapCache.doWrite(
+        head = entries.head,
+        tail = entries.tail,
+        skipList = newLevelZeroSkipList(),
+        atomic = false,
+        startedNewTransaction = true
+      ) match {
+        case Some(skipList) =>
+          leveledSkipList addFirst skipList
+
+        case None =>
+          throw new Exception("Transaction not committed in memory cache.")
+      }
+    else if (leveledSkipList.current.hasRange || entry.hasUpdate || entry.hasRange || entry.hasRemoveDeadline)
       LevelZeroMapCache.doWrite(
         head = entries.head,
         tail = entries.tail,
@@ -319,10 +313,9 @@ private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLi
         newSkipList =>
           leveledSkipList.addFirst(newSkipList)
       }
-    }
     else
-      entry.entries.head applyPoint leveledSkipList.current.skipList
-
+      entries.head applyPoint leveledSkipList.current.skipList
+  }
 
   override def writeAtomic(entry: MapEntry[Slice[Byte], Memory]): Unit =
     write(entry = entry, atomic = true)
