@@ -25,6 +25,7 @@
 package swaydb.core
 
 import java.nio.file._
+import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
@@ -43,7 +44,7 @@ import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
-import swaydb.core.map.MapEntry
+import swaydb.core.map.{Map, MapCache, MapEntry, Maps}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -65,6 +66,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.{ActorWire, Bag}
 
 import scala.concurrent.duration._
+import scala.tools.nsc.doc.html.HtmlTags.A
 import scala.util.Random
 
 trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach with Eventually {
@@ -106,6 +108,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   def nextTime(implicit testTimer: TestTimer): Time =
     testTimer.next
 
+
   def levelStorage: LevelStorage =
     if (inMemoryStorage)
       LevelStorage.Memory(dir = memoryTestClassDir.resolve(nextLevelId.toString))
@@ -130,6 +133,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       AppendixStorage.Memory
     else
       AppendixStorage.Persistent(mmap = appendixStorageMMAP, 4.mb)
+
+  def getMaps[K, V, C <: MapCache[K, V]](maps: Maps[K, V, C]): ConcurrentLinkedDeque[Map[K, V, C]] = {
+    import org.scalatest.PrivateMethodTester._
+    val function = PrivateMethod[ConcurrentLinkedDeque[Map[K, V, C]]](Symbol("maps"))
+    maps.invokePrivate(function())
+  }
 
   def persistent = levelStorage.persistent
 

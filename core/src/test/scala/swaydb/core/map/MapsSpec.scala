@@ -340,7 +340,7 @@ class MapsSpec extends TestBase {
 
             maps.queuedMapsCountWithCurrent shouldBe 5
             //maps value added
-            maps.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(3, 2, 1, 0)
+            getMaps(maps).asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(3, 2, 1, 0)
             maps.lastOption().value.pathOption.value.folderId shouldBe 0
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
@@ -357,7 +357,7 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.ReportFailure
               ).value
 
-            recovered1.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
+            getMaps(recovered1).asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
             recovered1.map.pathOption.value.folderId shouldBe 5
             recovered1.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
             recovered1.lastOption().value.pathOption.value.folderId shouldBe 0
@@ -376,7 +376,7 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
-            recovered2.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
+            getMaps(recovered2).asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
             recovered2.map.pathOption.value.folderId shouldBe 6
             recovered2.lastOption().value.pathOption.value.folderId shouldBe 0
         }
@@ -417,7 +417,7 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
-            val recoveredMapsMaps = recoveredMaps.maps.asScala
+            val recoveredMapsMaps = getMaps(recoveredMaps).asScala
             recoveredMapsMaps should have size 3
             recoveredMapsMaps.map(_.pathOption.value.folderId) shouldBe List(2, 1, 0)
 
@@ -452,7 +452,7 @@ class MapsSpec extends TestBase {
               sweeper.receiveAll()
             }
 
-            val secondMapsPath = maps.maps.asScala.tail.head.pathOption.value.files(Extension.Log).head
+            val secondMapsPath = getMaps(maps).asScala.tail.head.pathOption.value.files(Extension.Log).head
             val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
             Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
@@ -489,7 +489,7 @@ class MapsSpec extends TestBase {
             maps.write(_ => MapEntry.Put(5, Memory.put(5)))
             maps.write(_ => MapEntry.Put(6, Memory.put(6, 6)))
 
-            val secondMapsPath = maps.maps.asScala.head.pathOption.value.files(Extension.Log).head
+            val secondMapsPath = getMaps(maps).asScala.head.pathOption.value.files(Extension.Log).head
             val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
             Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
@@ -502,7 +502,7 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.DropCorruptedTailEntries
               ).value.sweep()
 
-            val recoveredMaps = recovered.maps.asScala
+            val recoveredMaps = getMaps(recovered).asScala
 
             //recovered maps will still be 3 but since second maps second entry is corrupted, the first entry will still exists.
             recoveredMaps should have size 3
@@ -543,7 +543,7 @@ class MapsSpec extends TestBase {
           maps.write(_ => MapEntry.Put(5, Memory.put(5)))
           maps.write(_ => MapEntry.Put(6, Memory.put(6)))
 
-          val secondMapsPath = maps.maps.asScala.head.pathOption.value.files(Extension.Log).head
+          val secondMapsPath = getMaps(maps).asScala.head.pathOption.value.files(Extension.Log).head
           val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
           Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
@@ -556,9 +556,9 @@ class MapsSpec extends TestBase {
               recovery = RecoveryMode.DropCorruptedTailEntriesAndMaps
             ).value.sweep()
 
-          recoveredMaps.maps should have size 2
+          getMaps(recoveredMaps) should have size 2
           //the last map is delete since the second last Map is found corrupted.
-          maps.maps.asScala.last.exists shouldBe false
+          getMaps(maps).asScala.last.exists shouldBe false
 
           //oldest map contains all key-values
           recoveredMaps.find[LevelSkipList, MemoryOption](Memory.Null, _.cache.leveledSkipList.asScala, _.skipList.get(1)) shouldBe Memory.put(1)

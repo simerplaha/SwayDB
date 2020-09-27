@@ -76,13 +76,13 @@ private[core] object Maps extends LazyLogging {
                                             fileSize: Long,
                                             acceleration: LevelZeroMeter => Accelerator,
                                             recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
-                                                                      fileSweeper: FileSweeperActor,
-                                                                      bufferCleaner: ByteBufferSweeperActor,
-                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                      reader: MapEntryReader[MapEntry[K, V]],
-                                                                      cacheBuilder: MapCacheBuilder[C],
-                                                                      timer: Timer,
-                                                                      forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, Maps[K, V, C]] = {
+                                                                    fileSweeper: FileSweeperActor,
+                                                                    bufferCleaner: ByteBufferSweeperActor,
+                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                    reader: MapEntryReader[MapEntry[K, V]],
+                                                                    cacheBuilder: MapCacheBuilder[C],
+                                                                    timer: Timer,
+                                                                    forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Map, Maps[K, V, C]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
     recover[K, V, C](
@@ -339,7 +339,7 @@ private[core] object Maps extends LazyLogging {
   }
 }
 
-private[core] class Maps[K, V, C <: MapCache[K, V]](val maps: ConcurrentLinkedDeque[Map[K, V, C]],
+private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: ConcurrentLinkedDeque[Map[K, V, C]],
                                                     fileSize: Long,
                                                     acceleration: LevelZeroMeter => Accelerator,
                                                     @volatile private var currentMap: Map[K, V, C])(implicit keyOrder: KeyOrder[K],
