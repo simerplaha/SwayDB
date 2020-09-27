@@ -61,7 +61,7 @@ class Level0MapEntrySpec extends TestBase {
         readEntry shouldBe addEntry
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, randomBoolean())(keyOrder)
-        readEntry applyTo skipList
+        readEntry applyBatch skipList
         val scalaSkipList = skipList.asScala
 
         scalaSkipList should have size 1
@@ -166,7 +166,7 @@ class Level0MapEntrySpec extends TestBase {
       readEntry shouldBe entry
 
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, randomBoolean())(keyOrder)
-      readEntry applyTo skipList
+      readEntry applyBatch skipList
 
       def scalaSkipList = skipList.asScala
 
@@ -195,7 +195,7 @@ class Level0MapEntrySpec extends TestBase {
       val readEntries = recoveryResult.item.value
       //clear and apply new skipList and the result should be the same as previous.
       skipList.clear()
-      readEntries applyTo skipList
+      readEntries applyBatch skipList
       assertSkipList()
     }
   }

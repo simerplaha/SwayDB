@@ -762,7 +762,7 @@ class MapSpec extends TestBase {
           val nextFileBytes = DBFile.channelRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).readAll
           nextFileBytes.size should be > 0
           val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
-          mapEntries applyTo nextFileSkipList
+          mapEntries applyBatch nextFileSkipList
 
           nextFileSkipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
           nextFileSkipList.get(2: Slice[Byte]) shouldBe Memory.put(2, 2)

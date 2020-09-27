@@ -46,7 +46,7 @@ import scala.collection.mutable.ListBuffer
  */
 private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
-  def applyTo[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit
+  def applyBatch[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit
 
   def hasRange: Boolean
   def hasUpdate: Boolean
@@ -152,7 +152,7 @@ private[swaydb] object MapEntry {
         //        override def applyTo[T >: V](skipList: ConcurrentSkipList[K, T]): Unit =
         //          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))
 
-        override def applyTo[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit = {
+        override def applyBatch[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit = {
           val entries = _entries.asInstanceOf[ListBuffer[MapEntry.Point[K, V]]]
 
           if (entries.size <= 1)
@@ -189,12 +189,16 @@ private[swaydb] object MapEntry {
           _entries.size
       }
 
-    def entries: List[MapEntry.Point[K, V]] =
-      left._entries.toList.asInstanceOf[List[MapEntry.Point[K, V]]]
+    def entries: Iterable[Point[K, V]] =
+      left._entries.asInstanceOf[Iterable[Point[K, V]]]
   }
 
   sealed trait Batch[K, +V] extends MapEntry[K, V]
-  sealed trait Point[K, +V] extends MapEntry[K, V]
+  sealed trait Point[K, +V] extends MapEntry[K, V] {
+    def key: K
+
+    def applyPoint[T >: V](skipList: SkipList[_, _, K, T]): Unit
+  }
 
   case class Put[K, V](key: K,
                        value: V)(implicit serializer: MapEntryWriter[MapEntry.Put[K, V]]) extends MapEntry.Point[K, V] {
@@ -221,7 +225,10 @@ private[swaydb] object MapEntry {
     override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
 
-    override def applyTo[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit =
+    override def applyBatch[T >: V](skipList: SkipListBatchable[_, _, K, T]): Unit =
+      skipList.put(key, value)
+
+    override def applyPoint[T >: V](skipList: SkipList[_, _, K, T]): Unit =
       skipList.put(key, value)
 
     def entriesCount: Int =
@@ -256,7 +263,10 @@ private[swaydb] object MapEntry {
     override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
 
-    override def applyTo[T >: Nothing](skipList: SkipListBatchable[_, _, K, T]): Unit =
+    override def applyBatch[T >: Nothing](skipList: SkipListBatchable[_, _, K, T]): Unit =
+      skipList.remove(key)
+
+    override def applyPoint[T >: Nothing](skipList: SkipList[_, _, K, T]): Unit =
       skipList.remove(key)
 
     def entriesCount: Int =

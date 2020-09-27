@@ -630,10 +630,10 @@ object CommonAssertions {
       actual.entryBytesSize shouldBe expected.entryBytesSize
 
       val actualMap = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null, randomBoolean())(KeyOrder.default)
-      actual.applyTo(actualMap)
+      actual.applyBatch(actualMap)
 
       val expectedMap = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null, randomBoolean())(KeyOrder.default)
-      expected.applyTo(expectedMap)
+      expected.applyBatch(expectedMap)
 
       actualMap.size shouldBe expectedMap.size
 

@@ -47,7 +47,7 @@ object AppliedFunctionsMapCache {
 case class AppliedFunctionsMapCache(skipList: SkipListConcurrent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]) extends MapCache[Slice[Byte], Slice.Null.type] {
 
   override def writeAtomic(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
-    entry applyTo skipList
+    entry applyBatch skipList
 
   override def writeNonAtomic(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
     writeAtomic(entry)

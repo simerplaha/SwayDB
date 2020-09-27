@@ -72,7 +72,7 @@ class MapCodecSpec extends TestBase {
       //re-read the bytes written to map and it should contain all the original entries
       import LevelZeroMapEntryReader.Level0Reader
       val readMap = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, randomBoolean())(keyOrder)
-      MapCodec.read[Slice[Byte], Memory](bytes, dropCorruptedTailEntries = false).runRandomIO.right.value.item.value applyTo readMap
+      MapCodec.read[Slice[Byte], Memory](bytes, dropCorruptedTailEntries = false).runRandomIO.right.value.item.value applyBatch readMap
       keyValues foreach {
         keyValue =>
           val value = readMap.get(keyValue.key)
@@ -92,7 +92,7 @@ class MapCodecSpec extends TestBase {
         //re-read the bytes written to map and it should contain all the original entries
         import LevelZeroMapEntryReader.Level0Reader
         val readMap = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, randomBoolean())(keyOrder)
-        MapCodec.read(bytesWithEmpty, dropCorruptedTailEntries = false).runRandomIO.right.value.item.value applyTo readMap
+        MapCodec.read(bytesWithEmpty, dropCorruptedTailEntries = false).runRandomIO.right.value.item.value applyBatch readMap
         keyValues foreach {
           keyValue =>
             val value = readMap.get(keyValue.key)
@@ -146,7 +146,7 @@ class MapCodecSpec extends TestBase {
       //re-read allBytes and write it to skipList and it should contain all the original entries
       import LevelZeroMapEntryReader.Level0Reader
       val mapEntry = MapCodec.read(allBytes, dropCorruptedTailEntries = false).runRandomIO.right.value.item.value
-      mapEntry applyTo map
+      mapEntry applyBatch map
       map should have size allKeyValues.size
       allKeyValues foreach {
         keyValue =>
@@ -160,7 +160,7 @@ class MapCodecSpec extends TestBase {
       //enable skip corrupt entries.
       val mapEntryWithTailCorruptionSkipOnCorruption = MapCodec.read(corruptedBytes2, dropCorruptedTailEntries = true).runRandomIO.right.value.item.value
       map.clear()
-      mapEntryWithTailCorruptionSkipOnCorruption applyTo map
+      mapEntryWithTailCorruptionSkipOnCorruption applyBatch map
       map should have size 5 //only one entry is corrupted
       keyValues1 foreach {
         keyValue =>

@@ -87,11 +87,11 @@ private[core] object LevelZeroMapCache {
    * Inserts a [[Memory.Fixed]] key-value into skipList.
    */
   def insert(insert: Memory.Fixed,
-             level: LevelSkipList,
+             skipList: LevelSkipList,
              atomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                               timeOrder: TimeOrder[Slice[Byte]],
                               functionStore: FunctionStore): Iterable[Memory] =
-    level.skipList.floor(insert.key) match {
+    skipList.skipList.floor(insert.key) match {
       case floorEntry: Memory =>
         import keyOrder._
 
@@ -104,7 +104,7 @@ private[core] object LevelZeroMapCache {
                 oldKeyValue = floor
               ).asInstanceOf[Memory.Fixed]
 
-            level.skipList.put(insert.key, mergedKeyValue)
+            skipList.skipList.put(insert.key, mergedKeyValue)
             Memory.emtpySeq
 
           //if the floor entry is a range try to do a merge.
@@ -123,8 +123,8 @@ private[core] object LevelZeroMapCache {
             if (mergedKeyValues.size <= 1 || !atomic) {
               mergedKeyValues foreach {
                 merged: Memory =>
-                  if (merged.isRange) level.setHasRange(true)
-                  level.skipList.put(merged.key, merged)
+                  if (merged.isRange) skipList.setHasRange(true)
+                  skipList.skipList.put(merged.key, merged)
               }
               Memory.emtpySeq
             } else {
@@ -132,13 +132,13 @@ private[core] object LevelZeroMapCache {
             }
 
           case _ =>
-            level.skipList.put(insert.key, insert)
+            skipList.skipList.put(insert.key, insert)
             Memory.emtpySeq
         }
 
       //if there is no floor, simply put.
       case Memory.Null =>
-        level.skipList.put(insert.key, insert)
+        skipList.skipList.put(insert.key, insert)
         Memory.emtpySeq
     }
 
@@ -147,7 +147,7 @@ private[core] object LevelZeroMapCache {
    * the skipList before applying the new state so that all read queries read the latest write.
    */
   def insert(insert: Memory.Range,
-             level: LevelSkipList,
+             skipList: LevelSkipList,
              atomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                               timeOrder: TimeOrder[Slice[Byte]],
                               functionStore: FunctionStore): Iterable[Memory] = {
@@ -155,7 +155,7 @@ private[core] object LevelZeroMapCache {
 
     //value the start position of this range to fetch the range's start and end key-values for the skipList.
     val startKey =
-      level.skipList.floor(insert.fromKey) mapS {
+      skipList.skipList.floor(insert.fromKey) mapS {
         case range: Memory.Range if insert.fromKey < range.toKey =>
           range.fromKey
 
@@ -163,10 +163,10 @@ private[core] object LevelZeroMapCache {
           insert.fromKey
       } getOrElse insert.fromKey
 
-    val conflictingKeyValues = level.skipList.subMap(startKey, true, insert.toKey, false)
+    val conflictingKeyValues = skipList.skipList.subMap(startKey, true, insert.toKey, false)
     if (conflictingKeyValues.isEmpty) {
-      level.setHasRange(true) //set this before put so reads know to floor this skipList.
-      level.skipList.put(insert.key, insert)
+      skipList.setHasRange(true) //set this before put so reads know to floor this skipList.
+      skipList.skipList.put(insert.key, insert)
       Memory.emtpySeq
     } else {
       val oldKeyValues = Slice.of[Memory](conflictingKeyValues.size)
@@ -186,16 +186,16 @@ private[core] object LevelZeroMapCache {
       )
 
       if (builder.keyValues.size <= 1 || !atomic) {
-        level.setHasRange(true) //set this before put so reads know to floor this skipList.
+        skipList.setHasRange(true) //set this before put so reads know to floor this skipList.
 
         oldKeyValues foreach {
           oldKeyValue =>
-            level.skipList.remove(oldKeyValue.key)
+            skipList.skipList.remove(oldKeyValue.key)
         }
 
         builder.keyValues foreach {
           keyValue =>
-            level.skipList.put(keyValue.key, keyValue)
+            skipList.skipList.put(keyValue.key, keyValue)
         }
 
         Memory.emtpySeq
@@ -205,44 +205,37 @@ private[core] object LevelZeroMapCache {
     }
   }
 
-  private def doWrite(memory: Memory,
-                      level: LevelSkipList,
-                      writeNonAtomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                               timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore,
-                                               optimiseWrites: OptimiseWrites): Iterable[Memory] =
-    memory match {
-      //if insert value is fixed, check the floor entry
-      case insertValue: Memory.Fixed =>
-        LevelZeroMapCache.insert(insert = insertValue, level = level, atomic = writeNonAtomic)
-
-      //slice the skip list to keep on the range's key-values.
-      //if the insert is a Range stash the edge non-overlapping key-values and keep only the ranges in the skipList
-      //that fall within the inserted range before submitting fixed values to the range for further splits.
-      case insertRange: Memory.Range =>
-        LevelZeroMapCache.insert(insert = insertRange, level = level, atomic = writeNonAtomic)
-    }
-
   /**
    * @return the new SkipList is this write started a transactional write.
    */
   @tailrec
   private def doWrite(head: MapEntry[Slice[Byte], Memory],
-                      tail: List[MapEntry[Slice[Byte], Memory]],
+                      tail: Iterable[MapEntry[Slice[Byte], Memory]],
                       skipList: LevelSkipList,
                       atomic: Boolean,
                       startedNewTransaction: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
                                                       optimiseWrites: OptimiseWrites): Option[LevelSkipList] =
-    if (head.entriesCount <= 1 || head.hasRange || head.hasUpdate || head.hasRemoveDeadline || skipList.hasRange)
+    if (head.entriesCount <= 1)
       head match {
         case head @ MapEntry.Remove(_) =>
           //this does not occur in reality and should be type-safe instead of having this Exception.
           throw new IllegalAccessException(s"${head.productPrefix} is not allowed in ${LevelZero.productPrefix} .")
 
-        case head @ MapEntry.Put(_, entry: Memory) =>
-          val insertResult = doWrite(entry, skipList, atomic)
+        case head @ MapEntry.Put(_, memory: Memory) =>
+          val insertResult =
+            memory match {
+              //if insert value is fixed, check the floor entry
+              case insertValue: Memory.Fixed =>
+                LevelZeroMapCache.insert(insert = insertValue, skipList = skipList, atomic = atomic)
+
+              //slice the skip list to keep on the range's key-values.
+              //if the insert is a Range stash the edge non-overlapping key-values and keep only the ranges in the skipList
+              //that fall within the inserted range before submitting fixed values to the range for further splits.
+              case insertRange: Memory.Range =>
+                LevelZeroMapCache.insert(insert = insertRange, skipList = skipList, atomic = atomic)
+            }
 
           if (insertResult.nonEmpty) {
             assert(!startedNewTransaction, "Cannot create multiple transactional skipLists")
@@ -313,42 +306,29 @@ private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLi
                                                                                      functionStore: FunctionStore,
                                                                                      optimiseWrites: OptimiseWrites) extends MapCache[Slice[Byte], Memory] {
 
-  override def writeAtomic(entry: MapEntry[Slice[Byte], Memory]): Unit =
-    entry.entries match {
-      case head :: tail =>
-        LevelZeroMapCache.doWrite(
-          head = head,
-          tail = tail,
-          skipList = leveledSkipList.current,
-          atomic = true,
-          startedNewTransaction = false
-        ) foreach {
-          newSkipList =>
-            leveledSkipList.addFirst(newSkipList)
-        }
-
-      case Nil =>
-        ()
+  @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit =
+    if (leveledSkipList.current.hasRange || entry.hasUpdate || entry.hasRange || entry.hasRemoveDeadline || entry.entriesCount > 1) {
+      val entries = entry.entries
+      LevelZeroMapCache.doWrite(
+        head = entries.head,
+        tail = entries.tail,
+        skipList = leveledSkipList.current,
+        atomic = atomic,
+        startedNewTransaction = false
+      ) foreach {
+        newSkipList =>
+          leveledSkipList.addFirst(newSkipList)
+      }
     }
+    else
+      entry.entries.head applyPoint leveledSkipList.current.skipList
+
+
+  override def writeAtomic(entry: MapEntry[Slice[Byte], Memory]): Unit =
+    write(entry = entry, atomic = true)
 
   override def writeNonAtomic(entry: MapEntry[Slice[Byte], Memory]): Unit =
-    entry.entries match {
-      case head :: tail =>
-        val result =
-          LevelZeroMapCache.doWrite(
-            head = head,
-            tail = tail,
-            skipList = leveledSkipList.current,
-            atomic = false,
-            startedNewTransaction = false
-          )
-
-        if (result.nonEmpty)
-          throw new IllegalStateException("InvalidState! atomic write occurred for non-atomic request.")
-
-      case Nil =>
-        ()
-    }
+    write(entry = entry, atomic = false)
 
   override def isEmpty: Boolean =
     leveledSkipList.isEmpty

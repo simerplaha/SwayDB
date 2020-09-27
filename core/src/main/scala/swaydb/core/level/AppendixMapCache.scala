@@ -48,7 +48,7 @@ object AppendixMapCache {
 class AppendixMapCache(val skipList: SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]) extends MapCache[Slice[Byte], Segment] {
 
   override def writeAtomic(entry: MapEntry[Slice[Byte], Segment]): Unit =
-    entry applyTo skipList
+    entry applyBatch skipList
 
   override def writeNonAtomic(entry: MapEntry[Slice[Byte], Segment]): Unit =
     entry match {

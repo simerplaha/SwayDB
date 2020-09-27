@@ -89,7 +89,7 @@ class MapEntrySpec extends TestBase {
       val entry = MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, "one"))
       entry.hasRange shouldBe false
 
-      entry applyTo skipList
+      entry applyBatch skipList
       skipList should have size 1
       skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, "one")
     }
@@ -101,7 +101,7 @@ class MapEntrySpec extends TestBase {
       val entry = MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))
       entry.hasRange shouldBe false
 
-      entry applyTo skipList
+      entry applyBatch skipList
       skipList should have size 1
       skipList.get(1: Slice[Byte]) shouldBe Memory.remove(1)
     }
@@ -114,7 +114,7 @@ class MapEntrySpec extends TestBase {
       val entry1 = MapEntry.Put[Slice[Byte], Memory.Range](1, range1)
       entry1.hasRange shouldBe true
 
-      entry1 applyTo skipList
+      entry1 applyBatch skipList
       skipList should have size 1
       skipList.get(1: Slice[Byte]) shouldBe range1
 
@@ -122,7 +122,7 @@ class MapEntrySpec extends TestBase {
       val entry2 = MapEntry.Put[Slice[Byte], Memory.Range](2, range2)
       entry2.hasRange shouldBe true
 
-      entry2 applyTo skipList
+      entry2 applyBatch skipList
       skipList should have size 2
       skipList.get(2: Slice[Byte]) shouldBe range2
     }
@@ -135,7 +135,7 @@ class MapEntrySpec extends TestBase {
       val entry1 = MapEntry.Put[Slice[Byte], Memory.Range](1, range1)
       entry1.hasRange shouldBe true
 
-      entry1 applyTo skipList
+      entry1 applyBatch skipList
       skipList should have size 1
       skipList.get(1: Slice[Byte]) shouldBe range1
 
@@ -143,7 +143,7 @@ class MapEntrySpec extends TestBase {
       val entry2 = MapEntry.Put[Slice[Byte], Memory.Range](2, range2)
       entry2.hasRange shouldBe true
 
-      entry2 applyTo skipList
+      entry2 applyBatch skipList
       skipList should have size 2
       skipList.get(2: Slice[Byte]) shouldBe range2
     }
@@ -164,7 +164,7 @@ class MapEntrySpec extends TestBase {
           MapEntry.Put[Slice[Byte], Memory.Range](21, Memory.Range(21, 30, Value.FromValue.Null, Value.remove(None))) ++
           MapEntry.Put[Slice[Byte], Memory.Range](31, Memory.Range(31, 40, Value.put(20), Value.remove(None)))
 
-      entry applyTo skipList
+      entry applyBatch skipList
 
       entry.hasRange shouldBe true
 
@@ -190,7 +190,7 @@ class MapEntrySpec extends TestBase {
           val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
           entry.hasRange shouldBe false
 
-          entry applyTo skipList
+          entry applyBatch skipList
           skipList should have size 1
           skipList.get(1: Slice[Byte]).getS shouldBe segment
       }
@@ -207,11 +207,11 @@ class MapEntrySpec extends TestBase {
           val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
           entry.hasRange shouldBe false
 
-          entry applyTo skipList
+          entry applyBatch skipList
           skipList should have size 1
           skipList.get(1: Slice[Byte]).getS shouldBe segment
 
-          MapEntry.Remove[Slice[Byte]](1) applyTo skipList
+          MapEntry.Remove[Slice[Byte]](1) applyBatch skipList
           skipList shouldBe empty
       }
     }
@@ -236,7 +236,7 @@ class MapEntrySpec extends TestBase {
 
           entry.hasRange shouldBe false
 
-          entry applyTo skipList
+          entry applyBatch skipList
 
           skipList should have size 3
           skipList.get(1: Slice[Byte]).getS shouldBe segment1
@@ -378,7 +378,7 @@ class MapEntrySpec extends TestBase {
       val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(bytes)).runRandomIO.right.value
 
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, randomBoolean())(keyOrder)
-      readMapEntry applyTo skipList
+      readMapEntry applyBatch skipList
       skipList should have size 10001
       skipList.headKey.getC shouldBe (0: Slice[Byte])
       skipList.lastKey.getC shouldBe (10000: Slice[Byte])
@@ -434,7 +434,7 @@ class MapEntrySpec extends TestBase {
           val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(bytes))
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null, randomBoolean())(keyOrder)
-          readMapEntry applyTo skipList
+          readMapEntry applyBatch skipList
           skipList should have size 50
           skipList.headKey.getC shouldBe (0: Slice[Byte])
           skipList.lastKey.getC shouldBe (49: Slice[Byte])
