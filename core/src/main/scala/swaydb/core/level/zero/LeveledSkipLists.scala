@@ -32,7 +32,7 @@ import scala.jdk.CollectionConverters._
 
 object LeveledSkipLists {
 
-  def apply(skipList: LevelSkipList, hasRange: Boolean, keyValueCount: Int): LeveledSkipLists = {
+  def apply(skipList: LevelSkipList, hasRange: Boolean): LeveledSkipLists = {
     val queue = new ConcurrentLinkedDeque[LevelSkipList]()
 
     queue.addFirst(skipList)

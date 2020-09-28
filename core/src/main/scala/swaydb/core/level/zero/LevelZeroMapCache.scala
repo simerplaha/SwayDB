@@ -48,7 +48,7 @@ private[core] object LevelZeroMapCache {
     () => {
       val skipList = newLevelZeroSkipList()
 
-      val skipLists = LeveledSkipLists(skipList = skipList, hasRange = false, keyValueCount = 0)
+      val skipLists = LeveledSkipLists(skipList = skipList, hasRange = false)
 
       new LevelZeroMapCache(skipLists)
     }

@@ -22,12 +22,21 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.util
+package swaydb.core.util.queue
 
-trait Walker[T >: Null] {
 
-  def headOrNull: T
+private sealed trait Node[+A] {
+  def isEmpty: Boolean
+}
 
-  def dropHead(): Walker[T]
+private object Node {
+
+  case object Empty extends Node[Nothing] {
+    override val isEmpty: Boolean = true
+  }
+
+  class Value[A](val value: A, @volatile var next: Node[A]) extends Node[A] {
+    override def isEmpty: Boolean = false
+  }
 
 }
