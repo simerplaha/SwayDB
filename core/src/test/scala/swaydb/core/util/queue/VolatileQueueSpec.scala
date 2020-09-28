@@ -22,45 +22,17 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.level.zero
+package swaydb.core.util.queue
 
-import swaydb.core.util.queue.{VolatileQueue, Walker}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-object LeveledSkipLists {
+class VolatileQueueSpec extends AnyWordSpec with Matchers {
 
-  def apply(skipList: LevelSkipList, hasRange: Boolean): LeveledSkipLists =
-    new LeveledSkipLists(
-      queue = VolatileQueue[LevelSkipList](skipList),
-      currentLevel = skipList
-    )
-}
+  "addHead" should {
+    "insert item to hear" in {
 
-class LeveledSkipLists private[zero](queue: VolatileQueue[LevelSkipList],
-                                     @volatile private var currentLevel: LevelSkipList) {
-
-  @inline def current = currentLevel
-
-  def addFirst(skipList: LevelSkipList): Unit = {
-    queue.addHead(skipList)
-    currentLevel = skipList
+    }
   }
-
-  def isEmpty: Boolean =
-    queue.isEmpty || queue.iterator.forall(_.skipList.isEmpty)
-
-  @inline def size: Int =
-    queue.iterator.foldLeft(0)(_ + _.skipList.size)
-
-  @inline def queueSize: Int =
-    queue.size
-
-  @inline def iterator =
-    queue.iterator
-
-  @inline def hasRange =
-    iterator.exists(_.hasRange)
-
-  def walker: Walker[LevelSkipList] =
-    queue
 
 }

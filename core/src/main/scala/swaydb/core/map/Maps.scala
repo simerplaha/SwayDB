@@ -35,8 +35,10 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.brake.BrakePedal
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
+import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
+import swaydb.core.util.queue.{VolatileQueue, Walker}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.KeyOrder
@@ -59,17 +61,20 @@ private[core] object Maps extends LazyLogging {
                                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                      cacheBuilder: MapCacheBuilder[C],
                                                                                      timer: Timer,
-                                                                                     forceSaveApplier: ForceSaveApplier): Maps[K, V, C] =
+                                                                                     forceSaveApplier: ForceSaveApplier): Maps[K, V, C] = {
+    val map =
+      Map.memory[K, V, C](
+        fileSize = fileSize,
+        flushOnOverflow = false
+      )
+
     new Maps[K, V, C](
-      maps = new ConcurrentLinkedDeque[Map[K, V, C]](),
+      queue = VolatileQueue[Map[K, V, C]](map),
       fileSize = fileSize,
       acceleration = acceleration,
-      currentMap =
-        Map.memory[K, V, C](
-          fileSize = fileSize,
-          flushOnOverflow = false
-        )
+      currentMap = map
     )
+  }
 
   def persistent[K, V, C <: MapCache[K, V]](path: Path,
                                             mmap: MMAP.Map,
@@ -115,7 +120,7 @@ private[core] object Maps extends LazyLogging {
 
           case None =>
             logger.debug(s"{}: Creating next map with ID {} maps.", path, nextMapId)
-            val queue = new ConcurrentLinkedDeque[Map[K, V, C]](otherMaps.asJavaCollection)
+            val queue = VolatileQueue[Map[K, V, C]](otherMaps)
             IO {
               Map.persistent[K, V, C](
                 folder = nextMapId,
@@ -128,7 +133,7 @@ private[core] object Maps extends LazyLogging {
               nextMap =>
                 logger.debug(s"{}: Next map created with ID {}.", path, nextMapId)
                 new Maps[K, V, C](
-                  maps = queue,
+                  queue = queue.addHead(nextMap.item),
                   fileSize = fileSize,
                   acceleration = acceleration,
                   currentMap = nextMap.item
@@ -286,60 +291,9 @@ private[core] object Maps extends LazyLogging {
           flushOnOverflow = false
         )
     }
-
-  /**
-   * Returns a snapshot of [[Maps]] state to execute reads.
-   *
-   * @note Why? - [[Maps.maps]] is being concurrently updated by writes (inserts) and compaction (remove)
-   *       there is no easy was to tell how reads to access the queues maps and we cannot the Iterator
-   *       directly because of the current read architecture could access the same Iterator multiple times.
-   *       This cannot be mutable either due to performance cost. So a Slice is needed.
-   *
-   *       There will be rare cases where [[maps]] could contain [[currentMap]]
-   *       which would result in [[currentMap]] being twice but this would only
-   *       happen if [[fileSize]] is too small < 10.bytes otherwise the performance
-   *       cost is negligible.
-   */
-  @inline def flatMap[K, V, C <: MapCache[K, V], R: ClassTag](minimumSize: Int,
-                                                              currentMap: Map[K, V, C],
-                                                              queue: ConcurrentLinkedDeque[Map[K, V, C]])(flatten: Map[K, V, C] => Iterable[R]): Slice[R] = {
-    val initial = flatten(currentMap)
-    var slice = Slice.of[R]((minimumSize + initial.size) * 2)
-    slice addAll initial
-
-    //if currentMap is already added the queue then drop head.
-    var staleCurrentMap = false
-
-    queue forEach {
-      (queuedMap: Map[K, V, C]) => {
-        // As the writes are in progress currentMap could get added to the
-        // queue and the more maps could also possibly get added to the map.
-        // For those cases we need see if currentMap is already in the Map.
-        // If it is then we drop the currentMap and work off the queue directly.
-
-        if (queuedMap.uniqueFileNumber == currentMap.uniqueFileNumber)
-          staleCurrentMap = true
-
-        if (slice.isFull) {
-          //overflow - extend the map.
-          val newSlice = Slice.of[R](slice.size * 2)
-          newSlice addAll slice
-          newSlice addAll flatten(queuedMap)
-          slice = newSlice
-        } else {
-          slice addAll flatten(queuedMap)
-        }
-      }
-    }
-
-    if (staleCurrentMap)
-      slice.dropHead()
-    else
-      slice
-  }
 }
 
-private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: ConcurrentLinkedDeque[Map[K, V, C]],
+private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQueue[Map[K, V, C]],
                                                     fileSize: Long,
                                                     acceleration: LevelZeroMeter => Accelerator,
                                                     @volatile private var currentMap: Map[K, V, C])(implicit keyOrder: KeyOrder[K],
@@ -357,8 +311,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 
-  @volatile private var totalMapsCount: Int = maps.size() + 1
-  @volatile private var currentMapsCount: Int = maps.size() + 1
+  @volatile private var totalMapsCount: Int = queue.size
 
   val meter =
     new LevelZeroMeter {
@@ -366,18 +319,11 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
 
       override def currentMapSize: Long = currentMap.fileSize
 
-      override def mapsCount: Int = self.currentMapsCount
+      override def mapsCount: Int = self.queue.size
     }
 
   private[core] def onNextMapCallback(event: () => Unit): Unit =
     onNextMapListener = event
-
-  @inline def flatMap[R: ClassTag](f: Map[K, V, C] => Iterable[R]): Slice[R] =
-    Maps.flatMap(
-      minimumSize = currentMapsCount,
-      currentMap = currentMap,
-      queue = maps
-    )(f)
 
   def write(mapEntry: Timer => MapEntry[K, V]): Unit =
     synchronized {
@@ -392,10 +338,9 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
         currentMap = currentMap
       )
 
-    maps addFirst currentMap
+    queue addHead nextMap
     currentMap = nextMap
     totalMapsCount += 1
-    currentMapsCount += 1
     onNextMapListener()
   }
 
@@ -445,9 +390,9 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
   }
 
   @inline final private def findFirst[A >: Null, B](nullResult: B,
-                                                    flatMap: Map[K, V, C] => Iterable[A],
+                                                    flatMap: Map[K, V, C] => Iterator[A],
                                                     finder: A => B): B = {
-    val iterator = flatMap(currentMap).iterator ++ maps.iterator().asScala.flatMap(flatMap)
+    val iterator = queue.iterator.flatMap(flatMap)
 
     def getNext() = if (iterator.hasNext) iterator.next() else null
 
@@ -473,13 +418,13 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
   }
 
   @inline final def reduce[A >: Null, B](nullResult: B,
-                                         flatMap: Map[K, V, C] => Iterable[A],
+                                         flatMap: Map[K, V, C] => Iterator[A],
                                          applier: A => B,
                                          reducer: (B, B) => B): B = {
 
-    val iterator = flatMap(currentMap).iterator ++ maps.iterator().asScala.flatMap(map => flatMap(map))
+    val iterator = queue.iterator.flatMap(flatMap)
 
-    def getNextOrNull(): A = if (iterator.hasNext) iterator.next() else null
+    def getNextOrNull() = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
     def find(nextOrNull: A,
@@ -502,7 +447,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
   }
 
   def find[A >: Null, B](nullResult: B,
-                         flatMap: Map[K, V, C] => Iterable[A],
+                         flatMap: Map[K, V, C] => Iterator[A],
                          matcher: A => B): B =
     findFirst[A, B](
       nullResult = nullResult,
@@ -510,42 +455,50 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
       finder = matcher
     )
 
-  def lastOption(): Option[Map[K, V, C]] =
-    IO.tryOrNone(maps.getLast)
+  def nextJob(): Option[Map[K, V, C]] =
+    Option {
+      val last = queue.lastOrNull()
+      if (last == null || queue.size == 1)
+        null
+      else
+        last
+    }
 
-  def removeLast(): Option[IO[swaydb.Error.Map, Unit]] =
-    Option(maps.pollLast()) map {
-      removedMap =>
-        IO(removedMap.delete) match {
-          case IO.Right(_) =>
-            currentMapsCount -= 1
-            IO.unit
+  def removeLast(map: Map[K, V, C]): Option[IO[swaydb.Error.Map, Unit]] =
+    Option(queue.lastOrNull()) map {
+      lastMap =>
+        if (map == lastMap)
+          IO(lastMap.delete) match {
+            case IO.Right(_) =>
+              IO.unit
 
-          case IO.Left(error) =>
-            //failed to delete file. Add it back to the queue.
-            val mapPath: String = removedMap.pathOption.map(_.toString).getOrElse("No path")
-            logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
-            maps.addLast(removedMap)
-            IO.Left(error)
-        }
+            case IO.Left(error) =>
+              //failed to delete file. Add it back to the queue.
+              val mapPath: String = lastMap.pathOption.map(_.toString).getOrElse("No path")
+              logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
+              queue.addLast(lastMap)
+              IO.Left(error)
+          }
+        else
+          IO.failed(s"Different maps ${map.pathOption} != ${lastMap.pathOption}")
     }
 
   def keyValueCount: Int =
     reduce[Integer, Int](
       nullResult = 0,
-      flatMap = map => Seq(map.cache.maxKeyValueCount),
+      flatMap = map => Iterator(map.cache.maxKeyValueCount),
       applier = size => size,
       reducer = _ + _
     )
 
   def queuedMapsCount =
-    maps.size()
+    queue.size - 1
 
   def queuedMapsCountWithCurrent =
-    maps.size() + Option(currentMap).map(_ => 1).getOrElse(0)
+    queue.size + Option(currentMap).map(_ => 1).getOrElse(0)
 
   def isEmpty: Boolean =
-    maps.isEmpty
+    queue.isEmpty
 
   def map: Map[K, V, C] =
     currentMap
@@ -559,7 +512,9 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
         logger.error("Failed to close timer file", failure.exception)
     }.and {
       self
-        .flatMap(Array(_))
+        .queue
+        .iterator
+        .toList
         .foreachIO(map => IO(map.close()), failFast = false)
         .getOrElse(IO.unit)
     }
@@ -568,13 +523,15 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
     close()
       .and {
         self
-          .flatMap(Array(_))
+          .queue
+          .iterator
+          .toList
           .foreachIO(map => IO(map.delete))
           .getOrElse(IO.unit)
       }
 
-  def queuedMapsIterator =
-    maps.iterator()
+  def queueIterator =
+    queue.iterator
 
   def mmap: MMAP =
     currentMap.mmap
@@ -585,6 +542,6 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val maps: Concurrent
   def isClosed =
     closed
 
-  def queuedMaps =
-    maps.asScala
+  def walker: Walker[Map[K, V, C]] =
+    queue
 }

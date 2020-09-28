@@ -25,13 +25,13 @@
 package swaydb.core.util.queue
 
 
-private sealed trait Node[+A] {
+private[queue] sealed trait Node[+A] {
   def isEmpty: Boolean
 }
 
-private object Node {
+private[queue] object Node {
 
-  case object Empty extends Node[Nothing] {
+  final case object Empty extends Node[Nothing] {
     override val isEmpty: Boolean = true
   }
 

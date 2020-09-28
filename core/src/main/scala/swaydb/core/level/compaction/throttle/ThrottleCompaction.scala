@@ -166,7 +166,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[throttle] def pushForward(zero: LevelZero,
                                     nextLevel: NextLevel,
                                     stateId: Long): ThrottleLevelState =
-    zero.maps.lastOption() match {
+    zero.maps.nextJob() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
         pushForward(
@@ -196,14 +196,14 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
         // Maps are ALWAYS required to be processed sequentially in the order of write.
         // Un-order merging of maps should NOT be allowed.
-        zero.maps.removeLast() foreach {
+        zero.maps.removeLast(map) foreach {
           result =>
             result onLeftSideEffect {
               error =>
                 val mapPath: String =
                   zero
                     .maps
-                    .lastOption()
+                    .nextJob()
                     .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
 
                 logger.error(

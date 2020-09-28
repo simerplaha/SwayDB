@@ -31,20 +31,10 @@ private[core] trait Walker[A >: Null] { self =>
 
   def head(): Node[A]
 
-  def dropHead(): Walker[A] =
-    head() match {
-      case Node.Empty =>
-        Walker.empty
+  def isEmpty: Boolean =
+    headOrNull() == null
 
-      case head: Node.Value[A] =>
-        head.next match {
-          case Node.Empty =>
-            new VolatileQueue[A](Node.Empty, Node.Empty)
-
-          case next: Node.Value[A] =>
-            new VolatileQueue[A](next, next.next)
-        }
-    }
+  def dropHead(): Walker[A]
 
   def flatMap[B >: Null](f: A => Walker[B]): Walker[B] =
     new Walker[B] {
@@ -119,21 +109,6 @@ private[core] trait Walker[A >: Null] { self =>
       head = walker.headOrNull()
     }
   }
-
-  def findOrNull(f: A => Boolean): A = {
-    var walker: Walker[A] = self
-    var head = walker.headOrNull()
-
-    while (head != null) {
-      if (f(head))
-        return head
-
-      walker = walker.dropHead()
-      head = walker.headOrNull()
-    }
-
-    null
-  }
 }
 
 object Walker {
@@ -141,5 +116,6 @@ object Walker {
     new Walker[A] {
       override def headOrNull(): A = null
       override def head(): Node[A] = Node.Empty
+      override def dropHead(): Walker[A] = this
     }
 }

@@ -115,4 +115,15 @@ private[core] trait Map[K, V, C <: MapCache[K, V]] {
   def close(): Unit
 
   def uniqueFileNumber: Long
+
+  override def equals(obj: Any): Boolean =
+    obj match {
+      case other: Map[_, _, _] =>
+        other.uniqueFileNumber == this.uniqueFileNumber
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    uniqueFileNumber.hashCode()
 }

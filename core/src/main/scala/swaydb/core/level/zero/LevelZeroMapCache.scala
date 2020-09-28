@@ -245,7 +245,7 @@ private[core] object LevelZeroMapCache {
                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                             functionStore: FunctionStore): Slice[Memory] =
 
-    skipLists.asScala.foldLeft(Slice.empty[Memory]) {
+    skipLists.iterator.foldLeft(Slice.empty[Memory]) {
       (newerKeyValues, oldKeyValues) =>
         val oldKeyValuesSlice = oldKeyValues.toSliceRemoveNullFromSeries
 
@@ -323,7 +323,8 @@ private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLi
 
   override def asScala: Iterable[(Slice[Byte], Memory)] =
     leveledSkipList
-      .asScala
+      .iterator
+      .to(Iterable)
       .flatMap(_.skipList.asScala)
 
   val mergedKeyValuesCache =
