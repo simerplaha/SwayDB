@@ -32,6 +32,7 @@ object SeriesBasic {
 }
 
 class SeriesBasic[T](array: Array[T]) extends Series[T] {
+
   override def getOrNull(index: Int): T =
     array(index)
 

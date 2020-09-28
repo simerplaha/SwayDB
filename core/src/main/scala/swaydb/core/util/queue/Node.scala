@@ -24,18 +24,25 @@
 
 package swaydb.core.util.queue
 
-
 private[queue] sealed trait Node[+A] {
   def isEmpty: Boolean
+  def previous: Node[A]
+  def next: Node[A]
+  def value: A
 }
 
-private[queue] object Node {
+private[queue] case object Node {
 
   final case object Empty extends Node[Nothing] {
     override val isEmpty: Boolean = true
+    override val previous: Node[Nothing] = Node.Empty
+    override val next: Node[Nothing] = Node.Empty
+    override def value: Nothing = throw new Exception(s"${Node.productPrefix}.${Empty.productPrefix} does not have a value.")
   }
 
-  class Value[A](val value: A, @volatile var next: Node[A]) extends Node[A] {
+  class Value[A](val value: A,
+                 @volatile var previous: Node[A],
+                 @volatile var next: Node[A]) extends Node[A] {
     override def isEmpty: Boolean = false
   }
 

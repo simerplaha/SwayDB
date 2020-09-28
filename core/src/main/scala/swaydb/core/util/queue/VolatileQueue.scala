@@ -30,7 +30,7 @@ private[core] object VolatileQueue {
     apply[A](Node.Empty)
 
   @inline def apply[A >: Null](value: A): VolatileQueue[A] =
-    apply[A](new Node.Value(value, Node.Empty))
+    apply[A](new Node.Value(value, Node.Empty, Node.Empty))
 
   @inline def apply[A >: Null](value: A*): VolatileQueue[A] =
     apply[A](value)
@@ -51,6 +51,14 @@ private[core] object VolatileQueue {
     }
 }
 
+/**
+ * VolatileQueue which is concurrent for reads only. For [[swaydb.core.level.zero.LevelZero]]
+ * we do not need concurrent writes as all writes a sequential.
+ *
+ * The reason to use this over [[java.util.concurrent.ConcurrentLinkedDeque]] is to improve
+ * iteration performance in [[swaydb.core.level.zero.LevelZero]] with [[Walker]] and [[iterator]]
+ * should reduce GC workload when performing reads.
+ */
 private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A],
                                              @volatile private var _last: Node[A],
                                              @volatile private var _size: Int) extends Walker[A] { self =>
@@ -64,13 +72,16 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
 
       _head match {
         case Node.Empty =>
-          val newHead = new Node.Value[A](value, Node.Empty)
+          val newHead = new Node.Value[A](value, Node.Empty, Node.Empty)
 
           _head = newHead
           _last = newHead
 
         case oldHead: Node.Value[A] =>
-          _head = new Node.Value[A](value, oldHead)
+          val newHead = new Node.Value[A](value = value, previous = Node.Empty, next = oldHead)
+
+          oldHead.previous = newHead
+          _head = newHead
       }
 
       _size += 1
@@ -83,7 +94,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
 
       self._head match {
         case Node.Empty =>
-          val newLast = new Node.Value[A](value, Node.Empty)
+          val newLast = new Node.Value[A](value, Node.Empty, Node.Empty)
 
           _head = newLast
           _last = newLast
@@ -96,7 +107,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
             case last: Node.Value[A] =>
               last.next match {
                 case Node.Empty =>
-                  val newLast = new Node.Value[A](value, Node.Empty)
+                  val newLast = new Node.Value[A](value = value, previous = last, next = Node.Empty)
 
                   last.next = newLast
                   self._last = newLast
@@ -112,23 +123,38 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
       self
     }
 
-  def pollHeadOrNull(): A =
+  def removeLast(expectedLast: A): Unit =
     this.synchronized {
-      self._head match {
+      _last match {
         case Node.Empty =>
-          null
+          throw new Exception("Last was empty")
 
-        case value: Node.Value[A] =>
-          self._head = value.next
-          _size -= 1
-          value.value
+        case last: Node.Value[A] =>
+          //check that the removed value is
+          if (last.value != expectedLast)
+            throw new Exception(s"Invalid remove. ${last.value} != $expectedLast")
+
+          last.previous match {
+            case Node.Empty =>
+              //this was the head entry
+              assert(size == 1)
+              _last = Node.Empty
+              _head = Node.Empty
+              _size -= 1
+
+            case previous: Node.Value[A] =>
+              //unlink
+              previous.next = Node.Empty
+              _last = previous
+              _size -= 1
+          }
       }
     }
 
   def headOption(): Option[A] =
     Option(headOrNull())
 
-  override def dropHead(): VolatileQueue[A] =
+  override def dropHead(): Walker[A] =
     _head match {
       case Node.Empty =>
         VolatileQueue()
@@ -176,17 +202,14 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
       var node: Node[A] = self._head
       var value: A = _
 
-      override def hasNext: Boolean = {
-        node match {
-          case Node.Empty =>
-            false
-
-          case valueNode: Node.Value[A] =>
-            node = valueNode.next
-            value = valueNode.value
-            true
+      override def hasNext: Boolean =
+        if (node.isEmpty) {
+          false
+        } else {
+          value = node.value
+          node = node.next
+          true
         }
-      }
 
       override def next(): A =
         value

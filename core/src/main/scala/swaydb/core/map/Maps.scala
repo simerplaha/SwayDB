@@ -465,22 +465,19 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
     }
 
   def removeLast(map: Map[K, V, C]): Option[IO[swaydb.Error.Map, Unit]] =
-    Option(queue.lastOrNull()) map {
-      lastMap =>
-        if (map == lastMap)
-          IO(lastMap.delete) match {
-            case IO.Right(_) =>
-              IO.unit
+    Option(queue.removeLast(map)) map {
+      _ =>
+        IO(map.delete) match {
+          case IO.Right(_) =>
+            IO.unit
 
-            case IO.Left(error) =>
-              //failed to delete file. Add it back to the queue.
-              val mapPath: String = lastMap.pathOption.map(_.toString).getOrElse("No path")
-              logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
-              queue.addLast(lastMap)
-              IO.Left(error)
-          }
-        else
-          IO.failed(s"Different maps ${map.pathOption} != ${lastMap.pathOption}")
+          case IO.Left(error) =>
+            //failed to delete file. Add it back to the queue.
+            val mapPath: String = map.pathOption.map(_.toString).getOrElse("No path")
+            logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
+            queue.addLast(map)
+            IO.Left(error)
+        }
     }
 
   def keyValueCount: Int =
