@@ -394,7 +394,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
                                                     finder: A => B): B = {
     val iterator = queue.iterator.flatMap(flatMap)
 
-    def getNext() = if (iterator.hasNext) iterator.next() else null
+    @inline def getNext() = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
     def find(next: A): B = {
@@ -424,7 +424,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
 
     val iterator = queue.iterator.flatMap(flatMap)
 
-    def getNextOrNull() = if (iterator.hasNext) iterator.next() else null
+    @inline def getNextOrNull() = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
     def find(nextOrNull: A,

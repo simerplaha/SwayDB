@@ -26,13 +26,13 @@ package swaydb.core.util.queue
 
 private[core] object VolatileQueue {
 
-  def apply[A >: Null](): VolatileQueue[A] =
+  @inline def apply[A >: Null](): VolatileQueue[A] =
     apply[A](Node.Empty)
 
-  def apply[A >: Null](value: A): VolatileQueue[A] =
+  @inline def apply[A >: Null](value: A): VolatileQueue[A] =
     apply[A](new Node.Value(value, Node.Empty))
 
-  def apply[A >: Null](value: A*): VolatileQueue[A] =
+  @inline def apply[A >: Null](value: A*): VolatileQueue[A] =
     apply[A](value)
 
   def apply[A >: Null](value: Iterable[A]): VolatileQueue[A] = {
@@ -44,56 +44,62 @@ private[core] object VolatileQueue {
   private def apply[A >: Null](head: Node[A]): VolatileQueue[A] =
     head match {
       case Node.Empty =>
-        new VolatileQueue(head = Node.Empty, last = Node.Empty, size = 0)
+        new VolatileQueue(_head = Node.Empty, _last = Node.Empty, _size = 0)
 
       case value: Node.Value[A] =>
-        new VolatileQueue(head = value, last = value, size = 1)
+        new VolatileQueue(_head = value, _last = value, _size = 1)
     }
 }
 
-private[core] class VolatileQueue[A >: Null](@volatile var head: Node[A],
-                                             @volatile private var last: Node[A],
-                                             @volatile var size: Int) extends Walker[A] { self =>
+private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A],
+                                             @volatile private var _last: Node[A],
+                                             @volatile private var _size: Int) extends Walker[A] { self =>
 
+  private[queue] def head = _head
+
+  def size: Int = _size
 
   def addHead(value: A): VolatileQueue[A] =
     this.synchronized {
-      val next = new Node.Value[A](value, Node.Empty)
 
-      head match {
+      _head match {
         case Node.Empty =>
-          head = next
-          last = next
+          val newHead = new Node.Value[A](value, Node.Empty)
 
-        case previousNext: Node.Value[A] =>
-          head = next
-          next.next = previousNext
+          _head = newHead
+          _last = newHead
+
+        case oldHead: Node.Value[A] =>
+          _head = new Node.Value[A](value, oldHead)
       }
 
-      size += 1
+      _size += 1
 
       self
     }
 
   def addLast(value: A): VolatileQueue[A] =
     this.synchronized {
-      val newNext = new Node.Value[A](value, Node.Empty)
 
-      self.head match {
+      self._head match {
         case Node.Empty =>
-          head = newNext
-          last = newNext
+          val newLast = new Node.Value[A](value, Node.Empty)
+
+          _head = newLast
+          _last = newLast
 
         case _: Node.Value[A] =>
-          self.last match {
+          self._last match {
             case Node.Empty =>
               throw new Exception("If head is non-empty, last cannot be empty")
 
             case last: Node.Value[A] =>
               last.next match {
                 case Node.Empty =>
-                  last.next = newNext
-                  self.last = newNext
+                  val newLast = new Node.Value[A](value, Node.Empty)
+
+                  last.next = newLast
+                  self._last = newLast
 
                 case _: Node.Value[A] =>
                   throw new Exception("Last's next was non-empty")
@@ -101,20 +107,20 @@ private[core] class VolatileQueue[A >: Null](@volatile var head: Node[A],
           }
       }
 
-      size += 1
+      _size += 1
 
       self
     }
 
   def pollHeadOrNull(): A =
     this.synchronized {
-      self.head match {
+      self._head match {
         case Node.Empty =>
           null
 
         case value: Node.Value[A] =>
-          self.head = value.next
-          size -= 1
+          self._head = value.next
+          _size -= 1
           value.value
       }
     }
@@ -123,7 +129,7 @@ private[core] class VolatileQueue[A >: Null](@volatile var head: Node[A],
     Option(headOrNull())
 
   override def dropHead(): VolatileQueue[A] =
-    head match {
+    _head match {
       case Node.Empty =>
         VolatileQueue()
 
@@ -133,23 +139,23 @@ private[core] class VolatileQueue[A >: Null](@volatile var head: Node[A],
             new VolatileQueue[A](Node.Empty, Node.Empty, 0)
 
           case node: Node.Value[A] =>
-            new VolatileQueue[A](node, node.next, self.size - 1)
+            new VolatileQueue[A](node, node.next, self._size - 1)
         }
     }
 
   def lastOrNull(): A =
-    last match {
+    _last match {
       case Node.Empty =>
-        assert(head.isEmpty)
+        assert(_head.isEmpty)
         null
 
       case node: Node.Value[A] =>
-        assert(!head.isEmpty)
+        assert(!_head.isEmpty)
         node.value
     }
 
   def headOrNull(): A =
-    head match {
+    _head match {
       case Node.Empty =>
         null
 
@@ -167,22 +173,22 @@ private[core] class VolatileQueue[A >: Null](@volatile var head: Node[A],
    */
   def iterator: Iterator[A] =
     new Iterator[A] {
-      var headNode: Node[A] = self.head
-      var headValue: A = _
+      var node: Node[A] = self._head
+      var value: A = _
 
       override def hasNext: Boolean = {
-        headNode match {
+        node match {
           case Node.Empty =>
             false
 
-          case node: Node.Value[A] =>
-            headNode = node.next
-            headValue = node.value
+          case valueNode: Node.Value[A] =>
+            node = valueNode.next
+            value = valueNode.value
             true
         }
       }
 
       override def next(): A =
-        headValue
+        value
     }
 }

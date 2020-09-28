@@ -27,14 +27,15 @@ package swaydb.core.util.queue
 import scala.annotation.tailrec
 
 private[core] trait Walker[A >: Null] { self =>
+
   def headOrNull(): A
 
-  def head(): Node[A]
+  private[queue] def head(): Node[A]
+
+  def dropHead(): Walker[A]
 
   def isEmpty: Boolean =
     headOrNull() == null
-
-  def dropHead(): Walker[A]
 
   def flatMap[B >: Null](f: A => Walker[B]): Walker[B] =
     new Walker[B] {
