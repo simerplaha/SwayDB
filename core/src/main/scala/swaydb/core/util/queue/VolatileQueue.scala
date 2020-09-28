@@ -91,103 +91,86 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
 
   def addLast(value: A): VolatileQueue[A] =
     this.synchronized {
+      if (self._head.isEmpty) {
+        //sizes are used to create Slices so update this first
+        _size += 1
 
-      self._head match {
-        case Node.Empty =>
-          val newLast = new Node.Value[A](value, Node.Empty, Node.Empty)
+        val newLast = new Node.Value[A](value, Node.Empty, Node.Empty)
 
-          _head = newLast
-          _last = newLast
+        _head = newLast
+        _last = newLast
+      } else {
+        self._last match {
+          case Node.Empty =>
+            throw new Exception("If head is non-empty, last cannot be empty")
 
-        case _: Node.Value[A] =>
-          self._last match {
-            case Node.Empty =>
-              throw new Exception("If head is non-empty, last cannot be empty")
+          case last: Node.Value[A] =>
+            last.next match {
+              case Node.Empty =>
+                //sizes are used to create Slices so update this first
+                _size += 1
 
-            case last: Node.Value[A] =>
-              last.next match {
-                case Node.Empty =>
-                  val newLast = new Node.Value[A](value = value, previous = last, next = Node.Empty)
+                val newLast = new Node.Value[A](value = value, previous = last, next = Node.Empty)
 
-                  last.next = newLast
-                  self._last = newLast
+                last.next = newLast
+                self._last = newLast
 
-                case _: Node.Value[A] =>
-                  throw new Exception("Last's next was non-empty")
-              }
-          }
+              case _: Node.Value[A] =>
+                throw new Exception("Last's next was non-empty")
+            }
+        }
       }
-
-      _size += 1
 
       self
     }
 
   def removeLast(expectedLast: A): Unit =
     this.synchronized {
-      _last match {
-        case Node.Empty =>
-          throw new Exception("Last was empty")
+      if (_last.isEmpty)
+        throw new Exception("Last is empty")
+      else if (_last.value != expectedLast)
+        throw new Exception(s"Invalid remove. ${_last.value} != $expectedLast")
+      else
+        _last.previous match {
+          case Node.Empty =>
+            //this was the head entry
+            assert(size == 1)
+            //sizes are used to create Slices so update this first
+            _size -= 1
+            _last = Node.Empty
+            _head = Node.Empty
 
-        case last: Node.Value[A] =>
-          //check that the removed value is
-          if (last.value != expectedLast)
-            throw new Exception(s"Invalid remove. ${last.value} != $expectedLast")
-
-          last.previous match {
-            case Node.Empty =>
-              //this was the head entry
-              assert(size == 1)
-              _last = Node.Empty
-              _head = Node.Empty
-              _size -= 1
-
-            case previous: Node.Value[A] =>
-              //unlink
-              previous.next = Node.Empty
-              _last = previous
-              _size -= 1
-          }
-      }
+          case previous: Node.Value[A] =>
+            //unlink
+            _size -= 1
+            previous.next = Node.Empty
+            _last = previous
+        }
     }
 
   def headOption(): Option[A] =
     Option(headOrNull())
 
   override def dropHead(): Walker[A] =
-    _head match {
-      case Node.Empty =>
-        VolatileQueue()
-
-      case head: Node.Value[A] =>
-        head.next match {
-          case Node.Empty =>
-            new VolatileQueue[A](Node.Empty, Node.Empty, 0)
-
-          case node: Node.Value[A] =>
-            new VolatileQueue[A](node, node.next, self._size - 1)
-        }
-    }
+    if (_head.isEmpty || _head.next.isEmpty)
+      Walker.empty
+    else
+      new VolatileQueue[A](_head.next, _head.next.next, self._size - 1)
 
   def lastOrNull(): A =
-    _last match {
-      case Node.Empty =>
-        assert(_head.isEmpty)
-        null
-
-      case node: Node.Value[A] =>
-        assert(!_head.isEmpty)
-        node.value
+    if (_last.isEmpty) {
+      assert(_head.isEmpty)
+      null
+    } else {
+      assert(!_head.isEmpty)
+      _last.value
     }
 
   def headOrNull(): A =
-    _head match {
-      case Node.Empty =>
-        null
-
-      case node: Node.Value[A] =>
-        node.value
-    }
+    if (_head.isEmpty)
+      null
+    else
+      _head.value
 
   def walker: Walker[A] =
     self
