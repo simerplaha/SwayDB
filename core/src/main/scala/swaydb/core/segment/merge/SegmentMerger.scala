@@ -62,13 +62,13 @@ private[core] object SegmentMerger extends LazyLogging {
       isLastLevel = isLastLevel
     )
 
-  def merge(newKeyValues: Slice[KeyValue],
-            oldKeyValuesCount: Int,
-            oldKeyValues: Iterator[KeyValue],
-            stats: MergeStats[Memory, Iterable],
-            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): Unit =
+  def merge[T[_]](newKeyValues: Slice[KeyValue],
+                  oldKeyValuesCount: Int,
+                  oldKeyValues: Iterator[KeyValue],
+                  stats: MergeStats[Memory, T],
+                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore): Unit =
     merge(
       newKeyValues = DropIterator[Memory.Range, KeyValue](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
@@ -76,12 +76,27 @@ private[core] object SegmentMerger extends LazyLogging {
       isLastLevel = isLastLevel
     )
 
-  private def merge(newKeyValues: DropIterator[Memory.Range, KeyValue],
-                    oldKeyValues: DropIterator[Memory.Range, KeyValue],
-                    builder: MergeStats[Memory, Iterable],
-                    isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                          timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): Unit = {
+  def merge[T[_]](newKeyValuesCount: Int,
+                  newKeyValues: Iterator[KeyValue],
+                  oldKeyValuesCount: Int,
+                  oldKeyValues: Iterator[KeyValue],
+                  stats: MergeStats[Memory, T],
+                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore): Unit =
+    merge(
+      newKeyValues = DropIterator[Memory.Range, KeyValue](newKeyValuesCount, newKeyValues),
+      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
+      builder = stats,
+      isLastLevel = isLastLevel
+    )
+
+  private def merge[T[_]](newKeyValues: DropIterator[Memory.Range, KeyValue],
+                          oldKeyValues: DropIterator[Memory.Range, KeyValue],
+                          builder: MergeStats[Memory, T],
+                          isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                functionStore: FunctionStore): Unit = {
 
     import keyOrder._
 

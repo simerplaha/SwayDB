@@ -33,9 +33,9 @@ import swaydb.core.data.{Memory, Persistent, Value, _}
  */
 private[core] object SegmentGrouper extends LazyLogging {
 
-  def add(keyValue: KeyValue,
-          builder: MergeStats[Memory, Iterable],
-          isLastLevel: Boolean): Unit = {
+  def add[T[_]](keyValue: KeyValue,
+                builder: MergeStats[Memory, T],
+                isLastLevel: Boolean): Unit = {
     if (isLastLevel) {
       val keyValueToMerge = addLastLevel(keyValue)
       if (keyValueToMerge != null)
