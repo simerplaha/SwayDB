@@ -25,7 +25,6 @@
 package swaydb.core.util.skiplist
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Aggregator
 import swaydb.core.util.series.growable.SeriesGrowable
 import swaydb.core.util.{English, WhenOccurs}
 import swaydb.data.OptimiseWrites

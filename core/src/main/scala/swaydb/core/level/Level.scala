@@ -474,14 +474,14 @@ private[core] case class Level(dirs: Seq[Dir],
   private[level] implicit def reserve(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
-        keyValues = map.cache.levels.mergedKeyValuesCache.value(()),
+        keyValues = map.cache.mergedKeyValuesCache.value(()),
         targetSegments = appendix.cache.skipList.values()
       )
     } map {
       assigned =>
         Segment.minMaxKey(
           left = assigned,
-          right = map.cache.levels.mergedKeyValuesCache.value(())
+          right = map.cache.mergedKeyValuesCache.value(())
         ) match {
           case Some((minKey, maxKey, toInclusive)) =>
             ReserveRange.reserveOrListen(
@@ -536,7 +536,7 @@ private[core] case class Level(dirs: Seq[Dir],
    */
   def isCopyable(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean =
     Segment
-      .minMaxKey(map.cache.levels.mergedKeyValuesCache.value(()))
+      .minMaxKey(map.cache.mergedKeyValuesCache.value(()))
       .forall {
         case (minKey, maxKey, maxInclusive) =>
           isCopyable(
@@ -690,11 +690,11 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
-    logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.levels.mergeKeyValuesCount)
+    logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.mergeKeyValuesCount)
     reserveAndRelease(map) {
 
       val appendixValues = appendix.cache.skipList.values()
-      val keyValues = map.cache.levels.mergedKeyValuesCache.value(())
+      val keyValues = map.cache.mergedKeyValuesCache.value(())
 
       if (Segment.overlaps(keyValues, appendixValues))
         putKeyValues(
@@ -785,7 +785,7 @@ private[core] case class Level(dirs: Seq[Dir],
       logger.trace(s"{}: Copying {} Map", pathDistributor.head, map.pathOption)
 
       val keyValues: Iterable[Memory] =
-        map.cache.levels.mergedKeyValuesCache.value(()) match {
+        map.cache.mergedKeyValuesCache.value(()) match {
           case util.Left(skipList) =>
             skipList.values()
 
