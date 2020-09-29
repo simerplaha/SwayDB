@@ -26,7 +26,6 @@ package swaydb.core.level.zero
 
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
-import swaydb.core.level.zero.LevelZeroMapCache.newSkipListState
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
