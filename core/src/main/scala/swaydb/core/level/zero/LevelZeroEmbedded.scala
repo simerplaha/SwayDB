@@ -322,13 +322,7 @@ private[core] class LevelZeroEmbedded private[zero](levels: VolatileQueue[LevelE
     Cache.noIO[Unit, Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]]](synchronised = true, stored = true, initial = None) {
       (_, _) =>
         if (levels.size == 1)
-          zero.skipList match {
-            case series: SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
-              Right(series.toValuesSlice())
-
-            case skipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
-              Left(skipList)
-          }
+          Left(zero.skipList)
         else
           Right(LevelZeroEmbedded.runMerge(levels))
     }
