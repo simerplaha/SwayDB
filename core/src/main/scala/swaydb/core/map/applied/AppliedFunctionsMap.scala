@@ -71,7 +71,7 @@ case object AppliedFunctionsMap extends LazyLogging {
     val missingFunctions = ListBuffer.empty[String]
     logger.debug("Checking for missing functions.")
 
-    appliedFunctions.cache.asScala.foreach {
+    appliedFunctions.cache.iterator.foreach {
       case (functionId, _) =>
         if (functionStore.notContains(functionId))
           missingFunctions += functionId.readString()

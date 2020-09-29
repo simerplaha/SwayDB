@@ -44,16 +44,16 @@ class PersistentCounterMapCache extends MapCache[Slice[Byte], Slice[Byte]] {
   override def writeNonAtomic(entry: MapEntry[Slice[Byte], Slice[Byte]]): Unit =
     writeAtomic(entry)
 
-  override def asScala: Iterable[(Slice[Byte], Slice[Byte])] =
+  override def iterator: Iterator[(Slice[Byte], Slice[Byte])] =
     entryOrNull match {
       case null =>
-        Seq.empty
+        Iterator.empty
 
       case MapEntry.Put(key, value) =>
-        Seq((key, value))
+        Iterator((key, value))
 
       case entry: MapEntry[Slice[Byte], Slice[Byte]] =>
-        entry.entries map {
+        entry.entries.iterator map {
           case MapEntry.Put(key, value) =>
             (key, value)
         }

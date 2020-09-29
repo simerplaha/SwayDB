@@ -36,7 +36,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
-import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 
 private[core] object LevelZeroMapCache {
@@ -307,11 +306,10 @@ private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLi
   override def maxKeyValueCount: Int =
     leveledSkipList.size
 
-  override def asScala: Iterable[(Slice[Byte], Memory)] =
+  override def iterator: Iterator[(Slice[Byte], Memory)] =
     leveledSkipList
       .iterator
-      .to(Iterable)
-      .flatMap(_.skipList.toIterable)
+      .flatMap(_.skipList.iterator)
 
   val mergedKeyValuesCache =
     Cache.noIO[Unit, Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]]](synchronised = true, stored = true, initial = None) {

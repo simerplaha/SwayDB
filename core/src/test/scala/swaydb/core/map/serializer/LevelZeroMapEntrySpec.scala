@@ -294,7 +294,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         }
         //write skip list to bytes should result in the same skip list as before
         import LevelZeroMapEntryWriter.Level0MapEntryPutWriter
-        val bytes = MapCodec.write[Slice[Byte], Memory](skipList.toIterable)
+        val bytes = MapCodec.write[Slice[Byte], Memory](skipList.iterator)
         val recoveryResult = MapCodec.read[Slice[Byte], Memory](bytes, false).runRandomIO.right.value
         recoveryResult.result shouldBe IO.unit
 

@@ -39,14 +39,14 @@ private[core] object MapCodec extends LazyLogging {
   //    crc         +     length
     ByteSizeOf.long + ByteSizeOf.int
 
-  def toMapEntry[K, V](map: Iterable[(K, V)])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Option[MapEntry[K, V]] =
+  def toMapEntry[K, V](map: Iterator[(K, V)])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Option[MapEntry[K, V]] =
     map.foldLeft(Option.empty[MapEntry[K, V]]) {
       case (mapEntry, (key, value)) =>
         val nextEntry = MapEntry.Put(key, value)
         mapEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
     }
 
-  def write[K, V](map: Iterable[(K, V)])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Slice[Byte] =
+  def write[K, V](map: Iterator[(K, V)])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Slice[Byte] =
     toMapEntry(map).map(write[K, V]) getOrElse Slice.emptyBytes
 
   def write[K, V](mapEntries: MapEntry[K, V]): Slice[Byte] = {

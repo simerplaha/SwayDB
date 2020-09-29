@@ -30,7 +30,7 @@ trait MapCache[K, V] {
 
   def writeNonAtomic(entry: MapEntry[K, V]): Unit
 
-  def asScala: Iterable[(K, V)]
+  def iterator: Iterator[(K, V)]
 
   def isEmpty: Boolean
 

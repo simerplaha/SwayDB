@@ -247,7 +247,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                  forceSaveApplier: ForceSaveApplier): DBFile = {
 
     val nextPath = currentFile.path.incrementFileId
-    val bytes = MapCodec.write(cache.asScala)
+    val bytes = MapCodec.write(cache.iterator)
 
     val newFile =
       mmap match {

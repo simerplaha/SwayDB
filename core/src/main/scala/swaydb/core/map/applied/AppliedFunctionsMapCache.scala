@@ -51,8 +51,8 @@ case class AppliedFunctionsMapCache(skipList: SkipListConcurrent[SliceOption[Byt
   override def writeNonAtomic(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
     writeAtomic(entry)
 
-  override def asScala: Iterable[(Slice[Byte], Slice.Null.type)] =
-    skipList.toIterable
+  override def iterator: Iterator[(Slice[Byte], Slice.Null.type)] =
+    skipList.iterator
 
   override def isEmpty: Boolean =
     skipList.isEmpty
