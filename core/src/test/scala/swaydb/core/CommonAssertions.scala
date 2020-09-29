@@ -637,8 +637,8 @@ object CommonAssertions {
 
       actualMap.size shouldBe expectedMap.size
 
-      val actualArray = actualMap.asScala.toArray
-      val expectedArray = expectedMap.asScala.toArray
+      val actualArray = actualMap.toIterable.toArray
+      val expectedArray = expectedMap.toIterable.toArray
 
       actualArray.indices.foreach {
         i =>

@@ -26,7 +26,7 @@ package swaydb.core.level.zero
 
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
-import swaydb.core.level.zero.LevelZeroMapCache.newLevelZeroSkipList
+import swaydb.core.level.zero.LevelZeroMapCache.newSkipListState
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
@@ -46,15 +46,15 @@ private[core] object LevelZeroMapCache {
                        functionStore: FunctionStore,
                        optimiseWrites: OptimiseWrites): MapCacheBuilder[LevelZeroMapCache] =
     () => {
-      val skipList = newLevelZeroSkipList()
+      val state = newSkipListState()
 
-      val skipLists = LeveledSkipLists(skipList = skipList, hasRange = false)
+      val leveledSkipList = LeveledSkipList(skipList = state)
 
-      new LevelZeroMapCache(skipLists)
+      new LevelZeroMapCache(leveledSkipList)
     }
 
-  private def newLevelZeroSkipList()(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                     optimiseWrites: OptimiseWrites): LevelSkipList =
+  private def newSkipListState()(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                     optimiseWrites: OptimiseWrites): LeveledSkipList.SkipListState =
     optimiseWrites match {
       case OptimiseWrites.RandomOrder =>
         val skipList =
@@ -63,7 +63,7 @@ private[core] object LevelZeroMapCache {
             nullValue = Memory.Null
           )
 
-        LevelSkipList(skipList = skipList, hasRange = false)
+        new LeveledSkipList.SkipListState(skipList = skipList, hasRange = false)
 
       case OptimiseWrites.SequentialOrder(initialLength) =>
         val skipList =
@@ -73,14 +73,14 @@ private[core] object LevelZeroMapCache {
             nullValue = Memory.Null
           )
 
-        LevelSkipList(skipList = skipList, hasRange = false)
+        new LeveledSkipList.SkipListState(skipList = skipList, hasRange = false)
     }
 
   /**
    * Inserts a [[Memory.Fixed]] key-value into skipList.
    */
   def insert(insert: Memory.Fixed,
-             skipList: LevelSkipList,
+             skipList: LeveledSkipList.SkipListState,
              atomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                               timeOrder: TimeOrder[Slice[Byte]],
                               functionStore: FunctionStore): Iterable[Memory] =
@@ -140,7 +140,7 @@ private[core] object LevelZeroMapCache {
    * the skipList before applying the new state so that all read queries read the latest write.
    */
   def insert(insert: Memory.Range,
-             skipList: LevelSkipList,
+             skipList: LeveledSkipList.SkipListState,
              atomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                               timeOrder: TimeOrder[Slice[Byte]],
                               functionStore: FunctionStore): Iterable[Memory] = {
@@ -204,12 +204,12 @@ private[core] object LevelZeroMapCache {
   @tailrec
   private def doWrite(head: MapEntry.Point[Slice[Byte], Memory],
                       tail: Iterable[MapEntry.Point[Slice[Byte], Memory]],
-                      skipList: LevelSkipList,
+                      skipList: LeveledSkipList.SkipListState,
                       atomic: Boolean,
                       startedNewTransaction: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
-                                                      optimiseWrites: OptimiseWrites): Option[LevelSkipList] =
+                                                      optimiseWrites: OptimiseWrites): Option[LeveledSkipList.SkipListState] =
     head match {
       case head @ MapEntry.Remove(_) =>
         //this does not occur in reality and should be type-safe instead of having this Exception.
@@ -231,7 +231,7 @@ private[core] object LevelZeroMapCache {
 
         if (insertResult.nonEmpty) {
           assert(!startedNewTransaction, "Cannot create multiple transactional skipLists")
-          doWrite(head = head, tail = tail, skipList = newLevelZeroSkipList(), atomic = false, startedNewTransaction = true)
+          doWrite(head = head, tail = tail, skipList = newSkipListState(), atomic = false, startedNewTransaction = true)
         } else if (tail.nonEmpty) {
           doWrite(head = tail.head, tail = tail.tail, skipList = skipList, atomic = atomic, startedNewTransaction = startedNewTransaction)
         } else if (startedNewTransaction) {
@@ -241,23 +241,23 @@ private[core] object LevelZeroMapCache {
         }
     }
 
-  @inline private def runMerge(skipLists: LeveledSkipLists)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                            timeOrder: TimeOrder[Slice[Byte]],
-                                                            functionStore: FunctionStore): Slice[Memory] =
+  @inline private def runMerge(skipLists: LeveledSkipList)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                           functionStore: FunctionStore): Slice[Memory] =
 
     skipLists.iterator.foldLeft(Slice.empty[Memory]) {
       (newerKeyValues, oldKeyValues) =>
-        val oldKeyValuesSlice = oldKeyValues.toSliceRemoveNullFromSeries
 
         if (newerKeyValues.isEmpty) {
-          oldKeyValuesSlice
+          Slice.from(oldKeyValues.skipList.valuesIterator, oldKeyValues.skipList.size)
         } else {
-          val maxSize = (newerKeyValues.size + oldKeyValuesSlice.size) * 3
+          val maxSize = (newerKeyValues.size + oldKeyValues.skipList.size) * 3
           val builder = MergeStats.memory(Slice.newBuilder(maxSize))(MergeStats.memoryToMemory)
 
           SegmentMerger.merge(
             newKeyValues = newerKeyValues,
-            oldKeyValues = oldKeyValuesSlice,
+            oldKeyValuesCount = oldKeyValues.skipList.size,
+            oldKeyValues = oldKeyValues.skipList.valuesIterator,
             stats = builder,
             isLastLevel = false
           )
@@ -272,29 +272,15 @@ private[core] object LevelZeroMapCache {
  *
  * Creates multi-layered SkipList.
  */
-private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLists)(implicit val keyOrder: KeyOrder[Slice[Byte]],
-                                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                                     functionStore: FunctionStore,
-                                                                                     optimiseWrites: OptimiseWrites) extends MapCache[Slice[Byte], Memory] {
+private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipList)(implicit val keyOrder: KeyOrder[Slice[Byte]],
+                                                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                                                    functionStore: FunctionStore,
+                                                                                    optimiseWrites: OptimiseWrites) extends MapCache[Slice[Byte], Memory] {
 
   @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit = {
     val entries = entry.entries
 
-    if (entry.entriesCount > 1)
-      LevelZeroMapCache.doWrite(
-        head = entries.head,
-        tail = entries.tail,
-        skipList = newLevelZeroSkipList(),
-        atomic = false,
-        startedNewTransaction = true
-      ) match {
-        case Some(skipList) =>
-          leveledSkipList addFirst skipList
-
-        case None =>
-          throw new Exception("Transaction not committed in memory cache.")
-      }
-    else if (leveledSkipList.current.hasRange || entry.hasUpdate || entry.hasRange || entry.hasRemoveDeadline)
+    if (entry.entriesCount > 1 || leveledSkipList.current.hasRange || entry.hasUpdate || entry.hasRange || entry.hasRemoveDeadline)
       LevelZeroMapCache.doWrite(
         head = entries.head,
         tail = entries.tail,
@@ -325,15 +311,15 @@ private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLi
     leveledSkipList
       .iterator
       .to(Iterable)
-      .flatMap(_.skipList.asScala)
+      .flatMap(_.skipList.toIterable)
 
   val mergedKeyValuesCache =
     Cache.noIO[Unit, Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]]](synchronised = true, stored = true, initial = None) {
       (_, _) =>
         if (leveledSkipList.queueSize == 1)
           leveledSkipList.current.skipList match {
-            case _: SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
-              Right(leveledSkipList.current.toSliceRemoveNullFromSeries)
+            case series: SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
+              Right(series.toValuesSlice())
 
             case skipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =>
               Left(skipList)
@@ -350,7 +336,6 @@ private[core] class LevelZeroMapCache private(val leveledSkipList: LeveledSkipLi
       case Right(value) =>
         value
     }
-
 
   def mergeKeyValuesCount: Int =
     mergedKeyValuesCache.value(()) match {

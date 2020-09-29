@@ -66,7 +66,9 @@ private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
   def values(): Iterable[V]
   def foldLeft[R](r: R)(f: (R, (K, V)) => R): R
   def foreach[R](f: (K, V) => R): Unit
-  def asScala: Iterable[(K, V)]
+  def toIterable: Iterable[(K, V)]
+  def iterator: Iterator[(K, V)]
+  def valuesIterator: Iterator[V]
 
   @inline final def toOptionValue(entry: java.util.Map.Entry[K, V]): OV =
     if (entry == null)

@@ -195,7 +195,7 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
         skipList.put(i, Value.Some(i))
     }
 
-    skipList.asScala.toList.map(_._2) shouldBe range.map(i => Value.Some(i))
+    skipList.toIterable.toList.map(_._2) shouldBe range.map(i => Value.Some(i))
 
     //assert lower
     range.foldLeft(Value.Null: ValueOption) {

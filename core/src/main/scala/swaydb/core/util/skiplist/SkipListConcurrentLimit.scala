@@ -142,5 +142,9 @@ private[core] class SkipListConcurrentLimit[OK, OV, K <: OK, V <: OV](limit: Int
 
   override def foreach[R](f: (K, V) => R): Unit = skipList.foreach(f)
 
-  override def asScala: mutable.Map[K, V] = skipList.asScala
+  override def toIterable: mutable.Map[K, V] = skipList.toIterable
+
+  override def iterator: Iterator[(K, V)] = skipList.iterator
+
+  override def valuesIterator: Iterator[V] = skipList.valuesIterator
 }

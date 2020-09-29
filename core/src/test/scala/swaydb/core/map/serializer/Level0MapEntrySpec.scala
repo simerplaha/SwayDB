@@ -62,7 +62,7 @@ class Level0MapEntrySpec extends TestBase {
 
         val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         readEntry applyBatch skipList
-        val scalaSkipList = skipList.asScala
+        val scalaSkipList = skipList.toIterable
 
         scalaSkipList should have size 1
         val (headKey, headValue) = scalaSkipList.head
@@ -168,7 +168,7 @@ class Level0MapEntrySpec extends TestBase {
       val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       readEntry applyBatch skipList
 
-      def scalaSkipList = skipList.asScala
+      def scalaSkipList = skipList.toIterable
 
       assertSkipList()
 
@@ -188,7 +188,7 @@ class Level0MapEntrySpec extends TestBase {
       }
       //write skip list to bytes should result in the same skip list as before
       import LevelZeroMapEntryWriter.Level0MapEntryPutWriter
-      val bytes = MapCodec.write[Slice[Byte], Memory](skipList.asScala)
+      val bytes = MapCodec.write[Slice[Byte], Memory](skipList.toIterable)
       val recoveryResult = MapCodec.read[Slice[Byte], Memory](bytes, false).runRandomIO.right.value
       recoveryResult.result shouldBe IO.unit
 

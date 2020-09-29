@@ -55,7 +55,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeAtomic(MapEntry.Put(put.key, put))
       cache.getMergedSkipList should have size 1
 
-      cache.getMergedSkipList.asScala.head shouldBe ((1: Slice[Byte], put))
+      cache.getMergedSkipList.toIterable.head shouldBe ((1: Slice[Byte], put))
     }
 
     "insert multiple fixed key-values" in {
@@ -69,7 +69,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
       cache.getMergedSkipList should have size 10
 
-      cache.getMergedSkipList.asScala.zipWithIndex foreach {
+      cache.getMergedSkipList.toIterable.zipWithIndex foreach {
         case ((key, value), index) =>
           key shouldBe (index: Slice[Byte])
           value shouldBe Memory.put(index, index)
@@ -85,7 +85,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeAtomic(MapEntry.Put(30, Memory.Range(30, 40, Value.FromValue.Null, Value.update(40))))
       cache.writeAtomic(MapEntry.Put(50, Memory.Range(50, 100, Value.put(20), Value.remove(None))))
 
-      val skipListArray = cache.getMergedSkipList.asScala.toArray
+      val skipListArray = cache.getMergedSkipList.toIterable.toArray
       skipListArray(0) shouldBe ((10: Slice[Byte], Memory.Range(10, 20, Value.FromValue.Null, Value.remove(None))))
       skipListArray(1) shouldBe ((30: Slice[Byte], Memory.Range(30, 40, Value.FromValue.Null, Value.update(40))))
       skipListArray(2) shouldBe ((50: Slice[Byte], Memory.Range(50, 100, Value.put(20), Value.remove(None))))
@@ -126,7 +126,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.put(10), Value.update(20))))
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 15, Value.FromValue.Null, Value.update(40))))
       cache.getMergedSkipList should have size 3
-      val skipListArray = cache.getMergedSkipList.asScala.toArray
+      val skipListArray = cache.getMergedSkipList.toIterable.toArray
 
       skipListArray(0) shouldBe(1: Slice[Byte], Memory.Range(1, 10, Value.FromValue.Null, Value.update(40)))
       skipListArray(1) shouldBe(10: Slice[Byte], Memory.Range(10, 15, Value.put(40), Value.update(40)))

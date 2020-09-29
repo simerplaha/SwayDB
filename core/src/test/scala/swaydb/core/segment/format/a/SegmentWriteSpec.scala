@@ -200,7 +200,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             skipList foreach {
               skipList =>
-                skipList.asScala foreach {
+                skipList.toIterable foreach {
                   case (key, value: KeyValue) =>
                     key.shouldBeSliced()
                     assertSliced(value)

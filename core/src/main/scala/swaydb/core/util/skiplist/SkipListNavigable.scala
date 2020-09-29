@@ -204,6 +204,13 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
     slice
   }
 
-  override def asScala: mutable.Map[K, V] =
+  override def toIterable: mutable.Map[K, V] =
     skipList.asScala
+
+  override def iterator: Iterator[(K, V)] =
+    skipList.asScala.iterator
+
+  override def valuesIterator: Iterator[V] =
+    skipList.values().iterator().asScala
+
 }

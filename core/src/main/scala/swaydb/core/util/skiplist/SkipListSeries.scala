@@ -29,9 +29,11 @@ import swaydb.core.util.series.growable.SeriesGrowable
 import swaydb.core.util.{English, WhenOccurs}
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
+import scala.reflect.ClassTag
 
 private[skiplist] sealed trait KeyValue[+K, +V]
 
@@ -243,7 +245,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
 
   private val randomWriteWarning = WhenOccurs(500)(times => logger.warn(SkipListSeries.randomWriteWarning(times)))
 
-  private def iterator(): Iterator[KeyValue.Some[K, V]] =
+  private def iteratorKeyValue(): Iterator[KeyValue.Some[K, V]] =
     new Iterator[KeyValue.Some[K, V]] {
       var nextOne: KeyValue.Some[K, V] = null
       val sliceIterator = self.series.iterator
@@ -263,6 +265,12 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
       override def next(): KeyValue.Some[K, V] =
         nextOne
     }
+
+  override def iterator: Iterator[(K, V)] =
+    iteratorKeyValue().map(_.toTuple)
+
+  override def valuesIterator: Iterator[V] =
+    iteratorKeyValue().map(_.value)
 
   @inline private def putRandom(key: K, value: V): Unit =
     SkipListSeries.get(target = key, series = series, keepNullValue = true) match {
@@ -428,7 +436,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     }
 
   override def isEmpty: Boolean =
-    iterator().isEmpty
+    iteratorKeyValue().isEmpty
 
   override def nonEmpty: Boolean =
     !isEmpty
@@ -485,7 +493,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
   }
 
   override def count(): Int =
-    iterator().size
+    iteratorKeyValue().size
 
   override def last(): OV = {
     val some = lastOrNullSome()
@@ -514,23 +522,37 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
   override def values(): Iterable[V] =
     new Iterable[V] {
       override def iterator: Iterator[V] =
-        self.iterator().map(_.value)
+        self.iteratorKeyValue().map(_.value)
     }
 
   override def foldLeft[R](r: R)(f: (R, (K, V)) => R): R =
-    iterator().foldLeft(r) {
+    iteratorKeyValue().foldLeft(r) {
       case (r, some) =>
         f(r, (some.key, some.value))
     }
 
   override def foreach[R](f: (K, V) => R): Unit =
-    iterator() foreach {
+    iteratorKeyValue() foreach {
       keyValue =>
         f(keyValue.key, keyValue.value)
     }
 
-  override def asScala: Iterable[(K, V)] =
-    self.iterator().map(_.toTuple).to(Iterable)
+  override def toIterable: Iterable[(K, V)] =
+    self.iteratorKeyValue().map(_.toTuple).to(Iterable)
+
+  def toValuesSlice()(implicit classTag: ClassTag[V]): Slice[V] = {
+    val slice = Slice.of[V](self.size)
+
+    //use iterator to clear all removed key-values (null values). SkipListSeries is write optimised backed
+    //by an Array so it cannot physically remove the key-value which would require reordering of the
+    //Arrays instead it nulls the value indicating remove.
+    iteratorKeyValue() foreach {
+      keyValue =>
+        slice add keyValue.value
+    }
+
+    slice
+  }
 
   override def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] = {
     val compare = keyOrder.compare(from, to)

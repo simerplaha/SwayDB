@@ -928,7 +928,7 @@ class MapSpec extends TestBase {
           //recovery state contains failure because the WAL file is partially recovered.
           recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
           //count instead of size because skipList's actual size can be higher.
-          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.toIterable.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
 
           //checking the recovered entries
           recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(1) shouldBe Memory.put(1, 1)
@@ -1015,7 +1015,7 @@ class MapSpec extends TestBase {
           //recovery state contains failure because the WAL file is partially recovered.
           recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
           //count instead of size because skipList's actual size can be higher.
-          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
+          recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.toIterable.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
 
           //checking the recovered entries
           recoveredMapWith0LogCorrupted.item.cache.getMergedSkipList.get(1) shouldBe Memory.put(1, 1)
@@ -1069,7 +1069,7 @@ class MapSpec extends TestBase {
             val reopened = map.reopen.sweep()
 
             reopened.cache.getMergedSkipList.size shouldBe map.cache.getMergedSkipList.size
-            reopened.cache.getMergedSkipList.asScala.toList shouldBe map.cache.getMergedSkipList.asScala.toList
+            reopened.cache.getMergedSkipList.toIterable.toList shouldBe map.cache.getMergedSkipList.toIterable.toList
 
             reopened.delete
           }
@@ -1130,7 +1130,7 @@ class MapSpec extends TestBase {
               val reopened = map.reopen.sweep()
               reopened.cache.getMergedSkipList.size shouldBe map.cache.getMergedSkipList.size
 
-              reopened.cache.getMergedSkipList.asScala shouldBe map.cache.getMergedSkipList.asScala
+              reopened.cache.getMergedSkipList.toIterable shouldBe map.cache.getMergedSkipList.toIterable
 
               reopened.delete
             }

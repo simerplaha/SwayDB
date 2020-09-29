@@ -52,7 +52,7 @@ case class AppliedFunctionsMapCache(skipList: SkipListConcurrent[SliceOption[Byt
     writeAtomic(entry)
 
   override def asScala: Iterable[(Slice[Byte], Slice.Null.type)] =
-    skipList.asScala
+    skipList.toIterable
 
   override def isEmpty: Boolean =
     skipList.isEmpty

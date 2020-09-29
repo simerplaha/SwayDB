@@ -63,7 +63,7 @@ class AppendixMapCache(val skipList: SkipListConcurrent[SliceOption[Byte], Segme
     }
 
   override def asScala: Iterable[(Slice[Byte], Segment)] =
-    skipList.asScala
+    skipList.toIterable
 
   override def isEmpty: Boolean =
     skipList.isEmpty

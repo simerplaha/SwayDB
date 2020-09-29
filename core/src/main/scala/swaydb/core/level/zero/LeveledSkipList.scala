@@ -24,25 +24,35 @@
 
 package swaydb.core.level.zero
 
+import swaydb.core.data.{Memory, MemoryOption}
+import swaydb.core.level.zero.LeveledSkipList.SkipListState
 import swaydb.core.util.queue.{VolatileQueue, Walker}
+import swaydb.core.util.skiplist.SkipList
+import swaydb.data.slice.{Slice, SliceOption}
 
-object LeveledSkipLists {
+import scala.beans.BeanProperty
 
-  def apply(skipList: LevelSkipList, hasRange: Boolean): LeveledSkipLists =
-    new LeveledSkipLists(
-      queue = VolatileQueue[LevelSkipList](skipList),
-      currentLevel = skipList
+private[core] object LeveledSkipList {
+
+  class SkipListState private[zero](val skipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                                    @BeanProperty @volatile var hasRange: Boolean)
+
+
+  @inline def apply(skipList: SkipListState): LeveledSkipList =
+    new LeveledSkipList(
+      queue = VolatileQueue[SkipListState](skipList),
+      currentState = skipList
     )
 }
 
-class LeveledSkipLists private[zero](queue: VolatileQueue[LevelSkipList],
-                                     @volatile private var currentLevel: LevelSkipList) {
+private[core] class LeveledSkipList private[zero](queue: VolatileQueue[SkipListState],
+                                                  @volatile private var currentState: SkipListState) {
 
-  @inline def current = currentLevel
+  @inline def current = currentState
 
-  def addFirst(skipList: LevelSkipList): Unit = {
+  def addFirst(skipList: SkipListState): Unit = {
     queue.addHead(skipList)
-    currentLevel = skipList
+    currentState = skipList
   }
 
   def isEmpty: Boolean =
@@ -60,7 +70,7 @@ class LeveledSkipLists private[zero](queue: VolatileQueue[LevelSkipList],
   @inline def hasRange =
     iterator.exists(_.hasRange)
 
-  def walker: Walker[LevelSkipList] =
+  def walker: Walker[SkipListState] =
     queue
 
 }

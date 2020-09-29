@@ -72,7 +72,7 @@ class AppendixMapEntrySpec extends TestBase {
 
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readEntry applyBatch skipList
-          val scalaSkipList = skipList.asScala
+          val scalaSkipList = skipList.toIterable
 
           scalaSkipList should have size 1
           val (headKey, headValue) = scalaSkipList.head
@@ -141,7 +141,7 @@ class AppendixMapEntrySpec extends TestBase {
           val skipList = SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
           readEntry applyBatch skipList
 
-          def scalaSkipList = skipList.asScala
+          def scalaSkipList = skipList.toIterable
 
           assertSkipList()
 
@@ -155,7 +155,7 @@ class AppendixMapEntrySpec extends TestBase {
           }
           //write skip list to bytes should result in the same skip list as before
           import appendixReader.AppendixReader
-          val bytes = MapCodec.write[Slice[Byte], Segment](skipList.asScala)
+          val bytes = MapCodec.write[Slice[Byte], Segment](skipList.toIterable)
           val crcEntries = MapCodec.read[Slice[Byte], Segment](bytes, false).value.item.value
           skipList.clear()
           crcEntries applyBatch skipList
