@@ -37,6 +37,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 
 private[core] object LevelZeroMapCache {
