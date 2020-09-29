@@ -307,7 +307,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
   @volatile private var closed: Boolean = false
 
   //this listener is invoked when currentMap is full.
-  private var onNextMapListener: () => Unit = () => ()
+  @volatile private var onNextMapListener: () => Unit = () => ()
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 

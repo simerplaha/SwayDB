@@ -300,7 +300,7 @@ object CommonAssertions {
         cache.writeAtomic(MapEntry.Put(memory.key, memory))
     }
 
-    val cachedKeyValues = cache.mergedKeyValuesIterable
+    val cachedKeyValues = cache.levels.mergedKeyValuesIterable
     cachedKeyValues shouldBe expected.map(_.toMemory).toList
     cachedKeyValues
   }
@@ -1831,21 +1831,21 @@ object CommonAssertions {
 
   implicit class LevelZeroMapCacheTestImplicits(cache: LevelZeroMapCache) {
     def expectSkipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
-      cache.mergedKeyValuesCache.expectSkipList
+      cache.levels.mergedKeyValuesCache.expectSkipList
 
     /**
-     * [[cache.mergedKeyValuesCache]] can be either SkipList or Slice. This will
+     * [[cache.levels.mergedKeyValuesCache]] can be either SkipList or Slice. This will
      * always returns a SkipList. Used for testing the merged outcome.
      */
     def getMergedSkipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
-      cache.mergedKeyValuesCache.value(()) match {
+      cache.levels.mergedKeyValuesCache.value(()) match {
         case Left(value) =>
-          cache.mergedKeyValuesCache.clear()
+          cache.levels.mergedKeyValuesCache.clear()
           value
 
         case Right(value) =>
           //asMergedSkipList can be called multiples times within the test. Clear asMergedSkipList to re-cache.
-          cache.mergedKeyValuesCache.clear()
+          cache.levels.mergedKeyValuesCache.clear()
           val skipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(cache.keyOrder)
           value.foreach {
             memory =>
@@ -1856,7 +1856,7 @@ object CommonAssertions {
       }
 
     def expectSlice: Slice[Memory] =
-      cache.mergedKeyValuesCache.expectSlice
+      cache.levels.mergedKeyValuesCache.expectSlice
   }
 }
 

@@ -77,14 +77,14 @@ class MapSpec extends TestBase {
           map.cache.getMergedSkipList.get(1) shouldBe Memory.put(1, 1)
           map.cache.getMergedSkipList.get(2) shouldBe Memory.put(2, 2)
 
-          map.cache.hasRange shouldBe false
+          map.cache.levels.hasRange shouldBe false
 
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
           map.cache.getMergedSkipList.get(1) shouldBe Memory.remove(1)
           map.cache.getMergedSkipList.get(2) shouldBe Memory.remove(2)
 
-          map.cache.hasRange shouldBe false
+          map.cache.levels.hasRange shouldBe false
 
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
@@ -92,7 +92,7 @@ class MapSpec extends TestBase {
           map.cache.expectSlice(0) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
           map.cache.expectSlice(1) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
 
-          map.cache.hasRange shouldBe true
+          map.cache.levels.hasRange shouldBe true
       }
     }
 
@@ -201,7 +201,7 @@ class MapSpec extends TestBase {
             map.cache.getMergedSkipList.get(2) shouldBe Memory.remove(2)
             map.cache.getMergedSkipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
             map.cache.getMergedSkipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
-            map.cache.hasRange shouldBe true
+            map.cache.levels.hasRange shouldBe true
           }
 
           def doRecover(path: Path): PersistentMap[Slice[Byte], Memory, LevelZeroMapCache] = {
@@ -528,7 +528,7 @@ class MapSpec extends TestBase {
 
           map.currentFilePath.fileId shouldBe(0, Extension.Log)
 
-          map.cache.hasRange shouldBe true
+          map.cache.levels.hasRange shouldBe true
 
           val cache = LevelZeroMapCache.builder.create()
 
@@ -717,7 +717,7 @@ class MapSpec extends TestBase {
           cache.writeAtomic(MapEntry.Put(15, Memory.Range(15, 20, Value.put(15), Value.update(14))))
 
           //no overlapping key-values.
-          cache.leveledSkipList.queueSize shouldBe 1
+          cache.levels.queueSize shouldBe 1
 
           val currentFile =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
