@@ -66,7 +66,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{Bag, Error, IO, OK}
+import swaydb.{Aggregator, Bag, Error, IO, OK}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -516,11 +516,11 @@ object CommonAssertions {
 
     def random(): MergeStats[data.Memory, ListBuffer] =
       if (Random.nextBoolean())
-        MergeStats.persistent(ListBuffer.newBuilder)(MergeStats.memoryToMemory)
+        MergeStats.persistent(Aggregator.listBuffer)(MergeStats.memoryToMemory)
       else if (Random.nextBoolean())
-        MergeStats.memory(ListBuffer.newBuilder)(MergeStats.memoryToMemory)
+        MergeStats.memory(Aggregator.listBuffer)(MergeStats.memoryToMemory)
       else
-        MergeStats.buffer(ListBuffer.newBuilder)(MergeStats.memoryToMemory)
+        MergeStats.buffer(Aggregator.listBuffer)(MergeStats.memoryToMemory)
   }
 
   implicit class SegmentsImplicits(actual: Iterable[Segment]) {

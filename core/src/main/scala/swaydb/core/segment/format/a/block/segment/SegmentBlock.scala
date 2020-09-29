@@ -211,7 +211,7 @@ private[core] case object SegmentBlock extends LazyLogging {
             segment.copy(segmentBytes = PersistentSegmentOne.formatIdSliceSlice ++ segment.segmentBytes)
           } else {
             val listKeyValue: Persistent.Builder[Memory, Slice] =
-              MergeStats.persistent(Slice.newBuilder(segments.size * 2))
+              MergeStats.persistent(Slice.newAggregator(segments.size * 2))
 
             segments.foldLeft(0) {
               case (offset, segment) =>

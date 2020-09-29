@@ -27,6 +27,7 @@ package swaydb.core.segment
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Aggregator
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
@@ -657,7 +658,7 @@ private[core] object SegmentRef {
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): Slice[TransientSegment] = {
 
-    val builder = MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
+    val builder = MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
     SegmentMerger.merge(
       newKeyValues = newKeyValues,

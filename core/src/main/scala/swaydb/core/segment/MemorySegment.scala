@@ -28,6 +28,7 @@ import java.nio.file.Path
 import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data.{Memory, _}
@@ -84,7 +85,7 @@ protected case class MemorySegment(path: Path,
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-      val stats = MergeStats.memory[Memory, ListBuffer](ListBuffer.newBuilder)
+      val stats = MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
 
       SegmentMerger.merge(
         newKeyValues = newKeyValues,

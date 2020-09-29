@@ -25,6 +25,7 @@
 package swaydb
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 /**
  * [[scala.collection.mutable.Builder]] requires two implementations for 2.13 and 2.12.
@@ -50,4 +51,7 @@ protected object Aggregator {
       override def result: T =
         builder.result()
     }
+
+  def listBuffer[A]: Aggregator[A, ListBuffer[A]] =
+    Aggregator.listBuffer
 }

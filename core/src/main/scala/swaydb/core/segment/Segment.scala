@@ -28,7 +28,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{Aggregator, IO}
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
@@ -441,9 +441,9 @@ private[core] object Segment extends LazyLogging {
                                                         forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
     val builder =
       if (removeDeletes)
-        MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)(SegmentGrouper.addLastLevel)
+        MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(SegmentGrouper.addLastLevel)
       else
-        MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
+        MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
     keyValues foreach builder.add
 

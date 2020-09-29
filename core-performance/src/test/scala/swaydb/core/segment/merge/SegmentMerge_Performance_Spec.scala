@@ -24,13 +24,13 @@
 
 package swaydb.core.segment.merge
 
+import swaydb.Aggregator
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-
 
 import scala.collection.mutable.ListBuffer
 
@@ -66,7 +66,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
       SegmentMerger.merge(
         newKeyValues = keyValues,
         oldKeyValues = keyValues,
-        stats = MergeStats.persistent(ListBuffer.newBuilder),
+        stats = MergeStats.persistent(Aggregator.listBuffer),
         isLastLevel = false
       )
     }

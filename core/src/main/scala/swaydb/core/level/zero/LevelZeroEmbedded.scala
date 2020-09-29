@@ -24,6 +24,7 @@
 
 package swaydb.core.level.zero
 
+import swaydb.Aggregator
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZeroEmbedded.LevelEmbedded
@@ -114,7 +115,7 @@ private[core] object LevelZeroEmbedded {
               false
             } else {
 
-              val builder = MergeStats.buffer[Memory, ListBuffer](ListBuffer.newBuilder)
+              val builder = MergeStats.buffer[Memory, ListBuffer](Aggregator.listBuffer)
 
               SegmentMerger.merge(
                 newKeyValue = insert,
@@ -182,7 +183,7 @@ private[core] object LevelZeroEmbedded {
           oldKeyValues add keyValue
       }
 
-      val builder = MergeStats.buffer[Memory, ListBuffer](ListBuffer.newBuilder)
+      val builder = MergeStats.buffer[Memory, ListBuffer](Aggregator.listBuffer)
 
       SegmentMerger.merge(
         newKeyValues = Slice(insert),
@@ -265,7 +266,7 @@ private[core] object LevelZeroEmbedded {
           Slice.from(oldKeyValues.skipList.valuesIterator, oldKeyValues.skipList.size)
         } else {
           val maxSize = (newerKeyValues.size + oldKeyValues.skipList.size) * 3
-          val builder = MergeStats.memory(Slice.newBuilder(maxSize))(MergeStats.memoryToMemory)
+          val builder = MergeStats.memory(Slice.newAggregator(maxSize))(MergeStats.memoryToMemory)
 
           SegmentMerger.merge(
             newKeyValues = newerKeyValues,
