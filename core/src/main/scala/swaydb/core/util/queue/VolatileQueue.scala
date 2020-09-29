@@ -148,6 +148,28 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
         }
     }
 
+  def replaceLast(expectedLast: A, replaceWith: A): Unit =
+    this.synchronized {
+      if (_last.isEmpty)
+        throw new Exception("Last is empty")
+      else if (_last.value != expectedLast)
+        throw new Exception(s"Invalid remove. ${_last.value} != $expectedLast")
+      else
+        _last.previous match {
+          case Node.Empty =>
+            //this was the head entry
+            assert(size == 1)
+            val newLast = new Node.Value[A](replaceWith, Node.Empty, Node.Empty)
+            _last = newLast
+            _head = newLast
+
+          case previous: Node.Value[A] =>
+            val newLast = new Node.Value[A](replaceWith, previous, Node.Empty)
+            previous.next = newLast
+            _last = newLast
+        }
+    }
+
   def headOption(): Option[A] =
     Option(headOrNull())
 

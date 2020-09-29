@@ -330,6 +330,88 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "replaceLast" when {
+    "empty" should {
+      "fail" in {
+        val queue: VolatileQueue[Integer] = VolatileQueue[Integer]()
+
+        assertThrows[Exception](queue.replaceLast(0, 10))
+
+        expect(queue)(
+          headOrNull = null,
+          lastOrNull = null,
+          headOption = None,
+          size = 0,
+          list = List.empty,
+        )
+      }
+    }
+
+    "invalid last" should {
+      "fail" in {
+        val queue: VolatileQueue[Integer] = VolatileQueue[Integer](0)
+
+        //last value is 0, not 10
+        assertThrows[Exception](queue.replaceLast(1, 10))
+
+        expect(queue)(
+          headOrNull = 0,
+          lastOrNull = 0,
+          headOption = Some(0),
+          size = 1,
+          list = List(0),
+        )
+      }
+    }
+
+    "non empty" should {
+      "replace last" in {
+        val queue: VolatileQueue[Integer] = VolatileQueue[Integer]()
+        queue.addLast(1)
+        queue.addLast(2)
+
+        expect(queue)(
+          headOrNull = 1,
+          lastOrNull = 2,
+          headOption = Some(1),
+          size = 2,
+          list = List(1, 2),
+        )
+
+        queue.replaceLast(2, 3)
+        expect(queue)(
+          headOrNull = 1,
+          lastOrNull = 3,
+          headOption = Some(1),
+          size = 2,
+          list = List(1, 3),
+        )
+
+        queue.removeLast(3)
+        expect(queue)(
+          headOrNull = 1,
+          lastOrNull = 1,
+          headOption = Some(1),
+          size = 1,
+          list = List(1),
+        )
+
+        queue.addHead(0)
+        queue.removeLast(1)
+        queue.addLast(1)
+
+        queue.replaceLast(1, 2)
+        expect(queue)(
+          headOrNull = 0,
+          lastOrNull = 2,
+          headOption = Some(0),
+          size = 2,
+          list = List(0, 2),
+        )
+      }
+    }
+  }
+
   "concurrent" in {
     implicit val ec = TestExecutionContext.executionContext
 
