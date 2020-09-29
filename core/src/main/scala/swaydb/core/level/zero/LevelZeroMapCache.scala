@@ -24,20 +24,12 @@
 
 package swaydb.core.level.zero
 
-import swaydb.core.data.{Memory, MemoryOption}
+import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
-import swaydb.core.level.memory.LeveledSkipList
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
-import swaydb.core.merge.FixedMerger
-import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.data.OptimiseWrites
-import swaydb.data.cache.Cache
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
-
-import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
+import swaydb.data.slice.Slice
 
 private[core] object LevelZeroMapCache {
 
@@ -45,13 +37,7 @@ private[core] object LevelZeroMapCache {
                        timeOrder: TimeOrder[Slice[Byte]],
                        functionStore: FunctionStore,
                        optimiseWrites: OptimiseWrites): MapCacheBuilder[LevelZeroMapCache] =
-    () => {
-      val state = LeveledSkipList.newLevel()
-
-      val leveledSkipList = LeveledSkipList(level = state)
-
-      new LevelZeroMapCache(leveledSkipList)
-    }
+    () => new LevelZeroMapCache(LevelZeroEmbedded())
 
 }
 
@@ -60,25 +46,16 @@ private[core] object LevelZeroMapCache {
  *
  * Creates multi-layered SkipList.
  */
-private[core] class LevelZeroMapCache private(val levels: LeveledSkipList)(implicit val keyOrder: KeyOrder[Slice[Byte]],
-                                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                                           functionStore: FunctionStore,
-                                                                           optimiseWrites: OptimiseWrites) extends MapCache[Slice[Byte], Memory] {
+private[core] class LevelZeroMapCache private(val levels: LevelZeroEmbedded)(implicit val keyOrder: KeyOrder[Slice[Byte]],
+                                                                             timeOrder: TimeOrder[Slice[Byte]],
+                                                                             functionStore: FunctionStore,
+                                                                             optimiseWrites: OptimiseWrites) extends MapCache[Slice[Byte], Memory] {
 
   @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit = {
     val entries = entry.entries
 
     if (entry.entriesCount > 1 || levels.zero.hasRange || entry.hasUpdate || entry.hasRange || entry.hasRemoveDeadline)
-      LeveledSkipList.doWrite(
-        head = entries.head,
-        tail = entries.tail,
-        skipList = levels.zero,
-        atomic = atomic,
-        startedNewTransaction = false
-      ) foreach {
-        newSkipList =>
-          levels.addHead(newSkipList)
-      }
+      levels.put(entries, atomic)
     else
       entries.head applyPoint levels.zero.skipList
   }
@@ -93,7 +70,7 @@ private[core] class LevelZeroMapCache private(val levels: LeveledSkipList)(impli
     levels.isEmpty
 
   override def maxKeyValueCount: Int =
-    levels.size
+    levels.keyValuesCount
 
   override def iterator: Iterator[(Slice[Byte], Memory)] =
     levels

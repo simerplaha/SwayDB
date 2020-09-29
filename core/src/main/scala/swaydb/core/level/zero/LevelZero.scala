@@ -38,7 +38,6 @@ import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
-import swaydb.core.level.memory.LeveledSkipList
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map.applied.{AppliedFunctionsMap, AppliedFunctionsMapCache}
@@ -553,7 +552,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   private def getFromSkipList(key: Slice[Byte],
-                              skipList: LeveledSkipList.LevelSK): MemoryOption =
+                              skipList: LevelZeroEmbedded.LevelEmbedded): MemoryOption =
     if (skipList.hasRange)
       skipList.skipList.floor(key) match {
         case floor: Memory.Fixed if floor.key equiv key =>
@@ -570,7 +569,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   private def getFromNextLevel(key: Slice[Byte],
                                readState: ThreadReadState,
-                               tailSkipLists: Walker[LeveledSkipList.LevelSK]): KeyValue.PutOption = {
+                               tailSkipLists: Walker[LevelZeroEmbedded.LevelEmbedded]): KeyValue.PutOption = {
     val headOrNull = tailSkipLists.headOrNull()
 
     if (headOrNull == null)
@@ -590,13 +589,13 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def currentGetter(skipList: LeveledSkipList.LevelSK) =
+  def currentGetter(skipList: LevelZeroEmbedded.LevelEmbedded) =
     new CurrentGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): MemoryOption =
         getFromSkipList(key, skipList)
     }
 
-  def nextGetter(tailMaps: Walker[LeveledSkipList.LevelSK]) =
+  def nextGetter(tailMaps: Walker[LevelZeroEmbedded.LevelEmbedded]) =
     new NextGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState, tailMaps)
@@ -604,8 +603,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   private def find(key: Slice[Byte],
                    readState: ThreadReadState,
-                   levelSkipList: LeveledSkipList.LevelSK,
-                   tailLevelSkipLists: Walker[LeveledSkipList.LevelSK]): KeyValue.PutOption =
+                   levelSkipList: LevelZeroEmbedded.LevelEmbedded,
+                   tailLevelSkipLists: Walker[LevelZeroEmbedded.LevelEmbedded]): KeyValue.PutOption =
     Get.seek(
       key = key,
       readState = readState,
@@ -630,7 +629,7 @@ private[swaydb] case class LevelZero(path: Path,
     get(key, readState).mapSliceOptional(_.key)
 
   def firstKeyFromMaps: SliceOption[Byte] =
-    maps.reduce[LeveledSkipList.LevelSK, SliceOption[Byte]](
+    maps.reduce[LevelZeroEmbedded.LevelEmbedded, SliceOption[Byte]](
       nullResult = Slice.Null,
       flatMap = _.cache.levels.iterator,
       applier = _.skipList.headKey,
@@ -638,7 +637,7 @@ private[swaydb] case class LevelZero(path: Path,
     )
 
   def lastKeyFromMaps: SliceOption[Byte] =
-    maps.reduce[LeveledSkipList.LevelSK, SliceOption[Byte]](
+    maps.reduce[LevelZeroEmbedded.LevelEmbedded, SliceOption[Byte]](
       nullResult = Slice.Null,
       flatMap = _.cache.levels.iterator,
       applier =
@@ -718,8 +717,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def ceiling(key: Slice[Byte],
               readState: ThreadReadState,
-              headSkipList: LeveledSkipList.LevelSK,
-              tailSkipLists: Walker[LeveledSkipList.LevelSK]): KeyValue.PutOption =
+              headSkipList: LevelZeroEmbedded.LevelEmbedded,
+              tailSkipLists: Walker[LevelZeroEmbedded.LevelEmbedded]): KeyValue.PutOption =
     find(
       key = key,
       readState = readState,
@@ -748,8 +747,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def floor(key: Slice[Byte],
             readState: ThreadReadState,
-            headSkipList: LeveledSkipList.LevelSK,
-            tailSkipLists: Walker[LeveledSkipList.LevelSK]): KeyValue.PutOption =
+            headSkipList: LevelZeroEmbedded.LevelEmbedded,
+            tailSkipLists: Walker[LevelZeroEmbedded.LevelEmbedded]): KeyValue.PutOption =
     find(
       key = key,
       readState = readState,
@@ -765,7 +764,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   private def higherFromSkipList(key: Slice[Byte],
-                                 levelSkipList: LeveledSkipList.LevelSK): MemoryOption =
+                                 levelSkipList: LevelZeroEmbedded.LevelEmbedded): MemoryOption =
     if (levelSkipList.hasRange)
       levelSkipList.skipList.floor(key) match {
         case floorRange: Memory.Range if key >= floorRange.fromKey && key < floorRange.toKey =>
@@ -779,7 +778,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findHigherInNextLevel(key: Slice[Byte],
                             readState: ThreadReadState,
-                            tailMaps: Walker[LeveledSkipList.LevelSK]): KeyValue.PutOption = {
+                            tailMaps: Walker[LevelZeroEmbedded.LevelEmbedded]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull()
     if (nextMapOrNull == null)
       nextLevel match {
@@ -798,8 +797,8 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def currentWalker(currentMap: LeveledSkipList.LevelSK,
-                    tailMaps: Walker[LeveledSkipList.LevelSK]) =
+  def currentWalker(currentMap: LevelZeroEmbedded.LevelEmbedded,
+                    tailMaps: Walker[LevelZeroEmbedded.LevelEmbedded]) =
     new CurrentWalker {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         find(
@@ -825,7 +824,7 @@ private[swaydb] case class LevelZero(path: Path,
         "current"
     }
 
-  def nextWalker(tailMaps: Walker[LeveledSkipList.LevelSK]) =
+  def nextWalker(tailMaps: Walker[LevelZeroEmbedded.LevelEmbedded]) =
     new NextWalker {
       override def higher(key: Slice[Byte],
                           readState: ThreadReadState): KeyValue.PutOption =
@@ -845,8 +844,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findHigher(key: Slice[Byte],
                  readState: ThreadReadState,
-                 currentMap: LeveledSkipList.LevelSK,
-                 tailMaps: Walker[LeveledSkipList.LevelSK]): KeyValue.PutOption =
+                 currentMap: LevelZeroEmbedded.LevelEmbedded,
+                 tailMaps: Walker[LevelZeroEmbedded.LevelEmbedded]): KeyValue.PutOption =
     Higher.seek(
       key = key,
       readState = readState,
@@ -878,7 +877,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   private def lowerFromMap(key: Slice[Byte],
-                           levelSkipList: LeveledSkipList.LevelSK): MemoryOption =
+                           levelSkipList: LevelZeroEmbedded.LevelEmbedded): MemoryOption =
     if (levelSkipList.hasRange)
       levelSkipList.skipList.floor(key) match {
         case floorRange: Memory.Range if key > floorRange.fromKey && key <= floorRange.toKey =>
@@ -892,7 +891,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findLowerInNextLevel(key: Slice[Byte],
                            readState: ThreadReadState,
-                           tailMaps: Walker[LeveledSkipList.LevelSK]): KeyValue.PutOption = {
+                           tailMaps: Walker[LevelZeroEmbedded.LevelEmbedded]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull()
 
     if (nextMapOrNull == null)
@@ -914,8 +913,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findLower(key: Slice[Byte],
                 readState: ThreadReadState,
-                currentMap: LeveledSkipList.LevelSK,
-                tailMaps: Walker[LeveledSkipList.LevelSK]): KeyValue.PutOption =
+                currentMap: LevelZeroEmbedded.LevelEmbedded,
+                tailMaps: Walker[LevelZeroEmbedded.LevelEmbedded]): KeyValue.PutOption =
     Lower.seek(
       key = key,
       readState = readState,
@@ -992,7 +991,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def mightContainKey(key: Slice[Byte]): Boolean = {
     val mightContainInMaps =
-      maps.find[LeveledSkipList.LevelSK, MemoryOption](
+      maps.find[LevelZeroEmbedded.LevelEmbedded, MemoryOption](
         nullResult = Memory.Null,
         flatMap = _.cache.levels.iterator,
         matcher = _.skipList.get(key)
@@ -1002,7 +1001,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =
-    maps.find[LeveledSkipList.LevelSK, Boolean](
+    maps.find[LevelZeroEmbedded.LevelEmbedded, Boolean](
       nullResult = false,
       flatMap = _.cache.levels.iterator,
       matcher =

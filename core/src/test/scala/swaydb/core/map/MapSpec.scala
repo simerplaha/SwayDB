@@ -717,7 +717,7 @@ class MapSpec extends TestBase {
           cache.writeAtomic(MapEntry.Put(15, Memory.Range(15, 20, Value.put(15), Value.update(14))))
 
           //no overlapping key-values.
-          cache.levels.queueSize shouldBe 1
+          cache.levels.levelsCount shouldBe 1
 
           val currentFile =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
