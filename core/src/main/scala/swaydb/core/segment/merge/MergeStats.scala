@@ -73,7 +73,7 @@ private[core] object MergeStats {
     stats
   }
 
-  def persistent[FROM, T[_]](builder: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, T] =
+  def persistent[FROM, T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, T] =
     new Persistent.Builder(
       maxMergedKeySize = 0,
       totalMergedKeysSize = 0,
@@ -88,16 +88,16 @@ private[core] object MergeStats {
       hasRange = false,
       hasRemoveRange = false,
       hasPut = false,
-      builder = builder
+      aggregator = aggregator
     )
 
-  def memory[FROM, T[_]](builder: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Memory.Builder[FROM, T] =
+  def memory[FROM, T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Memory.Builder[FROM, T] =
     new Memory.Builder[FROM, T](
-      builder = builder
+      aggregator = aggregator
     )
 
-  def buffer[FROM, T[_]](builder: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Buffer[FROM, T] =
-    new Buffer(builder)
+  def buffer[FROM, T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Buffer[FROM, T] =
+    new Buffer(aggregator)
 
   sealed trait Persistent[FROM, +T[_]] {
     def maxSortedIndexSize(hasAccessPositionIndex: Boolean): Int
@@ -121,7 +121,7 @@ private[core] object MergeStats {
                                var hasRange: Boolean,
                                var hasRemoveRange: Boolean,
                                var hasPut: Boolean,
-                               builder: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends Persistent[FROM, T] with MergeStats[FROM, T] {
+                               aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends Persistent[FROM, T] with MergeStats[FROM, T] {
 
       def close(hasAccessPositionIndex: Boolean): MergeStats.Persistent.Closed[T] =
         new MergeStats.Persistent.Closed[T](
@@ -140,7 +140,7 @@ private[core] object MergeStats {
         size == 0
 
       def keyValues: T[data.Memory] =
-        builder.result
+        aggregator.result
 
       /**
        * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
@@ -189,7 +189,7 @@ private[core] object MergeStats {
         if (keyValueOrNull != null) {
           totalKeyValueCount += 1
           updateStats(keyValueOrNull)
-          builder add keyValueOrNull
+          aggregator add keyValueOrNull
         }
       }
     }
@@ -210,7 +210,7 @@ private[core] object MergeStats {
           0
       }
 
-    class Builder[FROM, +T[_]](builder: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats[FROM, T] {
+    class Builder[FROM, +T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats[FROM, T] {
       var isEmpty: Boolean = true
 
       def close: Memory.Closed[T] =
@@ -220,12 +220,12 @@ private[core] object MergeStats {
         )
 
       override def keyValues: T[data.Memory] =
-        builder.result
+        aggregator.result
 
       override def add(from: FROM): Unit = {
         val keyValueOrNull = converterOrNull(from)
         if (keyValueOrNull != null) {
-          builder add keyValueOrNull
+          aggregator add keyValueOrNull
           isEmpty = false
         }
       }
@@ -235,15 +235,15 @@ private[core] object MergeStats {
                         val keyValues: T[data.Memory])
   }
 
-  class Buffer[FROM, +T[_]](builder: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats[FROM, T] {
+  class Buffer[FROM, +T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats[FROM, T] {
 
     override def add(from: FROM): Unit = {
       val keyValueOrNull = converterOrNull(from)
       if (keyValueOrNull != null)
-        builder add keyValueOrNull
+        aggregator add keyValueOrNull
     }
 
     override def keyValues: T[data.Memory] =
-      builder.result
+      aggregator.result
   }
 }

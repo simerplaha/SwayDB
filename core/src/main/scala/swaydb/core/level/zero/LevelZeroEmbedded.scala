@@ -56,7 +56,7 @@ private[core] object LevelZeroEmbedded {
 
     new LevelZeroEmbedded(
       levels = VolatileQueue[LevelEmbedded](level),
-      levelZero = level
+      _zero = level
     )
   }
 
@@ -126,7 +126,7 @@ private[core] object LevelZeroEmbedded {
 
               val mergedKeyValues = builder.keyValues
 
-              if (mergedKeyValues.size <= 1 || !atomic) {
+              if (!atomic || mergedKeyValues.size <= 1) {
                 mergedKeyValues foreach {
                   merged: Memory =>
                     if (merged.isRange) skipList.setHasRange(true)
@@ -183,7 +183,7 @@ private[core] object LevelZeroEmbedded {
           oldKeyValues add keyValue
       }
 
-      val builder = MergeStats.buffer[Memory, ListBuffer](Aggregator.listBuffer)
+      val builder = MergeStats.buffer[Memory, ListBuffer](Aggregator.fromBuilder(ListBuffer.newBuilder))
 
       SegmentMerger.merge(
         newKeyValues = Slice(insert),
@@ -192,7 +192,7 @@ private[core] object LevelZeroEmbedded {
         isLastLevel = false
       )
 
-      if (builder.keyValues.size <= 1 || !atomic) {
+      if (!atomic || builder.keyValues.size <= 1) {
         skipList.setHasRange(true) //set this before put so reads know to floor this skipList.
 
         oldKeyValues foreach {
@@ -255,9 +255,9 @@ private[core] object LevelZeroEmbedded {
         }
     }
 
-  @inline private def runMerge(queue: VolatileQueue[LevelEmbedded])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                                    functionStore: FunctionStore): Slice[Memory] =
+  @inline private def mergeToSlice(queue: VolatileQueue[LevelEmbedded])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                                        functionStore: FunctionStore): Slice[Memory] =
 
     queue.iterator.foldLeft(Slice.empty[Memory]) {
       (newerKeyValues, oldKeyValues) =>
@@ -279,26 +279,90 @@ private[core] object LevelZeroEmbedded {
           builder.keyValues
         }
     }
+
+  private type MergeSkipList[_] = SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]
+
+  @inline private def merge(upper: LevelEmbedded,
+                            lower: LevelEmbedded)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                  functionStore: FunctionStore): LevelEmbedded = {
+    val maxSize =
+      (upper.skipList.size + lower.skipList.size) * {
+        if (upper.hasRange || lower.hasRange)
+          3
+        else
+          1
+      }
+
+    val aggregator: Aggregator[Memory, MergeSkipList[Memory]] =
+      new Aggregator[Memory, SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]] {
+        val skipList = SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](maxSize, Slice.Null, Memory.Null)
+
+        override def add(item: Memory): Unit =
+          skipList.put(item.key, item)
+
+        override def result: SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
+          skipList
+      }
+
+    val stats = MergeStats.memory(aggregator)(MergeStats.memoryToMemory)
+
+    SegmentMerger.merge(
+      newKeyValuesCount = upper.skipList.size,
+      newKeyValues = upper.skipList.valuesIterator,
+      oldKeyValuesCount = lower.skipList.size,
+      oldKeyValues = lower.skipList.valuesIterator,
+      stats = stats,
+      isLastLevel = false
+    )
+
+    new LevelEmbedded(
+      skipList = aggregator.result,
+      hasRange = upper.hasRange || lower.hasRange
+    )
+  }
+
+  def mergeEndMayBe(levels: VolatileQueue[LevelEmbedded])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          functionStore: FunctionStore): Unit =
+    if (levels.size > 20) {
+      val secondLastAndLast = levels.takeRight2OrNull()
+
+      if (secondLastAndLast != null) {
+        val newLast =
+          LevelZeroEmbedded.merge(
+            upper = secondLastAndLast._1,
+            lower = secondLastAndLast._2
+          )
+
+        levels.replaceLastTwo(
+          expectedSecondLast = secondLastAndLast._1,
+          expectedLast = secondLastAndLast._2,
+          replaceWith = newLast
+        )
+      }
+    }
 }
 
 private[core] class LevelZeroEmbedded private[zero](levels: VolatileQueue[LevelEmbedded],
-                                                    @volatile private var levelZero: LevelEmbedded)(implicit val keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                    functionStore: FunctionStore,
-                                                                                                    optimiseWrites: OptimiseWrites) {
+                                                    @volatile private var _zero: LevelEmbedded)(implicit val keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                functionStore: FunctionStore,
+                                                                                                optimiseWrites: OptimiseWrites) {
 
-  @inline def zero = levelZero
+  @inline def zero = _zero
 
   def put(entries: Iterable[MapEntry.Point[Slice[Byte], Memory]], atomic: Boolean): Unit =
     LevelZeroEmbedded.put(
       head = entries.head,
       tail = entries.tail,
-      level = levelZero,
+      level = _zero,
       atomic = atomic,
       startedNewTransaction = false
     ) foreach {
       newSkipList =>
         levels.addHead(newSkipList)
+        LevelZeroEmbedded.mergeEndMayBe(levels)
     }
 
   def isEmpty: Boolean =
@@ -325,7 +389,7 @@ private[core] class LevelZeroEmbedded private[zero](levels: VolatileQueue[LevelE
         if (levels.size == 1)
           Left(zero.skipList)
         else
-          Right(LevelZeroEmbedded.runMerge(levels))
+          Right(LevelZeroEmbedded.mergeToSlice(levels))
     }
 
   def mergedKeyValuesIterable: Iterable[Memory] =

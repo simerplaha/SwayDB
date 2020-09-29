@@ -52,93 +52,60 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
 
   }
 
-  def expect[A >: Null](queue: VolatileQueue[A])(headOrNull: A,
-                                                 lastOrNull: A,
-                                                 headOption: Option[A],
-                                                 size: Int,
-                                                 list: List[A]): Unit = {
+  implicit class QueueShouldBe[A >: Null](queue: VolatileQueue[A]) {
+    def shouldBe(list: List[A]) = {
+      //iterator
+      queue.iterator.toList shouldBe list
 
-    //head and last
-    queue.headOrNull() shouldBe headOrNull
-    queue.lastOrNull() shouldBe lastOrNull
-    queue.headOption() shouldBe headOption
+      //size
+      queue.size shouldBe list.size
 
-    //size
-    queue.size shouldBe size
+      //walker
+      queue.walker.toList shouldBe list
 
-    //iterator
-    queue.iterator.toList shouldBe list
-
-    //walker
-    queue.walker.toList shouldBe list
-
+      //head and last
+      queue.headOrNull() shouldBe (if (list.isEmpty) null else list.head)
+      queue.lastOrNull() shouldBe (if (list.isEmpty) null else list.last)
+      queue.headOption() shouldBe list.headOption
+      queue.secondLastOrNull() shouldBe (if (list.size <= 1) null else list.takeRight(2).head)
+    }
   }
 
   "addHead" when {
     "empty" should {
       "return empty state" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer]()
+        val queue = VolatileQueue[Integer]()
 
-        expect(queue)(
-          headOrNull = null,
-          lastOrNull = null,
-          headOption = None,
-          size = 0,
-          list = List.empty,
-        )
+        queue shouldBe List.empty
       }
 
       "insert head element" in {
         val queue = VolatileQueue[Integer]()
         queue.addHead(10)
 
-        expect(queue)(
-          headOrNull = 10,
-          lastOrNull = 10,
-          headOption = Some(10),
-          size = 1,
-          list = List(10),
-        )
+        queue shouldBe List(10)
       }
     }
 
     "nonEmpty" should {
       "insert head element" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer](1)
+        val queue = VolatileQueue[Integer](1)
 
-        expect(queue)(
-          headOrNull = 1,
-          lastOrNull = 1,
-          headOption = Some(1),
-          size = 1,
-          list = List(1),
-        )
+        queue shouldBe List(1)
 
         queue.addHead(0)
 
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 1,
-          headOption = Some(0),
-          size = 2,
-          list = List(0, 1),
-        )
+        queue shouldBe List(0, 1)
       }
 
       "insert multiple head element" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer]()
+        val queue = VolatileQueue[Integer]()
 
         queue.addHead(3)
         queue.addHead(2)
         queue.addHead(1)
 
-        expect(queue)(
-          headOrNull = 1,
-          lastOrNull = 3,
-          headOption = Some(1),
-          size = 3,
-          list = List(1, 2, 3),
-        )
+        queue shouldBe List(1, 2, 3)
       }
     }
   }
@@ -149,45 +116,27 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
         val queue = VolatileQueue[Integer]()
         queue.addLast(10)
 
-        expect(queue)(
-          headOrNull = 10,
-          lastOrNull = 10,
-          headOption = Some(10),
-          size = 1,
-          list = List(10),
-        )
+        queue shouldBe List(10)
       }
     }
 
     "nonEmpty" should {
       "insert head element" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer](0)
+        val queue = VolatileQueue[Integer](0)
 
         queue.addLast(1)
 
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 1,
-          headOption = Some(0),
-          size = 2,
-          list = List(0, 1),
-        )
+        queue shouldBe List(0, 1)
       }
 
       "insert multiple head element" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer]()
+        val queue = VolatileQueue[Integer]()
 
         queue.addLast(1)
         queue.addLast(2)
         queue.addLast(3)
 
-        expect(queue)(
-          headOrNull = 1,
-          lastOrNull = 3,
-          headOption = Some(1),
-          size = 3,
-          list = List(1, 2, 3),
-        )
+        queue shouldBe List(1, 2, 3)
       }
     }
   }
@@ -195,40 +144,28 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
   "removeLast" when {
     "empty" should {
       "fail" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer]()
+        val queue = VolatileQueue[Integer]()
 
         assertThrows[Exception](queue.removeLast(10))
 
-        expect(queue)(
-          headOrNull = null,
-          lastOrNull = null,
-          headOption = None,
-          size = 0,
-          list = List.empty,
-        )
+        queue shouldBe List.empty
       }
     }
 
     "invalid last" should {
       "fail" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer](0)
+        val queue = VolatileQueue[Integer](0)
 
         //last value is 0, not 10
         assertThrows[Exception](queue.removeLast(10))
 
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 0,
-          headOption = Some(0),
-          size = 1,
-          list = List(0),
-        )
+        queue shouldBe List(0)
       }
     }
 
     "non empty" should {
       "remove last" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer]()
+        val queue = VolatileQueue[Integer]()
         queue.addLast(1)
         queue.addLast(2)
         queue.addLast(3)
@@ -236,96 +173,36 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
 
         queue.addHead(0)
 
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 4,
-          headOption = Some(0),
-          size = 5,
-          list = List(0, 1, 2, 3, 4),
-        )
+        queue shouldBe List(0, 1, 2, 3, 4)
 
         queue.removeLast(4)
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 3,
-          headOption = Some(0),
-          size = 4,
-          list = List(0, 1, 2, 3),
-        )
+        queue shouldBe List(0, 1, 2, 3)
 
         queue.removeLast(3)
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 2,
-          headOption = Some(0),
-          size = 3,
-          list = List(0, 1, 2),
-        )
+        queue shouldBe List(0, 1, 2)
 
         queue.removeLast(2)
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 1,
-          headOption = Some(0),
-          size = 2,
-          list = List(0, 1),
-        )
+        queue shouldBe List(0, 1)
 
         queue.removeLast(1)
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 0,
-          headOption = Some(0),
-          size = 1,
-          list = List(0),
-        )
+        queue shouldBe List(0)
 
         queue.removeLast(0)
-        expect(queue)(
-          headOrNull = null,
-          lastOrNull = null,
-          headOption = None,
-          size = 0,
-          list = List.empty,
-        )
+        queue shouldBe List.empty
 
         //add last
         queue.addLast(Int.MaxValue)
-        expect(queue)(
-          headOrNull = Int.MaxValue,
-          lastOrNull = Int.MaxValue,
-          headOption = Some(Int.MaxValue),
-          size = 1,
-          list = List(Int.MaxValue),
-        )
+        queue shouldBe List(Int.MaxValue)
 
         queue.removeLast(Int.MaxValue)
-        expect(queue)(
-          headOrNull = null,
-          lastOrNull = null,
-          headOption = None,
-          size = 0,
-          list = List.empty,
-        )
+        queue shouldBe List.empty
 
         //add head
         queue.addHead(Int.MaxValue)
-        expect(queue)(
-          headOrNull = Int.MaxValue,
-          lastOrNull = Int.MaxValue,
-          headOption = Some(Int.MaxValue),
-          size = 1,
-          list = List(Int.MaxValue),
-        )
+        queue shouldBe List(Int.MaxValue)
 
         queue.removeLast(Int.MaxValue)
-        expect(queue)(
-          headOrNull = null,
-          lastOrNull = null,
-          headOption = None,
-          size = 0,
-          list = List.empty,
-        )
+        queue shouldBe List.empty
       }
     }
   }
@@ -333,81 +210,107 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
   "replaceLast" when {
     "empty" should {
       "fail" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer]()
+        val queue = VolatileQueue[Integer]()
 
         assertThrows[Exception](queue.replaceLast(0, 10))
 
-        expect(queue)(
-          headOrNull = null,
-          lastOrNull = null,
-          headOption = None,
-          size = 0,
-          list = List.empty,
-        )
+        queue shouldBe List.empty
       }
     }
 
     "invalid last" should {
       "fail" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer](0)
+        val queue = VolatileQueue[Integer](0)
 
         //last value is 0, not 10
         assertThrows[Exception](queue.replaceLast(1, 10))
 
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 0,
-          headOption = Some(0),
-          size = 1,
-          list = List(0),
-        )
+        queue shouldBe List(0)
       }
     }
 
     "non empty" should {
       "replace last" in {
-        val queue: VolatileQueue[Integer] = VolatileQueue[Integer]()
+        val queue = VolatileQueue[Integer]()
+
         queue.addLast(1)
         queue.addLast(2)
-
-        expect(queue)(
-          headOrNull = 1,
-          lastOrNull = 2,
-          headOption = Some(1),
-          size = 2,
-          list = List(1, 2),
-        )
+        queue shouldBe List(1, 2)
 
         queue.replaceLast(2, 3)
-        expect(queue)(
-          headOrNull = 1,
-          lastOrNull = 3,
-          headOption = Some(1),
-          size = 2,
-          list = List(1, 3),
-        )
+        queue shouldBe List(1, 3)
 
         queue.removeLast(3)
-        expect(queue)(
-          headOrNull = 1,
-          lastOrNull = 1,
-          headOption = Some(1),
-          size = 1,
-          list = List(1),
-        )
+        queue shouldBe List(1)
 
         queue.addHead(0)
         queue.removeLast(1)
         queue.addLast(1)
 
         queue.replaceLast(1, 2)
-        expect(queue)(
-          headOrNull = 0,
-          lastOrNull = 2,
-          headOption = Some(0),
-          size = 2,
-          list = List(0, 2),
-        )
+        queue shouldBe List(0, 2)
+      }
+    }
+  }
+
+  "replaceLastTwo" when {
+    "empty" should {
+      "fail" in {
+        val queue = VolatileQueue[Integer]()
+
+        assertThrows[Exception](queue.replaceLastTwo(0, 1, 10))
+
+        queue shouldBe List.empty
+      }
+    }
+
+    "size == 1" when {
+      "last exists" should {
+        "fail" in {
+          val queue = VolatileQueue[Integer](1)
+
+          assertThrows[Exception](queue.replaceLastTwo(0, 1, 10))
+
+          queue shouldBe List(1)
+        }
+      }
+
+      "second last exists" should {
+        "fail" in {
+          val queue = VolatileQueue[Integer](0)
+
+          assertThrows[Exception](queue.replaceLastTwo(0, 1, 10))
+
+          queue shouldBe List(0)
+        }
+      }
+    }
+
+    "invalid last and second last" should {
+      "fail" in {
+        val queue = VolatileQueue[Integer](2, 3)
+
+        assertThrows[Exception](queue.replaceLastTwo(0, 1, 10))
+
+        queue shouldBe List(2, 3)
+      }
+    }
+
+    "non empty" should {
+      "replace last two" in {
+        val queue = VolatileQueue[Integer](2, 3)
+        queue.replaceLastTwo(2, 3, 1)
+
+        queue shouldBe List(1)
+      }
+
+      "remove and replace last two" in {
+        val queue = VolatileQueue[Integer](2, 3)
+
+        queue.addHead(1)
+        queue shouldBe List(1, 2, 3)
+        queue.replaceLastTwo(2, 3, 4)
+        queue shouldBe List(1, 4)
       }
     }
   }
@@ -435,10 +338,12 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
           i =>
             if (i % 100 == 0) println(s"Remove: $i")
 
+            //failures will occur here because of concurrency. Ignore for this.
+            //the goal is to test that threads are not blocked.
             try
               queue.removeLast(queue.lastOrNull())
             catch {
-              case exception: Exception =>
+              case _: Exception =>
 
             }
         }

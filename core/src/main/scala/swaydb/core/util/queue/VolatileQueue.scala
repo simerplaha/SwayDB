@@ -37,7 +37,7 @@ private[core] object VolatileQueue {
 
   def apply[A >: Null](value: Iterable[A]): VolatileQueue[A] = {
     val queue = VolatileQueue[A]()
-    value.foreach(queue.addHead)
+    value.foreach(queue.addLast)
     queue
   }
 
@@ -170,29 +170,86 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
         }
     }
 
+  def replaceLastTwo(expectedSecondLast: A, expectedLast: A, replaceWith: A): Unit =
+    this.synchronized {
+      if (_last.isEmpty)
+        throw new Exception("Last is empty")
+      else if (_last.value != expectedLast)
+        throw new Exception(s"Invalid remove. ${_last.value} != $expectedLast")
+      else if (_last.previous.value != expectedSecondLast)
+        throw new Exception(s"Invalid remove. ${_last.previous} != $expectedSecondLast")
+      else
+        _last.previous match {
+          case Node.Empty =>
+            throw new Exception("SecondLast is empty")
+
+          case previous: Node.Value[A] =>
+            previous.previous match {
+              case Node.Empty =>
+                assert(size == 2)
+                val newLast = new Node.Value[A](replaceWith, Node.Empty, Node.Empty)
+                _head = newLast
+                _last = newLast
+
+                _size -= 1
+
+              case previousPrevious: Node.Value[A] =>
+                val newLast = new Node.Value[A](replaceWith, previousPrevious, Node.Empty)
+                previousPrevious.next = newLast
+                _last = newLast
+
+                _size -= 1
+            }
+        }
+    }
+
   def headOption(): Option[A] =
     Option(headOrNull())
 
-  override def dropHead(): Walker[A] =
-    if (_head.isEmpty || _head.next.isEmpty)
+  override def dropHead(): Walker[A] = {
+    val head = _head
+    if (head.isEmpty || head.next.isEmpty)
       Walker.empty
     else
-      new VolatileQueue[A](_head.next, _head.next.next, self._size - 1)
+      new VolatileQueue[A](head.next, head.next.next, self._size - 1)
+  }
 
-  def lastOrNull(): A =
-    if (_last.isEmpty) {
-      assert(_head.isEmpty)
-      null
-    } else {
-      assert(!_head.isEmpty)
-      _last.value
-    }
-
-  def headOrNull(): A =
-    if (_head.isEmpty)
+  def lastOrNull(): A = {
+    //read the value first
+    val last = _last
+    if (last.isEmpty)
       null
     else
-      _head.value
+      last.value
+  }
+
+  def secondLastOrNull(): A = {
+    //read the value first
+    val secondLast = _last.previous
+    if (secondLast.isEmpty)
+      null
+    else
+      secondLast.value
+  }
+
+  def takeRight2OrNull(): (A, A) = {
+    //read the value first
+    val last = _last
+    val secondLast = last.previous
+    if (last.isEmpty || secondLast.isEmpty)
+      null
+    else
+      (secondLast.value, last.value)
+  }
+
+  def headOrNull(): A = {
+    //read the value first
+    val head = _head
+    if (head.isEmpty)
+      null
+    else
+      head.value
+  }
 
   def walker: Walker[A] =
     self
