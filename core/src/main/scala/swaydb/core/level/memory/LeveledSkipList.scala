@@ -22,10 +22,10 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.level.zero
+package swaydb.core.level.memory
 
 import swaydb.core.data.{Memory, MemoryOption}
-import swaydb.core.level.zero.LeveledSkipList.SkipListState
+import swaydb.core.level.memory.LeveledSkipList.SkipListState
 import swaydb.core.util.queue.{VolatileQueue, Walker}
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.slice.{Slice, SliceOption}
@@ -34,8 +34,8 @@ import scala.beans.BeanProperty
 
 private[core] object LeveledSkipList {
 
-  class SkipListState private[zero](val skipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                                    @BeanProperty @volatile var hasRange: Boolean)
+  class SkipListState private[level](val skipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                                     @BeanProperty @volatile var hasRange: Boolean)
 
 
   @inline def apply(skipList: SkipListState): LeveledSkipList =
@@ -45,8 +45,8 @@ private[core] object LeveledSkipList {
     )
 }
 
-private[core] class LeveledSkipList private[zero](queue: VolatileQueue[SkipListState],
-                                                  @volatile private var currentState: SkipListState) {
+private[core] class LeveledSkipList private[level](queue: VolatileQueue[SkipListState],
+                                                   @volatile private var currentState: SkipListState) {
 
   @inline def current = currentState
 

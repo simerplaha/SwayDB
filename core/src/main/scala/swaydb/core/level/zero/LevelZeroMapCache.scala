@@ -26,6 +26,7 @@ package swaydb.core.level.zero
 
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
+import swaydb.core.level.memory.LeveledSkipList
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
@@ -53,7 +54,7 @@ private[core] object LevelZeroMapCache {
     }
 
   private def newSkipListState()(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                     optimiseWrites: OptimiseWrites): LeveledSkipList.SkipListState =
+                                 optimiseWrites: OptimiseWrites): LeveledSkipList.SkipListState =
     optimiseWrites match {
       case OptimiseWrites.RandomOrder =>
         val skipList =

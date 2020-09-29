@@ -34,7 +34,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
-import swaydb.core.level.zero.{LeveledSkipList, LevelZeroMapCache}
+import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.OptimiseWrites
@@ -48,6 +48,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.core.CommonAssertions._
+import swaydb.core.level.memory.LeveledSkipList
 
 import scala.jdk.CollectionConverters._
 import scala.util.Random
