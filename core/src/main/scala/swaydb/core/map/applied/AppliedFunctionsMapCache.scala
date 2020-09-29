@@ -31,6 +31,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 
 
 object AppliedFunctionsMapCache {
+
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]]) =
     new MapCacheBuilder[AppliedFunctionsMapCache] {
       override def create(): AppliedFunctionsMapCache =
@@ -46,10 +47,13 @@ object AppliedFunctionsMapCache {
 case class AppliedFunctionsMapCache(skipList: SkipListConcurrent[SliceOption[Byte], Slice.Null.type, Slice[Byte], Slice.Null.type]) extends MapCache[Slice[Byte], Slice.Null.type] {
 
   override def writeAtomic(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
-    entry applyBatch skipList
+    writeNonAtomic(entry) //AppliedFunctions do not need atomicity.
 
   override def writeNonAtomic(entry: MapEntry[Slice[Byte], Slice.Null.type]): Unit =
-    writeAtomic(entry)
+    entry.entries foreach {
+      point =>
+        point applyPoint skipList
+    }
 
   override def iterator: Iterator[(Slice[Byte], Slice.Null.type)] =
     skipList.iterator
