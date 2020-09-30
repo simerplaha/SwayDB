@@ -53,9 +53,9 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
       val put = Memory.put(1, "one")
       cache.writeAtomic(MapEntry.Put(put.key, put))
-      cache.getMergedSkipList should have size 1
+      cache.flattenClear should have size 1
 
-      cache.getMergedSkipList.toIterable.head shouldBe ((1: Slice[Byte], put))
+      cache.flattenClear.toIterable.head shouldBe ((1: Slice[Byte], put))
     }
 
     "insert multiple fixed key-values" in {
@@ -67,9 +67,9 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
           cache.writeAtomic(MapEntry.Put(i, Memory.put(i, i)))
       }
 
-      cache.getMergedSkipList should have size 10
+      cache.flattenClear should have size 10
 
-      cache.getMergedSkipList.toIterable.zipWithIndex foreach {
+      cache.flattenClear.iterator.zipWithIndex foreach {
         case ((key, value), index) =>
           key shouldBe (index: Slice[Byte])
           value shouldBe Memory.put(index, index)
@@ -85,7 +85,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeAtomic(MapEntry.Put(30, Memory.Range(30, 40, Value.FromValue.Null, Value.update(40))))
       cache.writeAtomic(MapEntry.Put(50, Memory.Range(50, 100, Value.put(20), Value.remove(None))))
 
-      val skipListArray = cache.getMergedSkipList.toIterable.toArray
+      val skipListArray = cache.flattenClear.toIterable.toArray
       skipListArray(0) shouldBe ((10: Slice[Byte], Memory.Range(10, 20, Value.FromValue.Null, Value.remove(None))))
       skipListArray(1) shouldBe ((30: Slice[Byte], Memory.Range(30, 40, Value.FromValue.Null, Value.update(40))))
       skipListArray(2) shouldBe ((50: Slice[Byte], Memory.Range(50, 100, Value.put(20), Value.remove(None))))
@@ -104,11 +104,11 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20))))
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 15, Value.FromValue.Null, Value.update(40))))
-      cache.getMergedSkipList should have size 3
+      cache.flattenClear should have size 3
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.update(40))
-      cache.getMergedSkipList.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.update(40))
-      cache.getMergedSkipList.get(15: Slice[Byte]).getS shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.update(40))
+      cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.update(40))
+      cache.flattenClear.get(15: Slice[Byte]).getS shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
     }
 
     "insert overlapping ranges when insert fromKey is less than existing range's from key and fromKey is set" in {
@@ -125,8 +125,8 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       //insert with put
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.put(10), Value.update(20))))
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 15, Value.FromValue.Null, Value.update(40))))
-      cache.getMergedSkipList should have size 3
-      val skipListArray = cache.getMergedSkipList.toIterable.toArray
+      cache.flattenClear should have size 3
+      val skipListArray = cache.flattenClear.toIterable.toArray
 
       skipListArray(0) shouldBe(1: Slice[Byte], Memory.Range(1, 10, Value.FromValue.Null, Value.update(40)))
       skipListArray(1) shouldBe(10: Slice[Byte], Memory.Range(10, 15, Value.put(40), Value.update(40)))
@@ -139,11 +139,11 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       //1
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 15, Value.FromValue.Null, Value.update(40))))
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20))))
-      cache.getMergedSkipList should have size 3
+      cache.flattenClear should have size 3
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.update(40))
-      cache.getMergedSkipList.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.update(20))
-      cache.getMergedSkipList.get(15: Slice[Byte]).getS shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.update(40))
+      cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.update(20))
+      cache.flattenClear.get(15: Slice[Byte]).getS shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
     }
 
     "insert overlapping ranges when insert fromKey is greater than existing range's fromKey and fromKey is set" in {
@@ -153,11 +153,11 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeNonAtomic(MapEntry.Put(1, Memory.Range(1, 15, Value.put(1), Value.update(40))))
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20))))
 
-      cache.getMergedSkipList should have size 3
+      cache.flattenClear should have size 3
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 10, Value.put(1), Value.update(40))
-      cache.getMergedSkipList.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.update(20))
-      cache.getMergedSkipList.get(15: Slice[Byte]).getS shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 10, Value.put(1), Value.update(40))
+      cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.update(20))
+      cache.flattenClear.get(15: Slice[Byte]).getS shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
     }
 
     "insert overlapping ranges without values set and no splits required" in {
@@ -170,15 +170,15 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeNonAtomic(MapEntry.Put(40, Memory.Range(40, 50, Value.FromValue.Null, Value.update(50))))
 
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 100, Value.FromValue.Null, Value.update(100))))
-      cache.getMergedSkipList should have size 7
+      cache.flattenClear should have size 7
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 5, Value.FromValue.Null, Value.update(5))
-      cache.getMergedSkipList.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 10, Value.FromValue.Null, Value.update(10))
-      cache.getMergedSkipList.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 20, Value.FromValue.Null, Value.update(100))
-      cache.getMergedSkipList.get(20: Slice[Byte]).getS shouldBe Memory.Range(20, 30, Value.FromValue.Null, Value.update(100))
-      cache.getMergedSkipList.get(30: Slice[Byte]).getS shouldBe Memory.Range(30, 40, Value.FromValue.Null, Value.update(100))
-      cache.getMergedSkipList.get(40: Slice[Byte]).getS shouldBe Memory.Range(40, 50, Value.FromValue.Null, Value.update(100))
-      cache.getMergedSkipList.get(50: Slice[Byte]).getS shouldBe Memory.Range(50, 100, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 5, Value.FromValue.Null, Value.update(5))
+      cache.flattenClear.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 10, Value.FromValue.Null, Value.update(10))
+      cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 20, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(20: Slice[Byte]).getS shouldBe Memory.Range(20, 30, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(30: Slice[Byte]).getS shouldBe Memory.Range(30, 40, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(40: Slice[Byte]).getS shouldBe Memory.Range(40, 50, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(50: Slice[Byte]).getS shouldBe Memory.Range(50, 100, Value.FromValue.Null, Value.update(100))
     }
 
     "insert overlapping ranges with values set and no splits required" in {
@@ -191,15 +191,15 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeNonAtomic(MapEntry.Put(40, Memory.Range(40, 50, Value.FromValue.Null, Value.update(50))))
 
       cache.writeNonAtomic(MapEntry.Put(10, Memory.Range(10, 100, Value.FromValue.Null, Value.update(100))))
-      cache.getMergedSkipList should have size 7
+      cache.flattenClear should have size 7
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 5, Value.put(1), Value.update(5))
-      cache.getMergedSkipList.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 10, Value.FromValue.Null, Value.update(10))
-      cache.getMergedSkipList.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 20, Value.put(100), Value.update(100))
-      cache.getMergedSkipList.get(20: Slice[Byte]).getS shouldBe Memory.Range(20, 30, Value.FromValue.Null, Value.update(100))
-      cache.getMergedSkipList.get(30: Slice[Byte]).getS shouldBe Memory.Range(30, 40, Value.put(100), Value.update(100))
-      cache.getMergedSkipList.get(40: Slice[Byte]).getS shouldBe Memory.Range(40, 50, Value.FromValue.Null, Value.update(100))
-      cache.getMergedSkipList.get(50: Slice[Byte]).getS shouldBe Memory.Range(50, 100, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 5, Value.put(1), Value.update(5))
+      cache.flattenClear.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 10, Value.FromValue.Null, Value.update(10))
+      cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 20, Value.put(100), Value.update(100))
+      cache.flattenClear.get(20: Slice[Byte]).getS shouldBe Memory.Range(20, 30, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(30: Slice[Byte]).getS shouldBe Memory.Range(30, 40, Value.put(100), Value.update(100))
+      cache.flattenClear.get(40: Slice[Byte]).getS shouldBe Memory.Range(40, 50, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(50: Slice[Byte]).getS shouldBe Memory.Range(50, 100, Value.FromValue.Null, Value.update(100))
     }
 
     "insert overlapping ranges with values set and splits required" in {
@@ -212,16 +212,16 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeNonAtomic(MapEntry.Put(40, Memory.Range(40, 50, Value.FromValue.Null, Value.update(50))))
 
       cache.writeNonAtomic(MapEntry.Put(7, Memory.Range(7, 35, Value.FromValue.Null, Value.update(100))))
-      cache.getMergedSkipList should have size 8
+      cache.flattenClear should have size 8
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 5, Value.put(1), Value.update(5))
-      cache.getMergedSkipList.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 7, Value.FromValue.Null, Value.update(10))
-      cache.getMergedSkipList.get(7: Slice[Byte]).getS shouldBe Memory.Range(7, 10, Value.FromValue.Null, Value.update(100))
-      cache.getMergedSkipList.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 20, Value.put(100), Value.update(100))
-      cache.getMergedSkipList.get(20: Slice[Byte]).getS shouldBe Memory.Range(20, 30, Value.FromValue.Null, Value.update(100))
-      cache.getMergedSkipList.get(30: Slice[Byte]).getS shouldBe Memory.Range(30, 35, Value.put(100), Value.update(100))
-      cache.getMergedSkipList.get(35: Slice[Byte]).getS shouldBe Memory.Range(35, 40, Value.FromValue.Null, Value.update(40))
-      cache.getMergedSkipList.get(40: Slice[Byte]).getS shouldBe Memory.Range(40, 50, Value.FromValue.Null, Value.update(50))
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 5, Value.put(1), Value.update(5))
+      cache.flattenClear.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 7, Value.FromValue.Null, Value.update(10))
+      cache.flattenClear.get(7: Slice[Byte]).getS shouldBe Memory.Range(7, 10, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.Range(10, 20, Value.put(100), Value.update(100))
+      cache.flattenClear.get(20: Slice[Byte]).getS shouldBe Memory.Range(20, 30, Value.FromValue.Null, Value.update(100))
+      cache.flattenClear.get(30: Slice[Byte]).getS shouldBe Memory.Range(30, 35, Value.put(100), Value.update(100))
+      cache.flattenClear.get(35: Slice[Byte]).getS shouldBe Memory.Range(35, 40, Value.FromValue.Null, Value.update(40))
+      cache.flattenClear.get(40: Slice[Byte]).getS shouldBe Memory.Range(40, 50, Value.FromValue.Null, Value.update(50))
     }
 
     "remove range should remove invalid entries" in {
@@ -233,43 +233,43 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
       cache.writeNonAtomic(MapEntry.Put(2, Memory.Range(2, 5, Value.FromValue.Null, Value.remove(None))))
 
-      cache.getMergedSkipList match {
+      cache.flattenClear match {
         case series: SkipListSeries[_, _, _, _] =>
           //series will not physically remove the key-value but nulls the valye.
           series should have size 4
 
         case _ =>
-          cache.getMergedSkipList should have size 3
+          cache.flattenClear should have size 3
       }
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.put(1, 1)
-      cache.getMergedSkipList.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 5, Value.FromValue.Null, Value.remove(None))
-      cache.getMergedSkipList.get(3: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(4: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(5: Slice[Byte]).getS shouldBe Memory.put(5, 5)
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.put(1, 1)
+      cache.flattenClear.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 5, Value.FromValue.Null, Value.remove(None))
+      cache.flattenClear.get(3: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(4: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(5: Slice[Byte]).getS shouldBe Memory.put(5, 5)
 
       cache.writeNonAtomic(MapEntry.Put(5, Memory.remove(5)))
-      cache.getMergedSkipList.get(5: Slice[Byte]).getS shouldBe Memory.remove(5)
+      cache.flattenClear.get(5: Slice[Byte]).getS shouldBe Memory.remove(5)
 
-      cache.getMergedSkipList match {
+      cache.flattenClear match {
         case series: SkipListSeries[_, _, _, _] =>
           //series will not physically remove the key-value but nulls the valye.
           series should have size 4
 
         case _ =>
-          cache.getMergedSkipList should have size 3
+          cache.flattenClear should have size 3
       }
     }
 
     "remove range when cache.asMergedSkipList is empty" in {
       val cache = LevelZeroMapCache.builder.create()
       cache.writeNonAtomic(MapEntry.Put(2, Memory.Range(2, 100, Value.FromValue.Null, Value.remove(None))))
-      cache.getMergedSkipList should have size 1
+      cache.flattenClear should have size 1
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 100, Value.FromValue.Null, Value.remove(None))
-      cache.getMergedSkipList.get(3: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(4: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(1: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 100, Value.FromValue.Null, Value.remove(None))
+      cache.flattenClear.get(3: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(4: Slice[Byte]).toOptionS shouldBe empty
     }
 
     "remove range should clear removed entries when remove ranges overlaps the left edge" in {
@@ -288,16 +288,16 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       //   2    -    5
       cache.writeNonAtomic(MapEntry.Put(2, Memory.Range(2, 5, Value.FromValue.Null, Value.remove(None))))
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.put(1, 1)
-      cache.getMergedSkipList.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 4, Value.FromValue.Null, Value.remove(None))
-      cache.getMergedSkipList.get(3: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(4: Slice[Byte]).getS shouldBe Memory.Range(4, 5, Value.FromValue.Null, Value.remove(None))
-      cache.getMergedSkipList.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 8, Value.FromValue.Null, Value.remove(None))
-      cache.getMergedSkipList.get(6: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(7: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(8: Slice[Byte]).getS shouldBe Memory.remove(8)
-      cache.getMergedSkipList.get(9: Slice[Byte]).getS shouldBe Memory.put(9, 9)
-      cache.getMergedSkipList.get(10: Slice[Byte]).getS shouldBe Memory.put(10, 10)
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.put(1, 1)
+      cache.flattenClear.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 4, Value.FromValue.Null, Value.remove(None))
+      cache.flattenClear.get(3: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(4: Slice[Byte]).getS shouldBe Memory.Range(4, 5, Value.FromValue.Null, Value.remove(None))
+      cache.flattenClear.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 8, Value.FromValue.Null, Value.remove(None))
+      cache.flattenClear.get(6: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(7: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(8: Slice[Byte]).getS shouldBe Memory.remove(8)
+      cache.flattenClear.get(9: Slice[Byte]).getS shouldBe Memory.put(9, 9)
+      cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.put(10, 10)
     }
 
     "remove range should clear removed entries when remove ranges overlaps the right edge" in {
@@ -316,16 +316,16 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeNonAtomic(MapEntry.Put(4, Memory.Range(4, 8, Value.FromValue.Null, Value.remove(None))))
       //      cache.write(MapEntry.Put(8, Memory.remove(8)))
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.put(1, 1)
-      cache.getMergedSkipList.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 4, Value.FromValue.Null, Value.remove(None))
-      cache.getMergedSkipList.get(3: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(4: Slice[Byte]).getS shouldBe Memory.Range(4, 5, Value.FromValue.Null, Value.remove(None))
-      cache.getMergedSkipList.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 8, Value.FromValue.Null, Value.remove(None))
-      cache.getMergedSkipList.get(6: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(7: Slice[Byte]).toOptionS shouldBe empty
-      cache.getMergedSkipList.get(8: Slice[Byte]).getS shouldBe Memory.put(8, 8)
-      cache.getMergedSkipList.get(9: Slice[Byte]).getS shouldBe Memory.put(9, 9)
-      cache.getMergedSkipList.get(10: Slice[Byte]).getS shouldBe Memory.put(10, 10)
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.put(1, 1)
+      cache.flattenClear.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 4, Value.FromValue.Null, Value.remove(None))
+      cache.flattenClear.get(3: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(4: Slice[Byte]).getS shouldBe Memory.Range(4, 5, Value.FromValue.Null, Value.remove(None))
+      cache.flattenClear.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 8, Value.FromValue.Null, Value.remove(None))
+      cache.flattenClear.get(6: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(7: Slice[Byte]).toOptionS shouldBe empty
+      cache.flattenClear.get(8: Slice[Byte]).getS shouldBe Memory.put(8, 8)
+      cache.flattenClear.get(9: Slice[Byte]).getS shouldBe Memory.put(9, 9)
+      cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.put(10, 10)
     }
 
     "insert fixed key-values into remove range" in {
@@ -337,16 +337,16 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
           cache.writeNonAtomic(MapEntry.Put(i, Memory.put(i, i)))
       }
 
-      cache.getMergedSkipList.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 2, Value.put(1), Value.remove(None))
-      cache.getMergedSkipList.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 3, Value.put(2), Value.remove(None))
-      cache.getMergedSkipList.get(3: Slice[Byte]).getS shouldBe Memory.Range(3, 4, Value.put(3), Value.remove(None))
-      cache.getMergedSkipList.get(4: Slice[Byte]).getS shouldBe Memory.Range(4, 5, Value.put(4), Value.remove(None))
-      cache.getMergedSkipList.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 6, Value.put(5), Value.remove(None))
-      cache.getMergedSkipList.get(6: Slice[Byte]).getS shouldBe Memory.Range(6, 7, Value.put(6), Value.remove(None))
-      cache.getMergedSkipList.get(7: Slice[Byte]).getS shouldBe Memory.Range(7, 8, Value.put(7), Value.remove(None))
-      cache.getMergedSkipList.get(8: Slice[Byte]).getS shouldBe Memory.Range(8, 9, Value.put(8), Value.remove(None))
-      cache.getMergedSkipList.get(9: Slice[Byte]).getS shouldBe Memory.Range(9, 10, Value.put(9), Value.remove(None))
-      cache.getMergedSkipList.get(10: Slice[Byte]).getS shouldBe Memory.put(10, 10)
+      cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.Range(1, 2, Value.put(1), Value.remove(None))
+      cache.flattenClear.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 3, Value.put(2), Value.remove(None))
+      cache.flattenClear.get(3: Slice[Byte]).getS shouldBe Memory.Range(3, 4, Value.put(3), Value.remove(None))
+      cache.flattenClear.get(4: Slice[Byte]).getS shouldBe Memory.Range(4, 5, Value.put(4), Value.remove(None))
+      cache.flattenClear.get(5: Slice[Byte]).getS shouldBe Memory.Range(5, 6, Value.put(5), Value.remove(None))
+      cache.flattenClear.get(6: Slice[Byte]).getS shouldBe Memory.Range(6, 7, Value.put(6), Value.remove(None))
+      cache.flattenClear.get(7: Slice[Byte]).getS shouldBe Memory.Range(7, 8, Value.put(7), Value.remove(None))
+      cache.flattenClear.get(8: Slice[Byte]).getS shouldBe Memory.Range(8, 9, Value.put(8), Value.remove(None))
+      cache.flattenClear.get(9: Slice[Byte]).getS shouldBe Memory.Range(9, 10, Value.put(9), Value.remove(None))
+      cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.put(10, 10)
     }
   }
 }

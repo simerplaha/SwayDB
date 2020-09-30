@@ -419,9 +419,9 @@ class MapsSpec extends TestBase {
             recoveredMapsMaps should have size 3
             recoveredMapsMaps.map(_.pathOption.value.folderId) shouldBe List(2, 1, 0)
 
-            recoveredMapsMaps.head.cache.getMergedSkipList.get(1) shouldBe Memory.remove(1)
-            recoveredMapsMaps.tail.head.cache.getMergedSkipList.get(2) shouldBe Memory.put(2)
-            recoveredMapsMaps.last.cache.getMergedSkipList.get(1) shouldBe Memory.put(1)
+            recoveredMapsMaps.head.cache.flattenClear.get(1) shouldBe Memory.remove(1)
+            recoveredMapsMaps.tail.head.cache.flattenClear.get(2) shouldBe Memory.put(2)
+            recoveredMapsMaps.last.cache.flattenClear.get(1) shouldBe Memory.put(1)
         }
       }
     }
@@ -506,16 +506,16 @@ class MapsSpec extends TestBase {
             recoveredMaps should have size 3
 
             //newest map contains all key-values
-            recoveredMaps.head.cache.getMergedSkipList.get(5) shouldBe Memory.put(5)
-            recoveredMaps.head.cache.getMergedSkipList.get(6) shouldBe Memory.put(6, 6)
+            recoveredMaps.head.cache.flattenClear.get(5) shouldBe Memory.put(5)
+            recoveredMaps.head.cache.flattenClear.get(6) shouldBe Memory.put(6, 6)
 
             //second map is the corrupted map and will have the 2nd entry missing
-            recoveredMaps.tail.head.cache.getMergedSkipList.get(3) shouldBe Memory.put(3, 3)
-            recoveredMaps.tail.head.cache.getMergedSkipList.get(4).toOptionS shouldBe empty //4th entry is corrupted, it will not exist the Map
+            recoveredMaps.tail.head.cache.flattenClear.get(3) shouldBe Memory.put(3, 3)
+            recoveredMaps.tail.head.cache.flattenClear.get(4).toOptionS shouldBe empty //4th entry is corrupted, it will not exist the Map
 
             //oldest map contains all key-values
-            recoveredMaps.last.cache.getMergedSkipList.get(1) shouldBe Memory.put(1)
-            recoveredMaps.last.cache.getMergedSkipList.get(2) shouldBe Memory.put(2)
+            recoveredMaps.last.cache.flattenClear.get(1) shouldBe Memory.put(1)
+            recoveredMaps.last.cache.flattenClear.get(2) shouldBe Memory.put(2)
         }
       }
     }

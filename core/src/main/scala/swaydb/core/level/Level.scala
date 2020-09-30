@@ -474,14 +474,14 @@ private[core] case class Level(dirs: Seq[Dir],
   private[level] implicit def reserve(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
-        keyValues = map.cache.mergedKeyValuesCache.value(()),
+        input = map.cache.flatten.fetch,
         targetSegments = appendix.cache.skipList.values()
       )
     } map {
       assigned =>
         Segment.minMaxKey(
           left = assigned,
-          right = map.cache.mergedKeyValuesCache.value(())
+          right = map.cache.flatten.fetch
         ) match {
           case Some((minKey, maxKey, toInclusive)) =>
             ReserveRange.reserveOrListen(
@@ -536,7 +536,7 @@ private[core] case class Level(dirs: Seq[Dir],
    */
   def isCopyable(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean =
     Segment
-      .minMaxKey(map.cache.mergedKeyValuesCache.value(()))
+      .minMaxKey(map.cache.flatten.value(()))
       .forall {
         case (minKey, maxKey, maxInclusive) =>
           isCopyable(
@@ -690,15 +690,16 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
-    logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.mergeKeyValuesCount)
+    logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.flatten.fetch.size)
     reserveAndRelease(map) {
 
       val appendixValues = appendix.cache.skipList.values()
-      val keyValues = map.cache.mergedKeyValuesCache.value(())
+      val keyValues = map.cache.flatten.fetch
 
       if (Segment.overlaps(keyValues, appendixValues))
         putKeyValues(
-          keyValues = keyValues,
+          keyValuesCount = keyValues.size,
+          keyValues = keyValues.values(),
           targetSegments = appendixValues,
           appendEntry = None
         ) transform {
@@ -785,13 +786,7 @@ private[core] case class Level(dirs: Seq[Dir],
       logger.trace(s"{}: Copying {} Map", pathDistributor.head, map.pathOption)
 
       val keyValues: Iterable[Memory] =
-        map.cache.mergedKeyValuesCache.value(()) match {
-          case util.Left(skipList) =>
-            skipList.values()
-
-          case util.Right(slice) =>
-            slice
-        }
+        map.cache.flatten.fetch.values()
 
       if (inMemory)
         Segment.copyToMemory(
