@@ -80,7 +80,7 @@ private[core] object LevelZeroMapCache {
           nullValue = Memory.Null
         )
 
-      case OptimiseWrites.SequentialOrder(transactionQueueMaxSize, initialSkipListLength) =>
+      case OptimiseWrites.SequentialOrder(_, initialSkipListLength) =>
         SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           lengthPerSeries = initialSkipListLength,
           nullKey = Slice.Null,
@@ -88,16 +88,32 @@ private[core] object LevelZeroMapCache {
         )
     }
 
+  @inline def insert(insert: Memory,
+                     level: LevelZeroMapCache.LevelEmbedded,
+                     atomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                      timeOrder: TimeOrder[Slice[Byte]],
+                                      functionStore: FunctionStore): Boolean =
+    insert match {
+      //if insert value is fixed, check the floor entry
+      case insertValue: Memory.Fixed =>
+        LevelZeroMapCache.insert(insert = insertValue, level = level, atomic = atomic)
+
+      //slice the skip list to keep on the range's key-values.
+      //if the insert is a Range stash the edge non-overlapping key-values and keep only the ranges in the skipList
+      //that fall within the inserted range before submitting fixed values to the range for further splits.
+      case insertRange: Memory.Range =>
+        LevelZeroMapCache.insert(insert = insertRange, level = level, atomic = atomic)
+    }
 
   /**
    * Inserts a [[Memory.Fixed]] key-value into skipList.
    */
   def insert(insert: Memory.Fixed,
-             skipList: LevelZeroMapCache.LevelEmbedded,
+             level: LevelZeroMapCache.LevelEmbedded,
              atomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                               timeOrder: TimeOrder[Slice[Byte]],
                               functionStore: FunctionStore): Boolean =
-    skipList.skipList.floor(insert.key) match {
+    level.skipList.floor(insert.key) match {
       case floorEntry: Memory =>
         import keyOrder._
 
@@ -110,7 +126,7 @@ private[core] object LevelZeroMapCache {
                 oldKeyValue = floor
               ).asInstanceOf[Memory.Fixed]
 
-            skipList.skipList.put(insert.key, mergedKeyValue)
+            level.skipList.put(insert.key, mergedKeyValue)
             true
 
           //if the floor entry is a range try to do a merge.
@@ -134,8 +150,8 @@ private[core] object LevelZeroMapCache {
               if (!atomic || mergedKeyValues.size <= 1) {
                 mergedKeyValues foreach {
                   merged: Memory =>
-                    if (merged.isRange) skipList.setHasRange(true)
-                    skipList.skipList.put(merged.key, merged)
+                    if (merged.isRange) level.setHasRange(true)
+                    level.skipList.put(merged.key, merged)
                 }
                 true
               } else {
@@ -144,13 +160,13 @@ private[core] object LevelZeroMapCache {
             }
 
           case _ =>
-            skipList.skipList.put(insert.key, insert)
+            level.skipList.put(insert.key, insert)
             true
         }
 
       //if there is no floor, simply put.
       case Memory.Null =>
-        skipList.skipList.put(insert.key, insert)
+        level.skipList.put(insert.key, insert)
         true
     }
 
@@ -159,7 +175,7 @@ private[core] object LevelZeroMapCache {
    * the skipList before applying the new state so that all read queries read the latest write.
    */
   def insert(insert: Memory.Range,
-             skipList: LevelZeroMapCache.LevelEmbedded,
+             level: LevelZeroMapCache.LevelEmbedded,
              atomic: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                               timeOrder: TimeOrder[Slice[Byte]],
                               functionStore: FunctionStore): Boolean = {
@@ -167,7 +183,7 @@ private[core] object LevelZeroMapCache {
 
     //value the start position of this range to fetch the range's start and end key-values for the skipList.
     val startKey =
-      skipList.skipList.floor(insert.fromKey) mapS {
+      level.skipList.floor(insert.fromKey) mapS {
         case range: Memory.Range if insert.fromKey < range.toKey =>
           range.fromKey
 
@@ -175,10 +191,10 @@ private[core] object LevelZeroMapCache {
           insert.fromKey
       } getOrElse insert.fromKey
 
-    val conflictingKeyValues = skipList.skipList.subMap(startKey, true, insert.toKey, false)
+    val conflictingKeyValues = level.skipList.subMap(startKey, true, insert.toKey, false)
     if (conflictingKeyValues.isEmpty) {
-      skipList.setHasRange(true) //set this before put so reads know to floor this skipList.
-      skipList.skipList.put(insert.key, insert)
+      level.setHasRange(true) //set this before put so reads know to floor this skipList.
+      level.skipList.put(insert.key, insert)
       true
     } else {
       val oldKeyValues = Slice.of[Memory](conflictingKeyValues.size)
@@ -197,17 +213,31 @@ private[core] object LevelZeroMapCache {
         isLastLevel = false
       )
 
-      if (!atomic || builder.keyValues.size <= 1) {
-        skipList.setHasRange(true) //set this before put so reads know to floor this skipList.
+      val mergedKeyValues = builder.keyValues
+
+      if (!atomic) {
+        level.setHasRange(true) //set this before put so reads know to floor this skipList.
 
         oldKeyValues foreach {
           oldKeyValue =>
-            skipList.skipList.remove(oldKeyValue.key)
+            level.skipList.remove(oldKeyValue.key)
         }
 
-        builder.keyValues foreach {
+        mergedKeyValues foreach {
           keyValue =>
-            skipList.skipList.put(keyValue.key, keyValue)
+            level.skipList.put(keyValue.key, keyValue)
+        }
+
+        true
+
+      } else if (mergedKeyValues.size == 1 && conflictingKeyValues.forall(_._1 equiv mergedKeyValues.head.key)) {
+        //merged key-value can completely overwrite conflicting key-values in a single insert.
+
+        level.setHasRange(true) //set this before put so reads know to floor this skipList.
+
+        mergedKeyValues foreach {
+          keyValue =>
+            level.skipList.put(keyValue.key, keyValue)
         }
 
         true
@@ -229,74 +259,65 @@ private[core] object LevelZeroMapCache {
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
                                                         optimiseWrites: OptimiseWrites): Option[LevelZeroMapCache.LevelEmbedded] =
-    head match {
-      case head @ MapEntry.Remove(_) =>
-        //this does not occur in reality and should be type-safe instead of having this Exception.
-        throw new IllegalAccessException(s"${head.productPrefix} is not allowed in ${LevelZero.productPrefix} .")
+    if (tail.nonEmpty && !startedNewTransaction)
+      put(head = head, tail = tail, level = newLevel(), atomic = false, startedNewTransaction = true)
+    else
+      head match {
+        case head @ MapEntry.Remove(_) =>
+          //this does not occur in reality and should be type-safe instead of having this Exception.
+          throw new IllegalAccessException(s"${head.productPrefix} is not allowed in ${LevelZero.productPrefix} .")
 
-      case head @ MapEntry.Put(_, memory: Memory) =>
-        val inserted =
-          memory match {
-            //if insert value is fixed, check the floor entry
-            case insertValue: Memory.Fixed =>
-              LevelZeroMapCache.insert(insert = insertValue, skipList = level, atomic = atomic)
+        case head @ MapEntry.Put(_, memory: Memory) =>
+          val inserted = LevelZeroMapCache.insert(insert = memory, level = level, atomic = atomic)
 
-            //slice the skip list to keep on the range's key-values.
-            //if the insert is a Range stash the edge non-overlapping key-values and keep only the ranges in the skipList
-            //that fall within the inserted range before submitting fixed values to the range for further splits.
-            case insertRange: Memory.Range =>
-              LevelZeroMapCache.insert(insert = insertRange, skipList = level, atomic = atomic)
+          if (!inserted) {
+            assert(!startedNewTransaction, "Cannot create multiple transactional skipLists")
+            put(head = head, tail = tail, level = newLevel(), atomic = false, startedNewTransaction = true)
+          } else if (tail.nonEmpty) {
+            put(head = tail.head, tail = tail.tail, level = level, atomic = atomic, startedNewTransaction = startedNewTransaction)
+          } else if (startedNewTransaction) {
+            Some(level)
+          } else {
+            None
           }
+      }
 
-        if (!inserted) {
-          assert(!startedNewTransaction, "Cannot create multiple transactional skipLists")
-          put(head = head, tail = tail, level = newLevel(), atomic = false, startedNewTransaction = true)
-        } else if (tail.nonEmpty) {
-          put(head = tail.head, tail = tail.tail, level = level, atomic = atomic, startedNewTransaction = startedNewTransaction)
-        } else if (startedNewTransaction) {
-          Some(level)
-        } else {
-          None
-        }
-    }
-
-
-  @inline def merge(upper: LevelEmbedded,
-                    lower: LevelEmbedded)(implicit keyOrder: KeyOrder[Slice[Byte]],
+  @inline def merge(newer: LevelEmbedded,
+                    older: LevelEmbedded)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
                                           optimiseWrites: OptimiseWrites): LevelEmbedded =
-    if (upper.skipList.isEmpty) {
-      lower
-    } else if (lower.skipList.isEmpty) {
-      upper
+    if (newer.skipList.isEmpty) {
+      older
+    } else if (older.skipList.isEmpty) {
+      newer
     } else {
       val mergeSkipList =
         merge(
-          upperHasRange = upper.hasRange,
-          upper = upper.skipList,
-          lowerHasRange = lower.hasRange,
-          lower = lower.skipList
+          newerHasRange = newer.hasRange,
+          newer = newer.skipList,
+          olderHasRange = older.hasRange,
+          older = older.skipList
         )
 
       new LevelEmbedded(
         skipList = mergeSkipList,
-        hasRange = upper.hasRange || lower.hasRange
+        hasRange = newer.hasRange || older.hasRange
       )
     }
 
   private final type MergeSkipList[_] = SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]
-  @inline def merge(upperHasRange: Boolean,
-                    upper: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                    lowerHasRange: Boolean,
-                    lower: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
+  @inline def merge(newerHasRange: Boolean,
+                    newer: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                    olderHasRange: Boolean,
+                    older: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                                                            functionStore: FunctionStore,
                                                                                            optimiseWrites: OptimiseWrites): SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
-    if (upper.isEmpty) {
-      lower
-    } else if (lower.isEmpty) {
-      upper
+    if (newer.isEmpty) {
+      older
+    } else if (older.isEmpty) {
+      newer
     } else {
       val optimiseWritesUpdated =
         optimiseWrites match {
@@ -305,8 +326,8 @@ private[core] object LevelZeroMapCache {
 
           case order @ OptimiseWrites.SequentialOrder(_, _) =>
             val newSize =
-              (upper.size + lower.size) * {
-                if (upperHasRange || lowerHasRange)
+              (newer.size + older.size) * {
+                if (newerHasRange || olderHasRange)
                   3
                 else
                   1
@@ -329,10 +350,10 @@ private[core] object LevelZeroMapCache {
       val stats = MergeStats.memory(aggregator)(MergeStats.memoryToMemory)
 
       SegmentMerger.merge(
-        newKeyValuesCount = upper.size,
-        newKeyValues = upper.valuesIterator,
-        oldKeyValuesCount = lower.size,
-        oldKeyValues = lower.valuesIterator,
+        newKeyValuesCount = newer.size,
+        newKeyValues = newer.valuesIterator,
+        oldKeyValuesCount = older.size,
+        oldKeyValues = older.valuesIterator,
         stats = stats,
         isLastLevel = false
       )
@@ -350,8 +371,8 @@ private[core] object LevelZeroMapCache {
       if (secondLastAndLast != null) {
         val newLast =
           LevelZeroMapCache.merge(
-            upper = secondLastAndLast._1,
-            lower = secondLastAndLast._2
+            newer = secondLastAndLast._1,
+            older = secondLastAndLast._2
           )
 
         levels.replaceLastTwo(

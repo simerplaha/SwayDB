@@ -75,6 +75,7 @@ private[core] object SkipListSeries {
                                                                             nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListSeries[OptionKey, OptionValue, Key, Value] =
     new SkipListSeries[OptionKey, OptionValue, Key, Value](
       series = SeriesGrowable.volatile(lengthPerSeries),
+      _removed = 0,
       nullKey = nullKey,
       nullValue = nullValue
     )
@@ -240,6 +241,8 @@ private[core] object SkipListSeries {
  *
  */
 private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
+                                                                     //maintain a count of number of removed items i.e. value is null.
+                                                                     @volatile private[skiplist] var _removed: Int,
                                                                      val nullKey: OK,
                                                                      val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] with LazyLogging { self =>
 
@@ -275,6 +278,10 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
   @inline private def putRandom(key: K, value: V): Unit =
     SkipListSeries.get(target = key, series = series, keepNullValue = true) match {
       case some: KeyValue.Some[K, V] =>
+        //also revert the remove count
+        if (some.value == null)
+          _removed -= 1
+
         some.value = value
 
       case KeyValue.None =>
@@ -349,6 +356,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
       case some: KeyValue.Some[K, V] =>
         //do not clear from HashIndex. Mutate this value is only needed for reads to properly
         //perform searches.
+        _removed += 1
         some.value = null.asInstanceOf[V]
 
       case KeyValue.None =>
@@ -445,7 +453,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     series = SeriesGrowable.empty
 
   override def size: Int =
-    series.length
+    series.length - _removed
 
   override def contains(key: K): Boolean =
     SkipListSeries.get(key, series, keepNullValue = false) match {

@@ -31,14 +31,17 @@ import swaydb.core.TestTimer
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
-import swaydb.core.util.skiplist.{SkipListBatchable, SkipListConcurrentLimit, SkipListNavigable, SkipListSeries}
+import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
+import swaydb.core.util.skiplist.{SkipListConcurrent, SkipListSeries}
 import swaydb.data.OptimiseWrites
+import swaydb.data.RunThis._
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
+
   implicit val keyOrder = swaydb.data.order.KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder = TimeOrder.long
@@ -47,7 +50,419 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
   import LevelZeroMapEntryWriter._
 
+  def doInsert(memory: Memory,
+               atomic: Boolean,
+               expectInserted: Boolean,
+               expectSkipList: Iterable[(Slice[Byte], Memory)],
+               level: LevelZeroMapCache.LevelEmbedded = LevelZeroMapCache.newLevel()): LevelZeroMapCache.LevelEmbedded = {
+
+    LevelZeroMapCache.insert(
+      insert = memory,
+      level = level,
+      atomic = atomic
+    ) shouldBe expectInserted
+
+    level.skipList.size shouldBe expectSkipList.size
+
+    level.skipList.toIterable.toList shouldBe expectSkipList
+    level
+  }
+
+  "it" should {
+    "create instance with optimised skipLists" in {
+      Seq(
+        OptimiseWrites.SequentialOrder(transactionQueueMaxSize = 10, initialSkipListLength = 10),
+        OptimiseWrites.RandomOrder(transactionQueueMaxSize = 10)
+      ) foreach {
+        implicit optimiseWrites =>
+          val cache = LevelZeroMapCache()
+          //there is always at-least one level
+          cache.levels.iterator should have size 1
+          cache.flatten.fetch.size shouldBe 0
+
+          optimiseWrites match {
+            case OptimiseWrites.RandomOrder(_) =>
+              cache.levels.headOrNull().skipList shouldBe a[SkipListConcurrent[_, _, _, _]]
+
+            case OptimiseWrites.SequentialOrder(_, _) =>
+              cache.levels.headOrNull().skipList shouldBe a[SkipListSeries[_, _, _, _]]
+          }
+      }
+    }
+  }
+
   "insert" should {
+    "write fixed on fixed" when {
+      "empty" should {
+        "succeed - atomic or non-atomic" in {
+          Seq(true, false) foreach {
+            atomic =>
+              val put = Memory.put(1)
+
+              doInsert(
+                memory = put,
+                atomic = atomic,
+                expectInserted = true,
+                expectSkipList = List((1: Slice[Byte], put))
+              )
+          }
+        }
+      }
+
+      "non-empty" should {
+        "succeed" when {
+          "overlapping writes - atomic or non-atomic" in {
+            Seq(true, false) foreach {
+              atomic =>
+                val put1 = Memory.put(1, 1)
+
+                //first insert
+                val level =
+                  doInsert(
+                    memory = put1,
+                    atomic = atomic,
+                    expectInserted = true,
+                    expectSkipList = List((1: Slice[Byte], put1))
+                  )
+
+                val put2 = Memory.put(1, 2)
+
+                doInsert(
+                  memory = put2,
+                  atomic = atomic,
+                  expectInserted = true,
+                  expectSkipList = List((1: Slice[Byte], put2)),
+                  level = level
+                )
+            }
+          }
+
+          "non-overlapping writes - atomic or non-atomic" in {
+            Seq(true, false) foreach {
+              atomic =>
+                val put1 = Memory.put(1, 1)
+
+                //first insert
+                val level =
+                  doInsert(
+                    memory = put1,
+                    atomic = atomic,
+                    expectInserted = true,
+                    expectSkipList = List((1: Slice[Byte], put1))
+                  )
+
+                val put2 = Memory.put(2, 2)
+
+                doInsert(
+                  memory = put2,
+                  atomic = atomic,
+                  expectInserted = true,
+                  expectSkipList = List((1: Slice[Byte], put1), (2: Slice[Byte], put2)),
+                  level = level
+                )
+            }
+          }
+        }
+      }
+    }
+
+    "write fixed on range" should {
+      "succeed" when {
+        "overlapping fromValue - atomic or non-atomic" in {
+          Seq((1, true), (1, false)) foreach {
+            case (putKey, atomic) =>
+              println(s"putKey: $putKey, atomic: $atomic")
+
+              val put = Memory.put(putKey, 1)
+
+              //first insert
+              val level =
+                doInsert(
+                  memory = put,
+                  atomic = atomic,
+                  expectInserted = true,
+                  expectSkipList = List((putKey: Slice[Byte], put))
+                )
+
+              val range = Memory.Range(1, 100, randomFromValue(), randomRangeValue())
+
+              val builder = MergeStats.random()
+
+              SegmentMerger.merge(
+                newKeyValue = range,
+                oldKeyValue = put,
+                builder = builder,
+                isLastLevel = false
+              )
+
+              val result = builder.keyValues.map(memory => (memory.key, memory))
+
+              doInsert(
+                memory = range,
+                atomic = atomic,
+                expectInserted = true,
+                expectSkipList = result,
+                level = level
+              )
+          }
+        }
+
+        "not overlapping writes - atomic or non-atomic" in {
+          Seq(true, false) foreach {
+            atomic =>
+              val put = Memory.put(0, 0)
+
+              //first insert
+              val level =
+                doInsert(
+                  memory = put,
+                  atomic = atomic,
+                  expectInserted = true,
+                  expectSkipList = List((0: Slice[Byte], put))
+                )
+
+              val range = Memory.Range(1, 100, randomFromValue(), randomRangeValue())
+
+              doInsert(
+                memory = range,
+                atomic = atomic,
+                expectInserted = true,
+                expectSkipList = List((0: Slice[Byte], put), (1: Slice[Byte], range)),
+                level = level
+              )
+          }
+        }
+      }
+
+      "fail" when {
+        "overlapping toValue and atomic" in {
+          runThis(100.times, log = true) {
+            Seq(2, 9, 10, 99) foreach {
+              putKey =>
+
+                val put = Memory.put(putKey, putKey)
+
+                println(s"putKey: $putKey - $put")
+
+                //first insert
+                val level =
+                  doInsert(
+                    memory = put,
+                    atomic = true,
+                    expectInserted = true,
+                    expectSkipList = List((putKey: Slice[Byte], put))
+                  )
+
+                val range = Memory.Range(1, 100, randomFromValue(), randomRangeValue())
+
+                //expect state remains unchanged because atomic is fails
+                doInsert(
+                  memory = range,
+                  atomic = true,
+                  expectInserted = false,
+                  expectSkipList = List((put.key, put)),
+                  level = level
+                )
+            }
+          }
+        }
+      }
+
+      "fail" when {
+        "overlapping toValue and not-atomic" in {
+          runThis(100.times) {
+            Seq(2, 9, 10, 99) foreach {
+              putKey =>
+                println(s"putKey: $putKey")
+
+                val put = Memory.put(putKey, 1)
+
+                //first insert
+                val level =
+                  doInsert(
+                    memory = put,
+                    atomic = true,
+                    expectInserted = true,
+                    expectSkipList = List((putKey: Slice[Byte], put))
+                  )
+
+                val range = Memory.Range(1, 100, randomFromValue(), randomRangeValue())
+
+                val builder = MergeStats.random()
+
+                SegmentMerger.merge(
+                  newKeyValue = range,
+                  oldKeyValue = put,
+                  builder = builder,
+                  isLastLevel = false
+                )
+
+                val result = builder.keyValues.map(memory => (memory.key, memory))
+
+                //expect state changed since writes are not atomic
+                doInsert(
+                  memory = range,
+                  atomic = false,
+                  expectInserted = true,
+                  expectSkipList = result,
+                  level = level
+                )
+            }
+          }
+        }
+      }
+    }
+  }
+
+  "merge" should {
+    "combine two levels" when {
+      "overlapping fixed key-values" in {
+        val put = Memory.put(1)
+
+        val older =
+          doInsert(
+            memory = put,
+            atomic = true,
+            expectInserted = true,
+            expectSkipList = List((put.key, put))
+          )
+
+        val newer =
+          doInsert(
+            memory = put,
+            atomic = true,
+            expectInserted = true,
+            expectSkipList = List((put.key, put))
+          )
+
+        val merged = LevelZeroMapCache.merge(newer, older)
+        merged.hasRange shouldBe false
+
+        merged.skipList.toIterable.toList shouldBe List((put.key, put))
+      }
+
+      "non-overlapping fixed key-values" in {
+        val put1 = Memory.put(1)
+
+        val older =
+          doInsert(
+            memory = put1,
+            atomic = true,
+            expectInserted = true,
+            expectSkipList = List((put1.key, put1))
+          )
+
+        val put2 = Memory.put(2)
+
+        val newer =
+          doInsert(
+            memory = put2,
+            atomic = true,
+            expectInserted = true,
+            expectSkipList = List((put2.key, put2))
+          )
+
+        val merged = LevelZeroMapCache.merge(newer, older)
+        merged.hasRange shouldBe false
+
+        merged.skipList.toIterable.toList shouldBe List((put1.key, put1), (put2.key, put2))
+      }
+
+      "overlapping range key-values" in {
+        Seq(true, false) foreach {
+          atomic =>
+            println(s"Atomic: $atomic")
+
+            val range1 = Memory.Range(1, 100, randomFromValue(), randomRangeValue())
+
+            val older =
+              doInsert(
+                memory = range1,
+                atomic = atomic,
+                expectInserted = true,
+                expectSkipList = List((range1.key, range1))
+              )
+
+            val range2 = Memory.Range(50, 200, randomFromValue(), randomRangeValue())
+
+            val newer =
+              doInsert(
+                memory = range2,
+                atomic = atomic,
+                expectInserted = true,
+                expectSkipList = List((range2.key, range2))
+              )
+
+            val merged = LevelZeroMapCache.merge(newer, older)
+
+            merged.hasRange shouldBe true
+
+            val builder = MergeStats.random()
+
+            SegmentMerger.merge(
+              newKeyValue = range2,
+              oldKeyValue = range1,
+              builder = builder,
+              isLastLevel = false
+            )
+
+            val result = builder.keyValues.map(memory => (memory.key, memory))
+
+            merged.skipList.toIterable.toList shouldBe result
+        }
+      }
+
+      "overlapping fixed & range key-values" in {
+        Seq(true, false) foreach {
+          atomic =>
+            println(s"Atomic: $atomic")
+
+            val put1 = Memory.put(100)
+
+            val older =
+              doInsert(
+                memory = put1,
+                atomic = atomic,
+                expectInserted = true,
+                expectSkipList = List((put1.key, put1))
+              )
+
+            older.hasRange shouldBe false
+
+            val range2 = Memory.Range(50, 200, randomFromValue(), randomRangeValue())
+
+            val newer =
+              doInsert(
+                memory = range2,
+                atomic = atomic,
+                expectInserted = true,
+                expectSkipList = List((range2.key, range2))
+              )
+
+            newer.hasRange shouldBe true
+
+            val merged = LevelZeroMapCache.merge(newer, older)
+
+            merged.hasRange shouldBe true
+
+            val builder = MergeStats.random()
+
+            SegmentMerger.merge(
+              newKeyValue = range2,
+              oldKeyValue = put1,
+              builder = builder,
+              isLastLevel = false
+            )
+
+            val result = builder.keyValues.map(memory => (memory.key, memory))
+
+            merged.skipList.toIterable.toList shouldBe result
+        }
+      }
+    }
+  }
+
+  "writeAtomic" should {
     "insert a Fixed value to an empty skipList" in {
       val cache = LevelZeroMapCache.builder.create()
 
@@ -56,6 +471,8 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.flattenClear should have size 1
 
       cache.flattenClear.toIterable.head shouldBe ((1: Slice[Byte], put))
+
+      cache.levels.size shouldBe 1
     }
 
     "insert multiple fixed key-values" in {
@@ -67,6 +484,8 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
           cache.writeAtomic(MapEntry.Put(i, Memory.put(i, i)))
       }
 
+      cache.levels.size shouldBe 1
+
       cache.flattenClear should have size 10
 
       cache.flattenClear.iterator.zipWithIndex foreach {
@@ -77,18 +496,22 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     }
 
     "insert multiple non-overlapping ranges" in {
-      //10 | 20 | 40 | 100
-      //1  | 10 | 30 | 50
+      //10 - 20, 30 - 40, 50 - 100
+      //10 - 20, 30 - 40, 50 - 100
       val cache = LevelZeroMapCache.builder.create()
 
       cache.writeAtomic(MapEntry.Put(10, Memory.Range(10, 20, Value.FromValue.Null, Value.remove(None))))
       cache.writeAtomic(MapEntry.Put(30, Memory.Range(30, 40, Value.FromValue.Null, Value.update(40))))
       cache.writeAtomic(MapEntry.Put(50, Memory.Range(50, 100, Value.put(20), Value.remove(None))))
 
+      cache.levels.size shouldBe 1
+
       val skipListArray = cache.flattenClear.toIterable.toArray
       skipListArray(0) shouldBe ((10: Slice[Byte], Memory.Range(10, 20, Value.FromValue.Null, Value.remove(None))))
       skipListArray(1) shouldBe ((30: Slice[Byte], Memory.Range(30, 40, Value.FromValue.Null, Value.update(40))))
       skipListArray(2) shouldBe ((50: Slice[Byte], Memory.Range(50, 100, Value.put(20), Value.remove(None))))
+
+      cache.levels.size shouldBe 1
     }
 
     "insert overlapping ranges when insert fromKey is less than existing range's fromKey" in {
@@ -233,14 +656,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
       cache.writeNonAtomic(MapEntry.Put(2, Memory.Range(2, 5, Value.FromValue.Null, Value.remove(None))))
 
-      cache.flattenClear match {
-        case series: SkipListSeries[_, _, _, _] =>
-          //series will not physically remove the key-value but nulls the valye.
-          series should have size 4
-
-        case _ =>
-          cache.flattenClear should have size 3
-      }
+      cache.flattenClear should have size 3
 
       cache.flattenClear.get(1: Slice[Byte]).getS shouldBe Memory.put(1, 1)
       cache.flattenClear.get(2: Slice[Byte]).getS shouldBe Memory.Range(2, 5, Value.FromValue.Null, Value.remove(None))
@@ -251,14 +667,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.writeNonAtomic(MapEntry.Put(5, Memory.remove(5)))
       cache.flattenClear.get(5: Slice[Byte]).getS shouldBe Memory.remove(5)
 
-      cache.flattenClear match {
-        case series: SkipListSeries[_, _, _, _] =>
-          //series will not physically remove the key-value but nulls the valye.
-          series should have size 4
-
-        case _ =>
-          cache.flattenClear should have size 3
-      }
+      cache.flattenClear should have size 3
     }
 
     "remove range when cache.asMergedSkipList is empty" in {

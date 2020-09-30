@@ -53,5 +53,5 @@ protected object Aggregator {
     }
 
   def listBuffer[A]: Aggregator[A, ListBuffer[A]] =
-    Aggregator.listBuffer
+    Aggregator.fromBuilder(ListBuffer.newBuilder)
 }
