@@ -68,7 +68,7 @@ private[core] object SkipListSeries {
   def randomWriteWarning(count: Int) =
     s"Performance warning! Random write inserted $count ${English.plural(count, "time")}. " +
       s"${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.SequentialOrder].getSimpleName} is not optimised for random writes. " +
-      s"Consider using ${OptimiseWrites.productPrefix}.${OptimiseWrites.RandomOrder.productPrefix}."
+      s"Consider using ${OptimiseWrites.productPrefix}.${classOf[OptimiseWrites.RandomOrder].getSimpleName}."
 
   def apply[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](lengthPerSeries: Int,
                                                                             nullKey: OptionKey,

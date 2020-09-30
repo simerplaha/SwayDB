@@ -1763,9 +1763,9 @@ object CommonAssertions {
   implicit class OptimiseWritesImplicits(optimise: OptimiseWrites.type) {
     def random: OptimiseWrites =
       if (randomBoolean())
-        OptimiseWrites.RandomOrder
+        OptimiseWrites.RandomOrder(randomIntMax(10))
       else
-        OptimiseWrites.SequentialOrder(randomIntMax(100) max 1)
+        OptimiseWrites.SequentialOrder(randomIntMax(10), randomIntMax(100))
   }
 
   implicit val keyMatcherResultEquality: Equality[KeyMatcher.Result] =

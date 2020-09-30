@@ -146,5 +146,5 @@ object DefaultConfigs {
     )
 
   def optimiseWrites(): OptimiseWrites =
-    OptimiseWrites.RandomOrder
+    swaydb.persistent.DefaultConfigs.optimiseWrites()
 }

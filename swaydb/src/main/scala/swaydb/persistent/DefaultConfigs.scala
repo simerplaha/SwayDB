@@ -60,8 +60,12 @@ object DefaultConfigs {
       compressions = _ => Seq.empty
     )
 
+  /**
+   * Optimise writes for Random insert and allow a maximum transaction queue
+   * size of 10 before merging.
+   */
   def optimiseWrites(): OptimiseWrites =
-    OptimiseWrites.RandomOrder
+    OptimiseWrites.RandomOrder(transactionQueueMaxSize = 10)
 
   def randomKeyIndex(cacheDataBlockOnAccess: Boolean = true): RandomKeyIndex.Enable =
     RandomKeyIndex.Enable(

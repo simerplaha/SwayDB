@@ -52,5 +52,5 @@ object DefaultConfigs {
     swaydb.persistent.DefaultConfigs.levelSixThrottle(meter)
 
   def optimiseWrites(): OptimiseWrites =
-    OptimiseWrites.RandomOrder
+    swaydb.persistent.DefaultConfigs.optimiseWrites()
 }

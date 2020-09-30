@@ -24,12 +24,31 @@
 
 package swaydb.data
 
-sealed trait OptimiseWrites
+sealed trait OptimiseWrites {
+  def transactionQueueMaxSize: Int
+}
 
 case object OptimiseWrites {
 
-  case object RandomOrder extends OptimiseWrites
+  /**
+   * Always use this setting if writes are in random order or when unsure.
+   *
+   * @param transactionQueueMaxSize sets the max number of pending transactions
+   *                                before they are merged with other transactions.
+   */
+  case class RandomOrder(transactionQueueMaxSize: Int) extends OptimiseWrites
 
-  case class SequentialOrder(initialLength: Int) extends OptimiseWrites
+  /**
+   * Optimises writes for sequential order. Eg: if you insert are simple
+   * sequential put eg - 1, 2, 3 ... N with [[swaydb.data.order.KeyOrder.integer]].
+   * Then this setting would yield faster write throughput.
+   *
+   * @param transactionQueueMaxSize sets the max number of pending transactions
+   *                                before they are merged with other transactions.
+   * @param initialSkipListLength   set the initial length of SkipList's Array.
+   *                                The Array is extended if the size is too small.
+   */
+  case class SequentialOrder(transactionQueueMaxSize: Int,
+                             initialSkipListLength: Int) extends OptimiseWrites
 
 }

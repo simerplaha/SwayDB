@@ -74,15 +74,15 @@ private[core] object LevelZeroMapCache {
   private[zero] def newSkipList()(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   optimiseWrites: OptimiseWrites): SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
     optimiseWrites match {
-      case OptimiseWrites.RandomOrder =>
+      case OptimiseWrites.RandomOrder(_) =>
         SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           nullKey = Slice.Null,
           nullValue = Memory.Null
         )
 
-      case OptimiseWrites.SequentialOrder(initialLength) =>
+      case OptimiseWrites.SequentialOrder(transactionQueueMaxSize, initialSkipListLength) =>
         SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
-          lengthPerSeries = initialLength,
+          lengthPerSeries = initialSkipListLength,
           nullKey = Slice.Null,
           nullValue = Memory.Null
         )
@@ -300,10 +300,10 @@ private[core] object LevelZeroMapCache {
     } else {
       val optimiseWritesUpdated =
         optimiseWrites match {
-          case OptimiseWrites.RandomOrder =>
+          case OptimiseWrites.RandomOrder(_) =>
             optimiseWrites
 
-          case OptimiseWrites.SequentialOrder(_) =>
+          case order @ OptimiseWrites.SequentialOrder(_, _) =>
             val newSize =
               (upper.size + lower.size) * {
                 if (upperHasRange || lowerHasRange)
@@ -312,7 +312,7 @@ private[core] object LevelZeroMapCache {
                   1
               }
 
-            OptimiseWrites.SequentialOrder(newSize)
+            order.copy(initialSkipListLength = newSize)
         }
 
       val aggregator: Aggregator[Memory, MergeSkipList[Memory]] =
@@ -344,7 +344,7 @@ private[core] object LevelZeroMapCache {
                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                              functionStore: FunctionStore,
                                                                              optimiseWrites: OptimiseWrites): Unit =
-    if (levels.size > maxQueueSize) {
+    if (levels.size > (maxQueueSize max 2)) {
       val secondLastAndLast = levels.takeRight2OrNull()
 
       if (secondLastAndLast != null) {
@@ -391,7 +391,7 @@ private[core] class LevelZeroMapCache private(@volatile private var _levels: Vol
         newSkipList =>
           levels.addHead(newSkipList)
           LevelZeroMapCache.mergeEndMayBe(
-            maxQueueSize = 5,
+            maxQueueSize = optimiseWrites.transactionQueueMaxSize,
             levels = levels
           )
       }
