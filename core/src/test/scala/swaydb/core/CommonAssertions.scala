@@ -1762,10 +1762,16 @@ object CommonAssertions {
 
   implicit class OptimiseWritesImplicits(optimise: OptimiseWrites.type) {
     def random: OptimiseWrites =
+      random(transactionQueueMaxSize = randomIntMax(10))
+
+    def random(transactionQueueMaxSize: Int): OptimiseWrites =
       if (randomBoolean())
-        OptimiseWrites.RandomOrder(randomIntMax(10))
+        OptimiseWrites.RandomOrder(transactionQueueMaxSize)
       else
-        OptimiseWrites.SequentialOrder(randomIntMax(10), randomIntMax(100))
+        OptimiseWrites.SequentialOrder(
+          transactionQueueMaxSize = transactionQueueMaxSize,
+          initialSkipListLength = randomIntMax(100)
+        )
   }
 
   implicit val keyMatcherResultEquality: Equality[KeyMatcher.Result] =

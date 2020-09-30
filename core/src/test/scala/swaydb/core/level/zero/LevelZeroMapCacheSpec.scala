@@ -28,7 +28,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.core.data.{Memory, Value}
+import swaydb.core.data.Value.FromValue
+import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
@@ -756,6 +757,42 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
       cache.flattenClear.get(8: Slice[Byte]).getS shouldBe Memory.Range(8, 9, Value.put(8), Value.remove(None))
       cache.flattenClear.get(9: Slice[Byte]).getS shouldBe Memory.Range(9, 10, Value.put(9), Value.remove(None))
       cache.flattenClear.get(10: Slice[Byte]).getS shouldBe Memory.put(10, 10)
+    }
+  }
+
+  "merge last two levels" when {
+    "limit is reached" in {
+      runThis(100.times, log = true) {
+        implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random(3)
+
+        optimiseWrites.transactionQueueMaxSize shouldBe 3
+
+        val cache = LevelZeroMapCache.builder.create()
+
+        cache.writeAtomic(MapEntry.Put(1, Memory.Put(1, "old", None, Time.empty)))
+        cache.writeAtomic(MapEntry.Put(1, Memory.Range(1, 100, FromValue.Null, Value.Update("update1", None, Time.empty))))
+        //outcome is still one since put and range have the same key
+        cache.levels.size shouldBe 1
+
+        cache.writeAtomic(MapEntry.Put(1, Memory.Range(50, 100, FromValue.Null, Value.Update("update2", None, Time.empty))))
+        //no collapse occurs
+        cache.levels.size shouldBe 2
+
+        cache.writeAtomic(MapEntry.Put(1, Memory.Range(75, 100, FromValue.Null, Value.Update("update3", None, Time.empty))))
+        //collapse occurs
+        cache.levels.size shouldBe 2
+
+        //newest
+        cache.levels.headOrNull().skipList.values().size shouldBe 1
+        cache.levels.headOrNull().skipList.values().toList.last shouldBe Memory.Range(75, 100, FromValue.Null, Value.Update("update3", None, Time.empty))
+
+        cache.levels.lastOrNull().skipList.values().size shouldBe 2
+        cache.levels.lastOrNull().skipList.values().toList shouldBe
+          List(
+            Memory.Range(1, 50, Value.Put("update1", None, Time.empty), Value.Update("update1", None, Time.empty)),
+            Memory.Range(50, 100, FromValue.Null, Value.Update("update2", None, Time.empty))
+          )
+      }
     }
   }
 }

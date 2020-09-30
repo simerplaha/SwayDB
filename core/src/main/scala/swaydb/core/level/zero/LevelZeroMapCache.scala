@@ -365,7 +365,7 @@ private[core] object LevelZeroMapCache {
                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                              functionStore: FunctionStore,
                                                                              optimiseWrites: OptimiseWrites): Unit =
-    if (levels.size > (maxQueueSize max 2)) {
+    if (levels.size >= (maxQueueSize max 2)) {
       val secondLastAndLast = levels.takeRight2OrNull()
 
       if (secondLastAndLast != null) {
