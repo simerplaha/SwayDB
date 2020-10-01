@@ -291,7 +291,7 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
       (1 to 1000).par foreach {
         _ =>
           val result =
-            skipList.transaction(from = 1, to = 1, toInclusive = true, AtomicRanges.Action.Write) {
+            skipList.writeTransaction(from = 1, to = 1, toInclusive = true) {
               val boolean = skipList.get(1)
 
               //when this code block is executed boolean is always false!

@@ -24,7 +24,7 @@
 
 package swaydb.core.util.skiplist
 
-import swaydb.Bag
+import swaydb.{Bag, OK}
 import swaydb.core.util.AtomicRanges
 import swaydb.data.order.KeyOrder
 
@@ -79,8 +79,11 @@ private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
   def iterator: Iterator[(K, V)]
   def valuesIterator: Iterator[V]
 
-  def transaction[T, BAG[_]](from: K, to: K, toInclusive: Boolean, action: AtomicRanges.Action)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
-    ranges.transaction(from, to, toInclusive, action)(f)
+  def writeTransaction[T, BAG[_]](from: K, to: K, toInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
+    ranges.writeTransaction(from, to, toInclusive)(f)
+
+  def readTransaction[T, BAG[_]](getKey: T => K)(f: SkipList[OK, OV, K, V] => T)(implicit bag: Bag[BAG]): BAG[T] =
+    ranges.readTransaction(this, getKey)(f)
 
   @inline final def toOptionValue(entry: java.util.Map.Entry[K, V]): OV =
     if (entry == null)

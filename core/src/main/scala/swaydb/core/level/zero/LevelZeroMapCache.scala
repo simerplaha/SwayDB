@@ -247,7 +247,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
       if (atomic) {
         implicit val bag = Bag.less
         val sorted = entries.sortBy(_.key)(keyOrder)
-        state.skipList.transaction(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange, Action.Write) {
+        state.skipList.writeTransaction(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange) {
           LevelZeroMapCache.put(
             head = entries.head,
             tail = entries.tail,
