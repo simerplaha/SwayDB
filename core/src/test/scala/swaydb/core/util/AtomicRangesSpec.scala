@@ -102,12 +102,32 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
       }
     }
 
-    "write on write with different keys" in {
+    "write on write with overlapping ranges" in {
       runThis(10.times) {
         val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
 
-        val key1 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Write)
-        val key2 = new AtomicRanges.Key(2, 10, true, readOrWriteAction())
+        //these keys are overlapping
+        val key1 = new AtomicRanges.Key(5, 10, true, AtomicRanges.Action.Write)
+        val key2 = new AtomicRanges.Key(1, 5, true, AtomicRanges.Action.Write)
+
+        val value1 = new AtomicRanges.Value(1)
+        val value2 = new AtomicRanges.Value(2)
+
+        map.put(key1, value1)
+        map.put(key2, value2)
+
+        map.size() shouldBe 1
+        map.get(key1) shouldBe value2
+        map.get(key2) shouldBe value2
+      }
+    }
+
+    "write on write with non-v=overlapping ranges" in {
+      runThis(10.times) {
+        val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
+
+        val key1 = new AtomicRanges.Key(5, 10, true, AtomicRanges.Action.Write)
+        val key2 = new AtomicRanges.Key(1, 4, true, readOrWriteAction())
 
         val value1 = new AtomicRanges.Value(1)
         val value2 = new AtomicRanges.Value(2)

@@ -29,10 +29,9 @@ import java.util.concurrent.atomic.AtomicLong
 
 import swaydb.Bag
 import swaydb.Bag.Implicits._
-import swaydb.core.util.AtomicRanges.{Action, Key, Value}
+import swaydb.core.util.AtomicRanges.{Action, Value}
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
-import swaydb.data.util.Options
 
 import scala.annotation.tailrec
 
@@ -59,25 +58,34 @@ object AtomicRanges {
   object Key {
     def order[K](implicit ordering: Ordering[K]): Ordering[Key[K]] =
       new Ordering[Key[K]] {
-        override def compare(x: Key[K], y: Key[K]): Int = {
-          val order = ordering.compare(x.fromKey, y.fromKey)
+        override def compare(left: Key[K], right: Key[K]): Int = {
 
-          if (order == 0)
-            x.action match {
-              case xRead @ Action.Read() =>
-                y.action match {
-                  case yRead @ Action.Read() =>
-                    xRead.readerId.compareTo(yRead.readerId)
+          def intersects() =
+            Slice.intersects[K](
+              range1 = (left.fromKey, left.toKey, left.toKeyInclusive),
+              range2 = (right.fromKey, right.toKey, right.toKeyInclusive)
+            )(ordering)
 
-                  case Action.Write =>
-                    0
-                }
-
-              case Action.Write =>
+          left.action match {
+            case Action.Write =>
+              if (intersects())
                 0
-            }
-          else
-            order
+              else
+                ordering.compare(left.fromKey, right.fromKey)
+
+            case leftRead @ Action.Read() =>
+              right.action match {
+                case rightRead @ Action.Read() =>
+                  leftRead.readerId.compareTo(rightRead.readerId)
+
+                case Action.Write =>
+                  if (intersects())
+                    0
+                  else
+                    ordering.compare(left.fromKey, right.fromKey)
+              }
+
+          }
         }
       }
   }
@@ -88,8 +96,7 @@ object AtomicRanges {
   def apply[K]()(implicit ordering: Ordering[K]): AtomicRanges[K] = {
     val keyOrder = Key.order(ordering)
     val skipList = new ConcurrentSkipListMap[Key[K], Value[Reserve[Unit]]](keyOrder)
-    val accessReserve = Reserve.free[Unit]("Root Access Reserve")
-    new AtomicRanges[K](skipList, accessReserve)
+    new AtomicRanges[K](skipList)
   }
 
   def execute[K, T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean, action: Action, f: => T)(implicit bag: Bag[BAG],
@@ -103,65 +110,33 @@ object AtomicRanges {
   @tailrec
   private def execute[K, T, BAG[_]](key: Key[K], value: Value[Reserve[Unit]], f: => T)(implicit bag: Bag[BAG],
                                                                                        transaction: AtomicRanges[K]): BAG[T] = {
+    val putResult = transaction.skipList.putIfAbsent(key, value)
 
-    if (Reserve.compareAndSet(Options.unit, transaction.accessReserve)) {
-      val floor = transaction.skipList.floorEntry(key)
+    if (putResult == null)
+      try
+        bag.success(f)
+      catch {
+        case exception: Throwable =>
+          bag.failure(exception)
 
-      def floorIntersects(): Boolean =
-        Slice.intersects(
-          range1 = (floor.getKey.fromKey, floor.getKey.toKey, floor.getKey.toKeyInclusive),
-          range2 = (key.fromKey, key.toKey, key.toKeyInclusive)
-        )(transaction.ordering)
-
-      if (floor == null || !floorIntersects()) {
-        if (transaction.skipList.putIfAbsent(key, value) == null) {
-          try {
-            Reserve.setFree(transaction.accessReserve)
-            bag.success(f)
-          } catch {
-            case exception: Exception =>
-              bag.failure(exception)
-
-          } finally {
-            transaction.skipList.remove(key)
-            Reserve.setFree(value.value)
-          }
-        } else {
-          Reserve.setFree(transaction.accessReserve)
-          execute(key, value, f)
-        }
-      } else {
-        Reserve.setFree(transaction.accessReserve)
-
-        bag match {
-          case _: Bag.Sync[BAG] =>
-            Reserve.blockUntilFree(floor.getValue.value)
-            execute(key, value, f)
-
-          case async: Bag.Async[BAG] =>
-            reserveAsync(
-              key = key,
-              value = value,
-              busyReserve = floor.getValue.value,
-              f = f
-            )(async, transaction)
-        }
+      } finally {
+        transaction.skipList.remove(key)
+        Reserve.setFree(value.value)
       }
-    } else {
+    else
       bag match {
         case _: Bag.Sync[BAG] =>
-          Reserve.blockUntilFree(transaction.accessReserve)
+          Reserve.blockUntilFree(putResult.value)
           execute(key, value, f)
 
         case async: Bag.Async[BAG] =>
           reserveAsync(
             key = key,
             value = value,
-            busyReserve = transaction.accessReserve,
+            busyReserve = putResult.value,
             f = f
           )(async, transaction)
       }
-    }
   }
 
   private def reserveAsync[K, T, BAG[_]](key: Key[K],
@@ -174,8 +149,7 @@ object AtomicRanges {
       .and(execute(key, value, f))
 }
 
-class AtomicRanges[K](private val skipList: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]],
-                      private val accessReserve: Reserve[Unit])(implicit val ordering: Ordering[K]) {
+class AtomicRanges[K](private val skipList: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val ordering: Ordering[K]) {
 
   def execute[T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean, action: Action)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
     AtomicRanges.execute(fromKey, toKey, toKeyInclusive, action, f)(bag, this)
