@@ -29,8 +29,6 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.util.AtomicRanges
-import swaydb.core.util.AtomicRanges.Action
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -249,8 +247,8 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
         val sorted = entries.sortBy(_.key)(keyOrder)
         state.skipList.writeTransaction(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange) {
           LevelZeroMapCache.put(
-            head = entries.head,
-            tail = entries.tail,
+            head = sorted.head,
+            tail = sorted.tail,
             state = state
           )
         }
@@ -282,6 +280,9 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
 
   override def iterator: Iterator[(Slice[Byte], Memory)] =
     state.skipList.iterator
+
+  def getAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
+    state.skipList.readTransaction(_.key)(_.get(key))
 
   def skipList =
     state.skipList

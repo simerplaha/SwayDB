@@ -993,7 +993,7 @@ private[swaydb] case class LevelZero(path: Path,
     val mightContainInMaps =
       maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](
         nullResult = Memory.Null,
-        flatMap = _.cache.skipList,
+        transform = _.cache.skipList,
         matcher = _.get(key)
       )
 
@@ -1003,7 +1003,7 @@ private[swaydb] case class LevelZero(path: Path,
   private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =
     maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Boolean](
       nullResult = false,
-      flatMap = _.cache.skipList,
+      transform = _.cache.skipList,
       matcher =
         skipList =>
           skipList.values() exists {

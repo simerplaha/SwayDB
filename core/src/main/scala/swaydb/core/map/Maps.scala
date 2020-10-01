@@ -447,11 +447,11 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
   }
 
   def find[A >: Null, B](nullResult: B,
-                         flatMap: Map[K, V, C] => A,
+                         transform: Map[K, V, C] => A,
                          matcher: A => B): B =
     findFirst[A, B](
       nullResult = nullResult,
-      transform = flatMap,
+      transform = transform,
       finder = matcher
     )
 
