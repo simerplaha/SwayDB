@@ -41,7 +41,7 @@ object SkipListConcurrent {
 
 private[core] class SkipListConcurrent[OK, OV, K <: OK, V <: OV] private(@volatile protected var skipList: ConcurrentSkipListMap[K, V],
                                                                          val nullKey: OK,
-                                                                         val nullValue: OV)(implicit ordering: KeyOrder[K]) extends SkipListNavigable[OK, OV, K, V](skipList.size()) with SkipListBatchable[OK, OV, K, V] {
+                                                                         val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipListNavigable[OK, OV, K, V](skipList.size()) with SkipListBatchable[OK, OV, K, V] {
 
   /**
    * Does not support concurrent batch writes since it's only being used by [[swaydb.core.level.Level]] which

@@ -54,18 +54,18 @@ object SkipListConcurrentLimit {
 private[core] class SkipListConcurrentLimit[OK, OV, K <: OK, V <: OV](limit: Int,
                                                                       skipList: SkipListConcurrent[OK, OV, K, V],
                                                                       val nullKey: OK,
-                                                                      val nullValue: OV)(implicit ordering: KeyOrder[K]) extends SkipList[OK, OV, K, V] {
+                                                                      val nullValue: OV)(implicit val keyOrder: KeyOrder[K]) extends SkipList[OK, OV, K, V] {
 
   def dropOverflow(key: K): Unit =
     while (skipList.size > limit)
       try {
         val firstKey = skipList.headKeyOrNull
-        if (ordering.lteq(key, firstKey)) {
+        if (keyOrder.lteq(key, firstKey)) {
           skipList.pollLastEntry()
         } else {
           val lastKey = skipList.lastKeyOrNull
           if (lastKey != null)
-            if (ordering.gteq(key, lastKey) || Random.nextBoolean())
+            if (keyOrder.gteq(key, lastKey) || Random.nextBoolean())
               skipList.pollLastEntry()
             else
               skipList.pollFirstEntry()
