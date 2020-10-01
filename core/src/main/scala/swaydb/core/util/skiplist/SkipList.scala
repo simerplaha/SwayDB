@@ -32,7 +32,7 @@ private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
 
   def keyOrder: KeyOrder[K]
 
-  lazy val ranges = AtomicRanges[K]()(keyOrder)
+  private lazy val ranges = AtomicRanges[K]()(keyOrder)
 
   def nullKey: OK
   def nullValue: OV

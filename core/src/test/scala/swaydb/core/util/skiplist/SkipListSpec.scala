@@ -25,19 +25,25 @@
 package swaydb.core.util.skiplist
 
 import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.Bag
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
+import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._
 
+import scala.collection.parallel.CollectionConverters.ImmutableIterableIsParallelizable
+import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
-import scala.util.Random
+import scala.util.{Random, Try}
 
 class Concurrent_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
@@ -51,7 +57,7 @@ class TreeMap_SkipListSpec extends SkipListSpec {
 
 class Series_Length10_SkipListSpec extends SkipListSpec {
   override def create[NK, NV, K <: NK, V <: NV](nullKey: NK, nullValue: NV)(implicit keyOrder: KeyOrder[K]): SkipList[NK, NV, K, V] =
-    SkipListSeries[NK, NV, K, V](lengthPerSeries = 10,  nullKey = nullKey, nullValue = nullValue)
+    SkipListSeries[NK, NV, K, V](lengthPerSeries = 10, nullKey = nullKey, nullValue = nullValue)
 }
 
 class Series_Length1_SkipListSpec extends SkipListSpec {
@@ -270,6 +276,50 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
             scalaResult shouldBe javaResult
           }
         }
+      }
+    }
+  }
+
+  "transaction" should {
+
+    def runTest[BAG[_]](await: BAG[Unit] => Unit)(implicit bag: Bag[BAG]) = {
+      val skipList = create[Int, AtomicBoolean, Int, AtomicBoolean](Int.MinValue, null)(KeyOrder(Ordering.Int))
+
+      skipList.put(1, new AtomicBoolean(false))
+
+      (1 to 1000).par foreach {
+        _ =>
+          val result =
+            skipList.transaction(from = 1, to = 1, toInclusive = true) {
+              val boolean = skipList.get(1)
+
+              //when this code block is executed boolean is always false!
+              boolean.get() shouldBe false
+              boolean.set(true)
+
+              //allow some time for threads to concurrently access this value
+              eitherOne(sleep(randomIntMax(10).milliseconds), ())
+
+              boolean.set(false)
+            }
+
+          await(result)
+      }
+    }
+
+    "not allow concurrent updated" when {
+      //run for each bag
+
+      "bag.less" in {
+        runTest[Bag.Less](result => result)
+      }
+
+      "try" in {
+        runTest[Try](_.get)
+      }
+
+      "future" in {
+        runTest[Future](_.await(10.seconds))(Bag.future(TestExecutionContext.executionContext))
       }
     }
   }
