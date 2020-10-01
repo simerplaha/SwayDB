@@ -37,6 +37,7 @@ import swaydb.serializers._
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestExecutionContext
+import swaydb.core.util.AtomicRanges
 import swaydb.data.RunThis._
 
 import scala.collection.parallel.CollectionConverters.ImmutableIterableIsParallelizable
@@ -290,7 +291,7 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
       (1 to 1000).par foreach {
         _ =>
           val result =
-            skipList.transaction(from = 1, to = 1, toInclusive = true) {
+            skipList.transaction(from = 1, to = 1, toInclusive = true, AtomicRanges.Action.Write) {
               val boolean = skipList.get(1)
 
               //when this code block is executed boolean is always false!

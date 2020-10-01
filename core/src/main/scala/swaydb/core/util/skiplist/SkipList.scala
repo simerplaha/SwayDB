@@ -79,8 +79,8 @@ private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
   def iterator: Iterator[(K, V)]
   def valuesIterator: Iterator[V]
 
-  def transaction[T, BAG[_]](from: K, to: K, toInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
-    ranges.execute(from, to, toInclusive)(f)
+  def transaction[T, BAG[_]](from: K, to: K, toInclusive: Boolean, action: AtomicRanges.Action)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
+    ranges.execute(from, to, toInclusive, action)(f)
 
   @inline final def toOptionValue(entry: java.util.Map.Entry[K, V]): OV =
     if (entry == null)

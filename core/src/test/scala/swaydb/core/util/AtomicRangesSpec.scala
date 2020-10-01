@@ -24,6 +24,8 @@
 
 package swaydb.core.util
 
+import java.util.concurrent.ConcurrentSkipListMap
+
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Bag.Less
@@ -37,7 +39,6 @@ import swaydb.{Bag, IO}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
-
 
 class AtomicRanges_FutureSpec extends AtomicRangesSpec[Future]()(Bag.future(TestExecutionContext.executionContext)) {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)
@@ -82,6 +83,98 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
   implicit val ec = TestExecutionContext.executionContext
 
+  def readOrWriteAction(): AtomicRanges.Action =
+    eitherOne(AtomicRanges.Action.Read(), AtomicRanges.Action.Write)
+
+  "ordering" when {
+    "write on write with same keys" in {
+      runThis(10.times) {
+        val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
+
+        val key = new AtomicRanges.Key(1, 10, true, readOrWriteAction())
+        val value = new AtomicRanges.Value(0)
+
+        map.put(key, value)
+        map.put(key, value)
+
+        map.size() shouldBe 1
+        map.get(key) shouldBe value
+      }
+    }
+
+    "write on write with different keys" in {
+      runThis(10.times) {
+        val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
+
+        val key1 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Write)
+        val key2 = new AtomicRanges.Key(2, 10, true, readOrWriteAction())
+
+        val value1 = new AtomicRanges.Value(1)
+        val value2 = new AtomicRanges.Value(2)
+
+        map.put(key1, value1)
+        map.put(key2, value2)
+
+        map.size() shouldBe 2
+        map.get(key1) shouldBe value1
+        map.get(key2) shouldBe value2
+      }
+    }
+
+    "read on read with same keys will yield different" in {
+      val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
+
+      val key1 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Read())
+      val key2 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Read())
+
+      val value1 = new AtomicRanges.Value(1)
+      val value2 = new AtomicRanges.Value(2)
+
+      map.put(key1, value1)
+      map.put(key2, value2)
+
+      map.size() shouldBe 2
+      map.get(key1) shouldBe value1
+      map.get(key2) shouldBe value2
+    }
+
+    "read on write" in {
+      val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
+
+      val readKey1 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Read())
+      val readKey2 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Read())
+      val value1 = new AtomicRanges.Value(1)
+      val value2 = new AtomicRanges.Value(2)
+
+      val writeKey = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Write)
+      val value3 = new AtomicRanges.Value(3)
+
+      //insert read keys
+      map.put(readKey1, value1)
+      map.put(readKey2, value2)
+
+      map.size() shouldBe 2
+
+      //it contains writeKey since writeKey and read keys are same
+      map.containsKey(writeKey) shouldBe true
+
+      //remove readKey1 and it still contains write key
+      map.remove(readKey1)
+      map.containsKey(writeKey) shouldBe true
+
+      //remove readKey2 results in an empty map now the contains returns false
+      map.remove(readKey2)
+      map.isEmpty shouldBe true
+      map.containsKey(writeKey) shouldBe false
+
+      //insert the write key this time and check for read key.
+      map.put(writeKey, value3)
+      map.containsKey(writeKey) shouldBe true
+      map.containsKey(readKey1) shouldBe true
+      map.containsKey(readKey2) shouldBe true
+    }
+  }
+
   "execute" when {
     "no overlaps" in {
       implicit val atomic = AtomicRanges[Int]()
@@ -89,7 +182,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
       @volatile var executed = false
 
       atomic
-        .execute(fromKey = 1, toKey = 10, toKeyInclusive = randomBoolean()) {
+        .execute(fromKey = 1, toKey = 10, toKeyInclusive = randomBoolean(), AtomicRanges.Action.Write) {
           executed = true
         }
         .await
@@ -101,36 +194,38 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
     "overlaps" when {
       "exist is exclusive" in {
-        implicit val ranges = AtomicRanges[Int]()
+        runThis(10.times, log = true) {
+          implicit val ranges = AtomicRanges[Int]()
 
-        @volatile var firstExecuted: Long = 0
-        @volatile var secondExecuted: Long = 0
+          @volatile var firstExecuted: Long = 0
+          @volatile var secondExecuted: Long = 0
 
-        //execute first
-        val future =
+          //execute first
+          val future =
+            Future {
+              ranges
+                .execute(fromKey = 10, toKey = 20, toKeyInclusive = true, AtomicRanges.Action.Write) {
+                  sleep(1.second)
+                  firstExecuted = System.nanoTime()
+                  println("First executed")
+                }
+            }
+
           Future {
-            ranges
-              .execute(fromKey = 10, toKey = 20, toKeyInclusive = true) {
-                sleep(1.second)
-                firstExecuted = System.nanoTime()
-                println("First executed")
-              }
-          }
+            ranges.execute(fromKey = 20, toKey = 30, toKeyInclusive = false, readOrWriteAction()) {
+              secondExecuted = System.nanoTime()
+              println("Second executed")
+            }.await
+          }.await(2.seconds)
 
-        Future {
-          ranges.execute(fromKey = 20, toKey = 30, toKeyInclusive = false) {
-            secondExecuted = System.nanoTime()
-            println("Second executed")
-          }.await
-        }.await(2.seconds)
+          //second will only occur after first
+          future.isCompleted shouldBe true
 
-        //second will only occur after first
-        future.isCompleted shouldBe true
+          firstExecuted should be < secondExecuted
 
-        firstExecuted should be < secondExecuted
-
-        future.await
-        ranges.isEmpty shouldBe true
+          future.await
+          ranges.isEmpty shouldBe true
+        }
       }
 
       "exist is non-exclusive" in {
@@ -148,7 +243,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
               val first =
                 Future {
                   ranges
-                    .execute(fromKey = 10, toKey = 20, toKeyInclusive = false) {
+                    .execute(fromKey = 10, toKey = 20, toKeyInclusive = false, AtomicRanges.Action.Write) {
                       sleep(3.second)
                       firstExecuted = System.nanoTime()
                       println("First executed")
@@ -160,7 +255,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
               //execute second - [20 - 30] //20 is exclusive in first execution
               Future {
-                ranges.execute(fromKey = 20, toKey = 30, toKeyInclusive = secondToInclusive) {
+                ranges.execute(fromKey = 20, toKey = 30, toKeyInclusive = secondToInclusive, readOrWriteAction()) {
                   secondExecuted = System.nanoTime()
                   println("Second executed")
                 }.await
@@ -207,7 +302,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
           //execute first
           Future {
             ranges
-              .execute(fromKey = rangeToReserve._1, toKey = rangeToReserve._2, toKeyInclusive = true) {
+              .execute(fromKey = rangeToReserve._1, toKey = rangeToReserve._2, toKeyInclusive = true, readOrWriteAction()) {
                 sleep(50.milliseconds)
                 firstExecuted = System.nanoTime()
                 println("First executed")
@@ -216,7 +311,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
           val future2 =
             Future {
-              ranges.execute(fromKey = from, toKey = to, toKeyInclusive = true) {
+              ranges.execute(fromKey = from, toKey = to, toKeyInclusive = true, AtomicRanges.Action.Write) {
                 secondExecuted = System.nanoTime()
                 println("Second executed")
               }.await
@@ -244,7 +339,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
         //execute first
         Future {
           ranges
-            .execute(fromKey = from, toKey = to, toKeyInclusive = true) {
+            .execute(fromKey = from, toKey = to, toKeyInclusive = true, readOrWriteAction()) {
               eitherOne(sleep(randomIntMax(20).milliseconds), ()) //sleep optionally
               throw new Exception("Failed one")
             }.await
@@ -254,7 +349,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
         val to2 = from2 + randomIntMax(10)
 
         Future {
-          ranges.execute(fromKey = from2, toKey = to2, toKeyInclusive = true) {
+          ranges.execute(fromKey = from2, toKey = to2, toKeyInclusive = true, readOrWriteAction()) {
             eitherOne(sleep(randomIntMax(20).milliseconds), ()) //sleep optionally
             throw new Exception("Failed two")
           }.await

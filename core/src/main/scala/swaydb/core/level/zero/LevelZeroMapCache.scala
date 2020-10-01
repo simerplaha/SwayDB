@@ -29,6 +29,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
+import swaydb.core.util.AtomicRanges
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -238,7 +239,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
       if (atomic) {
         implicit val bag = Bag.less
         val sorted = entries.sortBy(_.key)(keyOrder)
-        state.skipList.transaction(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange) {
+        state.skipList.transaction(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange, AtomicRanges.Action.Write) {
           LevelZeroMapCache.put(
             head = entries.head,
             tail = entries.tail,
