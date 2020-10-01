@@ -25,7 +25,7 @@
 package swaydb.core.util.skiplist
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.series.growable.SeriesGrowable
+import swaydb.core.util.series.growable.SeriesGrowableList
 import swaydb.core.util.{English, WhenOccurs}
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.KeyOrder
@@ -74,7 +74,7 @@ private[core] object SkipListSeries {
                                                                             nullKey: OptionKey,
                                                                             nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListSeries[OptionKey, OptionValue, Key, Value] =
     new SkipListSeries[OptionKey, OptionValue, Key, Value](
-      series = SeriesGrowable.volatile(lengthPerSeries),
+      series = SeriesGrowableList.volatile(lengthPerSeries),
       _removed = 0,
       nullKey = nullKey,
       nullValue = nullValue
@@ -86,7 +86,7 @@ private[core] object SkipListSeries {
    *                      removed.
    */
   private def get[K, V](target: K,
-                        series: SeriesGrowable[KeyValue.Some[K, V]],
+                        series: SeriesGrowableList[KeyValue.Some[K, V]],
                         keepNullValue: Boolean)(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
     var start = 0
     var end = series.length - 1
@@ -110,7 +110,7 @@ private[core] object SkipListSeries {
   }
 
   private def lower[K, V](target: K,
-                          series: SeriesGrowable[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
+                          series: SeriesGrowableList[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
     var start = 0
     var end = series.length - 1
 
@@ -137,7 +137,7 @@ private[core] object SkipListSeries {
   }
 
   private def floor[K, V](target: K,
-                          series: SeriesGrowable[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
+                          series: SeriesGrowableList[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
     var start = 0
     var end = series.length - 1
 
@@ -164,7 +164,7 @@ private[core] object SkipListSeries {
   }
 
   private def higher[K, V](target: K,
-                           series: SeriesGrowable[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
+                           series: SeriesGrowableList[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
     var start = 0
     var end = series.length - 1
 
@@ -191,7 +191,7 @@ private[core] object SkipListSeries {
   }
 
   private def ceiling[K, V](target: K,
-                            series: SeriesGrowable[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
+                            series: SeriesGrowableList[KeyValue.Some[K, V]])(implicit ordering: KeyOrder[K]): KeyValue[K, V] = {
     var start = 0
     var end = series.length - 1
 
@@ -240,7 +240,7 @@ private[core] object SkipListSeries {
  * SkipListSeries HashDisabled - 0.254108 seconds
  *
  */
-private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var series: SeriesGrowable[KeyValue.Some[K, V]],
+private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile private[skiplist] var series: SeriesGrowableList[KeyValue.Some[K, V]],
                                                                      //maintain a count of number of removed items i.e. value is null.
                                                                      @volatile private[skiplist] var _removed: Int,
                                                                      val nullKey: OK,
@@ -450,7 +450,7 @@ private[core] class SkipListSeries[OK, OV, K <: OK, V <: OV] private(@volatile p
     !isEmpty
 
   override def clear(): Unit =
-    series = SeriesGrowable.empty
+    series = SeriesGrowableList.empty
 
   override def size: Int =
     series.length - _removed

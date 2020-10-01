@@ -28,22 +28,22 @@ import swaydb.core.util.series.appendable.SeriesAppendableVolatile
 
 import scala.reflect.ClassTag
 
-private[core] object SeriesGrowable {
+private[core] object SeriesGrowableList {
 
-  @inline def volatile[T >: Null : ClassTag](lengthPerSeries: Int): SeriesGrowable[T] = {
+  @inline def volatile[T >: Null : ClassTag](lengthPerSeries: Int): SeriesGrowableList[T] = {
     val sizePerSeries = lengthPerSeries max 1 //size cannot be 0
 
     val series = SeriesAppendableVolatile[SeriesAppendableVolatile[T]](1)
     val items = SeriesAppendableVolatile[T](sizePerSeries)
     series.add(items)
 
-    new SeriesGrowable(
+    new SeriesGrowableList(
       series = series,
       lengthPerSeries = sizePerSeries
     )
   }
 
-  def empty[T >: Null : ClassTag]: SeriesGrowable[T] =
+  def empty[T >: Null : ClassTag]: SeriesGrowableList[T] =
     volatile[T](0)
 
   @inline private def extend[T >: Null : ClassTag](series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
@@ -62,15 +62,15 @@ private[core] object SeriesGrowable {
 
 }
 
-private[core] class SeriesGrowable[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
-                                                                 lengthPerSeries: Int) {
+private[core] class SeriesGrowableList[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
+                                                                     lengthPerSeries: Int) {
 
   @volatile private var _written = 0
 
   def add(item: T): Unit = {
     val last = series.lastOrNull
     if (last.isFull)
-      series = SeriesGrowable.extend(series, item)
+      series = SeriesGrowableList.extend(series, item)
     else
       last.add(item)
 

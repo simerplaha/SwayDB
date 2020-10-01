@@ -26,19 +26,19 @@ package swaydb.core.util.series
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.core.util.series.growable.SeriesGrowable
+import swaydb.core.util.series.growable.SeriesGrowableList
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
-class Volatile_SeriesGrowableSpec extends SeriesGrowableSpec {
-  def create[T >: Null : ClassTag](lengthPerSeries: Int): SeriesGrowable[T] =
-    SeriesGrowable.volatile[T](lengthPerSeries)
+class Volatile_SeriesGrowableListSpec extends SeriesGrowableListSpec {
+  def create[T >: Null : ClassTag](lengthPerSeries: Int): SeriesGrowableList[T] =
+    SeriesGrowableList.volatile[T](lengthPerSeries)
 }
 
-sealed trait SeriesGrowableSpec extends AnyWordSpec with Matchers {
+sealed trait SeriesGrowableListSpec extends AnyWordSpec with Matchers {
 
-  def create[T >: Null : ClassTag](lengthPerSlice: Int): SeriesGrowable[T]
+  def create[T >: Null : ClassTag](lengthPerSlice: Int): SeriesGrowableList[T]
 
   "throw ArrayIndexOutOfBoundsException" when {
     "empty" in {
@@ -49,7 +49,7 @@ sealed trait SeriesGrowableSpec extends AnyWordSpec with Matchers {
     }
 
     "nonEmpty" in {
-      val series = SeriesGrowable.volatile[Integer](1)
+      val series = SeriesGrowableList.volatile[Integer](1)
       series.add(1)
       series.get(0) shouldBe 1
       series.iterator.toList should contain only 1
