@@ -389,15 +389,14 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
     }
   }
 
-  @inline final private def findFirst[A >: Null, B](nullResult: B,
-                                                    transform: Map[K, V, C] => A,
-                                                    finder: A => B): B = {
-    val iterator = queue.iterator.map(transform)
+  @inline final private def findFirst[B](nullResult: B,
+                                         finder: Map[K, V, C] => B): B = {
+    val iterator = queue.iterator
 
     @inline def getNext() = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
-    def find(next: A): B = {
+    def find(next: Map[K, V, C]): B = {
       val foundOrNullResult = finder(next)
       if (foundOrNullResult == nullResult) {
         val next = getNext()
@@ -418,16 +417,15 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
   }
 
   @inline final def reduce[A >: Null, B](nullResult: B,
-                                         transform: Map[K, V, C] => A,
-                                         applier: A => B,
+                                         applier: Map[K, V, C] => B,
                                          reducer: (B, B) => B): B = {
 
-    val iterator = queue.iterator.map(transform)
+    val iterator = queue.iterator
 
     @inline def getNextOrNull() = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
-    def find(nextOrNull: A,
+    def find(nextOrNull: Map[K, V, C],
              previousResult: B): B =
       if (nextOrNull == null) {
         previousResult
@@ -446,12 +444,10 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
     find(getNextOrNull(), nullResult)
   }
 
-  def find[A >: Null, B](nullResult: B,
-                         transform: Map[K, V, C] => A,
-                         matcher: A => B): B =
-    findFirst[A, B](
+  def find[B](nullResult: B,
+              matcher: Map[K, V, C] => B): B =
+    findFirst[B](
       nullResult = nullResult,
-      transform = transform,
       finder = matcher
     )
 
@@ -483,8 +479,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
   def keyValueCount: Int =
     reduce[Integer, Int](
       nullResult = 0,
-      transform = _.cache.maxKeyValueCount,
-      applier = size => size,
+      applier = _.cache.maxKeyValueCount,
       reducer = _ + _
     )
 

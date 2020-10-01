@@ -632,18 +632,18 @@ private[swaydb] case class LevelZero(path: Path,
   def firstKeyFromMaps: SliceOption[Byte] =
     maps.reduce[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], SliceOption[Byte]](
       nullResult = Slice.Null,
-      transform = _.cache.skipList,
-      applier = _.headKey,
+      applier = _.cache.skipList.headKey,
       reducer = MinMax.minFavourLeftC[SliceOption[Byte], Slice[Byte]](_, _)(keyOrder)
     )
 
   def lastKeyFromMaps: SliceOption[Byte] =
     maps.reduce[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], SliceOption[Byte]](
       nullResult = Slice.Null,
-      transform = _.cache.skipList,
       applier =
-        skipList =>
-          skipList
+        map =>
+          map
+            .cache
+            .skipList
             .last()
             .flatMapSomeS(Slice.Null: SliceOption[Byte]) {
               case fixed: KeyValue.Fixed =>
@@ -991,43 +991,45 @@ private[swaydb] case class LevelZero(path: Path,
 
   def mightContainKey(key: Slice[Byte]): Boolean = {
     val mightContainInMaps =
-      maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](
+      maps.find[MemoryOption](
         nullResult = Memory.Null,
-        transform = _.cache.skipList,
-        matcher = _.get(key)
+        matcher = _.cache.skipList.get(key)
       )
 
     mightContainInMaps != Memory.Null || nextLevel.exists(_.mightContainKey(key))
   }
 
   private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =
-    maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Boolean](
+    maps.find[Boolean](
       nullResult = false,
-      transform = _.cache.skipList,
       matcher =
-        skipList =>
-          skipList.values() exists {
-            case _: Memory.Put | _: Memory.Remove | _: Memory.Update =>
-              false
+        map =>
+          map
+            .cache
+            .skipList
+            .values()
+            .exists {
+              case _: Memory.Put | _: Memory.Remove | _: Memory.Update =>
+                false
 
-            case function: Memory.Function =>
-              function.function equiv functionId
+              case function: Memory.Function =>
+                function.function equiv functionId
 
-            case pendingApply: Memory.PendingApply =>
-              FunctionStore.containsFunction(functionId, pendingApply.applies)
+              case pendingApply: Memory.PendingApply =>
+                FunctionStore.containsFunction(functionId, pendingApply.applies)
 
-            case range: Memory.Range =>
-              val values =
-                range.fromValue match {
-                  case FromValue.Null =>
-                    Slice(range.rangeValue)
+              case range: Memory.Range =>
+                val values =
+                  range.fromValue match {
+                    case FromValue.Null =>
+                      Slice(range.rangeValue)
 
-                  case fromValue: Value.FromValue =>
-                    Slice(range.rangeValue, fromValue)
-                }
+                    case fromValue: Value.FromValue =>
+                      Slice(range.rangeValue, fromValue)
+                  }
 
-              FunctionStore.containsFunction(functionId, values)
-          }
+                FunctionStore.containsFunction(functionId, values)
+            }
     )
 
   def mightContainFunction(functionId: Slice[Byte]): Boolean =
