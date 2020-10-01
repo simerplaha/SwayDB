@@ -36,13 +36,14 @@ import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.util.Extension
+import swaydb.core.util.skiplist.SkipList
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.OptimiseWrites
 import swaydb.data.RunThis._
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -84,8 +85,8 @@ class MapsSpec extends TestBase {
             maps.write(_ => MapEntry.Put(2, Memory.put(2)))
             maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1)))
 
-            maps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(1)) shouldBe Memory.remove(1)
-            maps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(2)) shouldBe Memory.put(2)
+            maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(1)) shouldBe Memory.remove(1)
+            maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(2)) shouldBe Memory.put(2)
             //since the size of the Map is 1.mb and entries are too small. No flushing will value executed and there should only be one folder.
             path.folders.map(_.folderId) should contain only 0
 
@@ -107,11 +108,11 @@ class MapsSpec extends TestBase {
             //adding more entries to reopened Map should contain all entries
             reopen.write(_ => MapEntry.Put(3, Memory.put(3)))
             reopen.write(_ => MapEntry.Put(4, Memory.put(4)))
-            reopen.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(3)) shouldBe Memory.put(3)
-            reopen.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(4)) shouldBe Memory.put(4)
+            reopen.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(3)) shouldBe Memory.put(3)
+            reopen.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(4)) shouldBe Memory.put(4)
             //old entries still exist in the reopened map
-            reopen.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(1)) shouldBe Memory.remove(1)
-            reopen.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(2)) shouldBe Memory.put(2)
+            reopen.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(1)) shouldBe Memory.remove(1)
+            reopen.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(2)) shouldBe Memory.put(2)
 
             //reopening will start the Map in recovery mode which will add all the existing maps in memory and initialise a new map for writing
             //so a new folder 1 is initialised.
@@ -181,8 +182,8 @@ class MapsSpec extends TestBase {
           map.write(_ => MapEntry.Put(2, Memory.put(2)))
           map.write(_ => MapEntry.Put[Slice[Byte], Memory](1, Memory.remove(1)))
 
-          map.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(1)) shouldBe Memory.remove(1)
-          map.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(2)) shouldBe Memory.put(2)
+          map.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(1)) shouldBe Memory.remove(1)
+          map.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(2)) shouldBe Memory.put(2)
       }
     }
   }
@@ -239,7 +240,7 @@ class MapsSpec extends TestBase {
               //adding 1.mb key-value to map, the file size is 500.bytes, since this is the first entry in the map and the map is empty,
               // the entry will value added.
               maps.write(_ => MapEntry.Put(1, Memory.put(1, largeValue))) //large entry
-              maps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(1)) shouldBe Memory.put(1, largeValue)
+              maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(1)) shouldBe Memory.put(1, largeValue)
               maps.queuedMapsCount shouldBe 0
               maps.queuedMapsCountWithCurrent shouldBe 1
 
@@ -250,13 +251,13 @@ class MapsSpec extends TestBase {
 
               //a small entry of 24.bytes gets written to the same Map since the total size is 500.bytes
               maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](3, Memory.remove(3)))
-              maps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(3)) shouldBe Memory.remove(3)
+              maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(3)) shouldBe Memory.remove(3)
               maps.queuedMapsCount shouldBe 1
               maps.queuedMapsCountWithCurrent shouldBe 2
 
               //write large entry again and a new Map is created again.
               maps.write(_ => MapEntry.Put(1, Memory.put(1, largeValue))) //large entry
-              maps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(1)) shouldBe Memory.put(1, largeValue)
+              maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(1)) shouldBe Memory.put(1, largeValue)
               maps.queuedMapsCount shouldBe 2
               maps.queuedMapsCountWithCurrent shouldBe 3
 
@@ -306,10 +307,10 @@ class MapsSpec extends TestBase {
 
             maps.queuedMapsCount shouldBe 4
             maps.queuedMapsCountWithCurrent shouldBe 5
-            maps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(1)) shouldBe Memory.put(1, largeValue)
-            maps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(2)) shouldBe Memory.put(2, 2)
-            maps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(3)) shouldBe Memory.remove(3)
-            maps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(4)) shouldBe Memory.remove(4)
+            maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(1)) shouldBe Memory.put(1, largeValue)
+            maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(2)) shouldBe Memory.put(2, 2)
+            maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(3)) shouldBe Memory.remove(3)
+            maps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(4)) shouldBe Memory.remove(4)
         }
       }
     }
@@ -419,9 +420,9 @@ class MapsSpec extends TestBase {
             recoveredMapsMaps should have size 3
             recoveredMapsMaps.map(_.pathOption.value.folderId) shouldBe List(2, 1, 0)
 
-            recoveredMapsMaps.head.cache.flattenClear.get(1) shouldBe Memory.remove(1)
-            recoveredMapsMaps.tail.head.cache.flattenClear.get(2) shouldBe Memory.put(2)
-            recoveredMapsMaps.last.cache.flattenClear.get(1) shouldBe Memory.put(1)
+            recoveredMapsMaps.head.cache.skipList.get(1) shouldBe Memory.remove(1)
+            recoveredMapsMaps.tail.head.cache.skipList.get(2) shouldBe Memory.put(2)
+            recoveredMapsMaps.last.cache.skipList.get(1) shouldBe Memory.put(1)
         }
       }
     }
@@ -506,16 +507,16 @@ class MapsSpec extends TestBase {
             recoveredMaps should have size 3
 
             //newest map contains all key-values
-            recoveredMaps.head.cache.flattenClear.get(5) shouldBe Memory.put(5)
-            recoveredMaps.head.cache.flattenClear.get(6) shouldBe Memory.put(6, 6)
+            recoveredMaps.head.cache.skipList.get(5) shouldBe Memory.put(5)
+            recoveredMaps.head.cache.skipList.get(6) shouldBe Memory.put(6, 6)
 
             //second map is the corrupted map and will have the 2nd entry missing
-            recoveredMaps.tail.head.cache.flattenClear.get(3) shouldBe Memory.put(3, 3)
-            recoveredMaps.tail.head.cache.flattenClear.get(4).toOptionS shouldBe empty //4th entry is corrupted, it will not exist the Map
+            recoveredMaps.tail.head.cache.skipList.get(3) shouldBe Memory.put(3, 3)
+            recoveredMaps.tail.head.cache.skipList.get(4).toOptionS shouldBe empty //4th entry is corrupted, it will not exist the Map
 
             //oldest map contains all key-values
-            recoveredMaps.last.cache.flattenClear.get(1) shouldBe Memory.put(1)
-            recoveredMaps.last.cache.flattenClear.get(2) shouldBe Memory.put(2)
+            recoveredMaps.last.cache.skipList.get(1) shouldBe Memory.put(1)
+            recoveredMaps.last.cache.skipList.get(2) shouldBe Memory.put(2)
         }
       }
     }
@@ -559,14 +560,14 @@ class MapsSpec extends TestBase {
           getMaps(maps).asScala.last.exists shouldBe false
 
           //oldest map contains all key-values
-          recoveredMaps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(1)) shouldBe Memory.put(1)
-          recoveredMaps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(2)) shouldBe Memory.put(2, 2)
+          recoveredMaps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(1)) shouldBe Memory.put(1)
+          recoveredMaps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(2)) shouldBe Memory.put(2, 2)
           //second map is partially read but it's missing 4th entry
-          recoveredMaps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(3)) shouldBe Memory.put(3)
+          recoveredMaps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(3)) shouldBe Memory.put(3)
           //third map is completely ignored.
-          recoveredMaps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(4)).toOptional shouldBe empty
-          recoveredMaps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(5)).toOptional shouldBe empty
-          recoveredMaps.find[LevelZeroMapCache.LevelEmbedded, MemoryOption](Memory.Null, _.cache.levelsIterator, _.skipList.get(6)).toOptional shouldBe empty
+          recoveredMaps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(4)).toOptional shouldBe empty
+          recoveredMaps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(5)).toOptional shouldBe empty
+          recoveredMaps.find[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], MemoryOption](Memory.Null, _.cache.skipList, _.get(6)).toOptional shouldBe empty
       }
     }
 

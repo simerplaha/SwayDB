@@ -37,6 +37,12 @@ import scala.annotation.tailrec
 
 object AtomicRanges {
 
+  sealed trait Action
+  object Action {
+    case object Read extends Action
+    case object Write extends Action
+  }
+
   private class Key[K](val fromKey: K, val toKey: K, val toKeyInclusive: Boolean)
   private class Value(val reserve: Reserve[Unit])
 

@@ -189,8 +189,8 @@ private[swaydb] object MapEntry {
           _entries.size
       }
 
-    def entries: Iterable[Point[K, V]] =
-      left._entries.asInstanceOf[Iterable[Point[K, V]]]
+    def entries: ListBuffer[Point[K, V]] =
+      left._entries.asInstanceOf[ListBuffer[Point[K, V]]]
   }
 
   sealed trait Batch[K, +V] extends MapEntry[K, V]

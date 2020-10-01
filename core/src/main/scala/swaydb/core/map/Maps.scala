@@ -390,9 +390,9 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
   }
 
   @inline final private def findFirst[A >: Null, B](nullResult: B,
-                                                    flatMap: Map[K, V, C] => Iterator[A],
+                                                    transform: Map[K, V, C] => A,
                                                     finder: A => B): B = {
-    val iterator = queue.iterator.flatMap(flatMap)
+    val iterator = queue.iterator.map(transform)
 
     @inline def getNext() = if (iterator.hasNext) iterator.next() else null
 
@@ -418,11 +418,11 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
   }
 
   @inline final def reduce[A >: Null, B](nullResult: B,
-                                         flatMap: Map[K, V, C] => Iterator[A],
+                                         transform: Map[K, V, C] => A,
                                          applier: A => B,
                                          reducer: (B, B) => B): B = {
 
-    val iterator = queue.iterator.flatMap(flatMap)
+    val iterator = queue.iterator.map(transform)
 
     @inline def getNextOrNull() = if (iterator.hasNext) iterator.next() else null
 
@@ -447,11 +447,11 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
   }
 
   def find[A >: Null, B](nullResult: B,
-                         flatMap: Map[K, V, C] => Iterator[A],
+                         flatMap: Map[K, V, C] => A,
                          matcher: A => B): B =
     findFirst[A, B](
       nullResult = nullResult,
-      flatMap = flatMap,
+      transform = flatMap,
       finder = matcher
     )
 
@@ -483,7 +483,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
   def keyValueCount: Int =
     reduce[Integer, Int](
       nullResult = 0,
-      flatMap = map => Iterator(map.cache.maxKeyValueCount),
+      transform = _.cache.maxKeyValueCount,
       applier = size => size,
       reducer = _ + _
     )

@@ -37,6 +37,44 @@ private[core] trait Walker[A >: Null] { self =>
   def isEmpty: Boolean =
     headOrNull() == null
 
+  def map[B >: Null](f: A => B): Walker[B] =
+    new Walker[B] {
+
+      var aStepper: Walker[A] = self
+
+      @tailrec
+      def getHead(drop: Int): B =
+        aStepper.head() match {
+          case Node.Empty =>
+            null
+
+          case value: Node.Value[A] =>
+            if (drop > 0) {
+              aStepper = aStepper.dropHead()
+              getHead(drop - 1)
+            } else {
+              f(value.value)
+            }
+        }
+
+      override def headOrNull(): B =
+        getHead(0) match {
+          case Node.Empty =>
+            null
+
+          case value: Node.Value[B] =>
+            value.value
+        }
+
+      override def head(): Node[B] =
+        ??? //TODO - not needed right now.
+
+      override def dropHead(): Walker[B] = {
+        getHead(1)
+        this
+      }
+    }
+
   def flatMap[B >: Null](f: A => Walker[B]): Walker[B] =
     new Walker[B] {
 

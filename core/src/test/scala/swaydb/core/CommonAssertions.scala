@@ -300,7 +300,7 @@ object CommonAssertions {
         cache.writeAtomic(MapEntry.Put(memory.key, memory))
     }
 
-    val cachedKeyValues = cache.flatten.fetch.values()
+    val cachedKeyValues = cache.skipList.values()
     cachedKeyValues shouldBe expected.map(_.toMemory).toList
     cachedKeyValues
   }
@@ -1810,42 +1810,6 @@ object CommonAssertions {
       maps.close().value
       maps.bufferCleaner.actor.receiveAllForce[Bag.Less, Unit](_ => ())
       (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
-    }
-  }
-
-  implicit class EitherKeyValuesImplicits[OK, OV, K <: OK, V <: OV](cache: CacheNoIO[Unit, Either[SkipList[OK, OV, K, V], Slice[V]]]) {
-    def expectSkipList: SkipList[OK, OV, K, V] =
-      cache.value(()) match {
-        case Left(value) =>
-          cache.clear()
-          value
-
-        case Right(value) =>
-          fail(s"Expected SkipList, got ${value.getClass.getSimpleName}")
-      }
-
-    def expectSlice: Slice[V] =
-      cache.value(()) match {
-        case Left(value) =>
-          fail(s"Expected Slice], got ${value.getClass.getSimpleName}")
-
-        case Right(value) =>
-          cache.clear()
-          value
-      }
-  }
-
-  implicit class LevelZeroMapCacheTestImplicits(cache: LevelZeroMapCache) {
-
-
-    /**
-     * [[cache.flatten]] can be either SkipList or Slice. This will
-     * always returns a SkipList. Used for testing the merged outcome.
-     */
-    def flattenClear: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
-      val skipList = cache.flatten.value(())
-      cache.flatten.clear()
-      skipList
     }
   }
 }

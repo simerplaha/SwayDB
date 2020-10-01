@@ -74,23 +74,23 @@ class MapSpec extends TestBase {
 
           map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
           map.writeSync(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
-          map.cache.flattenClear.get(1) shouldBe Memory.put(1, 1)
-          map.cache.flattenClear.get(2) shouldBe Memory.put(2, 2)
+          map.cache.skipList.get(1) shouldBe Memory.put(1, 1)
+          map.cache.skipList.get(2) shouldBe Memory.put(2, 2)
 
           map.cache.hasRange shouldBe false
 
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
-          map.cache.flattenClear.get(1) shouldBe Memory.remove(1)
-          map.cache.flattenClear.get(2) shouldBe Memory.remove(2)
+          map.cache.skipList.get(1) shouldBe Memory.remove(1)
+          map.cache.skipList.get(2) shouldBe Memory.remove(2)
 
           map.cache.hasRange shouldBe false
 
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
 
-          map.cache.flattenClear.get(1) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
-          map.cache.flattenClear.get(11) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
+          map.cache.skipList.get(1) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
+          map.cache.skipList.get(11) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
 
           map.cache.hasRange shouldBe true
       }
@@ -138,7 +138,7 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             ).item.sweep()
 
-          map.cache.flattenClear.isEmpty shouldBe true
+          map.cache.skipList.isEmpty shouldBe true
           map.close()
           //recover from an empty map
           val recovered =
@@ -197,10 +197,10 @@ class MapSpec extends TestBase {
           import sweeper._
 
           def assertReads(map: PersistentMap[Slice[Byte], Memory, LevelZeroMapCache]) = {
-            map.cache.flattenClear.get(1) shouldBe Memory.put(1, 1)
-            map.cache.flattenClear.get(2) shouldBe Memory.remove(2)
-            map.cache.flattenClear.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-            map.cache.flattenClear.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+            map.cache.skipList.get(1) shouldBe Memory.put(1, 1)
+            map.cache.skipList.get(2) shouldBe Memory.remove(2)
+            map.cache.skipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+            map.cache.skipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
             map.cache.hasRange shouldBe true
           }
 
@@ -353,14 +353,14 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             ).item.sweep()
 
-          map1Recovered.cache.flattenClear.get(1) shouldBe Memory.put(1, 1)
-          map1Recovered.cache.flattenClear.get(2) shouldBe Memory.put(2, 22) //second file overrides 2's value to be 22
-          map1Recovered.cache.flattenClear.get(3) shouldBe Memory.put(3, 3)
-          map1Recovered.cache.flattenClear.get(4) shouldBe Memory.put(4, 4)
-          map1Recovered.cache.flattenClear.get(5) shouldBe Memory.put(5, 5)
-          map1Recovered.cache.flattenClear.get(6).toOptionS shouldBe empty
-          map1Recovered.cache.flattenClear.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          map1Recovered.cache.flattenClear.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          map1Recovered.cache.skipList.get(1) shouldBe Memory.put(1, 1)
+          map1Recovered.cache.skipList.get(2) shouldBe Memory.put(2, 22) //second file overrides 2's value to be 22
+          map1Recovered.cache.skipList.get(3) shouldBe Memory.put(3, 3)
+          map1Recovered.cache.skipList.get(4) shouldBe Memory.put(4, 4)
+          map1Recovered.cache.skipList.get(5) shouldBe Memory.put(5, 5)
+          map1Recovered.cache.skipList.get(6).toOptionS shouldBe empty
+          map1Recovered.cache.skipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          map1Recovered.cache.skipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 
           //recovered file's id is 2.log
           map1Recovered.path.files(Extension.Log).map(_.fileId) should contain only ((2, Extension.Log))
@@ -556,11 +556,11 @@ class MapSpec extends TestBase {
           recoveredFile.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
 
           cache.isEmpty shouldBe false
-          cache.flattenClear.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          cache.flattenClear.get(2: Slice[Byte]) shouldBe Memory.remove(2)
-          cache.flattenClear.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
-          cache.flattenClear.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          cache.flattenClear.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          cache.skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
+          cache.skipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
+          cache.skipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
+          cache.skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          cache.skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
       }
     }
 
@@ -618,11 +618,11 @@ class MapSpec extends TestBase {
           recoveredFile.path.resolveSibling(5.toLogFileId).exists shouldBe false //5.log gets deleted
 
           cache.isEmpty shouldBe false
-          cache.flattenClear.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          cache.flattenClear.get(2: Slice[Byte]) shouldBe Memory.remove(2)
-          cache.flattenClear.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
-          cache.flattenClear.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          cache.flattenClear.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          cache.skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
+          cache.skipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
+          cache.skipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
+          cache.skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          cache.skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 
           if (OperatingSystem.isWindows) {
             recoveredFile.close()
@@ -647,11 +647,11 @@ class MapSpec extends TestBase {
           recoveredFile2.path.resolveSibling(6.toLogFileId).exists shouldBe false //6.log gets deleted
 
           cache2.isEmpty shouldBe false
-          cache2.flattenClear.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
-          cache2.flattenClear.get(2: Slice[Byte]) shouldBe Memory.remove(2)
-          cache2.flattenClear.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
-          cache2.flattenClear.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-          cache2.flattenClear.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+          cache2.skipList.get(1: Slice[Byte]) shouldBe Memory.put(1, 1)
+          cache2.skipList.get(2: Slice[Byte]) shouldBe Memory.remove(2)
+          cache2.skipList.get(3: Slice[Byte]) shouldBe Memory.put(3, 3)
+          cache2.skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+          cache2.skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
       }
     }
 
@@ -716,9 +716,6 @@ class MapSpec extends TestBase {
           cache.writeAtomic(MapEntry.Put(15, Memory.Range(15, 20, Value.put(15), Value.update(14))))
           cache.writeAtomic(MapEntry.Put(15, Memory.Range(15, 20, Value.put(15), Value.update(14))))
 
-          //no overlapping key-values.
-          cache.levelsCount shouldBe 1
-
           val currentFile =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
@@ -773,7 +770,7 @@ class MapSpec extends TestBase {
               map.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
           }
 
-          map.cache.flattenClear.size shouldBe 100
+          map.cache.skipList.size shouldBe 100
           val allBytes = Effect.readAllBytes(map.currentFilePath)
 
           def assertRecover =
@@ -814,7 +811,7 @@ class MapSpec extends TestBase {
             i =>
               map.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
           }
-          map.cache.flattenClear.size shouldBe 100
+          map.cache.skipList.size shouldBe 100
           val allBytes = Effect.readAllBytes(map.currentFilePath)
 
           //recover again with SkipLogOnCorruption, since the last entry is corrupted, the first two entries will still value read
@@ -831,9 +828,9 @@ class MapSpec extends TestBase {
 
           (1 to 99) foreach {
             i =>
-              recoveredMap.cache.flattenClear.get(i) shouldBe Memory.put(i, i)
+              recoveredMap.cache.skipList.get(i) shouldBe Memory.put(i, i)
           }
-          recoveredMap.cache.flattenClear.contains(100) shouldBe false
+          recoveredMap.cache.skipList.contains(100) shouldBe false
 
           //if the top entry is corrupted.
           Effect.overwrite(recoveredMap.currentFilePath, allBytes.drop(1))
@@ -847,7 +844,7 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = true
             ).item.sweep()
 
-          recoveredMap2.cache.flattenClear.isEmpty shouldBe true
+          recoveredMap2.cache.skipList.isEmpty shouldBe true
       }
     }
   }
@@ -928,15 +925,15 @@ class MapSpec extends TestBase {
           //recovery state contains failure because the WAL file is partially recovered.
           recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
           //count instead of size because skipList's actual size can be higher.
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.toIterable.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
+          recoveredMapWith0LogCorrupted.item.cache.skipList.toIterable.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
 
           //checking the recovered entries
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(1) shouldBe Memory.put(1, 1)
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(2) shouldBe Memory.put(2, 2)
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(3).toOptionS shouldBe empty //since the last byte of 0.log file is corrupted, the last entry is missing
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(4) shouldBe Memory.put(4, 4)
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(5) shouldBe Memory.put(5, 5)
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(6) shouldBe Memory.put(6, 6)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(1) shouldBe Memory.put(1, 1)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(2) shouldBe Memory.put(2, 2)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(3).toOptionS shouldBe empty //since the last byte of 0.log file is corrupted, the last entry is missing
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(4) shouldBe Memory.put(4, 4)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(5) shouldBe Memory.put(5, 5)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(6) shouldBe Memory.put(6, 6)
       }
     }
   }
@@ -1015,15 +1012,15 @@ class MapSpec extends TestBase {
           //recovery state contains failure because the WAL file is partially recovered.
           recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
           //count instead of size because skipList's actual size can be higher.
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.toIterable.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
+          recoveredMapWith0LogCorrupted.item.cache.skipList.toIterable.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
 
           //checking the recovered entries
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(1) shouldBe Memory.put(1, 1)
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(2) shouldBe Memory.put(2)
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(3) shouldBe Memory.put(3, 3)
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(4) shouldBe Memory.put(4, 4)
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(5) shouldBe Memory.put(5, 5)
-          recoveredMapWith0LogCorrupted.item.cache.flattenClear.get(6).toOptionS shouldBe empty
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(1) shouldBe Memory.put(1, 1)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(2) shouldBe Memory.put(2)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(3) shouldBe Memory.put(3, 3)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(4) shouldBe Memory.put(4, 4)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(5) shouldBe Memory.put(5, 5)
+          recoveredMapWith0LogCorrupted.item.cache.skipList.get(6).toOptionS shouldBe empty
       }
     }
   }
@@ -1058,7 +1055,7 @@ class MapSpec extends TestBase {
                 map.writeSync(keyValues.toMapEntry.value) shouldBe true
             }
 
-            map.cache.flattenClear.values() shouldBe keyValues
+            map.cache.skipList.values() shouldBe keyValues
 
             //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
             val updatedValues = randomizedKeyValues(10, startId = Some(keyValues.head.key.readInt()), addPut = true)
@@ -1068,8 +1065,8 @@ class MapSpec extends TestBase {
             //reopening the map should return in the original skipList.
             val reopened = map.reopen.sweep()
 
-            reopened.cache.flattenClear.size shouldBe map.cache.flattenClear.size
-            reopened.cache.flattenClear.toIterable.toList shouldBe map.cache.flattenClear.toIterable.toList
+            reopened.cache.skipList.size shouldBe map.cache.skipList.size
+            reopened.cache.skipList.toIterable.toList shouldBe map.cache.skipList.toIterable.toList
 
             reopened.delete
           }
@@ -1119,7 +1116,7 @@ class MapSpec extends TestBase {
                 keyValues =>
                   map.writeSync(keyValues.toMapEntry.value) shouldBe true
               }
-              map.cache.flattenClear.values() shouldBe keyValues
+              map.cache.skipList.values() shouldBe keyValues
 
               //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
               val updatedValues = randomizedKeyValues(100, startId = Some(keyValues.head.key.readInt()), addPut = true)
@@ -1128,9 +1125,9 @@ class MapSpec extends TestBase {
 
               //reopening the map should return in the original skipList.
               val reopened = map.reopen.sweep()
-              reopened.cache.flattenClear.size shouldBe map.cache.flattenClear.size
+              reopened.cache.skipList.size shouldBe map.cache.skipList.size
 
-              reopened.cache.flattenClear.toIterable shouldBe map.cache.flattenClear.toIterable
+              reopened.cache.skipList.toIterable shouldBe map.cache.skipList.toIterable
 
               reopened.delete
             }
@@ -1163,9 +1160,9 @@ class MapSpec extends TestBase {
 
           (1 to 100).foldLeft(map1) {
             case (map, i) =>
-              map.cache.flattenClear.size shouldBe 100
+              map.cache.skipList.size shouldBe 100
 
-              map.cache.flattenClear.get(i).getUnsafe shouldBe Memory.put(i: Slice[Byte], i: Slice[Byte])
+              map.cache.skipList.get(i).getUnsafe shouldBe Memory.put(i: Slice[Byte], i: Slice[Byte])
 
               if (randomBoolean())
                 map
