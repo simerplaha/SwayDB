@@ -29,9 +29,6 @@ private[core] object VolatileQueue {
   @inline def apply[A >: Null](): VolatileQueue[A] =
     apply[A](Node.Empty)
 
-  @inline def apply[A >: Null](value: A): VolatileQueue[A] =
-    apply[A](new Node.Value(value, Node.Empty, Node.Empty))
-
   @inline def apply[A >: Null](value: A*): VolatileQueue[A] =
     apply[A](value)
 
