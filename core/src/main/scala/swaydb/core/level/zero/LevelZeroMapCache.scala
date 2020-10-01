@@ -30,6 +30,7 @@ import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.AtomicRanges
+import swaydb.core.util.AtomicRanges.Action
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.data.OptimiseWrites
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -49,14 +50,21 @@ private[core] object LevelZeroMapCache {
     () => LevelZeroMapCache()
 
   class State(val skipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-              @BeanProperty @volatile var hasRange: Boolean)
+              @BeanProperty @volatile var hasRange: Boolean,
+              @BeanProperty @volatile var mutable: Boolean)
 
 
   @inline def apply()(implicit keyOrder: KeyOrder[Slice[Byte]],
                       timeOrder: TimeOrder[Slice[Byte]],
                       functionStore: FunctionStore,
                       optimiseWrites: OptimiseWrites): LevelZeroMapCache =
-    new LevelZeroMapCache(new State(newSkipList(), false))
+    new LevelZeroMapCache(
+      new State(
+        skipList = newSkipList(),
+        hasRange = false,
+        mutable = true
+      )
+    )
 
   private[zero] def newSkipList()(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   optimiseWrites: OptimiseWrites): SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
@@ -239,7 +247,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
       if (atomic) {
         implicit val bag = Bag.less
         val sorted = entries.sortBy(_.key)(keyOrder)
-        state.skipList.transaction(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange, AtomicRanges.Action.Write) {
+        state.skipList.transaction(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange, Action.Write) {
           LevelZeroMapCache.put(
             head = entries.head,
             tail = entries.tail,

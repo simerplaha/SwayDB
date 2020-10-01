@@ -202,7 +202,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
       @volatile var executed = false
 
       atomic
-        .execute(fromKey = 1, toKey = 10, toKeyInclusive = randomBoolean(), AtomicRanges.Action.Write) {
+        .transaction(fromKey = 1, toKey = 10, toKeyInclusive = randomBoolean(), AtomicRanges.Action.Write) {
           executed = true
         }
         .await
@@ -224,7 +224,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
           val future =
             Future {
               ranges
-                .execute(fromKey = 10, toKey = 20, toKeyInclusive = true, AtomicRanges.Action.Write) {
+                .transaction(fromKey = 10, toKey = 20, toKeyInclusive = true, AtomicRanges.Action.Write) {
                   sleep(1.second)
                   firstExecuted = System.nanoTime()
                   println("First executed")
@@ -232,7 +232,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
             }
 
           Future {
-            ranges.execute(fromKey = 20, toKey = 30, toKeyInclusive = false, readOrWriteAction()) {
+            ranges.transaction(fromKey = 20, toKey = 30, toKeyInclusive = false, readOrWriteAction()) {
               secondExecuted = System.nanoTime()
               println("Second executed")
             }.await
@@ -263,7 +263,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
               val first =
                 Future {
                   ranges
-                    .execute(fromKey = 10, toKey = 20, toKeyInclusive = false, AtomicRanges.Action.Write) {
+                    .transaction(fromKey = 10, toKey = 20, toKeyInclusive = false, AtomicRanges.Action.Write) {
                       sleep(3.second)
                       firstExecuted = System.nanoTime()
                       println("First executed")
@@ -275,7 +275,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
               //execute second - [20 - 30] //20 is exclusive in first execution
               Future {
-                ranges.execute(fromKey = 20, toKey = 30, toKeyInclusive = secondToInclusive, readOrWriteAction()) {
+                ranges.transaction(fromKey = 20, toKey = 30, toKeyInclusive = secondToInclusive, readOrWriteAction()) {
                   secondExecuted = System.nanoTime()
                   println("Second executed")
                 }.await
@@ -322,7 +322,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
           //execute first
           Future {
             ranges
-              .execute(fromKey = rangeToReserve._1, toKey = rangeToReserve._2, toKeyInclusive = true, readOrWriteAction()) {
+              .transaction(fromKey = rangeToReserve._1, toKey = rangeToReserve._2, toKeyInclusive = true, readOrWriteAction()) {
                 sleep(50.milliseconds)
                 firstExecuted = System.nanoTime()
                 println("First executed")
@@ -331,7 +331,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
           val future2 =
             Future {
-              ranges.execute(fromKey = from, toKey = to, toKeyInclusive = true, AtomicRanges.Action.Write) {
+              ranges.transaction(fromKey = from, toKey = to, toKeyInclusive = true, AtomicRanges.Action.Write) {
                 secondExecuted = System.nanoTime()
                 println("Second executed")
               }.await
@@ -359,7 +359,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
         //execute first
         Future {
           ranges
-            .execute(fromKey = from, toKey = to, toKeyInclusive = true, readOrWriteAction()) {
+            .transaction(fromKey = from, toKey = to, toKeyInclusive = true, readOrWriteAction()) {
               eitherOne(sleep(randomIntMax(20).milliseconds), ()) //sleep optionally
               throw new Exception("Failed one")
             }.await
@@ -369,7 +369,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
         val to2 = from2 + randomIntMax(10)
 
         Future {
-          ranges.execute(fromKey = from2, toKey = to2, toKeyInclusive = true, readOrWriteAction()) {
+          ranges.transaction(fromKey = from2, toKey = to2, toKeyInclusive = true, readOrWriteAction()) {
             eitherOne(sleep(randomIntMax(20).milliseconds), ()) //sleep optionally
             throw new Exception("Failed two")
           }.await

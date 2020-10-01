@@ -95,8 +95,8 @@ object AtomicRanges {
 
   def apply[K]()(implicit ordering: Ordering[K]): AtomicRanges[K] = {
     val keyOrder = Key.order(ordering)
-    val skipList = new ConcurrentSkipListMap[Key[K], Value[Reserve[Unit]]](keyOrder)
-    new AtomicRanges[K](skipList)
+    val transactions = new ConcurrentSkipListMap[Key[K], Value[Reserve[Unit]]](keyOrder)
+    new AtomicRanges[K](transactions)
   }
 
   def execute[K, T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean, action: Action, f: => T)(implicit bag: Bag[BAG],
@@ -110,7 +110,7 @@ object AtomicRanges {
   @tailrec
   private def execute[K, T, BAG[_]](key: Key[K], value: Value[Reserve[Unit]], f: => T)(implicit bag: Bag[BAG],
                                                                                        transaction: AtomicRanges[K]): BAG[T] = {
-    val putResult = transaction.skipList.putIfAbsent(key, value)
+    val putResult = transaction.transactions.putIfAbsent(key, value)
 
     if (putResult == null)
       try
@@ -120,7 +120,7 @@ object AtomicRanges {
           bag.failure(exception)
 
       } finally {
-        transaction.skipList.remove(key)
+        transaction.transactions.remove(key)
         Reserve.setFree(value.value)
       }
     else
@@ -149,15 +149,15 @@ object AtomicRanges {
       .and(execute(key, value, f))
 }
 
-class AtomicRanges[K](private val skipList: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val ordering: Ordering[K]) {
+class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val ordering: Ordering[K]) {
 
-  def execute[T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean, action: Action)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
+  def transaction[T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean, action: Action)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
     AtomicRanges.execute(fromKey, toKey, toKeyInclusive, action, f)(bag, this)
 
   def isEmpty =
-    skipList.isEmpty
+    transactions.isEmpty
 
   def size =
-    skipList.size()
+    transactions.size()
 
 }
