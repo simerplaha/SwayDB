@@ -132,7 +132,7 @@ private[core] object ReserveRange extends LazyLogging {
       .ranges
       .forall {
         range =>
-          !Slice.intersects(
+          !Slice.intersects[Slice[Byte]](
             range1 = (range.from, range.to, range.toInclusive),
             range2 = (from, to, toInclusive)
           )
@@ -154,7 +154,7 @@ private[core] object ReserveRange extends LazyLogging {
     state.synchronized {
       state
         .ranges
-        .find(range => Slice.intersects((from, to, toInclusive), (range.from, range.to, range.toInclusive)))
+        .find(range => Slice.intersects[Slice[Byte]]((from, to, toInclusive), (range.from, range.to, range.toInclusive)))
         .map(IO.Left(_)(Range.ErrorHandler))
         .getOrElse {
           state.ranges += ReserveRange.Range(from, to, toInclusive, Reserve.busy(info, "ReserveRange"))

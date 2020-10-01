@@ -226,12 +226,12 @@ trait SliceCompanionBase {
   /**
    * Boolean indicates if the toKey is inclusive.
    */
-  def intersects[T](range1: (Slice[T], Slice[T], Boolean),
-                    range2: (Slice[T], Slice[T], Boolean))(implicit ordering: Ordering[Slice[T]]): Boolean = {
+  def intersects[T](range1: (T, T, Boolean),
+                    range2: (T, T, Boolean))(implicit ordering: Ordering[T]): Boolean = {
     import ordering._
 
-    def check(range1: (Slice[T], Slice[T], Boolean),
-              range2: (Slice[T], Slice[T], Boolean)): Boolean =
+    def check(range1: (T, T, Boolean),
+              range2: (T, T, Boolean)): Boolean =
       if (range1._3 && range2._3)
         range1._1 >= range2._1 && range1._1 <= range2._2 ||
           range1._2 >= range2._1 && range1._2 <= range2._2
