@@ -281,20 +281,32 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
   override def iterator: Iterator[(Slice[Byte], Memory)] =
     state.skipList.iterator
 
-  def getAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.atomicRead(_.key)(_.get(key))
+  def headKeyAtomic: SliceOption[Byte] =
+    state.skipList.atomicReadKey(_.headKey)(Bag.less)
 
-  def floorAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.atomicRead(_.key)(_.floor(key))
+  def lastKeyAtomic: SliceOption[Byte] =
+    state.skipList.atomicReadKey(_.lastKey)(Bag.less)
 
-  def lowerAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.atomicRead(_.key)(_.lower(key))
+  def headAtomic: MemoryOption =
+    state.skipList.atomicReadValue(_.key)(_.head())(Bag.less)
 
-  def higherAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.atomicRead(_.key)(_.higher(key))
+  def lastAtomic: MemoryOption =
+    state.skipList.atomicReadValue(_.key)(_.last())(Bag.less)
 
-  def ceilingAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.atomicRead(_.key)(_.ceiling(key))
+  def getAtomic(key: Slice[Byte]): MemoryOption =
+    state.skipList.atomicReadValue(_.key)(_.get(key))(Bag.less)
+
+  def floorAtomic(key: Slice[Byte]): MemoryOption =
+    state.skipList.atomicReadValue(_.key)(_.floor(key))(Bag.less)
+
+  def lowerAtomic(key: Slice[Byte]): MemoryOption =
+    state.skipList.atomicReadValue(_.key)(_.lower(key))(Bag.less)
+
+  def higherAtomic(key: Slice[Byte]): MemoryOption =
+    state.skipList.atomicReadValue(_.key)(_.higher(key))(Bag.less)
+
+  def ceilingAtomic(key: Slice[Byte]): MemoryOption =
+    state.skipList.atomicReadValue(_.key)(_.ceiling(key))(Bag.less)
 
   def skipList =
     state.skipList
