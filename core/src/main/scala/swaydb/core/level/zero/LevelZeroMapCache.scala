@@ -241,11 +241,11 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
   @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit = {
     val entries = entry.entries
 
-    if (entry.entriesCount > 1 || state.hasRange || entry.hasUpdate || entry.hasRange || entry.hasRemoveDeadline)
+    if (entry.entriesCount > 1 || state.hasRange || entry.hasRange || entry.hasUpdate || entry.hasRemoveDeadline)
       if (atomic) {
         implicit val bag = Bag.less
         val sorted = entries.sortBy(_.key)(keyOrder)
-        state.skipList.writeTransaction(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange) {
+        state.skipList.atomicWrite(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange) {
           LevelZeroMapCache.put(
             head = sorted.head,
             tail = sorted.tail,
@@ -282,19 +282,19 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
     state.skipList.iterator
 
   def getAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.readTransaction(_.key)(_.get(key))
+    state.skipList.atomicRead(_.key)(_.get(key))
 
   def floorAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.readTransaction(_.key)(_.floor(key))
+    state.skipList.atomicRead(_.key)(_.floor(key))
 
   def lowerAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.readTransaction(_.key)(_.lower(key))
+    state.skipList.atomicRead(_.key)(_.lower(key))
 
   def higherAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.readTransaction(_.key)(_.higher(key))
+    state.skipList.atomicRead(_.key)(_.higher(key))
 
   def ceilingAtomic[BAG[_]](key: Slice[Byte])(implicit bag: Bag[BAG]): BAG[MemoryOption] =
-    state.skipList.readTransaction(_.key)(_.ceiling(key))
+    state.skipList.atomicRead(_.key)(_.ceiling(key))
 
   def skipList =
     state.skipList

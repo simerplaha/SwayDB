@@ -24,15 +24,15 @@
 
 package swaydb.core.util.skiplist
 
-import swaydb.{Bag, OK}
+import swaydb.Bag
 import swaydb.core.util.AtomicRanges
 import swaydb.data.order.KeyOrder
 
 private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
 
-  def keyOrder: KeyOrder[K]
+  val keyOrder: KeyOrder[K]
 
-  private lazy val ranges = AtomicRanges[K]()(keyOrder)
+  private val ranges = AtomicRanges[K]()(keyOrder)
 
   def nullKey: OK
   def nullValue: OV
@@ -79,11 +79,11 @@ private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
   def iterator: Iterator[(K, V)]
   def valuesIterator: Iterator[V]
 
-  def writeTransaction[T, BAG[_]](from: K, to: K, toInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
-    AtomicRanges.writeTransaction(from, to, toInclusive, f)(bag, ranges)
+  def atomicWrite[T, BAG[_]](from: K, to: K, toInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
+    AtomicRanges.write(from, to, toInclusive, f)(bag, ranges)
 
-  def readTransaction[BAG[_]](getKey: V => K)(f: SkipList[OK, OV, K, V] => OV)(implicit bag: Bag[BAG]): BAG[OV] =
-    AtomicRanges.readTransaction(this, getKey, nullValue, f)(bag, ranges)
+  def atomicRead[BAG[_]](getKey: V => K)(f: SkipList[OK, OV, K, V] => OV)(implicit bag: Bag[BAG]): BAG[OV] =
+    AtomicRanges.read(this, getKey, nullValue, f)(bag, ranges)
 
   @inline final def toOptionValue(entry: java.util.Map.Entry[K, V]): OV =
     if (entry == null)

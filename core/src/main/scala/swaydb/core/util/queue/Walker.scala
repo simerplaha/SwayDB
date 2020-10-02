@@ -58,13 +58,7 @@ private[core] trait Walker[A >: Null] { self =>
         }
 
       override def headOrNull(): B =
-        getHead(0) match {
-          case Node.Empty =>
-            null
-
-          case value: Node.Value[B] =>
-            value.value
-        }
+        getHead(0)
 
       override def head(): Node[B] =
         ??? //TODO - not needed right now.

@@ -99,17 +99,17 @@ object AtomicRanges {
     new AtomicRanges[K](transactions)
   }
 
-  @inline def writeTransaction[K, T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean, f: => T)(implicit bag: Bag[BAG],
-                                                                                                     transaction: AtomicRanges[K]): BAG[T] =
-    writeTransaction(
+  @inline def write[K, T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean, f: => T)(implicit bag: Bag[BAG],
+                                                                                          transaction: AtomicRanges[K]): BAG[T] =
+    write(
       key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, Action.Write),
       value = new Value(Reserve.busy((), "busy transactional key")),
       f = f
     )
 
   @tailrec
-  private def writeTransaction[K, T, BAG[_]](key: Key[K], value: Value[Reserve[Unit]], f: => T)(implicit bag: Bag[BAG],
-                                                                                                ranges: AtomicRanges[K]): BAG[T] = {
+  private def write[K, T, BAG[_]](key: Key[K], value: Value[Reserve[Unit]], f: => T)(implicit bag: Bag[BAG],
+                                                                                           ranges: AtomicRanges[K]): BAG[T] = {
     val putResult = ranges.transactions.putIfAbsent(key, value)
 
     if (putResult == null)
@@ -127,10 +127,10 @@ object AtomicRanges {
       bag match {
         case _: Bag.Sync[BAG] =>
           Reserve.blockUntilFree(putResult.value)
-          writeTransaction(key, value, f)
+          write(key, value, f)
 
         case async: Bag.Async[BAG] =>
-          writeTransactionRecoverAsync(
+          writeAsync(
             key = key,
             value = value,
             busyReserve = putResult.value,
@@ -139,22 +139,22 @@ object AtomicRanges {
       }
   }
 
-  private def writeTransactionRecoverAsync[K, T, BAG[_]](key: Key[K],
-                                                         value: Value[Reserve[Unit]],
-                                                         busyReserve: Reserve[Unit],
-                                                         f: => T)(implicit bag: Bag.Async[BAG],
-                                                                  skipList: AtomicRanges[K]): BAG[T] =
+  private def writeAsync[K, T, BAG[_]](key: Key[K],
+                                             value: Value[Reserve[Unit]],
+                                             busyReserve: Reserve[Unit],
+                                             f: => T)(implicit bag: Bag.Async[BAG],
+                                                      skipList: AtomicRanges[K]): BAG[T] =
     bag
       .fromPromise(Reserve.promise(busyReserve))
-      .and(writeTransaction(key, value, f))
+      .and(write(key, value, f))
 
 
-  @inline def readTransaction[R, K, NO, O <: NO, BAG[_]](resource: R,
-                                                         getKey: O => K,
-                                                         nullOutput: NO,
-                                                         f: R => NO)(implicit bag: Bag[BAG],
-                                                                     transaction: AtomicRanges[K]): BAG[NO] =
-    readTransaction(
+  @inline def read[R, K, NO, O <: NO, BAG[_]](resource: R,
+                                              getKey: O => K,
+                                              nullOutput: NO,
+                                              f: R => NO)(implicit bag: Bag[BAG],
+                                                                transaction: AtomicRanges[K]): BAG[NO] =
+    read(
       resource = resource,
       getKey = getKey,
       nullOutput = nullOutput,
@@ -164,13 +164,13 @@ object AtomicRanges {
     )
 
   @tailrec
-  private def readTransaction[R, K, NO, O <: NO, BAG[_]](resource: R,
-                                                         getKey: O => K,
-                                                         value: Value[Reserve[Unit]],
-                                                         action: Action.Read,
-                                                         nullOutput: NO,
-                                                         f: R => NO)(implicit bag: Bag[BAG],
-                                                                     ranges: AtomicRanges[K]): BAG[NO] = {
+  private def read[R, K, NO, O <: NO, BAG[_]](resource: R,
+                                                    getKey: O => K,
+                                                    value: Value[Reserve[Unit]],
+                                                    action: Action.Read,
+                                                    nullOutput: NO,
+                                                    f: R => NO)(implicit bag: Bag[BAG],
+                                                                ranges: AtomicRanges[K]): BAG[NO] = {
     val outputOptional = f(resource)
     if (outputOptional == nullOutput)
       bag.success(outputOptional)
@@ -196,7 +196,7 @@ object AtomicRanges {
         bag match {
           case _: Bag.Sync[BAG] =>
             Reserve.blockUntilFree(putResult.value)
-            readTransaction(
+            read(
               resource = resource,
               getKey = getKey,
               value = value,
@@ -206,7 +206,7 @@ object AtomicRanges {
             )
 
           case async: Bag.Async[BAG] =>
-            readTransactionRecoverAsync(
+            readAsync(
               resource = resource,
               getKey = getKey,
               value = value,
@@ -219,18 +219,18 @@ object AtomicRanges {
     }
   }
 
-  private def readTransactionRecoverAsync[R, K, NO, O <: NO, BAG[_]](resource: R,
-                                                                     getKey: O => K,
-                                                                     value: Value[Reserve[Unit]],
-                                                                     busyReserve: Reserve[Unit],
-                                                                     action: Action.Read,
-                                                                     nullOutput: NO,
-                                                                     f: R => NO)(implicit bag: Bag.Async[BAG],
-                                                                                 skipList: AtomicRanges[K]): BAG[NO] =
+  private def readAsync[R, K, NO, O <: NO, BAG[_]](resource: R,
+                                                         getKey: O => K,
+                                                         value: Value[Reserve[Unit]],
+                                                         busyReserve: Reserve[Unit],
+                                                         action: Action.Read,
+                                                         nullOutput: NO,
+                                                         f: R => NO)(implicit bag: Bag.Async[BAG],
+                                                                     skipList: AtomicRanges[K]): BAG[NO] =
     bag
       .fromPromise(Reserve.promise(busyReserve))
       .and(
-        readTransaction(
+        read(
           resource = resource,
           getKey = getKey,
           value = value,
