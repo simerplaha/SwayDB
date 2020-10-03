@@ -1762,14 +1762,14 @@ object CommonAssertions {
 
   implicit class OptimiseWritesImplicits(optimise: OptimiseWrites.type) {
     def random: OptimiseWrites =
-      random(transactionQueueMaxSize = randomIntMax(10))
+      random(atomic = randomBoolean())
 
-    def random(transactionQueueMaxSize: Int): OptimiseWrites =
+    def random(atomic: Boolean = randomBoolean()): OptimiseWrites =
       if (randomBoolean())
-        OptimiseWrites.RandomOrder(transactionQueueMaxSize)
+        OptimiseWrites.RandomOrder(atomic = atomic)
       else
         OptimiseWrites.SequentialOrder(
-          transactionQueueMaxSize = transactionQueueMaxSize,
+          atomic = atomic,
           initialSkipListLength = randomIntMax(100)
         )
   }

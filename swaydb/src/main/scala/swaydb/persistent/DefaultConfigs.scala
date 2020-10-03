@@ -65,7 +65,7 @@ object DefaultConfigs {
    * size of 10 before merging.
    */
   def optimiseWrites(): OptimiseWrites =
-    OptimiseWrites.RandomOrder(transactionQueueMaxSize = 10)
+    OptimiseWrites.RandomOrder(atomic = true)
 
   def randomKeyIndex(cacheDataBlockOnAccess: Boolean = true): RandomKeyIndex.Enable =
     RandomKeyIndex.Enable(
