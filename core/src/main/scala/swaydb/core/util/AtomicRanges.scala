@@ -181,18 +181,11 @@ object AtomicRanges {
 
       val putResult = ranges.transactions.putIfAbsent(key, value)
 
-      if (putResult == null)
-        try
-          bag.success(outputOptional)
-        catch {
-          case exception: Throwable =>
-            bag.failure(exception)
-
-        } finally {
-          ranges.transactions.remove(key)
-          Reserve.setFree(value.value)
-        }
-      else
+      if (putResult == null) {
+        ranges.transactions.remove(key)
+        Reserve.setFree(value.value)
+        bag.success(outputOptional)
+      } else {
         bag match {
           case _: Bag.Sync[BAG] =>
             Reserve.blockUntilFree(putResult.value)
@@ -216,6 +209,7 @@ object AtomicRanges {
               f = f
             )(async, ranges)
         }
+      }
     }
   }
 
