@@ -41,10 +41,10 @@ public class SliceTest {
   void serialising() {
     final Slice<Byte> bytes =
       Slice
-        .createJavaBytes(100)
+        .ofBytesJava(100)
         .add(Byte.MIN_VALUE)
         .add(Byte.MAX_VALUE)
-        .addAll(Slice.createJavaBytes(0))
+        .addAll(Slice.ofBytesJava(0))
         .addUnsignedInt(Int.MaxValue(), ByteOps.Java())
         .addUnsignedLong(Long.MIN_VALUE, ByteOps.Java())
         .addSignedInt(Int.MinValue(), ByteOps.Java())

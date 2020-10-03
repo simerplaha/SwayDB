@@ -80,10 +80,10 @@ trait SliceCompanionBase {
       written = length
     )
 
-  def createScalaBytes(length: Int): Slice[Byte] =
+  def ofBytesScala(length: Int): Slice[Byte] =
     of[Byte](length)
 
-  def createJavaBytes(length: Int): Slice[java.lang.Byte] =
+  def ofBytesJava(length: Int): Slice[java.lang.Byte] =
     of[java.lang.Byte](length)
 
   @inline final def of[T: ClassTag](length: Int, isFull: Boolean = false): Slice[T] =

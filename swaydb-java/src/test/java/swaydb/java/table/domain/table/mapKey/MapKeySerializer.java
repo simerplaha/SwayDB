@@ -42,7 +42,7 @@ public class MapKeySerializer implements Serializer<MapKey> {
   public Slice<Byte> write(MapKey data) {
     //we only need to store the Id. So create a byte array
     //of size 1 and add the id.
-    return Slice.createJavaBytes(1).add(data.getId());
+    return Slice.ofBytesJava(1).add(data.getId());
   }
 
   @Override
