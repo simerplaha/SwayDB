@@ -244,11 +244,6 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
       head.value
   }
 
-  /**
-   * [[iterator]] is less expensive this [[Walker]].
-   * [[Walker]] should be used where lazy iterations are required
-   * are required like searching levels.
-   */
   def iterator: Iterator[A] =
     new Iterator[A] {
       var node: Node[A] = self._head
