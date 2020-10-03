@@ -30,27 +30,11 @@ import swaydb.core.TestData._
 import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._
 
-import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 class VolatileQueueSpec extends AnyWordSpec with Matchers {
-
-  implicit class WalkerToList[A >: Null](walker: Walker[A]) {
-    //used for testing only. Always use iterator instead
-    def toList: List[A] = {
-      val buffer = ListBuffer.empty[A]
-
-      walker.foreach {
-        item =>
-          buffer += item
-      }
-
-      buffer.toList
-    }
-
-  }
 
   implicit class QueueShouldBe[A >: Null](queue: VolatileQueue[A]) {
     def shouldBe(list: List[A]) = {
@@ -59,9 +43,6 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
 
       //size
       queue.size shouldBe list.size
-
-      //walker
-      queue.walker.toList shouldBe list
 
       //head and last
       queue.headOrNull() shouldBe (if (list.isEmpty) null else list.head)
@@ -354,10 +335,7 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
         (1 to 10000).par foreach {
           i =>
             if (i % 100 == 0) println(s"Read: $i")
-            if (randomBoolean())
-              queue.iterator.foreach(_ => ())
-            else
-              queue.walker.foreach(_ => ())
+            queue.iterator.foreach(_ => ())
         }
       }
 
@@ -376,15 +354,11 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
       i =>
         if (i % 100 == 0) println(s"Iteration: $i")
 
-        if (randomBoolean()) {
-          queue.iterator.foldLeft(1) {
-            case (expected, next) =>
-              next shouldBe expected
-              expected + 1
-          }
+        queue.iterator.foldLeft(1) {
+          case (expected, next) =>
+            next shouldBe expected
+            expected + 1
         }
-        else
-          queue.walker.toList shouldBe (1 to 100000)
     }
   }
 }

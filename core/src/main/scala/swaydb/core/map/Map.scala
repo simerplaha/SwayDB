@@ -120,10 +120,20 @@ private[core] trait Map[K, V, C <: MapCache[K, V]] {
     obj match {
       case other: Map[_, _, _] =>
         other.uniqueFileNumber == this.uniqueFileNumber
+
       case _ =>
         false
     }
 
   override def hashCode(): Int =
     uniqueFileNumber.hashCode()
+
+  override def toString: String =
+    this.pathOption match {
+      case Some(value) =>
+        s"${this.getClass.getSimpleName} - Path: ${value.toString} - FileNumber: ${this.uniqueFileNumber}"
+
+      case None =>
+        s"${this.getClass.getSimpleName} - FileNumber: ${this.uniqueFileNumber}"
+    }
 }

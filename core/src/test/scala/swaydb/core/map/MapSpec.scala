@@ -1127,7 +1127,7 @@ class MapSpec extends TestBase {
               val reopened = map.reopen.sweep()
               reopened.cache.skipList.size shouldBe map.cache.skipList.size
 
-              reopened.cache.skipList.toIterable shouldBe map.cache.skipList.toIterable
+              reopened.cache.skipList.iterator.toList shouldBe map.cache.skipList.iterator.toList
 
               reopened.delete
             }

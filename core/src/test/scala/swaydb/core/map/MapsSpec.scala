@@ -36,20 +36,17 @@ import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.util.Extension
-import swaydb.core.util.skiplist.SkipList
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.OptimiseWrites
 import swaydb.data.RunThis._
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
-import scala.jdk.CollectionConverters._
 
 class MapsSpec extends TestBase {
 
@@ -141,7 +138,7 @@ class MapsSpec extends TestBase {
               sweeper.receiveAll()
             }
 
-            maps.queuedMapsCountWithCurrent shouldBe 1
+            maps.mapsCount shouldBe 1
             val currentMapsPath = maps.map.asInstanceOf[PersistentMap[Slice[Byte], Memory, LevelZeroMapCache]].path
             //above creates a map without any entries
 
@@ -155,7 +152,7 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
-            reopen.queuedMapsCountWithCurrent shouldBe 1
+            reopen.mapsCount shouldBe 1
             //since the old map is empty, it should value deleted
 
             if (reopen.mmap.hasMMAP && OperatingSystem.isWindows)
@@ -196,12 +193,11 @@ class MapsSpec extends TestBase {
           def test(maps: Maps[Slice[Byte], Memory, LevelZeroMapCache]) = {
             maps.write(_ => MapEntry.Put(1, Memory.put(1))) //entry size is 21.bytes
             maps.write(_ => MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, Value.FromValue.Null, Value.update(2)))) //another 31.bytes
-            maps.queuedMapsCountWithCurrent shouldBe 1
+            maps.mapsCount shouldBe 1
             //another 32.bytes but map has total size of 82.bytes.
             //now since the Map is overflow a new should value created.
             maps.write(_ => MapEntry.Put[Slice[Byte], Memory](3, Memory.remove(3)))
-            maps.queuedMapsCount shouldBe 1
-            maps.queuedMapsCountWithCurrent shouldBe 2
+            maps.mapsCount shouldBe 2
           }
 
           //persistent
@@ -241,30 +237,25 @@ class MapsSpec extends TestBase {
               // the entry will value added.
               maps.write(_ => MapEntry.Put(1, Memory.put(1, largeValue))) //large entry
               maps.find[MemoryOption](Memory.Null, _.cache.skipList.get(1)) shouldBe Memory.put(1, largeValue)
-              maps.queuedMapsCount shouldBe 0
-              maps.queuedMapsCountWithCurrent shouldBe 1
+              maps.mapsCount shouldBe 1
 
               //now the map is overflown. Adding any other entry will create a new map
               maps.write(_ => MapEntry.Put(2, Memory.put(2, 2)))
-              maps.queuedMapsCount shouldBe 1
-              maps.queuedMapsCountWithCurrent shouldBe 2
+              maps.mapsCount shouldBe 2
 
               //a small entry of 24.bytes gets written to the same Map since the total size is 500.bytes
               maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](3, Memory.remove(3)))
               maps.find[MemoryOption](Memory.Null, _.cache.skipList.get(3)) shouldBe Memory.remove(3)
-              maps.queuedMapsCount shouldBe 1
-              maps.queuedMapsCountWithCurrent shouldBe 2
+              maps.mapsCount shouldBe 2
 
               //write large entry again and a new Map is created again.
               maps.write(_ => MapEntry.Put(1, Memory.put(1, largeValue))) //large entry
               maps.find[MemoryOption](Memory.Null, _.cache.skipList.get(1)) shouldBe Memory.put(1, largeValue)
-              maps.queuedMapsCount shouldBe 2
-              maps.queuedMapsCountWithCurrent shouldBe 3
+              maps.mapsCount shouldBe 3
 
               //now again the map is overflown. Adding any other entry will create a new map
               maps.write(_ => MapEntry.Put[Slice[Byte], Memory](4, Memory.remove(4)))
-              maps.queuedMapsCount shouldBe 3
-              maps.queuedMapsCountWithCurrent shouldBe 4
+              maps.mapsCount shouldBe 4
               maps
             }
 
@@ -305,8 +296,7 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
-            maps.queuedMapsCount shouldBe 4
-            maps.queuedMapsCountWithCurrent shouldBe 5
+            maps.mapsCount shouldBe 5
             maps.find[MemoryOption](Memory.Null, _.cache.skipList.get(1)) shouldBe Memory.put(1, largeValue)
             maps.find[MemoryOption](Memory.Null, _.cache.skipList.get(2)) shouldBe Memory.put(2, 2)
             maps.find[MemoryOption](Memory.Null, _.cache.skipList.get(3)) shouldBe Memory.remove(3)
@@ -337,9 +327,9 @@ class MapsSpec extends TestBase {
             maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](4, Memory.remove(2)))
             maps.write(_ => MapEntry.Put(5, Memory.put(5)))
 
-            maps.queuedMapsCountWithCurrent shouldBe 5
+            maps.mapsCount shouldBe 5
             //maps value added
-            getMaps(maps).asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(3, 2, 1, 0)
+            getMaps(maps).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
             maps.nextJob().value.pathOption.value.folderId shouldBe 0
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
@@ -356,7 +346,7 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.ReportFailure
               ).value
 
-            getMaps(recovered1).asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
+            getMaps(recovered1).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
             recovered1.map.pathOption.value.folderId shouldBe 5
             recovered1.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
             recovered1.nextJob().value.pathOption.value.folderId shouldBe 0
@@ -375,7 +365,7 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
-            getMaps(recovered2).asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
+            getMaps(recovered2).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(6, 5, 4, 3, 2, 1, 0)
             recovered2.map.pathOption.value.folderId shouldBe 6
             recovered2.nextJob().value.pathOption.value.folderId shouldBe 0
         }
@@ -416,12 +406,13 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.ReportFailure
               ).value.sweep()
 
-            val recoveredMapsMaps = getMaps(recoveredMaps).asScala
-            recoveredMapsMaps should have size 3
-            recoveredMapsMaps.map(_.pathOption.value.folderId) shouldBe List(2, 1, 0)
+            val recoveredMapsMaps = getMaps(recoveredMaps).iterator.toList
+            recoveredMapsMaps should have size 4
+            recoveredMapsMaps.map(_.pathOption.value.folderId) shouldBe List(3, 2, 1, 0)
 
-            recoveredMapsMaps.head.cache.skipList.get(1) shouldBe Memory.remove(1)
-            recoveredMapsMaps.tail.head.cache.skipList.get(2) shouldBe Memory.put(2)
+            recoveredMapsMaps.head.cache.skipList.size shouldBe 0
+            recoveredMapsMaps.tail.head.cache.skipList.get(1) shouldBe Memory.remove(1)
+            recoveredMapsMaps.tail.drop(1).head.cache.skipList.get(2) shouldBe Memory.put(2)
             recoveredMapsMaps.last.cache.skipList.get(1) shouldBe Memory.put(1)
         }
       }
@@ -451,7 +442,7 @@ class MapsSpec extends TestBase {
               sweeper.receiveAll()
             }
 
-            val secondMapsPath = getMaps(maps).asScala.tail.head.pathOption.value.files(Extension.Log).head
+            val secondMapsPath = getMaps(maps).iterator.toList.tail.head.pathOption.value.files(Extension.Log).head
             val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
             Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
@@ -488,7 +479,7 @@ class MapsSpec extends TestBase {
             maps.write(_ => MapEntry.Put(5, Memory.put(5)))
             maps.write(_ => MapEntry.Put(6, Memory.put(6, 6)))
 
-            val secondMapsPath = getMaps(maps).asScala.head.pathOption.value.files(Extension.Log).head
+            val secondMapsPath = getMaps(maps).iterator.toList.tail.head.pathOption.value.files(Extension.Log).head
             val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
             Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
@@ -501,22 +492,26 @@ class MapsSpec extends TestBase {
                 recovery = RecoveryMode.DropCorruptedTailEntries
               ).value.sweep()
 
-            val recoveredMaps = getMaps(recovered).asScala
+            val recoveredMaps = getMaps(recovered).iterator.toList
 
-            //recovered maps will still be 3 but since second maps second entry is corrupted, the first entry will still exists.
-            recoveredMaps should have size 3
+            //recovered maps will still be 4 (including a new map) but since second maps second entry is corrupted, the first entry will still exists.
+            recoveredMaps should have size 4
+
+            recoveredMaps.head.cache.skipList.size shouldBe 0
+
+            val recoveredMapsWithoutNew = recoveredMaps.tail
 
             //newest map contains all key-values
-            recoveredMaps.head.cache.skipList.get(5) shouldBe Memory.put(5)
-            recoveredMaps.head.cache.skipList.get(6) shouldBe Memory.put(6, 6)
+            recoveredMapsWithoutNew.head.cache.skipList.get(5) shouldBe Memory.put(5)
+            recoveredMapsWithoutNew.head.cache.skipList.get(6) shouldBe Memory.put(6, 6)
 
             //second map is the corrupted map and will have the 2nd entry missing
-            recoveredMaps.tail.head.cache.skipList.get(3) shouldBe Memory.put(3, 3)
-            recoveredMaps.tail.head.cache.skipList.get(4).toOptionS shouldBe empty //4th entry is corrupted, it will not exist the Map
+            recoveredMapsWithoutNew.tail.head.cache.skipList.get(3) shouldBe Memory.put(3, 3)
+            recoveredMapsWithoutNew.tail.head.cache.skipList.get(4).toOptionS shouldBe empty //4th entry is corrupted, it will not exist the Map
 
             //oldest map contains all key-values
-            recoveredMaps.last.cache.skipList.get(1) shouldBe Memory.put(1)
-            recoveredMaps.last.cache.skipList.get(2) shouldBe Memory.put(2)
+            recoveredMapsWithoutNew.last.cache.skipList.get(1) shouldBe Memory.put(1)
+            recoveredMapsWithoutNew.last.cache.skipList.get(2) shouldBe Memory.put(2)
         }
       }
     }
@@ -542,7 +537,7 @@ class MapsSpec extends TestBase {
           maps.write(_ => MapEntry.Put(5, Memory.put(5)))
           maps.write(_ => MapEntry.Put(6, Memory.put(6)))
 
-          val secondMapsPath = getMaps(maps).asScala.head.pathOption.value.files(Extension.Log).head
+          val secondMapsPath = getMaps(maps).iterator.toList.tail.head.pathOption.value.files(Extension.Log).head
           val secondMapsBytes = Effect.readAllBytes(secondMapsPath)
           Effect.overwrite(secondMapsPath, secondMapsBytes.dropRight(1))
 
@@ -555,9 +550,9 @@ class MapsSpec extends TestBase {
               recovery = RecoveryMode.DropCorruptedTailEntriesAndMaps
             ).value.sweep()
 
-          getMaps(recoveredMaps) should have size 2
+          getMaps(recoveredMaps) should have size 3
           //the last map is delete since the second last Map is found corrupted.
-          getMaps(maps).asScala.last.exists shouldBe false
+          getMaps(maps).iterator.toList.last.exists shouldBe false
 
           //oldest map contains all key-values
           recoveredMaps.find[MemoryOption](Memory.Null, _.cache.skipList.get(1)) shouldBe Memory.put(1)
@@ -586,7 +581,7 @@ class MapsSpec extends TestBase {
             ).value
 
           maps.write(_ => MapEntry.Put(1, Memory.put(1)))
-          maps.queuedMapsCountWithCurrent shouldBe 1
+          maps.mapsCount shouldBe 1
           //delete the map
           maps.map.delete
 

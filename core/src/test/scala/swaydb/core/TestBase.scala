@@ -53,6 +53,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
+import swaydb.core.util.queue.VolatileQueue
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.{NonEmptyList, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -134,9 +135,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     else
       AppendixStorage.Persistent(mmap = appendixStorageMMAP, 4.mb)
 
-  def getMaps[K, V, C <: MapCache[K, V]](maps: Maps[K, V, C]): ConcurrentLinkedDeque[Map[K, V, C]] = {
+  def getMaps[K, V, C <: MapCache[K, V]](maps: Maps[K, V, C]): VolatileQueue[Map[K, V, C]] = {
     import org.scalatest.PrivateMethodTester._
-    val function = PrivateMethod[ConcurrentLinkedDeque[Map[K, V, C]]](Symbol("maps"))
+    val function = PrivateMethod[VolatileQueue[Map[K, V, C]]](Symbol("queue"))
     maps.invokePrivate(function())
   }
 

@@ -60,7 +60,7 @@ private[core] object DropIterator {
   @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator[H, T] =
     new Single[H, T](keyValues.size, null, null, keyValues.iterator)
 
-  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator.Single[H, T] =
     new Single[H, T](size, null, null, keyValues)
 
   implicit class DropIteratorImplicit[H >: Null <: T, T >: Null](left: DropIterator[H, T]) {
@@ -73,10 +73,10 @@ private[core] object DropIterator {
         new Multiple(left, right)
   }
 
-  class Single[H >: Null <: T, T >: Null](var size: Int,
-                                          private var headRangeOrNull: H,
-                                          private var tailHead: T,
-                                          private var tailKeyValues: Iterator[T]) extends DropIterator[H, T] {
+  class Single[H >: Null <: T, T >: Null] private[DropIterator](var size: Int,
+                                                                private var headRangeOrNull: H,
+                                                                private var tailHead: T,
+                                                                private var tailKeyValues: Iterator[T]) extends DropIterator[H, T] {
 
     override val depth: Int = 1
 
@@ -105,6 +105,29 @@ private[core] object DropIterator {
       }
 
       this
+    }
+
+    def dropHeadDuplicate(): DropIterator.Single[H, T] = {
+      this.headOrNull //ensure that head is fetched.
+
+      val (left, right) = tailKeyValues.duplicate
+      this.tailKeyValues = left
+
+      DropIterator(size = size - 1, keyValues = right)
+    }
+
+    def duplicate(): (Single[H, T], Single[H, T]) = {
+      val (left, right) = tailKeyValues.duplicate
+
+      val leftIterator = DropIterator[H, T](size = size, keyValues = left)
+      leftIterator.headRangeOrNull = this.headRangeOrNull
+      leftIterator.tailHead = this.tailHead
+
+      val rightIterator = DropIterator[H, T](size = size, keyValues = right)
+      rightIterator.headRangeOrNull = this.headRangeOrNull
+      rightIterator.tailHead = this.tailHead
+
+      (leftIterator, rightIterator)
     }
 
     def dropPrepend(head: H): DropIterator.Single[H, T] =
@@ -144,8 +167,8 @@ private[core] object DropIterator {
       }
   }
 
-  private[core] class Multiple[H >: Null <: T, T >: Null](private var left: DropIterator[H, T],
-                                                          right: DropIterator[H, T]) extends DropIterator[H, T] {
+  private[core] class Multiple[H >: Null <: T, T >: Null] private[DropIterator](private var left: DropIterator[H, T],
+                                                                                right: DropIterator[H, T]) extends DropIterator[H, T] {
 
     override def dropHead(): DropIterator[H, T] =
       (left.isEmpty, right.isEmpty) match {

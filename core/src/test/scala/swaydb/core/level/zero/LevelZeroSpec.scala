@@ -248,10 +248,11 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
-          val keyValues = randomIntKeyStringValues(keyValuesCount)
+          val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(0))
+
           keyValues foreach {
             keyValue =>
-              zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO
+              zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO.get
           }
 
           if (unexpiredPuts(keyValues).nonEmpty)
@@ -259,7 +260,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
 
           keyValues foreach {
             keyValue =>
-              zero.remove(keyValue.key).runRandomIO
+              zero.remove(keyValue.key).runRandomIO.get
           }
 
           zero.head(ThreadReadState.random).toOptionPut shouldBe empty

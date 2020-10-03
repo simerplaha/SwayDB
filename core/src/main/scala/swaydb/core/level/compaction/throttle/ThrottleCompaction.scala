@@ -195,25 +195,22 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         // error message to be handled by the User.
         // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
         // Maps are ALWAYS required to be processed sequentially in the order of write.
-        // Un-order merging of maps should NOT be allowed.
-        zero.maps.removeLast(map) foreach {
-          result =>
-            result onLeftSideEffect {
-              error =>
-                val mapPath: String =
-                  zero
-                    .maps
-                    .nextJob()
-                    .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
+        // Random order merging of maps should NOT be allowed.
+        zero.maps.removeLast(map) onLeftSideEffect {
+          error =>
+            val mapPath: String =
+              zero
+                .maps
+                .nextJob()
+                .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
 
-                logger.error(
-                  s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
-                    "No more maps will be pushed to Level1 until this error is fixed " +
-                    "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
-                    "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
-                  error.exception
-                )
-            }
+            logger.error(
+              s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
+                "No more maps will be pushed to Level1 until this error is fixed " +
+                "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
+                "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
+              error.exception
+            )
         }
 
         ThrottleLevelState.Sleeping(

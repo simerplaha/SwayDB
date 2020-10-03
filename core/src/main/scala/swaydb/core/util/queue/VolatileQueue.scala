@@ -24,6 +24,8 @@
 
 package swaydb.core.util.queue
 
+import swaydb.core.util.DropIterator
+
 private[core] object VolatileQueue {
 
   @inline def apply[A >: Null](): VolatileQueue[A] =
@@ -58,11 +60,13 @@ private[core] object VolatileQueue {
  */
 private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A],
                                              @volatile private var _last: Node[A],
-                                             @volatile private var _size: Int) extends Walker[A] { self =>
+                                             @volatile private var _size: Int) { self =>
 
   private[queue] def head = _head
 
   def size: Int = _size
+
+  def isEmpty = _size == 0
 
   def addHead(value: A): VolatileQueue[A] =
     this.synchronized {
@@ -203,14 +207,6 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
   def headOption(): Option[A] =
     Option(headOrNull())
 
-  override def dropHead(): Walker[A] = {
-    val head = _head
-    if (head.isEmpty || head.next.isEmpty)
-      Walker.empty
-    else
-      new VolatileQueue[A](head.next, head.next.next, self._size - 1)
-  }
-
   def lastOrNull(): A = {
     //read the value first
     val last = _last
@@ -248,9 +244,6 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
       head.value
   }
 
-  def walker: Walker[A] =
-    self
-
   /**
    * [[iterator]] is less expensive this [[Walker]].
    * [[Walker]] should be used where lazy iterations are required
@@ -273,4 +266,9 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
       override def next(): A =
         value
     }
+
+  def dropIterator: DropIterator.Single[Null, A] = {
+    val iterator = this.iterator
+    DropIterator(this.size, iterator)
+  }
 }

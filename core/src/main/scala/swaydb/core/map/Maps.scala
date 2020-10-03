@@ -25,7 +25,6 @@
 package swaydb.core.map
 
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentLinkedDeque
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
@@ -35,20 +34,17 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.brake.BrakePedal
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
-import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
-import swaydb.core.util.queue.{VolatileQueue, Walker}
+import swaydb.core.util.DropIterator
+import swaydb.core.util.queue.VolatileQueue
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{MMAP, RecoveryMode}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters._
-import scala.reflect.ClassTag
 
 private[core] object Maps extends LazyLogging {
 
@@ -451,30 +447,28 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
       finder = matcher
     )
 
-  def nextJob(): Option[Map[K, V, C]] =
-    Option {
-      val last = queue.lastOrNull()
-      if (last == null || queue.size == 1)
-        null
-      else
-        last
-    }
+  def nextJob(): Option[Map[K, V, C]] = {
+    val last = queue.lastOrNull()
+    if (last == null || queue.size == 1)
+      None
+    else
+      Some(last)
+  }
 
-  def removeLast(map: Map[K, V, C]): Option[IO[swaydb.Error.Map, Unit]] =
-    Option(queue.removeLast(map)) map {
-      _ =>
+  def removeLast(map: Map[K, V, C]): IO[Error.Map, Unit] =
+    IO(queue.removeLast(map))
+      .and {
         IO(map.delete) match {
           case IO.Right(_) =>
             IO.unit
 
           case IO.Left(error) =>
             //failed to delete file. Add it back to the queue.
-            val mapPath: String = map.pathOption.map(_.toString).getOrElse("No path")
-            logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
+            logger.error(s"Failed to delete map '${map.toString}'. Adding it back to the queue.", error.exception)
             queue.addLast(map)
             IO.Left(error)
         }
-    }
+      }
 
   def keyValueCount: Int =
     reduce[Integer, Int](
@@ -483,11 +477,8 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
       reducer = _ + _
     )
 
-  def queuedMapsCount =
-    queue.size - 1
-
-  def queuedMapsCountWithCurrent =
-    queue.size + Option(currentMap).map(_ => 1).getOrElse(0)
+  def mapsCount =
+    queue.size
 
   def isEmpty: Boolean =
     queue.isEmpty
@@ -522,8 +513,11 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
           .getOrElse(IO.unit)
       }
 
-  def queueIterator =
+  def iterator =
     queue.iterator
+
+  def dropIterator =
+    queue.dropIterator
 
   def mmap: MMAP =
     currentMap.mmap
@@ -533,7 +527,4 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
 
   def isClosed =
     closed
-
-  def walker: Walker[Map[K, V, C]] =
-    queue
 }
