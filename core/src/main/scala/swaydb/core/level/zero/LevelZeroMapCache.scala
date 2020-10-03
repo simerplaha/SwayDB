@@ -208,23 +208,18 @@ private[core] object LevelZeroMapCache {
   /**
    * @return the new SkipList is this write started a transactional write.
    */
-  @tailrec
-  private[zero] def put(head: MapEntry.Point[Slice[Byte], Memory],
-                        tail: Iterable[MapEntry.Point[Slice[Byte], Memory]],
-                        state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                      timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore,
-                                      optimiseWrites: OptimiseWrites): Unit =
-    head match {
+  @inline private[zero] def put(entries: ListBuffer[MapEntry.Point[Slice[Byte], Memory]],
+                                state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore,
+                                              optimiseWrites: OptimiseWrites): Unit =
+    entries foreach {
       case head @ MapEntry.Remove(_) =>
         //this does not occur in reality and should be type-safe instead of having this Exception.
         throw new IllegalAccessException(s"${head.productPrefix} is not allowed in ${LevelZero.productPrefix} .")
 
       case MapEntry.Put(_, memory: Memory) =>
         LevelZeroMapCache.insert(insert = memory, state = state)
-
-        if (tail.nonEmpty)
-          put(head = tail.head, tail = tail.tail, state = state)
     }
 }
 
@@ -247,15 +242,13 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
         val sorted = entries.sortBy(_.key)(keyOrder)
         state.skipList.atomicWrite(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange) {
           LevelZeroMapCache.put(
-            head = sorted.head,
-            tail = sorted.tail,
+            entries = sorted,
             state = state
           )
         }
       } else {
         LevelZeroMapCache.put(
-          head = entries.head,
-          tail = entries.tail,
+          entries = entries,
           state = state
         )
       }
