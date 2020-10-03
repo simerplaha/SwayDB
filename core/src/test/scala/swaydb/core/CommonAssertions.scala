@@ -1761,6 +1761,21 @@ object CommonAssertions {
   }
 
   implicit class OptimiseWritesImplicits(optimise: OptimiseWrites.type) {
+
+    def randomAll: Seq[OptimiseWrites] =
+      Seq(
+        OptimiseWrites.RandomOrder(atomic = true),
+        OptimiseWrites.RandomOrder(atomic = false),
+        OptimiseWrites.SequentialOrder(
+          atomic = true,
+          initialSkipListLength = randomIntMax(100)
+        ),
+        OptimiseWrites.SequentialOrder(
+          atomic = false,
+          initialSkipListLength = randomIntMax(100)
+        )
+      )
+
     def random: OptimiseWrites =
       random(atomic = randomBoolean())
 

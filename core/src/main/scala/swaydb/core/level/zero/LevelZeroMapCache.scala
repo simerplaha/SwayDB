@@ -46,6 +46,16 @@ private[core] object LevelZeroMapCache {
                        optimiseWrites: OptimiseWrites): MapCacheBuilder[LevelZeroMapCache] =
     () => LevelZeroMapCache()
 
+  object State {
+    @inline def apply()(implicit keyOrder: KeyOrder[Slice[Byte]],
+                        optimiseWrites: OptimiseWrites): State =
+      new State(
+        skipList = newSkipList(),
+        hasRange = false,
+        mutable = true
+      )
+  }
+
   class State(val skipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
               @BeanProperty @volatile var hasRange: Boolean,
               @BeanProperty @volatile var mutable: Boolean)
@@ -55,13 +65,7 @@ private[core] object LevelZeroMapCache {
                       timeOrder: TimeOrder[Slice[Byte]],
                       functionStore: FunctionStore,
                       optimiseWrites: OptimiseWrites): LevelZeroMapCache =
-    new LevelZeroMapCache(
-      new State(
-        skipList = newSkipList(),
-        hasRange = false,
-        mutable = true
-      )
-    )
+    new LevelZeroMapCache(State())
 
   private[zero] def newSkipList()(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   optimiseWrites: OptimiseWrites): SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
