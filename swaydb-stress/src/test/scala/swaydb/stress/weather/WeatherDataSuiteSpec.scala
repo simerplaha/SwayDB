@@ -49,7 +49,7 @@ class Persistent_WeatherDataSpec extends WeatherDataSpec {
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      acceleration = Accelerator.brake(),
-      //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment()),
+      //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(true).copy(deleteSegmentsEventually = false),
       //      memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb)
     ).get.sweep(_.delete().get)
 }

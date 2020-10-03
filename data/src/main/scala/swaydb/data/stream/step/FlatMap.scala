@@ -41,7 +41,6 @@ private[swaydb] class FlatMap[A, B](previousStream: StreamFree[A],
     innerStream.headOrNull
   }
 
-
   override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[B] =
     bag.flatMap(previousStream.headOrNull) {
       case null =>

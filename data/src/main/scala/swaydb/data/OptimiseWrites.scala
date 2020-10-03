@@ -41,9 +41,9 @@ case object OptimiseWrites {
   case class RandomOrder(atomic: Boolean) extends OptimiseWrites
 
   /**
-   * Optimises writes for sequential order. Eg: if you insert are simple
+   * Optimises writes for sequential order. Eg: if you inserts are simple
    * sequential put eg - 1, 2, 3 ... N with [[swaydb.data.order.KeyOrder.integer]].
-   * Then this setting would yield faster write throughput.
+   * Then this setting would increase write throughput.
    *
    * @param initialSkipListLength set the initial length of SkipList's Array.
    *                              The Array is extended if the size is too small.
