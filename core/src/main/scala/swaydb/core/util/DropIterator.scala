@@ -57,7 +57,7 @@ private[core] object DropIterator {
   @inline final def empty[H >: Null <: T, T >: Null] =
     new Single[H, T](0, null, null, Iterator.empty)
 
-  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator.Single[H, T] =
     new Single[H, T](keyValues.size, null, null, keyValues.iterator)
 
   @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator.Single[H, T] =
@@ -113,7 +113,12 @@ private[core] object DropIterator {
       val (left, right) = tailKeyValues.duplicate
       this.tailKeyValues = left
 
-      DropIterator(size = size - 1, keyValues = right)
+      val duplicated = DropIterator[H, T](size = size - 1, keyValues = right)
+
+      if (this.headRangeOrNull != null)
+        duplicated.tailHead = this.tailHead
+
+      duplicated
     }
 
     def duplicate(): (Single[H, T], Single[H, T]) = {

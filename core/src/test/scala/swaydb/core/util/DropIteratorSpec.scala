@@ -42,10 +42,11 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
   implicit def toPut(key: Int): Memory.Put =
     Memory.put(key)
 
+  val range = Memory.Range(1, 2, FromValue.Null, Value.update(1))
+
   "it" should {
     //mutate the state of this List and assert.
-    var list = DropIterator[KeyValue.Range, KeyValue](Slice[KeyValue](1, 2, 3))
-    val range = Memory.Range(1, 2, FromValue.Null, Value.update(1))
+    var list: DropIterator[KeyValue.Range, KeyValue] = DropIterator[KeyValue.Range, KeyValue](Slice[KeyValue](1, 2, 3))
 
     "store key-values" in {
       list.depth shouldBe 1
@@ -220,5 +221,16 @@ class DropIteratorSpec extends AnyWordSpec with Matchers {
       list.depth shouldBe 1
       list.size shouldBe 0
     }
+  }
+
+  "dropHeadDuplicate" in {
+    val iterator = DropIterator[KeyValue.Range, KeyValue](Slice[KeyValue](10, 11, 12, 13))
+    iterator.dropPrepend(range) //[Range, 2, 3, 4]
+
+    val duplicate = iterator.dropHeadDuplicate()
+    duplicate.iterator.map(_.key.readInt()).toList shouldBe List(11, 12, 13)
+
+    iterator.headOrNull shouldBe range
+    iterator.iterator.map(_.key.readInt()).toList shouldBe List(1, 11, 12, 13)
   }
 }
