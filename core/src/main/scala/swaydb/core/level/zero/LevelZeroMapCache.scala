@@ -35,7 +35,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.{Aggregator, Bag}
 
-import scala.annotation.tailrec
 import scala.beans.BeanProperty
 import scala.collection.mutable.ListBuffer
 
