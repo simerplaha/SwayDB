@@ -149,13 +149,11 @@ object AtomicRanges {
       .and(write(key, value, f))
 
 
-  @inline def read[R, K, NO, O <: NO, BAG[_]](resource: R,
-                                              getKey: O => K,
-                                              nullOutput: NO,
-                                              f: R => NO)(implicit bag: Bag[BAG],
-                                                          transaction: AtomicRanges[K]): BAG[NO] =
+  @inline def read[K, NO, O <: NO, BAG[_]](getKey: O => K,
+                                           nullOutput: NO,
+                                           f: => NO)(implicit bag: Bag[BAG],
+                                                     transaction: AtomicRanges[K]): BAG[NO] =
     read(
-      resource = resource,
       getKey = getKey,
       nullOutput = nullOutput,
       value = new Value(Reserve.busy((), "busy transactional key")),
@@ -164,14 +162,20 @@ object AtomicRanges {
     )
 
   @tailrec
-  private def read[R, K, NO, O <: NO, BAG[_]](resource: R,
-                                              getKey: O => K,
-                                              value: Value[Reserve[Unit]],
-                                              action: Action.Read,
-                                              nullOutput: NO,
-                                              f: R => NO)(implicit bag: Bag[BAG],
-                                                          ranges: AtomicRanges[K]): BAG[NO] = {
-    val outputOptional = f(resource)
+  private def read[K, NO, O <: NO, BAG[_]](getKey: O => K,
+                                           value: Value[Reserve[Unit]],
+                                           action: Action.Read,
+                                           nullOutput: NO,
+                                           f: => NO)(implicit bag: Bag[BAG],
+                                                     ranges: AtomicRanges[K]): BAG[NO] = {
+    val outputOptional =
+      try
+        f
+      catch {
+        case exception: Throwable =>
+          return bag.failure(exception)
+      }
+
     if (outputOptional == nullOutput)
       bag.success(outputOptional)
     else {
@@ -190,7 +194,6 @@ object AtomicRanges {
           case _: Bag.Sync[BAG] =>
             Reserve.blockUntilFree(putResult.value)
             read(
-              resource = resource,
               getKey = getKey,
               value = value,
               action = action,
@@ -200,7 +203,6 @@ object AtomicRanges {
 
           case async: Bag.Async[BAG] =>
             readAsync(
-              resource = resource,
               getKey = getKey,
               value = value,
               busyReserve = putResult.value,
@@ -213,19 +215,17 @@ object AtomicRanges {
     }
   }
 
-  private def readAsync[R, K, NO, O <: NO, BAG[_]](resource: R,
-                                                   getKey: O => K,
+  private def readAsync[R, K, NO, O <: NO, BAG[_]](getKey: O => K,
                                                    value: Value[Reserve[Unit]],
                                                    busyReserve: Reserve[Unit],
                                                    action: Action.Read,
                                                    nullOutput: NO,
-                                                   f: R => NO)(implicit bag: Bag.Async[BAG],
-                                                               skipList: AtomicRanges[K]): BAG[NO] =
+                                                   f: => NO)(implicit bag: Bag.Async[BAG],
+                                                             skipList: AtomicRanges[K]): BAG[NO] =
     bag
       .fromPromise(Reserve.promise(busyReserve))
       .and(
         read(
-          resource = resource,
           getKey = getKey,
           value = value,
           action = action,
@@ -243,4 +243,19 @@ class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRang
   def size =
     transactions.size()
 
+  @inline def write[T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
+    AtomicRanges.write[K, T, BAG](
+      fromKey = fromKey,
+      toKey = toKey,
+      toKeyInclusive = toKeyInclusive,
+      f = f
+    )(bag = bag, transaction = this)
+
+  @inline def read[NO, O <: NO, BAG[_]](getKey: O => K,
+                                        nullOutput: NO)(f: => NO)(implicit bag: Bag[BAG]): BAG[NO] =
+    AtomicRanges.read[K, NO, O, BAG](
+      getKey = getKey,
+      nullOutput = nullOutput,
+      f = f
+    )(bag = bag, transaction = this)
 }
