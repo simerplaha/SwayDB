@@ -45,10 +45,15 @@ class VolatileQueueSpec extends AnyWordSpec with Matchers {
       queue.size shouldBe list.size
 
       //head and last
-      queue.headOrNull() shouldBe (if (list.isEmpty) null else list.head)
-      queue.lastOrNull() shouldBe (if (list.isEmpty) null else list.last)
-      queue.headOption() shouldBe list.headOption
-      queue.secondLastOrNull() shouldBe (if (list.size <= 1) null else list.takeRight(2).head)
+      queue.headOrNull() shouldBe list.headOption.orNull
+      queue.head() shouldBe list.headOption
+
+      queue.lastOrNull() shouldBe list.lastOption.orNull
+      queue.last() shouldBe list.lastOption
+
+      val expectedSecondLast = list.takeRight(2).dropRight(1).headOption
+      queue.secondLastOrNull() shouldBe expectedSecondLast.orNull
+      queue.secondLast() shouldBe expectedSecondLast
     }
   }
 

@@ -62,11 +62,14 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
                                              @volatile private var _last: Node[A],
                                              @volatile private var _size: Int) { self =>
 
-  private[queue] def head = _head
+  def size: Int =
+    _size
 
-  def size: Int = _size
+  def isEmpty =
+    _size == 0
 
-  def isEmpty = _size == 0
+  def nonEmpty =
+    !isEmpty
 
   def addHead(value: A): VolatileQueue[A] =
     self.synchronized {
@@ -204,8 +207,20 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
         }
     }
 
-  def headOption(): Option[A] =
+  def head(): Option[A] =
     Option(headOrNull())
+
+  def headOrNull(): A = {
+    //read the value first
+    val head = _head
+    if (head.isEmpty)
+      null
+    else
+      head.value
+  }
+
+  def last(): Option[A] =
+    Option(lastOrNull())
 
   def lastOrNull(): A = {
     //read the value first
@@ -216,6 +231,9 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
       last.value
   }
 
+  def secondLast(): Option[A] =
+    Option(secondLastOrNull())
+
   def secondLastOrNull(): A = {
     //read the value first
     val secondLast = _last.previous
@@ -225,7 +243,10 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
       secondLast.value
   }
 
-  def takeRight2OrNull(): (A, A) = {
+  def lastTwo(): Option[(A, A)] =
+    Option(lastTwoOrNull())
+
+  def lastTwoOrNull(): (A, A) = {
     //read the value first
     val last = _last
     val secondLast = last.previous
@@ -233,15 +254,6 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
       null
     else
       (secondLast.value, last.value)
-  }
-
-  def headOrNull(): A = {
-    //read the value first
-    val head = _head
-    if (head.isEmpty)
-      null
-    else
-      head.value
   }
 
   def iterator: Iterator[A] =
