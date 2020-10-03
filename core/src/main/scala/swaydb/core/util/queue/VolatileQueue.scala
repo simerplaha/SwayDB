@@ -69,7 +69,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
   def isEmpty = _size == 0
 
   def addHead(value: A): VolatileQueue[A] =
-    this.synchronized {
+    self.synchronized {
 
       _head match {
         case Node.Empty =>
@@ -91,7 +91,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
     }
 
   def addLast(value: A): VolatileQueue[A] =
-    this.synchronized {
+    self.synchronized {
       if (self._head.isEmpty) {
         //sizes are used to create Slices so update this first
         _size += 1
@@ -126,7 +126,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
     }
 
   def removeLast(expectedLast: A): Unit =
-    this.synchronized {
+    self.synchronized {
       if (_last.isEmpty)
         throw new Exception("Last is empty")
       else if (_last.value != expectedLast)
@@ -150,7 +150,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
     }
 
   def replaceLast(expectedLast: A, replaceWith: A): Unit =
-    this.synchronized {
+    self.synchronized {
       if (_last.isEmpty)
         throw new Exception("Last is empty")
       else if (_last.value != expectedLast)
@@ -172,7 +172,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
     }
 
   def replaceLastTwo(expectedSecondLast: A, expectedLast: A, replaceWith: A): Unit =
-    this.synchronized {
+    self.synchronized {
       if (_last.isEmpty)
         throw new Exception("Last is empty")
       else if (_last.value != expectedLast)
@@ -268,7 +268,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
     }
 
   def dropIterator: DropIterator.Single[Null, A] = {
-    val iterator = this.iterator
-    DropIterator(this.size, iterator)
+    val iterator = self.iterator
+    DropIterator(self.size, iterator)
   }
 }
