@@ -87,7 +87,7 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
   }
 }
 
-private[swaydb] object MapEntry {
+private[swaydb] case object MapEntry {
 
   val emptyListMemory = List.empty[MapEntry[Slice[Byte], Memory]]
 

@@ -217,9 +217,9 @@ private[core] object LevelZeroMapCache {
                                               functionStore: FunctionStore,
                                               optimiseWrites: OptimiseWrites): Unit =
     entries foreach {
-      case head @ MapEntry.Remove(_) =>
+      case remove @ MapEntry.Remove(_) =>
         //this does not occur in reality and should be type-safe instead of having this Exception.
-        throw new IllegalAccessException(s"${head.productPrefix} is not allowed in ${LevelZero.productPrefix} .")
+        throw new IllegalAccessException(s"${MapEntry.productPrefix}.${remove.productPrefix} is not allowed in ${LevelZero.productPrefix}.")
 
       case MapEntry.Put(_, memory: Memory) =>
         LevelZeroMapCache.insert(insert = memory, state = state)
@@ -242,13 +242,30 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
     if (entry.entriesCount > 1 || state.hasRange || entry.hasRange || entry.hasUpdate || entry.hasRemoveDeadline)
       if (atomic) {
         implicit val bag = Bag.less
+
         val sorted = entries.sortBy(_.key)(keyOrder)
-        state.skipList.atomicWrite(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange) {
-          LevelZeroMapCache.put(
-            entries = entries,
-            state = state
-          )
+
+        sorted.last match {
+          case MapEntry.Put(_, last: Memory.Fixed) =>
+            state.skipList.atomicWrite(from = sorted.head.key, to = last.key, toInclusive = true) {
+              LevelZeroMapCache.put(
+                entries = entries,
+                state = state
+              )
+            }
+
+          case MapEntry.Put(_, last: Memory.Range) =>
+            state.skipList.atomicWrite(from = sorted.head.key, to = last.toKey, toInclusive = false) {
+              LevelZeroMapCache.put(
+                entries = entries,
+                state = state
+              )
+            }
+
+          case remove @ MapEntry.Remove(_) =>
+            throw new IllegalAccessException(s"${MapEntry.productPrefix}.${remove.productPrefix} is not allowed in ${LevelZero.productPrefix}.")
         }
+
       } else {
         LevelZeroMapCache.put(
           entries = entries,
