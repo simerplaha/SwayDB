@@ -844,7 +844,7 @@ private[swaydb] case class LevelZero(path: Path,
         getFromNextLevel(key, readState, tailMaps)
 
       override def levelNumber: String =
-        "Map"
+        s"Map - Remaining maps: ${tailMaps.size}."
     }
 
   def findHigher(key: Slice[Byte],
