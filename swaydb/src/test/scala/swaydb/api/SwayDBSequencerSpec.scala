@@ -67,9 +67,9 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
 
               val map = newDB[BAG]().getUnsafe
 
-              val coresSerial = getSequencer(map)
+              val coresSequencer = getSequencer(map)
 
-              coresSerial shouldBe a[Sequencer.Synchronised[BAG]]
+              coresSequencer shouldBe a[Sequencer.Synchronised[BAG]]
 
               map.put(1, "one")
               map.get(1).getUnsafe.value shouldBe "one"
@@ -100,9 +100,9 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
 
             val map = newDB[Future]().await
 
-            val coresSerial = getSequencer(map)
+            val coresSequencer = getSequencer(map)
 
-            coresSerial shouldBe a[Sequencer.SingleThread[Future]]
+            coresSequencer shouldBe a[Sequencer.SingleThread[Future]]
 
             map.put(1, "one").await
             map.get(1).await.value shouldBe "one"
