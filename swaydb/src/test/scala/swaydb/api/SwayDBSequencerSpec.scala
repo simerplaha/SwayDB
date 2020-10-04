@@ -67,7 +67,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
 
               val map = newDB[BAG]().getUnsafe
 
-              val coresSerial = getSerial(map)
+              val coresSerial = getSequencer(map)
 
               coresSerial shouldBe a[Sequencer.Synchronised[BAG]]
 
@@ -100,7 +100,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
 
             val map = newDB[Future]().await
 
-            val coresSerial = getSerial(map)
+            val coresSerial = getSequencer(map)
 
             coresSerial shouldBe a[Sequencer.SingleThread[Future]]
 
@@ -119,10 +119,10 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
             implicit sweeper =>
               implicit val sequencer: Sequencer[Bag.Less] = null
               val map = newDB[Bag.Less]()
-              getSerial(map) shouldBe a[Sequencer.Synchronised[Bag.Less]]
+              getSequencer(map) shouldBe a[Sequencer.Synchronised[Bag.Less]]
 
               val ioMap = map.toBag[IO.ApiIO]
-              getSerial(ioMap) shouldBe a[Sequencer.Synchronised[IO.ApiIO]]
+              getSequencer(ioMap) shouldBe a[Sequencer.Synchronised[IO.ApiIO]]
 
               ioMap.put(1, "one").getUnsafe
               ioMap.get(1).getUnsafe.value shouldBe "one"
@@ -134,11 +134,11 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
             implicit sweeper =>
               implicit val sequencer: Sequencer[Bag.Less] = null
               val map = newDB[Bag.Less]()
-              getSerial(map) shouldBe a[Sequencer.Synchronised[Bag.Less]]
+              getSequencer(map) shouldBe a[Sequencer.Synchronised[Bag.Less]]
 
               implicit val bag = Bag.future(TestExecutionContext.executionContext)
               val futureMap = map.toBag[Future]
-              getSerial(futureMap) shouldBe a[Sequencer.SingleThread[IO.ApiIO]]
+              getSequencer(futureMap) shouldBe a[Sequencer.SingleThread[IO.ApiIO]]
 
               futureMap.put(1, "one").await
               futureMap.get(1).await.value shouldBe "one"
@@ -155,10 +155,10 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
               implicit val sequencer: Sequencer[Future] = Sequencer.singleThread
 
               val map = newDB[Future]().await
-              getSerial(map) shouldBe a[Sequencer.SingleThread[Bag.Less]]
+              getSequencer(map) shouldBe a[Sequencer.SingleThread[Bag.Less]]
 
               val lessMap = map.toBag[Bag.Less]
-              getSerial(lessMap) shouldBe a[Sequencer.Synchronised[Bag.Less]]
+              getSequencer(lessMap) shouldBe a[Sequencer.Synchronised[Bag.Less]]
 
               lessMap.put(1, "one")
               lessMap.get(1).value shouldBe "one"

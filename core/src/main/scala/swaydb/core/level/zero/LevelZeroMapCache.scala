@@ -245,7 +245,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
         val sorted = entries.sortBy(_.key)(keyOrder)
         state.skipList.atomicWrite(from = sorted.head.key, to = sorted.last.key, toInclusive = !sorted.last.hasRange) {
           LevelZeroMapCache.put(
-            entries = sorted,
+            entries = entries,
             state = state
           )
         }

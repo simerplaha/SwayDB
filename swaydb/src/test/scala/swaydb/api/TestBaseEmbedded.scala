@@ -62,14 +62,14 @@ trait TestBaseEmbedded extends TestBase {
     root.invokePrivate(function())
   }
 
-  def getSerial[K, V, BAG[+_]](root: SetMapT[K, V, BAG]): Sequencer[BAG] = {
+  def getSequencer[K, V, BAG[+_]](root: SetMapT[K, V, BAG]): Sequencer[BAG] = {
     val function = PrivateMethod[Core[BAG]](Symbol("core"))
     val core = root.invokePrivate(function())
-    getSerial(core)
+    getSequencer(core)
   }
 
-  def getSerial[BAG[+_]](core: Core[BAG]): Sequencer[BAG] = {
-    val function = PrivateMethod[Sequencer[BAG]](Symbol("serial"))
+  def getSequencer[BAG[+_]](core: Core[BAG]): Sequencer[BAG] = {
+    val function = PrivateMethod[Sequencer[BAG]](Symbol("sequencer"))
     core.invokePrivate(function())
   }
 
