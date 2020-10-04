@@ -33,7 +33,7 @@ import scala.util.Try
 
 class SwayDBSequencerSpec0 extends SwayDBSequencerSpec {
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
-                       serial: Sequencer[BAG],
+                       sequencer: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
     swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir).map(_.sweep(_.toBag[Bag.Less].delete()))
 
@@ -45,7 +45,7 @@ class SwayDBSequencerSpec3 extends SwayDBSequencerSpec {
   override val keyValueCount: Int = 100
 
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
-                       serial: Sequencer[BAG],
+                       sequencer: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
     swaydb.memory.Map[Int, String, Nothing, BAG]().map(_.sweep(_.toBag[Bag.Less].delete()))
 }
@@ -53,7 +53,7 @@ class SwayDBSequencerSpec3 extends SwayDBSequencerSpec {
 sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
 
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
-                       serial: Sequencer[BAG],
+                       sequencer: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[SetMapT[Int, String, BAG]]
 
   "Synchronised bags" should {
@@ -63,7 +63,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
           implicit sweeper =>
 
             def doTest[BAG[+_]](implicit bag: Bag.Sync[BAG]) = {
-              implicit val serial: Sequencer[BAG] = null
+              implicit val sequencer: Sequencer[BAG] = null
 
               val map = newDB[BAG]().getUnsafe
 
@@ -96,7 +96,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
 
             implicit val bag = Bag.future(TestExecutionContext.executionContext)
 
-            implicit val serial: Sequencer[Future] = null
+            implicit val sequencer: Sequencer[Future] = null
 
             val map = newDB[Future]().await
 
@@ -117,7 +117,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
         "Synchronised" in {
           TestCaseSweeper {
             implicit sweeper =>
-              implicit val serial: Sequencer[Bag.Less] = null
+              implicit val sequencer: Sequencer[Bag.Less] = null
               val map = newDB[Bag.Less]()
               getSerial(map) shouldBe a[Sequencer.Synchronised[Bag.Less]]
 
@@ -132,7 +132,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
         "SingleThread" in {
           TestCaseSweeper {
             implicit sweeper =>
-              implicit val serial: Sequencer[Bag.Less] = null
+              implicit val sequencer: Sequencer[Bag.Less] = null
               val map = newDB[Bag.Less]()
               getSerial(map) shouldBe a[Sequencer.Synchronised[Bag.Less]]
 
@@ -152,7 +152,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
             implicit sweeper =>
 
               implicit val bag = Bag.future(TestExecutionContext.executionContext)
-              implicit val serial: Sequencer[Future] = Sequencer.singleThread
+              implicit val sequencer: Sequencer[Future] = Sequencer.singleThread
 
               val map = newDB[Future]().await
               getSerial(map) shouldBe a[Sequencer.SingleThread[Bag.Less]]

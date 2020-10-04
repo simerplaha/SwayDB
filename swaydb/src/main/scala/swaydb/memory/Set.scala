@@ -63,7 +63,7 @@ object Set extends LazyLogging {
                                                                                                                                                    functionClassTag: ClassTag[F],
                                                                                                                                                    functions: Functions[F],
                                                                                                                                                    bag: swaydb.Bag[BAG],
-                                                                                                                                                   serial: Sequencer[BAG] = null,
+                                                                                                                                                   sequencer: Sequencer[BAG] = null,
                                                                                                                                                    byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                    typedKeyOrder: KeyOrder[A] = null,
                                                                                                                                                    compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Set[A, F, BAG]] =
@@ -98,7 +98,7 @@ object Set extends LazyLogging {
           buildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)
         ) map {
           core =>
-            swaydb.Set[A, F, BAG](core.toBag(serial))
+            swaydb.Set[A, F, BAG](core.toBag(sequencer))
         }
 
       set.toBag[BAG]

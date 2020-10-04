@@ -80,7 +80,7 @@ object Map extends LazyLogging {
                                                                                                                                    functionClassTag: ClassTag[F],
                                                                                                                                    functions: Functions[F],
                                                                                                                                    bag: swaydb.Bag[BAG],
-                                                                                                                                   serial: Sequencer[BAG] = null,
+                                                                                                                                   sequencer: Sequencer[BAG] = null,
                                                                                                                                    byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                    typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                    compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
@@ -129,7 +129,7 @@ object Map extends LazyLogging {
           buildValidator = buildValidator
         ) map {
           core =>
-            swaydb.Map[K, V, F, BAG](core.toBag(serial))
+            swaydb.Map[K, V, F, BAG](core.toBag(sequencer))
         }
 
       map.toBag[BAG]

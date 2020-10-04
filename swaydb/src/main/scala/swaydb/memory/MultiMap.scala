@@ -71,7 +71,7 @@ object MultiMap extends LazyLogging {
                                                                                                                                                             functionClassTag: ClassTag[F],
                                                                                                                                                             functions: Functions[F],
                                                                                                                                                             bag: swaydb.Bag[BAG],
-                                                                                                                                                            serial: Sequencer[BAG] = null,
+                                                                                                                                                            sequencer: Sequencer[BAG] = null,
                                                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
                                                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[MultiMap[M, K, V, F, BAG]] =
@@ -100,7 +100,7 @@ object MultiMap extends LazyLogging {
           valueSerializer = multiValueSerializer,
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiKey[M, K], MultiValue[V], Apply.Map[MultiValue[V]]]]],
           bag = bag,
-          serial = serial,
+          sequencer = sequencer,
           functions = mapFunctions,
           byteKeyOrder = internalKeyOrder,
           compactionEC = compactionEC

@@ -156,7 +156,7 @@ private[swaydb] object Core {
 private[swaydb] class Core[BAG[_]](zero: LevelZero,
                                    coreState: CoreState,
                                    threadStateCache: ThreadStateCache,
-                                   private val serial: Sequencer[BAG],
+                                   private val sequencer: Sequencer[BAG],
                                    val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
                                                                                  compactors: NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                                                                  private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
@@ -183,16 +183,16 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
       bag.failure(new IllegalAccessException(Core.closedMessage))
 
   def put(key: Slice[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.put(key)))
+    assertTerminated(sequencer.execute(zero.put(key)))
 
   def put(key: Slice[Byte], value: Slice[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.put(key, value)))
+    assertTerminated(sequencer.execute(zero.put(key, value)))
 
   def put(key: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.put(key, value)))
+    assertTerminated(sequencer.execute(zero.put(key, value)))
 
   def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): BAG[OK] =
-    assertTerminated(serial.execute(zero.put(key, value, removeAt)))
+    assertTerminated(sequencer.execute(zero.put(key, value, removeAt)))
 
   /**
    * Each [[Prepare]] requires a new next [[swaydb.core.data.Time]] for cases where a batch contains overriding keys.
@@ -208,38 +208,38 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
       if (entries.isEmpty)
         bag.failure(new IllegalArgumentException("Cannot write empty batch"))
       else
-        serial.execute(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get!
+        sequencer.execute(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get!
     }
 
   def remove(key: Slice[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.remove(key)))
+    assertTerminated(sequencer.execute(zero.remove(key)))
 
   def expire(key: Slice[Byte], at: Deadline): BAG[OK] =
-    assertTerminated(serial.execute(zero.remove(key, at)))
+    assertTerminated(sequencer.execute(zero.remove(key, at)))
 
   def remove(from: Slice[Byte], to: Slice[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.remove(from, to)))
+    assertTerminated(sequencer.execute(zero.remove(from, to)))
 
   def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): BAG[OK] =
-    assertTerminated(serial.execute(zero.remove(from, to, at)))
+    assertTerminated(sequencer.execute(zero.remove(from, to, at)))
 
   def update(key: Slice[Byte], value: Slice[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.update(key, value)))
+    assertTerminated(sequencer.execute(zero.update(key, value)))
 
   def update(key: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.update(key, value)))
+    assertTerminated(sequencer.execute(zero.update(key, value)))
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.update(fromKey, to, value)))
+    assertTerminated(sequencer.execute(zero.update(fromKey, to, value)))
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.update(fromKey, to, value)))
+    assertTerminated(sequencer.execute(zero.update(fromKey, to, value)))
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.applyFunction(key, function)))
+    assertTerminated(sequencer.execute(zero.applyFunction(key, function)))
 
   def applyFunction(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): BAG[OK] =
-    assertTerminated(serial.execute(zero.applyFunction(from, to, function)))
+    assertTerminated(sequencer.execute(zero.applyFunction(from, to, function)))
 
   def registerFunction(functionId: Slice[Byte], function: SwayFunction): BAG[OK] =
     execute(_.registerFunction(functionId, function))
@@ -345,7 +345,7 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
         .suspend {
           logger.info("********* Shutting down *********")
           coreState setState CoreState.Closing
-          serial.terminate()
+          sequencer.terminate()
         }
         .andThen {
           compactors.foldLeft(bag.unit) {
@@ -374,7 +374,7 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
       zero = zero,
       coreState = coreState,
       threadStateCache = threadStateCache,
-      serial = Sequencer.transfer[BAG, BAG2](serial),
+      sequencer = Sequencer.transfer[BAG, BAG2](sequencer),
       readStates = readStates,
     )(bag = bag2,
       compactors = compactors,
@@ -385,7 +385,7 @@ private[swaydb] class Core[BAG[_]](zero: LevelZero,
       zero = zero,
       coreState = coreState,
       threadStateCache = threadStateCache,
-      serial = if (serialOrNull == null) Sequencer.transfer[BAG, BAG2](serial) else serialOrNull,
+      sequencer = if (serialOrNull == null) Sequencer.transfer[BAG, BAG2](sequencer) else serialOrNull,
       readStates = readStates,
     )(bag = bag2,
       compactors = compactors,

@@ -82,7 +82,7 @@ object Set extends LazyLogging {
                                                  levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A],
                                                                                                                              functionClassTag: ClassTag[F],
                                                                                                                              bag: swaydb.Bag[BAG],
-                                                                                                                             serial: Sequencer[BAG] = null,
+                                                                                                                             sequencer: Sequencer[BAG] = null,
                                                                                                                              functions: Functions[F],
                                                                                                                              byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                              typedKeyOrder: KeyOrder[A] = null,
@@ -133,7 +133,7 @@ object Set extends LazyLogging {
           buildValidator = buildValidator
         ) map {
           core =>
-            swaydb.Set[A, F, BAG](core.toBag(serial))
+            swaydb.Set[A, F, BAG](core.toBag(sequencer))
         }
 
       set.toBag[BAG]

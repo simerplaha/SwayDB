@@ -28,8 +28,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
-import swaydb.data.slice.SliceOption
-import swaydb.data.storage.LevelStorage.Memory
 import swaydb.data.util.{FunctionSafe, Options}
 
 sealed trait CacheOrNull[+E, -I, +O]
@@ -396,15 +394,6 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
           f(None)
       } //check if it's set again in the block.
     }
-}
-
-object CacheNoIO {
-
-  implicit class UnitInput[O](cache: CacheNoIO[Unit, O]) {
-    @inline def fetch: O =
-      cache.value(())
-  }
-
 }
 
 /**

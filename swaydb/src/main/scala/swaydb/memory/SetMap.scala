@@ -58,7 +58,7 @@ object SetMap extends LazyLogging {
                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
                                                                                                                             valueSerializer: Serializer[V],
                                                                                                                             bag: swaydb.Bag[BAG],
-                                                                                                                            serial: Sequencer[BAG] = null,
+                                                                                                                            sequencer: Sequencer[BAG] = null,
                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.SetMap[K, V, BAG]] =
@@ -82,7 +82,7 @@ object SetMap extends LazyLogging {
         )(serializer = serialiser,
           functionClassTag = ClassTag.Nothing,
           bag = bag,
-          serial = serial,
+          sequencer = sequencer,
           functions = Functions.nothing,
           byteKeyOrder = ordering,
           compactionEC = compactionEC

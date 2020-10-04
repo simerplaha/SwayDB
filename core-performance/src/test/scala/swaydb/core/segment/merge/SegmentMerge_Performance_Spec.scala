@@ -32,8 +32,6 @@ import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-import scala.collection.mutable.ListBuffer
-
 class SegmentMerge_Performance_Spec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
