@@ -141,8 +141,8 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
             assert(size == 1)
             //sizes are used to create Slices so update this first
             _size -= 1
-            _last = Node.Empty
             _head = Node.Empty
+            _last = Node.Empty
 
           case previous: Node.Value[A] =>
             //unlink
@@ -164,8 +164,8 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
             //this was the head entry
             assert(size == 1)
             val newLast = new Node.Value[A](replaceWith, Node.Empty, Node.Empty)
-            _last = newLast
             _head = newLast
+            _last = newLast
 
           case previous: Node.Value[A] =>
             val newLast = new Node.Value[A](replaceWith, previous, Node.Empty)
