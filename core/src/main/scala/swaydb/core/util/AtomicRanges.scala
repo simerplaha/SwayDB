@@ -41,14 +41,14 @@ import scala.annotation.tailrec
  * - [[AtomicRanges]] is asynchronous/non-blocking for [[Bag.Async]] and is blocking for [[Bag.Sync]]
  * - Requires ranges and [[Action]]s for applying concurrency.
  */
-object AtomicRanges {
+private[core] case object AtomicRanges {
 
   private val readCount = new AtomicLong(0)
 
   sealed trait Action
   object Action {
 
-    case class Read() extends Action {
+    class Read extends Action {
       val readerId = readCount.incrementAndGet()
     }
 
@@ -60,7 +60,7 @@ object AtomicRanges {
       new Ordering[Key[K]] {
         override def compare(left: Key[K], right: Key[K]): Int = {
 
-          def intersects(): Boolean =
+          @inline def intersects(): Boolean =
             Slice.intersects[K](
               range1 = (left.fromKey, left.toKey, left.toKeyInclusive),
               range2 = (right.fromKey, right.toKey, right.toKeyInclusive)
@@ -69,22 +69,25 @@ object AtomicRanges {
           left.action match {
             case Action.Write =>
               if (intersects())
-                0
+                0 //if they intersect they are equal
               else
                 ordering.compare(left.fromKey, right.fromKey)
 
-            case leftRead @ Action.Read() =>
+            case leftRead: Action.Read =>
               right.action match {
-                case rightRead @ Action.Read() =>
-                  leftRead.readerId.compareTo(rightRead.readerId)
+                case rightRead: Action.Read =>
+                  val reads = ordering.compare(left.fromKey, right.fromKey)
+                  if (reads == 0)
+                    leftRead.readerId.compare(rightRead.readerId)
+                  else
+                    reads
 
                 case Action.Write =>
                   if (intersects())
-                    0
+                    0 //if they intersect they are equal
                   else
                     ordering.compare(left.fromKey, right.fromKey)
               }
-
           }
         }
       }
@@ -103,7 +106,7 @@ object AtomicRanges {
                                                                                           transaction: AtomicRanges[K]): BAG[T] =
     write(
       key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, Action.Write),
-      value = new Value(Reserve.busy((), "busy transactional key")),
+      value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: WRITE busy")),
       f = f
     )
 
@@ -120,8 +123,9 @@ object AtomicRanges {
           bag.failure(exception)
 
       } finally {
-        ranges.transactions.remove(key)
-        Reserve.setFree(value.value)
+        val removed = ranges.transactions.remove(key)
+        assert(removed.value.hashCode() == value.value.hashCode())
+        Reserve.setFree(removed.value)
       }
     else
       bag match {
@@ -156,8 +160,8 @@ object AtomicRanges {
     read(
       getKey = getKey,
       nullOutput = nullOutput,
-      value = new Value(Reserve.busy((), "busy transactional key")),
-      action = Action.Read(),
+      value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: READ busy")),
+      action = new Action.Read(),
       f = f
     )
 
@@ -186,8 +190,9 @@ object AtomicRanges {
       val putResult = ranges.transactions.putIfAbsent(key, value)
 
       if (putResult == null) {
-        ranges.transactions.remove(key)
-        Reserve.setFree(value.value)
+        val removed = ranges.transactions.remove(key)
+        assert(removed.value.hashCode() == value.value.hashCode())
+        Reserve.setFree(removed.value)
         bag.success(outputOptional)
       } else {
         bag match {
@@ -235,7 +240,7 @@ object AtomicRanges {
       )
 }
 
-class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val ordering: Ordering[K]) {
+private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val ordering: Ordering[K]) {
 
   def isEmpty =
     transactions.isEmpty

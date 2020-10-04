@@ -88,7 +88,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
   implicit val ec = TestExecutionContext.executionContext
 
   def readOrWriteAction(): AtomicRanges.Action =
-    eitherOne(AtomicRanges.Action.Read(), AtomicRanges.Action.Write)
+    eitherOne(new AtomicRanges.Action.Read, AtomicRanges.Action.Write)
 
   "ordering" when {
     "write on write with same keys" in {
@@ -148,8 +148,8 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
     "read on read with same keys will yield different" in {
       val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
 
-      val key1 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Read())
-      val key2 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Read())
+      val key1 = new AtomicRanges.Key(1, 10, true, new AtomicRanges.Action.Read)
+      val key2 = new AtomicRanges.Key(1, 10, true, new AtomicRanges.Action.Read)
 
       val value1 = new AtomicRanges.Value(1)
       val value2 = new AtomicRanges.Value(2)
@@ -165,8 +165,8 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
     "read on write" in {
       val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
 
-      val readKey1 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Read())
-      val readKey2 = new AtomicRanges.Key(1, 10, true, AtomicRanges.Action.Read())
+      val readKey1 = new AtomicRanges.Key(1, 10, true, new AtomicRanges.Action.Read())
+      val readKey2 = new AtomicRanges.Key(1, 10, true, new AtomicRanges.Action.Read())
       val value1 = new AtomicRanges.Value(1)
       val value2 = new AtomicRanges.Value(2)
 
@@ -196,6 +196,84 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
       map.containsKey(writeKey) shouldBe true
       map.containsKey(readKey1) shouldBe true
       map.containsKey(readKey2) shouldBe true
+    }
+
+    "writes occur on existing ranges" when {
+      def doTest(keys: Seq[Int], newAction: => AtomicRanges.Action) = {
+        val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
+
+        //inserts - [0 - 5], [5 - 10], [10 - 15] ...
+        keys foreach {
+          i =>
+            if (i % 5 == 0) {
+              val key = new AtomicRanges.Key(i, i + 5, false, newAction)
+              val value = new AtomicRanges.Value(i)
+              map.put(key, value)
+            }
+        }
+
+        keys foreach {
+          i =>
+            val key = new AtomicRanges.Key(i, i, true, AtomicRanges.Action.Write)
+            map.containsKey(key) shouldBe true
+            map.putIfAbsent(key, new AtomicRanges.Value(i)) should not be null
+        }
+      }
+
+      val keys = (0 to 100000).toList
+
+      "existing write ranges" when {
+        "inserted sequentially" in {
+          doTest(keys, AtomicRanges.Action.Write)
+        }
+
+        "inserted randomly" in {
+          doTest(Random.shuffle(keys), AtomicRanges.Action.Write)
+        }
+      }
+
+      "existing read ranges" when {
+        "inserted sequentially" in {
+          doTest(keys, new AtomicRanges.Action.Read())
+        }
+
+        "inserted randomly" in {
+          doTest(Random.shuffle(keys), new AtomicRanges.Action.Read())
+        }
+      }
+    }
+
+    "reads occur on existing read ranges" when {
+      def doTest(keys: Seq[Int]) = {
+        val map = new ConcurrentSkipListMap[AtomicRanges.Key[Int], AtomicRanges.Value[Int]](AtomicRanges.Key.order(Ordering.Int))
+
+        //inserts - [0 - 5], [5 - 10], [10 - 15] ...
+        keys foreach {
+          i =>
+            if (i % 5 == 0) {
+              val key = new AtomicRanges.Key(i, i + 5, false, new AtomicRanges.Action.Read())
+              val value = new AtomicRanges.Value(i)
+              map.put(key, value)
+            }
+        }
+
+        keys foreach {
+          i =>
+            val key = new AtomicRanges.Key(i, i, true, new AtomicRanges.Action.Read())
+            map.containsKey(key) shouldBe false
+            map.putIfAbsent(key, new AtomicRanges.Value(i)) shouldBe null
+        }
+      }
+
+      val keys = (0 to 100000).toList
+
+      "inserted sequentially" in {
+        doTest(keys)
+      }
+
+      "inserted randomly" in {
+        doTest(Random.shuffle(keys))
+      }
     }
   }
 
