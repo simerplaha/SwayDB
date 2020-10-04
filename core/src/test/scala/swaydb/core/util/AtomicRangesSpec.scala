@@ -235,6 +235,8 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
                 }
             }
 
+          sleep(10.milliseconds)
+
           Future {
             def doWrite() =
               ranges.write(fromKey = 20, toKey = 30, toKeyInclusive = false) {
