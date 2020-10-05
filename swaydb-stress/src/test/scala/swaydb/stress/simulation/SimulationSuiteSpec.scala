@@ -28,26 +28,34 @@ import swaydb.{IO, PureFunction}
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.data.Functions
+import swaydb.data.{Functions, OptimiseWrites}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.MMAP
 import swaydb.serializers.Default._
 import swaydb.stress.simulation.Domain._
 
-class Memory_SimulationSpec extends SimulationSpec {
+class Memory_NonAtomic_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO]().get.sweep(_.delete().get)
+    swaydb.memory.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](optimiseWrites = OptimiseWrites.RandomOrder(atomic = false)).get.sweep(_.delete().get)
 }
 
-class Persistent_SimulationSpec extends SimulationSpec {
+class Memory_Atomic_SimulationSpec extends SimulationSpec {
+
+  override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
+                       sweeper: TestCaseSweeper) =
+    swaydb.memory.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](optimiseWrites = OptimiseWrites.RandomOrder(atomic = true)).get.sweep(_.delete().get)
+}
+
+class Persistent_NonAtomic_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestCaseSweeper) =
     swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
+      optimiseWrites = OptimiseWrites.RandomOrder(atomic = false),
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
@@ -56,13 +64,45 @@ class Persistent_SimulationSpec extends SimulationSpec {
     ).get.sweep(_.delete().get)
 }
 
-class Memory_Persistent_SimulationSpec extends SimulationSpec {
+class Persistent_Atomic_SimulationSpec extends SimulationSpec {
+
+  override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
+                       sweeper: TestCaseSweeper) =
+    swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
+      dir = randomDir,
+      acceleration = Accelerator.brake(),
+      optimiseWrites = OptimiseWrites.RandomOrder(atomic = true),
+      //      mmapMaps = MMAP.randomForMap(),
+      //      mmapAppendix = MMAP.randomForMap(),
+      //      cacheKeyValueIds = randomBoolean(),
+      //      acceleration = Accelerator.brake(),
+      //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
+    ).get.sweep(_.delete().get)
+}
+
+class Memory_NonAtomic_Persistent_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestCaseSweeper) =
     swaydb.eventually.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
+      optimiseWrites = OptimiseWrites.RandomOrder(atomic = false),
+      //      mmapMaps = MMAP.randomForMap(),
+      //      mmapAppendix = MMAP.randomForMap(),
+      //      cacheKeyValueIds = randomBoolean(),
+      //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(randomBoolean()).copyWithMmap(MMAP.randomForSegment())
+    ).get.sweep(_.delete().get)
+}
+
+class Memory_Atomic_Persistent_SimulationSpec extends SimulationSpec {
+
+  override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
+                       sweeper: TestCaseSweeper) =
+    swaydb.eventually.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
+      dir = randomDir,
+      acceleration = Accelerator.brake(),
+      optimiseWrites = OptimiseWrites.RandomOrder(atomic = true),
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
