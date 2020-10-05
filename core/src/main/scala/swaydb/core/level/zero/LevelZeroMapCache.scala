@@ -241,8 +241,6 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
 
     if (entry.entriesCount > 1 || state.hasRange || entry.hasRange || entry.hasUpdate || entry.hasRemoveDeadline)
       if (atomic) {
-        implicit val bag = Bag.less
-
         val sorted = entries.sortBy(_.key)(keyOrder)
 
         sorted.last match {
@@ -252,7 +250,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
                 entries = entries,
                 state = state
               )
-            }
+            }(Bag.less)
 
           case MapEntry.Put(_, last: Memory.Range) =>
             state.skipList.atomicWrite(from = sorted.head.key, to = last.toKey, toInclusive = false) {
@@ -260,7 +258,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
                 entries = entries,
                 state = state
               )
-            }
+            }(Bag.less)
 
           case remove @ MapEntry.Remove(_) =>
             throw new IllegalAccessException(s"${MapEntry.productPrefix}.${remove.productPrefix} is not allowed in ${LevelZero.productPrefix}.")
