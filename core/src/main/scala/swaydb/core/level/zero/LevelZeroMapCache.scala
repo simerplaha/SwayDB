@@ -230,6 +230,11 @@ private[core] object LevelZeroMapCache {
  * Ensures atomic and guarantee all or none writes to in-memory SkipList.
  *
  * Creates multi-layered SkipList.
+ *
+ * Currently all atomic operations defaults to using [[Bag.Less]] which requires
+ * blocking on conflicting in-memory SkipList updates. The cost of blocking
+ * when concurrently writing and reading in-memory SkipList is very cheap.
+ * The maximum time blocking time on benchmarking was between 0.006 to 0.019642 seconds.
  */
 private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(implicit val keyOrder: KeyOrder[Slice[Byte]],
                                                                               timeOrder: TimeOrder[Slice[Byte]],
