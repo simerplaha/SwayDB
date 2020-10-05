@@ -67,8 +67,8 @@ object DefaultConfigs {
   def optimiseWrites(): OptimiseWrites =
     OptimiseWrites.RandomOrder(atomic = false)
 
-  def randomKeyIndex(cacheDataBlockOnAccess: Boolean = true): RandomKeyIndex.Enable =
-    RandomKeyIndex.Enable(
+  def randomSearchIndex(cacheDataBlockOnAccess: Boolean = true): RandomSearchIndex.Enable =
+    RandomSearchIndex.Enable(
       maxProbe = 1,
       minimumNumberOfKeys = 5,
       minimumNumberOfHits = 2,

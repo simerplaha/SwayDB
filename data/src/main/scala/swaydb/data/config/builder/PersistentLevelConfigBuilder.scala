@@ -41,7 +41,7 @@ class PersistentLevelConfigBuilder {
   private var mmapAppendix: MMAP.Map = _
   private var appendixFlushCheckpointSize: Long = _
   private var sortedKeyIndex: SortedKeyIndex = _
-  private var randomKeyIndex: RandomKeyIndex = _
+  private var randomSearchIndex: RandomSearchIndex = _
   private var binarySearchIndex: BinarySearchIndex = _
   private var mightContainKeyIndex: MightContainIndex = _
   private var valuesConfig: ValuesConfig = _
@@ -96,8 +96,8 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step5(builder: PersistentLevelConfigBuilder) {
-    def randomKeyIndex(randomKeyIndex: RandomKeyIndex) = {
-      builder.randomKeyIndex = randomKeyIndex
+    def randomSearchIndex(randomSearchIndex: RandomSearchIndex) = {
+      builder.randomSearchIndex = randomSearchIndex
       new Step6(builder)
     }
   }
@@ -145,7 +145,7 @@ object PersistentLevelConfigBuilder {
         mmapAppendix = builder.mmapAppendix,
         appendixFlushCheckpointSize = builder.appendixFlushCheckpointSize,
         sortedKeyIndex = builder.sortedKeyIndex,
-        randomKeyIndex = builder.randomKeyIndex,
+        randomSearchIndex = builder.randomSearchIndex,
         binarySearchIndex = builder.binarySearchIndex,
         mightContainKeyIndex = builder.mightContainKeyIndex,
         valuesConfig = builder.valuesConfig,

@@ -25,27 +25,27 @@
 package swaydb.data.config
 
 import swaydb.Compression
-import swaydb.data.config.builder.RandomKeyIndexBuilder
+import swaydb.data.config.builder.RandomSearchIndexBuilder
 import swaydb.data.util.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
 
-sealed trait RandomKeyIndex {
+sealed trait RandomSearchIndex {
   def toOption =
     this match {
-      case RandomKeyIndex.Disable => None
-      case enable: RandomKeyIndex.Enable => Some(enable)
+      case RandomSearchIndex.Disable => None
+      case enable: RandomSearchIndex.Enable => Some(enable)
     }
 }
 
-object RandomKeyIndex {
-  def disable: RandomKeyIndex.Disable = Disable
+object RandomSearchIndex {
+  def disable: RandomSearchIndex.Disable = Disable
 
-  sealed trait Disable extends RandomKeyIndex
+  sealed trait Disable extends RandomSearchIndex
   case object Disable extends Disable
 
-  def builder(): RandomKeyIndexBuilder.Step0 =
-    RandomKeyIndexBuilder.builder()
+  def builder(): RandomSearchIndexBuilder.Step0 =
+    RandomSearchIndexBuilder.builder()
 
   case class Enable(maxProbe: Int,
                     minimumNumberOfKeys: Int,
@@ -53,7 +53,7 @@ object RandomKeyIndex {
                     indexFormat: IndexFormat,
                     allocateSpace: RequiredSpace => Int,
                     blockIOStrategy: IOAction => IOStrategy,
-                    compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomKeyIndex {
+                    compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomSearchIndex {
     def copyWithMaxProbe(maxProbe: Int) =
       this.copy(maxProbe = maxProbe)
 

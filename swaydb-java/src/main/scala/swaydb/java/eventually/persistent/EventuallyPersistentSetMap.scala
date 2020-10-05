@@ -64,7 +64,7 @@ object EventuallyPersistentSetMap {
                            private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                           private var persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                           private var persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                            private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                            private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
@@ -143,8 +143,8 @@ object EventuallyPersistentSetMap {
       this
     }
 
-    def setPersistentLevelRandomKeyIndex(persistentLevelRandomKeyIndex: RandomKeyIndex) = {
-      this.persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex
+    def setPersistentLevelRandomSearchIndex(persistentLevelRandomSearchIndex: RandomSearchIndex) = {
+      this.persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex
       this
     }
 
@@ -224,7 +224,7 @@ object EventuallyPersistentSetMap {
           optimiseWrites = optimiseWrites,
           acceleration = acceleration.apply,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
-          persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,
+          persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex,
           binarySearchIndex = binarySearchIndex,
           mightContainKeyIndex = mightContainKeyIndex,
           valuesConfig = valuesConfig,
