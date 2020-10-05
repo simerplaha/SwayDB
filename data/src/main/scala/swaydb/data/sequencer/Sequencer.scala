@@ -48,10 +48,6 @@ case object Sequencer extends LazyLogging {
     def executor: ExecutorService
   }
 
-  //  sealed trait Actor[BAG[_]] extends Sequencer[BAG] {
-  //    def actor: ActorRef[() => Unit, Unit]
-  //  }
-
   def synchronised[BAG[_]](implicit bag: Bag[BAG]): Sequencer.Synchronised[BAG] =
     new Sequencer.Synchronised[BAG] {
       override def execute[F](f: => F): BAG[F] =
@@ -66,15 +62,6 @@ case object Sequencer extends LazyLogging {
       bag = bag,
       ec = Executors.newSingleThreadExecutor(SequencerThreadFactory.create())
     )
-
-  //  def actor[BAG[_]](implicit bag: Bag.Async[BAG]): Sequencer.Actor[BAG] = {
-  //    val actor = Actor[() => Unit](s"Actor - ${this.productPrefix}") {
-  //      (run, _) =>
-  //        run()
-  //    }(bag.executionContext, QueueOrder.FIFO)
-  //
-  //    Sequencer.actor(bag, actor)
-  //  }
 
   def transfer[BAG1[_], BAG2[_]](from: Sequencer[BAG1])(implicit bag1: Bag[BAG1],
                                                         bag2: Bag[BAG2]): Sequencer[BAG2] =
@@ -96,16 +83,6 @@ case object Sequencer extends LazyLogging {
           case bag2: Bag.Async[BAG2] =>
             Sequencer.singleThread[BAG2](bag2, from.executor)
         }
-
-      //      case from: Sequencer.Actor[BAG1] =>
-      //        bag2 match {
-      //          case bag2: Bag.Sync[BAG2] =>
-      //            //no need to terminate the Actor since it's scheduler is not being used.
-      //            Sequencer.synchronised[BAG2](bag2)
-      //
-      //          case bag2: Bag.Async[BAG2] =>
-      //            Sequencer.actor[BAG2](bag2, from.actor)
-      //        }
     }
 
   private def singleThread[BAG[_]](implicit bag: Bag.Async[BAG],
@@ -134,23 +111,4 @@ case object Sequencer extends LazyLogging {
           ec.awaitTermination(10, TimeUnit.SECONDS)
         }
     }
-  //
-  //  private def actor[BAG[_]](implicit bag: Bag.Async[BAG],
-  //                            actorRef: ActorRef[() => Unit, Unit]): Sequencer.Actor[BAG] =
-  //    new Sequencer.Actor[BAG] {
-  //
-  //      override def actor: ActorRef[() => Unit, Unit] =
-  //        actorRef
-  //
-  //      override def execute[F](f: => F): BAG[F] = {
-  //        val promise = Promise[F]()
-  //        actor.send(() => promise.tryComplete(Try(f)))
-  //        bag.fromPromise(promise)
-  //      }
-  //
-  //      override def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] = {
-  //        logger.info("Terminating Serial Actor.")
-  //        actor.terminateAndClear[BAG]()(bag)
-  //      }
-  //    }
 }

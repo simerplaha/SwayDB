@@ -167,46 +167,4 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
       }
     }
   }
-
-  //  "Actor bag" should {
-  //    "convert to sync" in {
-  //      TestCaseSweeper {
-  //        implicit sweeper =>
-  //
-  //          implicit val bag = Bag.future(TestExecutionContext.executionContext)
-  //          implicit val actorSerial: Sequencer[Future] = Sequencer.actor
-  //
-  //          val map = newDB[Future]().await
-  //          getSerial(map) shouldBe a[Sequencer.Actor[Bag.Less]]
-  //
-  //          val lessMap = map.toBag[Bag.Less]
-  //          getSerial(lessMap) shouldBe a[Sequencer.Synchronised[Bag.Less]]
-  //
-  //          lessMap.put(1, "one")
-  //          lessMap.get(1).value shouldBe "one"
-  //      }
-  //    }
-  //
-  //    "use the same actor when converted to another Async bag" in {
-  //      TestCaseSweeper {
-  //        implicit sweeper =>
-  //
-  //          implicit val bag = Bag.future(TestExecutionContext.executionContext)
-  //          implicit val actorSerial: Sequencer.Actor[Future] = Sequencer.actor
-  //
-  //          val map = newDB[Future]().await
-  //          getSerial(map) shouldBe a[Sequencer.Actor[Future]]
-  //
-  //          val anotherFutureMap = map.toBag[Future]
-  //          val anotherFutureSerial = getSerial(anotherFutureMap)
-  //          anotherFutureSerial shouldBe a[Sequencer.Actor[Future]]
-  //
-  //          actorSerial.actor shouldBe anotherFutureSerial.asInstanceOf[Sequencer.Actor[Future]].actor
-  //
-  //          anotherFutureMap.put(1, "one").await
-  //          anotherFutureMap.get(1).await.value shouldBe "one"
-  //      }
-  //    }
-  //  }
-
 }
