@@ -30,6 +30,16 @@ sealed trait OptimiseWrites {
 
 case object OptimiseWrites {
 
+  def randomOrder(atomic: Boolean): OptimiseWrites.RandomOrder =
+    RandomOrder(atomic = atomic)
+
+  def sequentialOrder(atomic: Boolean,
+                      initialSkipListLength: Int): OptimiseWrites.SequentialOrder =
+    SequentialOrder(
+      atomic = atomic,
+      initialSkipListLength = initialSkipListLength
+    )
+
   /**
    * Always use this setting if writes are in random order or when unsure.
    *
