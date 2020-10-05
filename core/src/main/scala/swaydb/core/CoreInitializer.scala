@@ -44,7 +44,7 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.data.NonEmptyList
+import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -246,7 +246,8 @@ private[core] object CoreInitializer extends LazyLogging {
                 level1 =>
                   val coreState = CoreState()
 
-                  implicit val optimiseWrites = config.level0.optimiseWrites
+                  implicit val optimiseWrites: OptimiseWrites = config.level0.optimiseWrites
+                  implicit val atomic: Atomic = config.level0.atomic
 
                   LevelZero(
                     mapSize = config.level0.mapSize,

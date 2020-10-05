@@ -35,7 +35,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions, OptimiseWrites}
+import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
@@ -65,6 +65,7 @@ object MultiMap extends LazyLogging {
                                                           mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                           deleteMemorySegmentsEventually: Boolean = true,
                                                           optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                                                          atomic: Atomic = DefaultConfigs.atomic(),
                                                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                           persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                           persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -111,6 +112,7 @@ object MultiMap extends LazyLogging {
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
           optimiseWrites = optimiseWrites,
+          atomic = atomic,
           acceleration = acceleration,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
           persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex,

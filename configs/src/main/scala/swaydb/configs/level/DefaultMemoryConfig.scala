@@ -25,7 +25,7 @@
 package swaydb.configs.level
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
@@ -47,7 +47,8 @@ object DefaultMemoryConfig extends LazyLogging {
             acceleration: LevelZeroMeter => Accelerator,
             levelZeroThrottle: LevelZeroMeter => FiniteDuration,
             lastLevelThrottle: LevelMeter => Throttle,
-            optimiseWrites: OptimiseWrites)(implicit executionContext: ExecutionContext): SwayDBMemoryConfig =
+            optimiseWrites: OptimiseWrites,
+            atomic: Atomic)(implicit executionContext: ExecutionContext): SwayDBMemoryConfig =
     ConfigWizard
       .withMemoryLevel0(
         mapSize = mapSize,
@@ -55,6 +56,7 @@ object DefaultMemoryConfig extends LazyLogging {
         clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         optimiseWrites = optimiseWrites,
+        atomic = atomic,
         acceleration = acceleration,
         throttle = levelZeroThrottle
       )

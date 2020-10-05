@@ -25,15 +25,12 @@
 package swaydb.java.persistent
 
 import java.nio.file.Path
-import java.time.Duration
 import java.util.Collections
 import java.util.concurrent.ExecutorService
 
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
-import swaydb.data.{DataType, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -41,15 +38,15 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 
-import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
 object PersistentSetMap {
@@ -71,6 +68,7 @@ object PersistentSetMap {
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                            private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                            private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                           private var atomic: Atomic = DefaultConfigs.atomic(),
                            private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -93,6 +91,11 @@ object PersistentSetMap {
 
     def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
       this.optimiseWrites = optimiseWrites
+      this
+    }
+
+    def setAtomic(atomic: Atomic) = {
+      this.atomic = atomic
       this
     }
 
@@ -247,6 +250,7 @@ object PersistentSetMap {
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
           optimiseWrites = optimiseWrites,
+          atomic = atomic,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

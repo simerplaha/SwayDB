@@ -24,7 +24,7 @@
 
 package swaydb.persistent
 
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
@@ -36,6 +36,12 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultConfigs {
+
+  def optimiseWrites(): OptimiseWrites =
+    OptimiseWrites.RandomOrder
+
+  def atomic(): Atomic =
+    Atomic.Disabled
 
   def mmap(): MMAP.Enabled =
     MMAP.Enabled(
@@ -59,13 +65,6 @@ object DefaultConfigs {
       },
       compressions = _ => Seq.empty
     )
-
-  /**
-   * Optimise writes for Random insert and allow a maximum transaction queue
-   * size of 10 before merging.
-   */
-  def optimiseWrites(): OptimiseWrites =
-    OptimiseWrites.RandomOrder(atomic = false)
 
   def randomSearchIndex(cacheDataBlockOnAccess: Boolean = true): RandomSearchIndex.Enable =
     RandomSearchIndex.Enable(

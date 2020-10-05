@@ -58,7 +58,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.RunThis._
 import swaydb.data.cache.CacheNoIO
 import swaydb.data.config.IOStrategy
@@ -290,7 +290,8 @@ object CommonAssertions {
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Iterable[Memory] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
-    implicit val optimiseWrites = OptimiseWrites.random
+    implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random
+    implicit val atomic: Atomic = Atomic.random
     val cache = LevelZeroMapCache.builder.create()
     (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach {
       memory =>
@@ -1764,29 +1765,32 @@ object CommonAssertions {
 
     def randomAll: Seq[OptimiseWrites] =
       Seq(
-        OptimiseWrites.RandomOrder(atomic = true),
-        OptimiseWrites.RandomOrder(atomic = false),
-        OptimiseWrites.SequentialOrder(
-          atomic = true,
-          initialSkipListLength = randomIntMax(100)
-        ),
-        OptimiseWrites.SequentialOrder(
-          atomic = false,
-          initialSkipListLength = randomIntMax(100)
-        )
+        OptimiseWrites.RandomOrder,
+        OptimiseWrites.SequentialOrder(initialSkipListLength = randomIntMax(100))
       )
 
     def random: OptimiseWrites =
-      random(atomic = randomBoolean())
-
-    def random(atomic: Boolean = randomBoolean()): OptimiseWrites =
       if (randomBoolean())
-        OptimiseWrites.RandomOrder(atomic = atomic)
+        OptimiseWrites.RandomOrder
       else
         OptimiseWrites.SequentialOrder(
-          atomic = atomic,
           initialSkipListLength = randomIntMax(100)
         )
+  }
+
+  implicit class AtomicImplicits(atomic: Atomic.type) {
+
+    def all: Seq[Atomic] =
+      Seq(
+        Atomic.Enabled,
+        Atomic.Disabled
+      )
+
+    def random: Atomic =
+      if (randomBoolean())
+        Atomic.Enabled
+      else
+        Atomic.Disabled
   }
 
   implicit val keyMatcherResultEquality: Equality[KeyMatcher.Result] =

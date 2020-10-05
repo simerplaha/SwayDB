@@ -24,31 +24,31 @@
 
 package swaydb.data
 
-sealed trait OptimiseWrites
+sealed trait Atomic {
+  def enabled: Boolean
+}
 
-case object OptimiseWrites {
+/**
+ * [[Atomic.Enabled]] ensures that all range operations and [[swaydb.Prepare]] transactions
+ * are available for reads atomically.
+ *
+ * For eg: if you submit a [[swaydb.Prepare]]
+ * that updates 10 key-values, those 10 key-values will be visible to reads only after
+ * each update is applied.
+ */
 
-  val randomOrder: OptimiseWrites.RandomOrder =
-    RandomOrder
+object Atomic {
 
-  def sequentialOrder(initialSkipListLength: Int): OptimiseWrites.SequentialOrder =
-    SequentialOrder(initialSkipListLength = initialSkipListLength)
+  val enabled: Atomic.Enabled = Atomic.Enabled
+  val disabled: Atomic.Disabled = Atomic.Disabled
 
-  /**
-   * Always use this setting if writes are in random order or when unsure.
-   *
-   */
-  sealed trait RandomOrder extends OptimiseWrites
-  case object RandomOrder extends RandomOrder
+  sealed trait Enabled extends Atomic
+  case object Enabled extends Enabled {
+    override val enabled: Boolean = true
+  }
 
-  /**
-   * Optimises writes for sequential order. Eg: if you inserts are simple
-   * sequential put eg - 1, 2, 3 ... N with [[swaydb.data.order.KeyOrder.integer]].
-   * Then this setting would increase write throughput.
-   *
-   * @param initialSkipListLength set the initial length of SkipList's Array.
-   *                              The Array is extended if the size is too small.
-   */
-  case class SequentialOrder(initialSkipListLength: Int) extends OptimiseWrites
-
+  sealed trait Disabled extends Atomic
+  case object Disabled extends Disabled {
+    override val enabled: Boolean = false
+  }
 }

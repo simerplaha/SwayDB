@@ -27,7 +27,7 @@ package swaydb.configs.level
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
@@ -56,6 +56,7 @@ object DefaultPersistentConfig extends LazyLogging {
             valuesConfig: ValuesConfig,
             segmentConfig: SegmentConfig,
             optimiseWrites: OptimiseWrites,
+            atomic: Atomic,
             acceleration: LevelZeroMeter => Accelerator,
             levelZeroThrottle: LevelZeroMeter => FiniteDuration,
             levelOneThrottle: LevelMeter => Throttle,
@@ -100,6 +101,7 @@ object DefaultPersistentConfig extends LazyLogging {
         recoveryMode = recoveryMode,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         optimiseWrites = optimiseWrites,
+        atomic = atomic,
         acceleration = acceleration,
         throttle = levelZeroThrottle
       )

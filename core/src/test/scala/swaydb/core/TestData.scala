@@ -55,7 +55,7 @@ import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO, ThreadReadState}
 import swaydb.core.util.BlockCacheFileIDGenerator
-import swaydb.data.{MaxKey, OptimiseWrites}
+import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -306,6 +306,7 @@ object TestData {
                 import sweeper._
 
                 implicit val optimiseWrites = OptimiseWrites.random
+                implicit val atomic: Atomic = Atomic.random
 
                 LevelZero(
                   mapSize = mapSize,

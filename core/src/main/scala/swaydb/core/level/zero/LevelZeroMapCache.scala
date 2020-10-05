@@ -30,7 +30,7 @@ import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.{Aggregator, Bag}
@@ -43,7 +43,8 @@ private[core] object LevelZeroMapCache {
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]],
                        timeOrder: TimeOrder[Slice[Byte]],
                        functionStore: FunctionStore,
-                       optimiseWrites: OptimiseWrites): MapCacheBuilder[LevelZeroMapCache] =
+                       optimiseWrites: OptimiseWrites,
+                       atomic: Atomic): MapCacheBuilder[LevelZeroMapCache] =
     () => LevelZeroMapCache()
 
   object State {
@@ -64,19 +65,20 @@ private[core] object LevelZeroMapCache {
   @inline def apply()(implicit keyOrder: KeyOrder[Slice[Byte]],
                       timeOrder: TimeOrder[Slice[Byte]],
                       functionStore: FunctionStore,
-                      optimiseWrites: OptimiseWrites): LevelZeroMapCache =
+                      optimiseWrites: OptimiseWrites,
+                      atomic: Atomic): LevelZeroMapCache =
     new LevelZeroMapCache(State())
 
   private[zero] def newSkipList()(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   optimiseWrites: OptimiseWrites): SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
     optimiseWrites match {
-      case OptimiseWrites.RandomOrder(_) =>
+      case OptimiseWrites.RandomOrder =>
         SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           nullKey = Slice.Null,
           nullValue = Memory.Null
         )
 
-      case OptimiseWrites.SequentialOrder(_, initialSkipListLength) =>
+      case OptimiseWrites.SequentialOrder(initialSkipListLength) =>
         SkipListSeries[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           lengthPerSeries = initialSkipListLength,
           nullKey = Slice.Null,
@@ -214,8 +216,7 @@ private[core] object LevelZeroMapCache {
   @inline private[zero] def put(entries: ListBuffer[MapEntry.Point[Slice[Byte], Memory]],
                                 state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore,
-                                              optimiseWrites: OptimiseWrites): Unit =
+                                              functionStore: FunctionStore): Unit =
     entries foreach {
       case remove @ MapEntry.Remove(_) =>
         //this does not occur in reality and should be type-safe instead of having this Exception.
@@ -239,7 +240,7 @@ private[core] object LevelZeroMapCache {
 private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(implicit val keyOrder: KeyOrder[Slice[Byte]],
                                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                                               functionStore: FunctionStore,
-                                                                              optimiseWrites: OptimiseWrites) extends MapCache[Slice[Byte], Memory] {
+                                                                              atomic: Atomic) extends MapCache[Slice[Byte], Memory] {
 
   @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit = {
     val entries = entry.entries
@@ -280,7 +281,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
   }
 
   override def writeAtomic(entry: MapEntry[Slice[Byte], Memory]): Unit =
-    write(entry = entry, atomic = optimiseWrites.atomic)
+    write(entry = entry, atomic = atomic.enabled)
 
   override def writeNonAtomic(entry: MapEntry[Slice[Byte], Memory]): Unit =
     write(entry = entry, atomic = false)
@@ -298,55 +299,55 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
     state.skipList.iterator
 
   def headKeyOptimised: SliceOption[Byte] =
-    if (optimiseWrites.atomic)
+    if (atomic.enabled)
       state.skipList.atomicReadKey(_.headKey)(Bag.less)
     else
       state.skipList.headKey
 
   def lastKeyOptimised: SliceOption[Byte] =
-    if (optimiseWrites.atomic)
+    if (atomic.enabled)
       state.skipList.atomicReadKey(_.lastKey)(Bag.less)
     else
       state.skipList.lastKey
 
   def headOptimised: MemoryOption =
-    if (optimiseWrites.atomic)
+    if (atomic.enabled)
       state.skipList.atomicReadValue(_.key)(_.head())(Bag.less)
     else
       state.skipList.head()
 
   def lastOptimised: MemoryOption =
-    if (optimiseWrites.atomic)
+    if (atomic.enabled)
       state.skipList.atomicReadValue(_.key)(_.last())(Bag.less)
     else
       state.skipList.last()
 
   def getOptimised(key: Slice[Byte]): MemoryOption =
-    if (optimiseWrites.atomic)
+    if (atomic.enabled)
       state.skipList.atomicReadValue(_.key)(_.get(key))(Bag.less)
     else
       state.skipList.get(key)
 
   def floorOptimised(key: Slice[Byte]): MemoryOption =
-    if (optimiseWrites.atomic)
+    if (atomic.enabled)
       state.skipList.atomicReadValue(_.key)(_.floor(key))(Bag.less)
     else
       state.skipList.floor(key)
 
   def lowerOptimised(key: Slice[Byte]): MemoryOption =
-    if (optimiseWrites.atomic)
+    if (atomic.enabled)
       state.skipList.atomicReadValue(_.key)(_.lower(key))(Bag.less)
     else
       state.skipList.lower(key)
 
   def higherOptimised(key: Slice[Byte]): MemoryOption =
-    if (optimiseWrites.atomic)
+    if (atomic.enabled)
       state.skipList.atomicReadValue(_.key)(_.higher(key))(Bag.less)
     else
       state.skipList.higher(key)
 
   def ceilingOptimised(key: Slice[Byte]): MemoryOption =
-    if (optimiseWrites.atomic)
+    if (atomic.enabled)
       state.skipList.atomicReadValue(_.key)(_.ceiling(key))(Bag.less)
     else
       state.skipList.ceiling(key)

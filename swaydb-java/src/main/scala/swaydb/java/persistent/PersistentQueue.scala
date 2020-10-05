@@ -30,13 +30,12 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.build.BuildValidator
-import swaydb.data.{DataType, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
@@ -62,6 +61,7 @@ object PersistentQueue {
                         private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                         private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                         private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                        private var atomic: Atomic = DefaultConfigs.atomic(),
                         private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                         private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                         private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -89,6 +89,11 @@ object PersistentQueue {
 
     def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
       this.optimiseWrites = optimiseWrites
+      this
+    }
+
+    def setAtomic(atomic: Atomic) = {
+      this.atomic = atomic
       this
     }
 
@@ -221,6 +226,7 @@ object PersistentQueue {
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           optimiseWrites = optimiseWrites,
+          atomic = atomic,
           sortedKeyIndex = sortedKeyIndex,
           randomSearchIndex = randomSearchIndex,
           binarySearchIndex = binarySearchIndex,

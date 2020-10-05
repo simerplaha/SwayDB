@@ -27,7 +27,7 @@ package swaydb.memory
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -51,6 +51,7 @@ object Queue extends LazyLogging {
                        fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                        deleteSegmentsEventually: Boolean = true,
                        optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                       atomic: Atomic = DefaultConfigs.atomic(),
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
@@ -73,6 +74,7 @@ object Queue extends LazyLogging {
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
           optimiseWrites = optimiseWrites,
+          atomic = atomic,
           acceleration = acceleration,
           levelZeroThrottle = levelZeroThrottle,
           lastLevelThrottle = lastLevelThrottle,

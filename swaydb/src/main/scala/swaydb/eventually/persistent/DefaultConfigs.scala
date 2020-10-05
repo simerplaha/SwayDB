@@ -24,7 +24,7 @@
 
 package swaydb.eventually.persistent
 
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
 import swaydb.data.util.StorageUnits._
@@ -147,4 +147,7 @@ object DefaultConfigs {
 
   def optimiseWrites(): OptimiseWrites =
     swaydb.persistent.DefaultConfigs.optimiseWrites()
+
+  def atomic(): Atomic =
+    swaydb.persistent.DefaultConfigs.atomic()
 }

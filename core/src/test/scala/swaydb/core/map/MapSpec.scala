@@ -42,7 +42,7 @@ import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO}
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.core.util.{BlockCacheFileIDGenerator, Extension}
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -59,6 +59,7 @@ class MapSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO = SegmentIO.random
   implicit def optimiseWrites: OptimiseWrites = OptimiseWrites.random
+  implicit def atomic = Atomic.random
 
   "Map" should {
     "initialise a memory level0" in {

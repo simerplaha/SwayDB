@@ -24,7 +24,7 @@
 
 package swaydb.data.config.builder
 
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.ConfigWizard
@@ -42,6 +42,7 @@ class MemoryLevelZeroConfigBuilder {
   private var compactionExecutionContext: CompactionExecutionContext.Create = _
   private var acceleration: LevelZeroMeter => Accelerator = _
   private var optimiseWrites: OptimiseWrites = _
+  private var atomic: Atomic = _
 }
 
 object MemoryLevelZeroConfigBuilder {
@@ -89,6 +90,13 @@ object MemoryLevelZeroConfigBuilder {
   }
 
   class Step6(builder: MemoryLevelZeroConfigBuilder) {
+    def atomic(atomic: Atomic) = {
+      builder.atomic = atomic
+      new Step7(builder)
+    }
+  }
+
+  class Step7(builder: MemoryLevelZeroConfigBuilder) {
     def throttle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) =
       ConfigWizard.withMemoryLevel0(
         mapSize = builder.mapSize,
@@ -96,6 +104,7 @@ object MemoryLevelZeroConfigBuilder {
         clearAppliedFunctionsOnBoot = builder.clearAppliedFunctionsOnBoot,
         compactionExecutionContext = builder.compactionExecutionContext,
         optimiseWrites = builder.optimiseWrites,
+        atomic = builder.atomic,
         acceleration = builder.acceleration,
         throttle = throttle.apply
       )

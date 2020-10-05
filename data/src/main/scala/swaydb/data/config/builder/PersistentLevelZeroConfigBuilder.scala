@@ -26,7 +26,7 @@ package swaydb.data.config.builder
 
 import java.nio.file.Path
 
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.{ConfigWizard, MMAP, RecoveryMode}
@@ -47,6 +47,7 @@ class PersistentLevelZeroConfigBuilder {
   private var compactionExecutionContext: CompactionExecutionContext.Create = _
   private var acceleration: LevelZeroMeter => Accelerator = _
   private var optimiseWrites: OptimiseWrites = _
+  private var atomic: Atomic = _
 }
 
 object PersistentLevelZeroConfigBuilder {
@@ -115,6 +116,13 @@ object PersistentLevelZeroConfigBuilder {
   }
 
   class Step9(builder: PersistentLevelZeroConfigBuilder) {
+    def atomic(atomic: Atomic) = {
+      builder.atomic = atomic
+      new Step10(builder)
+    }
+  }
+
+  class Step10(builder: PersistentLevelZeroConfigBuilder) {
     def throttle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) =
       ConfigWizard.withPersistentLevel0(
         dir = builder.dir,
@@ -126,6 +134,7 @@ object PersistentLevelZeroConfigBuilder {
         compactionExecutionContext = builder.compactionExecutionContext,
         optimiseWrites = builder.optimiseWrites,
         acceleration = builder.acceleration,
+        atomic = builder.atomic,
         throttle = throttle.apply
       )
   }

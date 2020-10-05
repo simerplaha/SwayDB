@@ -25,7 +25,6 @@
 package swaydb.core
 
 import java.nio.file._
-import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
@@ -33,11 +32,10 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import swaydb.IOValues._
-import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, MemoryOption, Time}
+import swaydb.core.data.{Memory, Time}
 import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
@@ -55,19 +53,18 @@ import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
-import swaydb.data.{NonEmptyList, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
 import swaydb.{ActorWire, Bag}
 
 import scala.concurrent.duration._
-import scala.tools.nsc.doc.html.HtmlTags.A
 import scala.util.Random
 
 trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach with Eventually {
@@ -218,6 +215,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       import sweeper._
 
       implicit val optimiseWrites = OptimiseWrites.random
+      implicit val atomic = Atomic.random
 
       val testMap =
         if (levelStorage.memory)
@@ -396,7 +394,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                sweeper: TestCaseSweeper,
-                                                                               optimiseWrites: OptimiseWrites = OptimiseWrites.random): LevelZero = {
+                                                                               optimiseWrites: OptimiseWrites = OptimiseWrites.random,
+                                                                               atomimc: Atomic = Atomic.random): LevelZero = {
       import sweeper._
 
       LevelZero(

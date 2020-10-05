@@ -37,7 +37,7 @@ import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -84,6 +84,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       import sweeper._
 
       implicit val optimiseWrites = OptimiseWrites.random
+      implicit val atomic: Atomic = Atomic.random
 
       val map =
         if (persistent)
@@ -165,7 +166,8 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
     def createTestMap()(implicit sweeper: TestCaseSweeper,
-                        optimiseWrites: OptimiseWrites = OptimiseWrites.random) = {
+                        optimiseWrites: OptimiseWrites = OptimiseWrites.random,
+                        atomic: Atomic = Atomic.random) = {
       import sweeper._
 
       val map =

@@ -36,7 +36,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions, OptimiseWrites}
+import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.{Default, Serializer}
 import swaydb.{Apply, KeyOrderConverter, PureFunction}
@@ -56,6 +56,7 @@ object Set extends LazyLogging {
                                                  fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                  deleteSegmentsEventually: Boolean = true,
                                                  optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                                                 atomic: Atomic = DefaultConfigs.atomic(),
                                                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                  levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                                                  lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
@@ -88,7 +89,8 @@ object Set extends LazyLogging {
               acceleration = acceleration,
               levelZeroThrottle = levelZeroThrottle,
               lastLevelThrottle = lastLevelThrottle,
-              optimiseWrites = optimiseWrites
+              optimiseWrites = optimiseWrites,
+              atomic = atomic
             ),
           fileCache = fileCache,
           memoryCache = MemoryCache.Disable

@@ -27,23 +27,23 @@ package swaydb.stress.weather
 import swaydb.IO
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.Accelerator
 import swaydb.serializers.Default._
 
 class Memory_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](optimiseWrites = OptimiseWrites.RandomOrder(atomic = false)).get.sweep(_.delete().get)
+    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Disabled).get.sweep(_.delete().get)
 }
 
 class Memory_Atomic_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](optimiseWrites = OptimiseWrites.RandomOrder(atomic = true)).get.sweep(_.delete().get)
+    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Enabled).get.sweep(_.delete().get)
 }
 
 class Memory_NonAtomic_MultiMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](optimiseWrites = OptimiseWrites.RandomOrder(atomic = false)).get.sweep(_.delete().get)
+    swaydb.memory.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Disabled).get.sweep(_.delete().get)
 }
 
 class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
@@ -51,7 +51,7 @@ class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
     swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
-      optimiseWrites = OptimiseWrites.RandomOrder(atomic = false),
+      atomic = Atomic.Disabled,
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
@@ -66,7 +66,7 @@ class Persistent_Atomic_WeatherDataSpec extends WeatherDataSpec {
     swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
-      optimiseWrites = OptimiseWrites.RandomOrder(atomic = true)
+      atomic = Atomic.Enabled
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),

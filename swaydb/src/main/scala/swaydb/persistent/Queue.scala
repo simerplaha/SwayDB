@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
-import swaydb.data.{DataType, OptimiseWrites}
+import swaydb.data.{Atomic, DataType, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -59,6 +59,7 @@ object Queue extends LazyLogging {
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                        optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                       atomic: Atomic = DefaultConfigs.atomic(),
                        sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                        randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                        binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
@@ -96,6 +97,7 @@ object Queue extends LazyLogging {
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
           optimiseWrites = optimiseWrites,
+          atomic = atomic,
           acceleration = acceleration,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

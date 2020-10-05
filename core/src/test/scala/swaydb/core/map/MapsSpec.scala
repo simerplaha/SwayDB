@@ -37,7 +37,7 @@ import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.RunThis._
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.{MMAP, RecoveryMode}
@@ -51,12 +51,10 @@ import swaydb.serializers._
 class MapsSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-
   implicit def testTimer: TestTimer = TestTimer.Empty
-
   implicit def optimiseWrites: OptimiseWrites = OptimiseWrites.random
+  implicit def atomic = Atomic.random
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._

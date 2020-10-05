@@ -37,7 +37,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions, OptimiseWrites}
+import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
@@ -55,6 +55,7 @@ object SetMap extends LazyLogging {
                           otherDirs: Seq[Dir] = Seq.empty,
                           cacheKeyValueIds: Boolean = true,
                           optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                          atomic: Atomic = DefaultConfigs.atomic(),
                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                           sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -95,6 +96,7 @@ object SetMap extends LazyLogging {
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
           optimiseWrites = optimiseWrites,
+          atomic = atomic,
           acceleration = acceleration,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

@@ -29,7 +29,6 @@ import java.util.Collections
 import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -38,7 +37,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions, OptimiseWrites}
+import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.persistent.DefaultConfigs
@@ -67,6 +66,7 @@ object PersistentMap {
                               private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                               private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                               private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                              private var atomic: Atomic = DefaultConfigs.atomic(),
                               private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                               private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                               private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
@@ -101,6 +101,11 @@ object PersistentMap {
 
     def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
       this.optimiseWrites = optimiseWrites
+      this
+    }
+
+    def setAtomic(atomic: Atomic) = {
+      this.atomic = atomic
       this
     }
 
@@ -262,6 +267,7 @@ object PersistentMap {
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
           optimiseWrites = optimiseWrites,
+          atomic = atomic,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,

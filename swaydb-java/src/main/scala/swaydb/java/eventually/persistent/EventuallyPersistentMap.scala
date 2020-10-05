@@ -29,7 +29,6 @@ import java.util.Collections
 import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
@@ -37,7 +36,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{DataType, Functions, OptimiseWrites}
+import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter}
@@ -65,6 +64,7 @@ object EventuallyPersistentMap {
                               private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                               private var deleteMemorySegmentsEventually: Boolean = true,
                               private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
+                              private var atomic: Atomic = DefaultConfigs.atomic(),
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                               private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                               private var persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -90,6 +90,11 @@ object EventuallyPersistentMap {
 
     def setOptimiseWrites(optimiseWrites: OptimiseWrites) = {
       this.optimiseWrites = optimiseWrites
+      this
+    }
+
+    def setAtomic(atomic: Atomic) = {
+      this.atomic = atomic
       this
     }
 
@@ -239,6 +244,7 @@ object EventuallyPersistentMap {
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
           optimiseWrites = optimiseWrites,
+          atomic = atomic,
           acceleration = acceleration.apply,
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
           persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex,

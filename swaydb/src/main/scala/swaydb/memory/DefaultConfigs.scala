@@ -24,7 +24,7 @@
 
 package swaydb.memory
 
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{ActorConfig, FileCache}
@@ -53,4 +53,7 @@ object DefaultConfigs {
 
   def optimiseWrites(): OptimiseWrites =
     swaydb.persistent.DefaultConfigs.optimiseWrites()
+
+  def atomic(): Atomic =
+    swaydb.persistent.DefaultConfigs.atomic()
 }

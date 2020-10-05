@@ -49,7 +49,7 @@ import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.skiplist.SkipList
 import swaydb.core.util.{DropIterator, MinMax}
 import swaydb.core.{CoreState, MemoryPathGenerator, map}
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.MMAP
@@ -78,7 +78,8 @@ private[core] case object LevelZero extends LazyLogging {
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         functionStore: FunctionStore,
                                                         forceSaveApplier: ForceSaveApplier,
-                                                        optimiseWrites: OptimiseWrites): IO[swaydb.Error.Level, LevelZero] = {
+                                                        optimiseWrites: OptimiseWrites,
+                                                        atomic: Atomic): IO[swaydb.Error.Level, LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 

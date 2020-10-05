@@ -33,7 +33,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipListConcurrent, SkipListSeries}
-import swaydb.data.OptimiseWrites
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -64,17 +64,22 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
     "create instance with optimised skipLists" in {
       OptimiseWrites.randomAll foreach {
         implicit optimiseWrites =>
-          val cache = LevelZeroMapCache()
-          //there is always at-least one level
-          cache.skipList.iterator should have size 0
-          cache.skipList.size shouldBe 0
 
-          optimiseWrites match {
-            case OptimiseWrites.RandomOrder(_) =>
-              cache.skipList shouldBe a[SkipListConcurrent[_, _, _, _]]
+          Atomic.all foreach {
+            implicit atomic =>
 
-            case OptimiseWrites.SequentialOrder(_, _) =>
-              cache.skipList shouldBe a[SkipListSeries[_, _, _, _]]
+              val cache = LevelZeroMapCache()
+              //there is always at-least one level
+              cache.skipList.iterator should have size 0
+              cache.skipList.size shouldBe 0
+
+              optimiseWrites match {
+                case OptimiseWrites.RandomOrder =>
+                  cache.skipList shouldBe a[SkipListConcurrent[_, _, _, _]]
+
+                case OptimiseWrites.SequentialOrder(_) =>
+                  cache.skipList shouldBe a[SkipListSeries[_, _, _, _]]
+              }
           }
       }
     }
@@ -202,6 +207,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
   "writeAtomic" should {
     implicit def optimiseWrites = OptimiseWrites.random
+    implicit def atomic = Atomic.random
 
     "insert a Fixed value to an empty skipList" in {
       val cache = LevelZeroMapCache.builder.create()
