@@ -69,7 +69,7 @@ object MightContainIndexBuilder {
 
   class Step4(builder: MightContainIndexBuilder) {
     def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-      MightContainIndex.Enable(
+      MightContainIndex.On(
         falsePositiveRate = builder.falsePositiveRate,
         updateMaxProbe = builder.updateMaxProbe.apply,
         minimumNumberOfKeys = builder.minimumNumberOfKeys,

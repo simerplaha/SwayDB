@@ -92,11 +92,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
   def levelFoldersCount = 0
 
-  def mmapSegments: MMAP.Segment = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
+  def mmapSegments: MMAP.Segment = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
 
-  def level0MMAP: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
+  def level0MMAP: MMAP.Map = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
 
-  def appendixStorageMMAP: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
+  def appendixStorageMMAP: MMAP.Map = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
 
   def isWindowsAndMMAPSegments(): Boolean =
     OperatingSystem.isWindows && mmapSegments.mmapReads && mmapSegments.mmapWrites
@@ -208,9 +208,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
               fileSize: Int = 4.mb,
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
-              mmap: MMAP.Map = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                              timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                              sweeper: TestCaseSweeper): map.Map[Slice[Byte], Memory, LevelZeroMapCache] = {
+              mmap: MMAP.Map = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                         sweeper: TestCaseSweeper): map.Map[Slice[Byte], Memory, LevelZeroMapCache] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       import sweeper._
 

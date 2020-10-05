@@ -49,7 +49,7 @@ object SetMap extends LazyLogging {
   def apply[K, V, BAG[_]](mapSize: Int = 4.mb,
                           minSegmentSize: Int = 2.mb,
                           maxKeyValuesPerSegment: Int = Int.MaxValue,
-                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                          fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                           deleteSegmentsEventually: Boolean = true,
                           optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                           atomic: Atomic = DefaultConfigs.atomic(),

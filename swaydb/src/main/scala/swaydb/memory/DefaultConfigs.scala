@@ -34,8 +34,8 @@ import scala.concurrent.duration._
 
 object DefaultConfigs {
 
-  def fileCache(implicit ec: ExecutionContext): FileCache.Enable =
-    FileCache.Enable(
+  def fileCache(implicit ec: ExecutionContext): FileCache.On =
+    FileCache.On(
       maxOpen = 1000,
       actorConfig =
         ActorConfig.TimeLoop(

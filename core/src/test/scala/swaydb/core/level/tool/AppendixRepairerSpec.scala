@@ -67,7 +67,7 @@ class AppendixRepairerSpec extends TestBase {
         TestCaseSweeper {
           implicit sweeper =>
             import sweeper._
-            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Disabled(TestForceSave.channel())))
+            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())))
             level.putKeyValuesTest(randomizedKeyValues(10000)).value
 
             if (level.hasMMAP && OperatingSystem.isWindows)
@@ -94,7 +94,7 @@ class AppendixRepairerSpec extends TestBase {
             import sweeper._
 
             //create empty Level
-            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Disabled(TestForceSave.channel())))
+            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())))
 
             if (level.hasMMAP && OperatingSystem.isWindows) {
               level.close[Bag.Less]()
@@ -128,7 +128,7 @@ class AppendixRepairerSpec extends TestBase {
             import sweeper._
             //create a Level with a sub-level and disable throttling so that compaction does not delete expired key-values
             val level = TestLevel(
-              segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Disabled(TestForceSave.channel())),
+              segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())),
               nextLevel = Some(TestLevel()),
               throttle = (_) => Throttle(Duration.Zero, 0)
             )
@@ -181,7 +181,7 @@ class AppendixRepairerSpec extends TestBase {
           val keyValues = randomizedKeyValues(1000)
 
           val level = TestLevel(
-            segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Disabled(TestForceSave.channel())),
+            segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())),
             nextLevel = Some(TestLevel()),
             throttle = (_) => Throttle(Duration.Zero, 0)
           )
@@ -204,7 +204,7 @@ class AppendixRepairerSpec extends TestBase {
                 val numberOfKeyValuesToOverlap = randomNextInt(3) max 1
                 val keyValuesToOverlap = Random.shuffle(segment.toSlice().runRandomIO.value.toList).take(numberOfKeyValuesToOverlap).map(_.toMemory).toSlice
                 //create overlapping Segment
-                val overlappingSegment = TestSegment(keyValuesToOverlap, segmentConfig = SegmentBlock.Config.random(mmap = MMAP.Disabled(TestForceSave.channel())))
+                val overlappingSegment = TestSegment(keyValuesToOverlap, segmentConfig = SegmentBlock.Config.random(mmap = MMAP.Off(TestForceSave.channel())))
                 Effect.copy(overlappingSegment.path, overlappingLevelSegmentPath)
                 overlappingSegment.close //gotta close the new segment create after it's copied over.
                 if (level.hasMMAP && OperatingSystem.isWindows)

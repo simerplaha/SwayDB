@@ -51,8 +51,8 @@ object ForceSave {
   /**
    * Disables force save for all cases.
    */
-  sealed trait Disabled extends MMAPFiles with ChannelFiles
-  case object Disabled extends Disabled {
+  sealed trait Off extends MMAPFiles with ChannelFiles
+  case object Off extends Off {
     override val isDisabled: Boolean = true
     override val enableForReadOnlyMode: Boolean = false
     override val enabledBeforeClose: Boolean = false
@@ -120,8 +120,8 @@ object ForceSave {
     override val enabledBeforeClean: Boolean = true
   }
 
-  def disabled(): ForceSave.Disabled =
-    ForceSave.Disabled
+  def off(): ForceSave.Off =
+    ForceSave.Off
 
   def beforeClose(enableBeforeCopy: Boolean,
                   enableForReadOnlyMode: Boolean,

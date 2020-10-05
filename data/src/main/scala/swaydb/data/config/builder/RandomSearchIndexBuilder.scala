@@ -91,7 +91,7 @@ object RandomSearchIndexBuilder {
 
   class Step6(builder: RandomSearchIndexBuilder) {
     def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-      RandomSearchIndex.Enable(
+      RandomSearchIndex.On(
         maxProbe = builder.maxProbe,
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
         minimumNumberOfHits = builder.minimumNumberOfHits,

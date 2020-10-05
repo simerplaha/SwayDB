@@ -52,7 +52,7 @@ class PersistentTimerSpec extends TimerSpec {
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
     Timer.persistent(
       path = path,
-      mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+      mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
       mod = 100,
       fileSize = 1000
     ).get

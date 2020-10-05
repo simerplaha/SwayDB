@@ -281,7 +281,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
                       private val functions: ListBuffer[() => Unit]) {
 
 
-  implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
+  implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
   implicit lazy val fileSweeper: FileSweeperActor = fileSweepers.head.value(())
   implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.value(())
   implicit lazy val blockCache: Option[BlockCache.State] = blockCaches.head.value(())

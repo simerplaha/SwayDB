@@ -166,7 +166,7 @@ object DBFile extends LazyLogging {
         memoryMapped = false,
         autoClose = autoClose,
         deleteAfterClean = false,
-        forceSaveConfig = ForceSave.Disabled,
+        forceSaveConfig = ForceSave.Off,
         blockCacheFileId = blockCacheFileId,
         fileCache =
           fileCache(
@@ -261,7 +261,7 @@ object DBFile extends LazyLogging {
         memoryMapped = true,
         autoClose = autoClose,
         deleteAfterClean = deleteAfterClean,
-        forceSaveConfig = ForceSave.Disabled,
+        forceSaveConfig = ForceSave.Off,
         blockCacheFileId = blockCacheFileId,
         fileCache =
           fileCache(

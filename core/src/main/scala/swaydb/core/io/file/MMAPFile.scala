@@ -70,7 +70,7 @@ private[file] object MMAPFile {
       bufferSize = channel.size(),
       blockCacheFileId = blockCacheFileId,
       deleteAfterClean = deleteAfterClean,
-      forceSave = ForceSave.Disabled
+      forceSave = ForceSave.Off
     )
   }
 

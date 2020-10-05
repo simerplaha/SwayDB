@@ -314,7 +314,7 @@ object TestData {
                   clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
                   storage =
                     Level0Storage.Persistent(
-                      mmap = MMAP.enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap()),
+                      mmap = MMAP.on(OperatingSystem.isWindows, forceSave = TestForceSave.mmap()),
                       dir = level.path.getParent,
                       recovery = RecoveryMode.ReportFailure
                     ),
@@ -1841,16 +1841,16 @@ object TestData {
   implicit class MMAPImplicits(mmap: MMAP.type) {
     def randomForSegment(): MMAP.Segment =
       if (Random.nextBoolean())
-        MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
+        MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
       else if (Random.nextBoolean())
         MMAP.ReadOnly(OperatingSystem.isWindows)
       else
-        MMAP.Disabled(TestForceSave.channel())
+        MMAP.Off(TestForceSave.channel())
 
     def randomForMap(): MMAP.Map =
       if (Random.nextBoolean())
-        MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap())
+        MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap())
       else
-        MMAP.Disabled(TestForceSave.channel())
+        MMAP.Off(TestForceSave.channel())
   }
 }

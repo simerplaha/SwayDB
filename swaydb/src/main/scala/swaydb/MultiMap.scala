@@ -56,7 +56,7 @@ object MultiMap {
     implicit val writer = swaydb.core.map.serializer.CounterMapEntryWriter.CounterPutMapEntryWriter
     implicit val reader = swaydb.core.map.serializer.CounterMapEntryReader.CounterPutMapEntryReader
     implicit val core: ByteBufferSweeperActor = map.protectedSweeper
-    implicit val forceSaveApplier = ForceSaveApplier.Enabled
+    implicit val forceSaveApplier = ForceSaveApplier.On
 
     CounterMap.persistent(
       dir = path.resolve(MultiMap.folderName),

@@ -56,7 +56,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
     //mmap is false. FIXME - use ByteBufferCleaner.Disabled instead
     implicit val bufferCleaner: ByteBufferSweeperActor = null
-    implicit val forceSaveApplier = ForceSaveApplier.Enabled
+    implicit val forceSaveApplier = ForceSaveApplier.On
 
     IO(Effect.files(levelPath, Extension.Seg)) flatMap {
       files =>
@@ -66,7 +66,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
               IO {
                 Segment(
                   path = segmentPath,
-                  mmap = MMAP.Disabled(ForceSave.Disabled),
+                  mmap = MMAP.Off(ForceSave.Off),
                   checkExists = true
                 )(keyOrder = keyOrder,
                   timeOrder = null,
@@ -176,7 +176,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
       Effect.walkDelete(appendixDir)
 
       val mmap =
-        MMAP.Disabled(
+        MMAP.Off(
           forceSave =
             ForceSave.BeforeClose(
               enableBeforeCopy = true,

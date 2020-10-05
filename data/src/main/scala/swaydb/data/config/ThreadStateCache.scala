@@ -50,7 +50,7 @@ object ThreadStateCache {
    * Otherwise disabling [[ThreadStateCache]] can have noticable performance impact.
    */
 
-  def disable: ThreadStateCache.Disable = Disable
-  sealed trait Disable extends ThreadStateCache
-  case object Disable extends Disable
+  def off: ThreadStateCache.Off = Off
+  sealed trait Off extends ThreadStateCache
+  case object Off extends Off
 }

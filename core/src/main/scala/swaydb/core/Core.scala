@@ -61,7 +61,7 @@ private[swaydb] object Core {
 
   def apply(enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
-            fileCache: FileCache.Enable,
+            fileCache: FileCache.On,
             memoryCache: MemoryCache,
             threadStateCache: ThreadStateCache,
             config: SwayDBPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -79,7 +79,7 @@ private[swaydb] object Core {
 
   def apply(enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
-            fileCache: FileCache.Enable,
+            fileCache: FileCache.On,
             memoryCache: MemoryCache,
             threadStateCache: ThreadStateCache,
             config: SwayDBMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],

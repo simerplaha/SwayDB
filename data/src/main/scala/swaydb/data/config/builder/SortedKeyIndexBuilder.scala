@@ -61,7 +61,7 @@ object SortedKeyIndexBuilder {
 
   class Step3(builder: SortedKeyIndexBuilder) {
     def compressions(compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-      SortedKeyIndex.Enable(
+      SortedKeyIndex.On(
         prefixCompression = builder.prefixCompression,
         enablePositionIndex = builder.enablePositionIndex,
         blockIOStrategy = builder.blockIOStrategy.apply,

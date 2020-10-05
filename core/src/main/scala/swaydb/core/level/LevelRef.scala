@@ -93,7 +93,7 @@ object LevelRef {
             value
 
           case None =>
-            MMAP.Disabled(ForceSave.Disabled)
+            MMAP.Off(ForceSave.Off)
         }
     }
   }

@@ -59,7 +59,7 @@ private[core] case object BinarySearchIndexBlock {
 
     def apply(config: swaydb.data.config.BinarySearchIndex): Config =
       config match {
-        case swaydb.data.config.BinarySearchIndex.Disable(searchSortedIndexDirectly) =>
+        case swaydb.data.config.BinarySearchIndex.Off(searchSortedIndexDirectly) =>
           Config(
             enabled = false,
             format = BinarySearchEntryFormat.Reference,

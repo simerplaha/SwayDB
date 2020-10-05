@@ -55,7 +55,7 @@ private[file] object ChannelFile {
         path = path,
         mode = StandardOpenOption.READ,
         channel = channel,
-        forceSave = ForceSave.Disabled,
+        forceSave = ForceSave.Off,
         blockCacheFileId = blockCacheFileId
       )
     }

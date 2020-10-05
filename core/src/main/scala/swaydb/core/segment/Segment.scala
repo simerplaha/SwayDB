@@ -302,7 +302,7 @@ private[core] object Segment extends LazyLogging {
                                                             blockCache: Option[BlockCache.State],
                                                             forceSaveApplier: ForceSaveApplier): DBFile =
     mmap match {
-      case MMAP.Enabled(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
+      case MMAP.On(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
         DBFile.mmapWriteAndRead(
           path = path,
           fileOpenIOStrategy = segmentIO.fileOpenIO,
@@ -322,7 +322,7 @@ private[core] object Segment extends LazyLogging {
           deleteAfterClean = deleteAfterClean
         )
 
-      case _: MMAP.Disabled =>
+      case _: MMAP.Off =>
         DBFile.channelRead(
           path = Effect.write(path, segmentBytes),
           fileOpenIOStrategy = segmentIO.fileOpenIO,
@@ -530,7 +530,7 @@ private[core] object Segment extends LazyLogging {
 
     val file =
       mmap match {
-        case _: MMAP.Enabled | _: MMAP.ReadOnly =>
+        case _: MMAP.On | _: MMAP.ReadOnly =>
           DBFile.mmapRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
@@ -540,7 +540,7 @@ private[core] object Segment extends LazyLogging {
             checkExists = checkExists
           )
 
-        case _: MMAP.Disabled =>
+        case _: MMAP.Off =>
           DBFile.channelRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
@@ -629,7 +629,7 @@ private[core] object Segment extends LazyLogging {
 
     val file =
       mmap match {
-        case _: MMAP.Enabled | _: MMAP.ReadOnly =>
+        case _: MMAP.On | _: MMAP.ReadOnly =>
           DBFile.mmapRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
@@ -639,7 +639,7 @@ private[core] object Segment extends LazyLogging {
             checkExists = checkExists
           )
 
-        case _: MMAP.Disabled =>
+        case _: MMAP.Off =>
           DBFile.channelRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,

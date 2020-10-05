@@ -33,27 +33,28 @@ import scala.jdk.CollectionConverters._
 sealed trait RandomSearchIndex {
   def toOption =
     this match {
-      case RandomSearchIndex.Disable => None
-      case enable: RandomSearchIndex.Enable => Some(enable)
+      case RandomSearchIndex.Off => None
+      case enable: RandomSearchIndex.On => Some(enable)
     }
 }
 
 object RandomSearchIndex {
-  def disable: RandomSearchIndex.Disable = Disable
+  def off: RandomSearchIndex.Off = Off
 
-  sealed trait Disable extends RandomSearchIndex
-  case object Disable extends Disable
+  sealed trait Off extends RandomSearchIndex
+  case object Off extends Off
 
   def builder(): RandomSearchIndexBuilder.Step0 =
     RandomSearchIndexBuilder.builder()
 
-  case class Enable(maxProbe: Int,
-                    minimumNumberOfKeys: Int,
-                    minimumNumberOfHits: Int,
-                    indexFormat: IndexFormat,
-                    allocateSpace: RequiredSpace => Int,
-                    blockIOStrategy: IOAction => IOStrategy,
-                    compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomSearchIndex {
+  case class On(maxProbe: Int,
+                minimumNumberOfKeys: Int,
+                minimumNumberOfHits: Int,
+                indexFormat: IndexFormat,
+                allocateSpace: RequiredSpace => Int,
+                blockIOStrategy: IOAction => IOStrategy,
+                compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomSearchIndex {
+    
     def copyWithMaxProbe(maxProbe: Int) =
       this.copy(maxProbe = maxProbe)
 

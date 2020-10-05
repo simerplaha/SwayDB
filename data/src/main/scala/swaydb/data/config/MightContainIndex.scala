@@ -31,27 +31,28 @@ import swaydb.data.util.Java.JavaFunction
 import scala.jdk.CollectionConverters._
 
 sealed trait MightContainIndex {
-  def toOption: Option[MightContainIndex.Enable] =
+  def toOption: Option[MightContainIndex.On] =
     this match {
-      case MightContainIndex.Disable => None
-      case enable: MightContainIndex.Enable => Some(enable)
+      case MightContainIndex.Off => None
+      case enable: MightContainIndex.On => Some(enable)
     }
 }
 
 object MightContainIndex {
 
-  def disable: MightContainIndex.Disable = Disable
-  sealed trait Disable extends MightContainIndex
-  case object Disable extends Disable
+  def off: MightContainIndex.Off = Off
+
+  sealed trait Off extends MightContainIndex
+  case object Off extends Off
 
   def builder(): MightContainIndexBuilder.Step0 =
     MightContainIndexBuilder.builder()
 
-  case class Enable(falsePositiveRate: Double,
-                    updateMaxProbe: Int => Int,
-                    minimumNumberOfKeys: Int,
-                    blockIOStrategy: IOAction => IOStrategy,
-                    compression: UncompressedBlockInfo => Iterable[Compression]) extends MightContainIndex {
+  case class On(falsePositiveRate: Double,
+                updateMaxProbe: Int => Int,
+                minimumNumberOfKeys: Int,
+                blockIOStrategy: IOAction => IOStrategy,
+                compression: UncompressedBlockInfo => Iterable[Compression]) extends MightContainIndex {
     def copyWithFalsePositiveRate(falsePositiveRate: Double) =
       this.copy(falsePositiveRate = falsePositiveRate)
 

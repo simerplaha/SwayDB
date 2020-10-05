@@ -50,16 +50,16 @@ class LevelMapSpec0 extends LevelMapSpec
 
 class LevelMapSpec1 extends LevelMapSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class LevelMapSpec2 extends LevelMapSpec {
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
 }
 
 class LevelMapSpec3 extends LevelMapSpec {
@@ -90,7 +90,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         if (persistent)
           Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
             folder = randomIntDirectory,
-            mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+            mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
             flushOnOverflow = true,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false
@@ -174,7 +174,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         if (persistent)
           Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
             folder = randomIntDirectory,
-            mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+            mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
             flushOnOverflow = true,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false

@@ -34,8 +34,8 @@ import scala.concurrent.duration._
 
 object DefaultConfigs {
 
-  def mmap(): MMAP.Disabled =
-    MMAP.Disabled(
+  def mmap(): MMAP.Off =
+    MMAP.Off(
       forceSave =
         ForceSave.BeforeClose(
           enableBeforeCopy = false,
@@ -44,9 +44,9 @@ object DefaultConfigs {
         )
     )
 
-  def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.Enable =
-    SortedKeyIndex.Enable(
-      prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
+  def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.On =
+    SortedKeyIndex.On(
+      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
       enablePositionIndex = true,
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
@@ -55,8 +55,8 @@ object DefaultConfigs {
       compressions = _ => Seq.empty
     )
 
-  def randomSearchIndex(cacheDataBlockOnAccess: Boolean = true): RandomSearchIndex.Enable =
-    RandomSearchIndex.Enable(
+  def randomSearchIndex(cacheDataBlockOnAccess: Boolean = true): RandomSearchIndex.On =
+    RandomSearchIndex.On(
       maxProbe = 1,
       minimumNumberOfKeys = 2,
       minimumNumberOfHits = 2,
@@ -81,8 +81,8 @@ object DefaultConfigs {
       compression = _ => Seq.empty
     )
 
-  def mightContainIndex(cacheDataBlockOnAccess: Boolean = true): MightContainIndex.Enable =
-    MightContainIndex.Enable(
+  def mightContainIndex(cacheDataBlockOnAccess: Boolean = true): MightContainIndex.On =
+    MightContainIndex.On(
       falsePositiveRate = 0.001,
       minimumNumberOfKeys = 10,
       updateMaxProbe = optimalMaxProbe => 1,
@@ -121,8 +121,8 @@ object DefaultConfigs {
       compression = _ => Seq.empty
     )
 
-  def fileCache(implicit ec: ExecutionContext): FileCache.Enable =
-    FileCache.Enable(
+  def fileCache(implicit ec: ExecutionContext): FileCache.On =
+    FileCache.On(
       maxOpen = 1000,
       actorConfig =
         ActorConfig.TimeLoop(

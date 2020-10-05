@@ -50,11 +50,11 @@ object MMAP {
     def isMMAP: Boolean
   }
 
-  def disabled(forceSave: ForceSave.ChannelFiles): MMAP.Disabled =
-    Disabled(forceSave)
+  def off(forceSave: ForceSave.ChannelFiles): MMAP.Off =
+    Off(forceSave)
 
-  def enabled(deleteAfterClean: Boolean, forceSave: ForceSave.MMAPFiles): MMAP.Enabled =
-    Enabled(deleteAfterClean, forceSave)
+  def on(deleteAfterClean: Boolean, forceSave: ForceSave.MMAPFiles): MMAP.On =
+    On(deleteAfterClean, forceSave)
 
   def readOnly(deleteAfterClean: Boolean): MMAP.ReadOnly =
     ReadOnly(deleteAfterClean)
@@ -69,16 +69,16 @@ object MMAP {
    *                         See - https://github.com/simerplaha/SwayDB/issues/251.
    *
    */
-  case class Enabled(deleteAfterClean: Boolean,
-                     forceSave: ForceSave.MMAPFiles) extends MMAP.Segment with MMAP.Map {
+  case class On(deleteAfterClean: Boolean,
+                forceSave: ForceSave.MMAPFiles) extends MMAP.Segment with MMAP.Map {
     override val mmapReads: Boolean = true
     override val mmapWrites: Boolean = true
     override val isMMAP: Boolean = true
 
-    def copyWithDeleteAfterClean(deleteAfterClean: Boolean): Enabled =
+    def copyWithDeleteAfterClean(deleteAfterClean: Boolean): On =
       copy(deleteAfterClean = deleteAfterClean)
 
-    def copyWithForceSave(forceSave: ForceSave.MMAPFiles): Enabled =
+    def copyWithForceSave(forceSave: ForceSave.MMAPFiles): On =
       copy(forceSave = forceSave)
   }
 
@@ -94,7 +94,7 @@ object MMAP {
     override val mmapWrites: Boolean = false
   }
 
-  case class Disabled(forceSave: ForceSave.ChannelFiles) extends MMAP.Segment with MMAP.Map {
+  case class Off(forceSave: ForceSave.ChannelFiles) extends MMAP.Segment with MMAP.Map {
     override val mmapReads: Boolean = false
     override val mmapWrites: Boolean = false
     override val isMMAP: Boolean = false

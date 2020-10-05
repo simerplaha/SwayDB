@@ -34,14 +34,14 @@ sealed trait MemoryCache
 
 object MemoryCache {
 
-  def disable: MemoryCache = Disable
-  case object Disable extends MemoryCache
+  def off: MemoryCache = Off
+  case object Off extends MemoryCache
 
-  sealed trait Enabled extends MemoryCache {
+  sealed trait On extends MemoryCache {
     def cacheCapacity: Int
   }
 
-  sealed trait Block extends Enabled {
+  sealed trait Block extends On {
     val minIOSeekSize: Int
     val cacheCapacity: Int
     val actorConfig: ActorConfig
@@ -75,7 +75,7 @@ object MemoryCache {
 
   case class KeyValueCacheOnly(cacheCapacity: Int,
                                maxCachedKeyValueCountPerSegment: Option[Int],
-                               actorConfig: Option[ActorConfig]) extends Enabled {
+                               actorConfig: Option[ActorConfig]) extends On {
     def copyWithCacheCapacity(cacheCapacity: Int) =
       this.copy(cacheCapacity = cacheCapacity)
 
@@ -91,7 +91,7 @@ object MemoryCache {
                  cacheCapacity: Int,
                  maxCachedKeyValueCountPerSegment: Option[Int],
                  sweepCachedKeyValues: Boolean,
-                 actorConfig: ActorConfig) extends Enabled with Block {
+                 actorConfig: ActorConfig) extends On with Block {
     def copyWithMinIOSeekSize(minIOSeekSize: Int) =
       this.copy(minIOSeekSize = minIOSeekSize)
 

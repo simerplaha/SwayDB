@@ -53,7 +53,7 @@ object Set extends LazyLogging {
   def apply[A, F <: PureFunction.Set[A], BAG[_]](mapSize: Int = 4.mb,
                                                  minSegmentSize: Int = 2.mb,
                                                  maxKeyValuesPerSegment: Int = Int.MaxValue,
-                                                 fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                                                 fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                  deleteSegmentsEventually: Boolean = true,
                                                  optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                                                  atomic: Atomic = DefaultConfigs.atomic(),
@@ -93,7 +93,7 @@ object Set extends LazyLogging {
               atomic = atomic
             ),
           fileCache = fileCache,
-          memoryCache = MemoryCache.Disable
+          memoryCache = MemoryCache.Off
         )(keyOrder = keyOrder,
           timeOrder = TimeOrder.long,
           functionStore = functionStore,

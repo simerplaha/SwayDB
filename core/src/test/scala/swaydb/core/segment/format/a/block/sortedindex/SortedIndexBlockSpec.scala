@@ -53,7 +53,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
     "disable prefixCompression when normalise defined" in {
       runThis(100.times) {
         val prefixCompression =
-          PrefixCompression.Enable(
+          PrefixCompression.On(
             keysOnly = randomBoolean(),
             interval = randomPrefixCompressionInterval()
           )
@@ -61,7 +61,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         //test via User created object.
         val configFromUserConfig =
           SortedIndexBlock.Config(
-            swaydb.data.config.SortedKeyIndex.Enable(
+            swaydb.data.config.SortedKeyIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
               blockIOStrategy = _ => randomIOStrategy(),
@@ -97,12 +97,12 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
     "normalise if prefix compression is disabled" in {
       runThis(100.times) {
-        val prefixCompression = PrefixCompression.Disable(true)
+        val prefixCompression = PrefixCompression.Off(true)
 
         //use created config
         val configFromUserConfig =
           SortedIndexBlock.Config(
-            swaydb.data.config.SortedKeyIndex.Enable(
+            swaydb.data.config.SortedKeyIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
               blockIOStrategy = _ => randomIOStrategy(),

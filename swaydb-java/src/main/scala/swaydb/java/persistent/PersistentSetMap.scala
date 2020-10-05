@@ -69,7 +69,7 @@ object PersistentSetMap {
                            private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                            private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                            private var atomic: Atomic = DefaultConfigs.atomic(),
-                           private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                           private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                            private var levelOneThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelOneThrottle _).asJava,
@@ -164,7 +164,7 @@ object PersistentSetMap {
       this
     }
 
-    def setFileCache(fileCache: FileCache.Enable) = {
+    def setFileCache(fileCache: FileCache.On) = {
       this.fileCache = fileCache
       this
     }

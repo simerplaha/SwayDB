@@ -50,7 +50,7 @@ object MemoryQueue {
                         private var deleteSegmentsEventually: Boolean = true,
                         private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                         private var atomic: Atomic = DefaultConfigs.atomic(),
-                        private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                        private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                         private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
@@ -88,7 +88,7 @@ object MemoryQueue {
       this
     }
 
-    def setFileCache(fileCache: FileCache.Enable) = {
+    def setFileCache(fileCache: FileCache.On) = {
       this.fileCache = fileCache
       this
     }

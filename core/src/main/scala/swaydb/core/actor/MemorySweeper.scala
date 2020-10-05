@@ -64,9 +64,9 @@ private[core] sealed trait MemorySweeper
  */
 private[core] object MemorySweeper extends LazyLogging {
 
-  def apply(memoryCache: MemoryCache): Option[MemorySweeper.Enabled] =
+  def apply(memoryCache: MemoryCache): Option[MemorySweeper.On] =
     memoryCache match {
-      case MemoryCache.Disable =>
+      case MemoryCache.Off =>
         None
 
       case block: MemoryCache.ByteCacheOnly =>
@@ -106,14 +106,14 @@ private[core] object MemorySweeper extends LazyLogging {
 
   def close(sweeper: MemorySweeper): Unit =
     sweeper match {
-      case MemorySweeper.Disabled =>
+      case MemorySweeper.Off =>
         ()
 
-      case enabled: MemorySweeper.Enabled =>
+      case enabled: MemorySweeper.On =>
         close(enabled)
     }
 
-  def close(sweeper: MemorySweeper.Enabled): Unit =
+  def close(sweeper: MemorySweeper.On): Unit =
     sweeper.actor foreach {
       actor =>
         logger.info("Clearing cached key-values")
@@ -177,15 +177,15 @@ private[core] object MemorySweeper extends LazyLogging {
       actor.foreach(_.terminateAndClear[Bag.Less]())
   }
 
-  case object Disabled extends MemorySweeper
+  case object Off extends MemorySweeper
 
-  sealed trait Enabled extends MemorySweeper {
+  sealed trait On extends MemorySweeper {
     def actor: Option[ActorRef[Command, Unit]]
 
     def terminateAndClear(): Unit
   }
 
-  sealed trait Cache extends Enabled {
+  sealed trait Cache extends On {
 
     def add(weight: Int, cache: swaydb.data.cache.Cache[_, _, _]): Unit =
       actor foreach {
@@ -217,7 +217,7 @@ private[core] object MemorySweeper extends LazyLogging {
                           skipBlockCacheSeekSize: Int,
                           actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block
 
-  sealed trait KeyValue extends Enabled {
+  sealed trait KeyValue extends On {
 
     def sweepKeyValues: Boolean
 

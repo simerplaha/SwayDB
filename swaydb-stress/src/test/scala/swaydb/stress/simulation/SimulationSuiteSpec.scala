@@ -36,14 +36,14 @@ class Memory_NonAtomic_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](atomic = Atomic.Disabled).get.sweep(_.delete().get)
+    swaydb.memory.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](atomic = Atomic.Off).get.sweep(_.delete().get)
 }
 
 class Memory_Atomic_SimulationSpec extends SimulationSpec {
 
   override def newDB()(implicit functions: Functions[PureFunction.Map[Long, Domain]],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](atomic = Atomic.Enabled).get.sweep(_.delete().get)
+    swaydb.memory.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](atomic = Atomic.On).get.sweep(_.delete().get)
 }
 
 class Persistent_NonAtomic_SimulationSpec extends SimulationSpec {
@@ -53,7 +53,7 @@ class Persistent_NonAtomic_SimulationSpec extends SimulationSpec {
     swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
-      atomic = Atomic.Disabled,
+      atomic = Atomic.Off,
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
@@ -69,7 +69,7 @@ class Persistent_Atomic_SimulationSpec extends SimulationSpec {
     swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
-      atomic = Atomic.Enabled,
+      atomic = Atomic.On,
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
@@ -85,7 +85,7 @@ class Memory_NonAtomic_Persistent_SimulationSpec extends SimulationSpec {
     swaydb.eventually.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
-      atomic = Atomic.Disabled,
+      atomic = Atomic.Off,
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
@@ -100,7 +100,7 @@ class Memory_Atomic_Persistent_SimulationSpec extends SimulationSpec {
     swaydb.eventually.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
-      atomic = Atomic.Enabled,
+      atomic = Atomic.On,
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),

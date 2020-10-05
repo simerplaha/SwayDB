@@ -62,10 +62,10 @@ private[core] case object HashIndexBlock extends LazyLogging {
 
     def apply(config: swaydb.data.config.RandomSearchIndex): Config =
       config match {
-        case swaydb.data.config.RandomSearchIndex.Disable =>
+        case swaydb.data.config.RandomSearchIndex.Off =>
           Config.disabled
 
-        case enable: swaydb.data.config.RandomSearchIndex.Enable =>
+        case enable: swaydb.data.config.RandomSearchIndex.On =>
           Config(
             maxProbe = enable.maxProbe,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,

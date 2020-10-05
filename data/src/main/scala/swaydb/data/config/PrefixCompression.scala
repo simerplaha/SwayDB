@@ -32,7 +32,7 @@ sealed trait PrefixCompression {
 }
 
 object PrefixCompression {
-  case class Disable(normaliseIndexForBinarySearch: Boolean) extends PrefixCompression {
+  case class Off(normaliseIndexForBinarySearch: Boolean) extends PrefixCompression {
     override def keysOnly = false
 
     override def enabled: Boolean = false
@@ -63,7 +63,7 @@ object PrefixCompression {
     }
   }
 
-  case class Enable(keysOnly: Boolean, interval: Interval) extends PrefixCompression {
+  case class On(keysOnly: Boolean, interval: Interval) extends PrefixCompression {
     override def normaliseIndexForBinarySearch: Boolean = false
 
     override def enabled: Boolean = true

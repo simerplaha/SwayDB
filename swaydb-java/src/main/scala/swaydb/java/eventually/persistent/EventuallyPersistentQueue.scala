@@ -67,7 +67,7 @@ object EventuallyPersistentQueue {
                         private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                         private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                         private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                        private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                        private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                         private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                         private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
@@ -170,7 +170,7 @@ object EventuallyPersistentQueue {
       this
     }
 
-    def setFileCache(fileCache: FileCache.Enable) = {
+    def setFileCache(fileCache: FileCache.On) = {
       this.fileCache = fileCache
       this
     }

@@ -33,12 +33,13 @@ import scala.jdk.CollectionConverters._
 sealed trait BinarySearchIndex
 
 object BinarySearchIndex {
-  def disable(searchSortedIndexDirectly: Boolean): BinarySearchIndex.Disable =
-    Disable(searchSortedIndexDirectly)
 
-  case class Disable(searchSortedIndexDirectly: Boolean) extends BinarySearchIndex
+  def off(searchSortedIndexDirectly: Boolean): BinarySearchIndex.Off =
+    Off(searchSortedIndexDirectly)
 
-  sealed trait Enable extends BinarySearchIndex {
+  case class Off(searchSortedIndexDirectly: Boolean) extends BinarySearchIndex
+
+  sealed trait On extends BinarySearchIndex {
     def minimumNumberOfKeys: Int
 
     def blockIOStrategy: IOAction => IOStrategy
@@ -55,7 +56,7 @@ object BinarySearchIndex {
                        indexFormat: IndexFormat,
                        searchSortedIndexDirectly: Boolean,
                        blockIOStrategy: IOAction => IOStrategy,
-                       compression: UncompressedBlockInfo => Iterable[Compression]) extends Enable {
+                       compression: UncompressedBlockInfo => Iterable[Compression]) extends On {
     def copyWithMinimumNumberOfKeys(minimumNumberOfKeys: Int) =
       this.copy(minimumNumberOfKeys = minimumNumberOfKeys)
 
@@ -79,7 +80,7 @@ object BinarySearchIndex {
                             indexFormat: IndexFormat,
                             searchSortedIndexDirectlyIfPreNormalised: Boolean,
                             blockIOStrategy: IOAction => IOStrategy,
-                            compression: UncompressedBlockInfo => Iterable[Compression]) extends Enable {
+                            compression: UncompressedBlockInfo => Iterable[Compression]) extends On {
     def copyWithMinimumNumberOfKeys(minimumNumberOfKeys: Int) =
       this.copy(minimumNumberOfKeys = minimumNumberOfKeys)
 

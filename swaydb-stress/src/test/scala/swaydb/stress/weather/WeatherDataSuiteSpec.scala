@@ -33,17 +33,17 @@ import swaydb.serializers.Default._
 
 class Memory_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Disabled).get.sweep(_.delete().get)
+    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Off).get.sweep(_.delete().get)
 }
 
 class Memory_Atomic_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Enabled).get.sweep(_.delete().get)
+    swaydb.memory.Map[Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.On).get.sweep(_.delete().get)
 }
 
 class Memory_NonAtomic_MultiMap_WeatherDataSpec extends WeatherDataSpec {
   override def newDB()(implicit sweeper: TestCaseSweeper) =
-    swaydb.memory.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Disabled).get.sweep(_.delete().get)
+    swaydb.memory.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](atomic = Atomic.Off).get.sweep(_.delete().get)
 }
 
 class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
@@ -51,7 +51,7 @@ class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
     swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
-      atomic = Atomic.Disabled,
+      atomic = Atomic.Off,
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
@@ -66,7 +66,7 @@ class Persistent_Atomic_WeatherDataSpec extends WeatherDataSpec {
     swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](
       dir = randomDir,
       acceleration = Accelerator.brake(),
-      atomic = Atomic.Enabled
+      atomic = Atomic.On
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),

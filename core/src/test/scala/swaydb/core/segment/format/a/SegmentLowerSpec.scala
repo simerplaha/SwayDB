@@ -46,17 +46,17 @@ class SegmentLowerSpec0 extends SegmentLowerSpec {
 class SegmentLowerSpec1 extends SegmentLowerSpec {
   val keyValuesCount = 100
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.Enabled(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
+  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
 class SegmentLowerSpec2 extends SegmentLowerSpec {
   val keyValuesCount = 100
   override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Disabled(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Disabled(forceSave = TestForceSave.channel())
+  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
+  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
+  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
 }
 
 class SegmentLowerSpec3 extends SegmentLowerSpec {

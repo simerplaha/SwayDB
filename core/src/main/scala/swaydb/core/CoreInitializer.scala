@@ -125,7 +125,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def apply(config: SwayDBConfig,
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
-            fileCache: FileCache.Enable,
+            fileCache: FileCache.On,
             threadStateCache: ThreadStateCache,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -146,7 +146,7 @@ private[core] object CoreInitializer extends LazyLogging {
         implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] =
           FileSweeper(fileCache)
 
-        val memorySweeper: Option[MemorySweeper.Enabled] =
+        val memorySweeper: Option[MemorySweeper.On] =
           MemorySweeper(memoryCache)
 
         implicit val blockCache: Option[BlockCache.State] =
@@ -154,7 +154,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
         implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] =
           memorySweeper flatMap {
-            enabled: MemorySweeper.Enabled =>
+            enabled: MemorySweeper.On =>
               enabled match {
                 case sweeper: MemorySweeper.All =>
                   Some(sweeper)
@@ -182,7 +182,7 @@ private[core] object CoreInitializer extends LazyLogging {
                         config: LevelConfig): IO[swaydb.Error.Level, NextLevel] =
           config match {
             case config: MemoryLevelConfig =>
-              implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Disabled
+              implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Off
 
               Level(
                 bloomFilterConfig = BloomFilterBlock.Config.disabled,
@@ -198,7 +198,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     minSize = config.minSegmentSize,
                     maxCount = config.maxKeyValuesPerSegment,
                     pushForward = config.copyForward,
-                    mmap = MMAP.Disabled(ForceSave.Disabled),
+                    mmap = MMAP.Off(ForceSave.Off),
                     deleteEventually = config.deleteSegmentsEventually,
                     compressions = _ => Seq.empty
                   ),
@@ -209,7 +209,7 @@ private[core] object CoreInitializer extends LazyLogging {
               )
 
             case config: PersistentLevelConfig =>
-              implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
+              implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
 
               Level(
                 bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainIndex),
@@ -236,7 +236,7 @@ private[core] object CoreInitializer extends LazyLogging {
                          previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Bag.Less]] =
           levelConfigs match {
             case Nil =>
-              implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
+              implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
 
               createLevel(
                 id = 1,
@@ -285,7 +285,7 @@ private[core] object CoreInitializer extends LazyLogging {
                                     case ThreadStateCache.NoLimit =>
                                       ThreadReadState.hashMap()
 
-                                    case ThreadStateCache.Disable =>
+                                    case ThreadStateCache.Off =>
                                       ThreadReadState.limitHashMap(
                                         maxSize = 0,
                                         probe = 0

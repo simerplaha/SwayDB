@@ -29,7 +29,7 @@ sealed trait Atomic {
 }
 
 /**
- * [[Atomic.Enabled]] ensures that all range operations and [[swaydb.Prepare]] transactions
+ * [[Atomic.On]] ensures that all range operations and [[swaydb.Prepare]] transactions
  * are available for reads atomically.
  *
  * For eg: if you submit a [[swaydb.Prepare]]
@@ -39,16 +39,16 @@ sealed trait Atomic {
 
 object Atomic {
 
-  val enabled: Atomic.Enabled = Atomic.Enabled
-  val disabled: Atomic.Disabled = Atomic.Disabled
+  val on: Atomic.On = Atomic.On
+  val off: Atomic.Off = Atomic.Off
 
-  sealed trait Enabled extends Atomic
-  case object Enabled extends Enabled {
+  sealed trait On extends Atomic
+  case object On extends On {
     override val enabled: Boolean = true
   }
 
-  sealed trait Disabled extends Atomic
-  case object Disabled extends Disabled {
+  sealed trait Off extends Atomic
+  case object Off extends Off {
     override val enabled: Boolean = false
   }
 }

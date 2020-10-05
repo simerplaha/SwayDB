@@ -51,7 +51,7 @@ trait ForceSaveApplier {
 
 object ForceSaveApplier extends LazyLogging {
 
-  object Disabled extends ForceSaveApplier {
+  object Off extends ForceSaveApplier {
     override def beforeClean(path: Path, buffer: MappedByteBuffer, forced: AtomicBoolean, forceSave: ForceSave.MMAPFiles): Unit =
       logger.error(s"Disabled ForceSaveApplier beforeClean - $path", new Exception("Disabled ForceSaveApplier"))
 
@@ -62,7 +62,7 @@ object ForceSaveApplier extends LazyLogging {
       logger.error(s"Disabled ForceSaveApplier beforeClose - ${file.path}", new Exception("Disabled ForceSaveApplier"))
   }
 
-  object Enabled extends ForceSaveApplier {
+  object On extends ForceSaveApplier {
 
     /**
      * Applies forceSave condition for before cleaning the file.

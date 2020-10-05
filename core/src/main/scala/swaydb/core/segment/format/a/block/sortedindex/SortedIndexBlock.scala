@@ -80,11 +80,11 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
     def apply(config: swaydb.data.config.SortedKeyIndex): Config =
       config match {
-        case config: swaydb.data.config.SortedKeyIndex.Enable =>
+        case config: swaydb.data.config.SortedKeyIndex.On =>
           apply(config)
       }
 
-    def apply(enable: swaydb.data.config.SortedKeyIndex.Enable): Config =
+    def apply(enable: swaydb.data.config.SortedKeyIndex.On): Config =
       Config(
         ioStrategy = FunctionSafe.safe(IOStrategy.defaultSynchronised, enable.blockIOStrategy),
         shouldPrefixCompress = enable.prefixCompression.shouldCompress,

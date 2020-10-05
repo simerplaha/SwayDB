@@ -54,7 +54,7 @@ class AppendixMapEntrySpec extends TestBase {
           import sweeper._
 
           val segment = TestSegment()
-          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
 
           import AppendixMapEntryWriter.AppendixPutWriter
           val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
@@ -85,7 +85,7 @@ class AppendixMapEntrySpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
-          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
 
           import AppendixMapEntryWriter.AppendixRemoveWriter
           val entry = MapEntry.Remove[Slice[Byte]](1)
@@ -113,7 +113,7 @@ class AppendixMapEntrySpec extends TestBase {
           import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
 
           val segment1 = TestSegment()
           val segment2 = TestSegment()

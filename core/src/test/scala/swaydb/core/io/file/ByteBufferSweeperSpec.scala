@@ -151,7 +151,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
       val path = Paths.get("test")
       val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, ByteBufferSweeper.Command.Clean]]
 
-      implicit val forceSaveApplier = ForceSaveApplier.Disabled
+      implicit val forceSaveApplier = ForceSaveApplier.Off
 
       val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
 
@@ -175,7 +175,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
           val path = Paths.get("test")
           val map = mutable.HashMap.empty[Path, mutable.HashMap[Long, Command.Clean]]
 
-          implicit val forceSaveApplier = ForceSaveApplier.Disabled
+          implicit val forceSaveApplier = ForceSaveApplier.Off
 
           val command = Command.Clean(null, () => false, new AtomicBoolean(false), path, TestForceSave.mmap())
 
@@ -233,7 +233,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
             if (alreadyForced)
               mock[ForceSaveApplier] //mock it so it not get invoked
             else
-              ForceSaveApplier.Enabled
+              ForceSaveApplier.On
 
           val command = Command.Clean(buffer, () => false, forced, path, forceSave)
 
@@ -281,7 +281,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.Enabled
+                ForceSaveApplier.On
 
             //clean first
             cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
@@ -325,7 +325,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.Enabled
+                ForceSaveApplier.On
 
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFile(filePath)
@@ -370,7 +370,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.Enabled
+                ForceSaveApplier.On
 
             //clean first
             cleaner.actor send Command.Clean(buffer, () => false, forced, filePath, forceSave)(applier)
@@ -413,7 +413,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.Enabled
+                ForceSaveApplier.On
 
             //delete first this will result is delete reschedule on windows.
             cleaner.actor send Command.DeleteFolder(folderPath, filePath)
@@ -470,7 +470,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               if (alreadyForced)
                 mock[ForceSaveApplier] //mock it so it not get invoked
               else
-                ForceSaveApplier.Enabled
+                ForceSaveApplier.On
 
             val hasReference = new AtomicBoolean(true)
             //clean will get rescheduled first.
@@ -509,7 +509,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               val alreadyForced = randomBoolean()
               val forced = new AtomicBoolean(alreadyForced)
 
-              implicit val applier: ForceSaveApplier = ForceSaveApplier.Enabled
+              implicit val applier: ForceSaveApplier = ForceSaveApplier.On
 
               runThis(randomIntMax(10) max 1) {
                 Seq(
@@ -588,7 +588,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
                 if (alreadyForced)
                   mock[ForceSaveApplier] //mock it so it not get invoked
                 else
-                  ForceSaveApplier.Enabled
+                  ForceSaveApplier.On
 
               //randomly submit clean and delete in any order and random number of times.
               runThis(randomIntMax(100) max 1) {

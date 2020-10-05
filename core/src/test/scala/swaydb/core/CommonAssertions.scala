@@ -1782,15 +1782,15 @@ object CommonAssertions {
 
     def all: Seq[Atomic] =
       Seq(
-        Atomic.Enabled,
-        Atomic.Disabled
+        Atomic.On,
+        Atomic.Off
       )
 
     def random: Atomic =
       if (randomBoolean())
-        Atomic.Enabled
+        Atomic.On
       else
-        Atomic.Disabled
+        Atomic.Off
   }
 
   implicit val keyMatcherResultEquality: Equality[KeyMatcher.Result] =

@@ -26,24 +26,32 @@ package swaydb.data.config
 
 import swaydb.Bagged
 
-sealed trait FileCache extends Bagged[FileCache.Enable, Option]
+sealed trait FileCache extends Bagged[FileCache.On, Option]
 
 object FileCache {
 
-  def disabled: FileCache.Disable = Disable
-  sealed trait Disable extends FileCache
-  case object Disable extends Disable {
-    override def get: Option[Enable] = None
+  def off: FileCache.Off = FileCache.Off
+
+  def on(maxOpen: Int,
+         actorConfig: ActorConfig): FileCache.On =
+    FileCache.On(
+      maxOpen = maxOpen,
+      actorConfig = actorConfig
+    )
+
+  sealed trait Off extends FileCache
+  case object Off extends Off {
+    override def get: Option[On] = None
   }
 
-  case class Enable(maxOpen: Int,
-                    actorConfig: ActorConfig) extends FileCache {
-    override def get: Option[Enable] = Some(this)
+  case class On(maxOpen: Int,
+                actorConfig: ActorConfig) extends FileCache {
+    override def get: Option[On] = Some(this)
 
-    def copyWithMaxOpen(maxOpen: Int): Enable =
+    def copyWithMaxOpen(maxOpen: Int): On =
       this.copy(maxOpen = maxOpen)
 
-    def copyWithActorConfig(actorConfig: ActorConfig): Enable =
+    def copyWithActorConfig(actorConfig: ActorConfig): On =
       this.copy(actorConfig = actorConfig)
   }
 }

@@ -55,7 +55,7 @@ protected class MemoryMap[K, V, C <: MapCache[K, V]](val cache: C,
   }
 
   override def mmap: MMAP.Map =
-    MMAP.Disabled(ForceSave.Disabled)
+    MMAP.Off(ForceSave.Off)
 
   override def close(): Unit =
     ()

@@ -72,7 +72,7 @@ object Set extends LazyLogging {
                                                  mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                                                  valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                                                  segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                                                 fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                                                 fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                  memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                                                  levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                                                  levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,

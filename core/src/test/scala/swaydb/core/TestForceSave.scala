@@ -45,8 +45,8 @@ object TestForceSave {
   /**
    * Enables [[ForceSave]] to be random.
    *
-   * @param 0.0 disables randomness - [[ForceSave.Disabled]].
-   *        0.5 would give 50% chance to be random and 50% to be [[ForceSave.Disabled]].
+   * @param 0.0 disables randomness - [[ForceSave.Off]].
+   *        0.5 would give 50% chance to be random and 50% to be [[ForceSave.Off]].
    *        1.1 will always apply randomness.
    *
    */
@@ -58,7 +58,7 @@ object TestForceSave {
    */
   def mmap(): ForceSave.MMAPFiles =
     if (OperatingSystem.isWindows && Random.nextDouble() >= double)
-      ForceSave.Disabled
+      ForceSave.Off
     else if (Random.nextBoolean())
       ForceSave.BeforeClean(
         enableBeforeCopy = Random.nextBoolean(),
@@ -72,14 +72,14 @@ object TestForceSave {
         logBenchmark = true
       )
     else
-      ForceSave.Disabled
+      ForceSave.Off
 
   /**
    * @return current set [[ForceSave]] setting for Channel files for Windows.
    */
   def channel(): ForceSave.ChannelFiles =
     if (OperatingSystem.isWindows && Random.nextDouble() >= double)
-      ForceSave.Disabled
+      ForceSave.Off
     else if (Random.nextBoolean())
       ForceSave.BeforeClose(
         enableBeforeCopy = Random.nextBoolean(), //java heap error on true and false
@@ -87,5 +87,5 @@ object TestForceSave {
         logBenchmark = true
       )
     else
-      ForceSave.Disabled
+      ForceSave.Off
 }

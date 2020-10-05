@@ -55,7 +55,7 @@ object MemoryMap {
                               private var deleteSegmentsEventually: Boolean = true,
                               private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                               private var atomic: Atomic = DefaultConfigs.atomic(),
-                              private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                              private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                               private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -98,7 +98,7 @@ object MemoryMap {
       this
     }
 
-    def setFileCache(fileCache: FileCache.Enable) = {
+    def setFileCache(fileCache: FileCache.On) = {
       this.fileCache = fileCache
       this
     }

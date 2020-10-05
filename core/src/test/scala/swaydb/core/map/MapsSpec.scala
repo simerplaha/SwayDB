@@ -464,7 +464,7 @@ class MapsSpec extends TestBase {
             val maps =
               Maps.persistent[Slice[Byte], Memory, LevelZeroMapCache](
                 path = path,
-                mmap = MMAP.Disabled(TestForceSave.channel()),
+                mmap = MMAP.Off(TestForceSave.channel()),
                 fileSize = 50.bytes,
                 acceleration = Accelerator.brake(),
                 recovery = RecoveryMode.ReportFailure
@@ -522,7 +522,7 @@ class MapsSpec extends TestBase {
           val maps =
             Maps.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               path = path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               fileSize = 50.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure
@@ -572,7 +572,7 @@ class MapsSpec extends TestBase {
           val maps =
             Maps.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               path = path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               fileSize = 100.bytes,
               acceleration = Accelerator.brake(),
               recovery = RecoveryMode.ReportFailure

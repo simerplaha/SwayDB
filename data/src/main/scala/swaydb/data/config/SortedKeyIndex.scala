@@ -36,10 +36,10 @@ object SortedKeyIndex {
   def builder(): SortedKeyIndexBuilder.Step0 =
     SortedKeyIndexBuilder.builder()
 
-  case class Enable(prefixCompression: PrefixCompression,
-                    enablePositionIndex: Boolean,
-                    blockIOStrategy: IOAction => IOStrategy,
-                    compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedKeyIndex {
+  case class On(prefixCompression: PrefixCompression,
+                enablePositionIndex: Boolean,
+                blockIOStrategy: IOAction => IOStrategy,
+                compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedKeyIndex {
     def copyWithPrefixCompression(prefixCompression: PrefixCompression) =
       this.copy(prefixCompression = prefixCompression)
 

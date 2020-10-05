@@ -77,8 +77,8 @@ class ForceSavePerformanceSpec extends TestBase {
             slowest = slowest max newTime
             quickest = quickest min newTime
 
-            implicit val forceSaveApplier = ForceSaveApplier.Enabled
-            ByteBufferCleaner.initialiseCleaner(buffer, path, new AtomicBoolean(true), ForceSave.Disabled)
+            implicit val forceSaveApplier = ForceSaveApplier.On
+            ByteBufferCleaner.initialiseCleaner(buffer, path, new AtomicBoolean(true), ForceSave.Off)
             channel.close()
           }
 

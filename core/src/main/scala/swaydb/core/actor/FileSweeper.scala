@@ -78,14 +78,14 @@ private[swaydb] case object FileSweeper extends LazyLogging {
 
   def apply(fileCache: FileCache): Option[FileSweeperActor] =
     fileCache match {
-      case FileCache.Disable =>
+      case FileCache.Off =>
         None
 
-      case enable: FileCache.Enable =>
+      case enable: FileCache.On =>
         Some(apply(enable))
     }
 
-  def apply(fileCache: FileCache.Enable): FileSweeperActor =
+  def apply(fileCache: FileCache.On): FileSweeperActor =
     apply(
       maxOpenSegments = fileCache.maxOpen,
       actorConfig = fileCache.actorConfig

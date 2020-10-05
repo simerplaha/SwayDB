@@ -59,7 +59,7 @@ object MultiMap extends LazyLogging {
   def apply[M, K, V, F <: PureFunction.Map[K, V], BAG[_]](mapSize: Int = 4.mb,
                                                           minSegmentSize: Int = 2.mb,
                                                           maxKeyValuesPerSegment: Int = Int.MaxValue,
-                                                          fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                                                          fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                           deleteSegmentsEventually: Boolean = true,
                                                           optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                                                           atomic: Atomic = DefaultConfigs.atomic(),

@@ -87,7 +87,7 @@ class MMAPFileSpec extends TestBase with MockFactory {
                   if (alreadyForced)
                     mock[ForceSaveApplier] //mock it so it not get invoked
                   else
-                    ForceSaveApplier.Enabled
+                    ForceSaveApplier.On
 
                 //do not forceSave and clear the in-memory bytes.
                 ByteBufferCleaner.initialiseCleaner(readWriteBuff, path, forced, forceSave).value
@@ -132,7 +132,7 @@ class MMAPFileSpec extends TestBase with MockFactory {
                   if (alreadyForced2)
                     mock[ForceSaveApplier] //mock it so it not get invoked
                   else
-                    ForceSaveApplier.Enabled
+                    ForceSaveApplier.On
 
                 //clear the buffer again
                 ByteBufferCleaner.initialiseCleaner(readOnlyBuff, path, forcedAgain, forceSaveAgain).value

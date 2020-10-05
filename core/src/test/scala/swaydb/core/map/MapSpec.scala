@@ -133,7 +133,7 @@ class MapSpec extends TestBase {
           val map =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -145,7 +145,7 @@ class MapSpec extends TestBase {
           val recovered =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map.path,
-              mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -162,13 +162,13 @@ class MapSpec extends TestBase {
           import AppendixMapEntryWriter._
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
           import appendixReader._
 
           val map =
             Map.persistent[Slice[Byte], Segment, AppendixMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false, fileSize = 1.mb,
               dropCorruptedTailEntries = false
             ).item.sweep()
@@ -179,7 +179,7 @@ class MapSpec extends TestBase {
           val recovered =
             Map.persistent[Slice[Byte], Segment, AppendixMapCache](
               folder = map.path,
-              mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -228,7 +228,7 @@ class MapSpec extends TestBase {
           val map =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -255,7 +255,7 @@ class MapSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
           import AppendixMapEntryWriter._
           import appendixReader._
 
@@ -265,7 +265,7 @@ class MapSpec extends TestBase {
           val map =
             Map.persistent[Slice[Byte], Segment, AppendixMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -315,7 +315,7 @@ class MapSpec extends TestBase {
           val map1 =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -329,7 +329,7 @@ class MapSpec extends TestBase {
           val map2 =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -348,7 +348,7 @@ class MapSpec extends TestBase {
           val map1Recovered =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map1.path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -373,7 +373,7 @@ class MapSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
           import AppendixMapEntryWriter._
           import appendixReader._
 
@@ -387,7 +387,7 @@ class MapSpec extends TestBase {
           val map1 =
             Map.persistent[Slice[Byte], Segment, AppendixMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -400,7 +400,7 @@ class MapSpec extends TestBase {
           val map2 =
             Map.persistent[Slice[Byte], Segment, AppendixMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -418,7 +418,7 @@ class MapSpec extends TestBase {
           val map1Recovered =
             Map.persistent[Slice[Byte], Segment, AppendixMapCache](
               folder = map1.path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -446,7 +446,7 @@ class MapSpec extends TestBase {
           val map =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb
             ).sweep()
@@ -455,7 +455,7 @@ class MapSpec extends TestBase {
           assertThrows[FileAlreadyExistsException] {
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map.path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb
             ).sweep()
@@ -464,7 +464,7 @@ class MapSpec extends TestBase {
           //recovers because the recovery is provided
           Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
             folder = map.path,
-            mmap = MMAP.Disabled(TestForceSave.channel()),
+            mmap = MMAP.Off(TestForceSave.channel()),
             flushOnOverflow = false,
             fileSize = 1.mb,
             dropCorruptedTailEntries = false
@@ -487,7 +487,7 @@ class MapSpec extends TestBase {
           val file =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -514,7 +514,7 @@ class MapSpec extends TestBase {
           val map =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -543,7 +543,7 @@ class MapSpec extends TestBase {
           val recoveredFile =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map.path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -576,7 +576,7 @@ class MapSpec extends TestBase {
           val map =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = true,
               fileSize = 1.byte,
               dropCorruptedTailEntries = false
@@ -606,7 +606,7 @@ class MapSpec extends TestBase {
           val recoveredFile =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map.path,
-              mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               fileSize = 1.byte,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -635,7 +635,7 @@ class MapSpec extends TestBase {
           val recoveredFile2 =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map.path,
-              mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               fileSize = 1.byte,
               cache = cache2,
               dropCorruptedTailEntries = false
@@ -667,7 +667,7 @@ class MapSpec extends TestBase {
           val map =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Enabled(OperatingSystem.isWindows, TestForceSave.mmap()),
+              mmap = MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -683,7 +683,7 @@ class MapSpec extends TestBase {
           val file =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map.path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -720,7 +720,7 @@ class MapSpec extends TestBase {
           val currentFile =
             PersistentMap.recover[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               fileSize = 4.mb,
               cache = cache,
               dropCorruptedTailEntries = false
@@ -729,7 +729,7 @@ class MapSpec extends TestBase {
           val nextFile =
             PersistentMap.nextFile[Slice[Byte], Memory, LevelZeroMapCache](
               currentFile = currentFile,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               size = 4.mb,
               cache = cache
             ).sweep()
@@ -760,7 +760,7 @@ class MapSpec extends TestBase {
           val map =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -778,7 +778,7 @@ class MapSpec extends TestBase {
             assertThrows[IllegalStateException] {
               Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
                 folder = map.currentFilePath.getParent,
-                mmap = MMAP.Disabled(TestForceSave.channel()),
+                mmap = MMAP.Off(TestForceSave.channel()),
                 flushOnOverflow = false,
                 fileSize = 4.mb,
                 dropCorruptedTailEntries = false
@@ -802,7 +802,7 @@ class MapSpec extends TestBase {
           val map =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = false
@@ -821,7 +821,7 @@ class MapSpec extends TestBase {
           val recoveredMap =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map.currentFilePath.getParent,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = true
@@ -839,7 +839,7 @@ class MapSpec extends TestBase {
           val recoveredMap2 =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = recoveredMap.currentFilePath.getParent,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 4.mb,
               dropCorruptedTailEntries = true
@@ -861,7 +861,7 @@ class MapSpec extends TestBase {
           val map1 =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -874,7 +874,7 @@ class MapSpec extends TestBase {
           val map2 =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -901,7 +901,7 @@ class MapSpec extends TestBase {
           assertThrows[IllegalStateException] {
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map1.path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -915,7 +915,7 @@ class MapSpec extends TestBase {
           val recoveredMapWith0LogCorrupted =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map1.path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = true
@@ -950,7 +950,7 @@ class MapSpec extends TestBase {
           val map1 =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -963,7 +963,7 @@ class MapSpec extends TestBase {
           val map2 =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = createRandomDir,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -989,7 +989,7 @@ class MapSpec extends TestBase {
           assertThrows[IllegalStateException] {
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map1.path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = false
@@ -1003,7 +1003,7 @@ class MapSpec extends TestBase {
           val recoveredMapWith0LogCorrupted =
             Map.persistent[Slice[Byte], Memory, LevelZeroMapCache](
               folder = map1.path,
-              mmap = MMAP.Disabled(TestForceSave.channel()),
+              mmap = MMAP.Off(TestForceSave.channel()),
               flushOnOverflow = false,
               fileSize = 1.mb,
               dropCorruptedTailEntries = true
@@ -1102,7 +1102,7 @@ class MapSpec extends TestBase {
                   //when deleteAfterClean is false, this will pass with TestTimer.Empty because the files are deleted
                   //immediately and reopen does not have to recovery multiple log files with functions. But we always
                   //use Timer when functions are enabled.
-                  mmap = MMAP.Enabled(deleteAfterClean = true, forceSave = mmap),
+                  mmap = MMAP.On(deleteAfterClean = true, forceSave = mmap),
                   flushOnOverflow = true,
                   //setting t
                   fileSize = 1.byte,

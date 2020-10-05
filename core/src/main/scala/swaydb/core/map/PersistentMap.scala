@@ -119,7 +119,7 @@ private[map] object PersistentMap extends LazyLogging {
                                              bufferCleaner: ByteBufferSweeperActor,
                                              forceSaveApplier: ForceSaveApplier): DBFile =
     memoryMapped match {
-      case MMAP.Enabled(deleteAfterClean, forceSave) =>
+      case MMAP.On(deleteAfterClean, forceSave) =>
         DBFile.mmapInit(
           path = folder.resolve(0.toLogFileId),
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
@@ -130,7 +130,7 @@ private[map] object PersistentMap extends LazyLogging {
           forceSave = forceSave
         )(fileSweeper, None, bufferCleaner, forceSaveApplier)
 
-      case MMAP.Disabled(forceSave) =>
+      case MMAP.Off(forceSave) =>
         DBFile.channelWrite(
           path = folder.resolve(0.toLogFileId),
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
@@ -251,7 +251,7 @@ private[map] object PersistentMap extends LazyLogging {
 
     val newFile =
       mmap match {
-        case MMAP.Enabled(deleteAfterClean, forceSave) =>
+        case MMAP.On(deleteAfterClean, forceSave) =>
           DBFile.mmapInit(
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
@@ -262,7 +262,7 @@ private[map] object PersistentMap extends LazyLogging {
             forceSave = forceSave
           )(fileSweeper, None, bufferCleaner, forceSaveApplier)
 
-        case MMAP.Disabled(forceSave) =>
+        case MMAP.Off(forceSave) =>
           DBFile.channelWrite(
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),

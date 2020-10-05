@@ -74,7 +74,7 @@ object Set extends LazyLogging {
                                                  mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                                                  valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                                                  segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                                                 fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
+                                                 fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                  memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                                                  threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                                                    functionClassTag: ClassTag[F],

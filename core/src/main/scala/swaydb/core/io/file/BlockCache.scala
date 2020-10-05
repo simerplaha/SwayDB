@@ -44,10 +44,10 @@ private[core] object BlockCache extends LazyLogging {
 
   def init(memorySweeper: MemorySweeper): Option[BlockCache.State] =
     memorySweeper match {
-      case MemorySweeper.Disabled =>
+      case MemorySweeper.Off =>
         None
 
-      case enabled: MemorySweeper.Enabled =>
+      case enabled: MemorySweeper.On =>
         enabled match {
           case block: MemorySweeper.BlockSweeper =>
             Some(BlockCache.init(block))
