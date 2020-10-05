@@ -212,7 +212,7 @@ private[core] object CoreInitializer extends LazyLogging {
               implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.Enabled
 
               Level(
-                bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainKeyIndex),
+                bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainIndex),
                 hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.randomSearchIndex),
                 binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
                 sortedIndexConfig = SortedIndexBlock.Config(config.sortedKeyIndex),

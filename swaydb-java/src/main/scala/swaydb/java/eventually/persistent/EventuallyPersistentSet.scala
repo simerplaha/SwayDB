@@ -69,7 +69,7 @@ object EventuallyPersistentSet {
                            private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                            private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
-                           private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+                           private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                            private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                            private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -167,8 +167,8 @@ object EventuallyPersistentSet {
       this
     }
 
-    def setMightContainKeyIndex(mightContainKeyIndex: MightContainIndex) = {
-      this.mightContainKeyIndex = mightContainKeyIndex
+    def setMightContainIndex(mightContainIndex: MightContainIndex) = {
+      this.mightContainIndex = mightContainIndex
       this
     }
 
@@ -242,7 +242,7 @@ object EventuallyPersistentSet {
           persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
           persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex,
           binarySearchIndex = binarySearchIndex,
-          mightContainKeyIndex = mightContainKeyIndex,
+          mightContainIndex = mightContainIndex,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
           fileCache = fileCache,

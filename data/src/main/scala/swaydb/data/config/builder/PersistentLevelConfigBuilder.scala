@@ -43,7 +43,7 @@ class PersistentLevelConfigBuilder {
   private var sortedKeyIndex: SortedKeyIndex = _
   private var randomSearchIndex: RandomSearchIndex = _
   private var binarySearchIndex: BinarySearchIndex = _
-  private var mightContainKeyIndex: MightContainIndex = _
+  private var mightContainIndex: MightContainIndex = _
   private var valuesConfig: ValuesConfig = _
   private var segmentConfig: SegmentConfig = _
   private var compactionExecutionContext: CompactionExecutionContext = _
@@ -110,8 +110,8 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step7(builder: PersistentLevelConfigBuilder) {
-    def mightContainKeyIndex(mightContainKeyIndex: MightContainIndex) = {
-      builder.mightContainKeyIndex = mightContainKeyIndex
+    def mightContainIndex(mightContainIndex: MightContainIndex) = {
+      builder.mightContainIndex = mightContainIndex
       new Step8(builder)
     }
   }
@@ -147,7 +147,7 @@ object PersistentLevelConfigBuilder {
         sortedKeyIndex = builder.sortedKeyIndex,
         randomSearchIndex = builder.randomSearchIndex,
         binarySearchIndex = builder.binarySearchIndex,
-        mightContainKeyIndex = builder.mightContainKeyIndex,
+        mightContainIndex = builder.mightContainIndex,
         valuesConfig = builder.valuesConfig,
         segmentConfig = builder.segmentConfig,
         compactionExecutionContext = builder.compactionExecutionContext,

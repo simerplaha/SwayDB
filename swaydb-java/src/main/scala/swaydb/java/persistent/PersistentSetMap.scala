@@ -67,7 +67,7 @@ object PersistentSetMap {
                            private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                            private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
-                           private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+                           private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                            private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                            private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
@@ -146,8 +146,8 @@ object PersistentSetMap {
       this
     }
 
-    def setMightContainKeyIndex(mightContainKeyIndex: MightContainIndex) = {
-      this.mightContainKeyIndex = mightContainKeyIndex
+    def setMightContainIndex(mightContainIndex: MightContainIndex) = {
+      this.mightContainIndex = mightContainIndex
       this
     }
 
@@ -252,7 +252,7 @@ object PersistentSetMap {
           sortedKeyIndex = sortedKeyIndex,
           randomSearchIndex = randomSearchIndex,
           binarySearchIndex = binarySearchIndex,
-          mightContainKeyIndex = mightContainKeyIndex,
+          mightContainIndex = mightContainIndex,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
           fileCache = fileCache,

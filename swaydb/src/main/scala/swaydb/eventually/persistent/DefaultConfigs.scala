@@ -81,7 +81,7 @@ object DefaultConfigs {
       compression = _ => Seq.empty
     )
 
-  def mightContainKeyIndex(cacheDataBlockOnAccess: Boolean = true): MightContainIndex.Enable =
+  def mightContainIndex(cacheDataBlockOnAccess: Boolean = true): MightContainIndex.Enable =
     MightContainIndex.Enable(
       falsePositiveRate = 0.001,
       minimumNumberOfKeys = 10,
