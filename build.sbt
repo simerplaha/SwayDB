@@ -14,20 +14,20 @@ val monixVersion = "3.2.2"
 val zioVersion = "1.0.1"
 val catsEffectVersion = "2.2.0"
 val scalaJava8CompatVersion = "0.9.1"
-val junitJupiterVersion = "5.6.2"
+val junitJupiterVersion = "5.7.0"
 val scalaParallelCollectionsVersion = "0.2.0"
-val scalaCollectionsCompact = "2.2.0"
+val scalaCollectionsCompat = "2.2.0"
 
 val scala212 = "2.12.12"
 val scala213 = "2.13.3"
 
 val inlining =
   Seq(
-//    "-opt:l:inline",
-//    "-opt-warnings",
-//    "-opt-inline-from:swaydb.**",
-//    "-Yopt-log-inline",
-//    "_"
+    "-opt:l:inline",
+    "-opt-warnings",
+    "-opt-inline-from:swaydb.**",
+    "-Yopt-log-inline",
+    "_"
   )
 
 val scalaOptions =
@@ -116,7 +116,7 @@ val commonJavaDependencies =
   Seq(
     "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion % Test,
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompact % Test,
+    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompat % Test,
     "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion % Test,
     "org.projectlombok" % "lombok" % "1.18.12" % Test
   )
@@ -124,7 +124,7 @@ val commonJavaDependencies =
 def commonDependencies(scalaVersion: String) =
   Seq(
     "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompact,
+    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompat,
     "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
   ) ++ testDependencies(scalaVersion)
 
