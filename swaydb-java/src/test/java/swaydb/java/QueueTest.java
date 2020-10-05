@@ -61,7 +61,7 @@ abstract class QueueTest extends TestBase {
     queue.push(1, Duration.ofSeconds(1));
     queue.push(2);
 
-    Thread.sleep(1000);
+    Thread.sleep(1010);
 
     assertEquals(2, queue.popOrNull());
     assertNull(queue.popOrNull());

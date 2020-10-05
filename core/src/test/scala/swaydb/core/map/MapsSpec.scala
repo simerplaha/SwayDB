@@ -271,10 +271,8 @@ class MapsSpec extends TestBase {
                 ).value
               )
 
-            if (originalMaps.mmap.hasMMAP && OperatingSystem.isWindows) {
-              originalMaps.close().value
-              sweeper.receiveAll()
-            }
+            if (originalMaps.mmap.hasMMAP && OperatingSystem.isWindows)
+              originalMaps.ensureClose()
 
             //in memory
             test(

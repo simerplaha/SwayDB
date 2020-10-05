@@ -58,7 +58,7 @@ class FiniteDurationsSpec extends AnyFlatSpec with Matchers {
 
         //timeLeft should be nearly the same
         timeLeft should be <= delay
-        timeLeft should be > delay - 10.millisecond
+        timeLeft should be > delay - 15.millisecond
 
         //also fetch the deadline
         val deadlineDiff = delay.fromNow - task.deadline()
