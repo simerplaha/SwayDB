@@ -33,8 +33,9 @@ Highly configurable to suit **different workloads**. Some use-cases are:
 - Archiving data or cold storage with high file level compression
 
 See [comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/) with RocksDB or QuickStart in 
-[Java](http://swaydb.io/quick-start/?language=java&starter=functionsOff), [Scala](http://swaydb.io/quick-start/?language=scala&starter=functionsOff) 
-or [Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt).
+[Java](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off), 
+[Scala](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off) or 
+[Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt).
 
 [Documentation](http://swaydb.io) | [License summary](#license-summary) | [Project status](#Project-status)
 
@@ -49,7 +50,6 @@ or [Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src
 ## Overview
 
 - Simple data types - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap`.
-- [Java](http://swaydb.io/quick-start/?language=java&starter=functionsOff), [Scala](http://swaydb.io/quick-start/?language=scala&starter=functionsOff) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples).
 - Single or multiple disks persistent, in-memory or periodically persistent.
 - Streaming.
 - Atomic updates and inserts with [transactions](http://swaydb.io/api/write/transaction/?language=scala/).
@@ -58,9 +58,9 @@ or [Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src
 - Range [update, remove & expire](http://www.swaydb.io/api/write/update-range/).
 - Non-blocking with customisable non-blocking or blocking APIs.
 - Key only iterations (Lazily fetched values).
-- [Configurable compression](http://swaydb.io/configuring-levels/compressionStrategy/?language=scala/) with LZ4 & Snappy
-- [Configurable](http://www.swaydb.io/configuring-levels/) core internals.
-- Duplicate values can be eliminated with [compressDuplicateValues](http://www.swaydb.io/configuring-levels/compressDuplicateValues/).
+- [Configurable compression](http://swaydb.io/configuration/compressions/?language=scala) with LZ4 & Snappy
+- [Configurable](http://swaydb.io/configuration/?language=scala) core internals.
+- Duplicate values can be eliminated with [compressDuplicateValues](http://swaydb.io/configuration/valuesConfig/?language=scala).
 - A small type-safe [Actor](http://swaydb.io/actor/?language=scala/) implementation.
 - [IO](http://swaydb.io/io/?language=scala/) type for type-safe error handling. 
 
@@ -68,8 +68,8 @@ or [Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src
 
 ## Quick start
 
-- [Java - Quick start](http://swaydb.io/quick-start/?language=java&starter=functionsOff).
-- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&starter=functionsOff).
+- [Java - Quick start](http://swaydb.io/quick-start/?language=java&data-type=map&functions=off).
+- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&data-type=map&functions=off).
 - [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt).
 
 ## Project status 
