@@ -24,6 +24,8 @@
 
 package swaydb.core.map
 
+import java.nio.file.Path
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.config.{ForceSave, MMAP}
 
@@ -59,4 +61,10 @@ protected class MemoryMap[K, V, C <: MapCache[K, V]](val cache: C,
 
   override def close(): Unit =
     ()
+
+  override def exists: Boolean =
+    true
+
+  override def pathOption: Option[Path] =
+    None
 }

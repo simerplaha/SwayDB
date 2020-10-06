@@ -106,11 +106,9 @@ private[core] trait Map[K, V, C <: MapCache[K, V]] {
 
   def delete: Unit
 
-  def exists =
-    true
+  def exists: Boolean
 
-  def pathOption: Option[Path] =
-    None
+  def pathOption: Option[Path]
 
   def close(): Unit
 
