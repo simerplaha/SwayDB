@@ -150,9 +150,25 @@ object JavaTest {
     else
       right.get()
 
+  def eitherOne[T](left: Supplier[T], mid: Supplier[T], right: Supplier[T]): T =
+    if (Random.nextBoolean())
+      left.get()
+    else if (Random.nextBoolean())
+      mid.get()
+    else
+      right.get()
+
   def eitherOne(left: Test, right: Test): Unit =
     if (Random.nextBoolean())
       left.assert()
+    else
+      right.assert()
+
+  def eitherOne(left: Test, mid: Test, right: Test): Unit =
+    if (Random.nextBoolean())
+      left.assert()
+    else if (Random.nextBoolean())
+      mid.assert()
     else
       right.assert()
 }

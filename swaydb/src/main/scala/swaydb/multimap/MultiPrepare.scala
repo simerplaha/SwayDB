@@ -24,7 +24,7 @@
 
 package swaydb.multimap
 
-import swaydb.{MultiMap, Prepare}
+import swaydb.{Aggregator, MultiMap, Prepare}
 
 import scala.collection.mutable
 import scala.concurrent.duration.Deadline
@@ -44,11 +44,24 @@ object MultiPrepare {
     new MultiPrepare(map.mapId, map.defaultExpiration, prepare)
 
   def builder[M, K, V, F, BAG[_], C[_]](map: MultiMap[M, K, V, F, BAG],
-                                        prepare: Iterable[Prepare[K, V, F]])(implicit builder: mutable.Builder[MultiPrepare[M, K, V, F], C[MultiPrepare[M, K, V, F]]]): C[MultiPrepare[M, K, V, F]] =
-    prepare.foldLeft(builder) {
-      case (builder, prepare) =>
+                                        prepare: Iterable[Prepare[K, V, F]])(implicit builder: mutable.Builder[MultiPrepare[M, K, V, F], C[MultiPrepare[M, K, V, F]]]): mutable.Builder[MultiPrepare[M, K, V, F], C[MultiPrepare[M, K, V, F]]] = {
+    prepare foreach {
+      prepare =>
         builder += MultiPrepare(map, prepare)
-    }.result()
+    }
+
+    builder
+  }
+
+  def aggregator[M, K, V, F, BAG[_], C[_]](map: MultiMap[M, K, V, F, BAG],
+                                           prepare: Iterable[Prepare[K, V, F]])(implicit aggregator: Aggregator[MultiPrepare[M, K, V, F], C[MultiPrepare[M, K, V, F]]]): Aggregator[MultiPrepare[M, K, V, F], C[MultiPrepare[M, K, V, F]]] = {
+    prepare foreach {
+      prepare =>
+        aggregator add MultiPrepare(map, prepare)
+    }
+
+    aggregator
+  }
 }
 
 /**

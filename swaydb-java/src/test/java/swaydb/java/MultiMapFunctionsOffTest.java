@@ -27,7 +27,7 @@ package swaydb.java;
 import org.junit.jupiter.api.Test;
 import swaydb.Prepare;
 import swaydb.data.java.TestBase;
-import swaydb.java.multimap.MultiPrepare;
+import swaydb.java.multimap.MultiPrepareBuilder;
 import swaydb.java.serializers.Serializer;
 import swaydb.java.table.domain.table.key.Key;
 import swaydb.java.table.domain.table.key.KeySerializer;
@@ -41,10 +41,13 @@ import swaydb.java.table.domain.table.value.ProductValue;
 import swaydb.java.table.domain.table.value.UserValue;
 import swaydb.java.table.domain.table.value.Value;
 import swaydb.java.table.domain.table.value.ValueSerializer;
+import swaydb.multimap.MultiPrepare;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Iterator;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static swaydb.data.java.JavaTest.*;
@@ -145,11 +148,34 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
     MultiMap<String, Integer, String, Void> child2 = root.child("child2");
     MultiMap<String, Integer, String, Void> child3 = root.child("child3");
 
-    List<swaydb.multimap.MultiPrepare<String, Integer, String, Void>> multiPrepare =
-      Arrays.asList(
-        MultiPrepare.of(child1, Prepare.put(1, "one")),
-        MultiPrepare.of(child2, Prepare.put(2, "two")),
-        MultiPrepare.of(child3, Prepare.put(3, "three"))
+    //create multiPrepare using either one of the MultiPrepareBuilder functions.
+    Iterator<MultiPrepare<String, Integer, String, Void>> multiPrepare =
+      eitherOne(
+        () ->
+          Arrays.asList(
+            MultiPrepareBuilder.of(child1, Prepare.put(1, "one")),
+            MultiPrepareBuilder.of(child2, Prepare.put(2, "two")),
+            MultiPrepareBuilder.of(child3, Prepare.put(3, "three"))
+          ).iterator(),
+
+        () -> {
+          ArrayList<MultiPrepare<String, Integer, String, Void>> list = new ArrayList<>();
+
+          list.addAll(MultiPrepareBuilder.list(child1, asList(Prepare.put(1, "one"), Prepare.put(1, "one"))));
+          list.addAll(MultiPrepareBuilder.list(child2, asList(Prepare.put(2, "two"), Prepare.put(2, "two"))));
+          list.addAll(MultiPrepareBuilder.list(child3, asList(Prepare.put(3, "three"), Prepare.put(3, "three"))));
+
+          return list.iterator();
+        },
+
+        () ->
+          Stream.concat(
+            Stream.concat(
+              MultiPrepareBuilder.stream(child1, asList(Prepare.put(1, "one"), Prepare.put(1, "one"))),
+              MultiPrepareBuilder.stream(child2, asList(Prepare.put(2, "two"), Prepare.put(2, "two")))
+            ),
+            MultiPrepareBuilder.stream(child3, asList(Prepare.put(3, "three"), Prepare.put(3, "three")))
+          ).iterator()
       );
 
     shouldBeTrue(child1.isEmpty());
