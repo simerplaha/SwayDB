@@ -562,7 +562,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     bag.map(head)(_.nonEmpty)
 
   override def last: BAG[Option[(K, V)]] =
-    super.last
+    stream.reverse.head
 
   override def clearAppliedFunctions(): BAG[Iterable[String]] =
     multiMap.clearAppliedFunctions()
