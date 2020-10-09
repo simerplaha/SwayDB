@@ -322,7 +322,7 @@ abstract class Schema[M, K, V, F, BAG[_]](multiMap: Map[MultiKey[M, K], MultiVal
     getNarrow(mapKey)
 
   private def getNarrow[K2 <: K, V2 <: V, F2 <: F](mapKey: M): BAG[Option[MultiMap[M, K2, V2, F2, BAG]]] = {
-    bag.map(multiMap.getKeyValueDeadline(Child(mapId, mapKey), bag)) {
+    bag.map(multiMap.getKeyValueDeadline(Child(mapId, mapKey))) {
       case Some(((key: Child[M], value: MultiValue.MapId), deadline)) =>
         val map =
           MultiMap[M, K, V, F, BAG](

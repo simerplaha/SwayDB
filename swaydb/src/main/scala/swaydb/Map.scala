@@ -202,9 +202,6 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     })
 
   def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]] =
-    getKeyDeadline(key, bag)
-
-  def getKeyDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[(K, Option[Deadline])]] =
     bag.flatMap(core.getKeyDeadline[BAG](key, core.readStates.get())(bag)) {
       case TupleOrNone.None =>
         bag.none[(K, Option[Deadline])]
@@ -213,7 +210,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
         bag.success(Some((left.read[K], right)))
     }
 
-  override def getKeyValueDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[((K, V), Option[Deadline])]] =
+  override def getKeyValueDeadline(key: K): BAG[Option[((K, V), Option[Deadline])]] =
     bag.flatMap(core.getKeyValueDeadline[BAG](key, core.readStates.get())(bag)) {
       case TupleOrNone.None =>
         bag.none[((K, V), Option[Deadline])]

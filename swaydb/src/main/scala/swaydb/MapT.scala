@@ -79,9 +79,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, BAG] { self =>
 
   def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]]
 
-  def getKeyDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[(K, Option[Deadline])]]
-
-  def getKeyValueDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[((K, V), Option[Deadline])]]
+  def getKeyValueDeadline(key: K): BAG[Option[((K, V), Option[Deadline])]]
 
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean]
 

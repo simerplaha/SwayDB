@@ -163,7 +163,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
     }
 
   def getKeyValueDeadline(key: K): Optional[Pair[KeyVal[K, V], Optional[Expiration]]] =
-    (asScala.getKeyValueDeadline(key, Bag.less): Option[((K, V), Option[duration.Deadline])]) match {
+    (asScala.getKeyValueDeadline(key): Option[((K, V), Option[duration.Deadline])]) match {
       case Some(((key, value), deadline)) =>
         Optional.of(Pair(KeyVal(key, value), deadline.asJava))
 

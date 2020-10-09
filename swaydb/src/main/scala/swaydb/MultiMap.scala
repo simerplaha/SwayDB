@@ -423,10 +423,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     }
 
   override def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]] =
-    getKeyDeadline(key, bag)
-
-  def getKeyDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[(K, Option[Deadline])]] =
-    bag.map(multiMap.getKeyDeadline(MultiKey.Key(mapId, key), bag)) {
+    bag.map(multiMap.getKeyDeadline(MultiKey.Key(mapId, key))) {
       case Some((MultiKey.Key(_, key), deadline)) =>
         Some((key, deadline))
 
@@ -437,8 +434,8 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
         None
     }
 
-  override def getKeyValueDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[((K, V), Option[Deadline])]] =
-    bag.map(multiMap.getKeyValueDeadline(MultiKey.Key(mapId, key), bag)) {
+  override def getKeyValueDeadline(key: K): BAG[Option[((K, V), Option[Deadline])]] =
+    bag.map(multiMap.getKeyValueDeadline(MultiKey.Key(mapId, key))) {
       case Some(((MultiKey.Key(_, key), value: MultiValue.Their[V]), deadline)) =>
         Some(((key, value.value), deadline))
 
