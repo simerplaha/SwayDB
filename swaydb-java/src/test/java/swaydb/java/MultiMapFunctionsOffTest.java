@@ -25,7 +25,9 @@
 package swaydb.java;
 
 import org.junit.jupiter.api.Test;
+import swaydb.Prepare;
 import swaydb.data.java.TestBase;
+import swaydb.java.multimap.MultiPrepare;
 import swaydb.java.serializers.Serializer;
 import swaydb.java.table.domain.table.key.Key;
 import swaydb.java.table.domain.table.key.KeySerializer;
@@ -41,6 +43,8 @@ import swaydb.java.table.domain.table.value.Value;
 import swaydb.java.table.domain.table.value.ValueSerializer;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import static java.util.Arrays.asList;
 import static swaydb.data.java.JavaTest.*;
@@ -128,6 +132,46 @@ abstract class MultiMapFunctionsOffTest extends TestBase {
 
     root.removeChild(child3.mapKey());
     shouldBeEmpty(root.childrenFlatten());
+
+    root.delete();
+  }
+
+  @Test
+  void multiPrepare() throws IOException {
+    MultiMap<String, Integer, String, Void> root = createMap(stringSerializer(), intSerializer(), stringSerializer());
+    root.put(1, "root value");
+
+    MultiMap<String, Integer, String, Void> child1 = root.child("child1");
+    MultiMap<String, Integer, String, Void> child2 = root.child("child2");
+    MultiMap<String, Integer, String, Void> child3 = root.child("child3");
+
+    List<swaydb.multimap.MultiPrepare<String, Integer, String, Void>> multiPrepare =
+      Arrays.asList(
+        MultiPrepare.of(child1, Prepare.put(1, "one")),
+        MultiPrepare.of(child2, Prepare.put(2, "two")),
+        MultiPrepare.of(child3, Prepare.put(3, "three"))
+      );
+
+    shouldBeTrue(child1.isEmpty());
+    shouldBeTrue(child2.isEmpty());
+    shouldBeTrue(child3.isEmpty());
+
+    child1.commitMultiPrepare(multiPrepare);
+
+    shouldBeFalse(child1.isEmpty());
+    shouldBeFalse(child2.isEmpty());
+    shouldBeFalse(child3.isEmpty());
+
+    shouldContain(child1.get(1), "one");
+    shouldContain(child2.get(2), "two");
+    shouldContain(child3.get(3), "three");
+
+    child1.clearKeyValues();
+    shouldBeEmpty(child1.get(1));
+    shouldBeTrue(child1.isEmpty());
+
+    shouldContain(child2.get(2), "two");
+    shouldContain(child3.get(3), "three");
 
     root.delete();
   }

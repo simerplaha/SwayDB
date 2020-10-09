@@ -28,7 +28,6 @@ import swaydb.{MultiMap, Prepare}
 
 import scala.collection.mutable
 import scala.concurrent.duration.Deadline
-import scala.jdk.CollectionConverters._
 
 object MultiPrepare {
 
@@ -39,13 +38,6 @@ object MultiPrepare {
   def apply[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG],
                                 prepare: Iterable[Prepare[K, V, F]]): Iterable[MultiPrepare[M, K, V, F]] =
     prepare.map(MultiPrepare(map, _))
-
-  def apply[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG],
-                                prepare: java.lang.Iterable[Prepare[K, V, F]]): java.lang.Iterable[MultiPrepare[M, K, V, F]] =
-    apply(
-      map = map,
-      prepare = prepare.asScala
-    ).asJava
 
   def apply[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG],
                                 prepare: Prepare[K, V, F]): MultiPrepare[M, K, V, F] =

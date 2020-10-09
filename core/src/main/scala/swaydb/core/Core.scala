@@ -153,7 +153,7 @@ private[swaydb] object Core {
     }
 }
 
-private[swaydb] class Core[BAG[_]](zero: LevelZero,
+private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
                                    coreState: CoreState,
                                    threadStateCache: ThreadStateCache,
                                    private val sequencer: Sequencer[BAG],
