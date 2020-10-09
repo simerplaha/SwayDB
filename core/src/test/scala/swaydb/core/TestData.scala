@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Bag, IO}
+import swaydb.{Bag, Glass, IO}
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
 import swaydb.compression.CompressionInternal
@@ -255,7 +255,7 @@ object TestData {
         if (OperatingSystem.isWindows && level.hasMMAP)
           IO {
             import swaydb.data.RunThis._
-            level.close[Bag.Glass]()
+            level.close[Glass]()
           }
         else
           level.closeNoSweep()
@@ -296,7 +296,7 @@ object TestData {
                                                              sweeper: TestCaseSweeper): LevelZero = {
 
       if (OperatingSystem.isWindows && level.hasMMAP)
-        level.close[Bag.Glass]()
+        level.close[Glass]()
 
       val reopened =
         level.releaseLocks flatMap {

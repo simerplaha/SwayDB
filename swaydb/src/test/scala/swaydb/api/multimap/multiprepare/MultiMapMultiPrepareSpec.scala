@@ -27,13 +27,13 @@ package swaydb.api.multimap.multiprepare
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import swaydb.api.TestBaseEmbedded
+import swaydb.api.multimap.multiprepare.PrimaryKey._
+import swaydb.api.multimap.multiprepare.Row._
+import swaydb.api.multimap.multiprepare.Table._
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
-import PrimaryKey._
-import Row._
-import Table._
 import swaydb.multimap.MultiPrepare
-import swaydb.{Bag, Prepare}
+import swaydb.{Bag, Glass, Prepare}
 
 import scala.concurrent.duration._
 
@@ -48,7 +48,7 @@ class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
           implicit val bag = Bag.glass
 
           //Create a memory database
-          val root = swaydb.memory.MultiMap[Table, PrimaryKey, Row, Nothing, Bag.Glass]().sweep(_.delete())
+          val root = swaydb.memory.MultiMap[Table, PrimaryKey, Row, Nothing, Glass]().sweep(_.delete())
 
           //create sibling1 UserMap and it's child UserActivity
           val userMap = root.child(Table.User: Table.UserTables, classOf[PrimaryKey.UserPrimaryKeys], classOf[Row.UserRows])

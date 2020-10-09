@@ -37,7 +37,7 @@ import scala.util.Try
  *
  * Popular effect libraries in Scala like Cats, ZIO and Monix are supported internally. See examples repo for samples.
  *
- * [[Bag.Glass]] can be used to disable effect types.
+ * [[Glass]] can be used to disable effect types.
  */
 sealed trait Bag[BAG[_]] { thisBag =>
   def unit: BAG[Unit]
@@ -477,8 +477,6 @@ object Bag extends LazyLogging {
       override def recoverWith[A, B >: A](fa: Try[A])(pf: PartialFunction[Throwable, Try[B]]): Try[B] =
         fa.recoverWith(pf)
     }
-
-  type Glass[+A] = A
 
   implicit val glass: Bag.Sync[Glass] =
     new Bag.Sync[Glass] {

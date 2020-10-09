@@ -219,7 +219,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
                 while (state.processed.size() != 2) {
                   sleep(100.millisecond)
                 }
-                actor.terminate[Bag.Glass]()
+                actor.terminate[Glass]()
               }
           }
           eventual(10.seconds) {
@@ -256,7 +256,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           state.processed.size should be >= 3
           state.processed.size should be <= 6
 
-          actor.terminate[Bag.Glass]() //terminate the actor
+          actor.terminate[Glass]() //terminate the actor
           val countAfterTermination = state.processed.size //this is the current message count
           sleep(2.second) //sleep
           state.processed.size shouldBe countAfterTermination //no messages are processed after termination
@@ -290,7 +290,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           sleep(10.seconds)
           state.processed.size should be >= 1
           state.processed.size should be <= 10
-          actor.terminate[Bag.Glass]()
+          actor.terminate[Glass]()
           val sizeAfterTerminate = state.processed.size
           sleep(1.second)
           //after termination the size does not change. i.e. no new messages are processed and looper is stopped.
@@ -392,7 +392,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             sleep(5.second)
             actor.messageCount shouldBe 10
 
-            actor.terminate[Bag.Glass]()
+            actor.terminate[Glass]()
         }
       }
     }
@@ -426,7 +426,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             actor.messageCount shouldBe stash
           }
 
-          actor.terminate[Bag.Glass]()
+          actor.terminate[Glass]()
       }
     }
   }
@@ -458,7 +458,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             actor.messageCount shouldBe stash
           }
 
-          actor.terminate[Bag.Glass]()
+          actor.terminate[Glass]()
       }
     }
   }
@@ -497,7 +497,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
               response shouldBe request
           }
 
-          actor.terminate[Bag.Glass]()
+          actor.terminate[Glass]()
       }
     }
   }
@@ -516,7 +516,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
       actor.totalWeight shouldBe 0
       actor.messageCount shouldBe 0
 
-      actor.terminate[Bag.Glass]()
+      actor.terminate[Glass]()
     }
 
     "process all messages" when {
@@ -582,7 +582,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
             //Future does not throw exception
             result.await(10.seconds)
 
-            actor.terminate[Bag.Glass]()
+            actor.terminate[Glass]()
         }
       }
     }
@@ -626,7 +626,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           }
 
           //force termination so that recovery happens.
-          actor.terminate[Bag.Glass]()
+          actor.terminate[Glass]()
 
           (101 to 200) foreach {
             i =>
@@ -646,7 +646,7 @@ class ActorSpec extends AnyWordSpec with Matchers {
           //does not throw exception
           future.await(20.seconds)
 
-          actor.terminate[Bag.Glass]()
+          actor.terminate[Glass]()
       }
     }
 

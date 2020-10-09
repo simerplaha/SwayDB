@@ -26,27 +26,27 @@ package swaydb.api.queue
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import swaydb.{Bag, Queue}
-import swaydb.core.{TestBase, TestCaseSweeper}
-import swaydb.core.util.Benchmark
-import swaydb.serializers.Default._
 import org.scalatest.OptionValues._
+import swaydb.core.TestCaseSweeper._
+import swaydb.core.util.Benchmark
+import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.serializers.Default._
+import swaydb.{Glass, Queue}
 
 import scala.collection.parallel.CollectionConverters._
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
-import scala.concurrent.duration._
-import TestCaseSweeper._
 
 class QueueSpec0 extends QueueSpec {
 
   override def newQueue()(implicit sweeper: TestCaseSweeper): Queue[Int] =
-    swaydb.persistent.Queue[Int, Bag.Glass](randomDir).sweep(_.delete())
+    swaydb.persistent.Queue[Int, Glass](randomDir).sweep(_.delete())
 }
 
 class QueueSpec3 extends QueueSpec {
   override def newQueue()(implicit sweeper: TestCaseSweeper): Queue[Int] =
-    swaydb.memory.Queue[Int, Bag.Glass]().sweep(_.delete())
+    swaydb.memory.Queue[Int, Glass]().sweep(_.delete())
 }
 
 sealed trait QueueSpec extends TestBase {
@@ -199,7 +199,7 @@ sealed trait QueueSpec extends TestBase {
       implicit sweeper =>
 
         val path = randomDir
-        val queue = swaydb.persistent.Queue[Int, Bag.Glass](path)
+        val queue = swaydb.persistent.Queue[Int, Glass](path)
 
         (1 to 6).map(queue.push)
 
@@ -209,12 +209,12 @@ sealed trait QueueSpec extends TestBase {
 
         queue.close()
 
-        val reopen = swaydb.persistent.Queue[Int, Bag.Glass](path)
+        val reopen = swaydb.persistent.Queue[Int, Glass](path)
         reopen.pop().value shouldBe 3
         reopen.pop().value shouldBe 4
         reopen.close()
 
-        val reopen2 = swaydb.persistent.Queue[Int, Bag.Glass](path)
+        val reopen2 = swaydb.persistent.Queue[Int, Glass](path)
         reopen2.pop().value shouldBe 5
         reopen2.pop().value shouldBe 6
         reopen2.pop().value shouldBe 1

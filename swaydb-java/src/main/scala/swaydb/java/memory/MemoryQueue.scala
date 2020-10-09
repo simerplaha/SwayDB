@@ -26,7 +26,7 @@ package swaydb.java.memory
 
 import java.util.concurrent.ExecutorService
 
-import swaydb.Bag
+import swaydb.{Bag, Glass}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -120,7 +120,7 @@ object MemoryQueue {
 
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
-        swaydb.memory.Queue[A, Bag.Glass](
+        swaydb.memory.Queue[A, Glass](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,

@@ -32,7 +32,7 @@ import swaydb.core.util.skiplist.SkipList
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
-import swaydb.{Actor, ActorRef, Bag}
+import swaydb.{Actor, ActorRef, Glass}
 
 import scala.ref.WeakReference
 
@@ -117,7 +117,7 @@ private[core] object MemorySweeper extends LazyLogging {
     sweeper.actor foreach {
       actor =>
         logger.info("Clearing cached key-values")
-        actor.terminateAndClear[Bag.Glass]()
+        actor.terminateAndClear[Glass]()
     }
 
   def weigher(entry: Command): Int =
@@ -174,7 +174,7 @@ private[core] object MemorySweeper extends LazyLogging {
       }
 
     def terminateAndClear() =
-      actor.foreach(_.terminateAndClear[Bag.Glass]())
+      actor.foreach(_.terminateAndClear[Glass]())
   }
 
   case object Off extends MemorySweeper

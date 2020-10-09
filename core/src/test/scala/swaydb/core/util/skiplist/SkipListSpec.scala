@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.Bag
+import swaydb.{Bag, Glass}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers.Default._
@@ -311,8 +311,8 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
     "not allow concurrent updated" when {
       //run for each bag
 
-      "bag.less" in {
-        runTest[Bag.Glass](result => result)
+      "glass" in {
+        runTest[Glass](result => result)
       }
 
       "try" in {

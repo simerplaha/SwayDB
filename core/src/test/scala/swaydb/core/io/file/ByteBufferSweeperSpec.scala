@@ -44,7 +44,7 @@ import swaydb.data.RunThis._
 import swaydb.data.config.ActorConfig
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
-import swaydb.{Bag, IO}
+import swaydb.{Bag, Glass, IO}
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -78,7 +78,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
 
           val innerFile = file.file.asInstanceOf[MMAPFile]
 
-          fileSweeper.terminateAndRecover[Bag.Glass, Unit](_ => ())
+          fileSweeper.terminateAndRecover[Glass, Unit](_ => ())
 
           eventual(2.seconds) {
             innerFile.isBufferEmpty shouldBe true
@@ -446,7 +446,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
 
             (cleaner.actor ask Command.IsClean(Paths.get("somePath"))).await(1.minute) shouldBe true
 
-            cleaner.actor.terminate[Bag.Glass]()
+            cleaner.actor.terminate[Glass]()
         }
       }
 
@@ -545,7 +545,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
             }
 
             //execute all pending Delete commands.
-            cleaner.actor.receiveAllForce[Bag.Glass, Unit](_ => ())
+            cleaner.actor.receiveAllForce[Glass, Unit](_ => ())
 
             //there might me some delete messages waiting to be scheduled.
             eventual(1.minute) {

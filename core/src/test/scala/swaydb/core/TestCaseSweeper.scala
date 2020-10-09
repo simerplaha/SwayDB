@@ -39,7 +39,7 @@ import swaydb.core.map.counter.CounterMap
 import swaydb.core.segment.Segment
 import swaydb.data.RunThis._
 import swaydb.data.cache.{Cache, CacheNoIO}
-import swaydb.{ActorRef, ActorWire, Bag, Scheduler}
+import swaydb.{ActorRef, ActorWire, Bag, Glass, Scheduler}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
@@ -92,8 +92,8 @@ object TestCaseSweeper extends LazyLogging {
   private def terminate(sweeper: TestCaseSweeper): Unit = {
     logger.info(s"Terminating ${classOf[TestCaseSweeper].getSimpleName}")
 
-    sweeper.actors.foreach(_.terminateAndClear[Bag.Glass]())
-    sweeper.actorWires.foreach(_.terminateAndClear[Bag.Glass]())
+    sweeper.actors.foreach(_.terminateAndClear[Glass]())
+    sweeper.actorWires.foreach(_.terminateAndClear[Glass]())
 
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 
@@ -102,7 +102,7 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.mapFiles.foreach(_.close())
     sweeper.maps.foreach(_.delete().get)
     sweeper.segments.foreach(_.close)
-    sweeper.levels.foreach(_.close[Bag.Glass]())
+    sweeper.levels.foreach(_.close[Glass]())
     sweeper.counters.foreach(_.close)
 
     //TERMINATE - terminate all initialised actors
@@ -115,7 +115,7 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
 
     //DELETE - delete after closing Levels.
-    sweeper.levels.foreach(_.delete[Bag.Glass]())
+    sweeper.levels.foreach(_.delete[Glass]())
 
     sweeper.segments.foreach {
       segment =>
@@ -145,13 +145,13 @@ object TestCaseSweeper extends LazyLogging {
   }
 
   private def receiveAll(sweeper: TestCaseSweeper): Unit = {
-    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
-    sweeper.allMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
-    sweeper.blockMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
-    sweeper.cacheMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
-    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))
-    sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Bag.Glass, Unit](_ => ())))
-    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
+    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
+    sweeper.allMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
+    sweeper.blockMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
+    sweeper.cacheMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
+    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Glass, Unit](_ => ())))
+    sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Glass, Unit](_ => ())))
+    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
   }
 
   def apply[T](code: TestCaseSweeper => T): T = {

@@ -28,7 +28,7 @@ import java.nio.file.Path
 import java.util.Optional
 import java.util.function.Supplier
 
-import swaydb.Bag.Glass
+import swaydb.Glass
 
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._

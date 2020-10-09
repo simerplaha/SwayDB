@@ -34,32 +34,32 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import swaydb.{Apply, Bag, MultiMap, Prepare, PureFunction}
+import swaydb.{Apply, Bag, Glass, MultiMap, Prepare, PureFunction}
 
 import scala.concurrent.duration._
 
 class MultiMapFunctionsSpec0 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
                        sweeper: TestCaseSweeper) =
-    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Bag.Glass](dir = randomDir).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir).sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec1 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
                        sweeper: TestCaseSweeper) =
-    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Bag.Glass](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
+    swaydb.persistent.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](dir = randomDir, mapSize = 1.byte).sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec2 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Bag.Glass]().sweep(_.delete())
+    swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass]().sweep(_.delete())
 }
 
 class MultiMapFunctionsSpec3 extends MultiMapFunctionsSpec {
   override def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
                        sweeper: TestCaseSweeper) =
-    swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Bag.Glass](mapSize = 1.byte).sweep(_.delete())
+    swaydb.memory.MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass](mapSize = 1.byte).sweep(_.delete())
 }
 
 sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
@@ -67,7 +67,7 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
   val keyValueCount: Int = 30
 
   def newDB()(implicit functions: Functions[PureFunction.Map[Int, String]],
-              sweeper: TestCaseSweeper): MultiMap[Int, Int, String, PureFunction.Map[Int, String], Bag.Glass]
+              sweeper: TestCaseSweeper): MultiMap[Int, Int, String, PureFunction.Map[Int, String], Glass]
 
   implicit val bag = Bag.glass
 

@@ -49,7 +49,6 @@ import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.skiplist.SkipList
 import swaydb.core.util.{DropIterator, MinMax}
 import swaydb.core.{CoreState, MemoryPathGenerator, map}
-import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.MMAP
@@ -57,10 +56,11 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.Options
-import swaydb.{Actor, Bag, Error, IO, OK}
+import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.{Actor, Bag, Error, Glass, IO, OK}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.{Deadline, _}
+import scala.concurrent.duration._
 
 private[core] case object LevelZero extends LazyLogging {
 
@@ -245,12 +245,12 @@ private[core] case object LevelZero extends LazyLogging {
                 IO(zero.clearAppliedFunctions())
                   .and(AppliedFunctionsMap.validate(appliedFunctions, functionStore))
                   .andThen(zero)
-                  .onLeftSideEffect(_ => zero.close[Bag.Glass]())
+                  .onLeftSideEffect(_ => zero.close[Glass]())
               else
                 AppliedFunctionsMap
                   .validate(appliedFunctions, functionStore)
                   .andThen(zero)
-                  .onLeftSideEffect(_ => zero.close[Bag.Glass]())
+                  .onLeftSideEffect(_ => zero.close[Glass]())
 
             case None =>
               IO.Right(zero)

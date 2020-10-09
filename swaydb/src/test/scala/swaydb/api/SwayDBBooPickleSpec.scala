@@ -49,7 +49,7 @@ class SwayDBBooPickleSpec extends TestBaseEmbedded {
         TestCaseSweeper {
           implicit sweeper =>
 
-            val db = swaydb.persistent.Map[User, Info, Nothing, Bag.Glass](randomDir).sweep(_.delete())
+            val db = swaydb.persistent.Map[User, Info, Nothing, Glass](randomDir).sweep(_.delete())
 
             val keyValues =
               (1 to 10000) map {

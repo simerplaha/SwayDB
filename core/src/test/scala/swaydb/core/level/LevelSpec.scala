@@ -28,19 +28,16 @@ import java.nio.channels.OverlappingFileLockException
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.{Bag, IO}
 import swaydb.IOValues._
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
-import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.{Extension, ReserveRange}
-import swaydb.core._
-import swaydb.data.RunThis._
 import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -49,9 +46,9 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.{Glass, IO}
 
 import scala.concurrent.Promise
-import scala.concurrent.duration.DurationInt
 
 class LevelSpec0 extends LevelSpec
 
@@ -162,12 +159,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
             level.put(segment).value.value should not be empty
 
             if (segment.isMMAP && OperatingSystem.isWindows) {
-              level.close[Bag.Glass]()
+              level.close[Glass]()
               sweeper.receiveAll()
             }
 
             //delete the appendix file
-            level.pathDistributor.headPath.resolve("appendix").files(Extension.Log) map Effect.delete
+            level.pathDistributor.headPath.resolve("appendix").files(Extension.Log) foreach Effect.delete
             //expect failure when file does not exists
             level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 

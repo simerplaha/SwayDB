@@ -30,27 +30,27 @@ import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.serializers.Default._
-import swaydb.{Bag, MultiMap}
+import swaydb.{Glass, MultiMap}
 
 class MultiMapPutSpec0 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Glass] =
-    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Glass](dir = randomDir).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Glass](dir = randomDir).sweep(_.delete())
 }
 
 class MultiMapPutSpec1 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Glass] =
-    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Glass]().sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Glass]().sweep(_.delete())
 }
 
 sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Glass]
+  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.MultiMap[Int, Int, String, Nothing, Glass]
 
   "Root" should {
     "Initialise a RootMap & SubMap from Root" in {
@@ -86,7 +86,7 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
           val root = newDB()
 
-          def insert(firstMap: MultiMap[Int, Int, String, Nothing, Bag.Glass]) = {
+          def insert(firstMap: MultiMap[Int, Int, String, Nothing, Glass]) = {
             firstMap.put(3, "three")
             firstMap.put(4, "four")
             firstMap.put(5, "five")

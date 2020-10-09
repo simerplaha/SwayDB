@@ -66,7 +66,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{Aggregator, Bag, Error, IO, OK}
+import swaydb.{Aggregator, Bag, Error, Glass, IO, OK}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -1827,7 +1827,7 @@ object CommonAssertions {
       implicit val ec = TestExecutionContext.executionContext
       implicit val bag = Bag.future
       maps.close().value
-      maps.bufferCleaner.actor.receiveAllForce[Bag.Glass, Unit](_ => ())
+      maps.bufferCleaner.actor.receiveAllForce[Glass, Unit](_ => ())
       (maps.bufferCleaner.actor ask ByteBufferSweeper.Command.IsTerminated[Unit]).await(10.seconds)
     }
   }

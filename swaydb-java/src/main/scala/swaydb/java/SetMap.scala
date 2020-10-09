@@ -29,12 +29,11 @@ import java.time.Duration
 import java.util
 import java.util.Optional
 
-import swaydb.Bag.Glass
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
-import swaydb.{Bag, Expiration, KeyVal}
+import swaydb.{Expiration, Glass, KeyVal}
 
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
@@ -42,7 +41,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Glass]) extends SetMapT[K, V] {
+case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Glass]) extends SetMapT[K, V] {
 
   def path: Path =
     asScala.path

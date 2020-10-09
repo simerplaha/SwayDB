@@ -35,7 +35,7 @@ class SwayDBSequencerSpec0 extends SwayDBSequencerSpec {
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
                        sequencer: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
-    swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir).map(_.sweep(_.toBag[Bag.Glass].delete()))
+    swaydb.persistent.Map[Int, String, Nothing, BAG](randomDir).map(_.sweep(_.toBag[Glass].delete()))
 
   override val keyValueCount: Int = 100
 }
@@ -47,7 +47,7 @@ class SwayDBSequencerSpec3 extends SwayDBSequencerSpec {
   def newDB[BAG[+_]]()(implicit sweeper: TestCaseSweeper,
                        sequencer: Sequencer[BAG],
                        bag: Bag[BAG]): BAG[Map[Int, String, Nothing, BAG]] =
-    swaydb.memory.Map[Int, String, Nothing, BAG]().map(_.sweep(_.toBag[Bag.Glass].delete()))
+    swaydb.memory.Map[Int, String, Nothing, BAG]().map(_.sweep(_.toBag[Glass].delete()))
 }
 
 sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
@@ -78,7 +78,7 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
             }
 
             //LESS
-            doTest[Bag.Glass]
+            doTest[Glass]
             doTest[Try]
             //IO
             doTest[IO.ApiIO]
@@ -117,9 +117,9 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
         "Synchronised" in {
           TestCaseSweeper {
             implicit sweeper =>
-              implicit val sequencer: Sequencer[Bag.Glass] = null
-              val map = newDB[Bag.Glass]()
-              getSequencer(map) shouldBe a[Sequencer.Synchronised[Bag.Glass]]
+              implicit val sequencer: Sequencer[Glass] = null
+              val map = newDB[Glass]()
+              getSequencer(map) shouldBe a[Sequencer.Synchronised[Glass]]
 
               val ioMap = map.toBag[IO.ApiIO]
               getSequencer(ioMap) shouldBe a[Sequencer.Synchronised[IO.ApiIO]]
@@ -132,9 +132,9 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
         "SingleThread" in {
           TestCaseSweeper {
             implicit sweeper =>
-              implicit val sequencer: Sequencer[Bag.Glass] = null
-              val map = newDB[Bag.Glass]()
-              getSequencer(map) shouldBe a[Sequencer.Synchronised[Bag.Glass]]
+              implicit val sequencer: Sequencer[Glass] = null
+              val map = newDB[Glass]()
+              getSequencer(map) shouldBe a[Sequencer.Synchronised[Glass]]
 
               implicit val bag = Bag.future(TestExecutionContext.executionContext)
               val futureMap = map.toBag[Future]
@@ -155,10 +155,10 @@ sealed trait SwayDBSequencerSpec extends TestBaseEmbedded {
               implicit val sequencer: Sequencer[Future] = Sequencer.singleThread
 
               val map = newDB[Future]().await
-              getSequencer(map) shouldBe a[Sequencer.SingleThread[Bag.Glass]]
+              getSequencer(map) shouldBe a[Sequencer.SingleThread[Glass]]
 
-              val lessMap = map.toBag[Bag.Glass]
-              getSequencer(lessMap) shouldBe a[Sequencer.Synchronised[Bag.Glass]]
+              val lessMap = map.toBag[Glass]
+              getSequencer(lessMap) shouldBe a[Sequencer.Synchronised[Glass]]
 
               lessMap.put(1, "one")
               lessMap.get(1).value shouldBe "one"

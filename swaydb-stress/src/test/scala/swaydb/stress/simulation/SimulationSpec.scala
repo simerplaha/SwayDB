@@ -40,7 +40,7 @@ import swaydb.serializers.Default._
 import swaydb.stress.simulation.Domain._
 import swaydb.stress.simulation.ProductCommand._
 import swaydb.stress.simulation.RemoveAsserted._
-import swaydb.{Actor, ActorRef, Apply, Bag, IO, PureFunction, Scheduler}
+import swaydb.{Actor, ActorRef, Apply, Glass, IO, PureFunction, Scheduler}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -588,7 +588,7 @@ trait SimulationSpec extends AnyWordSpec with TestBaseEmbedded with LazyLogging 
 
           Thread.sleep(runFor.toMillis)
 
-          actors.map(_.terminateAndClear[Bag.Glass]())
+          actors.map(_.terminateAndClear[Glass]())
       }
     }
   }

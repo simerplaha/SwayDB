@@ -28,12 +28,11 @@ import java.nio.file.Path
 import java.util.Optional
 import java.{lang, util}
 
-import swaydb.Bag.Glass
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
-import swaydb.{Apply, Bag, Expiration, Pair, Prepare, PureFunction}
+import swaydb.{Apply, Expiration, Glass, Pair, Prepare, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
@@ -41,7 +40,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Glass])(implicit evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) extends Source[A, A] {
+case class Set[A, F](asScala: swaydb.Set[A, F, Glass])(implicit evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) extends Source[A, A] {
 
   def path: Path =
     asScala.path

@@ -28,7 +28,7 @@ import swaydb.data.RunThis._
 import swaydb.macros.Sealed
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
-import swaydb.{Apply, IO, Prepare, PureFunction, StorageIntImplicits}
+import swaydb.{Apply, IO, Prepare, PureFunction, StorageByteImplicits}
 import swaydb.core.TestData._
 
 import scala.collection.parallel.CollectionConverters._

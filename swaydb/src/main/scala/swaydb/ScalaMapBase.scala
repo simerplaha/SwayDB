@@ -26,7 +26,7 @@ package swaydb
 
 import scala.collection.mutable
 
-protected abstract class ScalaMapBase[K, V](db: SetMapT[K, V, Bag.Glass]) extends mutable.Map[K, V] {
+protected abstract class ScalaMapBase[K, V](db: SetMapT[K, V, Glass]) extends mutable.Map[K, V] {
 
   override def get(key: K): Option[V] =
     db.get(key)

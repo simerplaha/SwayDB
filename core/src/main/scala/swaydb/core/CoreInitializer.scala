@@ -44,14 +44,14 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
-import swaydb.{ActorRef, ActorWire, Bag, Error, IO}
+import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
+import swaydb.{ActorRef, ActorWire, Bag, Error, Glass, IO}
 
 import scala.sys.ShutdownHookThread
 
@@ -103,7 +103,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def addShutdownHook[BAG[_]](core: Core[BAG]): ShutdownHookThread =
     sys.addShutdownHook {
       if (core.state != CoreState.Closed)
-        core.closeWithBag[Bag.Glass]()
+        core.closeWithBag[Glass]()
     }
 
   /**
@@ -130,7 +130,7 @@ private[core] object CoreInitializer extends LazyLogging {
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
                                       functionStore: FunctionStore,
-                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Glass]] = {
+                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Glass]] = {
     val validationResult =
       config.level0.storage match {
         case Level0Storage.Memory =>
@@ -233,7 +233,7 @@ private[core] object CoreInitializer extends LazyLogging {
           }
 
         def createLevels(levelConfigs: List[LevelConfig],
-                         previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Bag.Glass]] =
+                         previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Glass]] =
           levelConfigs match {
             case Nil =>
               implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
@@ -295,7 +295,7 @@ private[core] object CoreInitializer extends LazyLogging {
                             }
 
                           val core =
-                            new Core[Bag.Glass](
+                            new Core[Glass](
                               zero = zero,
                               coreState = coreState,
                               threadStateCache = threadStateCache,
@@ -330,23 +330,23 @@ private[core] object CoreInitializer extends LazyLogging {
          */
         createLevels(config.otherLevels.reverse, None) match {
           case IO.Right(core) =>
-            IO[swaydb.Error.Boot, Core[Bag.Glass]](core)
+            IO[swaydb.Error.Boot, Core[Glass]](core)
 
           case IO.Left(createError) =>
-            IO(LevelCloser.close[Bag.Glass]()) match {
+            IO(LevelCloser.close[Glass]()) match {
               case IO.Right(_) =>
-                IO.failed[swaydb.Error.Boot, Core[Bag.Glass]](createError.exception)
+                IO.failed[swaydb.Error.Boot, Core[Glass]](createError.exception)
 
               case IO.Left(closeError) =>
                 val createException = createError.exception
                 logger.error("Failed to create", createException)
                 logger.error("Failed to close", closeError.exception)
-                IO.failed[swaydb.Error.Boot, Core[Bag.Glass]](createException)
+                IO.failed[swaydb.Error.Boot, Core[Glass]](createException)
             }
         }
 
       case IO.Left(error) =>
-        IO.failed[swaydb.Error.Boot, Core[Bag.Glass]](error.exception)
+        IO.failed[swaydb.Error.Boot, Core[Glass]](error.exception)
     }
   }
 }

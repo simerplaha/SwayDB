@@ -28,9 +28,8 @@ import java.util
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
-import swaydb.Bag.Glass
 import swaydb.data.util.Java._
-import swaydb.{Bag, Pair}
+import swaydb.{Bag, Glass, Pair}
 
 import scala.collection.compat._
 import scala.compat.java8.FunctionConverters._
@@ -40,7 +39,7 @@ object Stream {
 
   private implicit val bag = Bag.glass
 
-  @inline def fromScala[A](stream: swaydb.Stream[A, Bag.Glass]): Stream[A] =
+  @inline def fromScala[A](stream: swaydb.Stream[A, Glass]): Stream[A] =
     new Stream[A] {
       override def asScalaStream: swaydb.Stream[A, Glass] =
         stream
@@ -53,24 +52,24 @@ object Stream {
     Stream.fromScala[A](swaydb.Stream(iterator.asScala))
 
   def range(from: Int, to: Int): Stream[Integer] =
-    Stream.fromScala(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Integer, Bag.Glass]])
+    Stream.fromScala(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Integer, Glass]])
 
   def rangeUntil(from: Int, toExclusive: Int): Stream[Integer] =
-    Stream.fromScala(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Integer, Bag.Glass]])
+    Stream.fromScala(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Integer, Glass]])
 
   def range(from: Char, to: Char): Stream[Character] =
-    Stream.fromScala(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Character, Bag.Glass]])
+    Stream.fromScala(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Character, Glass]])
 
   def rangeUntil(from: Char, toExclusive: Char): Stream[Character] =
-    Stream.fromScala(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Character, Bag.Glass]])
+    Stream.fromScala(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Character, Glass]])
 
   def tabulate[T](count: Int, function: JavaFunction[Int, T]): Stream[T] =
-    Stream.fromScala(swaydb.Stream.tabulate[T, Bag.Glass](count)(function.apply))
+    Stream.fromScala(swaydb.Stream.tabulate[T, Glass](count)(function.apply))
 }
 
 trait Stream[A] {
 
-  def asScalaStream: swaydb.Stream[A, Bag.Glass]
+  def asScalaStream: swaydb.Stream[A, Glass]
 
   def forEach(consumer: Consumer[A]): Unit =
     asScalaStream.foreach(consumer.asScala)

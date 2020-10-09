@@ -28,7 +28,7 @@ import java.nio.file.Path
 import java.util.Collections
 import java.util.concurrent.ExecutorService
 
-import swaydb.Bag
+import swaydb.{Bag, Glass}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
@@ -202,7 +202,7 @@ object EventuallyPersistentQueue {
 
     def get(): swaydb.java.Queue[A] = {
       val scalaMap =
-        swaydb.eventually.persistent.Queue[A, Bag.Glass](
+        swaydb.eventually.persistent.Queue[A, Glass](
           dir = dir,
           mapSize = mapSize,
           maxMemoryLevelSize = maxMemoryLevelSize,

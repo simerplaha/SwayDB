@@ -25,7 +25,7 @@
 package swaydb.core.map
 
 import org.scalatest.matchers.should.Matchers._
-import swaydb.{Bag, OK}
+import swaydb.{Bag, Glass, OK}
 import swaydb.IOValues._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
@@ -54,7 +54,7 @@ object MapTestUtil {
   def ensureCleanedForWindows(mmap: MMAP.Map)(implicit bufferCleaner: ByteBufferSweeperActor): Unit =
     if (OperatingSystem.isWindows && mmap.isMMAP) {
       val cleaner = bufferCleaner.actor
-      val state = cleaner.receiveAllForce[Bag.Glass, State](state => state)
+      val state = cleaner.receiveAllForce[Glass, State](state => state)
       eventual(30.seconds)(state.pendingClean.isEmpty shouldBe true)
     }
 

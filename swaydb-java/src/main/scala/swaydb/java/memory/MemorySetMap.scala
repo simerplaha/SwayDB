@@ -26,7 +26,7 @@ package swaydb.java.memory
 
 import java.util.concurrent.ExecutorService
 
-import swaydb.Bag
+import swaydb.{Bag, Glass}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.{Atomic, OptimiseWrites}
@@ -146,7 +146,7 @@ object MemorySetMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.memory.SetMap[K, V, Bag.Glass](
+        swaydb.memory.SetMap[K, V, Glass](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,

@@ -232,7 +232,7 @@ private[core] object LevelZeroMapCache {
  *
  * Creates multi-layered SkipList.
  *
- * Currently all atomic operations defaults to using [[Bag.Glass]] which requires
+ * Currently all atomic operations defaults to using [[Glass]] which requires
  * blocking on conflicting in-memory SkipList updates. The cost of blocking
  * when concurrently writing and reading in-memory SkipList is very cheap.
  * The maximum time blocking time on benchmarking was between 0.006 to 0.019642 seconds.

@@ -34,7 +34,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 import swaydb.multimap.MultiPrepare
-import swaydb.{Bag, Expiration, KeyVal, Pair, Prepare, PureFunction}
+import swaydb.{Expiration, Glass, KeyVal, Pair, Prepare, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration
@@ -43,7 +43,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Glass])(implicit evd: F <:< PureFunction.Map[K, V]) extends MapT[K, V, F] {
+case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Glass])(implicit evd: F <:< PureFunction.Map[K, V]) extends MapT[K, V, F] {
 
   def mapKey = asScala.mapKey
 
@@ -344,7 +344,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Glass])
   def delete(): Unit =
     asScala.delete()
 
-  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Bag.Glass] =
+  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Glass] =
     asScala.transformValue(_.asKeyVal)
 
   override def equals(other: Any): Boolean =

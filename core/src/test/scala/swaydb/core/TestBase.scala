@@ -62,7 +62,7 @@ import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
-import swaydb.{ActorWire, Bag}
+import swaydb.{ActorWire, Bag, Glass}
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -696,8 +696,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     runAsserts(asserts)
 
-    compaction.foreach(_.foreach(_.terminateAndClear[Bag.Glass]()))
-    level0.delete[Bag.Glass]()
+    compaction.foreach(_.foreach(_.terminateAndClear[Glass]()))
+    level0.delete[Glass]()
 
     if (!throttleOn)
       assertLevel(

@@ -22,7 +22,7 @@ package swaydb.api
 import java.nio.file.Files
 import swaydb.core.TestCaseSweeper._
 
-import swaydb.Bag.Glass
+import swaydb.Glass
 import swaydb.PureFunctionScala._
 import swaydb._
 import swaydb.core.TestCaseSweeper
@@ -48,7 +48,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
             implicit sweeper =>
 
               val dir = createRandomDir
-              val map = swaydb.persistent.Map[Int, String, Nothing, Bag.Glass](dir).sweep(_.delete())
+              val map = swaydb.persistent.Map[Int, String, Nothing, Glass](dir).sweep(_.delete())
 
               Files.exists(dir) shouldBe true
               Files.exists(dir.resolve("applied-functions")) shouldBe false
@@ -72,7 +72,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
                   fail("There is no data for this function to execute")
 
               implicit val functions = Functions[PureFunction.Map[Int, String]](function)
-              val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Glass](dir).sweep(_.delete())
+              val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Glass](dir).sweep(_.delete())
 
               Files.exists(dir) shouldBe true
               Files.exists(dir.resolve(AppliedFunctionsMap.folderName).resolve("0.log")) shouldBe true
@@ -101,7 +101,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
                 fail("There is no data for this function to execute")
 
             implicit val functions = Functions[PureFunction.Map[Int, String]](function1, function2)
-            val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Glass](dir).sweep(_.delete())
+            val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Glass](dir).sweep(_.delete())
 
             map.applyFunction(1, 100, function1)
 
@@ -137,7 +137,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
                 Apply.Nothing
 
             implicit val functions = Functions[PureFunction.Map[Int, String]](noDataToApply, hasData)
-            val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Glass](dir)
+            val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Glass](dir)
 
             (101 to 200) foreach {
               i =>
@@ -159,7 +159,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
             map.close()
 
             //reopen so that flush occurs and compaction gets triggered.
-            val reopened = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Glass](dir).sweep(_.delete())
+            val reopened = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Glass](dir).sweep(_.delete())
 
             eventual(10.seconds) {
               reopened.mightContainFunction(noDataToApply) shouldBe false
@@ -193,7 +193,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
 
             {
               implicit val functions = Functions[PureFunction.Map[Int, String]](noDataToApply, hasData)
-              val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Glass](dir)
+              val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Glass](dir)
 
               map.applyFunction(1, 100, noDataToApply)
               map.applyFunction(101, 200, hasData)
@@ -238,7 +238,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
           implicit val f = Functions[PureFunction.Map[Int, String]](functions)
 
           {
-            val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Glass](dir)
+            val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Glass](dir)
 
             Benchmark(s"applying ${functions.size} functions") {
               functions.zipWithIndex foreach {
@@ -255,7 +255,7 @@ class SwayDBAppliedFunctionsSpec extends TestBaseEmbedded {
            */
           {
             //reopen so that flush occurs and compaction gets triggered.
-            val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Bag.Glass](dir).sweep(_.delete())
+            val map = swaydb.persistent.Map[Int, String, PureFunction.Map[Int, String], Glass](dir).sweep(_.delete())
             eventual(10.seconds) {
               functions.forall(function => !map.mightContainFunction(function))
             }

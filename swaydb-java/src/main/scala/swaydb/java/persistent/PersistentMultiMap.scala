@@ -42,7 +42,7 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag, PureFunction}
+import swaydb.{Apply, Bag, Glass, PureFunction}
 
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
@@ -256,7 +256,7 @@ object PersistentMultiMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.persistent.MultiMap[M, K, V, PureFunction.Map[K, V], Bag.Glass](
+        swaydb.persistent.MultiMap[M, K, V, PureFunction.Map[K, V], Glass](
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -296,7 +296,7 @@ object PersistentMultiMap {
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
-      swaydb.java.MultiMap[M, K, V, F](scalaMap.asInstanceOf[swaydb.MultiMap[M, K, V, F, Bag.Glass]])
+      swaydb.java.MultiMap[M, K, V, F](scalaMap.asInstanceOf[swaydb.MultiMap[M, K, V, F, Glass]])
     }
   }
 

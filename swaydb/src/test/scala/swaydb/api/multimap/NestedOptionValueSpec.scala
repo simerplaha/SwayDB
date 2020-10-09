@@ -25,13 +25,12 @@
 package swaydb.api.multimap
 
 import org.scalatest.OptionValues._
-import swaydb.Bag
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestCaseSweeper
 import swaydb.core.TestCaseSweeper._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
-import swaydb.data.slice.Slice
+import swaydb.{Bag, Glass}
 
 class NestedOptionValueSpec extends TestBaseEmbedded {
   override val keyValueCount: Int = 1000
@@ -43,7 +42,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
 
         import swaydb.serializers.Default._
 
-        val root = swaydb.memory.MultiMap[Int, Int, Option[String], Nothing, Bag.Glass]().sweep(_.delete())
+        val root = swaydb.memory.MultiMap[Int, Int, Option[String], Nothing, Glass]().sweep(_.delete())
 
         root.put(1, None)
         root.contains(1) shouldBe true
@@ -98,7 +97,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
               Some(Value.NonEmpty(StringSerializer.read(slice.dropHead())))
         }
 
-        val root = swaydb.memory.MultiMap[Int, Int, Option[Value], Nothing, Bag.Glass]().sweep(_.delete())
+        val root = swaydb.memory.MultiMap[Int, Int, Option[Value], Nothing, Glass]().sweep(_.delete())
 
         root.put(1, Some(Value.Empty))
         root.put(2, Some(Value.NonEmpty("two")))

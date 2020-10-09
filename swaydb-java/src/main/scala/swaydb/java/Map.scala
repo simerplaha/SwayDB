@@ -29,12 +29,11 @@ import java.time.Duration
 import java.util.Optional
 import java.{lang, util}
 
-import swaydb.Bag.Glass
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
-import swaydb.{Bag, Expiration, KeyVal, Pair, Prepare, PureFunction}
+import swaydb.{Expiration, Glass, KeyVal, Pair, Prepare, PureFunction}
 
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration
@@ -43,7 +42,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Glass])(implicit evd: F <:< PureFunction.Map[K, V]) extends swaydb.java.MapT[K, V, F] {
+case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Glass])(implicit evd: F <:< PureFunction.Map[K, V]) extends swaydb.java.MapT[K, V, F] {
 
   def path: Path =
     asScala.path
@@ -168,7 +167,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Glass])(implicit evd: F
     asScala.mightContainFunction(function)
 
   def toSet: Set[K, Void] =
-    Set(asScala.keys.asInstanceOf[swaydb.Set[K, Void, Bag.Glass]])(null)
+    Set(asScala.keys.asInstanceOf[swaydb.Set[K, Void, Glass]])(null)
 
   def keys: Stream[K] =
     Stream.fromScala[K](asScala.keys)

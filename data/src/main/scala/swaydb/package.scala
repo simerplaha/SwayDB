@@ -26,10 +26,10 @@ import java.nio.file.{Path, Paths}
 
 import swaydb.data.config.Dir
 
-/**
- * Package object contains convenience functions - syntax sugar.
- */
 package object swaydb {
+
+  //transparent type
+  type Glass[+A] = A
 
   implicit def stringToPath(path: String): Path =
     Paths.get(path)
@@ -76,14 +76,14 @@ package object swaydb {
   implicit def pathToDirs(dir: Path): Seq[Dir] =
     Seq(Dir(dir, 1))
 
-  implicit class StorageIntImplicits(measure: Int) {
+  implicit class StorageByteImplicits(measure: Int) {
 
     @inline final def bytes: Int = measure
 
     @inline final def byte: Int = measure
   }
 
-  implicit class StorageDoubleImplicits(measure: Double) {
+  implicit class StorageImplicits(measure: Double) {
 
     @inline final def mb: Int = (measure * 1000000).toInt
 

@@ -26,7 +26,7 @@ import swaydb.IO.ApiIO
 import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
-import swaydb.{Bag, IO, Stream}
+import swaydb.{Bag, Glass, IO, Stream}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -50,8 +50,8 @@ class StreamIOSpec extends StreamSpec[IO.ApiIO] {
     a.left.get.exception
 }
 
-class StreamLessSpec extends StreamSpec[Bag.Glass] {
-  override def get[A](a: Bag.Glass[A]): A = a
+class StreamLessSpec extends StreamSpec[Glass] {
+  override def get[A](a: Glass[A]): A = a
 
   override def getException(a: => Glass[_]): Throwable =
     IO(a).left.get

@@ -24,17 +24,16 @@
 
 package swaydb.api
 
-import swaydb.Bag
+import org.scalatest.OptionValues._
+import swaydb.Glass
+import swaydb.core.TestCaseSweeper
+import swaydb.core.TestCaseSweeper._
+import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import org.scalatest.OptionValues._
-import swaydb.data.RunThis._
-import swaydb.core.TestCaseSweeper
-import TestCaseSweeper._
 
 import scala.concurrent.duration._
-import swaydb.data.slice.Slice
 
 object SwayDBPartialSetSpec {
 
@@ -62,23 +61,23 @@ class SwayDBPartialSet_Persistent_Spec extends SwayDBPartialSetSpec {
 
   import SwayDBPartialSetSpec._
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Glass] =
-    swaydb.persistent.Set[(Int, Option[String]), Nothing, Bag.Glass](randomDir, mapSize = 10.bytes).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
+    swaydb.persistent.Set[(Int, Option[String]), Nothing, Glass](randomDir, mapSize = 10.bytes).sweep(_.delete())
 }
 
 class SwayDBPartialSet_Memory_Spec extends SwayDBPartialSetSpec {
 
   import SwayDBPartialSetSpec._
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Glass] =
-    swaydb.memory.Set[(Int, Option[String]), Nothing, Bag.Glass](mapSize = 10.bytes).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass] =
+    swaydb.memory.Set[(Int, Option[String]), Nothing, Glass](mapSize = 10.bytes).sweep(_.delete())
 }
 
 trait SwayDBPartialSetSpec extends TestBaseEmbedded {
 
   val keyValueCount = 1000
 
-  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Glass]
+  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Glass]
 
   "read partially ordered key-values" in {
     runThis(times = repeatTest, log = true) {

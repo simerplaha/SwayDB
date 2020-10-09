@@ -585,7 +585,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     )
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](toBag[Bag.Glass](Bag.glass))
+    ScalaMap[K, V](toBag[Glass](Bag.glass))
 
   def close(): BAG[Unit] =
     bag.and(bag(counter.close)) {
