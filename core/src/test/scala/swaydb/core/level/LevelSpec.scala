@@ -162,7 +162,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
             level.put(segment).value.value should not be empty
 
             if (segment.isMMAP && OperatingSystem.isWindows) {
-              level.close[Bag.Less]()
+              level.close[Bag.Glass]()
               sweeper.receiveAll()
             }
 

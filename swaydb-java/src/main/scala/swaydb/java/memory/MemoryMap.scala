@@ -149,7 +149,7 @@ object MemoryMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.memory.Map[K, V, PureFunction.Map[K, V], Bag.Less](
+        swaydb.memory.Map[K, V, PureFunction.Map[K, V], Bag.Glass](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -165,12 +165,12 @@ object MemoryMap {
           valueSerializer = valueSerializer,
           functions = functions.asInstanceOf[Functions[PureFunction.Map[K, V]]],
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
-          bag = Bag.less,
+          bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
-      swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Bag.Less]])
+      swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Bag.Glass]])
 
     }
   }

@@ -230,7 +230,7 @@ object EventuallyPersistentMultiMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.eventually.persistent.MultiMap[M, K, V, PureFunction.Map[K, V], Bag.Less](
+        swaydb.eventually.persistent.MultiMap[M, K, V, PureFunction.Map[K, V], Bag.Glass](
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -261,12 +261,12 @@ object EventuallyPersistentMultiMap {
           valueSerializer = valueSerializer,
           functions = functions.asInstanceOf[Functions[PureFunction.Map[K, V]]],
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
-          bag = Bag.less,
+          bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
-      swaydb.java.MultiMap[M, K, V, F](scalaMap.asInstanceOf[swaydb.MultiMap[M, K, V, F, Bag.Less]])
+      swaydb.java.MultiMap[M, K, V, F](scalaMap.asInstanceOf[swaydb.MultiMap[M, K, V, F, Bag.Glass]])
     }
   }
 

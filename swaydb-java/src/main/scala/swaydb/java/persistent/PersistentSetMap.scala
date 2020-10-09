@@ -240,7 +240,7 @@ object PersistentSetMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.persistent.SetMap[K, V, Bag.Less](
+        swaydb.persistent.SetMap[K, V, Bag.Glass](
           dir = dir,
           mapSize = mapSize,
           mmapMaps = mmapMaps,
@@ -270,7 +270,7 @@ object PersistentSetMap {
           levelSixThrottle = levelSixThrottle.asScala
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
-          bag = Bag.less,
+          bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )

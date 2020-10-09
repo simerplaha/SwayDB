@@ -255,7 +255,7 @@ object TestData {
         if (OperatingSystem.isWindows && level.hasMMAP)
           IO {
             import swaydb.data.RunThis._
-            level.close[Bag.Less]()
+            level.close[Bag.Glass]()
           }
         else
           level.closeNoSweep()
@@ -296,7 +296,7 @@ object TestData {
                                                              sweeper: TestCaseSweeper): LevelZero = {
 
       if (OperatingSystem.isWindows && level.hasMMAP)
-        level.close[Bag.Less]()
+        level.close[Bag.Glass]()
 
       val reopened =
         level.releaseLocks flatMap {

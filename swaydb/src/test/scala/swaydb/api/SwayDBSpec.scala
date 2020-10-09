@@ -460,7 +460,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
         implicit sweeper =>
 
           val dir = randomDir
-          val map = swaydb.persistent.Map[Int, Int, Nothing, Bag.Less](dir)
+          val map = swaydb.persistent.Map[Int, Int, Nothing, Bag.Glass](dir)
           map.path shouldBe dir
           map.put(1, 1)
           map.close()
@@ -469,7 +469,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           set.left.value.exception shouldBe InvalidDirectoryType(DataType.Set, DataType.Map)
 
           //reopen it as a map
-          val reopened = swaydb.persistent.Map[Int, Int, Nothing, Bag.Less](dir).sweep(_.delete())
+          val reopened = swaydb.persistent.Map[Int, Int, Nothing, Bag.Glass](dir).sweep(_.delete())
           reopened.get(1).value shouldBe 1
 
       }

@@ -65,7 +65,7 @@ object Queue {
               }
 
             swaydb.Queue(
-              set = set.toBag[Bag.Less],
+              set = set.toBag[Bag.Glass],
               pushIds = new AtomicLong(last),
               popIds = new AtomicLong(first)
             )
@@ -121,9 +121,9 @@ object Queue {
 /**
  * Provides a [[Set]] instance the ability to be used as a queue.
  */
-case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
+case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Glass],
                             private val pushIds: AtomicLong,
-                            private val popIds: AtomicLong) extends Stream[A, Bag.Less]()(Bag.less) with LazyLogging {
+                            private val popIds: AtomicLong) extends Stream[A, Bag.Glass]()(Bag.glass) with LazyLogging {
 
   private val nullA = null.asInstanceOf[A]
 
@@ -148,7 +148,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
   def push(elems: A*): OK =
     push(elems)
 
-  def push(elems: Stream[A, Bag.Less]): OK =
+  def push(elems: Stream[A, Bag.Glass]): OK =
     set.add {
       elems.map {
         item =>

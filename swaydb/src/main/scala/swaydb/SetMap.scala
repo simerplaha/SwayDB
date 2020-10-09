@@ -286,10 +286,10 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
   private def copy(): Unit = ()
 
   override def asScala: mutable.Map[K, V] =
-    ScalaMap[K, V](toBag[Bag.Less](Bag.less))
+    ScalaMap[K, V](toBag[Bag.Glass](Bag.glass))
 
   override private[swaydb] def keySet: mutable.Set[K] =
-    ScalaSet[K, V](toBag[Bag.Less](Bag.less), nullValue)
+    ScalaSet[K, V](toBag[Bag.Glass](Bag.glass), nullValue)
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

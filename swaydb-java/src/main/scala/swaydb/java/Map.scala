@@ -29,7 +29,7 @@ import java.time.Duration
 import java.util.Optional
 import java.{lang, util}
 
-import swaydb.Bag.Less
+import swaydb.Bag.Glass
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
@@ -43,7 +43,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F <:< PureFunction.Map[K, V]) extends swaydb.java.MapT[K, V, F] {
+case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Glass])(implicit evd: F <:< PureFunction.Map[K, V]) extends swaydb.java.MapT[K, V, F] {
 
   def path: Path =
     asScala.path
@@ -168,7 +168,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
     asScala.mightContainFunction(function)
 
   def toSet: Set[K, Void] =
-    Set(asScala.keys.asInstanceOf[swaydb.Set[K, Void, Bag.Less]])(null)
+    Set(asScala.keys.asInstanceOf[swaydb.Set[K, Void, Bag.Glass]])(null)
 
   def keys: Stream[K] =
     Stream.fromScala[K](asScala.keys)
@@ -197,7 +197,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Bag.Less])(implicit evd: F 
   override def head: Optional[KeyVal[K, V]] =
     asScala.head.asJavaMap(KeyVal(_))
 
-  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Less] =
+  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Glass] =
     asScala.transformValue(_.asKeyVal)
 
   def sizeOfBloomFilterEntries: Int =

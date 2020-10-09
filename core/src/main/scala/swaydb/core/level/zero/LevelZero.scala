@@ -245,12 +245,12 @@ private[core] case object LevelZero extends LazyLogging {
                 IO(zero.clearAppliedFunctions())
                   .and(AppliedFunctionsMap.validate(appliedFunctions, functionStore))
                   .andThen(zero)
-                  .onLeftSideEffect(_ => zero.close[Bag.Less]())
+                  .onLeftSideEffect(_ => zero.close[Bag.Glass]())
               else
                 AppliedFunctionsMap
                   .validate(appliedFunctions, functionStore)
                   .andThen(zero)
-                  .onLeftSideEffect(_ => zero.close[Bag.Less]())
+                  .onLeftSideEffect(_ => zero.close[Bag.Glass]())
 
             case None =>
               IO.Right(zero)

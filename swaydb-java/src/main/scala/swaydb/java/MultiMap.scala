@@ -43,7 +43,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(implicit evd: F <:< PureFunction.Map[K, V]) extends MapT[K, V, F] {
+case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Glass])(implicit evd: F <:< PureFunction.Map[K, V]) extends MapT[K, V, F] {
 
   def mapKey = asScala.mapKey
 
@@ -344,7 +344,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   def delete(): Unit =
     asScala.delete()
 
-  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Bag.Less] =
+  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Bag.Glass] =
     asScala.transformValue(_.asKeyVal)
 
   override def equals(other: Any): Boolean =

@@ -312,7 +312,7 @@ sealed trait SkipListSpec extends AnyWordSpec with Matchers {
       //run for each bag
 
       "bag.less" in {
-        runTest[Bag.Less](result => result)
+        runTest[Bag.Glass](result => result)
       }
 
       "try" in {

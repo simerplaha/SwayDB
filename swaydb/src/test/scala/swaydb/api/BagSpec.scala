@@ -28,7 +28,7 @@ import scala.collection.mutable.ListBuffer
 class BagSpec extends AnyWordSpec with Matchers {
 
   "tryMap" in {
-    val result: swaydb.Stream[Int, Bag.Less] = swaydb.Stream(1 to 100)
+    val result: swaydb.Stream[Int, Bag.Glass] = swaydb.Stream(1 to 100)
 
     result.materialize shouldBe ListBuffer.range(1, 101)
   }

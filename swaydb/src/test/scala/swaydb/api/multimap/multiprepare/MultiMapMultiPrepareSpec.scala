@@ -45,10 +45,10 @@ class MultiMapMultiPrepareSpec extends TestBaseEmbedded {
       TestCaseSweeper {
         implicit sweeper =>
 
-          implicit val bag = Bag.less
+          implicit val bag = Bag.glass
 
           //Create a memory database
-          val root = swaydb.memory.MultiMap[Table, PrimaryKey, Row, Nothing, Bag.Less]().sweep(_.delete())
+          val root = swaydb.memory.MultiMap[Table, PrimaryKey, Row, Nothing, Bag.Glass]().sweep(_.delete())
 
           //create sibling1 UserMap and it's child UserActivity
           val userMap = root.child(Table.User: Table.UserTables, classOf[PrimaryKey.UserPrimaryKeys], classOf[Row.UserRows])

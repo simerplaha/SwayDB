@@ -50,10 +50,10 @@ class StreamIOSpec extends StreamSpec[IO.ApiIO] {
     a.left.get.exception
 }
 
-class StreamLessSpec extends StreamSpec[Bag.Less] {
-  override def get[A](a: Bag.Less[A]): A = a
+class StreamLessSpec extends StreamSpec[Bag.Glass] {
+  override def get[A](a: Bag.Glass[A]): A = a
 
-  override def getException(a: => Less[_]): Throwable =
+  override def getException(a: => Glass[_]): Throwable =
     IO(a).left.get
 }
 
@@ -394,7 +394,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
       }
 
       "failed" in {
-        if (bag == Bag.less) {
+        if (bag == Bag.glass) {
           cancel("Test does not apply to Bag.Less as it throws Exceptions")
         } else {
           val stream: Stream[BAG[Int], BAG] = Stream(bag(1), bag(2), bag(3), bag(4), bag.failure(new Exception("oh no")))
@@ -420,7 +420,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
       }
 
       "failed" in {
-        if (bag == Bag.less) {
+        if (bag == Bag.glass) {
           cancel("Test does not apply to Bag.Less as it throws Exceptions")
         } else {
           val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)
@@ -453,7 +453,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
       }
 
       "failed" in {
-        if (bag == Bag.less) {
+        if (bag == Bag.glass) {
           cancel("Test does not apply to Bag.Less as it throws Exceptions")
         } else {
           val stream: Stream[Int, BAG] = Stream.range[BAG](1, 10)

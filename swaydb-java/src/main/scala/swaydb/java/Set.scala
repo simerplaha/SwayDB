@@ -28,7 +28,7 @@ import java.nio.file.Path
 import java.util.Optional
 import java.{lang, util}
 
-import swaydb.Bag.Less
+import swaydb.Bag.Glass
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
@@ -41,7 +41,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) extends Source[A, A] {
+case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Glass])(implicit evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) extends Source[A, A] {
 
   def path: Path =
     asScala.path
@@ -184,7 +184,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
   def delete(): Unit =
     asScala.delete()
 
-  override def asScalaStream: swaydb.Source[A, A, Less] =
+  override def asScalaStream: swaydb.Source[A, A, Glass] =
     asScala
 
   override def equals(other: Any): Boolean =

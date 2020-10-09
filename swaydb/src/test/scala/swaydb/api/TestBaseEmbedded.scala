@@ -74,7 +74,7 @@ trait TestBaseEmbedded extends TestBase {
   }
 
   def printMap[BAG[_]](root: MultiMap[_, _, _, _, BAG]): Unit = {
-    root.multiMapReflection.toBag[Bag.Less].materialize.foreach {
+    root.multiMapReflection.toBag[Bag.Glass].materialize.foreach {
       map =>
         println(map)
         map._1 match {

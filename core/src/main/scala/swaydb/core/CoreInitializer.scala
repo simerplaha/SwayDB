@@ -103,7 +103,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def addShutdownHook[BAG[_]](core: Core[BAG]): ShutdownHookThread =
     sys.addShutdownHook {
       if (core.state != CoreState.Closed)
-        core.closeWithBag[Bag.Less]()
+        core.closeWithBag[Bag.Glass]()
     }
 
   /**
@@ -130,7 +130,7 @@ private[core] object CoreInitializer extends LazyLogging {
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
                                       functionStore: FunctionStore,
-                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
+                                      buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Glass]] = {
     val validationResult =
       config.level0.storage match {
         case Level0Storage.Memory =>
@@ -233,7 +233,7 @@ private[core] object CoreInitializer extends LazyLogging {
           }
 
         def createLevels(levelConfigs: List[LevelConfig],
-                         previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Bag.Less]] =
+                         previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Bag.Glass]] =
           levelConfigs match {
             case Nil =>
               implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
@@ -295,11 +295,11 @@ private[core] object CoreInitializer extends LazyLogging {
                             }
 
                           val core =
-                            new Core[Bag.Less](
+                            new Core[Bag.Glass](
                               zero = zero,
                               coreState = coreState,
                               threadStateCache = threadStateCache,
-                              sequencer = Sequencer.synchronised(Bag.less),
+                              sequencer = Sequencer.synchronised(Bag.glass),
                               readStates = readStates
                             )
 
@@ -330,23 +330,23 @@ private[core] object CoreInitializer extends LazyLogging {
          */
         createLevels(config.otherLevels.reverse, None) match {
           case IO.Right(core) =>
-            IO[swaydb.Error.Boot, Core[Bag.Less]](core)
+            IO[swaydb.Error.Boot, Core[Bag.Glass]](core)
 
           case IO.Left(createError) =>
-            IO(LevelCloser.close[Bag.Less]()) match {
+            IO(LevelCloser.close[Bag.Glass]()) match {
               case IO.Right(_) =>
-                IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createError.exception)
+                IO.failed[swaydb.Error.Boot, Core[Bag.Glass]](createError.exception)
 
               case IO.Left(closeError) =>
                 val createException = createError.exception
                 logger.error("Failed to create", createException)
                 logger.error("Failed to close", closeError.exception)
-                IO.failed[swaydb.Error.Boot, Core[Bag.Less]](createException)
+                IO.failed[swaydb.Error.Boot, Core[Bag.Glass]](createException)
             }
         }
 
       case IO.Left(error) =>
-        IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
+        IO.failed[swaydb.Error.Boot, Core[Bag.Glass]](error.exception)
     }
   }
 }

@@ -146,7 +146,7 @@ object MemorySetMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.memory.SetMap[K, V, Bag.Less](
+        swaydb.memory.SetMap[K, V, Bag.Glass](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -160,7 +160,7 @@ object MemorySetMap {
           threadStateCache = threadStateCache
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
-          bag = Bag.less,
+          bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )

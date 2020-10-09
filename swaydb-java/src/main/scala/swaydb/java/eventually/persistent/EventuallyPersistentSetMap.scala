@@ -214,7 +214,7 @@ object EventuallyPersistentSetMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.eventually.persistent.SetMap[K, V, Bag.Less](
+        swaydb.eventually.persistent.SetMap[K, V, Bag.Glass](
           dir = dir,
           mapSize = mapSize,
           maxMemoryLevelSize = maxMemoryLevelSize,
@@ -240,7 +240,7 @@ object EventuallyPersistentSetMap {
           threadStateCache = threadStateCache
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
-          bag = Bag.less,
+          bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )

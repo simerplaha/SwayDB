@@ -92,8 +92,8 @@ object TestCaseSweeper extends LazyLogging {
   private def terminate(sweeper: TestCaseSweeper): Unit = {
     logger.info(s"Terminating ${classOf[TestCaseSweeper].getSimpleName}")
 
-    sweeper.actors.foreach(_.terminateAndClear[Bag.Less]())
-    sweeper.actorWires.foreach(_.terminateAndClear[Bag.Less]())
+    sweeper.actors.foreach(_.terminateAndClear[Bag.Glass]())
+    sweeper.actorWires.foreach(_.terminateAndClear[Bag.Glass]())
 
     sweeper.schedulers.foreach(_.get().foreach(_.terminate()))
 
@@ -102,7 +102,7 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.mapFiles.foreach(_.close())
     sweeper.maps.foreach(_.delete().get)
     sweeper.segments.foreach(_.close)
-    sweeper.levels.foreach(_.close[Bag.Less]())
+    sweeper.levels.foreach(_.close[Bag.Glass]())
     sweeper.counters.foreach(_.close)
 
     //TERMINATE - terminate all initialised actors
@@ -110,12 +110,12 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.allMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
     sweeper.blockMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
     sweeper.cacheMemorySweepers.foreach(_.get().foreach(MemorySweeper.close))
-    sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.close()(sweeper, Bag.less)))
-    sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.close()(cleaner, Bag.less)))
+    sweeper.fileSweepers.foreach(_.get().foreach(sweeper => FileSweeper.close()(sweeper, Bag.glass)))
+    sweeper.cleaners.foreach(_.get().foreach(cleaner => ByteBufferSweeper.close()(cleaner, Bag.glass)))
     sweeper.blockCaches.foreach(_.get().foreach(BlockCache.close))
 
     //DELETE - delete after closing Levels.
-    sweeper.levels.foreach(_.delete[Bag.Less]())
+    sweeper.levels.foreach(_.delete[Bag.Glass]())
 
     sweeper.segments.foreach {
       segment =>
@@ -145,13 +145,13 @@ object TestCaseSweeper extends LazyLogging {
   }
 
   private def receiveAll(sweeper: TestCaseSweeper): Unit = {
-    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
-    sweeper.allMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
-    sweeper.blockMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
-    sweeper.cacheMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
-    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))
-    sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Bag.Less, Unit](_ => ())))
-    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Less, Unit](_ => ())))))
+    sweeper.keyValueMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
+    sweeper.allMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
+    sweeper.blockMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
+    sweeper.cacheMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
+    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))
+    sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Bag.Glass, Unit](_ => ())))
+    sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Bag.Glass, Unit](_ => ())))))
   }
 
   def apply[T](code: TestCaseSweeper => T): T = {

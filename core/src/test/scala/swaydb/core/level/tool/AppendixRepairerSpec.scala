@@ -71,7 +71,7 @@ class AppendixRepairerSpec extends TestBase {
             level.putKeyValuesTest(randomizedKeyValues(10000)).value
 
             if (level.hasMMAP && OperatingSystem.isWindows)
-              level.close[Bag.Less]()
+              level.close[Bag.Glass]()
 
             level.segmentsCount() should be > 2
             val segmentsBeforeRepair = level.segmentsInLevel()
@@ -97,7 +97,7 @@ class AppendixRepairerSpec extends TestBase {
             val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())))
 
             if (level.hasMMAP && OperatingSystem.isWindows) {
-              level.close[Bag.Less]()
+              level.close[Bag.Glass]()
               eventual(10.seconds) {
                 sweeper.receiveAll()
                 Effect.walkDelete(level.appendixPath)
@@ -137,7 +137,7 @@ class AppendixRepairerSpec extends TestBase {
             level.putKeyValuesTest(keyValues).value
 
             if (level.hasMMAP && OperatingSystem.isWindows)
-              level.close[Bag.Less]()
+              level.close[Bag.Glass]()
 
             level.segmentsCount() should be > 2
             val segmentsBeforeRepair = level.segmentsInLevel()
@@ -192,7 +192,7 @@ class AppendixRepairerSpec extends TestBase {
           val segmentsBeforeRepair = level.segmentsInLevel()
 
           if (level.hasMMAP && OperatingSystem.isWindows) {
-            level.close[Bag.Less]()
+            level.close[Bag.Glass]()
             sweeper.receiveAll()
           }
 

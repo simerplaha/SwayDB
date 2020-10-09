@@ -73,7 +73,7 @@ private[swaydb] object StreamFree {
         }
 
       @inline private final def step[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
-        if (bag == Bag.less)
+        if (bag == Bag.glass)
           stepBagLess(bag)
         else
           stepSafe(bag)

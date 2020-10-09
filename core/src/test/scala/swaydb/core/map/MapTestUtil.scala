@@ -54,7 +54,7 @@ object MapTestUtil {
   def ensureCleanedForWindows(mmap: MMAP.Map)(implicit bufferCleaner: ByteBufferSweeperActor): Unit =
     if (OperatingSystem.isWindows && mmap.isMMAP) {
       val cleaner = bufferCleaner.actor
-      val state = cleaner.receiveAllForce[Bag.Less, State](state => state)
+      val state = cleaner.receiveAllForce[Bag.Glass, State](state => state)
       eventual(30.seconds)(state.pendingClean.isEmpty shouldBe true)
     }
 

@@ -28,7 +28,7 @@ import java.nio.file.Path
 import java.util.Optional
 import java.util.function.Supplier
 
-import swaydb.Bag.Less
+import swaydb.Bag.Glass
 
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
@@ -68,7 +68,7 @@ case class Queue[A](asScala: swaydb.Queue[A]) extends Stream[A] {
   def delete(): Unit =
     asScala.delete()
 
-  override def asScalaStream: swaydb.Stream[A, Less] =
+  override def asScalaStream: swaydb.Stream[A, Glass] =
     asScala
 
   override def equals(other: Any): Boolean =

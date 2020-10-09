@@ -214,7 +214,7 @@ object PersistentQueue {
 
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
-        swaydb.persistent.Queue[A, Bag.Less](
+        swaydb.persistent.Queue[A, Bag.Glass](
           dir = dir,
           mapSize = mapSize,
           mmapMaps = mmapMaps,
@@ -243,7 +243,7 @@ object PersistentQueue {
           levelFiveThrottle = levelFiveThrottle.asScala,
           levelSixThrottle = levelSixThrottle.asScala
         )(serializer = serializer,
-          bag = Bag.less,
+          bag = Bag.glass,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 

@@ -29,7 +29,7 @@ import java.time.Duration
 import java.util
 import java.util.Optional
 
-import swaydb.Bag.Less
+import swaydb.Bag.Glass
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Java._
@@ -42,7 +42,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Documentation - http://swaydb.io/
  */
-case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[K, V] {
+case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Glass]) extends SetMapT[K, V] {
 
   def path: Path =
     asScala.path
@@ -134,7 +134,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
   def asJava: util.Map[K, V] =
     asScala.asScala.asJava
 
-  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Less] =
+  override def asScalaStream: swaydb.Source[K, KeyVal[K, V], Glass] =
     asScala.transformValue(_.asKeyVal)
 
   def close(): Unit =

@@ -202,7 +202,7 @@ object EventuallyPersistentQueue {
 
     def get(): swaydb.java.Queue[A] = {
       val scalaMap =
-        swaydb.eventually.persistent.Queue[A, Bag.Less](
+        swaydb.eventually.persistent.Queue[A, Bag.Glass](
           dir = dir,
           mapSize = mapSize,
           maxMemoryLevelSize = maxMemoryLevelSize,
@@ -227,7 +227,7 @@ object EventuallyPersistentQueue {
           memoryCache = memoryCache,
           threadStateCache = threadStateCache
         )(serializer = serializer,
-          bag = Bag.less,
+          bag = Bag.glass,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 

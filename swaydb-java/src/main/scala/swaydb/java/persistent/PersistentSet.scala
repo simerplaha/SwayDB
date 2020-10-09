@@ -254,7 +254,7 @@ object PersistentSet {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
       val scalaMap =
-        swaydb.persistent.Set[A, PureFunction.Set[A], Bag.Less](
+        swaydb.persistent.Set[A, PureFunction.Set[A], Bag.Glass](
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -286,13 +286,13 @@ object PersistentSet {
           levelSixThrottle = levelSixThrottle.asScala
         )(serializer = serializer,
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Set[A]]],
-          bag = Bag.less,
+          bag = Bag.glass,
           functions = functions.asInstanceOf[Functions[PureFunction.Set[A]]],
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
-      swaydb.java.Set[A, F](scalaMap.asInstanceOf[swaydb.Set[A, F, Bag.Less]])
+      swaydb.java.Set[A, F](scalaMap.asInstanceOf[swaydb.Set[A, F, Bag.Glass]])
     }
   }
 

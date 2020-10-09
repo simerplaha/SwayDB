@@ -696,8 +696,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     runAsserts(asserts)
 
-    compaction.foreach(_.foreach(_.terminateAndClear[Bag.Less]()))
-    level0.delete[Bag.Less]()
+    compaction.foreach(_.foreach(_.terminateAndClear[Bag.Glass]()))
+    level0.delete[Bag.Glass]()
 
     if (!throttleOn)
       assertLevel(

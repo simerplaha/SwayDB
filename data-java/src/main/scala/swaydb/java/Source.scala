@@ -28,9 +28,9 @@ import swaydb.Bag
 
 object Source {
 
-  @inline def apply[K, T](scalaSource: => swaydb.Source[K, T, Bag.Less]): Source[K, T] =
+  @inline def apply[K, T](scalaSource: => swaydb.Source[K, T, Bag.Glass]): Source[K, T] =
     new Source[K, T] {
-      override def asScalaStream: swaydb.Source[K, T, Bag.Less] =
+      override def asScalaStream: swaydb.Source[K, T, Bag.Glass] =
         scalaSource
     }
 
@@ -38,7 +38,7 @@ object Source {
 
 trait Source[K, T] extends Stream[T] {
 
-  override def asScalaStream: swaydb.Source[K, T, Bag.Less]
+  override def asScalaStream: swaydb.Source[K, T, Bag.Glass]
 
   def from(key: K): Source[K, T] =
     Source(asScalaStream.from(key))

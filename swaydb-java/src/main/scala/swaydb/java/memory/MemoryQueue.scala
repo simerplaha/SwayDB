@@ -120,7 +120,7 @@ object MemoryQueue {
 
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
-        swaydb.memory.Queue[A, Bag.Less](
+        swaydb.memory.Queue[A, Bag.Glass](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -133,7 +133,7 @@ object MemoryQueue {
           lastLevelThrottle = lastLevelThrottle.asScala,
           threadStateCache = threadStateCache
         )(serializer = serializer,
-          bag = Bag.less,
+          bag = Bag.glass,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC))
 
       swaydb.java.Queue[A](scalaQueue)

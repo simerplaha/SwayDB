@@ -37,7 +37,7 @@ import scala.util.Try
  *
  * Popular effect libraries in Scala like Cats, ZIO and Monix are supported internally. See examples repo for samples.
  *
- * [[Bag.Less]] can be used to disable effect types.
+ * [[Bag.Glass]] can be used to disable effect types.
  */
 sealed trait Bag[BAG[_]] { thisBag =>
   def unit: BAG[Unit]
@@ -478,21 +478,21 @@ object Bag extends LazyLogging {
         fa.recoverWith(pf)
     }
 
-  type Less[+A] = A
+  type Glass[+A] = A
 
-  implicit val less: Bag.Sync[Less]@uncheckedVariance =
-    new Bag.Sync[Less] {
-      override def isSuccess[A](a: Less[A]): Boolean = true
+  implicit val glass: Bag.Sync[Glass] =
+    new Bag.Sync[Glass] {
+      override def isSuccess[A](a: Glass[A]): Boolean = true
 
-      override def isFailure[A](a: Less[A]): Boolean = false
+      override def isFailure[A](a: Glass[A]): Boolean = false
 
-      override def exception[A](a: Less[A]): Option[Throwable] = None
+      override def exception[A](a: Glass[A]): Option[Throwable] = None
 
-      override def getOrElse[A, B >: A](a: Less[A])(b: => B): B = a
+      override def getOrElse[A, B >: A](a: Glass[A])(b: => B): B = a
 
-      override def getUnsafe[A](a: Less[A]): A = a
+      override def getUnsafe[A](a: Glass[A]): A = a
 
-      override def orElse[A, B >: A](a: Less[A])(b: Less[B]): B = a
+      override def orElse[A, B >: A](a: Glass[A])(b: Glass[B]): B = a
 
       override def unit: Unit = ()
 
@@ -500,29 +500,29 @@ object Bag extends LazyLogging {
 
       override def apply[A](a: => A): A = a
 
-      override def foreach[A](a: Less[A])(f: A => Unit): Unit = f(a)
+      override def foreach[A](a: Glass[A])(f: A => Unit): Unit = f(a)
 
-      override def map[A, B](a: Less[A])(f: A => B): B = f(a)
+      override def map[A, B](a: Glass[A])(f: A => B): B = f(a)
 
-      override def transform[A, B](a: Less[A])(f: A => B): B = f(a)
+      override def transform[A, B](a: Glass[A])(f: A => B): B = f(a)
 
-      override def flatMap[A, B](fa: Less[A])(f: A => Less[B]): B = f(fa)
+      override def flatMap[A, B](fa: Glass[A])(f: A => Glass[B]): B = f(fa)
 
-      override def success[A](value: A): Less[A] = value
+      override def success[A](value: A): A = value
 
       override def failure[A](exception: Throwable): A = throw exception
 
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): A = a.get
 
-      override def suspend[B](f: => Less[B]): B = f
+      override def suspend[B](f: => Glass[B]): B = f
 
-      override def safe[B](f: => Less[B]): B = f
+      override def safe[B](f: => Glass[B]): B = f
 
-      override def flatten[A](fa: Less[A]): A = fa
+      override def flatten[A](fa: Glass[A]): A = fa
 
-      override def recover[A, B >: A](fa: Less[A])(pf: PartialFunction[Throwable, B]): B = fa
+      override def recover[A, B >: A](fa: Glass[A])(pf: PartialFunction[Throwable, B]): B = fa
 
-      override def recoverWith[A, B >: A](fa: Less[A])(pf: PartialFunction[Throwable, Less[B]]): Less[B] = fa
+      override def recoverWith[A, B >: A](fa: Glass[A])(pf: PartialFunction[Throwable, Glass[B]]): B = fa
     }
 
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =

@@ -255,7 +255,7 @@ object PersistentMap {
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
       val scalaMap =
-        swaydb.persistent.Map[K, V, PureFunction.Map[K, V], Bag.Less](
+        swaydb.persistent.Map[K, V, PureFunction.Map[K, V], Bag.Glass](
           dir = dir,
           mapSize = mapSize,
           appliedFunctionsMapSize = appliedFunctionsMapSize,
@@ -289,12 +289,12 @@ object PersistentMap {
           valueSerializer = valueSerializer,
           functions = functions.asInstanceOf[Functions[PureFunction.Map[K, V]]],
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
-          bag = Bag.less,
+          bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
           compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
         )
 
-      swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Bag.Less]])
+      swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Bag.Glass]])
     }
   }
 

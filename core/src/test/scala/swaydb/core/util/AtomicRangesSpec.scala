@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import swaydb.Bag.Less
+import swaydb.Bag.Glass
 import swaydb.IO.ApiIO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -59,11 +59,11 @@ class AtomicRanges_IOSpec extends AtomicRangesSpec[IO.ApiIO] {
     a.left.get.exception
 }
 
-class AtomicRanges_LessSpec extends AtomicRangesSpec[Bag.Less] {
+class AtomicRanges_LessSpec extends AtomicRangesSpec[Bag.Glass] {
 
-  override def get[A](a: Bag.Less[A]): A = a
+  override def get[A](a: Bag.Glass[A]): A = a
 
-  override def getException(a: => Less[_]): Throwable =
+  override def getException(a: => Glass[_]): Throwable =
     IO(a).left.get
 }
 

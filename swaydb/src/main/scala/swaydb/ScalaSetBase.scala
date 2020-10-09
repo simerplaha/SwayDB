@@ -26,13 +26,13 @@ package swaydb
 
 import scala.collection.mutable
 
-protected abstract class ScalaSetBase[A, F](db: Set[A, F, Bag.Less]) extends mutable.Set[A] {
+protected abstract class ScalaSetBase[A, F](db: Set[A, F, Bag.Glass]) extends mutable.Set[A] {
 
   override def contains(elem: A): Boolean =
     db.contains(elem)
 
   override def iterator: Iterator[A] =
-    db.iterator(Bag.less)
+    db.iterator(Bag.glass)
 
   override def isEmpty: Boolean =
     db.isEmpty
@@ -54,13 +54,13 @@ protected abstract class ScalaSetBase[A, F](db: Set[A, F, Bag.Less]) extends mut
 
 }
 
-protected abstract class ScalaSetBaseFromMap[A](db: SetMapT[A, _, Bag.Less]) extends mutable.Set[A] {
+protected abstract class ScalaSetBaseFromMap[A](db: SetMapT[A, _, Bag.Glass]) extends mutable.Set[A] {
 
   override def contains(elem: A): Boolean =
     db.contains(elem)
 
   override def iterator: Iterator[A] =
-    db.iterator(Bag.less).map(_._1)
+    db.iterator(Bag.glass).map(_._1)
 
   override def isEmpty: Boolean =
     db.isEmpty

@@ -82,7 +82,7 @@ sealed trait SwayDBSourceSpec extends TestBaseEmbedded {
 
   def newDB()(implicit sweeper: TestCaseSweeper): SetMapT[Int, String,  IO.ApiIO]
 
-  implicit val bag = Bag.less
+  implicit val bag = Bag.glass
 
   "it" should {
 

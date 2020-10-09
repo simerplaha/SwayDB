@@ -588,7 +588,7 @@ trait SimulationSpec extends AnyWordSpec with TestBaseEmbedded with LazyLogging 
 
           Thread.sleep(runFor.toMillis)
 
-          actors.map(_.terminateAndClear[Bag.Less]())
+          actors.map(_.terminateAndClear[Bag.Glass]())
       }
     }
   }

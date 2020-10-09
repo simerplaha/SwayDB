@@ -232,7 +232,7 @@ private[core] object LevelZeroMapCache {
  *
  * Creates multi-layered SkipList.
  *
- * Currently all atomic operations defaults to using [[Bag.Less]] which requires
+ * Currently all atomic operations defaults to using [[Bag.Glass]] which requires
  * blocking on conflicting in-memory SkipList updates. The cost of blocking
  * when concurrently writing and reading in-memory SkipList is very cheap.
  * The maximum time blocking time on benchmarking was between 0.006 to 0.019642 seconds.
@@ -256,7 +256,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
                 entries = entries,
                 state = state
               )
-            }(Bag.less)
+            }(Bag.glass)
 
           case MapEntry.Put(_, last: Memory.Range) =>
             state.skipList.atomicWrite(from = sorted.head.key, to = last.toKey, toInclusive = false) {
@@ -264,7 +264,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
                 entries = entries,
                 state = state
               )
-            }(Bag.less)
+            }(Bag.glass)
 
           case remove @ MapEntry.Remove(_) =>
             throw new IllegalAccessException(s"${MapEntry.productPrefix}.${remove.productPrefix} is not allowed in ${LevelZero.productPrefix}.")
@@ -300,55 +300,55 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
 
   def headKeyOptimised: SliceOption[Byte] =
     if (atomic.enabled)
-      state.skipList.atomicReadKey(_.headKey)(Bag.less)
+      state.skipList.atomicReadKey(_.headKey)(Bag.glass)
     else
       state.skipList.headKey
 
   def lastKeyOptimised: SliceOption[Byte] =
     if (atomic.enabled)
-      state.skipList.atomicReadKey(_.lastKey)(Bag.less)
+      state.skipList.atomicReadKey(_.lastKey)(Bag.glass)
     else
       state.skipList.lastKey
 
   def headOptimised: MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.head())(Bag.less)
+      state.skipList.atomicReadValue(_.key)(_.head())(Bag.glass)
     else
       state.skipList.head()
 
   def lastOptimised: MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.last())(Bag.less)
+      state.skipList.atomicReadValue(_.key)(_.last())(Bag.glass)
     else
       state.skipList.last()
 
   def getOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.get(key))(Bag.less)
+      state.skipList.atomicReadValue(_.key)(_.get(key))(Bag.glass)
     else
       state.skipList.get(key)
 
   def floorOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.floor(key))(Bag.less)
+      state.skipList.atomicReadValue(_.key)(_.floor(key))(Bag.glass)
     else
       state.skipList.floor(key)
 
   def lowerOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.lower(key))(Bag.less)
+      state.skipList.atomicReadValue(_.key)(_.lower(key))(Bag.glass)
     else
       state.skipList.lower(key)
 
   def higherOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.higher(key))(Bag.less)
+      state.skipList.atomicReadValue(_.key)(_.higher(key))(Bag.glass)
     else
       state.skipList.higher(key)
 
   def ceilingOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.ceiling(key))(Bag.less)
+      state.skipList.atomicReadValue(_.key)(_.ceiling(key))(Bag.glass)
     else
       state.skipList.ceiling(key)
 

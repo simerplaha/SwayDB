@@ -32,7 +32,7 @@ import scala.collection.mutable
  */
 private[swaydb] object ScalaSet {
 
-  def apply[A, F](db: Set[A, F, Bag.Less]): mutable.Set[A] =
+  def apply[A, F](db: Set[A, F, Bag.Glass]): mutable.Set[A] =
     new ScalaSetBase[A, F](db) {
       override def addOne(elem: A): this.type = {
         db.add(elem)
@@ -55,7 +55,7 @@ private[swaydb] object ScalaSet {
       }
     }
 
-  def apply[A, V](db: SetMapT[A, V, Bag.Less], nullValue: V): mutable.Set[A] =
+  def apply[A, V](db: SetMapT[A, V, Bag.Glass], nullValue: V): mutable.Set[A] =
     new ScalaSetBaseFromMap[A](db) {
       override def addOne(elem: A): this.type = {
         db.put(elem, nullValue)

@@ -62,23 +62,23 @@ class SwayDBPartialSet_Persistent_Spec extends SwayDBPartialSetSpec {
 
   import SwayDBPartialSetSpec._
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less] =
-    swaydb.persistent.Set[(Int, Option[String]), Nothing, Bag.Less](randomDir, mapSize = 10.bytes).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Glass] =
+    swaydb.persistent.Set[(Int, Option[String]), Nothing, Bag.Glass](randomDir, mapSize = 10.bytes).sweep(_.delete())
 }
 
 class SwayDBPartialSet_Memory_Spec extends SwayDBPartialSetSpec {
 
   import SwayDBPartialSetSpec._
 
-  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less] =
-    swaydb.memory.Set[(Int, Option[String]), Nothing, Bag.Less](mapSize = 10.bytes).sweep(_.delete())
+  override def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Glass] =
+    swaydb.memory.Set[(Int, Option[String]), Nothing, Bag.Glass](mapSize = 10.bytes).sweep(_.delete())
 }
 
 trait SwayDBPartialSetSpec extends TestBaseEmbedded {
 
   val keyValueCount = 1000
 
-  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less]
+  def newDB()(implicit sweeper: TestCaseSweeper): swaydb.Set[(Int, Option[String]), Nothing, Bag.Glass]
 
   "read partially ordered key-values" in {
     runThis(times = repeatTest, log = true) {

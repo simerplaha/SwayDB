@@ -67,7 +67,7 @@ private[swaydb] object Core {
             config: SwayDBPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore,
-                                            buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] =
+                                            buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Glass]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
@@ -85,7 +85,7 @@ private[swaydb] object Core {
             config: SwayDBMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
-                                        buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Less]] =
+                                        buildValidator: BuildValidator): IO[swaydb.Error.Boot, Core[Bag.Glass]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,

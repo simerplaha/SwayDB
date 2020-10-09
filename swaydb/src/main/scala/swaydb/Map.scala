@@ -379,7 +379,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     copy(core = core.toBag[X])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](toBag[Bag.Less](Bag.less))
+    ScalaMap[K, V](toBag[Bag.Glass](Bag.glass))
 
   def close(): BAG[Unit] =
     bag.suspend(core.close())
