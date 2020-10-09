@@ -241,7 +241,7 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
           subMap1.count shouldBe 2
           subMap1.head.value shouldBe ((1, "one"))
           subMap1.last.value shouldBe ((2, "two"))
-          subMap1.childrenKeys.lastOption.value shouldBe 3
+          subMap1.childrenKeys.last.value shouldBe 3
           subMap1.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((1, "one"), (2, "two"))
           subMap1.childrenKeys.materialize.toList shouldBe List(3)
           subMap1.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
@@ -271,8 +271,8 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
           //
           //SECOND MAP ITERATIONS
           subMap2.count shouldBe 2
-          subMap2.headOption.value shouldBe ((3, "three"))
-          subMap2.lastOption.value shouldBe ((4, "four"))
+          subMap2.head.value shouldBe ((3, "three"))
+          subMap2.last.value shouldBe ((4, "four"))
           subMap2.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((3, "three"), (4, "four"))
           subMap2.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((3, "three"), (4, "four"))
           subMap2.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((4, "four"), (3, "three"))

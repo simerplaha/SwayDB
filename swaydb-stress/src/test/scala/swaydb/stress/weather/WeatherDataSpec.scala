@@ -127,8 +127,8 @@ trait WeatherDataSpec extends TestBase with LazyLogging {
         }
 
     took.materialize.runRandomIO.right.value should have size 100
-    took.headOption.get.get._1 shouldBe startFrom
-    took.lastOption.get.get._1 shouldBe (startFrom + 99)
+    took.head.get.get._1 shouldBe startFrom
+    took.last.get.get._1 shouldBe (startFrom + 99)
   }
 
   def doHeadAndLast(implicit db: swaydb.SetMapT[Int, WeatherData, IO.ApiIO]) = {

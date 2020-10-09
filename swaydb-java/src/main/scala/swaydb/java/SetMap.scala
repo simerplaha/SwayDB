@@ -110,7 +110,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
   def timeLeft(key: K): Optional[Duration] =
     asScala.timeLeft(key).asJavaMap(_.toJava)
 
-  def head: Optional[KeyVal[K, V]] =
+  override def head: Optional[KeyVal[K, V]] =
     asScala.head.asJavaMap(KeyVal(_))
 
   override def keys: Stream[K] =
@@ -128,7 +128,7 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Bag.Less]) extends SetMapT[
   def nonEmpty: Boolean =
     asScala.nonEmpty
 
-  def last: Optional[KeyVal[K, V]] =
+  override def last: Optional[KeyVal[K, V]] =
     asScala.last.asJavaMap(KeyVal(_))
 
   def asJava: util.Map[K, V] =

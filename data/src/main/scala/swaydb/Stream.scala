@@ -98,8 +98,8 @@ abstract class Stream[A, BAG[_]](implicit val bag: Bag[BAG]) {
   private[swaydb] def nextOrNull(previous: A): BAG[A] =
     free.nextOrNull(previous)
 
-  def headOption: BAG[Option[A]] =
-    free.headOption
+  def head: BAG[Option[A]] =
+    free.head
 
   def map[B](f: A => B): Stream[B, BAG] =
     Stream(free.map(f))
@@ -154,8 +154,8 @@ abstract class Stream[A, BAG[_]](implicit val bag: Bag[BAG]) {
    *
    * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
    */
-  def lastOption: BAG[Option[A]] =
-    free.lastOption
+  def last: BAG[Option[A]] =
+    free.last
 
   /**
    * Materializes are executes the stream.

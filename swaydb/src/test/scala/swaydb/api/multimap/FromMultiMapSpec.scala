@@ -230,7 +230,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
               () => subMap1.fromOrAfter(0).materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
               () => subMap1.count shouldBe 2,
               () => subMap1.head.value shouldBe ((1, "one")),
-              () => subMap1.childrenKeys.lastOption.value shouldBe 3,
+              () => subMap1.childrenKeys.last.value shouldBe 3,
 
               () => subMap2.from(5).materialize.toList shouldBe empty,
               () => subMap2.after(4).materialize.toList shouldBe empty,

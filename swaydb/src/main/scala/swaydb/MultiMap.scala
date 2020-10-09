@@ -295,7 +295,10 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
   def update(keyValues: Stream[(K, V), BAG]): BAG[OK] =
     bag.flatMap(keyValues.materialize)(update)
 
-  def update(keyValues: Iterable[(K, V)]): BAG[OK] = {
+  def update(keyValues: Iterable[(K, V)]): BAG[OK] =
+    update(keyValues.iterator)
+
+  def update(keyValues: Iterator[(K, V)]): BAG[OK] = {
     val updates =
       keyValues.map {
         case (key, value) =>
@@ -304,9 +307,6 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
 
     multiMap.commit(updates)
   }
-
-  def update(keyValues: Iterator[(K, V)]): BAG[OK] =
-    update(keyValues)
 
   def clearKeyValues(): BAG[OK] = {
     val entriesStart = MultiKey.KeysStart(mapId)
@@ -491,7 +491,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
-  def head: BAG[Option[(K, V)]] =
+  override def head: BAG[Option[(K, V)]] =
     bag.transform(headOrNull)(Option(_))
 
   private def headOrNull(from: Option[From[K]], reverse: Boolean): StreamFree[(K, V)] = {
@@ -559,13 +559,13 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
     multiMap.sizeOfBloomFilterEntries
 
   def isEmpty: BAG[Boolean] =
-    bag.map(headOption)(_.isEmpty)
+    bag.map(head)(_.isEmpty)
 
   def nonEmpty: BAG[Boolean] =
-    bag.map(headOption)(_.nonEmpty)
+    bag.map(head)(_.nonEmpty)
 
-  def last: BAG[Option[(K, V)]] =
-    lastOption
+  override def last: BAG[Option[(K, V)]] =
+    super.last
 
   override def clearAppliedFunctions(): BAG[Iterable[String]] =
     multiMap.clearAppliedFunctions()

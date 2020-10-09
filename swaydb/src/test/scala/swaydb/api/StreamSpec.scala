@@ -153,14 +153,14 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
 
     "headOption" in {
       Stream[Int, BAG](1 to 100)
-        .headOption
+        .head
         .await should contain(1)
     }
 
     "headOption failure" in {
       def stream =
         Stream[Int, BAG](failureIterator)
-          .headOption
+          .head
 
       getException(stream).getMessage shouldBe "Failed hasNext"
     }
@@ -181,14 +181,14 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWord
 
     "lastOptionLinear" in {
       Stream[Int, BAG](1 to 100)
-        .lastOption
+        .last
         .await should contain(100)
     }
 
     "lastOption failure" in {
       def stream =
         Stream[Int, BAG](failureIterator)
-          .lastOption
+          .last
 
       getException(stream).getMessage shouldBe "Failed hasNext"
     }

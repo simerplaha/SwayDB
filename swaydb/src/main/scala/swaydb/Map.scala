@@ -264,7 +264,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
-  def head: BAG[Option[(K, V)]] =
+  override def head: BAG[Option[(K, V)]] =
     bag.transform(
       headOrNull(
         from = None,
@@ -357,7 +357,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
   def nonEmpty: BAG[Boolean] =
     bag.transform(isEmpty)(!_)
 
-  def last: BAG[Option[(K, V)]] =
+  override def last: BAG[Option[(K, V)]] =
     bag.map(core.last(core.readStates.get())) {
       case TupleOrNone.Some(key, value) =>
         Some((key.read[K], value.read[V]))

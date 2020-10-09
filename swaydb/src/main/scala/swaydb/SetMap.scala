@@ -217,7 +217,7 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
-  def head: BAG[Option[(K, V)]] =
+  override def head: BAG[Option[(K, V)]] =
     set.head
 
   private[swaydb] def free: SourceFree[K, (K, V)] =
@@ -280,7 +280,7 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
   def nonEmpty: BAG[Boolean] =
     set.nonEmpty
 
-  def last: BAG[Option[(K, V)]] =
+  override def last: BAG[Option[(K, V)]] =
     set.last
 
   private def copy(): Unit = ()

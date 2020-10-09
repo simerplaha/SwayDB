@@ -104,11 +104,11 @@ trait Stream[A] {
     Pair(left.asJava, right.asJava)
   }
 
-  def lastOption: Optional[A] =
-    asScalaStream.lastOption.asJava
+  def last: Optional[A] =
+    asScalaStream.last.asJava
 
-  def headOption: Optional[A] =
-    asScalaStream.headOption.asJava
+  def head: Optional[A] =
+    asScalaStream.head.asJava
 
   def foldLeft[B](initial: B, function: BiFunction[B, A, B]): B =
     asScalaStream.foldLeft(initial)(function.asScala)

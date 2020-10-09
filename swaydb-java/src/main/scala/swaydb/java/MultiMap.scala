@@ -198,7 +198,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   def timeLeft(key: K): Optional[Duration] =
     asScala.timeLeft(key).asJavaMap(_.toJava)
 
-  def head: Optional[KeyVal[K, V]] =
+  override def head: Optional[KeyVal[K, V]] =
     asScala.head.asJavaMap(KeyVal(_))
 
   override def keys: Stream[K] =
@@ -216,7 +216,7 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Bag.Less])(
   def nonEmpty: Boolean =
     asScala.nonEmpty
 
-  def last: Optional[KeyVal[K, V]] =
+  override def last: Optional[KeyVal[K, V]] =
     asScala.last.asJavaMap(KeyVal(_))
 
   def clearAppliedFunctions(): lang.Iterable[String] =

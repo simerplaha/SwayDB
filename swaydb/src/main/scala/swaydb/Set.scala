@@ -173,7 +173,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
   def timeLeft(elem: A): BAG[Option[FiniteDuration]] =
     bag.map(expiration(elem))(_.map(_.timeLeft))
 
-  def head: BAG[Option[A]] =
+  override def head: BAG[Option[A]] =
     headOption(core.readStates.get())
 
   protected def headOption(readState: ThreadReadState): BAG[Option[A]] =
@@ -274,7 +274,7 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
   def nonEmpty: BAG[Boolean] =
     bag.map(isEmpty)(!_)
 
-  def last: BAG[Option[A]] =
+  override def last: BAG[Option[A]] =
     bag.map(core.lastKey(core.readStates.get()))(_.mapC(_.read[A]))
 
   def toBag[X[_]](implicit bag: Bag[X]): Set[A, F, X] =

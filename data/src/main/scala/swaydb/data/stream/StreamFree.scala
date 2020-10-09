@@ -85,12 +85,12 @@ private[swaydb] object StreamFree {
         step(bag)
     }
 
-  def join[A, B >: A](head: A, tail: StreamFree[B]): StreamFree[B] =
+  def join[A, B >: A](first: A, tail: StreamFree[B]): StreamFree[B] =
     new StreamFree[B]() {
       var processHead = false
 
       override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[B] =
-        bag.success(head)
+        bag.success(first)
 
       override private[swaydb] def nextOrNull[BAG[_]](previous: B)(implicit bag: Bag[BAG]) =
         if (!processHead)
@@ -113,7 +113,7 @@ private[swaydb] trait StreamFree[A] { self =>
   private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A]
   private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[A]
 
-  final def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+  final def head[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
     bag.map(headOrNull)(Option(_))
 
   def map[B](f: A => B): StreamFree[B] =
@@ -197,7 +197,7 @@ private[swaydb] trait StreamFree[A] { self =>
    *
    * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
    */
-  def lastOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] = {
+  def last[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] = {
     val last =
       foldLeft(OptionMutable.Null: OptionMutable[A]) {
         (previous, next) =>

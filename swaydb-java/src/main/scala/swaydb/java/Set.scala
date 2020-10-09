@@ -151,7 +151,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
   def timeLeft(elem: A): Optional[java.time.Duration] =
     asScala.timeLeft(elem).asJavaMap(_.toJava)
 
-  def head: Optional[A] =
+  override def head: Optional[A] =
     asScala.head.asJava
 
   def clearAppliedFunctions(): lang.Iterable[String] =
@@ -172,7 +172,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Bag.Less])(implicit evd: F <:< Pu
   def nonEmpty: Boolean =
     asScala.nonEmpty
 
-  def last: Optional[A] =
+  override def last: Optional[A] =
     asScala.last.asJava
 
   def asJava: util.Set[A] =
