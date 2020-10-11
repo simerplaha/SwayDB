@@ -63,6 +63,7 @@ object EventuallyPersistentMultiMap {
                                  private var cacheKeyValueIds: Boolean = true,
                                  private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                  private var deleteMemorySegmentsEventually: Boolean = true,
+                                 private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                                  private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                                  private var atomic: Atomic = DefaultConfigs.atomic(),
                                  private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
@@ -86,6 +87,11 @@ object EventuallyPersistentMultiMap {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setMergeParallelism(parallel: Int) = {
+      this.mergeParallelism = parallel
       this
     }
 
@@ -244,6 +250,7 @@ object EventuallyPersistentMultiMap {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          mergeParallelism = mergeParallelism,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.apply,
@@ -263,7 +270,7 @@ object EventuallyPersistentMultiMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
         )
 
       swaydb.java.MultiMap[M, K, V, F](scalaMap.asInstanceOf[swaydb.MultiMap[M, K, V, F, Glass]])

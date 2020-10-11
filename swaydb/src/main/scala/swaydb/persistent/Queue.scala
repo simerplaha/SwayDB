@@ -78,7 +78,7 @@ object Queue extends LazyLogging {
                        levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A],
                                                                                                    bag: Bag[BAG],
                                                                                                    sequencer: Sequencer[BAG] = null,
-                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
+                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism),
                                                                                                    buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Queue)): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =

@@ -59,8 +59,7 @@ object Queue extends LazyLogging {
                        cacheKeyValueIds: Boolean = true,
                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                        deleteMemorySegmentsEventually: Boolean = true,
-                       memoryLevelMergeParallelism: Int = DefaultConfigs.mergeParallelism(),
-                       persistentLevelMergeParallelism: Int = DefaultConfigs.mergeParallelism(),
+                       mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                        optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                        atomic: Atomic = DefaultConfigs.atomic(),
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
@@ -75,7 +74,7 @@ object Queue extends LazyLogging {
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                          bag: Bag[BAG],
                                                                                                                          sequencer: Sequencer[BAG] = null,
-                                                                                                                         compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
+                                                                                                                         compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism),
                                                                                                                          buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Queue)): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =
@@ -97,8 +96,7 @@ object Queue extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
-          memoryLevelMergeParallelism = memoryLevelMergeParallelism,
-          persistentLevelMergeParallelism = persistentLevelMergeParallelism,
+          mergeParallelism = mergeParallelism,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration,

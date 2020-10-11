@@ -68,7 +68,7 @@ object Set extends LazyLogging {
                                                                                                                                                    sequencer: Sequencer[BAG] = null,
                                                                                                                                                    byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                    typedKeyOrder: KeyOrder[A] = null,
-                                                                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Set[A, F, BAG]] =
+                                                                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism)): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
       implicit val unitSerializer: Serializer[Nothing] = Default.NothingSerializer

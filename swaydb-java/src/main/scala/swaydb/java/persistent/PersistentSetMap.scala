@@ -59,6 +59,7 @@ object PersistentSetMap {
                            private var appendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
+                           private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -86,6 +87,11 @@ object PersistentSetMap {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setMergeParallelism(parallel: Int) = {
+      this.mergeParallelism = parallel
       this
     }
 
@@ -249,6 +255,7 @@ object PersistentSetMap {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
+          mergeParallelism = mergeParallelism,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
@@ -272,7 +279,7 @@ object PersistentSetMap {
           valueSerializer = valueSerializer,
           bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
         )
 
       swaydb.java.SetMap[K, V](scalaMap)

@@ -76,7 +76,7 @@ object MultiMap extends LazyLogging {
                                                                                                                                                             sequencer: Sequencer[BAG] = null,
                                                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[MultiMap[M, K, V, F, BAG]] =
+                                                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism)): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val multiKeySerializer: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, mapKeySerializer)
       implicit val multiValueSerializer: Serializer[MultiValue[V]] = MultiValue.serialiser(valueSerializer)

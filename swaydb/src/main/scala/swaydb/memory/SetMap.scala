@@ -63,7 +63,7 @@ object SetMap extends LazyLogging {
                                                                                                                             sequencer: Sequencer[BAG] = null,
                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.SetMap[K, V, BAG]] =
+                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism)): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
       val keyOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)

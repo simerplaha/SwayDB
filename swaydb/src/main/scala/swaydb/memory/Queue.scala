@@ -59,7 +59,7 @@ object Queue extends LazyLogging {
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                          bag: Bag[BAG],
                                                                                                                          sequencer: Sequencer[BAG] = null,
-                                                                                                                         compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC): BAG[swaydb.Queue[A]] =
+                                                                                                                         compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism)): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =
         swaydb.Queue.serialiser[A](serializer)

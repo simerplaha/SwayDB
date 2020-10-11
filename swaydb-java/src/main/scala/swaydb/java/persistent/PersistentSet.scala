@@ -62,6 +62,7 @@ object PersistentSet {
                            private var appendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
+                           private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -90,6 +91,11 @@ object PersistentSet {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setMergeParallelism(parallel: Int) = {
+      this.mergeParallelism = parallel
       this
     }
 
@@ -267,6 +273,7 @@ object PersistentSet {
           cacheKeyValueIds = cacheKeyValueIds,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
+          mergeParallelism = mergeParallelism,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,
@@ -289,7 +296,7 @@ object PersistentSet {
           bag = Bag.glass,
           functions = functions.asInstanceOf[Functions[PureFunction.Set[A]]],
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
         )
 
       swaydb.java.Set[A, F](scalaMap.asInstanceOf[swaydb.Set[A, F, Glass]])

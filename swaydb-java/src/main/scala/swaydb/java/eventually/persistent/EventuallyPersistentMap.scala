@@ -63,6 +63,7 @@ object EventuallyPersistentMap {
                               private var cacheKeyValueIds: Boolean = true,
                               private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                               private var deleteMemorySegmentsEventually: Boolean = true,
+                              private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                               private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                               private var atomic: Atomic = DefaultConfigs.atomic(),
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
@@ -85,6 +86,11 @@ object EventuallyPersistentMap {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setMergeParallelism(parallel: Int) = {
+      this.mergeParallelism = parallel
       this
     }
 
@@ -241,6 +247,7 @@ object EventuallyPersistentMap {
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
+          mergeParallelism = mergeParallelism,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
           optimiseWrites = optimiseWrites,
@@ -261,7 +268,7 @@ object EventuallyPersistentMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
         )
 
       swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Glass]])

@@ -60,6 +60,7 @@ object EventuallyPersistentSetMap {
                            private var cacheKeyValueIds: Boolean = true,
                            private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                            private var deleteMemorySegmentsEventually: Boolean = true,
+                           private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                            private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                            private var atomic: Atomic = DefaultConfigs.atomic(),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
@@ -80,6 +81,11 @@ object EventuallyPersistentSetMap {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setMergeParallelism(parallel: Int) = {
+      this.mergeParallelism = parallel
       this
     }
 
@@ -226,6 +232,7 @@ object EventuallyPersistentSetMap {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          mergeParallelism = mergeParallelism,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.apply,
@@ -242,7 +249,7 @@ object EventuallyPersistentSetMap {
           valueSerializer = valueSerializer,
           bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
         )
 
       swaydb.java.SetMap[K, V](scalaMap)

@@ -79,7 +79,7 @@ object SetMap extends LazyLogging {
                                                                                                       sequencer: Sequencer[BAG] = null,
                                                                                                       byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                       typedKeyOrder: KeyOrder[K] = null,
-                                                                                                      compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
+                                                                                                      compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism),
                                                                                                       buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap)): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)

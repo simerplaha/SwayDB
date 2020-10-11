@@ -55,6 +55,7 @@ object MemorySet {
                            private var deleteSegmentsEventually: Boolean = false,
                            private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                            private var atomic: Atomic = DefaultConfigs.atomic(),
+                           private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                            private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -69,6 +70,11 @@ object MemorySet {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setMergeParallelism(parallel: Int) = {
+      this.mergeParallelism = parallel
       this
     }
 
@@ -154,6 +160,7 @@ object MemorySet {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
+          mergeParallelism = mergeParallelism,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
@@ -165,7 +172,7 @@ object MemorySet {
           bag = Bag.glass,
           functions = functions.asInstanceOf[Functions[PureFunction.Set[A]]],
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
         )
 
       swaydb.java.Set[A, F](scalaMap.asInstanceOf[swaydb.Set[A, F, Glass]])

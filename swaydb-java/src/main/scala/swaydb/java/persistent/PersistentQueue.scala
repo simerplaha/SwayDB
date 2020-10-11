@@ -55,6 +55,7 @@ object PersistentQueue {
                         private var appendixFlushCheckpointSize: Int = 2.mb,
                         private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                         private var cacheKeyValueIds: Boolean = true,
+                        private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                         private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                         private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -79,6 +80,11 @@ object PersistentQueue {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setMergeParallelism(parallel: Int) = {
+      this.mergeParallelism = parallel
       this
     }
 
@@ -223,6 +229,7 @@ object PersistentQueue {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
+          mergeParallelism = mergeParallelism,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           optimiseWrites = optimiseWrites,
@@ -244,7 +251,7 @@ object PersistentQueue {
           levelSixThrottle = levelSixThrottle.asScala
         )(serializer = serializer,
           bag = Bag.glass,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
         )
 
       swaydb.java.Queue[A](scalaQueue)

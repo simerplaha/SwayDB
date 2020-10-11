@@ -96,7 +96,7 @@ object MultiMap extends LazyLogging {
                                                                                                                                       sequencer: Sequencer[BAG] = null,
                                                                                                                                       byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                       typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                                      compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
+                                                                                                                                      compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism),
                                                                                                                                       buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap)): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val multiKeySerializer: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, mapKeySerializer)

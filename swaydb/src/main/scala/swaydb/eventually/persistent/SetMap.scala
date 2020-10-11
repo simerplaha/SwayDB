@@ -55,8 +55,7 @@ object SetMap extends LazyLogging {
                           cacheKeyValueIds: Boolean = true,
                           mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                           deleteMemorySegmentsEventually: Boolean = true,
-                          memoryLevelMergeParallelism: Int = DefaultConfigs.mergeParallelism(),
-                          persistentLevelMergeParallelism: Int = DefaultConfigs.mergeParallelism(),
+                          mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                           optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                           atomic: Atomic = DefaultConfigs.atomic(),
                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
@@ -74,7 +73,7 @@ object SetMap extends LazyLogging {
                                                                                                                             sequencer: Sequencer[BAG] = null,
                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
+                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism),
                                                                                                                             buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.SetMap)): BAG[swaydb.SetMap[K, V, BAG]] =
     bag.suspend {
       val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
@@ -94,8 +93,7 @@ object SetMap extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
-          memoryLevelMergeParallelism = memoryLevelMergeParallelism,
-          persistentLevelMergeParallelism = persistentLevelMergeParallelism,
+          mergeParallelism = mergeParallelism,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration,

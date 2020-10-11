@@ -62,6 +62,7 @@ object PersistentMultiMap {
                                  private var appendixFlushCheckpointSize: Int = 2.mb,
                                  private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                                  private var cacheKeyValueIds: Boolean = true,
+                                 private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                                  private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                  private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                  private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -92,6 +93,11 @@ object PersistentMultiMap {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setMergeParallelism(parallel: Int) = {
+      this.mergeParallelism = parallel
       this
     }
 
@@ -267,6 +273,7 @@ object PersistentMultiMap {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
+          mergeParallelism = mergeParallelism,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
@@ -293,7 +300,7 @@ object PersistentMultiMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC)
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
         )
 
       swaydb.java.MultiMap[M, K, V, F](scalaMap.asInstanceOf[swaydb.MultiMap[M, K, V, F, Glass]])

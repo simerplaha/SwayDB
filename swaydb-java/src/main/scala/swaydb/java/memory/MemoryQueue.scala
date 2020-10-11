@@ -50,6 +50,7 @@ object MemoryQueue {
                         private var deleteSegmentsEventually: Boolean = false,
                         private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                         private var atomic: Atomic = DefaultConfigs.atomic(),
+                        private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                         private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -60,6 +61,11 @@ object MemoryQueue {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
+      this
+    }
+
+    def setMergeParallelism(parallel: Int) = {
+      this.mergeParallelism = parallel
       this
     }
 
@@ -126,6 +132,7 @@ object MemoryQueue {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
+          mergeParallelism = mergeParallelism,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
@@ -134,7 +141,7 @@ object MemoryQueue {
           threadStateCache = threadStateCache
         )(serializer = serializer,
           bag = Bag.glass,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC))
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism)))
 
       swaydb.java.Queue[A](scalaQueue)
     }

@@ -88,7 +88,7 @@ object Set extends LazyLogging {
                                                                                                                              functions: Functions[F],
                                                                                                                              byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                              typedKeyOrder: KeyOrder[A] = null,
-                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC,
+                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism),
                                                                                                                              buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
