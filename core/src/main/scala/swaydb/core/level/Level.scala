@@ -1066,27 +1066,6 @@ private[core] case class Level(dirs: Seq[Dir],
       }
   }
 
-  private[core] def putKeyValues(keyValues: Either[SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory], Slice[Memory]],
-                                 targetSegments: Iterable[Segment],
-                                 appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] =
-    keyValues match {
-      case util.Left(keyValues) =>
-        putKeyValues(
-          keyValuesCount = keyValues.size,
-          keyValues = keyValues.values(),
-          targetSegments = targetSegments,
-          appendEntry = appendEntry
-        )
-
-      case util.Right(keyValues) =>
-        putKeyValues(
-          keyValuesCount = keyValues.size,
-          keyValues = keyValues,
-          targetSegments = targetSegments,
-          appendEntry = appendEntry
-        )
-    }
-
   /**
    * @return Newly created Segments.
    */
