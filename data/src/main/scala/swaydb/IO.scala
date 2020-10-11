@@ -243,50 +243,53 @@ object IO {
 
         val outcome = new ConcurrentLinkedQueue[R]()
 
-        @tailrec
-        def processJobs(job: A): Unit =
-          block(job) match {
-            case IO.Right(value) =>
-              outcome add value
+        def processJobs() = {
 
-              val nextJob = jobs.poll()
-              if (nextJob != null)
-                processJobs(nextJob)
+          @tailrec
+          def run(job: A): Unit =
+            block(job) match {
+              case IO.Right(value) =>
+                outcome add value
 
-            case IO.Left(value) =>
-              failure = IO.Left(value)
-          }
+                val nextJob = jobs.poll()
+                if (nextJob != null)
+                  run(nextJob)
+
+              case IO.Left(value) =>
+                failure = IO.Left(value)
+            }
+
+          val job = jobs.poll()
+
+          if (job != null)
+            run(job)
+        }
 
         @tailrec
         def runParallel(futures: ListBuffer[Future[Unit]], remaining: Int): ListBuffer[Future[Unit]] =
-          if (remaining == 0) {
+          if (remaining == 0)
             futures
-          } else {
-            val job = jobs.poll()
-
-            if (job == null) {
-              futures
-            } else {
-              val result: Future[Unit] = Future(processJobs(job))
-              futures += result
-              runParallel(futures :+ result, remaining - 1)
-            }
-          }
+          else
+            runParallel(
+              futures = futures += Future(processJobs()),
+              remaining = remaining - 1
+            )
 
         //leave enough work for current thread to process.
         val parallelRuns = parallelism min (jobsCount - 1)
-
         //process jobs concurrent
         val futures = runParallel(futures = ListBuffer.empty, remaining = parallelRuns)
-
-        //also keep the current thread busy while there are still jobs remaining.
-        val thisThreadJob = jobs.poll()
-        if (thisThreadJob != null)
-          processJobs(thisThreadJob)
+        //also keep this thread busy while there are still jobs remaining.
+        processJobs()
 
         val result = Future.sequence(futures)
 
-        Await.result(result, Duration.Inf)
+        try
+          Await.result(result, Duration.Inf)
+        catch {
+          case exception: Exception =>
+            failure = IO.failed(exception)
+        }
 
         if (failure != null) {
           recover(outcome.asScala, failure)
