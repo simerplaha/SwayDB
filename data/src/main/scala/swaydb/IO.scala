@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
-import swaydb.data.util.Futures
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
@@ -226,7 +225,7 @@ object IO {
                                                             failFast: Boolean = true)(implicit executionContext: ExecutionContext): IO[E, Iterable[R]] = {
       val jobsCount = iterable.size
 
-      if (jobsCount == 1) {
+      if (jobsCount == 1 || parallelism <= 1) {
         mapRecoverIO(
           block = block,
           recover = recover,
