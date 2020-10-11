@@ -139,7 +139,7 @@ private[core] object PathsDistributor {
   }
 }
 
-private[core] class PathsDistributor(var dirs: Seq[Dir],
+private[core] class PathsDistributor(val dirs: Seq[Dir],
                                      //this should be the size of
                                      segments: () => Iterable[Segment]) extends LazyLogging {
 
