@@ -22,27 +22,13 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.data.compaction
+package swaydb.data
 
-import java.util.concurrent.ExecutorService
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.concurrent.ExecutionContext
+class IterableIOImplicitSpec extends AnyWordSpec with Matchers {
 
-sealed trait CompactionExecutionContext
-object CompactionExecutionContext {
-
-  def create(service: ExecutorService, mergeParallelism: Int): Create =
-    Create(
-      executionContext = ExecutionContext.fromExecutorService(service),
-      mergeParallelism = mergeParallelism
-    )
-
-  case class Create(executionContext: ExecutionContext, mergeParallelism: Int) extends CompactionExecutionContext
-
-  def shared(): CompactionExecutionContext.Shared =
-    Shared
-
-  sealed trait Shared extends CompactionExecutionContext
-  case object Shared extends Shared
+  "mapRecoverIOParallel"
 
 }

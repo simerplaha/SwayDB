@@ -36,7 +36,7 @@ import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -45,6 +45,8 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import scala.concurrent.ExecutionContext
 
 class LevelMapSpec0 extends LevelMapSpec
 
@@ -71,6 +73,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val ec = TestExecutionContext.executionContext
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =
@@ -115,7 +118,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             val (map, keyValues) = createTestMap()
 
             val level = TestLevel()
-            level.put(map).right.right.value.right.value should contain only level.levelNumber
+            level.put(map, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
             //since this is a new Segment and Level has no sub-level, all the deleted key-values will value removed.
             val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
@@ -149,7 +152,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             level.putKeyValuesTest(sortedExistingKeyValues).runRandomIO.right.value
 
             //put a new map
-            level.put(map).right.right.value.right.value should contain only level.levelNumber
+            level.put(map, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
             assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
             level.get("one", ThreadReadState.random).runRandomIO.right.value.getPut shouldBe existingKeyValues(0)
@@ -207,9 +210,10 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
                 true
             }
 
-            (nextLevel.put(_: Map[Slice[Byte], Memory, LevelZeroMapCache])) expects * onCall {
-              putMap: Map[Slice[Byte], Memory, LevelZeroMapCache] =>
+            (nextLevel.put(_: Map[Slice[Byte], Memory, LevelZeroMapCache], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
+              case (putMap: Map[Slice[Byte], Memory, LevelZeroMapCache], parallelism: Int, _: ExecutionContext) =>
                 putMap.pathOption shouldBe map.pathOption
+                parallelism shouldBe Int.MaxValue
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
             }
@@ -219,7 +223,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
             val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
-            level.put(map).right.right.value.right.value should contain only Int.MaxValue
+            level.put(map, Int.MaxValue).right.right.value.right.value should contain only Int.MaxValue
             assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
         }
       }
@@ -240,9 +244,10 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
                 true
             }
 
-            (nextLevel.put(_: Map[Slice[Byte], Memory, LevelZeroMapCache])) expects * onCall {
-              putMap: Map[Slice[Byte], Memory, LevelZeroMapCache] =>
+            (nextLevel.put(_: Map[Slice[Byte], Memory, LevelZeroMapCache], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
+              case (putMap: Map[Slice[Byte], Memory, LevelZeroMapCache], parallelism: Int, _: ExecutionContext) =>
                 putMap.pathOption shouldBe map.pathOption
+                parallelism shouldBe Int.MaxValue
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
             }
@@ -253,9 +258,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
             val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
             val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000))
-            level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value
+            level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None, Int.MaxValue).runRandomIO.right.value
 
-            level.put(map).right.right.value.right.value should contain only Int.MaxValue
+            level.put(map, Int.MaxValue).right.right.value.right.value should contain only Int.MaxValue
             assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.
             assertGetFromThisLevelOnly(keyValues, level)
         }

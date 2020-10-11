@@ -34,7 +34,7 @@ import swaydb.core.TestData._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
 import swaydb.data.RunThis.eventual
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -70,6 +70,8 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   val keyValuesCount = 100
+
+  implicit val ec = TestExecutionContext.executionContext
 
   //  override def deleteFiles: Boolean =
   //    false
@@ -156,7 +158,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
         val keyValues = randomPutKeyValues(keyValuesCount)
         val maps = TestMap(keyValues)
 
-        level1.put(maps).right.right.value.right.value should contain only level2.levelNumber
+        level1.put(maps, randomMaxParallelism()).right.right.value.right.value should contain only level2.levelNumber
 
         level1.isEmpty shouldBe true
         level2.isEmpty shouldBe false

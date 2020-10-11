@@ -31,7 +31,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, ThreadReadState}
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
@@ -65,6 +65,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
+  implicit val ec = TestExecutionContext.executionContext
 
   //  override def deleteFiles: Boolean = false
 
@@ -75,7 +76,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
           val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments)).sweep()
 
           val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.right.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.right.value)
-          level.put(segments).right.right.value.right.value
+          level.put(segments, randomMaxParallelism()).right.right.value.right.value
 
           //throttle is Duration.Zero, Segments value merged to lower ExpiryLevel and deleted from Level.
           eventual(15.seconds)(level.isEmpty shouldBe true)

@@ -68,14 +68,14 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     else
       levels
         .zip(executionContexts)
-        .foldLeftRecoverIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext)]) {
-          case (jobs, (level, CompactionExecutionContext.Create(executionContext))) => //new thread pool.
-            jobs += ((ListBuffer(level), executionContext))
+        .foldLeftRecoverIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext, Int)]) {
+          case (jobs, (level, CompactionExecutionContext.Create(executionContext, mergeParallelism))) => //new thread pool.
+            jobs += ((ListBuffer(level), executionContext, mergeParallelism))
             IO.Right(jobs)
 
           case (jobs, (level, CompactionExecutionContext.Shared)) => //share with previous thread pool.
             jobs.lastOption match {
-              case Some((lastGroup, _)) =>
+              case Some((lastGroup, _, _)) =>
                 lastGroup += level
                 IO.Right(jobs)
 
@@ -91,15 +91,16 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
               jobs
                 .zipWithIndex
                 .foldRight(List.empty[ActorWire[Compactor[ThrottleState], ThrottleState]]) {
-                  case (((jobs, executionContext), index), children) =>
+                  case (((jobs, executionContext, mergeParallelism), index), children) =>
                     val statesMap = mutable.Map.empty[LevelRef, ThrottleLevelState]
 
                     val state =
                       ThrottleState(
                         levels = Slice(jobs.toArray),
-                        compactionStates = statesMap,
+                        mergeParallelism = mergeParallelism,
+                        child = children.headOption,
                         executionContext = executionContext,
-                        child = children.headOption
+                        compactionStates = statesMap
                       )
 
                     val actor =

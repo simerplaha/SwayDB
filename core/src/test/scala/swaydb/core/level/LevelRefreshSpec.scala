@@ -29,9 +29,8 @@ import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core._
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -68,6 +67,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val ec = TestExecutionContext.executionContext
   val keyValuesCount = 100
 
   "refresh" should {
@@ -109,10 +109,10 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
           val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
           val maps = TestMap(keyValues)
-          level.put(maps).right.right.value
+          level.put(maps, randomMaxParallelism()).right.right.value
 
           val nextLevel = TestLevel()
-          nextLevel.put(level.segmentsInLevel()).right.right.value
+          nextLevel.put(level.segmentsInLevel(), randomMaxParallelism()).right.right.value
 
           if (persistent)
             nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe level.levelNumber)

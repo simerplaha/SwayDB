@@ -87,11 +87,13 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel()
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
+            val parallelism = randomMaxParallelism()
+
             val actors =
               ThrottleCompactor.createActors(
                 List(zero, nextLevel),
                 List(
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext),
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism),
                   CompactionExecutionContext.Shared
                 )
               ).get
@@ -102,6 +104,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
             actor.state.await.child shouldBe empty
+            actor.state.await.mergeParallelism shouldBe parallelism
         }
       }
 
@@ -111,12 +114,14 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel()
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
+            val parallelism = randomMaxParallelism()
+
             val actors =
               ThrottleCompactor.createActors(
                 List(zero, nextLevel),
                 List(
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext),
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext)
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism),
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism)
                 )
               ).get
 
@@ -126,10 +131,12 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) should contain only zero.rootPath
             actor.state.await.child shouldBe defined
+            actor.state.await.mergeParallelism shouldBe parallelism
 
             val childActor = actor.state.await.child.get.state.await
             childActor.child shouldBe empty
             childActor.levels.map(_.rootPath) should contain only nextLevel.rootPath
+            childActor.mergeParallelism shouldBe parallelism
         }
       }
 
@@ -140,11 +147,13 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
+            val parallelism = randomMaxParallelism()
+
             val actors =
               ThrottleCompactor.createActors(
                 List(zero, nextLevel, nextLevel2),
                 List(
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext),
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism),
                   CompactionExecutionContext.Shared,
                   CompactionExecutionContext.Shared
                 )
@@ -156,6 +165,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath, nextLevel2.rootPath)
             actor.state.await.child shouldBe empty
+            actor.state.await.mergeParallelism shouldBe parallelism
         }
       }
 
@@ -166,13 +176,16 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
+            val parallelism1 = randomMaxParallelism()
+            val parallelism2 = randomMaxParallelism()
+
             val actors =
               ThrottleCompactor.createActors(
                 List(zero, nextLevel, nextLevel2),
                 List(
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext),
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism1),
                   CompactionExecutionContext.Shared,
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext)
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism2)
                 )
               ).get
 
@@ -182,10 +195,12 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
             actor.state.await.child shouldBe defined
+            actor.state.await.mergeParallelism shouldBe parallelism1
 
             val childActor = actor.state.await.child.get.state.await
             childActor.child shouldBe empty
             childActor.levels.map(_.rootPath) should contain only nextLevel2.rootPath
+            childActor.mergeParallelism shouldBe parallelism2
         }
       }
     }
@@ -202,7 +217,8 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
           child = None,
           //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
           executionContext = TestExecutionContext.executionContext,
-          compactionStates = mutable.Map.empty
+          compactionStates = mutable.Map.empty,
+          mergeParallelism = randomMaxParallelism()
         )
 
       (level, nextLevel, testState)
@@ -445,7 +461,8 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
               child = None,
               //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
               executionContext = TestExecutionContext.executionContext,
-              compactionStates = mutable.Map.empty
+              compactionStates = mutable.Map.empty,
+              mergeParallelism = randomMaxParallelism()
             )
 
           implicit val compaction = mock[Compaction[ThrottleState]]

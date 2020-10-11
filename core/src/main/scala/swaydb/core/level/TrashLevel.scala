@@ -160,13 +160,16 @@ private[core] object TrashLevel extends NextLevel {
   /**
    * Return empty Set here because it's Trash level and does not require compaction.
    */
-  override def put(segment: Segment): IO[Nothing, IO.Right[Nothing, Set[Int]]] =
+  override def put(segment: Segment,
+                   mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache],
+                   mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
-  override def put(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+  override def put(segments: Iterable[Segment],
+                   mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
@@ -184,7 +187,8 @@ private[core] object TrashLevel extends NextLevel {
   override def refresh(segment: Segment): IO[Nothing, IO.Right[Nothing, Unit]] =
     IO.unitUnit
 
-  override def collapse(segments: Iterable[Segment]): IO[Nothing, IO[Error.Segment, Int]] =
+  override def collapse(segments: Iterable[Segment],
+                        mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Nothing, IO[Error.Segment, Int]] =
     IO.Right[Nothing, IO[Error.Segment, Int]](IO.Right(segments.size))(IO.ExceptionHandler.Nothing)
 
   override def isZero: Boolean =

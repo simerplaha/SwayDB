@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
@@ -70,6 +70,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
+  implicit val ec = TestExecutionContext.executionContext
   val keyValuesCount = 100
 
   "Level.mightContainKey" should {
@@ -149,7 +150,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           segments should have size 1
           val segment = segments.head
 
-          level.put(Seq(segment)).right.right.value.right.value
+          level.put(Seq(segment), randomMaxParallelism()).right.right.value.right.value
 
           level.meter.segmentsCount shouldBe 1
           level.meter.levelSize shouldBe segment.segmentSize
@@ -183,7 +184,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           segments should have size 1
           val segment = segments.head
 
-          level2.put(Seq(segment)).right.right.value.right.value
+          level2.put(Seq(segment), randomMaxParallelism()).right.right.value.right.value
 
           level1.meter.levelSize shouldBe 0
           level1.meter.segmentsCount shouldBe 0
@@ -209,7 +210,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
 
           val putKeyValues = randomPutKeyValues(keyValuesCount)
           val segment = TestSegment(putKeyValues).runRandomIO.right.value
-          level2.put(Seq(segment)).right.right.value.right.value
+          level2.put(Seq(segment), randomMaxParallelism()).right.right.value.right.value
 
           level1.meterFor(3) shouldBe empty
       }

@@ -47,11 +47,13 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             clearAppliedFunctionsOnBoot: Boolean,
             maxMemoryLevelSize: Int,
             maxSegmentsToPush: Int,
+            memoryLevelMergeParallelism: Int,
             memoryLevelMinSegmentSize: Int,
             memoryLevelMaxKeyValuesCountPerSegment: Int,
             deleteMemorySegmentsEventually: Boolean,
             persistentLevelAppendixFlushCheckpointSize: Int,
             mmapPersistentLevelAppendix: MMAP.Map,
+            persistentLevelMergeParallelism: Int,
             persistentLevelSortedKeyIndex: SortedKeyIndex,
             persistentLevelRandomSearchIndex: RandomSearchIndex,
             persistentLevelBinarySearchIndex: BinarySearchIndex,
@@ -66,7 +68,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         mapSize = mapSize,
         appliedFunctionsMapSize = appliedFunctionsMapSize,
         clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
-        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext, memoryLevelMergeParallelism),
         optimiseWrites = optimiseWrites,
         atomic = atomic,
         acceleration = acceleration,
@@ -97,7 +99,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         mightContainKey = persistentLevelMightContainIndex,
         valuesConfig = persistentLevelValuesConfig,
         segmentConfig = persistentLevelSegmentConfig,
-        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext, persistentLevelMergeParallelism),
         throttle =
           (_: LevelMeter) =>
             Throttle(

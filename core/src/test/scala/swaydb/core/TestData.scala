@@ -170,11 +170,18 @@ object TestData {
       implicit val bufferCleaner = level.bufferCleaner
       implicit val keyValueSweeper = level.keyValueMemorySweeper
       implicit val forceSaveApplier = level.forceSaveApplier
+      implicit val ec = TestExecutionContext.executionContext
 
       if (keyValues.isEmpty)
         IO.unit
       else if (!level.isEmpty)
-        level.putKeyValues(keyValues.size, keyValues, level.segmentsInLevel(), None)
+        level.putKeyValues(
+          keyValuesCount = keyValues.size,
+          keyValues = keyValues,
+          targetSegments = level.segmentsInLevel(),
+          appendEntry = None,
+          mergeParallelism = randomMaxParallelism()
+        )
       else if (level.inMemory)
         IO {
           Segment.copyToMemory(
@@ -195,7 +202,8 @@ object TestData {
                   keyValuesCount = keyValues.size,
                   keyValues = keyValues,
                   targetSegments = Seq(segment),
-                  appendEntry = None
+                  appendEntry = None,
+                  mergeParallelism = randomMaxParallelism()
                 )
             } transform {
               _ => ()
@@ -224,7 +232,8 @@ object TestData {
                   keyValuesCount = keyValues.size,
                   keyValues = keyValues,
                   targetSegments = Seq(segment),
-                  appendEntry = None
+                  appendEntry = None,
+                  mergeParallelism = randomMaxParallelism()
                 )
             } transform {
               _ => ()
@@ -1179,6 +1188,9 @@ object TestData {
 
   def randomIntMax(max: Int = Int.MaxValue) =
     Math.abs(Random.nextInt(max))
+
+  def randomMaxParallelism() =
+    randomIntMax(Runtime.getRuntime.availableProcessors())
 
   def randomIntMin(min: Int) =
     Math.abs(randomIntMax()) max min

@@ -41,6 +41,7 @@ import scala.concurrent.duration.Deadline
  * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
  */
 private[core] case class ThrottleState(levels: Slice[LevelRef],
+                                       mergeParallelism: Int,
                                        child: Option[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                        executionContext: ExecutionContext,
                                        compactionStates: mutable.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {
