@@ -56,7 +56,7 @@ object Queue extends LazyLogging {
                        appendixFlushCheckpointSize: Int = 2.mb,
                        otherDirs: Seq[Dir] = Seq.empty,
                        cacheKeyValueIds: Boolean = true,
-                       mergeParallelism: Int = 4,
+                       mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                        optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),

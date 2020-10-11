@@ -64,7 +64,7 @@ object Set extends LazyLogging {
                                                  cacheKeyValueIds: Boolean = true,
                                                  optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                                                  atomic: Atomic = DefaultConfigs.atomic(),
-                                                 mergeParallelism: Int = 4,
+                                                 mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                                                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
                                                  threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                  sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),

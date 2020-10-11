@@ -54,7 +54,7 @@ object SetMap extends LazyLogging {
                           appendixFlushCheckpointSize: Int = 2.mb,
                           otherDirs: Seq[Dir] = Seq.empty,
                           cacheKeyValueIds: Boolean = true,
-                          mergeParallelism: Int = 4,
+                          mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                           optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                           atomic: Atomic = DefaultConfigs.atomic(),
                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),

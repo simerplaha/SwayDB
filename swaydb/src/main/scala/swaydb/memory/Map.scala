@@ -51,7 +51,7 @@ object Map extends LazyLogging {
                                                        maxKeyValuesPerSegment: Int = Int.MaxValue,
                                                        fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                        deleteSegmentsEventually: Boolean = false,
-                                                       mergeParallelism: Int = 4,
+                                                       mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
                                                        optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                                                        atomic: Atomic = DefaultConfigs.atomic(),
                                                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),

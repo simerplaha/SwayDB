@@ -37,6 +37,9 @@ import scala.concurrent.duration._
 
 object DefaultConfigs {
 
+  def mergeParallelism(): Int =
+    Runtime.getRuntime.availableProcessors() - 1 // -1 for the compaction thread.
+
   def optimiseWrites(): OptimiseWrites =
     OptimiseWrites.RandomOrder
 
