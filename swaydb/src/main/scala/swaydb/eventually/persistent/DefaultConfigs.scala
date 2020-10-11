@@ -107,7 +107,7 @@ object DefaultConfigs {
   def segmentConfig(cacheDataBlockOnAccess: Boolean = false): SegmentConfig =
     SegmentConfig(
       cacheSegmentBlocksOnCreate = true,
-      deleteSegmentsEventually = true,
+      deleteSegmentsEventually = false,
       pushForward = false,
       //mmap is disabled for eventually persistent databases to give in-memory levels more memory-space.
       mmap = DefaultConfigs.mmap(),

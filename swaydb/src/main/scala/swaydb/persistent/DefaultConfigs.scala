@@ -25,7 +25,7 @@
 package swaydb.persistent
 
 import swaydb.data.{Atomic, OptimiseWrites}
-import swaydb.data.accelerate.LevelZeroMeter
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
@@ -42,6 +42,17 @@ object DefaultConfigs {
 
   def atomic(): Atomic =
     Atomic.Off
+
+  def accelerator(): LevelZeroMeter => Accelerator =
+    Accelerator.brake(
+      increaseMapSizeOnMapCount = 1,
+      increaseMapSizeBy = 1,
+      maxMapSize = 24.mb,
+      brakeOnMapCount = 5,
+      brakeFor = 50.milliseconds,
+      releaseRate = 1.millisecond,
+      logAsWarning = false
+    )
 
   def mmap(): MMAP.On =
     MMAP.On(
@@ -118,7 +129,7 @@ object DefaultConfigs {
   def segmentConfig(cacheDataBlockOnAccess: Boolean = false): SegmentConfig =
     SegmentConfig(
       cacheSegmentBlocksOnCreate = true,
-      deleteSegmentsEventually = true,
+      deleteSegmentsEventually = false,
       pushForward = true,
       mmap = DefaultConfigs.mmap(),
       minSegmentSize = 2.mb,

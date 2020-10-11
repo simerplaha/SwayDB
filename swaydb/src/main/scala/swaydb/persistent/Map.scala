@@ -60,7 +60,7 @@ object Map extends LazyLogging {
                                                        cacheKeyValueIds: Boolean = true,
                                                        optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                                                        atomic: Atomic = DefaultConfigs.atomic(),
-                                                       acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                                                       acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator(),
                                                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                        sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                        randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),

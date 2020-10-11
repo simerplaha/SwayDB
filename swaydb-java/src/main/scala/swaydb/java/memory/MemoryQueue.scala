@@ -47,7 +47,7 @@ object MemoryQueue {
   final class Config[A](private var mapSize: Int = 4.mb,
                         private var minSegmentSize: Int = 2.mb,
                         private var maxKeyValuesPerSegment: Int = Int.MaxValue,
-                        private var deleteSegmentsEventually: Boolean = true,
+                        private var deleteSegmentsEventually: Boolean = false,
                         private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
                         private var atomic: Atomic = DefaultConfigs.atomic(),
                         private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
