@@ -1130,8 +1130,9 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue]]): IO[swaydb.Error.Level, Slice[(Segment, Slice[Segment])]] =
-    assignedSegments.mapRecoverIO[(Segment, Slice[Segment])](
+  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue]]): IO[swaydb.Error.Level, Iterable[(Segment, Slice[Segment])]] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    assignedSegments.mapRecoverIOParallel[(Segment, Slice[Segment])](parallelism = 4)(
       block = {
         case (targetSegment, assignedKeyValues) =>
           IO {
@@ -1166,6 +1167,7 @@ private[core] case class Level(dirs: Seq[Dir],
           }
         }
     )
+  }
 
   def buildNewMapEntry(newSegments: Iterable[Segment],
                        originalSegmentMayBe: SegmentOption = Segment.Null,

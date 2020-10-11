@@ -24,14 +24,19 @@
 
 package swaydb
 
+import java.util.concurrent.ConcurrentLinkedQueue
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
+import swaydb.data.util.Futures
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -216,9 +221,97 @@ object IO {
       IO.none
     }
 
+    def mapRecoverIOParallel[R: ClassTag](parallelism: Int)(block: A => IO[E, R],
+                                                            recover: (Iterable[R], IO.Left[E, Iterable[R]]) => Unit = (_: Iterable[R], _: IO.Left[E, Iterable[R]]) => (),
+                                                            failFast: Boolean = true)(implicit executionContext: ExecutionContext): IO[E, Iterable[R]] = {
+      val jobsCount = iterable.size
+
+      if (jobsCount == 1) {
+        mapRecoverIO(
+          block = block,
+          recover = recover,
+          failFast = failFast
+        )
+      } else {
+        @volatile var failure: IO.Left[E, Iterable[R]] = null
+
+        val jobs = new ConcurrentLinkedQueue[A]()
+
+        iterable foreach {
+          job =>
+            jobs add job
+        }
+
+        val outcome = new ConcurrentLinkedQueue[R]()
+
+        @tailrec
+        def processJobs(job: A): Unit =
+          block(job) match {
+            case IO.Right(value) =>
+              outcome add value
+
+              val nextJob = jobs.poll()
+              if (nextJob != null)
+                processJobs(nextJob)
+
+            case IO.Left(value) =>
+              failure = IO.Left(value)
+          }
+
+        @tailrec
+        def runParallel(futures: ListBuffer[Future[Unit]], remaining: Int): ListBuffer[Future[Unit]] =
+          if (remaining == 0) {
+            futures
+          } else {
+            val job = jobs.poll()
+
+            if (job == null) {
+              futures
+            } else {
+              val result: Future[Unit] = Future(processJobs(job))
+              futures += result
+              runParallel(futures :+ result, remaining - 1)
+            }
+          }
+
+        //leave enough work for current thread to process.
+        val parallelRuns = parallelism min (jobsCount - 1)
+
+        //process jobs concurrent
+        val futures = runParallel(futures = ListBuffer.empty, remaining = parallelRuns)
+
+        //also keep the current thread busy while there are still jobs remaining.
+        val thisThreadJob = jobs.poll()
+        if (thisThreadJob != null)
+          processJobs(thisThreadJob)
+
+        val result = Future.sequence(futures)
+
+        Await.result(result, Duration.Inf)
+
+        if (failure != null) {
+          recover(outcome.asScala, failure)
+          failure
+        } else {
+          IO.Right(outcome.asScala)
+        }
+      }
+    }
+
     def mapRecoverIO[R: ClassTag](block: A => IO[E, R],
                                   recover: (Slice[R], IO.Left[E, Slice[R]]) => Unit = (_: Slice[R], _: IO.Left[E, Slice[R]]) => (),
-                                  failFast: Boolean = true): IO[E, Slice[R]] = {
+                                  failFast: Boolean = true): IO[E, Slice[R]] =
+      mapRecoverIOIterable(
+        iterable = iterable,
+        block = block,
+        recover = recover,
+        failFast = failFast
+      )
+
+    private def mapRecoverIOIterable[R: ClassTag](iterable: Iterable[A],
+                                                  block: A => IO[E, R],
+                                                  recover: (Slice[R], IO.Left[E, Slice[R]]) => Unit = (_: Slice[R], _: IO.Left[E, Slice[R]]) => (),
+                                                  failFast: Boolean = true): IO[E, Slice[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, Slice[R]]] = None
       val results = Slice.of[R](iterable.size)
