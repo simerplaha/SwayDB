@@ -27,12 +27,15 @@ package swaydb.core.level
 import java.nio.file.Path
 import java.util
 import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.segment.Segment
+import swaydb.data.Reserve
 import swaydb.data.config.Dir
+import swaydb.data.util.Options
 
 import scala.annotation.tailrec
 import scala.collection.compat._
@@ -147,6 +150,9 @@ private[core] class PathsDistributor(val dirs: Seq[Dir],
 
   private val queue = new ConcurrentLinkedDeque[Path](distributePaths)
 
+  //disallows concurrently performing distribution
+  private val distributionReserve = Reserve.free[Unit](s"Distributing paths reserve. Directories: ${dirs.size}")
+
   @tailrec
   final def next: Path =
     if (dirs.size == 1)
@@ -157,11 +163,20 @@ private[core] class PathsDistributor(val dirs: Seq[Dir],
           path
 
         case None =>
-          queue.addAll(distributePaths)
-          next
+          if (Reserve.compareAndSet(Options.unit, distributionReserve)) {
+            try
+              queue.addAll(distributePaths)
+            finally
+              Reserve.setFree(distributionReserve)
+
+            next
+          } else {
+            Reserve.blockUntilFree(distributionReserve)
+            next
+          }
       }
 
-  def distributePaths: util.List[Path] = {
+  private def distributePaths: util.List[Path] = {
     val (distributions, totalSize) = getDistributions(dirs, segments)
     val distributionResult = distribute(totalSize, distributions)
     val paths: Seq[Path] =
