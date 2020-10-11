@@ -40,9 +40,11 @@ object DefaultExecutionContext extends LazyLogging {
    * Needs at least 1-2 threads. 1 for compaction because default configuration uses
    * single threaded compaction and another thread optionally for scheduling. For majority
    * of the cases only 1 thread will be active.
+   *
+   * +6 for mergeParallelism.
    */
   def compactionEC: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2, DefaultThreadFactory.create()))
+    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2 + 6, DefaultThreadFactory.create()))
 
   /**
    * ExecutionContext used for [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]].
