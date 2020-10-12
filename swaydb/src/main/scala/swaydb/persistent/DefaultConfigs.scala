@@ -177,35 +177,35 @@ object DefaultConfigs {
   def levelOneThrottle(meter: LevelMeter): Throttle = {
     val segmentsCount = meter.segmentsCount
     val delay = (1 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 5
+    val segmentsToPush = segmentsCount min 10
     Throttle(delay, segmentsToPush)
   }
 
   def levelTwoThrottle(meter: LevelMeter): Throttle = {
     val segmentsCount = meter.segmentsCount
     val delay = (3 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 4
+    val segmentsToPush = segmentsCount min 8
     Throttle(delay, segmentsToPush)
   }
 
   def levelThreeThrottle(meter: LevelMeter): Throttle = {
     val segmentsCount = meter.segmentsCount
     val delay = (5 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 3
+    val segmentsToPush = segmentsCount min 6
     Throttle(delay, segmentsToPush)
   }
 
   def levelFourThrottle(meter: LevelMeter): Throttle = {
     val segmentsCount = meter.segmentsCount
     val delay = (10 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 2
+    val segmentsToPush = segmentsCount min 4
     Throttle(delay, segmentsToPush)
   }
 
   def levelFiveThrottle(meter: LevelMeter): Throttle = {
     val segmentsCount = meter.segmentsCount
     val delay = (15 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 1
+    val segmentsToPush = segmentsCount min 2
     Throttle(delay, segmentsToPush)
   }
 
