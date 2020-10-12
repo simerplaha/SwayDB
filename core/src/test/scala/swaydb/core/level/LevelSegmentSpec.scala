@@ -454,8 +454,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 (segments, Iterable.empty)
             }
 
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects (*, *, *) onCall { //copy into next Level
-              case (segments: Iterable[Segment], parallel: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall { //copy into next Level
+              (segments: Iterable[Segment], parallel: Int, _: ExecutionContext) =>
                 segments should have size 1
                 segments.head.path shouldBe segment.path
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
@@ -545,8 +545,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 (Seq(segments.last), Seq(segments.head)) //last Segment is copyable.
             }
 
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects (*, *, *) onCall { //successfully copied last Segment into next Level.
-              case (segments: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall { //successfully copied last Segment into next Level.
+              (segments: Iterable[Segment], _: Int, _: ExecutionContext) =>
                 segments should have size 1
                 segments.head.path shouldBe segment3.path
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
@@ -596,8 +596,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 (segments, Iterable.empty)
             }
 
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects (*, *, *) onCall { //copy into next Level
-              case (segments: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall { //copy into next Level
+              (segments: Iterable[Segment], _: Int, _: ExecutionContext) =>
                 segments should have size 1
                 segments.head.path shouldBe segment.path
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing

@@ -211,7 +211,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             }
 
             (nextLevel.put(_: Map[Slice[Byte], Memory, LevelZeroMapCache], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
-              case (putMap: Map[Slice[Byte], Memory, LevelZeroMapCache], parallelism: Int, _: ExecutionContext) =>
+              (putMap: Map[Slice[Byte], Memory, LevelZeroMapCache], parallelism: Int, _: ExecutionContext) =>
                 putMap.pathOption shouldBe map.pathOption
                 parallelism shouldBe Int.MaxValue
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
@@ -245,7 +245,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             }
 
             (nextLevel.put(_: Map[Slice[Byte], Memory, LevelZeroMapCache], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
-              case (putMap: Map[Slice[Byte], Memory, LevelZeroMapCache], parallelism: Int, _: ExecutionContext) =>
+              (putMap: Map[Slice[Byte], Memory, LevelZeroMapCache], parallelism: Int, _: ExecutionContext) =>
                 putMap.pathOption shouldBe map.pathOption
                 parallelism shouldBe Int.MaxValue
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing

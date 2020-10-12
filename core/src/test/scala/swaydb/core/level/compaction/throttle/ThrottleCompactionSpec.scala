@@ -104,8 +104,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             val segments = Seq(TestSegment(keyValues(0)), TestSegment(keyValues(1)))
 
             //next level should value a put for all the input Segments
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects (*, *, *) onCall {
-              case (putSegments: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
+              (putSegments: Iterable[Segment], _: Int, _: ExecutionContext) =>
                 putSegments.map(_.path) shouldBe segments.map(_.path)
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -139,8 +139,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             val segments = Seq(TestSegment(keyValues(0)), TestSegment(keyValues(1)))
 
             //next level should value a put for all the input Segments
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects (*, *, *) onCall {
-              case (putSegments: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
+              (putSegments: Iterable[Segment], _: Int, _: ExecutionContext) =>
                 putSegments.map(_.path) shouldBe segments.map(_.path)
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -368,8 +368,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
                 segments.take(count)
             }
 
-            (level.collapse(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects (*, *, *) onCall {
-              case (segmentsToCollapse: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (level.collapse(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
+              (segmentsToCollapse: Iterable[Segment], _: Int, _: ExecutionContext) =>
                 segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
                 segments --= segmentsToCollapse
                 IO.Right(IO(segmentsToCollapse.size))(IO.ExceptionHandler.PromiseUnit)

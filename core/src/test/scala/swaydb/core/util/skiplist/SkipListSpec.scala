@@ -40,7 +40,7 @@ import swaydb.core.TestExecutionContext
 import swaydb.core.util.AtomicRanges
 import swaydb.data.RunThis._
 
-import scala.collection.parallel.CollectionConverters.ImmutableIterableIsParallelizable
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._

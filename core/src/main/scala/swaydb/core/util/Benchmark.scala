@@ -24,13 +24,13 @@
 
 package swaydb.core.util
 
-import java.lang.management.{GarbageCollectorMXBean, ManagementFactory}
+import java.lang.management.ManagementFactory
 import java.util.function.Supplier
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.util.Maths
 
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters._
 
 object Benchmark extends LazyLogging {
 
@@ -56,7 +56,7 @@ object Benchmark extends LazyLogging {
       else
         doPrint(message = s"Benchmarking: $message", useLazyLogging = useLazyLogging, newLine = true)
 
-    val collectionTimeBefore = ManagementFactory.getGarbageCollectorMXBeans.stream.mapToLong((mxBean: GarbageCollectorMXBean) => mxBean.getCollectionTime).sum
+    val collectionTimeBefore = ManagementFactory.getGarbageCollectorMXBeans.asScala.foldLeft(0L)(_ + _.getCollectionTime)
 
     val startTime = System.nanoTime()
     val result = benchmarkThis
@@ -69,7 +69,7 @@ object Benchmark extends LazyLogging {
 
     val timeWithoutGCTimeTakenRounded = Maths.round(timeTaken - gcTimeTaken)
 
-    val messageToLog = timeWithoutGCTimeTakenRounded + s" seconds${if (message.isEmpty) "" else s" - $message"}. GC: ${Maths.round(gcTimeTaken)}. Total: ${Maths.round(timeTaken)}"
+    val messageToLog = s"$timeWithoutGCTimeTakenRounded seconds${if (message.isEmpty) "" else s" - $message"}. GC: ${Maths.round(gcTimeTaken)}. Total: ${Maths.round(timeTaken)}"
 
     if (inlinePrint)
       doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = false)
