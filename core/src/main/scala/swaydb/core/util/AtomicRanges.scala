@@ -124,7 +124,7 @@ private[core] case object AtomicRanges {
 
       } finally {
         val removed = ranges.transactions.remove(key)
-        assert(removed.value.hashCode() == value.value.hashCode())
+        //        assert(removed.value.hashCode() == value.value.hashCode())
         Reserve.setFree(removed.value)
       }
     else
@@ -191,7 +191,7 @@ private[core] case object AtomicRanges {
 
       if (putResult == null) {
         val removed = ranges.transactions.remove(key)
-        assert(removed.value.hashCode() == value.value.hashCode())
+        //        assert(removed.value.hashCode() == value.value.hashCode())
         Reserve.setFree(removed.value)
         bag.success(outputOptional)
       } else {
