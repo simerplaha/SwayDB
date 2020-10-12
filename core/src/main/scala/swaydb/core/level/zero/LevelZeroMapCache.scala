@@ -298,57 +298,72 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
   override def iterator: Iterator[(Slice[Byte], Memory)] =
     state.skipList.iterator
 
+  @inline private def getRangeKeys(memory: Memory): (Slice[Byte], Slice[Byte], Boolean) =
+    memory match {
+      case fixed: Memory.Fixed =>
+        (fixed.key, fixed.key, false)
+
+      case Memory.Range(fromKey, toKey, _, _) =>
+        (fromKey, toKey, true)
+    }
+
   def headKeyOptimised: SliceOption[Byte] =
     if (atomic.enabled)
-      state.skipList.atomicReadKey(_.headKey)(Bag.glass)
+      state
+        .skipList
+        .atomicRead(getRangeKeys)(_.head())(Bag.glass)
+        .flatMapSomeS(Slice.Null: SliceOption[Byte])(_.key)
     else
       state.skipList.headKey
 
   def lastKeyOptimised: SliceOption[Byte] =
     if (atomic.enabled)
-      state.skipList.atomicReadKey(_.lastKey)(Bag.glass)
+      state
+        .skipList
+        .atomicRead(getRangeKeys)(_.last())(Bag.glass)
+        .flatMapSomeS(Slice.Null: SliceOption[Byte])(_.key)
     else
       state.skipList.lastKey
 
   def headOptimised: MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.head())(Bag.glass)
+      state.skipList.atomicRead(getRangeKeys)(_.head())(Bag.glass)
     else
       state.skipList.head()
 
   def lastOptimised: MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.last())(Bag.glass)
+      state.skipList.atomicRead(getRangeKeys)(_.last())(Bag.glass)
     else
       state.skipList.last()
 
   def getOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.get(key))(Bag.glass)
+      state.skipList.atomicRead(getRangeKeys)(_.get(key))(Bag.glass)
     else
       state.skipList.get(key)
 
   def floorOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.floor(key))(Bag.glass)
+      state.skipList.atomicRead(getRangeKeys)(_.floor(key))(Bag.glass)
     else
       state.skipList.floor(key)
 
   def lowerOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.lower(key))(Bag.glass)
+      state.skipList.atomicRead(getRangeKeys)(_.lower(key))(Bag.glass)
     else
       state.skipList.lower(key)
 
   def higherOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.higher(key))(Bag.glass)
+      state.skipList.atomicRead(getRangeKeys)(_.higher(key))(Bag.glass)
     else
       state.skipList.higher(key)
 
   def ceilingOptimised(key: Slice[Byte]): MemoryOption =
     if (atomic.enabled)
-      state.skipList.atomicReadValue(_.key)(_.ceiling(key))(Bag.glass)
+      state.skipList.atomicRead(getRangeKeys)(_.ceiling(key))(Bag.glass)
     else
       state.skipList.ceiling(key)
 

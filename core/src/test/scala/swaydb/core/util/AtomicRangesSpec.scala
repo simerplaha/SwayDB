@@ -323,7 +323,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
               }.await
 
             def doRead() =
-              ranges.read[Int, Int, BAG](key => key, Int.MinValue) {
+              ranges.read[Int, Int, BAG](key => (key, key, randomBoolean()), Int.MinValue) {
                 secondExecuted = System.nanoTime()
                 println("Second executed")
                 Random.shuffle(List.range(10, 20)).head
@@ -376,7 +376,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
                   }.await
 
                 def doRead() =
-                  ranges.read[Int, Int, BAG](key => key, Int.MinValue) {
+                  ranges.read[Int, Int, BAG](key => (key, key, randomBoolean()), Int.MinValue) {
                     secondExecuted = System.nanoTime()
                     println("Second executed")
                     eitherOne(20, 21)
@@ -435,7 +435,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
                 }.await
 
               def doRead() =
-                ranges.read[Int, Int, BAG](key => key, Int.MinValue) {
+                ranges.read[Int, Int, BAG](key => (key, key, randomBoolean()), Int.MinValue) {
                   firstExecuted = System.nanoTime()
                   val readInteger = eitherOne(from, to)
                   println(s"First executed. Read. int = $readInteger")
@@ -480,7 +480,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
         def doRead() =
           ranges
-            .read[Int, Int, BAG](int => int, Int.MinValue) {
+            .read[Int, Int, BAG](int => (int, int, randomBoolean()), Int.MinValue) {
               eitherOne(sleep(randomIntMax(5).milliseconds), ()) //sleep optionally
               throw new Exception("Failed one")
             }.await should not be Int.MinValue
