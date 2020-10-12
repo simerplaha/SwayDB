@@ -28,7 +28,7 @@ import java.nio.file.Path
 import java.util.Collections
 import java.util.concurrent.ExecutorService
 
-import swaydb.{Bag, Glass}
+import swaydb.{Bag, CommonConfig, Glass}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -48,21 +48,21 @@ import scala.jdk.CollectionConverters._
 object PersistentQueue {
 
   final class Config[A](dir: Path,
-                        private var mapSize: Int = 4.mb,
+                        private var mapSize: Int = CommonConfig.mapSize,
                         private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                         private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                         private var mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
                         private var appendixFlushCheckpointSize: Int = 2.mb,
                         private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                         private var cacheKeyValueIds: Boolean = true,
-                        private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
+                        private var mergeParallelism: Int = CommonConfig.mergeParallelism(),
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                         private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                         private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                         private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                         private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
-                        private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                        private var atomic: Atomic = DefaultConfigs.atomic(),
+                        private var optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
+                        private var atomic: Atomic = CommonConfig.atomic(),
                         private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                         private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                         private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -74,7 +74,7 @@ object PersistentQueue {
                         private var levelFourThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFourThrottle _).asJava,
                         private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                         private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
-                        private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                        private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfig.accelerator.asJava,
                         private var compactionEC: Option[ExecutionContext] = None,
                         serializer: Serializer[A]) {
 

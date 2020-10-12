@@ -28,19 +28,18 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
-import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
-import swaydb.data.util.StorageUnits._
+import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag, Glass, PureFunction}
+import swaydb.{Apply, Bag, CommonConfig, Glass, PureFunction}
 
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
@@ -49,15 +48,15 @@ import scala.reflect.ClassTag
 
 object MemorySet {
 
-  final class Config[A, F](private var mapSize: Int = 4.mb,
-                           private var minSegmentSize: Int = 2.mb,
+  final class Config[A, F](private var mapSize: Int = CommonConfig.mapSize,
+                           private var minSegmentSize: Int = CommonConfig.segmentSize,
                            private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                            private var deleteSegmentsEventually: Boolean = false,
-                           private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                           private var atomic: Atomic = DefaultConfigs.atomic(),
-                           private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
+                           private var optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
+                           private var atomic: Atomic = CommonConfig.atomic(),
+                           private var mergeParallelism: Int = CommonConfig.mergeParallelism(),
                            private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
-                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfig.accelerator.asJava,
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                            private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),

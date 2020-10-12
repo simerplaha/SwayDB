@@ -24,8 +24,7 @@
 
 package swaydb.persistent
 
-import swaydb.data.{Atomic, OptimiseWrites}
-import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
@@ -36,26 +35,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultConfigs {
-
-  def mergeParallelism(): Int =
-    Runtime.getRuntime.availableProcessors() - 1 // -1 for the compaction thread.
-
-  def optimiseWrites(): OptimiseWrites =
-    OptimiseWrites.RandomOrder
-
-  def atomic(): Atomic =
-    Atomic.Off
-
-  def accelerator(): LevelZeroMeter => Accelerator =
-    Accelerator.brake(
-      increaseMapSizeOnMapCount = 1,
-      increaseMapSizeBy = 1,
-      maxMapSize = 24.mb,
-      brakeOnMapCount = 5,
-      brakeFor = 50.milliseconds,
-      releaseRate = 1.millisecond,
-      logAsWarning = false
-    )
 
   def mmap(): MMAP.On =
     MMAP.On(

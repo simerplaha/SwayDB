@@ -27,7 +27,7 @@ package swaydb.eventually.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Bag
+import swaydb.{Bag, CommonConfig}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.data.{Atomic, DataType, OptimiseWrites}
@@ -49,7 +49,7 @@ object Queue extends LazyLogging {
    *
    */
   def apply[A, BAG[_]](dir: Path,
-                       mapSize: Int = 4.mb,
+                       mapSize: Int = CommonConfig.mapSize,
                        maxMemoryLevelSize: Int = 100.mb,
                        maxSegmentsToPush: Int = 5,
                        memoryLevelSegmentSize: Int = 2.mb,
@@ -58,11 +58,11 @@ object Queue extends LazyLogging {
                        otherDirs: Seq[Dir] = Seq.empty,
                        cacheKeyValueIds: Boolean = true,
                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                       deleteMemorySegmentsEventually: Boolean = true,
-                       mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
-                       optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                       atomic: Atomic = DefaultConfigs.atomic(),
-                       acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                       deleteMemorySegmentsEventually: Boolean = false,
+                       mergeParallelism: Int = CommonConfig.mergeParallelism(),
+                       optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
+                       atomic: Atomic = CommonConfig.atomic(),
+                       acceleration: LevelZeroMeter => Accelerator = CommonConfig.accelerator,
                        persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                        persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                        binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),

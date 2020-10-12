@@ -28,7 +28,7 @@ import java.nio.file.Path
 import java.util.Collections
 import java.util.concurrent.ExecutorService
 
-import swaydb.{Bag, Glass}
+import swaydb.{Bag, CommonConfig, Glass}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config._
@@ -48,7 +48,7 @@ import scala.jdk.CollectionConverters._
 object EventuallyPersistentQueue {
 
   final class Config[A](dir: Path,
-                        private var mapSize: Int = 4.mb,
+                        private var mapSize: Int = CommonConfig.mapSize,
                         private var maxMemoryLevelSize: Int = 100.mb,
                         private var maxSegmentsToPush: Int = 5,
                         private var memoryLevelSegmentSize: Int = 2.mb,
@@ -57,11 +57,11 @@ object EventuallyPersistentQueue {
                         private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                         private var cacheKeyValueIds: Boolean = true,
                         private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                        private var deleteMemorySegmentsEventually: Boolean = true,
-                        private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
-                        private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                        private var atomic: Atomic = DefaultConfigs.atomic(),
-                        private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                        private var deleteMemorySegmentsEventually: Boolean = false,
+                        private var mergeParallelism: Int = CommonConfig.mergeParallelism(),
+                        private var optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
+                        private var atomic: Atomic = CommonConfig.atomic(),
+                        private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfig.accelerator.asJava,
                         private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                         private var persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                         private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),

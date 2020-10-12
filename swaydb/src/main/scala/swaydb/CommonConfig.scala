@@ -22,32 +22,42 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.memory
+package swaydb
 
-import swaydb.data.accelerate.LevelZeroMeter
-import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{ActorConfig, FileCache}
+import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-object DefaultConfigs {
+case object CommonConfig {
+  //4098 being the default file-system blockSize.
 
-  def fileCache(implicit ec: ExecutionContext): FileCache.On =
-    FileCache.On(
-      maxOpen = 1000,
-      actorConfig =
-        ActorConfig.TimeLoop(
-          name = s"${this.getClass.getName} - FileCache TimeLoop Actor",
-          delay = 10.seconds,
-          ec = ec
-        )
+  //4098.bytes * 13000.
+  def mapSize: Int = 53.27400.mb
+
+  //4098.bytes * 5000
+  //segmentSize does not account for hash-index, binary-search-index, bloom-filter sizes
+  //so this is a near approximation and would generate Segment file sizes of around 50.mb plus.
+  def segmentSize = 20.49.mb
+
+  def accelerator: LevelZeroMeter => Accelerator =
+    Accelerator.brake(
+      increaseMapSizeOnMapCount = 1,
+      increaseMapSizeBy = 1,
+      maxMapSize = 24.mb,
+      brakeOnMapCount = 5,
+      brakeFor = 1.milliseconds,
+      releaseRate = 0.1.millisecond,
+      logAsWarning = false
     )
 
-  def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration =
-    swaydb.persistent.DefaultConfigs.levelZeroThrottle(meter)
+  def mergeParallelism(): Int =
+    Runtime.getRuntime.availableProcessors() - 1 // -1 for the compaction thread.
 
-  def lastLevelThrottle(meter: LevelMeter): Throttle =
-    swaydb.persistent.DefaultConfigs.levelSixThrottle(meter)
+  def optimiseWrites(): OptimiseWrites =
+    OptimiseWrites.RandomOrder
+
+  def atomic(): Atomic =
+    Atomic.Off
 
 }

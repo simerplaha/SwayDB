@@ -41,7 +41,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.{Default, Serializer}
-import swaydb.{Apply, KeyOrderConverter, PureFunction}
+import swaydb.{Apply, CommonConfig, KeyOrderConverter, PureFunction}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -53,7 +53,7 @@ object Set extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[A, F <: PureFunction.Set[A], BAG[_]](dir: Path,
-                                                 mapSize: Int = 4.mb,
+                                                 mapSize: Int = CommonConfig.mapSize,
                                                  appliedFunctionsMapSize: Int = 4.mb,
                                                  clearAppliedFunctionsOnBoot: Boolean = false,
                                                  mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
@@ -62,10 +62,10 @@ object Set extends LazyLogging {
                                                  appendixFlushCheckpointSize: Int = 2.mb,
                                                  otherDirs: Seq[Dir] = Seq.empty,
                                                  cacheKeyValueIds: Boolean = true,
-                                                 optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                                                 atomic: Atomic = DefaultConfigs.atomic(),
-                                                 mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
-                                                 acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                                                 optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
+                                                 atomic: Atomic = CommonConfig.atomic(),
+                                                 mergeParallelism: Int = CommonConfig.mergeParallelism(),
+                                                 acceleration: LevelZeroMeter => Accelerator = CommonConfig.accelerator,
                                                  threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                  sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                  randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),

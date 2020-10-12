@@ -24,7 +24,6 @@
 
 package swaydb.eventually.persistent
 
-import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
 import swaydb.data.util.StorageUnits._
@@ -33,9 +32,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultConfigs {
-
-  def mergeParallelism(): Int =
-    Runtime.getRuntime.availableProcessors() - 1 // -1 for the compaction thread.
 
   def mmap(): MMAP.Off =
     MMAP.Off(
@@ -147,10 +143,4 @@ object DefaultConfigs {
           ec = ec
         )
     )
-
-  def optimiseWrites(): OptimiseWrites =
-    swaydb.persistent.DefaultConfigs.optimiseWrites()
-
-  def atomic(): Atomic =
-    swaydb.persistent.DefaultConfigs.atomic()
 }

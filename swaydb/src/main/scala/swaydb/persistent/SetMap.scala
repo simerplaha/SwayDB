@@ -27,6 +27,7 @@ package swaydb.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.CommonConfig
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.core.util.Eithers
@@ -47,17 +48,17 @@ import scala.reflect.ClassTag
 object SetMap extends LazyLogging {
 
   def apply[K, V, BAG[_]](dir: Path,
-                          mapSize: Int = 4.mb,
+                          mapSize: Int = CommonConfig.mapSize,
                           mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                           recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                           mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
                           appendixFlushCheckpointSize: Int = 2.mb,
                           otherDirs: Seq[Dir] = Seq.empty,
                           cacheKeyValueIds: Boolean = true,
-                          mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
-                          optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                          atomic: Atomic = DefaultConfigs.atomic(),
-                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                          mergeParallelism: Int = CommonConfig.mergeParallelism(),
+                          optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
+                          atomic: Atomic = CommonConfig.atomic(),
+                          acceleration: LevelZeroMeter => Accelerator = CommonConfig.accelerator,
                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                           sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                           randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),

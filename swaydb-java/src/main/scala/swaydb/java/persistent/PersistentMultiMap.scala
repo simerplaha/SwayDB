@@ -42,7 +42,7 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag, Glass, PureFunction}
+import swaydb.{Apply, Bag, CommonConfig, Glass, PureFunction}
 
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
@@ -53,7 +53,7 @@ import scala.reflect.ClassTag
 object PersistentMultiMap {
 
   final class Config[M, K, V, F](dir: Path,
-                                 private var mapSize: Int = 4.mb,
+                                 private var mapSize: Int = CommonConfig.mapSize,
                                  private var appliedFunctionsMapSize: Int = 4.mb,
                                  private var clearAppliedFunctionsOnBoot: Boolean = false,
                                  private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
@@ -62,14 +62,14 @@ object PersistentMultiMap {
                                  private var appendixFlushCheckpointSize: Int = 2.mb,
                                  private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                                  private var cacheKeyValueIds: Boolean = true,
-                                 private var mergeParallelism: Int = DefaultConfigs.mergeParallelism(),
+                                 private var mergeParallelism: Int = CommonConfig.mergeParallelism(),
                                  private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                  private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                  private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                                  private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                                  private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
-                                 private var optimiseWrites: OptimiseWrites = DefaultConfigs.optimiseWrites(),
-                                 private var atomic: Atomic = DefaultConfigs.atomic(),
+                                 private var optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
+                                 private var atomic: Atomic = CommonConfig.atomic(),
                                  private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                                  private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                                  private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
@@ -81,7 +81,7 @@ object PersistentMultiMap {
                                  private var levelFourThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFourThrottle _).asJava,
                                  private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                                  private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
-                                 private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                                 private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfig.accelerator.asJava,
                                  private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                                  private var typedComparator: KeyComparator[K] = null,
                                  private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
