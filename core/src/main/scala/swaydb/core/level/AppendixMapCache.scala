@@ -24,13 +24,12 @@
 
 package swaydb.core.level
 
+import swaydb.Glass
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.skiplist.SkipListConcurrent
-import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.{Bag, Glass}
 
 import scala.reflect.ClassTag
 
@@ -44,109 +43,50 @@ object AppendixMapCache {
   implicit def builder(implicit keyOrder: KeyOrder[Slice[Byte]]) =
     new MapCacheBuilder[AppendixMapCache] {
       override def create(): AppendixMapCache =
-        new AppendixMapCache(
-          SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null),
-          atomicSkipList = false
-        )
+        new AppendixMapCache(SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null))
     }
 }
 
-class AppendixMapCache(skipList: SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment],
-                       atomicSkipList: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]) extends MapCache[Slice[Byte], Segment] {
+/**
+ * In history of this file's commit at revision "992965da26cba711c7b42a9a555d04de46b9fa37 - backup atomicSkipList for AppendixMapCache"
+ * uses [[swaydb.core.util.skiplist.SkipList.atomicRead]] and [[swaydb.core.util.skiplist.SkipList.atomicRead]] but
+ * for Appendix file batch is more efficient because millions of concurrent reads will require concurrent writes to the atomic SkipList
+ * whereas batch only requires a single copy of the SkipList which is more efficient.
+ */
+class AppendixMapCache(skipList: SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]) extends MapCache[Slice[Byte], Segment] {
 
   override def writeAtomic(entry: MapEntry[Slice[Byte], Segment]): Unit =
-    if (atomicSkipList) {
-      val entries = entry.entries
-      if (entries.size == 1) {
-        entries.head applyPoint skipList
-      } else {
-        val sorted = entries.sortBy(_.key)(keyOrder)
-
-        val fromKey = sorted.head.key
-
-        sorted.last match {
-          case MapEntry.Put(_, last: Segment) =>
-            last.maxKey match {
-              case MaxKey.Fixed(maxKey) =>
-                skipList.atomicWrite(from = fromKey, to = maxKey, toInclusive = true) {
-                  entries.foreach(_.applyPoint(skipList))
-                }(Bag.glass)
-
-              case MaxKey.Range(_, maxKey) =>
-                skipList.atomicWrite(from = fromKey, to = maxKey, toInclusive = false) {
-                  entries.foreach(_.applyPoint(skipList))
-                }(Bag.glass)
-            }
-
-          case MapEntry.Remove(key) =>
-            skipList.atomicWrite(from = fromKey, to = key, toInclusive = true) {
-              entries.foreach(_.applyPoint(skipList))
-            }(Bag.glass)
-        }
-      }
-    } else {
-      entry applyBatch skipList
-    }
+    entry applyBatch skipList
 
   override def writeNonAtomic(entry: MapEntry[Slice[Byte], Segment]): Unit =
     entry.entries.foreach(_.applyPoint(skipList))
-
-  def getRangeKeys(segment: Segment) =
-    segment.maxKey match {
-      case MaxKey.Fixed(maxKey) =>
-        (segment.minKey, maxKey, true)
-
-      case MaxKey.Range(_, maxKey) =>
-        (segment.minKey, maxKey, false)
-    }
 
   def values(): Iterable[Segment] =
     skipList.values()
 
   def floor(key: Slice[Byte]): SegmentOption =
-    if (atomicSkipList)
-      skipList.atomicRead(getRangeKeys)(_.floor(key))(Bag.glass)
-    else
-      skipList.floor(key)
+    skipList.floor(key)
 
   def lower(key: Slice[Byte]): SegmentOption =
-    if (atomicSkipList)
-      skipList.atomicRead(getRangeKeys)(_.lower(key))(Bag.glass)
-    else
-      skipList.lower(key)
+    skipList.lower(key)
 
   def higher(key: Slice[Byte]): SegmentOption =
-    if (atomicSkipList)
-      skipList.atomicRead(getRangeKeys)(_.higher(key))(Bag.glass)
-    else
-      skipList.higher(key)
+    skipList.higher(key)
 
   def headKey(): SliceOption[Byte] =
-    if (atomicSkipList)
-      head().flatMapSomeS(Slice.Null: SliceOption[Byte])(_.minKey)
-    else
-      skipList.headKey
+    skipList.headKey
 
   def head(): Glass[SegmentOption] =
-    if (atomicSkipList)
-      skipList.atomicRead(getRangeKeys)(_.head())(Bag.glass)
-    else
-      skipList.head()
+    skipList.head()
 
   def maxKey(): SliceOption[Byte] =
     last().flatMapSomeS(Slice.Null: SliceOption[Byte])(_.maxKey.maxKey)
 
   def last(): SegmentOption =
-    if (atomicSkipList)
-      skipList.atomicRead(getRangeKeys)(_.last())(Bag.glass)
-    else
-      skipList.last()
+    skipList.last()
 
   def get(key: Slice[Byte]): SegmentOption =
-    if (atomicSkipList)
-      skipList.atomicRead(getRangeKeys)(_.get(key))(Bag.glass)
-    else
-      skipList.get(key)
+    skipList.get(key)
 
   def contains(key: Slice[Byte]) =
     skipList.contains(key)

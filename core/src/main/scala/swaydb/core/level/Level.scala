@@ -1573,7 +1573,6 @@ private[core] case class Level(dirs: Seq[Dir],
   override def nextThrottlePushCount: Int =
     throttle(meter).segmentsToPush
 
-
   override def minSegmentSize: Int =
     segmentConfig.minSize
 
