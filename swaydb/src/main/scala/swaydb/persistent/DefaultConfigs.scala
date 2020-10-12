@@ -24,6 +24,7 @@
 
 package swaydb.persistent
 
+import swaydb.CommonConfigs
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
@@ -114,7 +115,7 @@ object DefaultConfigs {
       deleteSegmentsEventually = false,
       pushForward = true,
       mmap = DefaultConfigs.mmap(),
-      minSegmentSize = 2.mb,
+      minSegmentSize = CommonConfigs.segmentSize,
       maxKeyValuesPerSegment = Int.MaxValue,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
@@ -150,40 +151,62 @@ object DefaultConfigs {
 
   def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration = {
     val mapsCount = meter.mapsCount
-    if (mapsCount > 1)
-      Duration.Zero
+
+    /**
+     * [[CommonConfigs.accelerator]] starts braking at 5 so if the
+     * map size comes near to braking do priority compaction to avoid
+     * brake from occurring.
+     */
+    if (mapsCount >= 4)
+      Duration.Zero - 365.days //urgent
+    else if (mapsCount >= 2)
+      1.second
     else
       1.day
   }
 
+  /**
+   * The general idea for the following [[Throttle]] functions
+   * is that we set the urgency of compaction for each level
+   * compared to other levels. The returned [[FiniteDuration]]
+   * tells compaction which level's compaction is urgent.
+   *
+   * The lower the [[FiniteDuration]] the higher it's priority.
+   */
+
   def levelOneThrottle(meter: LevelMeter): Throttle = {
-    val delay = (5 - meter.segmentsCount).seconds
-    val batch = meter.segmentsCount min 5
-    Throttle(delay, batch)
+    val segmentsCount = meter.segmentsCount
+    val delay = (1 - segmentsCount).seconds
+    val segmentsToPush = segmentsCount min 5
+    Throttle(delay, segmentsToPush)
   }
 
   def levelTwoThrottle(meter: LevelMeter): Throttle = {
-    val delay = (10 - meter.segmentsCount).seconds
-    val batch = meter.segmentsCount min 5
-    Throttle(delay, batch)
+    val segmentsCount = meter.segmentsCount
+    val delay = (3 - segmentsCount).seconds
+    val segmentsToPush = segmentsCount min 4
+    Throttle(delay, segmentsToPush)
   }
 
   def levelThreeThrottle(meter: LevelMeter): Throttle = {
-    val delay = (30 - meter.segmentsCount).seconds
-    val batch = meter.segmentsCount min 5
-    Throttle(delay, batch)
+    val segmentsCount = meter.segmentsCount
+    val delay = (5 - segmentsCount).seconds
+    val segmentsToPush = segmentsCount min 3
+    Throttle(delay, segmentsToPush)
   }
 
   def levelFourThrottle(meter: LevelMeter): Throttle = {
-    val delay = (40 - meter.segmentsCount).seconds
-    val batch = meter.segmentsCount min 5
-    Throttle(delay, batch)
+    val segmentsCount = meter.segmentsCount
+    val delay = (10 - segmentsCount).seconds
+    val segmentsToPush = segmentsCount min 2
+    Throttle(delay, segmentsToPush)
   }
 
   def levelFiveThrottle(meter: LevelMeter): Throttle = {
-    val delay = (50 - meter.segmentsCount).seconds
-    val batch = meter.segmentsCount min 5
-    Throttle(delay, batch)
+    val segmentsCount = meter.segmentsCount
+    val delay = (15 - segmentsCount).seconds
+    val segmentsToPush = segmentsCount min 1
+    Throttle(delay, segmentsToPush)
   }
 
   def levelSixThrottle(meter: LevelMeter): Throttle =

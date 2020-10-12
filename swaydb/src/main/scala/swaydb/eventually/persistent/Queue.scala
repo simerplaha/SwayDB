@@ -27,7 +27,7 @@ package swaydb.eventually.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Bag, CommonConfig}
+import swaydb.{Bag, CommonConfigs}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.data.{Atomic, DataType, OptimiseWrites}
@@ -49,20 +49,20 @@ object Queue extends LazyLogging {
    *
    */
   def apply[A, BAG[_]](dir: Path,
-                       mapSize: Int = CommonConfig.mapSize,
+                       mapSize: Int = CommonConfigs.mapSize,
                        maxMemoryLevelSize: Int = 100.mb,
                        maxSegmentsToPush: Int = 5,
-                       memoryLevelSegmentSize: Int = 2.mb,
+                       memoryLevelSegmentSize: Int = CommonConfigs.segmentSize,
                        memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
                        persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                        otherDirs: Seq[Dir] = Seq.empty,
                        cacheKeyValueIds: Boolean = true,
                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                        deleteMemorySegmentsEventually: Boolean = false,
-                       mergeParallelism: Int = CommonConfig.mergeParallelism(),
-                       optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
-                       atomic: Atomic = CommonConfig.atomic(),
-                       acceleration: LevelZeroMeter => Accelerator = CommonConfig.accelerator,
+                       mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                       optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
+                       atomic: Atomic = CommonConfigs.atomic(),
+                       acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
                        persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                        persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                        binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),

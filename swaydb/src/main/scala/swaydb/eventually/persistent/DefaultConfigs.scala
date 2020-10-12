@@ -24,6 +24,7 @@
 
 package swaydb.eventually.persistent
 
+import swaydb.CommonConfigs
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
 import swaydb.data.util.StorageUnits._
@@ -110,7 +111,7 @@ object DefaultConfigs {
       pushForward = false,
       //mmap is disabled for eventually persistent databases to give in-memory levels more memory-space.
       mmap = DefaultConfigs.mmap(),
-      minSegmentSize = 8.mb,
+      minSegmentSize = CommonConfigs.segmentSize,
       maxKeyValuesPerSegment = Int.MaxValue,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {

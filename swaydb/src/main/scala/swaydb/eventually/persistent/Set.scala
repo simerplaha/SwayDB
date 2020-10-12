@@ -40,7 +40,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.{Default, Serializer}
-import swaydb.{Apply, CommonConfig, KeyOrderConverter, PureFunction}
+import swaydb.{Apply, CommonConfigs, KeyOrderConverter, PureFunction}
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
@@ -53,22 +53,22 @@ object Set extends LazyLogging {
    *
    */
   def apply[A, F <: PureFunction.Set[A], BAG[_]](dir: Path,
-                                                 mapSize: Int = CommonConfig.mapSize,
+                                                 mapSize: Int = CommonConfigs.mapSize,
                                                  appliedFunctionsMapSize: Int = 4.mb,
                                                  clearAppliedFunctionsOnBoot: Boolean = false,
                                                  maxMemoryLevelSize: Int = 100.mb,
                                                  maxSegmentsToPush: Int = 5,
-                                                 memoryLevelSegmentSize: Int = 2.mb,
+                                                 memoryLevelSegmentSize: Int = CommonConfigs.segmentSize,
                                                  memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
                                                  persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                                                  otherDirs: Seq[Dir] = Seq.empty,
                                                  cacheKeyValueIds: Boolean = true,
                                                  mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                  deleteMemorySegmentsEventually: Boolean = false,
-                                                 mergeParallelism: Int = CommonConfig.mergeParallelism(),
-                                                 optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
-                                                 atomic: Atomic = CommonConfig.atomic(),
-                                                 acceleration: LevelZeroMeter => Accelerator = CommonConfig.accelerator,
+                                                 mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                                                 optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
+                                                 atomic: Atomic = CommonConfigs.atomic(),
+                                                 acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
                                                  persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                  persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                                                  binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),

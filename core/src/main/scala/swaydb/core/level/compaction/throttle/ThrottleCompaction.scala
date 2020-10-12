@@ -74,7 +74,11 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     //run compaction jobs
     runJobs(
       state = state,
-      currentJobs = state.levels.sorted(state.ordering)
+      //process only few job in the current thread and stop so that reordering occurs.
+      //this is because processing all levels would take some time and during that time
+      //level0 might fill up with level1 and level2 being empty and level0 maps not being
+      //able to merged instantly.
+      currentJobs = state.levels.sorted(state.ordering).take(3)
     )
   }
 

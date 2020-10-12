@@ -41,7 +41,7 @@ import swaydb.eventually.persistent.DefaultConfigs
 import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag, CommonConfig, Glass, PureFunction}
+import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
@@ -51,22 +51,22 @@ import scala.reflect.ClassTag
 object EventuallyPersistentSet {
 
   final class Config[A, F](dir: Path,
-                           private var mapSize: Int = CommonConfig.mapSize,
+                           private var mapSize: Int = CommonConfigs.mapSize,
                            private var appliedFunctionsMapSize: Int = 4.mb,
                            private var clearAppliedFunctionsOnBoot: Boolean = false,
                            private var maxMemoryLevelSize: Int = 100.mb,
                            private var maxSegmentsToPush: Int = 5,
-                           private var memoryLevelSegmentSize: Int = 2.mb,
+                           private var memoryLevelSegmentSize: Int = CommonConfigs.segmentSize,
                            private var memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
                            private var persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
                            private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                            private var deleteMemorySegmentsEventually: Boolean = false,
-                           private var mergeParallelism: Int = CommonConfig.mergeParallelism(),
-                           private var optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
-                           private var atomic: Atomic = CommonConfig.atomic(),
-                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfig.accelerator.asJava,
+                           private var mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                           private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
+                           private var atomic: Atomic = CommonConfigs.atomic(),
+                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
                            private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                            private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),

@@ -28,7 +28,7 @@ import java.nio.file.Path
 import java.util.Collections
 import java.util.concurrent.ExecutorService
 
-import swaydb.{Bag, CommonConfig, Glass}
+import swaydb.{Bag, CommonConfigs, Glass}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -52,15 +52,15 @@ import scala.jdk.CollectionConverters._
 object PersistentSetMap {
 
   final class Config[K, V](dir: Path,
-                           private var mapSize: Int = CommonConfig.mapSize,
+                           private var mapSize: Int = CommonConfigs.mapSize,
                            private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                            private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                            private var mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
                            private var appendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
-                           private var mergeParallelism: Int = CommonConfig.mergeParallelism(),
-                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfig.accelerator.asJava,
+                           private var mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -68,8 +68,8 @@ object PersistentSetMap {
                            private var mightContainIndex: MightContainIndex = DefaultConfigs.mightContainIndex(),
                            private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                            private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                           private var optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
-                           private var atomic: Atomic = CommonConfig.atomic(),
+                           private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
+                           private var atomic: Atomic = CommonConfigs.atomic(),
                            private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,

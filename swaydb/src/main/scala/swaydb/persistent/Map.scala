@@ -40,7 +40,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, DataType, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
-import swaydb.{Apply, CommonConfig, KeyOrderConverter, PureFunction}
+import swaydb.{Apply, CommonConfigs, KeyOrderConverter, PureFunction}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -49,7 +49,7 @@ import scala.reflect.ClassTag
 object Map extends LazyLogging {
 
   def apply[K, V, F <: PureFunction.Map[K, V], BAG[_]](dir: Path,
-                                                       mapSize: Int = CommonConfig.mapSize,
+                                                       mapSize: Int = CommonConfigs.mapSize,
                                                        appliedFunctionsMapSize: Int = 4.mb,
                                                        clearAppliedFunctionsOnBoot: Boolean = false,
                                                        mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
@@ -58,10 +58,10 @@ object Map extends LazyLogging {
                                                        appendixFlushCheckpointSize: Int = 2.mb,
                                                        otherDirs: Seq[Dir] = Seq.empty,
                                                        cacheKeyValueIds: Boolean = true,
-                                                       mergeParallelism: Int = CommonConfig.mergeParallelism(),
-                                                       optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
-                                                       atomic: Atomic = CommonConfig.atomic(),
-                                                       acceleration: LevelZeroMeter => Accelerator = CommonConfig.accelerator,
+                                                       mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                                                       optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
+                                                       atomic: Atomic = CommonConfigs.atomic(),
+                                                       acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
                                                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                        sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                        randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),

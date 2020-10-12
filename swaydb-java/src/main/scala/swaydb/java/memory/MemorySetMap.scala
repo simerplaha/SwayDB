@@ -39,7 +39,7 @@ import swaydb.java._
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Bag, CommonConfig, Glass}
+import swaydb.{Bag, CommonConfigs, Glass}
 
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
@@ -47,15 +47,15 @@ import scala.concurrent.duration._
 
 object MemorySetMap {
 
-  final class Config[K, V](private var mapSize: Int = CommonConfig.mapSize,
-                           private var minSegmentSize: Int = CommonConfig.segmentSize,
+  final class Config[K, V](private var mapSize: Int = CommonConfigs.mapSize,
+                           private var minSegmentSize: Int = CommonConfigs.segmentSize,
                            private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                            private var deleteSegmentsEventually: Boolean = false,
-                           private var optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
-                           private var atomic: Atomic = CommonConfig.atomic(),
-                           private var mergeParallelism: Int = CommonConfig.mergeParallelism(),
+                           private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
+                           private var atomic: Atomic = CommonConfigs.atomic(),
+                           private var mergeParallelism: Int = CommonConfigs.mergeParallelism(),
                            private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
-                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfig.accelerator.asJava,
+                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                            private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),

@@ -29,30 +29,25 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 
 import scala.concurrent.duration._
 
-case object CommonConfig {
+case object CommonConfigs {
   //4098 being the default file-system blockSize.
+  def mapSize: Int = 4098.bytes * 1000
 
-  //4098.bytes * 13000.
-  def mapSize: Int = 53.27400.mb
-
-  //4098.bytes * 5000
-  //segmentSize does not account for hash-index, binary-search-index, bloom-filter sizes
-  //so this is a near approximation and would generate Segment file sizes of around 50.mb plus.
-  def segmentSize = 20.49.mb
+  def segmentSize: Int = 4098.bytes * 500
 
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
-      increaseMapSizeOnMapCount = 1,
-      increaseMapSizeBy = 1,
-      maxMapSize = 24.mb,
-      brakeOnMapCount = 5,
-      brakeFor = 1.milliseconds,
+      increaseMapSizeOnMapCount = 3,
+      increaseMapSizeBy = 2,
+      maxMapSize = CommonConfigs.mapSize * 3,
+      brakeOnMapCount = 6,
+      brakeFor = 10.milliseconds,
       releaseRate = 0.1.millisecond,
       logAsWarning = false
     )
 
   def mergeParallelism(): Int =
-    Runtime.getRuntime.availableProcessors() - 1 // -1 for the compaction thread.
+    Runtime.getRuntime.availableProcessors() / 3
 
   def optimiseWrites(): OptimiseWrites =
     OptimiseWrites.RandomOrder

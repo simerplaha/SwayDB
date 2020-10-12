@@ -24,10 +24,13 @@
 
 package swaydb.core.util
 
+import java.lang.management.{GarbageCollectorMXBean, ManagementFactory}
 import java.util.function.Supplier
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.util.Maths
+
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object Benchmark extends LazyLogging {
 
@@ -49,25 +52,34 @@ object Benchmark extends LazyLogging {
   private def run[R](message: String, inlinePrint: Boolean, useLazyLogging: Boolean)(benchmarkThis: => R): (R, BigDecimal) = {
     if (!useLazyLogging) //don't need header Benchmarking log when using lazyLogging. LazyLogging is generally for user's viewing only.
       if (inlinePrint)
-        doPrint(message = s"Benchmarking: $message: ", useLazyLogging = useLazyLogging, newLine = false)
+        doPrint(message = s"Benchmarking: ${if(message.isEmpty) "" else s"$message: "}", useLazyLogging = useLazyLogging, newLine = false)
       else
         doPrint(message = s"Benchmarking: $message", useLazyLogging = useLazyLogging, newLine = true)
+
+    val collectionTimeBefore = ManagementFactory.getGarbageCollectorMXBeans.stream.mapToLong((mxBean: GarbageCollectorMXBean) => mxBean.getCollectionTime).sum
 
     val startTime = System.nanoTime()
     val result = benchmarkThis
     val endTime = System.nanoTime()
     val timeTaken = (endTime - startTime) / 1000000000.0: Double
-    val timeTakenRounded = Maths.round(timeTaken)
+
+    val collectionTimeAfter = ManagementFactory.getGarbageCollectorMXBeans.asScala.foldLeft(0L)(_ + _.getCollectionTime)
+
+    val gcTimeTaken = (collectionTimeAfter - collectionTimeBefore) / 1000.0
+
+    val timeWithoutGCTimeTakenRounded = Maths.round(timeTaken - gcTimeTaken)
+
+    val messageToLog = timeWithoutGCTimeTakenRounded + s" seconds${if (message.isEmpty) "" else s" - $message"}. GC: ${Maths.round(gcTimeTaken)}. Total: ${Maths.round(timeTaken)}"
 
     if (inlinePrint)
-      doPrint(message = timeTakenRounded + s" seconds - $message.", useLazyLogging = useLazyLogging, newLine = false)
+      doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = false)
     else
-      doPrint(message = timeTakenRounded + s" seconds - $message.", useLazyLogging = useLazyLogging, newLine = true)
+      doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = true)
 
     if (!useLazyLogging)
       println
 
-    (result, timeTakenRounded)
+    (result, timeWithoutGCTimeTakenRounded)
   }
 
   def apply[R](message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => R): R =

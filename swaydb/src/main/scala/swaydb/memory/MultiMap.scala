@@ -37,7 +37,7 @@ import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.function.FunctionConverter
 import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
-import swaydb.{Apply, CommonConfig, KeyOrderConverter, MultiMap, PureFunction}
+import swaydb.{Apply, CommonConfigs, KeyOrderConverter, MultiMap, PureFunction}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -55,15 +55,15 @@ object MultiMap extends LazyLogging {
    * @tparam F   Function type
    * @tparam BAG Effect type
    */
-  def apply[M, K, V, F <: PureFunction.Map[K, V], BAG[_]](mapSize: Int = CommonConfig.mapSize,
-                                                          minSegmentSize: Int = CommonConfig.segmentSize,
+  def apply[M, K, V, F <: PureFunction.Map[K, V], BAG[_]](mapSize: Int = CommonConfigs.mapSize,
+                                                          minSegmentSize: Int = CommonConfigs.segmentSize,
                                                           maxKeyValuesPerSegment: Int = Int.MaxValue,
                                                           fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                                                           deleteSegmentsEventually: Boolean = false,
-                                                          mergeParallelism: Int = CommonConfig.mergeParallelism(),
-                                                          optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
-                                                          atomic: Atomic = CommonConfig.atomic(),
-                                                          acceleration: LevelZeroMeter => Accelerator = CommonConfig.accelerator,
+                                                          mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                                                          optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
+                                                          atomic: Atomic = CommonConfigs.atomic(),
+                                                          acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
                                                           levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                                                           lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
                                                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],

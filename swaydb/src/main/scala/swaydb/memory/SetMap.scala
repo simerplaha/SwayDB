@@ -25,7 +25,7 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.CommonConfig
+import swaydb.CommonConfigs
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -46,15 +46,15 @@ object SetMap extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[K, V, BAG[_]](mapSize: Int = CommonConfig.mapSize,
-                          minSegmentSize: Int = CommonConfig.segmentSize,
+  def apply[K, V, BAG[_]](mapSize: Int = CommonConfigs.mapSize,
+                          minSegmentSize: Int = CommonConfigs.segmentSize,
                           maxKeyValuesPerSegment: Int = Int.MaxValue,
                           fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                           deleteSegmentsEventually: Boolean = false,
-                          mergeParallelism: Int = CommonConfig.mergeParallelism(),
-                          optimiseWrites: OptimiseWrites = CommonConfig.optimiseWrites(),
-                          atomic: Atomic = CommonConfig.atomic(),
-                          acceleration: LevelZeroMeter => Accelerator = CommonConfig.accelerator,
+                          mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                          optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
+                          atomic: Atomic = CommonConfigs.atomic(),
+                          acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
                           levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                           lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
