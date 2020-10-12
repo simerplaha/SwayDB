@@ -113,13 +113,13 @@ class MapSpec extends TestBase {
 
           map.writeSync(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
-          map.cache.skipList.get(1) shouldBe segment1
-          map.cache.skipList.get(2) shouldBe segment2
+          map.cache.get(1) shouldBe segment1
+          map.cache.get(2) shouldBe segment2
 
           map.writeSync(MapEntry.Remove[Slice[Byte]](1)) shouldBe true
           map.writeSync(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
-          map.cache.skipList.get(1).toOptionS shouldBe empty
-          map.cache.skipList.get(2).toOptionS shouldBe empty
+          map.cache.get(1).toOptionS shouldBe empty
+          map.cache.get(2).toOptionS shouldBe empty
       }
     }
 
@@ -173,7 +173,7 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             ).item.sweep()
 
-          map.cache.skipList.isEmpty shouldBe true
+          map.cache.isEmpty shouldBe true
           map.close()
           //recover from an empty map
           val recovered =
@@ -185,7 +185,7 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             ).item.sweep()
 
-          recovered.cache.skipList.isEmpty shouldBe true
+          recovered.cache.isEmpty shouldBe true
           recovered.close()
       }
     }
@@ -274,8 +274,8 @@ class MapSpec extends TestBase {
           map.writeSync(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
           map.writeSync(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
           map.writeSync(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
-          map.cache.skipList.get(1) shouldBe segment1
-          map.cache.skipList.get(2).toOptionS shouldBe empty
+          map.cache.get(1) shouldBe segment1
+          map.cache.get(2).toOptionS shouldBe empty
 
           def doRecover(path: Path): PersistentMap[Slice[Byte], Segment, AppendixMapCache] = {
             val recovered =
@@ -287,8 +287,8 @@ class MapSpec extends TestBase {
                 dropCorruptedTailEntries = false
               ).item.sweep()
 
-            recovered.cache.skipList.get(1).getS shouldBe segment1
-            recovered.cache.skipList.get(2).toOptionS shouldBe empty
+            recovered.cache.get(1).getS shouldBe segment1
+            recovered.cache.get(2).toOptionS shouldBe empty
             recovered.close()
 
             if (recovered.mmap.isMMAP && OperatingSystem.isWindows)
@@ -424,12 +424,12 @@ class MapSpec extends TestBase {
               dropCorruptedTailEntries = false
             ).item.sweep()
 
-          map1Recovered.cache.skipList.get(1).getS shouldBe segment1
-          map1Recovered.cache.skipList.get(2).getS shouldBe segment2Updated //second file overrides 2's value to be segment2Updated
-          map1Recovered.cache.skipList.get(3).getS shouldBe segment3
-          map1Recovered.cache.skipList.get(4).getS shouldBe segment4
-          map1Recovered.cache.skipList.get(5).getS shouldBe segment5
-          map1Recovered.cache.skipList.get(6).toOptionS shouldBe empty
+          map1Recovered.cache.get(1).getS shouldBe segment1
+          map1Recovered.cache.get(2).getS shouldBe segment2Updated //second file overrides 2's value to be segment2Updated
+          map1Recovered.cache.get(3).getS shouldBe segment3
+          map1Recovered.cache.get(4).getS shouldBe segment4
+          map1Recovered.cache.get(5).getS shouldBe segment5
+          map1Recovered.cache.get(6).toOptionS shouldBe empty
 
           //recovered file's id is 2.log
           map1Recovered.path.files(Extension.Log).map(_.fileId) should contain only ((2, Extension.Log))

@@ -165,7 +165,7 @@ private[core] object Level extends LazyLogging {
           appendix =>
             logger.debug("{}: Checking Segments exist.", levelStorage.dir)
             //check that all existing Segments in appendix also exists on disk or else return error message.
-            appendix.cache.skipList.values() foreachIO {
+            appendix.cache.values() foreachIO {
               segment =>
                 if (segment.existsOnDisk)
                   IO.unit
@@ -176,14 +176,14 @@ private[core] object Level extends LazyLogging {
                 IO.Left(error)
 
               case None =>
-                val allSegments = appendix.cache.skipList.values()
+                val allSegments = appendix.cache.values()
                 implicit val segmentIDGenerator = IDGenerator(initial = largestSegmentId(allSegments))
                 implicit val reserveRange = ReserveRange.create[Unit]()
                 val paths: PathsDistributor = PathsDistributor(levelStorage.dirs, () => allSegments)
 
                 val deletedUnCommittedSegments =
                   if (appendixStorage.persistent)
-                    deleteUncommittedSegments(levelStorage.dirs, appendix.cache.skipList.values())
+                    deleteUncommittedSegments(levelStorage.dirs, appendix.cache.values())
                   else
                     IO.unit
 
@@ -442,7 +442,7 @@ private[core] case class Level(dirs: Seq[Dir],
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
         inputSegments = segments,
-        targetSegments = appendix.cache.skipList.values()
+        targetSegments = appendix.cache.values()
       )
     } map {
       assigned =>
@@ -474,7 +474,7 @@ private[core] case class Level(dirs: Seq[Dir],
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
         input = map.cache.skipList,
-        targetSegments = appendix.cache.skipList.values()
+        targetSegments = appendix.cache.values()
       )
     } map {
       assigned =>
@@ -604,7 +604,7 @@ private[core] case class Level(dirs: Seq[Dir],
           mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
     reserveAndRelease(segments) {
-      val appendixSegments = appendix.cache.skipList.values()
+      val appendixSegments = appendix.cache.values()
       val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
       put(
         segmentsToMerge = segmentToMerge,
@@ -700,7 +700,7 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
     reserveAndRelease(map) {
 
-      val appendixValues = appendix.cache.skipList.values()
+      val appendixValues = appendix.cache.values()
       val keyValues = map.cache.skipList
 
       if (Segment.overlaps(keyValues, appendixValues))
@@ -1228,7 +1228,6 @@ private[core] case class Level(dirs: Seq[Dir],
   def getFromThisLevel(key: Slice[Byte], readState: ThreadReadState): KeyValueOption =
     appendix
       .cache
-      .skipList
       .floor(key)
       .flatMapSomeS(Memory.Null: KeyValueOption)(_.get(key, readState))
 
@@ -1248,14 +1247,12 @@ private[core] case class Level(dirs: Seq[Dir],
   private def mightContainKeyInThisLevel(key: Slice[Byte]): Boolean =
     appendix
       .cache
-      .skipList
       .floor(key)
       .existsS(_.mightContainKey(key))
 
   private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): Boolean =
     appendix
       .cache
-      .skipList
       .values()
       .exists {
         segment =>
@@ -1282,7 +1279,6 @@ private[core] case class Level(dirs: Seq[Dir],
                                readState: ThreadReadState): LevelSeek[KeyValue] =
     appendix
       .cache
-      .skipList
       .lower(key)
       .flatMapSomeS(LevelSeek.None: LevelSeek[KeyValue]) {
         segment =>
@@ -1317,7 +1313,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def higherFromFloorSegment(key: Slice[Byte],
                                      readState: ThreadReadState): LevelSeek[KeyValue] =
-    appendix.cache.skipList.floor(key) match {
+    appendix.cache.floor(key) match {
       case segment: Segment =>
         LevelSeek(
           segmentId = segment.segmentId,
@@ -1329,7 +1325,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   private def higherFromHigherSegment(key: Slice[Byte], readState: ThreadReadState): LevelSeek[KeyValue] =
-    appendix.cache.skipList.higher(key) match {
+    appendix.cache.higher(key) match {
       case segment: Segment =>
         LevelSeek(
           segmentId = segment.segmentId,
@@ -1379,7 +1375,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def headKey(readState: ThreadReadState): SliceOption[Byte] =
     nextLevel match {
       case Some(nextLevel) =>
-        val thisLevelHeadKey = appendix.cache.skipList.headKey
+        val thisLevelHeadKey = appendix.cache.headKey()
         val nextLevelHeadKey = nextLevel.headKey(readState)
 
         MinMax.minFavourLeftC[SliceOption[Byte], Slice[Byte]](
@@ -1388,7 +1384,7 @@ private[core] case class Level(dirs: Seq[Dir],
         )(keyOrder)
 
       case None =>
-        appendix.cache.skipList.headKey
+        appendix.cache.headKey()
     }
 
   /**
@@ -1398,7 +1394,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def lastKey(readState: ThreadReadState): SliceOption[Byte] =
     nextLevel match {
       case Some(nextLevel) =>
-        val thisLevelLastKey = appendix.cache.skipList.last().flatMapSomeS(Slice.Null: SliceOption[Byte])(_.maxKey.maxKey)
+        val thisLevelLastKey = appendix.cache.maxKey()
         val nextLevelLastKey = nextLevel.lastKey(readState)
 
         MinMax.maxFavourLeftC[SliceOption[Byte], Slice[Byte]](
@@ -1407,7 +1403,7 @@ private[core] case class Level(dirs: Seq[Dir],
         )(keyOrder)
 
       case None =>
-        appendix.cache.skipList.last().flatMapSomeS(Slice.Null: SliceOption[Byte])(_.maxKey.maxKey)
+        appendix.cache.maxKey()
     }
 
   override def head(readState: ThreadReadState): KeyValue.PutOption =
@@ -1425,11 +1421,11 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
-    appendix.cache.skipList.contains(minKey)
+    appendix.cache.contains(minKey)
 
   override def keyValueCount: Int = {
     val countFromThisLevel =
-      appendix.cache.skipList.foldLeft(0) {
+      appendix.cache.foldLeft(0) {
         case (currentTotal, (_, segment)) =>
           currentTotal + segment.getKeyValueCount()
       }
@@ -1447,13 +1443,13 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   def getSegment(minKey: Slice[Byte]): SegmentOption =
-    appendix.cache.skipList.get(minKey)
+    appendix.cache.get(minKey)
 
   override def segmentsCount(): Int =
-    appendix.cache.skipList.count()
+    appendix.cache.size
 
   override def take(count: Int): Slice[Segment] =
-    appendix.cache.skipList.take(count)
+    appendix.cache.take(count)
 
   def isEmpty: Boolean =
     appendix.cache.isEmpty
@@ -1462,13 +1458,13 @@ private[core] case class Level(dirs: Seq[Dir],
     Effect.segmentFilesOnDisk(dirs.map(_.path))
 
   def segmentFilesInAppendix: Int =
-    appendix.cache.skipList.count()
+    appendix.cache.size
 
   def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
-    appendix.cache.skipList.foreach(f)
+    appendix.cache.foreach(f)
 
   def segmentsInLevel(): Iterable[Segment] =
-    appendix.cache.skipList.values()
+    appendix.cache.values()
 
   def hasNextLevel: Boolean =
     nextLevel.isDefined
@@ -1477,13 +1473,13 @@ private[core] case class Level(dirs: Seq[Dir],
     dirs.forall(_.path.exists)
 
   override def levelSize: Long =
-    appendix.cache.skipList.foldLeft(0)(_ + _._2.segmentSize)
+    appendix.cache.foldLeft(0)(_ + _._2.segmentSize)
 
   override def sizeOfSegments: Long =
     levelSize + nextLevel.map(_.levelSize).getOrElse(0L)
 
   def segmentCountAndLevelSize: (Int, Long) =
-    appendix.cache.skipList.foldLeft((0: Int, 0L: Long)) {
+    appendix.cache.foldLeft((0: Int, 0L: Long)) {
       case ((segments, size), (_, segment)) =>
         (segments + 1, size + segment.segmentSize)
     }
@@ -1497,7 +1493,6 @@ private[core] case class Level(dirs: Seq[Dir],
   override def takeSegments(size: Int, condition: Segment => Boolean): Iterable[Segment] =
     appendix
       .cache
-      .skipList
       .values()
       .filter(condition)
       .take(size)
@@ -1505,7 +1500,6 @@ private[core] case class Level(dirs: Seq[Dir],
   override def takeLargeSegments(size: Int): Iterable[Segment] =
     appendix
       .cache
-      .skipList
       .values()
       .filter(_.segmentSize > minSegmentSize)
       .take(size)
@@ -1513,7 +1507,6 @@ private[core] case class Level(dirs: Seq[Dir],
   override def takeSmallSegments(size: Int): Iterable[Segment] =
     appendix
       .cache
-      .skipList
       .values()
       .filter(Level.isSmallSegment(_, minSegmentSize))
       .take(size)
@@ -1540,7 +1533,6 @@ private[core] case class Level(dirs: Seq[Dir],
   def hasSmallSegments: Boolean =
     appendix
       .cache
-      .skipList
       .values()
       .exists(Level.isSmallSegment(_, minSegmentSize))
 
@@ -1569,7 +1561,6 @@ private[core] case class Level(dirs: Seq[Dir],
   def lastSegmentId: Option[Long] =
     appendix
       .cache
-      .skipList
       .last()
       .mapS(_.segmentId)
 
