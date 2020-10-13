@@ -114,7 +114,7 @@ object DefaultConfigs {
       cacheSegmentBlocksOnCreate = true,
       deleteSegmentsEventually = false,
       pushForward = true,
-      mmap = DefaultConfigs.mmap(),
+      mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
       minSegmentSize = CommonConfigs.segmentSize,
       maxKeyValuesPerSegment = Int.MaxValue,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
@@ -140,7 +140,7 @@ object DefaultConfigs {
     ByteCacheOnly(
       minIOSeekSize = 4096,
       skipBlockCacheSeekSize = 4096 * 10,
-      cacheCapacity = 1.gb,
+      cacheCapacity = 2.gb,
       actorConfig =
         ActorConfig.TimeLoop(
           name = s"${this.getClass.getName} - MemoryCache Actor",
@@ -149,21 +149,8 @@ object DefaultConfigs {
         )
     )
 
-  def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration = {
-    val mapsCount = meter.mapsCount
-
-    /**
-     * [[CommonConfigs.accelerator]] starts braking at 5 so if the
-     * map size comes near to braking do priority compaction to avoid
-     * brake from occurring.
-     */
-    if (mapsCount >= 4)
-      Duration.Zero - 365.days //urgent
-    else if (mapsCount >= 2)
-      1.second
-    else
-      1.day
-  }
+  def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration =
+    (2 - meter.mapsCount).seconds
 
   /**
    * The general idea for the following [[Throttle]] functions
@@ -175,43 +162,33 @@ object DefaultConfigs {
    */
 
   def levelOneThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = meter.segmentsCount
-    val delay = (1 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 10
-    Throttle(delay, segmentsToPush)
+    val segmentsCount = 100 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 1)
   }
 
   def levelTwoThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = meter.segmentsCount
-    val delay = (3 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 8
-    Throttle(delay, segmentsToPush)
+    val segmentsCount = 1000 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 1)
   }
 
   def levelThreeThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = meter.segmentsCount
-    val delay = (5 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 6
-    Throttle(delay, segmentsToPush)
+    val segmentsCount = 2000 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 1)
   }
 
   def levelFourThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = meter.segmentsCount
-    val delay = (10 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 4
-    Throttle(delay, segmentsToPush)
+    val segmentsCount = 3000 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 1)
   }
 
   def levelFiveThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = meter.segmentsCount
-    val delay = (15 - segmentsCount).seconds
-    val segmentsToPush = segmentsCount min 2
-    Throttle(delay, segmentsToPush)
+    val segmentsCount = 4000 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 1)
   }
 
   def levelSixThrottle(meter: LevelMeter): Throttle =
     if (meter.requiresCleanUp)
-      Throttle(10.seconds, 2)
+      Throttle(10.seconds, 1)
     else
-      Throttle(1.hour, 5)
+      Throttle(1.hour, 1)
 }

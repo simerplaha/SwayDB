@@ -31,23 +31,23 @@ import scala.concurrent.duration._
 
 case object CommonConfigs {
   //4098 being the default file-system blockSize.
-  def mapSize: Int = 4098.bytes * 1000
+  def mapSize: Int = 4098.bytes * 4000
 
-  def segmentSize: Int = 4098.bytes * 500
+  def segmentSize: Int = 4098.bytes * 4000
 
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
       increaseMapSizeOnMapCount = 3,
-      increaseMapSizeBy = 2,
-      maxMapSize = CommonConfigs.mapSize * 3,
-      brakeOnMapCount = 6,
-      brakeFor = 10.milliseconds,
-      releaseRate = 0.1.millisecond,
+      increaseMapSizeBy = 1,
+      maxMapSize = CommonConfigs.mapSize,
+      brakeOnMapCount = 4,
+      brakeFor = 1.milliseconds,
+      releaseRate = 0.01.millisecond,
       logAsWarning = false
     )
 
   def mergeParallelism(): Int =
-    Runtime.getRuntime.availableProcessors() / 3
+    Runtime.getRuntime.availableProcessors() / 2
 
   def optimiseWrites(): OptimiseWrites =
     OptimiseWrites.RandomOrder

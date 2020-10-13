@@ -264,6 +264,7 @@ private[core] object Level extends LazyLogging {
                                               keyOrder: KeyOrder[Slice[Byte]]): (Iterable[Segment], Iterable[Segment]) = {
     val segmentsToCopy = ListBuffer.empty[Segment]
     val segmentsToMerge = ListBuffer.empty[Segment]
+
     level
       .segmentsInLevel()
       .foreachBreak {
@@ -277,6 +278,7 @@ private[core] object Level extends LazyLogging {
 
           segmentsToCopy.size >= take
       }
+
     (segmentsToCopy, segmentsToMerge)
   }
 
@@ -1106,13 +1108,19 @@ private[core] case class Level(dirs: Seq[Dir],
             targetSegmentAndNewSegments =>
               targetSegmentAndNewSegments.foldLeftRecoverIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
                 case (mapEntry, (targetSegment, newSegments)) =>
-                  buildNewMapEntry(newSegments, targetSegment, mapEntry).toOptionValue
+                  buildNewMapEntry(
+                    newSegments = newSegments,
+                    originalSegmentMayBe = targetSegment,
+                    initialMapEntry = mapEntry
+                  ).toOptionValue
+
               } flatMap {
                 case Some(mapEntry) =>
                   //also write appendEntry to this mapEntry before committing entries to appendix.
                   //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
                   //which will remove oldEntries with duplicates with newer keys.
                   val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
+
                   appendix.writeSafe(mapEntryToWrite) transform {
                     _ =>
                       logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, assignments.map(_._1.path.toString))
@@ -1131,6 +1139,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
                 case None =>
                   IO.failed(s"${pathDistributor.head}: Failed to create map entry")
+
               } onLeftSideEffect {
                 failure =>
                   logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", failure)
