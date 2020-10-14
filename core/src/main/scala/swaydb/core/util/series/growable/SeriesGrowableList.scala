@@ -63,7 +63,7 @@ private[core] object SeriesGrowableList {
 }
 
 private[core] class SeriesGrowableList[T >: Null : ClassTag] private(@volatile private var series: SeriesAppendableVolatile[SeriesAppendableVolatile[T]],
-                                                                     lengthPerSeries: Int) {
+                                                                     lengthPerSeries: Int) { self =>
 
   @volatile private var _written = 0
 
@@ -187,6 +187,12 @@ private[core] class SeriesGrowableList[T >: Null : ClassTag] private(@volatile p
 
   def nonEmpty: Boolean =
     !isEmpty
+
+  def iterable: Iterable[T] =
+    new Iterable[T] {
+      override def iterator: Iterator[T] =
+        self.iterator
+    }
 
   def iterator: Iterator[T] =
     new Iterator[T] {
