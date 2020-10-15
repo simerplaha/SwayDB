@@ -28,7 +28,6 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Aggregator, IO}
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
@@ -37,7 +36,6 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.map.Map
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -48,22 +46,38 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
+import swaydb.core.util.queue.VolatileQueue
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.{FiniteDurations, SomeOrNone}
+import swaydb.{Aggregator, IO}
 
 import scala.annotation.tailrec
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
-import scala.jdk.CollectionConverters._
+
 
 private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
   override def noneS: SegmentOption =
     Segment.Null
+}
+
+private[swaydb] sealed trait SegmentState
+
+object SegmentState {
+  /**
+   * Segments that are pending merge
+   */
+  case class Queued(queue: VolatileQueue[Segment]) extends SegmentState
+
+  /**
+   * Segments that are merged.
+   */
+  sealed trait Singleton extends SegmentState
 }
 
 private[core] case object Segment extends LazyLogging {
@@ -1122,7 +1136,7 @@ private[core] case object Segment extends LazyLogging {
   }
 }
 
-private[core] trait Segment extends FileSweeperItem with SegmentOption { self =>
+private[core] trait Segment extends FileSweeperItem with SegmentOption with SegmentState.Singleton { self =>
 
   val minKey: Slice[Byte]
   val maxKey: MaxKey[Slice[Byte]]
