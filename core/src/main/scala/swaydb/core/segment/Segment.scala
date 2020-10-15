@@ -1141,7 +1141,9 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption { self =>
   def segmentId: Long =
     Effect.numberFileId(path)._1
 
-  def put(newKeyValues: Slice[KeyValue],
+  def put(newHeadKeyValues: Iterable[KeyValue],
+          newTailKeyValues: Iterable[KeyValue],
+          newKeyValues: Slice[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,

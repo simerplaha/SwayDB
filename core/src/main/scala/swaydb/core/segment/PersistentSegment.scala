@@ -47,7 +47,9 @@ trait PersistentSegment extends Segment {
   def isMMAP =
     file.isMemoryMapped
 
-  def put(newKeyValues: Slice[KeyValue],
+  def put(newHeadKeyValues: Iterable[KeyValue],
+          newTailKeyValues: Iterable[KeyValue],
+          newKeyValues: Slice[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,

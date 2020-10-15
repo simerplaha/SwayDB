@@ -64,6 +64,8 @@ private[core] sealed trait KeyValue {
 
 private[core] object KeyValue {
 
+  val emptyIterable = Iterable.empty[KeyValue]
+
   sealed trait Null extends KeyValueOption
 
   /**

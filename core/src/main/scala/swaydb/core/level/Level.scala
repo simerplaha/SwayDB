@@ -1167,6 +1167,8 @@ private[core] case class Level(dirs: Seq[Dir],
           IO {
             val newSegments =
               targetSegment.put(
+                newHeadKeyValues = KeyValue.emptyIterable,
+                newTailKeyValues = KeyValue.emptyIterable,
                 newKeyValues = assignedKeyValues,
                 removeDeletes = removeDeletedRecords,
                 createdInLevel = levelNumber,

@@ -71,7 +71,9 @@ protected case class MemorySegment(path: Path,
 
   override def formatId: Byte = 0
 
-  override def put(newKeyValues: Slice[KeyValue],
+  override def put(newHeadKeyValues: Iterable[KeyValue],
+                   newTailKeyValues: Iterable[KeyValue],
+                   newKeyValues: Slice[KeyValue],
                    removeDeletes: Boolean,
                    createdInLevel: Int,
                    valuesConfig: ValuesBlock.Config,
@@ -87,6 +89,8 @@ protected case class MemorySegment(path: Path,
       val stats = MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
 
       SegmentMerger.merge(
+        newHeadKeyValues = newHeadKeyValues,
+        newTailKeyValues = newTailKeyValues,
         newKeyValues = newKeyValues,
         oldKeyValuesCount = getKeyValueCount(),
         oldKeyValues = iterator(),

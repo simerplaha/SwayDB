@@ -530,8 +530,8 @@ private[core] object SegmentRef {
             val footer = blockCache.getFooter()
             val lowerFromState =
               if (segmentStateOption.isSomeS)
-                //using foundKeyValue here instead of foundLowerKeyValue because foundKeyValue is always == foundLowerKeyValue if previous seek was lower
-                //if not then foundKeyValue gives a higher chance of being lower for cases with random reads were performed.
+              //using foundKeyValue here instead of foundLowerKeyValue because foundKeyValue is always == foundLowerKeyValue if previous seek was lower
+              //if not then foundKeyValue gives a higher chance of being lower for cases with random reads were performed.
                 segmentStateOption.getS.keyValue._2 match {
                   case range: Persistent.Range if KeyValue.Range.containsLower(range, key) =>
                     range
@@ -619,6 +619,8 @@ private[core] object SegmentRef {
       }
 
   def put(ref: SegmentRef,
+          newHeadKeyValues: Iterable[KeyValue],
+          newTailKeyValues: Iterable[KeyValue],
           newKeyValues: Slice[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -633,6 +635,8 @@ private[core] object SegmentRef {
     put(
       oldKeyValuesCount = ref.getKeyValueCount(),
       oldKeyValues = ref.iterator(),
+      newHeadKeyValues = newHeadKeyValues,
+      newTailKeyValues = newTailKeyValues,
       newKeyValues = newKeyValues,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
@@ -646,6 +650,8 @@ private[core] object SegmentRef {
 
   def put(oldKeyValuesCount: Int,
           oldKeyValues: Iterator[Persistent],
+          newHeadKeyValues: Iterable[KeyValue],
+          newTailKeyValues: Iterable[KeyValue],
           newKeyValues: Slice[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -661,6 +667,8 @@ private[core] object SegmentRef {
     val builder = MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
     SegmentMerger.merge(
+      newHeadKeyValues = newHeadKeyValues,
+      newTailKeyValues = newTailKeyValues,
       newKeyValues = newKeyValues,
       oldKeyValuesCount = oldKeyValuesCount,
       oldKeyValues = oldKeyValues,

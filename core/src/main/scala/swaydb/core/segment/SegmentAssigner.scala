@@ -117,6 +117,8 @@ private[core] object SegmentAssigner {
   def assignUnsafe(keyValuesCount: Int,
                    keyValues: Iterable[KeyValue],
                    segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] = {
+
+    //TODO - remove Map. Used temporarily so the code compiles.
     val buffer =
       assignUnsafe(
         keyValuesCount = keyValuesCount,

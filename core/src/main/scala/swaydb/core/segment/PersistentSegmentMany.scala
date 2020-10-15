@@ -497,7 +497,9 @@ protected case class PersistentSegmentMany(file: DBFile,
   /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
-  def put(newKeyValues: Slice[KeyValue],
+  def put(newHeadKeyValues: Iterable[KeyValue],
+          newTailKeyValues: Iterable[KeyValue],
+          newKeyValues: Slice[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -512,6 +514,8 @@ protected case class PersistentSegmentMany(file: DBFile,
       SegmentRef.put(
         oldKeyValuesCount = getKeyValueCount(),
         oldKeyValues = iterator(),
+        newHeadKeyValues = newHeadKeyValues,
+        newTailKeyValues = newTailKeyValues,
         newKeyValues = newKeyValues,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,

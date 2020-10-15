@@ -43,6 +43,8 @@ private[core] object SegmentMerger extends LazyLogging {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore): Unit =
     merge(
+      newHeadKeyValues = KeyValue.emptyIterable,
+      newTailKeyValues = KeyValue.emptyIterable,
       newKeyValues = Slice(newKeyValue),
       oldKeyValues = Slice(oldKeyValue),
       stats = builder,
@@ -56,13 +58,34 @@ private[core] object SegmentMerger extends LazyLogging {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore): Unit =
     merge(
+      newHeadKeyValues = KeyValue.emptyIterable,
+      newTailKeyValues = KeyValue.emptyIterable,
       newKeyValues = DropIterator[Memory.Range, KeyValue](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel
     )
 
-  def merge[T[_]](newKeyValues: Slice[KeyValue],
+  def merge(newHeadKeyValues: Iterable[KeyValue],
+            newTailKeyValues: Iterable[KeyValue],
+            newKeyValues: Slice[KeyValue],
+            oldKeyValues: Slice[KeyValue],
+            stats: MergeStats[Memory, Iterable],
+            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore): Unit =
+    merge(
+      newHeadKeyValues = newHeadKeyValues,
+      newTailKeyValues = newTailKeyValues,
+      newKeyValues = DropIterator[Memory.Range, KeyValue](newKeyValues),
+      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
+      builder = stats,
+      isLastLevel = isLastLevel
+    )
+
+  def merge[T[_]](newHeadKeyValues: Iterable[KeyValue],
+                  newTailKeyValues: Iterable[KeyValue],
+                  newKeyValues: Slice[KeyValue],
                   oldKeyValuesCount: Int,
                   oldKeyValues: Iterator[KeyValue],
                   stats: MergeStats[Memory, T],
@@ -70,13 +93,17 @@ private[core] object SegmentMerger extends LazyLogging {
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore): Unit =
     merge(
+      newHeadKeyValues = newHeadKeyValues,
+      newTailKeyValues = newTailKeyValues,
       newKeyValues = DropIterator[Memory.Range, KeyValue](newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel
     )
 
-  def merge[T[_]](newKeyValuesCount: Int,
+  def merge[T[_]](newHeadKeyValues: Iterable[KeyValue],
+                  newTailKeyValues: Iterable[KeyValue],
+                  newKeyValuesCount: Int,
                   newKeyValues: Iterator[KeyValue],
                   oldKeyValuesCount: Int,
                   oldKeyValues: Iterator[KeyValue],
@@ -85,13 +112,17 @@ private[core] object SegmentMerger extends LazyLogging {
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore): Unit =
     merge(
+      newHeadKeyValues = newHeadKeyValues,
+      newTailKeyValues = newTailKeyValues,
       newKeyValues = DropIterator[Memory.Range, KeyValue](newKeyValuesCount, newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel
     )
 
-  private def merge[T[_]](newKeyValues: DropIterator[Memory.Range, KeyValue],
+  private def merge[T[_]](newHeadKeyValues: Iterable[KeyValue], //head key-values that do not require merging
+                          newTailKeyValues: Iterable[KeyValue], //tail key-values that do not require merging
+                          newKeyValues: DropIterator[Memory.Range, KeyValue],
                           oldKeyValues: DropIterator[Memory.Range, KeyValue],
                           builder: MergeStats[Memory, T],
                           isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -106,6 +137,11 @@ private[core] object SegmentMerger extends LazyLogging {
         builder = builder,
         isLastLevel = isLastLevel
       )
+
+    if (newHeadKeyValues.nonEmpty)
+      assert(newHeadKeyValues.last.key < oldKeyValues.headOrNull.key)
+
+    newHeadKeyValues foreach add
 
     @tailrec
     def doMerge(newKeyValues: DropIterator[Memory.Range, KeyValue],
@@ -424,5 +460,7 @@ private[core] object SegmentMerger extends LazyLogging {
       }
 
     doMerge(newKeyValues, oldKeyValues)
+
+    newTailKeyValues foreach add
   }
 }
