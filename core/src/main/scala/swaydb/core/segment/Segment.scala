@@ -66,7 +66,7 @@ private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Seg
     Segment.Null
 }
 
-private[core] object Segment extends LazyLogging {
+private[core] case object Segment extends LazyLogging {
 
   final case object Null extends SegmentOption {
     override def isNoneS: Boolean = true

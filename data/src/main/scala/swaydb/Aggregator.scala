@@ -24,8 +24,11 @@
 
 package swaydb
 
+import swaydb.data.slice.Slice
+
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.reflect.ClassTag
 
 /**
  * [[scala.collection.mutable.Builder]] requires two implementations for 2.13 and 2.12.
@@ -43,6 +46,41 @@ protected trait Aggregator[-A, +T] extends ForEach[A] {
 }
 
 protected object Aggregator {
+
+  /**
+   * Allows creating [[Aggregator]] instances on demand.
+   */
+  trait CreatorSizeable[-A, +T] {
+    def createNewSizeHint(size: Int): Aggregator[A, T]
+  }
+
+  trait Creator[-A, +T] extends CreatorSizeable[A, T] {
+    def createNew(): Aggregator[A, T]
+  }
+
+  case object Creator {
+    def listBuffer[A](): Aggregator.Creator[A, ListBuffer[A]] =
+      new Creator[A, ListBuffer[A]] {
+        override def createNew(): Aggregator[A, ListBuffer[A]] =
+          Aggregator.listBuffer[A]
+
+        override def createNewSizeHint(size: Int): Aggregator[A, ListBuffer[A]] =
+          createNew()
+      }
+
+    def slice[A: ClassTag]() =
+      new CreatorSizeable[A, Slice[A]] {
+        override def createNewSizeHint(size: Int): Aggregator[A, Slice[A]] =
+          Slice.newAggregator(size)
+      }
+
+    def nothing[A]() =
+      new Creator[A, Nothing] {
+        override def createNew(): Aggregator[A, Nothing] = throw new Exception(s"Cannot create Nothing ${Creator.productPrefix}")
+        override def createNewSizeHint(size: Int): Aggregator[A, Nothing] = createNew()
+      }
+  }
+
   def fromBuilder[A, T](builder: mutable.Builder[A, T]): Aggregator[A, T] =
     new Aggregator[A, T] {
       override def add(item: A): Unit =
