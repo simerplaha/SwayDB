@@ -66,20 +66,6 @@ private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Seg
     Segment.Null
 }
 
-private[swaydb] sealed trait SegmentState
-
-object SegmentState {
-  /**
-   * Segments that are pending merge
-   */
-  case class Queued(queue: VolatileQueue[Segment]) extends SegmentState
-
-  /**
-   * Segments that are merged.
-   */
-  sealed trait Singleton extends SegmentState
-}
-
 private[core] case object Segment extends LazyLogging {
 
   final case object Null extends SegmentOption {
@@ -1136,7 +1122,7 @@ private[core] case object Segment extends LazyLogging {
   }
 }
 
-private[core] trait Segment extends FileSweeperItem with SegmentOption with SegmentState.Singleton { self =>
+private[core] trait Segment extends FileSweeperItem with SegmentOption { self =>
 
   def minKey: Slice[Byte]
 
