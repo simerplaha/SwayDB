@@ -110,6 +110,17 @@ protected case class MemorySegment(path: Path,
         )
     }
 
+  override def putSegment(segment: Segment,
+                          removeDeletes: Boolean,
+                          createdInLevel: Int,
+                          valuesConfig: ValuesBlock.Config,
+                          sortedIndexConfig: SortedIndexBlock.Config,
+                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                          hashIndexConfig: HashIndexBlock.Config,
+                          bloomFilterConfig: BloomFilterBlock.Config,
+                          segmentConfig: SegmentBlock.Config,
+                          pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] = ???
+
   override def refresh(removeDeletes: Boolean,
                        createdInLevel: Int,
                        valuesConfig: ValuesBlock.Config,

@@ -36,6 +36,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
+import swaydb.core.segment.assigner.SegmentAssigner
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -46,7 +47,6 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
-import swaydb.core.util.queue.VolatileQueue
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, MMAP}
@@ -1157,6 +1157,17 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption { self =>
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
+
+  def putSegment(segment: Segment,
+                 removeDeletes: Boolean,
+                 createdInLevel: Int,
+                 valuesConfig: ValuesBlock.Config,
+                 sortedIndexConfig: SortedIndexBlock.Config,
+                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                 hashIndexConfig: HashIndexBlock.Config,
+                 bloomFilterConfig: BloomFilterBlock.Config,
+                 segmentConfig: SegmentBlock.Config,
+                 pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

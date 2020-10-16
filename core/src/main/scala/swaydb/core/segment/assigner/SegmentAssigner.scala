@@ -22,10 +22,11 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.assigner
 
 import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory, MemoryOption, Value}
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.DropIterator
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.order.KeyOrder

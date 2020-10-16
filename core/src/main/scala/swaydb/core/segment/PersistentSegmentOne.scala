@@ -310,6 +310,17 @@ protected case class PersistentSegmentOne(file: DBFile,
     )
   }
 
+  override def putSegment(segment: Segment,
+                          removeDeletes: Boolean,
+                          createdInLevel: Int,
+                          valuesConfig: ValuesBlock.Config,
+                          sortedIndexConfig: SortedIndexBlock.Config,
+                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                          hashIndexConfig: HashIndexBlock.Config,
+                          bloomFilterConfig: BloomFilterBlock.Config,
+                          segmentConfig: SegmentBlock.Config,
+                          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = ???
+
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,
