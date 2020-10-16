@@ -86,8 +86,8 @@ private[core] object SegmentAssigner {
   def assignUnsafeWithGaps[GAP](keyValuesCount: Int,
                                 assignables: Iterable[Assignable],
                                 segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             gapCreator: Aggregator.CreatorSizeable[Assignable, GAP]): ListBuffer[Assignment[GAP]] =
-    assignUnsafe(
+                                                             gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP]] =
+    assignUnsafe[GAP](
       assignablesCount = keyValuesCount,
       assignables = assignables,
       segments = segments,
@@ -102,237 +102,240 @@ private[core] object SegmentAssigner {
                                 assignables: Iterable[Assignable],
                                 segments: Iterable[Segment],
                                 noGaps: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                 gapCreator: Aggregator.CreatorSizeable[Assignable, GAP]): ListBuffer[Assignment[GAP]] = {
-    if (noGaps && Segment.hasOnlyOneSegment(segments)) { //.size iterates the entire Iterable which is not needed.
-      val assignments = ListBuffer[Assignment[GAP]]()
-      assignments += Assignment.AssignedImmutable(segments.head, assignables)
-      assignments
-    } else {
-      import keyOrder._
+                                                 gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP]] = {
+    import keyOrder._
 
-      val assignments = ListBuffer.empty[Assignment.Mutable[GAP]]
+    val assignments = ListBuffer.empty[Assignment[GAP]]
 
-      val segmentsIterator = segments.iterator
+    val segmentsIterator = segments.iterator
 
-      def getNextSegmentMayBe() = if (segmentsIterator.hasNext) segmentsIterator.next() else Segment.Null
+    def getNextSegmentMayBe() = if (segmentsIterator.hasNext) segmentsIterator.next() else Segment.Null
 
-      def assignToSegment(assignable: Assignable,
-                          assignTo: Segment): Unit =
-        assignments.lastOption match {
-          case Some(Assignment.AssignedBuffer(bufferSegment, keyValues)) if bufferSegment.segmentId == assignTo.segmentId =>
-            keyValues += assignable
+    def assignToSegment(assignable: Assignable,
+                        assignTo: Segment): Unit =
+      assignments.lastOption match {
+        case Some(Assignment(bufferSegment, _, keyValues, _)) if bufferSegment.segmentId == assignTo.segmentId =>
+          keyValues += assignable
 
-          case _ =>
-            assignments += Assignment.AssignedBuffer(assignTo, ListBuffer(assignable))
-        }
+        case _ =>
+          assignments +=
+            Assignment(
+              segment = assignTo,
+              headGap = gapCreator.createNew(),
+              midOverlap = ListBuffer(assignable),
+              tailGap = gapCreator.createNew()
+            )
+      }
 
-      def assignToGap(keyValue: Assignable,
-                      remainingKeyValues: Int): Unit =
-        assignments.lastOption match {
-          case Some(Assignment.Gap(aggregator)) =>
-            aggregator add keyValue
+    def assignToGap(assignable: Assignable,
+                    assignTo: Segment): Unit =
+      assignments.lastOption match {
+        case Some(Assignment(bufferSegment, headGap, keyValues, tailGap)) if bufferSegment.segmentId == assignTo.segmentId =>
+          if (keyValues.isEmpty)
+            headGap add assignable
+          else
+            tailGap add assignable
 
-          case _ =>
-            //ignore assigned a create a new gap
-            val gapAggregator = gapCreator.createNewSizeHint(remainingKeyValues + 1)
-            gapAggregator add keyValue
-            assignments += Assignment.Gap(gapAggregator)
-        }
+        case _ =>
+          val headGap = gapCreator.createNew()
+          headGap add assignable
 
-      @tailrec
-      def assign(remaining: DropIterator[Memory.Range, Assignable],
-                 thisSegmentMayBe: SegmentOption,
-                 nextSegmentMayBe: SegmentOption): Unit = {
-        val assignable = remaining.headOrNull
+          assignments +=
+            Assignment(
+              segment = assignTo,
+              headGap = headGap,
+              midOverlap = ListBuffer(assignable),
+              tailGap = gapCreator.createNew()
+            )
+      }
 
-        if (assignable != null)
-          thisSegmentMayBe match {
-            case Segment.Null =>
-              if (noGaps)
-                throw new Exception("Cannot assign key-value to Null Segment.")
-              else
-                remaining.iterator foreach {
-                  keyValue =>
-                    assignToGap(keyValue, remaining.size)
-                }
+    @tailrec
+    def assign(remaining: DropIterator[Memory.Range, Assignable],
+               thisSegmentMayBe: SegmentOption,
+               nextSegmentMayBe: SegmentOption): Unit = {
+      val assignable = remaining.headOrNull
 
-            case thisSegment: Segment =>
-              val keyCompare = keyOrder.compare(assignable.key, thisSegment.minKey)
+      if (assignable != null)
+        thisSegmentMayBe match {
+          case Segment.Null =>
+            throw new Exception("Cannot assign key-value to Null Segment.")
 
-              //0 = Unknown. 1 = true, -1 = false
-              var _belongsTo = 0
+          case thisSegment: Segment =>
+            val keyCompare = keyOrder.compare(assignable.key, thisSegment.minKey)
 
-              def getKeyBelongsToNoSpread(): Boolean = {
-                if (_belongsTo == 0)
-                  if (Segment.belongsToNoSpread(assignable, thisSegment))
-                    _belongsTo = 1
-                  else
-                    _belongsTo = -1
+            //0 = Unknown. 1 = true, -1 = false
+            var _belongsTo = 0
 
-                _belongsTo == 1
+            def getKeyBelongsToNoSpread(): Boolean = {
+              if (_belongsTo == 0)
+                if (Segment.belongsToNoSpread(assignable, thisSegment))
+                  _belongsTo = 1
+                else
+                  _belongsTo = -1
+
+              _belongsTo == 1
+            }
+
+            @inline def spreadToNextSegment(collection: Assignable.Collection, segment: Segment): Boolean =
+              collection.maxKey match {
+                case MaxKey.Fixed(maxKey) =>
+                  maxKey >= segment.minKey
+
+                case MaxKey.Range(_, maxKey) =>
+                  maxKey > segment.minKey
               }
 
-              @inline def spreadToNextSegment(collection: Assignable.Collection, segment: Segment): Boolean =
-                collection.maxKey match {
-                  case MaxKey.Fixed(maxKey) =>
-                    maxKey >= segment.minKey
+            //check if this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
+            if (keyCompare <= 0 || getKeyBelongsToNoSpread() || nextSegmentMayBe.isNoneS)
+              assignable match {
+                case assignable: Assignable.Collection =>
+                  nextSegmentMayBe match {
+                    case nextSegment: Segment if spreadToNextSegment(assignable, nextSegment) => //check if Segment spreads onto next Segment
+                      val keyValueCount = assignable.getKeyValueCount()
+                      val keyValues = assignable.iterator()
+                      val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
 
-                  case MaxKey.Range(_, maxKey) =>
-                    maxKey > segment.minKey
-                }
+                      val newRemaining = segmentIterator append remaining.dropHead()
 
-              //check if this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
-              if (keyCompare <= 0 || getKeyBelongsToNoSpread() || nextSegmentMayBe.isNoneS)
-                assignable match {
-                  case assignable: Assignable.Collection =>
-                    nextSegmentMayBe match {
-                      case nextSegment: Segment if spreadToNextSegment(assignable, nextSegment) => //check if Segment spreads onto next Segment
-                        val keyValueCount = assignable.getKeyValueCount()
-                        val keyValues = assignable.iterator()
-                        val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
+                      assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
 
-                        val newRemaining = segmentIterator append remaining.dropHead()
+                    case _ =>
+                      if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread()) //if this Segment should be added to thisSegment
+                        assignToSegment(assignable = assignable, assignTo = thisSegment)
+                      else //gap Segment
+                        assignToGap(assignable = assignable, assignTo = thisSegment)
 
-                        assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
+                      assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                  }
 
-                      case _ =>
-                        if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread()) //if this Segment should be added to thisSegment
-                          assignToSegment(assignable = assignable, assignTo = thisSegment)
-                        else //gap Segment
-                          assignToGap(assignable, remaining.size)
+                case keyValue: KeyValue.Fixed =>
+                  if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread()) //if this key-value should be added to thisSegment
+                    assignToSegment(assignable = keyValue, assignTo = thisSegment)
+                  else //gap key
+                    assignToGap(assignable = keyValue, assignTo = thisSegment)
 
-                        assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                  assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+
+                case keyValue: KeyValue.Range =>
+                  nextSegmentMayBe match {
+                    //check if this range key-value spreads onto the next segment
+                    case nextSegment: Segment if keyValue.toKey > nextSegment.minKey =>
+                      val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
+                      val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
+                      val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = Value.FromValue.Null, rangeValue = rangeValue)
+
+                      if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread()) //should add to this segment
+                        assignToSegment(assignable = thisSegmentsRange, assignTo = thisSegment)
+                      else //should add as a gap
+                        assignToGap(assignable = thisSegmentsRange, assignTo = thisSegment)
+
+                      assign(remaining.dropPrepend(nextSegmentsRange), nextSegment, getNextSegmentMayBe())
+
+                    case _ =>
+                      //belongs to current segment
+                      if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread())
+                        assignToSegment(assignable = keyValue, assignTo = thisSegment)
+                      else
+                        assignToGap(assignable = keyValue, assignTo = thisSegment)
+
+                      assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                  }
+              }
+            else
+              nextSegmentMayBe match {
+                case Segment.Null =>
+                  if (noGaps)
+                    throw new Exception("Cannot assign key-value to Null next Segment.")
+                  else
+                    remaining.iterator foreach {
+                      keyValue =>
+                        assignToGap(assignable = keyValue, assignTo = thisSegment)
                     }
 
-                  case keyValue: KeyValue.Fixed =>
-                    if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread()) //if this key-value should be added to thisSegment
-                      assignToSegment(assignable = keyValue, assignTo = thisSegment)
-                    else //gap key
-                      assignToGap(keyValue, remaining.size)
+                case nextSegment: Segment =>
+                  if (assignable.key < nextSegment.minKey) // is this a gap key between thisSegment and the nextSegment
+                    assignable match {
+                      case assignable: Assignable.Collection =>
+                        if (spreadToNextSegment(assignable, nextSegment)) {
+                          //if this Segment spreads onto next Segment read all key-values and assign.
+                          val keyValueCount = assignable.getKeyValueCount()
+                          val keyValues = assignable.iterator()
+                          val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
 
-                    assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                          val newRemaining = segmentIterator append remaining.dropHead()
 
-                  case keyValue: KeyValue.Range =>
-                    nextSegmentMayBe match {
-                      //check if this range key-value spreads onto the next segment
-                      case nextSegment: Segment if keyValue.toKey > nextSegment.minKey =>
-                        val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
-                        val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
-                        val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = Value.FromValue.Null, rangeValue = rangeValue)
+                          assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
 
-                        if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread()) //should add to this segment
-                          assignToSegment(assignable = thisSegmentsRange, assignTo = thisSegment)
-                        else //should add as a gap
-                          assignToGap(thisSegmentsRange, remaining.size)
+                        } else {
+                          //does not spread onto next Segment.
+                          if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread()) //if this Segment should be added to thisSegment
+                            assignToSegment(assignable = assignable, assignTo = thisSegment)
+                          else //gap segment
+                            assignToGap(assignable, thisSegment)
 
-                        assign(remaining.dropPrepend(nextSegmentsRange), nextSegment, getNextSegmentMayBe())
+                          assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                        }
 
-                      case _ =>
-                        //belongs to current segment
-                        if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread())
-                          assignToSegment(assignable = keyValue, assignTo = thisSegment)
-                        else
-                          assignToGap(keyValue, remaining.size)
+                      case _: KeyValue.Fixed =>
+                        if (noGaps) {
+                          //check if a key-value is already assigned to thisSegment. Else if thisSegment is empty jump to next
+                          //there is no point adding a single key-value to a Segment.
+                          assignments.lastOption match {
+                            case Some(Assignment(segment, _, keyValues, _)) if segment.segmentId == thisSegment.segmentId =>
+                              keyValues += assignable
+                              assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
-                        assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
-                    }
-                }
-              else
-                nextSegmentMayBe match {
-                  case Segment.Null =>
-                    if (noGaps)
-                      throw new Exception("Cannot assign key-value to Null next Segment.")
-                    else
-                      remaining.iterator foreach {
-                        keyValue =>
-                          assignToGap(keyValue, remaining.size)
-                      }
-
-                  case nextSegment: Segment =>
-                    if (assignable.key < nextSegment.minKey) // is this a gap key between thisSegment and the nextSegment
-                      assignable match {
-                        case assignable: Assignable.Collection =>
-                          if (spreadToNextSegment(assignable, nextSegment)) {
-                            //if this Segment spreads onto next Segment read all key-values and assign.
-                            val keyValueCount = assignable.getKeyValueCount()
-                            val keyValues = assignable.iterator()
-                            val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
-
-                            val newRemaining = segmentIterator append remaining.dropHead()
-
-                            assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
-
-                          } else {
-                            //does not spread onto next Segment.
-                            if (noGaps || keyCompare == 0 || getKeyBelongsToNoSpread()) //if this Segment should be added to thisSegment
-                              assignToSegment(assignable = assignable, assignTo = thisSegment)
-                            else //gap segment
-                              assignToGap(assignable, remaining.size)
-
-                            assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                            case _ =>
+                              assign(remaining, nextSegment, getNextSegmentMayBe())
                           }
+                        } else {
+                          //Is a gap key
+                          assignToGap(assignable, thisSegment)
+                          assign(remaining.dropHead(), nextSegment, getNextSegmentMayBe())
+                        }
 
-                        case _: KeyValue.Fixed =>
+                      case keyValue: KeyValue.Range =>
+                        if (keyValue.toKey > nextSegment.minKey) {
+                          //if it's a gap Range key-value and it's flows onto the next Segment.
                           if (noGaps) {
-                            //check if a key-value is already assigned to thisSegment. Else if thisSegment is empty jump to next
-                            //there is no point adding a single key-value to a Segment.
+                            //no gaps allowed, jump to next segment and avoid splitting the range.
+                            assign(remaining, nextSegment, getNextSegmentMayBe())
+                          } else {
+                            //perform a split
+                            val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
+                            val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
+                            val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = Value.FromValue.Null, rangeValue = rangeValue)
+                            assignToGap(thisSegmentsRange, thisSegment)
+
+                            assign(remaining.dropPrepend(nextSegmentsRange), nextSegment, getNextSegmentMayBe())
+                          }
+                        } else {
+                          //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
+                          //same code as above, need to push it to a common function.
+                          if (noGaps) {
                             assignments.lastOption match {
-                              case Some(Assignment.AssignedBuffer(segment, keyValues)) if segment.segmentId == thisSegment.segmentId =>
-                                keyValues += assignable
+                              case Some(Assignment(segment, _, keyValues, _)) if segment.segmentId == thisSegment.segmentId =>
+                                keyValues += keyValue
                                 assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
                               case _ =>
                                 assign(remaining, nextSegment, getNextSegmentMayBe())
                             }
                           } else {
-                            //Is a gap key
-                            assignToGap(assignable, remaining.size)
+                            assignToGap(keyValue, thisSegment)
                             assign(remaining.dropHead(), nextSegment, getNextSegmentMayBe())
                           }
-
-                        case keyValue: KeyValue.Range =>
-                          if (keyValue.toKey > nextSegment.minKey) {
-                            //if it's a gap Range key-value and it's flows onto the next Segment.
-                            if (noGaps) {
-                              //no gaps allowed, jump to next segment and avoid splitting the range.
-                              assign(remaining, nextSegment, getNextSegmentMayBe())
-                            } else {
-                              //perform a split
-                              val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
-                              val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
-                              val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = Value.FromValue.Null, rangeValue = rangeValue)
-                              assignToGap(thisSegmentsRange, remaining.size)
-
-                              assign(remaining.dropPrepend(nextSegmentsRange), nextSegment, getNextSegmentMayBe())
-                            }
-                          } else {
-                            //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
-                            //same code as above, need to push it to a common function.
-                            if (noGaps) {
-                              assignments.lastOption match {
-                                case Some(Assignment.AssignedBuffer(segment, keyValues)) if segment.segmentId == thisSegment.segmentId =>
-                                  keyValues += keyValue
-                                  assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
-
-                                case _ =>
-                                  assign(remaining, nextSegment, getNextSegmentMayBe())
-                              }
-                            } else {
-                              assignToGap(keyValue, remaining.size)
-                              assign(remaining.dropHead(), nextSegment, getNextSegmentMayBe())
-                            }
-                          }
-                      }
-                    else //jump to next Segment.
-                      assign(remaining, nextSegment, getNextSegmentMayBe())
-                }
-          }
-      }
-
-      if (segmentsIterator.hasNext)
-        assign(DropIterator(assignablesCount, assignables.iterator), segmentsIterator.next(), getNextSegmentMayBe())
-
-      assignments.asInstanceOf[ListBuffer[Assignment[GAP]]]
+                        }
+                    }
+                  else //jump to next Segment.
+                    assign(remaining, nextSegment, getNextSegmentMayBe())
+              }
+        }
     }
+
+    if (segmentsIterator.hasNext)
+      assign(DropIterator(assignablesCount, assignables.iterator), segmentsIterator.next(), getNextSegmentMayBe())
+
+    assignments
   }
 }

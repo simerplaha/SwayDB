@@ -29,16 +29,7 @@ import swaydb.core.segment.Segment
 
 import scala.collection.mutable.ListBuffer
 
-private[core] sealed trait Assignment[+GAP]
-
-private[core] case object Assignment {
-
-  sealed trait Mutable[+GAP] extends Assignment[GAP]
-
-  case class AssignedImmutable(segment: Segment, assignments: Iterable[Assignable]) extends Assignment[Nothing]
-
-  case class AssignedBuffer(segment: Segment, assignments: ListBuffer[Assignable]) extends Mutable[Nothing]
-
-  case class Gap[GAP](aggregator: Aggregator[Assignable, GAP]) extends Mutable[GAP]
-
-}
+case class Assignment[GAP](segment: Segment,
+                           headGap: Aggregator[Assignable, GAP],
+                           midOverlap: ListBuffer[Assignable],
+                           tailGap: Aggregator[Assignable, GAP])
