@@ -24,21 +24,11 @@
 
 package swaydb.core.segment.assigner
 
-import swaydb.Aggregator
-import swaydb.core.segment.Segment
+import swaydb.data.slice.Slice
 
-import scala.collection.mutable.ListBuffer
-
-private[core] sealed trait Assignment[+GAP]
-
-private[core] case object Assignment {
-
-  sealed trait Mutable[+GAP] extends Assignment[GAP]
-
-  case class AssignedImmutable(segment: Segment, assignments: Iterable[Assignable]) extends Assignment[Nothing]
-
-  case class AssignedBuffer(segment: Segment, assignments: ListBuffer[Assignable]) extends Mutable[Nothing]
-
-  case class Gap[GAP](aggregator: Aggregator[Assignable, GAP]) extends Mutable[GAP]
-
+/**
+ * Something that can be assigned to a Segment for merge.
+ */
+trait Assignable {
+  def key: Slice[Byte]
 }

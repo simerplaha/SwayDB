@@ -36,7 +36,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.segment.assigner.SegmentAssigner
+import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -676,14 +676,14 @@ private[core] case object Segment extends LazyLogging {
           footer.valuesOffset.map(_.size).getOrElse(0)
     }
 
-  def belongsTo(keyValue: KeyValue,
-                segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+  def belongsToNoSpread(assignable: Assignable,
+                        segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
     import keyOrder._
-    keyValue.key >= segment.minKey && {
+    assignable.key >= segment.minKey && {
       if (segment.maxKey.inclusive)
-        keyValue.key <= segment.maxKey.maxKey
+        assignable.key <= segment.maxKey.maxKey
       else
-        keyValue.key < segment.maxKey.maxKey
+        assignable.key < segment.maxKey.maxKey
     }
   }
 
@@ -1122,7 +1122,10 @@ private[core] case object Segment extends LazyLogging {
   }
 }
 
-private[core] trait Segment extends FileSweeperItem with SegmentOption { self =>
+private[core] trait Segment extends FileSweeperItem with SegmentOption with Assignable { self =>
+
+  final def key: Slice[Byte] =
+    minKey
 
   def minKey: Slice[Byte]
 

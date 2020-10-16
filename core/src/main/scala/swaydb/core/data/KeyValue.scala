@@ -28,6 +28,7 @@ import swaydb.IO
 import swaydb.core.map.serializer.RangeValueSerializer.OptionRangeValueSerializer
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.KeyMatcher
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Bytes
@@ -52,7 +53,7 @@ private[core] sealed trait KeyValueOption {
     }
 }
 
-private[core] sealed trait KeyValue {
+private[core] sealed trait KeyValue extends Assignable {
   def key: Slice[Byte]
 
   def indexEntryDeadline: Option[Deadline]
