@@ -84,16 +84,15 @@ private[core] object SegmentAssigner {
   }
 
   def assignUnsafeWithGaps[GAP](keyValuesCount: Int,
-                                keyValues: Iterable[KeyValue],
+                                assignables: Iterable[Assignable],
                                 segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             gapCreator: Aggregator.CreatorSizeable[KeyValue, GAP]): ListBuffer[Assignment[GAP]] =
-  //    assignUnsafe(
-  //      keyValuesCount = keyValuesCount,
-  //      keyValues = keyValues,
-  //      segments = segments,
-  //      noGaps = false
-  //    )
-    ???
+                                                             gapCreator: Aggregator.CreatorSizeable[Assignable, GAP]): ListBuffer[Assignment[GAP]] =
+    assignUnsafe(
+      assignablesCount = keyValuesCount,
+      assignables = assignables,
+      segments = segments,
+      noGaps = false
+    )
 
   /**
    * @param assignablesCount keyValuesCount is needed here because keyValues could be a [[ConcurrentSkipList]]
@@ -173,8 +172,8 @@ private[core] object SegmentAssigner {
                 _belongsTo == 1
               }
 
-              def spreadToNextSegment(assignable: Segment, segment: Segment) =
-                assignable.maxKey match {
+              @inline def spreadToNextSegment(collection: Assignable.Collection, segment: Segment): Boolean =
+                collection.maxKey match {
                   case MaxKey.Fixed(maxKey) =>
                     maxKey >= segment.minKey
 
@@ -185,7 +184,7 @@ private[core] object SegmentAssigner {
               //check if this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
               if (keyCompare <= 0 || getKeyBelongsToNoSpread() || nextSegmentMayBe.isNoneS)
                 assignable match {
-                  case assignable: Segment =>
+                  case assignable: Assignable.Collection =>
                     nextSegmentMayBe match {
                       case nextSegment: Segment if spreadToNextSegment(assignable, nextSegment) => //check if Segment spreads onto next Segment
                         val keyValueCount = assignable.getKeyValueCount()
@@ -252,7 +251,7 @@ private[core] object SegmentAssigner {
                   case nextSegment: Segment =>
                     if (assignable.key < nextSegment.minKey) // is this a gap key between thisSegment and the nextSegment
                       assignable match {
-                        case assignable: Segment =>
+                        case assignable: Assignable.Collection =>
                           if (spreadToNextSegment(assignable, nextSegment)) {
                             //if this Segment spreads onto next Segment read all key-values and assign.
                             val keyValueCount = assignable.getKeyValueCount()

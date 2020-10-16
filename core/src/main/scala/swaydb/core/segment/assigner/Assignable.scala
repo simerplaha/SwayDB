@@ -24,11 +24,62 @@
 
 package swaydb.core.segment.assigner
 
+import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.level.zero.LevelZeroMapCache
+import swaydb.core.map.Map
+import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
 /**
  * Something that can be assigned to a Segment for merge.
+ *
+ * Current types
+ * - [[swaydb.core.segment.Segment]]
+ * - [[Map[Slice[Byte], Memory, LevelZeroMapCache]]
+ * - [[swaydb.core.data.KeyValue]]
  */
-trait Assignable {
+sealed trait Assignable {
   def key: Slice[Byte]
+}
+
+object Assignable {
+
+  /**
+   * A [[Collection]] is a collection of key-values like [[swaydb.core.segment.Segment]]
+   * and [[Map[Slice[Byte], Memory, LevelZeroMapCache]].
+   *
+   * [[Map]] can be created using [[Collection.fromMap]].
+   *
+   * This type is needed for cases where we can assign a group of key-values to a
+   * [[swaydb.core.segment.Segment]] without need to assign each key-value saving
+   * CPU times and IO for cases where key-values are persistent - [[swaydb.core.segment.PersistentSegment]].
+   */
+  trait Collection extends Assignable {
+    def maxKey: MaxKey[Slice[Byte]]
+    def iterator(): Iterator[KeyValue]
+    def getKeyValueCount(): Int
+  }
+
+  object Collection {
+    def fromMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Assignable.Collection =
+      new Collection {
+        override def maxKey: MaxKey[Slice[Byte]] =
+          map.cache.skipList.last().getS match {
+            case fixed: Memory.Fixed =>
+              MaxKey.Fixed(fixed.key)
+
+            case Memory.Range(fromKey, toKey, _, _) =>
+              MaxKey.Range(fromKey, toKey)
+          }
+
+        override def iterator(): Iterator[KeyValue] =
+          map.cache.skipList.valuesIterator
+
+        override def getKeyValueCount(): Int =
+          map.cache.skipList.size
+
+        override def key: Slice[Byte] =
+          map.cache.skipList.headKey.getC
+      }
+  }
 }

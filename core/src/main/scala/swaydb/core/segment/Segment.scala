@@ -1122,7 +1122,7 @@ private[core] case object Segment extends LazyLogging {
   }
 }
 
-private[core] trait Segment extends FileSweeperItem with SegmentOption with Assignable { self =>
+private[core] trait Segment extends FileSweeperItem with SegmentOption with Assignable.Collection { self =>
 
   final def key: Slice[Byte] =
     minKey

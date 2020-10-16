@@ -113,5 +113,4 @@ class LeveledSegment extends Segment {
   override def persistent: Boolean = ???
   override def existsOnDisk: Boolean = ???
   override def hasBloomFilter: Boolean = ???
-
 }
