@@ -1138,11 +1138,15 @@ private[core] case object Segment extends LazyLogging {
 
 private[core] trait Segment extends FileSweeperItem with SegmentOption with SegmentState.Singleton { self =>
 
-  val minKey: Slice[Byte]
-  val maxKey: MaxKey[Slice[Byte]]
-  val segmentSize: Int
-  val nearestPutDeadline: Option[Deadline]
-  val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
+  def minKey: Slice[Byte]
+
+  def maxKey: MaxKey[Slice[Byte]]
+
+  def segmentSize: Int
+
+  def nearestPutDeadline: Option[Deadline]
+
+  def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
 
   def formatId: Byte
 
