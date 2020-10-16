@@ -36,53 +36,6 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-private[core] sealed trait AssignmentOption[+A]
-
-private[core] sealed trait Assignment[+A] extends AssignmentOption[A] {
-  def add(keyValue: KeyValue): Unit
-
-  def isGap: Boolean
-
-  def isAssigned: Boolean =
-    !isGap
-
-  def existAssigned(assignment: Assignment.Assigned => Boolean): Boolean
-
-  def segment: SegmentOption
-}
-
-private[core] case object Assignment {
-
-  case object Null extends AssignmentOption[Nothing]
-
-  case class Assigned(segment: Segment, keyValues: Slice[KeyValue]) extends Assignment[Nothing] {
-    override def add(keyValue: KeyValue): Unit =
-      keyValues add keyValue
-
-    override def isGap: Boolean =
-      false
-
-    override def existAssigned(assignment: Assigned => Boolean): Boolean =
-      assignment(this)
-
-    def toTuple(): (Segment, Slice[KeyValue]) =
-      (segment, keyValues)
-  }
-
-  case class Gap[A](aggregator: Aggregator[KeyValue, A]) extends Assignment[A] {
-    override def add(keyValue: KeyValue): Unit =
-      aggregator add keyValue
-
-    override def isGap: Boolean =
-      true
-
-    override def existAssigned(assignment: Assigned => Boolean): Boolean =
-      false
-
-    override def segment: SegmentOption = Segment.Null
-  }
-}
-
 private[core] object SegmentAssigner {
 
   def assignMinMaxOnlyUnsafe(inputSegments: Iterable[Segment],
