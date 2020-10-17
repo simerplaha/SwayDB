@@ -45,28 +45,27 @@ protected trait Aggregator[-A, +T] extends ForEach[A] {
     add(item)
 }
 
-protected object Aggregator {
+protected case object Aggregator {
+
+  /**
+   * Allows creating [[Aggregator]] instances on demand where the final maximum size of
+   * the aggregator is know.
+   */
+  trait CreatorSizeable[-A, T] {
+    def createNewSizeHint(size: Int): Aggregator[A, T]
+  }
 
   /**
    * Allows creating [[Aggregator]] instances on demand.
    */
-  trait CreatorSizeable[-A, +T] {
-    def createNewSizeHint(size: Int): Aggregator[A, T]
-  }
-
-  trait Creator[-A, +T] extends CreatorSizeable[A, T] {
+  trait Creator[-A, T] {
     def createNew(): Aggregator[A, T]
   }
 
   case object Creator {
     def listBuffer[A](): Aggregator.Creator[A, ListBuffer[A]] =
-      new Creator[A, ListBuffer[A]] {
-        override def createNew(): Aggregator[A, ListBuffer[A]] =
-          Aggregator.listBuffer[A]
-
-        override def createNewSizeHint(size: Int): Aggregator[A, ListBuffer[A]] =
-          createNew()
-      }
+      () =>
+        Aggregator.listBuffer[A]
 
     def slice[A: ClassTag]() =
       new CreatorSizeable[A, Slice[A]] {
@@ -74,11 +73,13 @@ protected object Aggregator {
           Slice.newAggregator(size)
       }
 
-    def nothing[A]() =
-      new Creator[A, Nothing] {
-        override def createNew(): Aggregator[A, Nothing] = throw new Exception(s"Cannot create Nothing ${Creator.productPrefix}")
-        override def createNewSizeHint(size: Int): Aggregator[A, Nothing] = createNew()
-      }
+    /**
+     * Nothing disables inserting and adding elements the [[Aggregator]].
+     *
+     * TODO - remove the need for this type since it throws runtime exception.
+     */
+    def nothing[A](): Creator[A, Nothing] =
+      () => Aggregator.nothingAggregator()
   }
 
   def fromBuilder[A, T](builder: mutable.Builder[A, T]): Aggregator[A, T] =
@@ -88,6 +89,20 @@ protected object Aggregator {
 
       override def result: T =
         builder.result()
+    }
+
+  /**
+   * Type to disable aggregation.
+   *
+   * TODO - remove the need for this type since it throws runtime exception.
+   */
+  def nothingAggregator[A](): Aggregator[A, Nothing] =
+    new Aggregator[A, Nothing] {
+      override def add(item: A): Unit =
+        throw new Exception(s"Cannot add to Nothing ${Aggregator.productPrefix}")
+
+      override def result: Nothing =
+        throw new Exception(s"Cannot fetch Nothing ${Aggregator.productPrefix}")
     }
 
   def listBuffer[A]: Aggregator[A, ListBuffer[A]] =

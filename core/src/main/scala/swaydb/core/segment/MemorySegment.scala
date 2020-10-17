@@ -25,7 +25,6 @@
 package swaydb.core.segment
 
 import java.nio.file.Path
-import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
@@ -34,6 +33,7 @@ import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -71,9 +71,10 @@ protected case class MemorySegment(path: Path,
 
   override def formatId: Byte = 0
 
-  override def put(newHeadKeyValues: Iterable[KeyValue],
-                   newTailKeyValues: Iterable[KeyValue],
-                   newKeyValues: Slice[KeyValue],
+  override def put(headGap: Iterable[Assignable],
+                   tailGap: Iterable[Assignable],
+                   mergeableCount: Int,
+                   mergeable: Iterator[Assignable],
                    removeDeletes: Boolean,
                    createdInLevel: Int,
                    valuesConfig: ValuesBlock.Config,
@@ -89,9 +90,10 @@ protected case class MemorySegment(path: Path,
       val stats = MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
 
       SegmentMerger.merge(
-        newHeadKeyValues = newHeadKeyValues,
-        newTailKeyValues = newTailKeyValues,
-        newKeyValues = newKeyValues,
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
         oldKeyValuesCount = getKeyValueCount(),
         oldKeyValues = iterator(),
         stats = stats,
@@ -109,17 +111,6 @@ protected case class MemorySegment(path: Path,
           keyValues = stats.close
         )
     }
-
-  override def putSegment(segment: Segment,
-                          removeDeletes: Boolean,
-                          createdInLevel: Int,
-                          valuesConfig: ValuesBlock.Config,
-                          sortedIndexConfig: SortedIndexBlock.Config,
-                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                          hashIndexConfig: HashIndexBlock.Config,
-                          bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config,
-                          pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] = ???
 
   override def refresh(removeDeletes: Boolean,
                        createdInLevel: Int,

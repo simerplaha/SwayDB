@@ -258,7 +258,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
             val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
             val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000))
-            level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None, Int.MaxValue).runRandomIO.right.value
+            level.assignAndPut(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None, Int.MaxValue).runRandomIO.right.value
 
             level.put(map, Int.MaxValue).right.right.value.right.value should contain only Int.MaxValue
             assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.

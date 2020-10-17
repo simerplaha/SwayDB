@@ -43,7 +43,7 @@ import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.SegmentAssigner
+import swaydb.core.segment.assigner.{Assignable, Assignment, SegmentAssigner}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -61,7 +61,6 @@ import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.data.util.FiniteDurations
 import swaydb.{Bag, Error, IO}
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Promise}
@@ -443,7 +442,7 @@ private[core] case class Level(dirs: Seq[Dir],
    */
   private[level] implicit def reserve(segments: Iterable[Segment]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
-      SegmentAssigner.assignMinMaxOnlyUnsafe(
+      SegmentAssigner.assignMinMaxOnlyUnsafeNoGaps(
         inputSegments = segments,
         targetSegments = appendix.cache.values()
       )
@@ -475,7 +474,7 @@ private[core] case class Level(dirs: Seq[Dir],
    */
   private[level] implicit def reserve(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
-      SegmentAssigner.assignMinMaxOnlyUnsafe(
+      SegmentAssigner.assignMinMaxOnlyUnsafeNoGaps(
         input = map.cache.skipList,
         targetSegments = appendix.cache.values()
       )
@@ -653,8 +652,9 @@ private[core] case class Level(dirs: Seq[Dir],
               copiedSegmentsEntry =>
                 val putResult: IO[swaydb.Error.Level, _] =
                   if (segmentsToMerge.nonEmpty)
-                    merge(
-                      segments = segmentsToMerge,
+                    assignAndPut(
+                      assignablesCount = segmentsToMerge.size,
+                      assignables = segmentsToMerge,
                       targetSegments = targetSegments,
                       appendEntry = Some(copiedSegmentsEntry),
                       mergeParallelism = mergeParallelism
@@ -675,8 +675,9 @@ private[core] case class Level(dirs: Seq[Dir],
             }
           //check if there are Segments to merge.
           else if (segmentsToMerge.nonEmpty)
-            merge( //no segments were copied. Do merge!
-              segments = segmentsToMerge,
+            assignAndPut( //no segments were copied. Do merge!
+              assignablesCount = segmentsToMerge.size,
+              assignables = segmentsToMerge,
               targetSegments = targetSegments,
               appendEntry = None,
               mergeParallelism = mergeParallelism
@@ -688,8 +689,9 @@ private[core] case class Level(dirs: Seq[Dir],
             IO.Right(newlyCopiedSegments.levelsUpdated)
       }
     else
-      merge(
-        segments = segmentsToMerge,
+      assignAndPut(
+        assignablesCount = segmentsToMerge.size,
+        assignables = segmentsToMerge,
         targetSegments = targetSegments,
         appendEntry = None,
         mergeParallelism = mergeParallelism
@@ -707,9 +709,8 @@ private[core] case class Level(dirs: Seq[Dir],
       val keyValues = map.cache.skipList
 
       if (Segment.overlaps(keyValues, appendixValues))
-        putKeyValues(
-          keyValuesCount = keyValues.size,
-          keyValues = keyValues.values(),
+        assignAndPut(
+          map = map,
           targetSegments = appendixValues,
           appendEntry = None,
           mergeParallelism = mergeParallelism
@@ -1036,15 +1037,17 @@ private[core] case class Level(dirs: Seq[Dir],
       reserveAndRelease(levelSegments) {
         //create an appendEntry that will remove smaller segments from the appendix.
         //this entry will value applied only if the putSegments is successful orElse this entry will be discarded.
-        val appendEntry =
-        segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-          case (mapEntry, smallSegment) =>
-            val entry = MapEntry.Remove(smallSegment.minKey)
-            mapEntry.map(_ ++ entry) orElse Some(entry)
-        }
 
-        merge(
-          segments = segmentsToMerge,
+        val appendEntry =
+          segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+            case (mapEntry, smallSegment) =>
+              val entry = MapEntry.Remove(smallSegment.minKey)
+              mapEntry.map(_ ++ entry) orElse Some(entry)
+          }
+
+        assignAndPut(
+          assignablesCount = segmentsToMerge.size,
+          assignables = segmentsToMerge,
           targetSegments = targetSegments,
           appendEntry = appendEntry,
           mergeParallelism = mergeParallelism
@@ -1067,43 +1070,38 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  private def merge(segments: Iterable[Segment],
-                    targetSegments: Iterable[Segment],
-                    appendEntry: Option[MapEntry[Slice[Byte], Segment]],
-                    mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] = {
-    logger.trace(s"{}: Merging segments {}", pathDistributor.head, segments.map(_.path.toString))
-    IO(Segment.getAllKeyValues(segments))
-      .flatMap {
-        keyValues =>
-          putKeyValues(
-            keyValuesCount = keyValues.size,
-            keyValues = keyValues,
-            targetSegments = targetSegments,
-            appendEntry = appendEntry,
-            mergeParallelism = mergeParallelism
-          )
-      }
-  }
+  @inline private[core] def assignAndPut(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
+                                         targetSegments: Iterable[Segment],
+                                         appendEntry: Option[MapEntry[Slice[Byte], Segment]],
+                                         mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] =
+
+    assignAndPut(
+      assignablesCount = 1,
+      assignables = Seq(Assignable.Collection.fromMap(map)),
+      targetSegments = targetSegments,
+      appendEntry = appendEntry,
+      mergeParallelism = mergeParallelism
+    )
 
   /**
    * @return Newly created Segments.
    */
-  private[core] def putKeyValues(keyValuesCount: Int,
-                                 keyValues: Iterable[KeyValue],
+  private[core] def assignAndPut(assignablesCount: Int,
+                                 assignables: Iterable[Assignable],
                                  targetSegments: Iterable[Segment],
                                  appendEntry: Option[MapEntry[Slice[Byte], Segment]],
                                  mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] = {
-    logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, keyValues.size)
-    IO(SegmentAssigner.assignUnsafe(keyValuesCount, keyValues, targetSegments)) flatMap {
+    logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
+    IO(SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](assignablesCount, assignables, targetSegments)) flatMap {
       assignments =>
-        logger.trace(s"{}: Assigned segments {} for {} KeyValues.", pathDistributor.head, assignments.map(_._1.path.toString), keyValues.size)
+        logger.trace(s"{}: Assigned segments {} for {} KeyValues.", pathDistributor.head, assignments.map(_.segment.path.toString), assignables.size)
         if (assignments.isEmpty) {
-          logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, keyValues.size)
-          IO.Left[swaydb.Error.Level, Unit](swaydb.Error.MergeKeyValuesWithoutTargetSegment(keyValues.size))
+          logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
+          IO.Left[swaydb.Error.Level, Unit](swaydb.Error.MergeKeyValuesWithoutTargetSegment(assignables.size))
         } else {
-          logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", pathDistributor.head, assignments.map(_._1.path.toString), keyValues.size)
-          putAssignedKeyValues(
-            assignedSegments = assignments,
+          logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", pathDistributor.head, assignments.map(_.segment.path.toString), assignables.size)
+          putAssigned(
+            assignments = assignments,
             mergeParallelism = mergeParallelism
           ) flatMap {
             targetSegmentAndNewSegments =>
@@ -1124,16 +1122,16 @@ private[core] case class Level(dirs: Seq[Dir],
 
                   appendix.writeSafe(mapEntryToWrite) transform {
                     _ =>
-                      logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, assignments.map(_._1.path.toString))
+                      logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, assignments.map(_.segment.path.toString))
                       //delete assigned segments as they are replaced with new segments.
                       if (segmentConfig.deleteEventually)
-                        assignments foreach (_._1.deleteSegmentsEventually)
+                        assignments foreach (_.segment.deleteSegmentsEventually)
                       else
                         assignments foreach {
-                          case (segment, _) =>
-                            IO(segment.delete) onLeftSideEffect {
+                          assignment =>
+                            IO(assignment.segment.delete) onLeftSideEffect {
                               exception =>
-                                logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segment.path, exception)
+                                logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, assignment.segment.path, exception)
                             }
                         }
                   }
@@ -1160,17 +1158,20 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue]],
-                                   mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, Slice[Segment])]] =
-    assignedSegments.mapRecoverIOParallel[(Segment, Slice[Segment])](parallelism = mergeParallelism)(
+  private def putAssigned(assignments: Iterable[Assignment[ListBuffer[Assignable]]],
+                          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, Slice[Segment])]] =
+    assignments.mapRecoverIOParallel[(Segment, Slice[Segment])](parallelism = mergeParallelism)(
       block = {
-        case (targetSegment, assignedKeyValues) =>
+        assignment =>
           IO {
+            val targetSegment = assignment.segment
+
             val newSegments =
               targetSegment.put(
-                newHeadKeyValues = KeyValue.emptyIterable,
-                newTailKeyValues = KeyValue.emptyIterable,
-                newKeyValues = assignedKeyValues,
+                headGap = assignment.headGap.result,
+                tailGap = assignment.tailGap.result,
+                mergeableCount = assignment.midOverlap.size,
+                mergeable = assignment.midOverlap.iterator,
                 removeDeletes = removeDeletedRecords,
                 createdInLevel = levelNumber,
                 valuesConfig = valuesConfig,
@@ -1181,6 +1182,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 segmentConfig = segmentConfig,
                 pathsDistributor = pathDistributor.addPriorityPath(targetSegment.path.getParent)
               )
+
             (targetSegment, newSegments)
           }
       },

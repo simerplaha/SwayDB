@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Bag, Glass, IO}
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
 import swaydb.compression.CompressionInternal
@@ -41,6 +40,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -55,7 +55,6 @@ import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO, ThreadReadState}
 import swaydb.core.util.BlockCacheFileIDGenerator
-import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -65,9 +64,12 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.{Glass, IO}
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
@@ -175,9 +177,9 @@ object TestData {
       if (keyValues.isEmpty)
         IO.unit
       else if (!level.isEmpty)
-        level.putKeyValues(
-          keyValuesCount = keyValues.size,
-          keyValues = keyValues,
+        level.assignAndPut(
+          assignablesCount = keyValues.size,
+          assignables = keyValues,
           targetSegments = level.segmentsInLevel(),
           appendEntry = None,
           mergeParallelism = randomMaxParallelism()
@@ -198,9 +200,9 @@ object TestData {
             segments should have size 1
             segments mapRecoverIO {
               segment =>
-                level.putKeyValues(
-                  keyValuesCount = keyValues.size,
-                  keyValues = keyValues,
+                level.assignAndPut(
+                  assignablesCount = keyValues.size,
+                  assignables = keyValues,
                   targetSegments = Seq(segment),
                   appendEntry = None,
                   mergeParallelism = randomMaxParallelism()
@@ -228,9 +230,9 @@ object TestData {
             segments should have size 1
             segments mapRecoverIO {
               segment =>
-                level.putKeyValues(
-                  keyValuesCount = keyValues.size,
-                  keyValues = keyValues,
+                level.assignAndPut(
+                  assignablesCount = keyValues.size,
+                  assignables = keyValues,
                   targetSegments = Seq(segment),
                   appendEntry = None,
                   mergeParallelism = randomMaxParallelism()
@@ -263,7 +265,6 @@ object TestData {
       val closeResult =
         if (OperatingSystem.isWindows && level.hasMMAP)
           IO {
-            import swaydb.data.RunThis._
             level.close[Glass]()
           }
         else
@@ -1865,4 +1866,57 @@ object TestData {
       else
         MMAP.Off(TestForceSave.channel())
   }
+
+  implicit class AssignablesImplicits(assignables: ListBuffer[Assignable]) {
+
+    /**
+     * Ensures that the [[assignables]] contains only expanded [[KeyValue]]s
+     * and no collections.
+     */
+    def expectKeyValues(): Iterable[KeyValue] =
+      assignables collect {
+        case collection: Assignable.Collection =>
+          fail(s"Expected KeyValue found ${collection.getClass} with ${collection.getKeyValueCount()} key-values.")
+
+        case keyValue: KeyValue =>
+          keyValue
+
+      }
+
+    def expectSegments(): Iterable[Segment] =
+      assignables collect {
+        case collection: Assignable.Collection =>
+          collection match {
+            case segment: Segment =>
+              segment
+
+            case other =>
+              fail(s"Expected ${Segment.productPrefix} found ${other.getClass}.")
+          }
+
+        case keyValue: KeyValue =>
+          fail(s"Expected ${Segment.productPrefix} found ${keyValue.getClass}.")
+      }
+  }
+
+  implicit class IterableMemoryImplicits(keyValues: Iterable[Memory]) {
+
+    /**
+     * Returns the next key from the [[keyValues]] last key.
+     *
+     * Eg:
+     * if lastKey == 10 and lastKey value is [[Memory.Fixed]] nextKey is 11
+     * if lastKey == 10 and lastKey value is [[Memory.Range]] nextKey is 10
+     */
+    def nextKey(incrementBy: Int = 0): Int =
+      keyValues.last match {
+        case fixed: Memory.Fixed =>
+          fixed.key.readInt() + 1 + incrementBy
+
+        case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
+          toKey.readInt() + incrementBy
+      }
+  }
+
+
 }

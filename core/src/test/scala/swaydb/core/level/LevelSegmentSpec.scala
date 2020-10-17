@@ -409,9 +409,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val segment = TestSegment(keyValues, path = Effect.createDirectoriesIfAbsent(randomIntDirectory).resolve(s"1000.${Extension.Seg.toString}"))
 
             val level = TestLevel(nextLevel = Some(nextLevel))
-            level.putKeyValues(
-              keyValuesCount = keyValues.size,
-              keyValues = keyValues,
+            level.assignAndPut(
+              assignablesCount = keyValues.size,
+              assignables = keyValues,
               targetSegments = Seq(segment),
               appendEntry = None,
               mergeParallelism = randomMaxParallelism()
@@ -432,9 +432,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
             val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-            level.putKeyValues(
-              keyValuesCount = keyValues.size,
-              keyValues = keyValues,
+            level.assignAndPut(
+              assignablesCount = keyValues.size,
+              assignables = keyValues,
               targetSegments = Seq(TestSegment(keyValues)),
               appendEntry = None,
               mergeParallelism = randomMaxParallelism()
@@ -481,9 +481,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
             val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-            level.putKeyValues(
-              keyValuesCount = keyValues.size,
-              keyValues = keyValues,
+            level.assignAndPut(
+              assignablesCount = keyValues.size,
+              assignables = keyValues,
               targetSegments = Seq(TestSegment(keyValues)),
               appendEntry = None,
               mergeParallelism = randomMaxParallelism()
@@ -522,9 +522,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
             val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-            level.putKeyValues(
-              keyValuesCount = keyValues.size,
-              keyValues = keyValues,
+            level.assignAndPut(
+              assignablesCount = keyValues.size,
+              assignables = keyValues,
               targetSegments = Seq(TestSegment(keyValues)),
               appendEntry = None,
               mergeParallelism = randomMaxParallelism()
@@ -574,9 +574,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
             val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-            level.putKeyValues(
-              keyValuesCount = keyValues.size,
-              keyValues = keyValues,
+            level.assignAndPut(
+              assignablesCount = keyValues.size,
+              assignables = keyValues,
               targetSegments = Seq(TestSegment(keyValues)),
               appendEntry = None,
               mergeParallelism = randomMaxParallelism()

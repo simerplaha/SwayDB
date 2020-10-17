@@ -41,6 +41,7 @@ import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment._
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -657,9 +658,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           IO {
             segment.put(
-              newHeadKeyValues = KeyValue.emptyIterable,
-              newTailKeyValues = KeyValue.emptyIterable,
-              newKeyValues = keyValues,
+              headGap = Assignable.emptyIterable,
+              tailGap = Assignable.emptyIterable,
+              mergeableCount = keyValues.size,
+              mergeable = keyValues.iterator,
               removeDeletes = false,
               createdInLevel = 0,
               valuesConfig = valuesConfig,
@@ -1177,9 +1179,10 @@ sealed trait SegmentWriteSpec extends TestBase {
           val keyValues2 = randomizedKeyValues(keyValuesCount)
 
           segment.put(
-            newHeadKeyValues = KeyValue.emptyIterable,
-            newTailKeyValues = KeyValue.emptyIterable,
-            newKeyValues = keyValues2,
+            headGap = Assignable.emptyIterable,
+            tailGap = Assignable.emptyIterable,
+            mergeableCount = keyValues2.size,
+            mergeable = keyValues2.iterator,
             valuesConfig = ValuesBlock.Config.random,
             sortedIndexConfig = SortedIndexBlock.Config.random,
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -1222,9 +1225,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val newSegments =
             segment.put(
-              newHeadKeyValues = KeyValue.emptyIterable,
-              newTailKeyValues = KeyValue.emptyIterable,
-              newKeyValues = newKeyValues,
+              headGap = Assignable.emptyIterable,
+              tailGap = Assignable.emptyIterable,
+              mergeableCount = newKeyValues.size,
+              mergeable = newKeyValues.iterator,
               removeDeletes = false,
               createdInLevel = 0,
               valuesConfig = valuesConfig,
@@ -1244,9 +1248,10 @@ sealed trait SegmentWriteSpec extends TestBase {
           val builder = MergeStats.random()
 
           SegmentMerger.merge(
-            newHeadKeyValues = KeyValue.emptyIterable,
-            newTailKeyValues = KeyValue.emptyIterable,
-            newKeyValues = newKeyValues,
+            headGap = Assignable.emptyIterable,
+            tailGap = Assignable.emptyIterable,
+            mergeableCount = newKeyValues.size,
+            mergeable = newKeyValues.iterator,
             oldKeyValuesCount = keyValues.size,
             oldKeyValues = keyValues.iterator,
             stats = builder,
@@ -1279,17 +1284,18 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val newSegments =
             segment.put(
-              newHeadKeyValues = KeyValue.emptyIterable,
-              newTailKeyValues = KeyValue.emptyIterable,
-              newKeyValues = newKeyValues,
+              headGap = Assignable.emptyIterable,
+              tailGap = Assignable.emptyIterable,
+              mergeableCount = newKeyValues.size,
+              mergeable = newKeyValues.iterator,
+              removeDeletes = false,
+              createdInLevel = 0,
               valuesConfig = valuesConfig,
               sortedIndexConfig = sortedIndexConfig,
               binarySearchIndexConfig = binarySearchIndexConfig,
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig.copy(minSize = segment.segmentSize / 10),
-              removeDeletes = false,
-              createdInLevel = 0
+              segmentConfig = segmentConfig.copy(minSize = segment.segmentSize / 10)
             ).map(_.sweep())
 
           newSegments.size should be > 1
@@ -1339,9 +1345,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             assertThrows[FileAlreadyExistsException] {
               segment.put(
-                newHeadKeyValues = KeyValue.emptyIterable,
-                newTailKeyValues = KeyValue.emptyIterable,
-                newKeyValues = newKeyValues,
+                headGap = Assignable.emptyIterable,
+                tailGap = Assignable.emptyIterable,
+                mergeableCount = newKeyValues.size,
+                mergeable = newKeyValues.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = valuesConfig,
@@ -1396,9 +1403,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val deletedSegment =
             segment.put(
-              newHeadKeyValues = KeyValue.emptyIterable,
-              newTailKeyValues = KeyValue.emptyIterable,
-              newKeyValues = deleteKeyValues,
+              headGap = Assignable.emptyIterable,
+              tailGap = Assignable.emptyIterable,
+              mergeableCount = deleteKeyValues.size,
+              mergeable = deleteKeyValues.iterator,
               removeDeletes = false,
               createdInLevel = 0,
               valuesConfig = valuesConfig,
@@ -1439,9 +1447,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val updatedSegments =
             segment.put(
-              newHeadKeyValues = KeyValue.emptyIterable,
-              newTailKeyValues = KeyValue.emptyIterable,
-              newKeyValues = updatedKeyValues,
+              headGap = Assignable.emptyIterable,
+              tailGap = Assignable.emptyIterable,
+              mergeableCount = updatedKeyValues.size,
+              mergeable = updatedKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
               valuesConfig = valuesConfig,
@@ -1492,9 +1501,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
             val mergedSegments =
               segment1.put(
-                newHeadKeyValues = KeyValue.emptyIterable,
-                newTailKeyValues = KeyValue.emptyIterable,
-                newKeyValues = segment2.toSlice(),
+                headGap = Assignable.emptyIterable,
+                tailGap = Assignable.emptyIterable,
+                mergeableCount = segment2.toSlice().size,
+                mergeable = segment2.toSlice().iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = valuesConfig,
@@ -1541,9 +1551,10 @@ sealed trait SegmentWriteSpec extends TestBase {
             deleteKeyValues add Memory.Range(5, 10, FromValue.Null, Value.remove(None))
 
             segment.put(
-              newHeadKeyValues = KeyValue.emptyIterable,
-              newTailKeyValues = KeyValue.emptyIterable,
-              newKeyValues = deleteKeyValues,
+              headGap = Assignable.emptyIterable,
+              tailGap = Assignable.emptyIterable,
+              mergeableCount = deleteKeyValues.size,
+              mergeable = deleteKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
               valuesConfig = ValuesBlock.Config.random,
@@ -1571,9 +1582,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val removedRanges =
             segment.put(
-              newHeadKeyValues = KeyValue.emptyIterable,
-              newTailKeyValues = KeyValue.emptyIterable,
-              newKeyValues = deleteKeyValues,
+              headGap = Assignable.emptyIterable,
+              tailGap = Assignable.emptyIterable,
+              mergeableCount = deleteKeyValues.size,
+              mergeable = deleteKeyValues.iterator,
               removeDeletes = false,
               createdInLevel = 0,
               valuesConfig = ValuesBlock.Config.random,
@@ -1604,9 +1616,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           val newSegments =
             segment.put(
-              newHeadKeyValues = KeyValue.emptyIterable,
-              newTailKeyValues = KeyValue.emptyIterable,
-              newKeyValues = deleteKeyValues,
+              headGap = Assignable.emptyIterable,
+              tailGap = Assignable.emptyIterable,
+              mergeableCount = deleteKeyValues.size,
+              mergeable = deleteKeyValues.iterator,
               removeDeletes = true,
               createdInLevel = 0,
               valuesConfig = ValuesBlock.Config.random,
@@ -1647,9 +1660,10 @@ sealed trait SegmentWriteSpec extends TestBase {
           val segments =
             if (persistent)
               segment.put(
-                newHeadKeyValues = KeyValue.emptyIterable,
-                newTailKeyValues = KeyValue.emptyIterable,
-                newKeyValues = keyValues2,
+                headGap = Assignable.emptyIterable,
+                tailGap = Assignable.emptyIterable,
+                mergeableCount = keyValues2.size,
+                mergeable = keyValues2.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = ValuesBlock.Config.random,
@@ -1662,9 +1676,10 @@ sealed trait SegmentWriteSpec extends TestBase {
               ).map(_.sweep())
             else
               segment.put(
-                newHeadKeyValues = KeyValue.emptyIterable,
-                newTailKeyValues = KeyValue.emptyIterable,
-                newKeyValues = keyValues2,
+                headGap = Assignable.emptyIterable,
+                tailGap = Assignable.emptyIterable,
+                mergeableCount = keyValues2.size,
+                mergeable = keyValues2.iterator,
                 removeDeletes = false,
                 createdInLevel = 0,
                 valuesConfig = ValuesBlock.Config.random,

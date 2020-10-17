@@ -29,6 +29,15 @@ import swaydb.core.segment.Segment
 
 import scala.collection.mutable.ListBuffer
 
+/**
+ * Stores assignment information of key-values.
+ *
+ * @param segment    Segment this assignment belong sto
+ * @param headGap    Head key-values that can be added directly to the Segment without merge
+ * @param midOverlap Overlapping key-values that require merge.
+ * @param tailGap    Tail key-values that can be added directly to the Segment without merge
+ * @tparam GAP [[Aggregator]]'s result type that will store all gap key-values.
+ */
 case class Assignment[GAP](segment: Segment,
                            headGap: Aggregator[Assignable, GAP],
                            midOverlap: ListBuffer[Assignable],

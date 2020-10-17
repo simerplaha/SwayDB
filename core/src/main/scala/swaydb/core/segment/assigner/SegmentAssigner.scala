@@ -34,61 +34,57 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentAssigner {
 
-  def assignMinMaxOnlyUnsafe(inputSegments: Iterable[Segment],
-                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafe(2 * inputSegments.size, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
+  def assignMinMaxOnlyUnsafeNoGaps(inputSegments: Iterable[Segment],
+                                   targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+    SegmentAssigner.assignUnsafeNoGaps(2 * inputSegments.size, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.segment)
 
-  def assignMinMaxOnlyUnsafe(input: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(input), targetSegments).keys
+  def assignMinMaxOnlyUnsafeNoGaps(input: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                                   targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+    SegmentAssigner.assignUnsafeNoGaps(2, Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
 
-  def assignMinMaxOnlyUnsafe(input: Slice[Memory],
-                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(input), targetSegments).keys
+  def assignMinMaxOnlyUnsafeNoGaps(input: Slice[Memory],
+                                   targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+    SegmentAssigner.assignUnsafeNoGaps(2, Segment.tempMinMaxKeyValues(input), targetSegments).map(_.segment)
 
-  def assignUnsafe(keyValues: Slice[KeyValue],
-                   segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] =
-    assignUnsafe(
-      keyValuesCount = keyValues.size,
-      keyValues = keyValues,
-      segments = segments
+  def assignUnsafeNoGaps(assignables: Slice[Assignable],
+                         segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): ListBuffer[Assignment[Nothing]] =
+    assignUnsafe[Nothing](
+      assignablesCount = assignables.size,
+      assignables = assignables,
+      segments = segments,
+      noGaps = true
     )
 
-  def assignUnsafe(keyValuesCount: Int,
-                   keyValues: Iterable[KeyValue],
-                   segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] = {
+  def assignUnsafeNoGaps(assignablesCount: Int,
+                         assignables: Iterable[Assignable],
+                         segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): ListBuffer[Assignment[Nothing]] =
+    assignUnsafe[Nothing](
+      assignablesCount = assignablesCount,
+      assignables = assignables,
+      segments = segments,
+      noGaps = true
+    )
 
-    //TODO - remove Map. Used temporarily so the code compiles.
-    //    val buffer =
-    //      assignUnsafe(
-    //        keyValuesCount = keyValuesCount,
-    //        keyValues = keyValues,
-    //        segments = segments,
-    //        noGaps = true
-    //      )(keyOrder, Aggregator.Creator.nothing()).asInstanceOf[ListBuffer[Assignment.Assigned]]
-    //
-    //    val map = mutable.Map.empty[Segment, Slice[KeyValue]]
-    //
-    //    buffer foreach {
-    //      assigned =>
-    //        map.put(assigned.segment, assigned.assignments)
-    //    }
-    //
-    //    map
-    ???
-  }
-
-  def assignUnsafeWithGaps[GAP](keyValuesCount: Int,
-                                assignables: Iterable[Assignable],
-                                segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP]] =
+  def assignUnsafeGaps[GAP](assignables: Slice[Assignable],
+                            segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                         gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP]] =
     assignUnsafe[GAP](
-      assignablesCount = keyValuesCount,
+      assignablesCount = assignables.size,
+      assignables = assignables,
+      segments = segments,
+      noGaps = false
+    )
+
+  def assignUnsafeGaps[GAP](assignablesCount: Int,
+                            assignables: Iterable[Assignable],
+                            segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                         gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP]] =
+    assignUnsafe[GAP](
+      assignablesCount = assignablesCount,
       assignables = assignables,
       segments = segments,
       noGaps = false
@@ -121,9 +117,11 @@ private[core] object SegmentAssigner {
           assignments +=
             Assignment(
               segment = assignTo,
-              headGap = gapCreator.createNew(),
+              //if noGaps is true then gapCreator will return Nothing Aggregator which cannot be accessed.
+              //So use null so that no objects are created.
+              headGap = if (noGaps) null else gapCreator.createNew(),
               midOverlap = ListBuffer(assignable),
-              tailGap = gapCreator.createNew()
+              tailGap = if (noGaps) null else gapCreator.createNew(),
             )
       }
 
@@ -144,7 +142,7 @@ private[core] object SegmentAssigner {
             Assignment(
               segment = assignTo,
               headGap = headGap,
-              midOverlap = ListBuffer(assignable),
+              midOverlap = ListBuffer.empty,
               tailGap = gapCreator.createNew()
             )
       }
@@ -158,6 +156,7 @@ private[core] object SegmentAssigner {
       if (assignable != null)
         thisSegmentMayBe match {
           case Segment.Null =>
+            //this would should never occur. If Segments were empty then the key-values should be copied.
             throw new Exception("Cannot assign key-value to Null Segment.")
 
           case thisSegment: Segment =>
@@ -166,7 +165,8 @@ private[core] object SegmentAssigner {
             //0 = Unknown. 1 = true, -1 = false
             var _belongsTo = 0
 
-            def getKeyBelongsToNoSpread(): Boolean = {
+            @inline def getKeyBelongsToNoSpread(): Boolean = {
+              //avoid computing multiple times.
               if (_belongsTo == 0)
                 if (Segment.belongsToNoSpread(assignable, thisSegment))
                   _belongsTo = 1
@@ -186,7 +186,7 @@ private[core] object SegmentAssigner {
               }
 
             //check if this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
-            if (keyCompare <= 0 || getKeyBelongsToNoSpread() || nextSegmentMayBe.isNoneS)
+            if (keyCompare <= 0 || nextSegmentMayBe.isNoneS || getKeyBelongsToNoSpread())
               assignable match {
                 case assignable: Assignable.Collection =>
                   nextSegmentMayBe match {

@@ -36,6 +36,7 @@ import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -273,9 +274,10 @@ protected case class PersistentSegmentOne(file: DBFile,
   /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
-  def put(newHeadKeyValues: Iterable[KeyValue],
-          newTailKeyValues: Iterable[KeyValue],
-          newKeyValues: Slice[KeyValue],
+  def put(headGap: Iterable[Assignable],
+          tailGap: Iterable[Assignable],
+          mergeableCount: Int,
+          mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -289,9 +291,10 @@ protected case class PersistentSegmentOne(file: DBFile,
     val segments =
       SegmentRef.put(
         ref = ref,
-        newHeadKeyValues = newHeadKeyValues,
-        newTailKeyValues = newTailKeyValues,
-        newKeyValues = newKeyValues,
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         valuesConfig = valuesConfig,
@@ -309,17 +312,6 @@ protected case class PersistentSegmentOne(file: DBFile,
       segments = segments
     )
   }
-
-  override def putSegment(segment: Segment,
-                          removeDeletes: Boolean,
-                          createdInLevel: Int,
-                          valuesConfig: ValuesBlock.Config,
-                          sortedIndexConfig: SortedIndexBlock.Config,
-                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                          hashIndexConfig: HashIndexBlock.Config,
-                          bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config,
-                          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = ???
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

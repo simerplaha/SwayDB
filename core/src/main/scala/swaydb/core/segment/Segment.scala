@@ -937,7 +937,7 @@ private[core] case object Segment extends LazyLogging {
       false
     else {
       val assignments =
-        SegmentAssigner.assignMinMaxOnlyUnsafe(
+        SegmentAssigner.assignMinMaxOnlyUnsafeNoGaps(
           inputSegments = inputSegments,
           targetSegments = appendixSegments
         )
@@ -960,13 +960,13 @@ private[core] case object Segment extends LazyLogging {
       } yield {
         val assignments =
           if (keyOrder.equiv(head.key, last.key))
-            SegmentAssigner.assignUnsafe(keyValues = Slice(head), segments = appendixSegments)
+            SegmentAssigner.assignUnsafeNoGaps(assignables = Slice(head), segments = appendixSegments)
           else
-            SegmentAssigner.assignUnsafe(keyValues = Slice(head, last), segments = appendixSegments)
+            SegmentAssigner.assignUnsafeNoGaps(assignables = Slice(head, last), segments = appendixSegments)
 
         Segment.overlaps(
           segments1 = busySegments,
-          segments2 = assignments.keys
+          segments2 = assignments.map(_.segment)
         ).nonEmpty
       }
     } getOrElse false
@@ -1148,9 +1148,10 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
   def segmentId: Long =
     Effect.numberFileId(path)._1
 
-  def put(newHeadKeyValues: Iterable[KeyValue],
-          newTailKeyValues: Iterable[KeyValue],
-          newKeyValues: Slice[KeyValue],
+  def put(headGap: Iterable[Assignable],
+          tailGap: Iterable[Assignable],
+          mergeableCount: Int,
+          mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -1160,17 +1161,6 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
-
-  def putSegment(segment: Segment,
-                 removeDeletes: Boolean,
-                 createdInLevel: Int,
-                 valuesConfig: ValuesBlock.Config,
-                 sortedIndexConfig: SortedIndexBlock.Config,
-                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                 hashIndexConfig: HashIndexBlock.Config,
-                 bloomFilterConfig: BloomFilterBlock.Config,
-                 segmentConfig: SegmentBlock.Config,
-                 pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

@@ -31,6 +31,7 @@ import swaydb.Aggregator
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -619,9 +620,10 @@ private[core] object SegmentRef {
       }
 
   def put(ref: SegmentRef,
-          newHeadKeyValues: Iterable[KeyValue],
-          newTailKeyValues: Iterable[KeyValue],
-          newKeyValues: Slice[KeyValue],
+          headGap: Iterable[Assignable],
+          tailGap: Iterable[Assignable],
+          mergeableCount: Int,
+          mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -635,9 +637,10 @@ private[core] object SegmentRef {
     put(
       oldKeyValuesCount = ref.getKeyValueCount(),
       oldKeyValues = ref.iterator(),
-      newHeadKeyValues = newHeadKeyValues,
-      newTailKeyValues = newTailKeyValues,
-      newKeyValues = newKeyValues,
+      headGap = headGap,
+      tailGap = tailGap,
+      mergeableCount = mergeableCount,
+      mergeable = mergeable,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
       valuesConfig = valuesConfig,
@@ -650,9 +653,10 @@ private[core] object SegmentRef {
 
   def put(oldKeyValuesCount: Int,
           oldKeyValues: Iterator[Persistent],
-          newHeadKeyValues: Iterable[KeyValue],
-          newTailKeyValues: Iterable[KeyValue],
-          newKeyValues: Slice[KeyValue],
+          headGap: Iterable[Assignable],
+          tailGap: Iterable[Assignable],
+          mergeableCount: Int,
+          mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -667,9 +671,10 @@ private[core] object SegmentRef {
     val builder = MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
     SegmentMerger.merge(
-      newHeadKeyValues = newHeadKeyValues,
-      newTailKeyValues = newTailKeyValues,
-      newKeyValues = newKeyValues,
+      headGap = headGap,
+      tailGap = tailGap,
+      mergeableCount = mergeableCount,
+      mergeable = mergeable,
       oldKeyValuesCount = oldKeyValuesCount,
       oldKeyValues = oldKeyValues,
       stats = builder,

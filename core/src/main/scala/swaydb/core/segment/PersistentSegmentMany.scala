@@ -35,6 +35,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -44,7 +45,7 @@ import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, Transi
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
-import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
+import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -54,7 +55,6 @@ import swaydb.{Error, IO}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
-import scala.jdk.CollectionConverters._
 
 protected case object PersistentSegmentMany {
 
@@ -497,9 +497,10 @@ protected case class PersistentSegmentMany(file: DBFile,
   /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
-  def put(newHeadKeyValues: Iterable[KeyValue],
-          newTailKeyValues: Iterable[KeyValue],
-          newKeyValues: Slice[KeyValue],
+  def put(headGap: Iterable[Assignable],
+          tailGap: Iterable[Assignable],
+          mergeableCount: Int,
+          mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -514,9 +515,10 @@ protected case class PersistentSegmentMany(file: DBFile,
       SegmentRef.put(
         oldKeyValuesCount = getKeyValueCount(),
         oldKeyValues = iterator(),
-        newHeadKeyValues = newHeadKeyValues,
-        newTailKeyValues = newTailKeyValues,
-        newKeyValues = newKeyValues,
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         valuesConfig = valuesConfig,
@@ -534,17 +536,6 @@ protected case class PersistentSegmentMany(file: DBFile,
       segments = transient
     )
   }
-
-  override def putSegment(segment: Segment,
-                          removeDeletes: Boolean,
-                          createdInLevel: Int,
-                          valuesConfig: ValuesBlock.Config,
-                          sortedIndexConfig: SortedIndexBlock.Config,
-                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                          hashIndexConfig: HashIndexBlock.Config,
-                          bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config,
-                          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = ???
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

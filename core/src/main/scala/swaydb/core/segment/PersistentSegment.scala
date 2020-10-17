@@ -26,18 +26,7 @@ package swaydb.core.segment
 
 import java.nio.file.Path
 
-import swaydb.core.data.KeyValue
 import swaydb.core.io.file.DBFile
-import swaydb.core.level.PathsDistributor
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.util.IDGenerator
-import swaydb.data.config.Dir
-import swaydb.data.slice.Slice
 
 trait PersistentSegment extends Segment {
   def file: DBFile
@@ -46,27 +35,4 @@ trait PersistentSegment extends Segment {
 
   def isMMAP =
     file.isMemoryMapped
-
-  def put(newHeadKeyValues: Iterable[KeyValue],
-          newTailKeyValues: Iterable[KeyValue],
-          newKeyValues: Slice[KeyValue],
-          removeDeletes: Boolean,
-          createdInLevel: Int,
-          valuesConfig: ValuesBlock.Config,
-          sortedIndexConfig: SortedIndexBlock.Config,
-          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-          hashIndexConfig: HashIndexBlock.Config,
-          bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment]
-
-  def refresh(removeDeletes: Boolean,
-              createdInLevel: Int,
-              valuesConfig: ValuesBlock.Config,
-              sortedIndexConfig: SortedIndexBlock.Config,
-              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-              hashIndexConfig: HashIndexBlock.Config,
-              bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment]
 }

@@ -24,11 +24,14 @@
 
 package swaydb.core.segment.assigner
 
+import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
+
+import scala.collection.mutable.ListBuffer
 
 /**
  * Something that can be assigned to a Segment for merge.
@@ -38,11 +41,19 @@ import swaydb.data.slice.Slice
  * - [[Map[Slice[Byte], Memory, LevelZeroMapCache]]
  * - [[swaydb.core.data.KeyValue]]
  */
-sealed trait Assignable {
+trait Assignable {
   def key: Slice[Byte]
 }
 
 object Assignable {
+
+  val emptyIterable = Iterable.empty[Assignable]
+
+  implicit val nothingCreator: Aggregator.Creator[Assignable, Nothing] =
+    Aggregator.Creator.nothing[Assignable]()
+
+  implicit def listBufferAssignableCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable]] =
+    Aggregator.Creator.listBuffer()
 
   /**
    * A [[Collection]] is a collection of key-values like [[swaydb.core.segment.Segment]]
