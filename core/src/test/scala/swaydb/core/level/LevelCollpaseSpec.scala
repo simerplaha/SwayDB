@@ -80,7 +80,7 @@ sealed trait LevelCollapseSpec extends TestBase {
         implicit sweeper =>
           //disable throttling so that it does not automatically collapse small Segments
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
-          val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
+          val keyValues = randomPutKeyValues(1000, addPutDeadlines = false, startId = Some(0))(TestTimer.Empty)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
           val segmentCountBeforeDelete = level.segmentsCount()

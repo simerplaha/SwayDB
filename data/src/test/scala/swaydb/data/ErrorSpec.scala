@@ -80,7 +80,7 @@ class ErrorSpec extends AnyFlatSpec with Matchers {
       Error.NotSentToNextLevel
 
     Error(Exception.MergeKeyValuesWithoutTargetSegment(1)) shouldBe
-      Error.MergeKeyValuesWithoutTargetSegment(1)
+      Error.MergeInvokedWithoutTargetSegment(1)
 
     val readOnlyBufferException = new ReadOnlyBufferException
     Error(readOnlyBufferException) shouldBe Error.ReadOnlyBuffer(readOnlyBufferException)

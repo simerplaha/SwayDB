@@ -257,7 +257,7 @@ object Error {
       case exception: Exception.Busy => exception.error
       case exception: Exception.OpeningFile => Error.OpeningFile(exception.file, exception.reserve)
       case exception: Exception.ReservedResource => Error.ReservedResource(exception.reserve)
-      case exception: Exception.MergeKeyValuesWithoutTargetSegment => Error.MergeKeyValuesWithoutTargetSegment(exception.keyValueCount)
+      case exception: Exception.MergeKeyValuesWithoutTargetSegment => Error.MergeInvokedWithoutTargetSegment(exception.keyValueCount)
       case exception: Exception.NullMappedByteBuffer => Error.NullMappedByteBuffer(exception)
       case exception: Exception.NoSuchFile => Error.NoSuchFile(exception.file)
 
@@ -379,7 +379,7 @@ object Error {
     override def exception: Throwable = Exception.NotSentToNextLevel
   }
 
-  case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Error.Level {
+  case class MergeInvokedWithoutTargetSegment(keyValueCount: Int) extends Error.Level {
     override def exception: Exception.MergeKeyValuesWithoutTargetSegment =
       Exception.MergeKeyValuesWithoutTargetSegment(keyValueCount)
   }

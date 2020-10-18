@@ -56,7 +56,6 @@ import swaydb.data.util.{FiniteDurations, SomeOrNone}
 import swaydb.{Aggregator, IO}
 
 import scala.annotation.tailrec
-import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
@@ -676,16 +675,31 @@ private[core] case object Segment extends LazyLogging {
           footer.valuesOffset.map(_.size).getOrElse(0)
     }
 
-  def belongsToNoSpread(assignable: Assignable,
-                        segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+  def keyOverlaps(keyValue: KeyValue,
+                  segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
     import keyOrder._
-    assignable.key >= segment.minKey && {
+    keyValue.key >= segment.minKey && {
       if (segment.maxKey.inclusive)
-        assignable.key <= segment.maxKey.maxKey
+        keyValue.key <= segment.maxKey.maxKey
       else
-        assignable.key < segment.maxKey.maxKey
+        keyValue.key < segment.maxKey.maxKey
     }
   }
+
+  def overlaps(assignable: Assignable,
+               segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+    assignable match {
+      case keyValue: KeyValue =>
+        keyOverlaps(keyValue, segment)
+
+      case collection: Assignable.Collection =>
+        overlaps(
+          minKey = collection.key,
+          maxKey = collection.maxKey.maxKey,
+          maxKeyInclusive = collection.maxKey.inclusive,
+          segment = segment
+        )
+    }
 
   def overlaps(minKey: Slice[Byte],
                maxKey: Slice[Byte],

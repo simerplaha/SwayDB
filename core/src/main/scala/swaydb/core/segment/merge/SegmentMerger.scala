@@ -34,6 +34,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentMerger extends LazyLogging {
 
@@ -478,6 +479,17 @@ private[core] object SegmentMerger extends LazyLogging {
       }
 
     doMerge(newKeyValues, oldKeyValues)
+    if (tailGap.nonEmpty) {
+      if (isLastLevel) {
+        builder.result.asInstanceOf[ListBuffer[Memory]].lastOption foreach {
+          mergedLast =>
+            assert(mergedLast.key < tailGap.head.key)
+        }
+      } else {
+        val mergedLastKey = builder.result.asInstanceOf[ListBuffer[Memory]].last.key
+        assert(mergedLastKey < tailGap.head.key)
+      }
+    }
 
     addAll(tailGap.iterator)
   }

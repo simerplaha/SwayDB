@@ -26,15 +26,13 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
+import swaydb.core._
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -352,14 +350,15 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "write key values to target segments and update appendix" in {
       TestCaseSweeper {
         implicit sweeper =>
+
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.mb, deleteEventually = false, mmap = mmapSegments))
 
           val targetSegmentKeyValues = randomIntKeyStringValues()
           val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).runRandomIO.right.value
 
           val keyValues = randomPutKeyValues()
-          val function = PrivateMethod[IO[swaydb.Error.Segment, Unit]]('putKeyValues)
-          (level invokePrivate function(keyValues.size, keyValues, Seq(targetSegment), None)).runRandomIO.right.value
+          implicit val ec = TestExecutionContext.executionContext
+          level.assignAndPut(keyValues.size, keyValues, Seq(targetSegment), None, randomMaxParallelism()).runRandomIO.right.value
 
           if (isWindowsAndMMAPSegments())
             sweeper.receiveAll()
@@ -391,8 +390,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           keyValues.add(Memory.put(1234, 12345))
           keyValues.add(Persistent.Put(_key = 1235, None, null, Time.empty, 10, 10, 10, 10, 10, 0)) //give it a null Reader so that it fails reading the value.
 
-          val function = PrivateMethod[IO[swaydb.Error.Segment, Unit]]('putKeyValues)
-          val failed = level invokePrivate function(keyValues.size, keyValues, Iterable(targetSegment), None)
+          implicit val ec = TestExecutionContext.executionContext
+          val failed = level.assignAndPut(keyValues.size, keyValues, Iterable(targetSegment), None, randomMaxParallelism())
           failed.isLeft shouldBe true
           failed.left.get.exception shouldBe a[NullPointerException]
 

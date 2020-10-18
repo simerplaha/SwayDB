@@ -43,11 +43,11 @@ import swaydb.serializers._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
-class SegmentAssignerSpec0 extends SegmentAssignerSpec {
+class Segment_AssignerAssignKeyValues_Spec0 extends SegmentAssigner_AssignKeyValues_Spec {
   val keyValueCount = 100
 }
 
-class SegmentAssignerSpec1 extends SegmentAssignerSpec {
+class Segment_AssignerAssignKeyValues_Spec1 extends SegmentAssigner_AssignKeyValues_Spec {
   val keyValueCount = 100
 
   override def levelFoldersCount = 10
@@ -56,7 +56,7 @@ class SegmentAssignerSpec1 extends SegmentAssignerSpec {
   override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
 }
 
-class SegmentAssignerSpec2 extends SegmentAssignerSpec {
+class Segment_AssignerAssignKeyValues_Spec2 extends SegmentAssigner_AssignKeyValues_Spec {
   val keyValueCount = 100
 
   override def levelFoldersCount = 10
@@ -65,77 +65,75 @@ class SegmentAssignerSpec2 extends SegmentAssignerSpec {
   override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
 }
 
-class SegmentAssignerSpec3 extends SegmentAssignerSpec {
+class Segment_AssignerAssignKeyValues_Spec3 extends SegmentAssigner_AssignKeyValues_Spec {
   val keyValueCount = 1000
   override def inMemoryStorage = true
 }
 
-sealed trait SegmentAssignerSpec extends TestBase {
+sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
   def keyValueCount: Int
 
-  "behaviour" should {
-    "assign new key-value to the Segment" when {
-      "both have the same key values" in {
-        runThis(10.times, log = true) {
-          TestCaseSweeper {
-            implicit sweeper =>
-              val keyValues = randomKeyValues(count = keyValueCount, startId = Some(1))
-              val segment = TestSegment(keyValues)
+  "assign new key-value to the Segment" when {
+    "both have the same key values" in {
+      runThis(10.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            val keyValues = randomKeyValues(count = keyValueCount, startId = Some(1))
+            val segment = TestSegment(keyValues)
 
-              //assign the Segment's key-values to itself.
-              /**
-               * Test with no gaps
-               */
-              val noGaps = SegmentAssigner.assignUnsafeNoGaps(keyValues, Slice(segment))
-              noGaps should have size 1
-              noGaps.head.midOverlap.expectKeyValues() shouldBe keyValues
+            //assign the Segment's key-values to itself.
+            /**
+             * Test with no gaps
+             */
+            val noGaps = SegmentAssigner.assignUnsafeNoGaps(keyValues, Slice(segment))
+            noGaps should have size 1
+            noGaps.head.midOverlap.expectKeyValues() shouldBe keyValues
 
-              /**
-               * Test with gaps
-               */
-              val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](keyValues, Slice(segment))
-              gaps should have size 1
-              gaps.head.headGap.result shouldBe empty
-              gaps.head.midOverlap.expectKeyValues() shouldBe keyValues
-              gaps.head.tailGap.result shouldBe empty
-          }
+            /**
+             * Test with gaps
+             */
+            val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](keyValues, Slice(segment))
+            gaps should have size 1
+            gaps.head.headGap.result shouldBe empty
+            gaps.head.midOverlap.expectKeyValues() shouldBe keyValues
+            gaps.head.tailGap.result shouldBe empty
         }
       }
+    }
 
-      "segment is assigned" in {
-        runThis(10.times, log = true) {
-          TestCaseSweeper {
-            implicit sweeper =>
-              val segmentKeyValue = randomKeyValues(count = keyValueCount, startId = Some(0))
+    "segment is assigned" in {
+      runThis(10.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            val segmentKeyValue = randomKeyValues(count = keyValueCount, startId = Some(0))
 
-              val segment = TestSegment(segmentKeyValue)
+            val segment = TestSegment(segmentKeyValue)
 
-              /**
-               * Test with no gaps
-               */
-              val noGaps = SegmentAssigner.assignUnsafeNoGaps(Slice(segment), Slice(segment))
-              noGaps should have size 1
+            /**
+             * Test with no gaps
+             */
+            val noGaps = SegmentAssigner.assignUnsafeNoGaps(Slice(segment), Slice(segment))
+            noGaps should have size 1
 
-              val assignedSegments = noGaps.head.midOverlap.expectSegments()
-              assignedSegments should have size 1
-              assignedSegments.head.segmentId shouldBe segment.segmentId
+            val assignedSegments = noGaps.head.midOverlap.expectSegments()
+            assignedSegments should have size 1
+            assignedSegments.head.segmentId shouldBe segment.segmentId
 
-              /**
-               * Test with gaps
-               */
-              val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment))
-              gaps should have size 1
-              gaps.head.headGap.result shouldBe empty
-              gaps.head.tailGap.result shouldBe empty
+            /**
+             * Test with gaps
+             */
+            val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment))
+            gaps should have size 1
+            gaps.head.headGap.result shouldBe empty
+            gaps.head.tailGap.result shouldBe empty
 
-              val assignedSegments2 = noGaps.head.midOverlap.expectSegments()
-              assignedSegments2 should have size 1
-              assignedSegments2.head.segmentId shouldBe segment.segmentId
-          }
+            val assignedSegments2 = noGaps.head.midOverlap.expectSegments()
+            assignedSegments2 should have size 1
+            assignedSegments2.head.segmentId shouldBe segment.segmentId
         }
       }
     }

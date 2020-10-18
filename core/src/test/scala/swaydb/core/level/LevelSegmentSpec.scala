@@ -308,7 +308,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val keyValues = randomKeyValues(keyValuesCount)
             val segmentsToMerge = TestSegment(keyValues)
             val level = TestLevel()
-            level.put(Seq(segmentsToMerge), Seq(), Seq(), randomMaxParallelism()).left.get shouldBe swaydb.Error.MergeKeyValuesWithoutTargetSegment(keyValues.size)
+            level.put(Seq(segmentsToMerge), Seq(), Seq(), randomMaxParallelism()).left.get shouldBe a[swaydb.Error.MergeInvokedWithoutTargetSegment]
         }
       }
 

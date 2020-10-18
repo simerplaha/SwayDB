@@ -91,7 +91,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)))
 
           runThis(10.times) {
-            Segment.belongsToNoSpread(randomFixedKeyValue(0), segment) shouldBe false
+            Segment.keyOverlaps(randomFixedKeyValue(0), segment) shouldBe false
 
             //inner
             (1 to 5) foreach {
@@ -99,7 +99,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
                 randomizedKeyValues(10, startId = Some(i)) foreach {
                   keyValue =>
                     if (keyValue.key.readInt() <= 5)
-                      Segment.belongsToNoSpread(keyValue, segment) shouldBe true
+                      Segment.keyOverlaps(keyValue, segment) shouldBe true
                 }
             }
 
@@ -108,7 +108,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
               i =>
                 randomizedKeyValues(10, startId = Some(i)) foreach {
                   keyValue =>
-                    Segment.belongsToNoSpread(keyValue, segment) shouldBe false
+                    Segment.keyOverlaps(keyValue, segment) shouldBe false
                 }
             }
           }
@@ -121,7 +121,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)))
 
           runThis(10.times) {
-            Segment.belongsToNoSpread(randomFixedKeyValue(0), segment) shouldBe false
+            Segment.keyOverlaps(randomFixedKeyValue(0), segment) shouldBe false
 
             //inner
             (1 to 9) foreach {
@@ -129,7 +129,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
                 randomizedKeyValues(10, startId = Some(i)) foreach {
                   keyValue =>
                     if (keyValue.key.readInt() < 10)
-                      Segment.belongsToNoSpread(keyValue, segment) shouldBe true
+                      Segment.keyOverlaps(keyValue, segment) shouldBe true
                 }
             }
 
@@ -138,7 +138,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
               i =>
                 randomizedKeyValues(10, startId = Some(i)) foreach {
                   keyValue =>
-                    Segment.belongsToNoSpread(keyValue, segment) shouldBe false
+                    Segment.keyOverlaps(keyValue, segment) shouldBe false
                 }
             }
           }
@@ -151,7 +151,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           val segment = TestSegment(Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)))
 
           runThis(10.times) {
-            Segment.belongsToNoSpread(randomFixedKeyValue(0), segment) shouldBe false
+            Segment.keyOverlaps(randomFixedKeyValue(0), segment) shouldBe false
 
             //inner
             (1 to 11) foreach {
@@ -159,7 +159,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
                 randomizedKeyValues(10, startId = Some(i)) foreach {
                   keyValue =>
                     if (keyValue.key.readInt() < 10)
-                      Segment.belongsToNoSpread(keyValue, segment) shouldBe true
+                      Segment.keyOverlaps(keyValue, segment) shouldBe true
                 }
             }
 
@@ -168,7 +168,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
               i =>
                 randomizedKeyValues(10, startId = Some(i)) foreach {
                   keyValue =>
-                    Segment.belongsToNoSpread(keyValue, segment) shouldBe false
+                    Segment.keyOverlaps(keyValue, segment) shouldBe false
                 }
             }
           }
@@ -192,7 +192,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           runThis(10.times) {
             leftOutKeysRange foreach {
               key =>
-                Segment.belongsToNoSpread(randomFixedKeyValue(key), segment) shouldBe false
+                Segment.keyOverlaps(randomFixedKeyValue(key), segment) shouldBe false
             }
 
             //inner
@@ -202,7 +202,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
                 keyValues foreach {
                   keyValue =>
                     if (keyValue.key.readInt() <= innerKeyRange.last)
-                      Segment.belongsToNoSpread(keyValue, segment) shouldBe true
+                      Segment.keyOverlaps(keyValue, segment) shouldBe true
                 }
             }
 
@@ -212,7 +212,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
                 val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i))
                 keyValues foreach {
                   keyValue =>
-                    Segment.belongsToNoSpread(keyValue, segment) shouldBe false
+                    Segment.keyOverlaps(keyValue, segment) shouldBe false
                 }
             }
           }
