@@ -56,9 +56,9 @@ import swaydb.data.util.{FiniteDurations, SomeOrNone}
 import swaydb.{Aggregator, IO}
 
 import scala.annotation.tailrec
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
-
 
 private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
   override def noneS: SegmentOption =
