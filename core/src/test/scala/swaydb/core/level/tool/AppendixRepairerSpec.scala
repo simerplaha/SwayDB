@@ -143,9 +143,9 @@ class AppendixRepairerSpec extends TestBase {
             val segmentsBeforeRepair = level.segmentsInLevel()
 
             level.segmentsInLevel().foldLeft(segmentsBeforeRepair.last.path.fileId._1 + 1) {
-              case (segmentId, segment) =>
+              case (segmentNumber, segment) =>
                 //create a duplicate Segment
-                val duplicateSegment = segment.path.getParent.resolve(segmentId.toSegmentFileId)
+                val duplicateSegment = segment.path.getParent.resolve(segmentNumber.toSegmentFileId)
                 Effect.copy(segment.path, duplicateSegment)
                 //perform repair
                 AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).left.value.exception shouldBe a[OverlappingSegmentsException]
@@ -162,12 +162,12 @@ class AppendixRepairerSpec extends TestBase {
                 duplicateSegment.exists shouldBe true
                 //older duplicate Segment is deleted
                 segment.existsOnDisk shouldBe false
-                segmentId + 1
+                segmentNumber + 1
             }
 
             //level still contains the same key-values
             val reopenedLevel = level.reopen
-            Segment.getAllKeyValues(reopenedLevel.segmentsInLevel()).runRandomIO.value shouldBe keyValues
+            reopenedLevel.segmentsInLevel().flatMap(_.iterator()).runRandomIO.value shouldBe keyValues
             reopenedLevel.closeNoSweep().value
         }
       }
@@ -202,7 +202,7 @@ class AppendixRepairerSpec extends TestBase {
 
               def createOverlappingSegment() = {
                 val numberOfKeyValuesToOverlap = randomNextInt(3) max 1
-                val keyValuesToOverlap = Random.shuffle(segment.toSlice().runRandomIO.value.toList).take(numberOfKeyValuesToOverlap).map(_.toMemory).toSlice
+                val keyValuesToOverlap = Random.shuffle(segment.iterator().runRandomIO.value.toList).take(numberOfKeyValuesToOverlap).map(_.toMemory).toSlice
                 //create overlapping Segment
                 val overlappingSegment = TestSegment(keyValuesToOverlap, segmentConfig = SegmentBlock.Config.random(mmap = MMAP.Off(TestForceSave.channel())))
                 Effect.copy(overlappingSegment.path, overlappingLevelSegmentPath)

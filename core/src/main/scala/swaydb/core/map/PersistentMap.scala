@@ -301,7 +301,7 @@ protected case class PersistentMap[K, V, C <: MapCache[K, V]](path: Path,
   private var allowedPostFlushEntriesBeforeWarn: Long = 0
 
   override val uniqueFileNumber: Long =
-    Map.uniqueFileNumberGenerator.nextID
+    Map.uniqueFileNumberGenerator.next
 
   def typeName = productPrefix
 

@@ -50,11 +50,11 @@ object Benchmark extends LazyLogging {
       print(message)
 
   private def run[R](message: String, inlinePrint: Boolean, useLazyLogging: Boolean)(benchmarkThis: => R): (R, BigDecimal) = {
-    if (!useLazyLogging) //don't need header Benchmarking log when using lazyLogging. LazyLogging is generally for user's viewing only.
-      if (inlinePrint)
-        doPrint(message = s"Benchmarking: ${if(message.isEmpty) "" else s"$message: "}", useLazyLogging = useLazyLogging, newLine = false)
-      else
-        doPrint(message = s"Benchmarking: $message", useLazyLogging = useLazyLogging, newLine = true)
+//    if (!useLazyLogging) //don't need header Benchmarking log when using lazyLogging. LazyLogging is generally for user's viewing only.
+//      if (inlinePrint)
+//        doPrint(message = s"Benchmarking: ${if(message.isEmpty) "" else s"$message: "}", useLazyLogging = useLazyLogging, newLine = false)
+//      else
+//        doPrint(message = s"Benchmarking: $message", useLazyLogging = useLazyLogging, newLine = true)
 
     val collectionTimeBefore = ManagementFactory.getGarbageCollectorMXBeans.asScala.foldLeft(0L)(_ + _.getCollectionTime)
 
@@ -69,7 +69,7 @@ object Benchmark extends LazyLogging {
 
     val timeWithoutGCTimeTakenRounded = Maths.round(timeTaken - gcTimeTaken)
 
-    val messageToLog = s"$timeWithoutGCTimeTakenRounded seconds${if (message.isEmpty) "" else s" - $message"}. GC: ${Maths.round(gcTimeTaken)}. Total: ${Maths.round(timeTaken)}"
+    val messageToLog = s"${if (message.isEmpty) "" else s"$message - "}$timeWithoutGCTimeTakenRounded seconds. GC: ${Maths.round(gcTimeTaken)}. Total: ${Maths.round(timeTaken)}"
 
     if (inlinePrint)
       doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = false)

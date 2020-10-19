@@ -162,7 +162,7 @@ class MapSpec extends TestBase {
           import AppendixMapEntryWriter._
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
           import appendixReader._
 
           val map =
@@ -255,7 +255,7 @@ class MapSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
           import AppendixMapEntryWriter._
           import appendixReader._
 
@@ -373,7 +373,7 @@ class MapSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
           import AppendixMapEntryWriter._
           import appendixReader._
 
@@ -735,7 +735,7 @@ class MapSpec extends TestBase {
             ).sweep()
 
           val nextFileSkipList = SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
-          val nextFileBytes = DBFile.channelRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).readAll
+          val nextFileBytes = DBFile.channelRead(nextFile.path, randomThreadSafeIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.next).readAll
           nextFileBytes.size should be > 0
           val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
           mapEntries applyBatch nextFileSkipList

@@ -915,6 +915,9 @@ class Actor[-T, S](val name: String,
    */
   def terminate[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     bag.suspend {
+      if (preTerminate.isEmpty && postTerminate.isEmpty)
+        clear()
+
       //preTerminate and postTerminate should always run even if
       //they are not set so that all pending messages in the Actor are
       //processed. Specially for windows where cleaning MMAP files are required.

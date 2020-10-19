@@ -72,7 +72,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows,
               forceSave = TestForceSave.mmap(),
-              blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+              blockCacheFileId = BlockCacheFileIDGenerator.next,
               bytes = Slice(randomBytesSlice())
             )
 
@@ -107,7 +107,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
                   autoClose = true,
                   deleteAfterClean = OperatingSystem.isWindows,
                   forceSave = TestForceSave.mmap(),
-                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                  blockCacheFileId = BlockCacheFileIDGenerator.next,
                   bytes = bytes
                 )
             }

@@ -29,7 +29,7 @@ import swaydb.IO
 /**
  * Search result of a [[Level]].
  */
-private[level] sealed trait LevelSeek[+A] {
+private[core] sealed trait LevelSeek[+A] {
   def isDefined: Boolean
   def isEmpty: Boolean
 
@@ -38,27 +38,27 @@ private[level] sealed trait LevelSeek[+A] {
   def flatMap[B](f: A => LevelSeek[B]): LevelSeek[B]
 }
 
-private[level] object LevelSeek {
+private[core] object LevelSeek {
 
   val none = IO.Right[Nothing, LevelSeek.None.type](LevelSeek.None)(IO.ExceptionHandler.Nothing)
 
-  def apply[T](segmentId: Long,
+  def apply[T](segmentNumber: Long,
                result: Option[T]): LevelSeek[T] =
     if (result.isDefined)
       LevelSeek.Some(
-        segmentId = segmentId,
+        segmentNumber = segmentNumber,
         result = result.get
       )
     else
       LevelSeek.None
 
-  final case class Some[T](segmentId: Long,
+  final case class Some[T](segmentNumber: Long,
                            result: T) extends LevelSeek[T] {
     override def isDefined: Boolean = true
     override def isEmpty: Boolean = false
     override def map[B](f: T => B): LevelSeek[B] =
       copy(
-        segmentId = segmentId,
+        segmentNumber = segmentNumber,
         result = f(result)
       )
 

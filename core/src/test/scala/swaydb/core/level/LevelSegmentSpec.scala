@@ -325,7 +325,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               level.put(targetSegment, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
 
               //segment to copy
-              val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)
+              val id = IDGenerator.segment(level.segmentIDGenerator.next + 9)
               level.pathDistributor.queuedPaths foreach { //create this file in all paths.
                 _ =>
                   Effect.createFile(level.pathDistributor.next.resolve(id))
@@ -363,7 +363,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val level = TestLevel()
 
               //create a file with the same Segment name as the 4th Segment file. This should result in failure.
-              val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 4)
+              val id = IDGenerator.segment(level.segmentIDGenerator.next + 4)
               level.pathDistributor.queuedPaths foreach { //create this file in all paths.
                 _ =>
                   Effect.createFile(level.pathDistributor.next.resolve(id))

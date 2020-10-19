@@ -96,7 +96,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
           if (persistent) level.segmentFilesOnDisk should not be empty
 
-          Segment.getAllKeyValues(copiedSegments) shouldBe allKeyValues
+          copiedSegments.flatMap(_.iterator()) shouldBe allKeyValues
       }
     }
 
@@ -143,7 +143,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
           if (persistent) level.segmentFilesOnDisk should not be empty
 
-          Segment.getAllKeyValues(copiedSegments) shouldBe keyValues
+          copiedSegments.flatMap(_.iterator()) shouldBe keyValues
       }
     }
   }

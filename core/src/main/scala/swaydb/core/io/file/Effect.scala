@@ -305,7 +305,7 @@ private[core] object Effect extends LazyLogging {
     else
       IO.`true`
 
-  def printFilesSize(folder: Path, fileExtension: String) = {
+  def getFilesSize(folder: Path, fileExtension: String): String = {
     val extensionFilter =
       new BiPredicate[Path, BasicFileAttributes] {
         override def test(path: Path, attributes: BasicFileAttributes): Boolean = {
@@ -321,10 +321,11 @@ private[core] object Effect extends LazyLogging {
         .asScala
         .foldLeft(0L)(_ + _.toFile.length())
 
-    //    val gb = BigDecimal(size / 1000000000.0).setScale(2, BigDecimal.RoundingMode.HALF_UP)
     val mb = Maths.round(size / 1000000.0, 2)
 
-    //    println(s"${fileExtension.toUpperCase} files size: $gb gb - $mb mb - $size bytes")
-    println(s"${fileExtension.toUpperCase} files size: $mb mb - $size bytes\n")
+    s"$mb mb - $size bytes"
   }
+
+  def printFilesSize(folder: Path, fileExtension: String) =
+    println(s"${fileExtension.toUpperCase}: " + getFilesSize(folder, fileExtension))
 }

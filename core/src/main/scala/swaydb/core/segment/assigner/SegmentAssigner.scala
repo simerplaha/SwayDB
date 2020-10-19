@@ -110,7 +110,7 @@ private[core] object SegmentAssigner {
     def assignToSegment(assignable: Assignable,
                         assignTo: Segment): Unit =
       assignments.lastOption match {
-        case Some(Assignment(bufferSegment, _, keyValues, _)) if bufferSegment.segmentId == assignTo.segmentId =>
+        case Some(Assignment(bufferSegment, _, keyValues, _)) if bufferSegment.segmentNumber == assignTo.segmentNumber =>
           keyValues += assignable
 
         case _ =>
@@ -131,7 +131,7 @@ private[core] object SegmentAssigner {
     def segmentHasNonGapedKeyValuesAssigned(segment: Segment): Boolean =
       assignments.lastOption match {
         case Some(assignment) =>
-          assignment.segment.segmentId == segment.segmentId && {
+          assignment.segment.segmentNumber == segment.segmentNumber && {
             assignment.midOverlap.lastOption.exists(_.isInstanceOf[KeyValue])
           }
 
@@ -142,7 +142,7 @@ private[core] object SegmentAssigner {
     def assignToGap(assignable: Assignable,
                     assignTo: Segment): Unit =
       assignments.lastOption match {
-        case Some(Assignment(bufferSegment, headGap, keyValues, tailGap)) if bufferSegment.segmentId == assignTo.segmentId =>
+        case Some(Assignment(bufferSegment, headGap, keyValues, tailGap)) if bufferSegment.segmentNumber == assignTo.segmentNumber =>
           if (keyValues.isEmpty && assignable.key < assignTo.minKey)
             headGap add assignable
           else
@@ -321,7 +321,7 @@ private[core] object SegmentAssigner {
                           //check if a key-value is already assigned to thisSegment. Else if thisSegment is empty jump to next
                           //there is no point adding a single key-value to a Segment.
                           assignments.lastOption match {
-                            case Some(Assignment(segment, _, keyValues, _)) if segment.segmentId == thisSegment.segmentId =>
+                            case Some(Assignment(segment, _, keyValues, _)) if segment.segmentNumber == thisSegment.segmentNumber =>
                               keyValues += assignable
                               assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
@@ -354,7 +354,7 @@ private[core] object SegmentAssigner {
                           //same code as above, need to push it to a common function.
                           if (noGaps) {
                             assignments.lastOption match {
-                              case Some(Assignment(segment, _, keyValues, _)) if segment.segmentId == thisSegment.segmentId =>
+                              case Some(Assignment(segment, _, keyValues, _)) if segment.segmentNumber == thisSegment.segmentNumber =>
                                 keyValues += keyValue
                                 assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 

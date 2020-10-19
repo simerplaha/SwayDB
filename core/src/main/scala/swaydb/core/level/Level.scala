@@ -128,7 +128,9 @@ private[core] object Level extends LazyLogging {
         //initialise readers & writers
         import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
 
-        val appendixReader = new AppendixMapEntryReader(mmapSegment = segmentConfig.mmap)
+        val removeDeletes = Level.removeDeletes(nextLevel)
+
+        val appendixReader = new AppendixMapEntryReader(mmapSegment = segmentConfig.mmap, removeDeletes = removeDeletes)
 
         import appendixReader._
 
@@ -203,7 +205,7 @@ private[core] object Level extends LazyLogging {
                       appendix = appendix,
                       lock = lock,
                       pathDistributor = paths,
-                      removeDeletedRecords = Level.removeDeletes(nextLevel)
+                      removeDeletedRecords = removeDeletes
                     )
                   }
                   .onLeftSideEffect {
@@ -221,11 +223,11 @@ private[core] object Level extends LazyLogging {
   def largestSegmentId(appendix: Iterable[Segment]): Long =
     appendix.foldLeft(0L) {
       case (initialId, segment) =>
-        val segmentId = segment.path.fileId._1
-        if (initialId > segmentId)
+        val segmentNumber = segment.path.fileId._1
+        if (initialId > segmentNumber)
           initialId
         else
-          segmentId
+          segmentNumber
     }
 
   /**
@@ -273,13 +275,13 @@ private[core] object Level extends LazyLogging {
             if (!Segment.overlaps(segment, nextLevel.segmentsInLevel()))
               segmentsToCopy += segment
             //only cache enough Segments to merge.
-            else if (segmentsToMerge.size < take)
+            else
               segmentsToMerge += segment
 
           segmentsToCopy.size >= take
       }
 
-    (segmentsToCopy, segmentsToMerge)
+    (segmentsToCopy, segmentsToMerge.sortBy(_.segmentSize)(Ordering.Int.reverse))
   }
 
   def shouldCollapse(level: NextLevel,
@@ -1106,10 +1108,10 @@ private[core] case class Level(dirs: Seq[Dir],
           ) flatMap {
             targetSegmentAndNewSegments =>
               targetSegmentAndNewSegments.foldLeftRecoverIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-                case (mapEntry, (targetSegment, newSegments)) =>
+                case (mapEntry, (originalSegment, newSegments, _)) =>
                   buildNewMapEntry(
                     newSegments = newSegments,
-                    originalSegmentMayBe = targetSegment,
+                    originalSegmentMayBe = originalSegment,
                     initialMapEntry = mapEntry
                   ).toOptionValue
 
@@ -1125,13 +1127,13 @@ private[core] case class Level(dirs: Seq[Dir],
                       logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, assignments.map(_.segment.path.toString))
                       //delete assigned segments as they are replaced with new segments.
                       if (segmentConfig.deleteEventually)
-                        assignments foreach (_.segment.deleteSegmentsEventually)
+                        targetSegmentAndNewSegments foreach (_._3.foreachS(_.deleteSegmentsEventually))
                       else
-                        assignments foreach {
-                          assignment =>
-                            IO(assignment.segment.delete) onLeftSideEffect {
+                        targetSegmentAndNewSegments foreach {
+                          case (_, _, segmentToDelete) =>
+                            IO(segmentToDelete.foreachS(_.delete)) onLeftSideEffect {
                               exception =>
-                                logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, assignment.segment.path, exception)
+                                logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segmentToDelete.toOptionS.map(_.path), exception)
                             }
                         }
                   }
@@ -1143,7 +1145,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 failure =>
                   logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", failure)
                   targetSegmentAndNewSegments foreach {
-                    case (_, newSegments) =>
+                    case (_, newSegments, _) =>
                       newSegments foreach {
                         segment =>
                           IO(segment.delete) onLeftSideEffect {
@@ -1159,15 +1161,13 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def putAssigned(assignments: Iterable[Assignment[ListBuffer[Assignable]]],
-                          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, Slice[Segment])]] =
-    assignments.mapRecoverIOParallel[(Segment, Slice[Segment])](parallelism = mergeParallelism)(
+                          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, Slice[Segment], SegmentOption)]] =
+    assignments.mapRecoverIOParallel[(Segment, Slice[Segment], SegmentOption)](parallelism = mergeParallelism)(
       block = {
         assignment =>
           IO {
-            val targetSegment = assignment.segment
-
             val newSegments =
-              targetSegment.put(
+              assignment.segment.put(
                 headGap = assignment.headGap.result,
                 tailGap = assignment.tailGap.result,
                 mergeableCount = assignment.midOverlap.size,
@@ -1180,17 +1180,19 @@ private[core] case class Level(dirs: Seq[Dir],
                 hashIndexConfig = hashIndexConfig,
                 bloomFilterConfig = bloomFilterConfig,
                 segmentConfig = segmentConfig,
-                pathsDistributor = pathDistributor.addPriorityPath(targetSegment.path.getParent)
+                pathsDistributor = pathDistributor.addPriorityPath(assignment.segment.path.getParent)
               )
 
-            (targetSegment, newSegments)
+            (assignment.segment, newSegments, assignment.segment)
           }
       },
       recover =
         (targetSegmentAndNewSegments, failure) => {
+
           logFailure(s"${pathDistributor.head}: Failed to do putAssignedKeyValues, Reverting and deleting written ${targetSegmentAndNewSegments.size} segments", failure)
+
           targetSegmentAndNewSegments foreach {
-            case (_, newSegments) =>
+            case (_, newSegments, _) =>
               newSegments foreach {
                 segment =>
                   IO(segment.delete) onLeftSideEffect {
@@ -1297,7 +1299,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .flatMapSomeS(LevelSeek.None: LevelSeek[KeyValue]) {
         segment =>
           LevelSeek(
-            segmentId = segment.segmentId,
+            segmentNumber = segment.segmentNumber,
             result = segment.lower(key, readState).toOptional
           )
       }
@@ -1330,7 +1332,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix.cache.floor(key) match {
       case segment: Segment =>
         LevelSeek(
-          segmentId = segment.segmentId,
+          segmentNumber = segment.segmentNumber,
           result = segment.higher(key, readState).toOptional
         )
 
@@ -1342,7 +1344,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix.cache.higher(key) match {
       case segment: Segment =>
         LevelSeek(
-          segmentId = segment.segmentId,
+          segmentNumber = segment.segmentNumber,
           result = segment.higher(key, readState).toOptional
         )
 
@@ -1576,10 +1578,10 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix
       .cache
       .last()
-      .mapS(_.segmentId)
+      .mapS(_.segmentNumber)
 
   override def stateId: Long =
-    segmentIDGenerator.currentId
+    segmentIDGenerator.current
 
   override def nextCompactionDelay: FiniteDuration =
     throttle(meter).pushDelay

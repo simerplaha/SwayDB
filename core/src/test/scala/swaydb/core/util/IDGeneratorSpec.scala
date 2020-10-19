@@ -38,14 +38,14 @@ class IDGeneratorSpec extends AnyFlatSpec with Matchers {
     (1 to 100).par.foldLeft(-1L) {
       case (previous, _) =>
         //check nextSegmentId should return valid text
-        gen.nextSegmentID should fullyMatch regex s"\\d+\\.seg"
-        val next = gen.nextID
+        gen.nextSegment should fullyMatch regex s"\\d+\\.seg"
+        val next = gen.next
         next should be > previous
         next
     }
   }
 
   it should "return segment string" in {
-    IDGenerator.segmentId(1) should fullyMatch regex "1.seg"
+    IDGenerator.segment(1) should fullyMatch regex "1.seg"
   }
 }

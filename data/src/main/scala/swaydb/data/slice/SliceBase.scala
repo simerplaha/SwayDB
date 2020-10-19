@@ -485,17 +485,27 @@ abstract class SliceBase[+T](array: Array[T],
     nullValue
   }
 
-  def ++[B >: T : ClassTag](other: Slice[B]): Slice[B] = {
-    val slice = Slice.of[B](size + other.size)
-    slice addAll selfSlice
-    slice addAll other
-  }
+  def ++[B >: T : ClassTag](other: Slice[B]): Slice[B] =
+    if (other.isEmpty) {
+      selfSlice
+    } else if (selfSlice.isEmpty) {
+      other
+    } else {
+      val slice = Slice.of[B](size + other.size)
+      slice addAll selfSlice
+      slice addAll other
+    }
 
-  def ++[B >: T : ClassTag](other: Array[B]): Slice[B] = {
-    val slice = Slice.of[B](size + other.length)
-    slice addAll selfSlice
-    slice addAll other
-  }
+  def ++[B >: T : ClassTag](other: Array[B]): Slice[B] =
+    if (other.isEmpty) {
+      selfSlice
+    } else if (selfSlice.isEmpty) {
+      Slice(other)
+    } else {
+      val slice = Slice.of[B](size + other.length)
+      slice addAll selfSlice
+      slice addAll other
+    }
 
   def underlyingArraySize =
     array.length

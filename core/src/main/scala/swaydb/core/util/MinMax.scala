@@ -206,6 +206,13 @@ private[core] object MinMax {
       next = function.function
     )(FunctionStore.order)
 
+  def minMaxFunctionOption(left: Option[MinMax[Slice[Byte]]],
+                           right: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
+    minMax(
+      left = left,
+      right = right
+    )(FunctionStore.order)
+
   def minMaxFunction(function: KeyValue.Function,
                      current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
     minMax(

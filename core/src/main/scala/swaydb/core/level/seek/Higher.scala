@@ -97,11 +97,11 @@ private[core] object Higher {
 
       case Seek.Current.Read(previousSegmentId) =>
         currentWalker.higher(key, readState) match {
-          case LevelSeek.Some(segmentId, higher) =>
-            if (previousSegmentId == segmentId)
-              Higher(key, readState, Seek.Current.Stash(segmentId, higher), nextSeek)
+          case LevelSeek.Some(segmentNumber, higher) =>
+            if (previousSegmentId == segmentNumber)
+              Higher(key, readState, Seek.Current.Stash(segmentNumber, higher), nextSeek)
             else
-              Higher(key, readState, Seek.Current.Stash(segmentId, higher), Seek.Next.Read)
+              Higher(key, readState, Seek.Current.Stash(segmentNumber, higher), Seek.Next.Read)
 
           case LevelSeek.None =>
             Higher(key, readState, Seek.Current.Stop, nextSeek)
@@ -139,7 +139,7 @@ private[core] object Higher {
        * ******************                     *******************
        * ******************************************************** */
 
-      case currentStash @ Seek.Current.Stash(segmentId, current) =>
+      case currentStash @ Seek.Current.Stash(segmentNumber, current) =>
         nextSeek match {
           case Seek.Next.Read =>
             //decide if it's necessary to read the next Level or not.
@@ -162,7 +162,7 @@ private[core] object Higher {
                       ceiling
 
                     case _: KeyValue.Put | KeyValue.Put.Null =>
-                      Higher(currentRange.toKey, readState, Seek.Current.Read(segmentId), nextSeek)
+                      Higher(currentRange.toKey, readState, Seek.Current.Read(segmentNumber), nextSeek)
                   }
 
               //if the input key is smaller than this Level's higher Range's fromKey.
@@ -184,19 +184,19 @@ private[core] object Higher {
                 if (current.hasTimeLeft())
                   current
                 else
-                  Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                  Higher(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case _: KeyValue.Remove =>
-                Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                Higher(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case _: KeyValue.Update =>
-                Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                Higher(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case _: KeyValue.Function =>
-                Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                Higher(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case _: KeyValue.PendingApply =>
-                Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                Higher(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case current: KeyValue.Range =>
                 higherFromValue(key, current.fromKey, current.fetchFromValueUnsafe) match {
@@ -209,10 +209,10 @@ private[core] object Higher {
                         if (put.hasTimeLeft())
                           put
                         else
-                          Higher(current.toKey, readState, Seek.Current.Read(segmentId), nextSeek)
+                          Higher(current.toKey, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
                       case KeyValue.Put.Null =>
-                        Higher(current.toKey, readState, Seek.Current.Read(segmentId), nextSeek)
+                        Higher(current.toKey, readState, Seek.Current.Read(segmentNumber), nextSeek)
                     }
                 }
             }
@@ -236,7 +236,7 @@ private[core] object Higher {
 
                     case _ =>
                       //if it doesn't result in an unexpired put move forward.
-                      Higher(current.key, readState, Seek.Current.Read(segmentId), Seek.Next.Read)
+                      Higher(current.key, readState, Seek.Current.Read(segmentNumber), Seek.Next.Read)
                   }
                 //    2
                 //      3  or  5
@@ -247,7 +247,7 @@ private[core] object Higher {
 
                     //if it doesn't result in an unexpired put move forward.
                     case _ =>
-                      Higher(current.key, readState, Seek.Current.Read(segmentId), nextStash)
+                      Higher(current.key, readState, Seek.Current.Read(segmentNumber), nextStash)
                   }
                 //    2
                 //0
@@ -313,10 +313,10 @@ private[core] object Higher {
                           if (put.hasTimeLeft())
                             put
                           else
-                            Higher(current.toKey, readState, Seek.Current.Read(segmentId), nextStash)
+                            Higher(current.toKey, readState, Seek.Current.Read(segmentNumber), nextStash)
 
                         case KeyValue.Put.Null =>
-                          Higher(current.toKey, readState, Seek.Current.Read(segmentId), nextStash)
+                          Higher(current.toKey, readState, Seek.Current.Read(segmentNumber), nextStash)
                       }
                   }
             }

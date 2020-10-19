@@ -226,18 +226,6 @@ protected case class MemorySegment(path: Path,
     else
       skipList.higher(key)
 
-  override def toSlice(): Slice[Memory] =
-    if (deleted) {
-      throw swaydb.Exception.NoSuchFile(path)
-    } else {
-      val slice = Slice.newAggregator[Memory](skipList.size)
-      skipList.values() foreach {
-        value =>
-          slice add value
-      }
-      slice.result
-    }
-
   override def iterator(): Iterator[Memory] =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)

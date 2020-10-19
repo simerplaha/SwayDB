@@ -37,7 +37,7 @@ protected class MemoryMap[K, V, C <: MapCache[K, V]](val cache: C,
   var skipListKeyValuesMaxCount: Int = 0
 
   override val uniqueFileNumber: Long =
-    Map.uniqueFileNumberGenerator.nextID
+    Map.uniqueFileNumberGenerator.next
 
   def delete: Unit = ()
 

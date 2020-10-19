@@ -643,14 +643,10 @@ protected case class PersistentSegmentMany(file: DBFile,
       }
   }
 
-  override def toSlice(): Slice[Persistent] =
-    Segment.getAllKeyValuesRef(segmentRefs)
-
   override def iterator(): Iterator[Persistent] =
-    segmentRefs.foldLeft(List.empty[Persistent].iterator) {
-      case (iterator, segment) =>
-        iterator ++ segment.iterator()
-    }
+    segmentRefs
+      .iterator
+      .flatMap(_.iterator())
 
   override def hasRange: Boolean =
     segmentRefs.exists(_.hasRange)

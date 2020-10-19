@@ -33,7 +33,7 @@ import swaydb.data.slice.Slice
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
@@ -285,7 +285,7 @@ object IO {
         val result = Future.sequence(futures)
 
         try
-          Await.result(result, Duration.Inf)
+          Await.result(result, 30.minutes) //there could be long processing job but do not run indefinitely.
         catch {
           case exception: Exception =>
             failure = IO.failed(exception)

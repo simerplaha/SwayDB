@@ -527,7 +527,7 @@ object CommonAssertions {
   implicit class SegmentsImplicits(actual: Iterable[Segment]) {
 
     def shouldHaveSameKeyValuesAs(expected: Iterable[Segment]): Unit =
-      Segment.getAllKeyValues(actual).runRandomIO.right.value shouldBe Segment.getAllKeyValues(expected).runRandomIO.right.value
+      actual.flatMap(_.iterator()).runRandomIO.right.value shouldBe expected.flatMap(_.iterator()).runRandomIO.right.value
   }
 
   implicit class SliceByteImplicits(actual: Slice[Byte]) {
@@ -575,9 +575,15 @@ object CommonAssertions {
 
   implicit class SegmentImplicits(actual: Segment) {
 
-    def shouldBe(expected: Segment): Unit = {
+    def shouldBe(expected: Segment): Unit =
+      shouldBe(expected = expected, ignoreReads = false)
+
+    def shouldBeIgnoreReads(expected: Segment): Unit =
+      shouldBe(expected = expected, ignoreReads = true)
+
+    def shouldBe(expected: Segment, ignoreReads: Boolean): Unit = {
       actual.path shouldBe expected.path
-      actual.segmentId shouldBe expected.segmentId
+      actual.segmentNumber shouldBe expected.segmentNumber
       actual.segmentSize shouldBe expected.segmentSize
       actual.minKey shouldBe expected.minKey
       actual.maxKey shouldBe expected.maxKey
@@ -589,8 +595,10 @@ object CommonAssertions {
       actual.getKeyValueCount().runRandomIO.right.value shouldBe expected.getKeyValueCount().runRandomIO.right.value
       actual.persistent shouldBe actual.persistent
       actual.existsOnDisk shouldBe expected.existsOnDisk
-      actual.segmentId shouldBe expected.segmentId
-      assertReads(expected.toSlice().runRandomIO.right.value, actual)
+      actual.segmentNumber shouldBe expected.segmentNumber
+      actual.getClass shouldBe expected.getClass
+      if (!ignoreReads)
+        assertReads(Slice.from(expected.iterator(), expected.getKeyValueCount()).runRandomIO.right.value, actual)
     }
 
     def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
@@ -900,7 +908,7 @@ object CommonAssertions {
       segments map {
         segment =>
           val stringInfos: Slice[String] =
-            segment.toSlice() map {
+            Slice.from(segment.iterator(), segment.getKeyValueCount()) map {
               keyValue =>
                 keyValue.toMemory match {
                   case response: Memory =>

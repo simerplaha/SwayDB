@@ -162,27 +162,28 @@ object DefaultConfigs {
    */
 
   def levelOneThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = 100 - meter.segmentsCount
+    val segmentsCount = 100.mb - meter.levelSize
+    //    val segmentsCount = 5 - meter.segmentsCount
     Throttle(segmentsCount.seconds, 1)
   }
 
   def levelTwoThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = 1000 - meter.segmentsCount
+    val segmentsCount = 1.gb - meter.levelSize
     Throttle(segmentsCount.seconds, 1)
   }
 
   def levelThreeThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = 2000 - meter.segmentsCount
+    val segmentsCount = 10.gb - meter.levelSize
     Throttle(segmentsCount.seconds, 1)
   }
 
   def levelFourThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = 3000 - meter.segmentsCount
+    val segmentsCount = 300 - meter.segmentsCount
     Throttle(segmentsCount.seconds, 1)
   }
 
   def levelFiveThrottle(meter: LevelMeter): Throttle = {
-    val segmentsCount = 4000 - meter.segmentsCount
+    val segmentsCount = 400 - meter.segmentsCount
     Throttle(segmentsCount.seconds, 1)
   }
 

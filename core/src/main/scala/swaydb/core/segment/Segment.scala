@@ -146,7 +146,7 @@ private[core] case object Segment extends LazyLogging {
         }
 
       def createSegment() = {
-        val path = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
+        val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
 
         //Note: Memory key-values can be received from Persistent Segments in which case it's important that
         //all byte arrays are unsliced before writing them to Memory Segment.
@@ -255,7 +255,7 @@ private[core] case object Segment extends LazyLogging {
             //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
             throw IO.throwable("Empty key-values submitted to persistent Segment.")
           } else {
-            val path = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
+            val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
 
             val file: DBFile =
               segmentFile(
@@ -308,7 +308,7 @@ private[core] case object Segment extends LazyLogging {
           autoClose = true,
           deleteAfterClean = deleteAfterClean,
           forceSave = forceSave,
-          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+          blockCacheFileId = BlockCacheFileIDGenerator.next,
           bytes = segmentBytes
         )
 
@@ -316,7 +316,7 @@ private[core] case object Segment extends LazyLogging {
         DBFile.mmapRead(
           path = Effect.write(path, segmentBytes),
           fileOpenIOStrategy = segmentIO.fileOpenIO,
-          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+          blockCacheFileId = BlockCacheFileIDGenerator.next,
           autoClose = true,
           deleteAfterClean = deleteAfterClean
         )
@@ -325,7 +325,7 @@ private[core] case object Segment extends LazyLogging {
         DBFile.channelRead(
           path = Effect.write(path, segmentBytes),
           fileOpenIOStrategy = segmentIO.fileOpenIO,
-          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+          blockCacheFileId = BlockCacheFileIDGenerator.next,
           autoClose = true
         )
 
@@ -373,7 +373,7 @@ private[core] case object Segment extends LazyLogging {
                                                         forceSaveApplier: ForceSaveApplier): Slice[Segment] =
     segment match {
       case segment: PersistentSegment =>
-        val nextPath = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
+        val nextPath = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
 
         segment.copyTo(nextPath)
         try
@@ -632,7 +632,7 @@ private[core] case object Segment extends LazyLogging {
           DBFile.mmapRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
-            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+            blockCacheFileId = BlockCacheFileIDGenerator.next,
             autoClose = false,
             deleteAfterClean = mmap.deleteAfterClean,
             checkExists = checkExists
@@ -642,7 +642,7 @@ private[core] case object Segment extends LazyLogging {
           DBFile.channelRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
-            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+            blockCacheFileId = BlockCacheFileIDGenerator.next,
             autoClose = false,
             checkExists = checkExists
           )
@@ -793,53 +793,6 @@ private[core] case object Segment extends LazyLogging {
 
   def intersects(segment: Segment, segments2: Iterable[Segment]): Boolean =
     segments2.exists(_.path == segment.path)
-
-  /**
-   * Pre condition: Segments should be sorted with their minKey in ascending order.
-   */
-  def getAllKeyValues(segments: Iterable[Segment]): Slice[KeyValue] =
-    if (segments.isEmpty) {
-      Slice.empty
-    } else if (segments.size == 1) {
-      segments.head.toSlice()
-    } else {
-      val totalKeyValues =
-        segments.foldLeftRecover(0) {
-          case (total, segment) =>
-            segment.getKeyValueCount() + total
-        }
-
-      val aggregator = Slice.newAggregator[KeyValue](totalKeyValues)
-
-      segments foreach {
-        segment =>
-          segment.iterator() foreach aggregator.add
-      }
-
-      aggregator.result
-    }
-
-  def getAllKeyValuesRef(segments: Iterable[SegmentRef]): Slice[Persistent] =
-    if (segments.isEmpty) {
-      Slice.empty
-    } else if (segments.size == 1) {
-      segments.head.toSlice()
-    } else {
-      val totalKeyValues =
-        segments.foldLeftRecover(0) {
-          case (total, segment) =>
-            segment.getKeyValueCount() + total
-        }
-
-      val aggregator = Slice.newAggregator[Persistent](totalKeyValues)
-
-      segments foreach {
-        segment =>
-          segment.iterator() foreach aggregator.add
-      }
-
-      aggregator.result
-    }
 
   def deleteSegments(segments: Iterable[Segment]): Int =
     segments.foldLeftRecover(0, failFast = false) {
@@ -1159,7 +1112,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def isMMAP: Boolean
 
-  def segmentId: Long =
+  def segmentNumber: Long =
     Effect.numberFileId(path)._1
 
   def put(headGap: Iterable[Assignable],
@@ -1197,8 +1150,6 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
   def lower(key: Slice[Byte], threadState: ThreadReadState): KeyValueOption
 
   def higher(key: Slice[Byte], threadState: ThreadReadState): KeyValueOption
-
-  def toSlice(): Slice[KeyValue]
 
   def iterator(): Iterator[KeyValue]
 

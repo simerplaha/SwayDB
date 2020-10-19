@@ -81,7 +81,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
           //throttle is Duration.Zero, Segments value merged to lower ExpiryLevel and deleted from Level.
           eventual(15.seconds)(level.isEmpty shouldBe true)
           //key values do not exist
-          Segment.getAllKeyValues(segments).runRandomIO.right.value foreach {
+          segments.flatMap(_.iterator()).runRandomIO.right.value foreach {
             keyValue =>
               level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
           }

@@ -845,7 +845,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
             val mergedSegment = TestSegment(all)
             mergedSegment.nearestPutDeadline shouldBe nearestPutDeadline(all)
 
-            val readKeyValues = Segment.getAllKeyValues(Seq(segment1, segment2, segment3))
+            val readKeyValues = Seq(segment1, segment2, segment3).flatMap(_.iterator())
 
             readKeyValues shouldBe all
         }
@@ -872,7 +872,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
             eventual(1.minute)(Effect.notExists(segment3.path) shouldBe true)
           }
 
-          IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.value.exception shouldBe a[NoSuchFileException]
+          IO(Seq(segment1, segment2, segment3).flatMap(_.iterator())).left.value.exception shouldBe a[NoSuchFileException]
       }
     }
 
@@ -906,19 +906,19 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
                 Effect.overwrite(segment2.path, bytes.drop(1))
                 clearAll()
-                IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+                IO(Seq(segment1, segment2, segment3).flatMap(_.iterator())).left.runRandomIO.get shouldBe a[swaydb.Error]
 
                 Effect.overwrite(segment2.path, bytes.dropRight(1))
                 clearAll()
-                IO(Segment.getAllKeyValues(Seq(segment2))).left.runRandomIO.get shouldBe a[swaydb.Error]
+                IO(segment2.iterator()).left.runRandomIO.get shouldBe a[swaydb.Error]
 
                 Effect.overwrite(segment2.path, bytes.drop(10))
                 clearAll()
-                IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+                IO(Seq(segment1, segment2, segment3).flatMap(_.iterator())).left.runRandomIO.get shouldBe a[swaydb.Error]
 
                 Effect.overwrite(segment2.path, bytes.dropRight(1))
                 clearAll()
-                IO(Segment.getAllKeyValues(Seq(segment1, segment2, segment3))).left.runRandomIO.get shouldBe a[swaydb.Error]
+                IO(Seq(segment1, segment2, segment3).flatMap(_.iterator())).left.runRandomIO.get shouldBe a[swaydb.Error]
               }
           }
       //memory files do not require this test
@@ -937,7 +937,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
               if (persistent) segment.isKeyValueCacheEmpty shouldBe true
 
-              val segmentKeyValues = segment.toSlice().toSlice
+              val segmentKeyValues = segment.iterator().toList.toSlice
 
               (0 until keyValues.size).foreach {
                 index =>

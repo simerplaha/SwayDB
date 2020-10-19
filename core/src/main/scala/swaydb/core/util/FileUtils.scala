@@ -36,4 +36,10 @@ object FileUtils {
       fileExtension = fileExtension
     )
 
+  def getFilesSize(folder: Path, fileExtension: String): String =
+    Effect.getFilesSize(
+      folder = folder,
+      fileExtension = fileExtension
+    )
+
 }

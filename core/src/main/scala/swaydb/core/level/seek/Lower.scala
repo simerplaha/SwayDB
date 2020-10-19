@@ -99,17 +99,17 @@ private[core] object Lower {
     currentSeek match {
       case Seek.Current.Read(previousSegmentId) =>
         currentWalker.lower(key, readState) match {
-          case LevelSeek.Some(segmentId, lower) =>
-            if (previousSegmentId == segmentId)
-              Lower(key, readState, Seek.Current.Stash(segmentId, lower), nextSeek)
+          case LevelSeek.Some(segmentNumber, lower) =>
+            if (previousSegmentId == segmentNumber)
+              Lower(key, readState, Seek.Current.Stash(segmentNumber, lower), nextSeek)
             else
-              Lower(key, readState, Seek.Current.Stash(segmentId, lower), Seek.Next.Read)
+              Lower(key, readState, Seek.Current.Stash(segmentNumber, lower), Seek.Next.Read)
 
           case LevelSeek.None =>
             Lower(key, readState, Seek.Current.Stop, nextSeek)
         }
 
-      case currentStash @ Seek.Current.Stash(segmentId, current) =>
+      case currentStash @ Seek.Current.Stash(segmentNumber, current) =>
         nextSeek match {
           case Seek.Next.Read =>
             //decide if it's necessary to read the next Level or not.
@@ -197,7 +197,7 @@ private[core] object Lower {
 
                     case _ =>
                       //if it doesn't result in an unexpired put move forward.
-                      Lower(current.key, readState, Seek.Current.Read(segmentId), Seek.Next.Read)
+                      Lower(current.key, readState, Seek.Current.Read(segmentNumber), Seek.Next.Read)
                   }
                 //      3  or  5 (current)
                 //    1          (next)
@@ -208,7 +208,7 @@ private[core] object Lower {
 
                     //if it doesn't result in an unexpired put move forward.
                     case _ =>
-                      Lower(current.key, readState, Seek.Current.Read(segmentId), nextStash)
+                      Lower(current.key, readState, Seek.Current.Read(segmentNumber), nextStash)
                   }
                 //0
                 //    2
@@ -261,7 +261,7 @@ private[core] object Lower {
                           put
 
                         case _ =>
-                          Lower(next.key, readState, Seek.Current.Read(segmentId), Seek.Next.Read)
+                          Lower(next.key, readState, Seek.Current.Read(segmentNumber), Seek.Next.Read)
                       }
                   }
                 }
@@ -276,7 +276,7 @@ private[core] object Lower {
                       somePut
 
                     case KeyValue.Put.Null =>
-                      Lower(current.fromKey, readState, Seek.Current.Read(segmentId), nextStash)
+                      Lower(current.fromKey, readState, Seek.Current.Read(segmentNumber), nextStash)
                   }
             }
 
@@ -286,19 +286,19 @@ private[core] object Lower {
                 if (current.hasTimeLeft())
                   current
                 else
-                  Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                  Lower(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case _: KeyValue.Remove =>
-                Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                Lower(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case _: KeyValue.Update =>
-                Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                Lower(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case _: KeyValue.Function =>
-                Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                Lower(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case _: KeyValue.PendingApply =>
-                Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
+                Lower(current.key, readState, Seek.Current.Read(segmentNumber), nextSeek)
 
               case current: KeyValue.Range =>
                 lowerFromValue(key, current.fromKey, current.fetchFromValueUnsafe) match {
@@ -306,7 +306,7 @@ private[core] object Lower {
                     put
 
                   case KeyValue.Put.Null =>
-                    Lower(current.fromKey, readState, Seek.Current.Read(segmentId), nextSeek)
+                    Lower(current.fromKey, readState, Seek.Current.Read(segmentNumber), nextSeek)
                 }
             }
         }

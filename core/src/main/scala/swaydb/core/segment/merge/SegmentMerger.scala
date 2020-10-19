@@ -122,6 +122,38 @@ private[core] object SegmentMerger extends LazyLogging {
       isLastLevel = isLastLevel
     )
 
+  def mergeAssignable[T[_]](mergeable: Slice[Assignable],
+                            oldKeyValues: Slice[KeyValue],
+                            stats: MergeStats[Memory, T],
+                            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                  functionStore: FunctionStore): Unit =
+    merge(
+      headGap = Assignable.emptyIterable,
+      tailGap = Assignable.emptyIterable,
+      newKeyValues = DropIterator[Memory.Range, Assignable](mergeable),
+      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValues),
+      builder = stats,
+      isLastLevel = isLastLevel
+    )
+
+  def merge[T[_]](mergeableCount: Int,
+                  mergeable: Iterator[Assignable],
+                  oldKeyValuesCount: Int,
+                  oldKeyValues: Iterator[KeyValue],
+                  stats: MergeStats[Memory, T],
+                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore): Unit =
+    merge(
+      headGap = Assignable.emptyIterable,
+      tailGap = Assignable.emptyIterable,
+      newKeyValues = DropIterator[Memory.Range, Assignable](mergeableCount, mergeable),
+      oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
+      builder = stats,
+      isLastLevel = isLastLevel
+    )
+
   private def merge[T[_]](headGap: Iterable[Assignable], //head key-values that do not require merging
                           tailGap: Iterable[Assignable], //tail key-values that do not require merging
                           newKeyValues: DropIterator[Memory.Range, Assignable],
@@ -154,7 +186,6 @@ private[core] object SegmentMerger extends LazyLogging {
       addAll(headGap.iterator)
     }
 
-
     @tailrec
     def doMerge(newKeyValues: DropIterator[Memory.Range, Assignable],
                 oldKeyValues: DropIterator[Memory.Range, KeyValue]): Unit =
@@ -172,10 +203,12 @@ private[core] object SegmentMerger extends LazyLogging {
         case newKeyValue: KeyValue.Fixed =>
           oldKeyValues.headOrNull match {
             case oldKeyValue: KeyValue.Fixed =>
-              if (oldKeyValue.key < newKeyValue.key) {
+              val compare = keyOrder.compare(oldKeyValue.key, newKeyValue.key)
+
+              if (compare < 0) {
                 add(oldKeyValue)
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              } else if (newKeyValue.key < oldKeyValue.key) {
+              } else if (compare > 0) {
                 add(newKeyValue)
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
               } else {
@@ -190,7 +223,9 @@ private[core] object SegmentMerger extends LazyLogging {
               }
 
             case oldRangeKeyValue: KeyValue.Range =>
-              if (newKeyValue.key < oldRangeKeyValue.fromKey) {
+              val compare = keyOrder.compare(newKeyValue.key, oldRangeKeyValue.fromKey)
+
+              if (compare < 0) {
                 add(newKeyValue)
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
               } else if (newKeyValue.key >= oldRangeKeyValue.toKey) {
@@ -198,7 +233,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 doMerge(newKeyValues, oldKeyValues.dropHead())
               } else { //is in-range key
                 val (oldFromValue, oldRangeValue) = oldRangeKeyValue.fetchFromAndRangeValueUnsafe
-                if (newKeyValue.key equiv oldRangeKeyValue.fromKey) {
+                if (compare == 0) {
                   val newFromValue =
                     FixedMerger(
                       newKeyValue = newKeyValue,
@@ -479,6 +514,7 @@ private[core] object SegmentMerger extends LazyLogging {
       }
 
     doMerge(newKeyValues, oldKeyValues)
+
     if (tailGap.nonEmpty) {
       if (isLastLevel) {
         builder.result.asInstanceOf[ListBuffer[Memory]].lastOption foreach {

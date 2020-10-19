@@ -816,13 +816,13 @@ private[swaydb] case class LevelZero(path: Path,
 
       override def higher(key: Slice[Byte], readState: ThreadReadState): LevelSeek[Memory] =
         LevelSeek(
-          segmentId = 0,
+          segmentNumber = 0,
           result = higherFromMap(key, currentMap).toOptionS
         )
 
       override def lower(key: Slice[Byte], readState: ThreadReadState): LevelSeek[Memory] =
         LevelSeek(
-          segmentId = 0,
+          segmentNumber = 0,
           result = lowerFromMap(key, currentMap).toOptionS
         )
 

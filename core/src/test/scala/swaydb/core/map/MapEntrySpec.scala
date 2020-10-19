@@ -268,7 +268,7 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
 
           import AppendixMapEntryWriter._
           import appendixReader._
@@ -308,7 +308,7 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
 
           import AppendixMapEntryWriter._
           import appendixReader._
@@ -391,7 +391,7 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()))
+          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
           import AppendixMapEntryWriter._
           import appendixReader._
 

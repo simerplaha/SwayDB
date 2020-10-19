@@ -45,19 +45,21 @@ import scala.concurrent.duration.Deadline
 
 private[core] sealed trait SegmentSerialiser {
 
-  def write(value: Segment, bytes: Slice[Byte]): Unit
+  def write(value: Segment,
+            bytes: Slice[Byte]): Unit
 
   def read(reader: ReaderBase[Byte],
            mmapSegment: MMAP.Segment,
-           checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                 timeOrder: TimeOrder[Slice[Byte]],
-                                 functionStore: FunctionStore,
-                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                 fileSweeper: FileSweeperActor,
-                                 bufferCleaner: ByteBufferSweeperActor,
-                                 blockCache: Option[BlockCache.State],
-                                 forceSaveApplier: ForceSaveApplier,
-                                 segmentIO: SegmentIO): Segment
+           checkExists: Boolean,
+           removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                   timeOrder: TimeOrder[Slice[Byte]],
+                                   functionStore: FunctionStore,
+                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                   fileSweeper: FileSweeperActor,
+                                   bufferCleaner: ByteBufferSweeperActor,
+                                   blockCache: Option[BlockCache.State],
+                                   forceSaveApplier: ForceSaveApplier,
+                                   segmentIO: SegmentIO): Segment
 
   def bytesRequired(value: Segment): Int
 
@@ -114,15 +116,16 @@ private[core] object SegmentSerialiser {
 
     def read(reader: ReaderBase[Byte],
              mmapSegment: MMAP.Segment,
-             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                   timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore,
-                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                   fileSweeper: FileSweeperActor,
-                                   bufferCleaner: ByteBufferSweeperActor,
-                                   blockCache: Option[BlockCache.State],
-                                   forceSaveApplier: ForceSaveApplier,
-                                   segmentIO: SegmentIO): Segment = {
+             checkExists: Boolean,
+             removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                     timeOrder: TimeOrder[Slice[Byte]],
+                                     functionStore: FunctionStore,
+                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                     fileSweeper: FileSweeperActor,
+                                     bufferCleaner: ByteBufferSweeperActor,
+                                     blockCache: Option[BlockCache.State],
+                                     forceSaveApplier: ForceSaveApplier,
+                                     segmentIO: SegmentIO): Segment = {
 
       val formatId = reader.get() //formatId
 
@@ -178,7 +181,7 @@ private[core] object SegmentSerialiser {
         path = segmentPath,
         formatId = segmentFormatId,
         createdInLevel = createdInLevel,
-        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+        blockCacheFileId = BlockCacheFileIDGenerator.next,
         mmap = mmapSegment,
         minKey = minKey,
         maxKey = maxKey,

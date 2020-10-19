@@ -149,9 +149,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   def randomFilePath(implicit sweeper: TestCaseSweeper) =
     testClassDir.resolve(s"${randomCharacters()}.test").sweep()
 
-  def nextSegmentId = idGenerator.nextSegmentID
+  def nextSegmentId = idGenerator.nextSegment
 
-  def nextId = idGenerator.nextID
+  def nextId = idGenerator.next
 
   def deleteFiles = true
 
@@ -253,9 +253,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                                                                                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                                          sweeper: TestCaseSweeper): Segment = {
 
-      val segmentId = Effect.numberFileId(path)._1 - 1
+      val segmentNumber = Effect.numberFileId(path)._1 - 1
 
-      implicit val idGenerator: IDGenerator = IDGenerator(segmentId)
+      implicit val idGenerator: IDGenerator = IDGenerator(segmentNumber)
 
       implicit val pathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
 
@@ -456,13 +456,13 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       autoClose = true,
       deleteAfterClean = OperatingSystem.isWindows,
       forceSave = TestForceSave.mmap(),
-      blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+      blockCacheFileId = BlockCacheFileIDGenerator.next,
       bytes = bytes
     ).sweep()
   }
 
   def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
-    val blockCacheFileId = BlockCacheFileIDGenerator.nextID
+    val blockCacheFileId = BlockCacheFileIDGenerator.next
 
     import sweeper._
 
@@ -496,7 +496,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
         deleteAfterClean = OperatingSystem.isWindows,
-        blockCacheFileId = BlockCacheFileIDGenerator.nextID
+        blockCacheFileId = BlockCacheFileIDGenerator.next
       ).sweep()
     )
   }
@@ -512,7 +512,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
-        blockCacheFileId = BlockCacheFileIDGenerator.nextID
+        blockCacheFileId = BlockCacheFileIDGenerator.next
       ).sweep()
 
     new FileReader(file)

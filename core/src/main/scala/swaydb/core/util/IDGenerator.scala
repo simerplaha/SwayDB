@@ -30,26 +30,26 @@ private[core] object IDGenerator {
 
   @inline final def apply(initial: Long = 0) = new IDGenerator(initial)
 
-  @inline final def segmentId(id: Long): String =
+  @inline final def segment(id: Long): String =
     s"$id.${Extension.Seg.toString}"
 }
 
 private[core] class IDGenerator(initial: Long) {
   private val atomicID = new AtomicLong(initial)
 
-  def nextID: Long =
+  def next: Long =
     atomicID.incrementAndGet()
 
-  def currentId: Long =
+  def current: Long =
     atomicID.get()
 
-  def nextSegmentID: String =
-    s"$nextID.${Extension.Seg.toString}"
+  def nextSegment: String =
+    s"$next.${Extension.Seg.toString}"
 }
 
 private[core] object BlockCacheFileIDGenerator {
   private val atomicID = new AtomicLong(0)
 
-  def nextID: Long =
+  def next: Long =
     atomicID.incrementAndGet()
 }

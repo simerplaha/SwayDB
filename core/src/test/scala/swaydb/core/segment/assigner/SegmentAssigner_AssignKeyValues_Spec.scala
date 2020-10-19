@@ -121,7 +121,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
 
             val assignedSegments = noGaps.head.midOverlap.expectSegments()
             assignedSegments should have size 1
-            assignedSegments.head.segmentId shouldBe segment.segmentId
+            assignedSegments.head.segmentNumber shouldBe segment.segmentNumber
 
             /**
              * Test with gaps
@@ -133,7 +133,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
 
             val assignedSegments2 = noGaps.head.midOverlap.expectSegments()
             assignedSegments2 should have size 1
-            assignedSegments2.head.segmentId shouldBe segment.segmentId
+            assignedSegments2.head.segmentNumber shouldBe segment.segmentNumber
         }
       }
     }
