@@ -27,6 +27,7 @@ package swaydb.core.segment
 import java.nio.file.Path
 
 import swaydb.core.io.file.DBFile
+import swaydb.data.slice.Slice
 
 trait PersistentSegment extends Segment {
   def file: DBFile
@@ -35,4 +36,8 @@ trait PersistentSegment extends Segment {
 
   def isMMAP =
     file.isMemoryMapped
+}
+
+object PersistentSegment {
+  val emptySlice: Slice[PersistentSegment] = Slice.empty[PersistentSegment]
 }

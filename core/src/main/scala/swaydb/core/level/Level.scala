@@ -60,6 +60,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.data.util.FiniteDurations
 import swaydb.{Bag, Error, IO}
+import ParallelCollection._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -1162,7 +1163,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def putAssigned(assignments: Iterable[Assignment[ListBuffer[Assignable]]],
                           mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, Slice[Segment], SegmentOption)]] =
-    assignments.mapRecoverIOParallel[(Segment, Slice[Segment], SegmentOption)](parallelism = mergeParallelism)(
+    assignments.mapParallel[(Segment, Slice[Segment], SegmentOption)](parallelism = mergeParallelism, timeout = 20.minutes)(
       block = {
         assignment =>
           IO {
