@@ -110,7 +110,7 @@ protected case class MemorySegment(path: Path,
           maxKeyValueCountPerSegment = segmentConfig.maxCount,
           pathsDistributor = pathsDistributor,
           createdInLevel = createdInLevel,
-          keyValues = stats.close
+          stats = stats.close
         )
     }
 
@@ -142,7 +142,7 @@ protected case class MemorySegment(path: Path,
         maxKeyValueCountPerSegment = segmentConfig.maxCount,
         pathsDistributor = pathsDistributor,
         createdInLevel = createdInLevel,
-        keyValues = mergeStats
+        stats = mergeStats
       )
     }
 

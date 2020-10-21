@@ -80,12 +80,12 @@ private[core] case object Segment extends LazyLogging {
              maxKeyValueCountPerSegment: Int,
              pathsDistributor: PathsDistributor,
              createdInLevel: Long,
-             keyValues: MergeStats.Memory.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                            timeOrder: TimeOrder[Slice[Byte]],
-                                                            functionStore: FunctionStore,
-                                                            fileSweeper: FileSweeperActor,
-                                                            idGenerator: IDGenerator): Slice[MemorySegment] =
-    if (keyValues.isEmpty) {
+             stats: MergeStats.Memory.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                        functionStore: FunctionStore,
+                                                        fileSweeper: FileSweeperActor,
+                                                        idGenerator: IDGenerator): Slice[MemorySegment] =
+    if (stats.isEmpty) {
       throw IO.throwable("Empty key-values submitted to memory Segment.")
     } else {
       val segments = ListBuffer.empty[MemorySegment]
@@ -177,7 +177,7 @@ private[core] case object Segment extends LazyLogging {
         setClosed()
       }
 
-      keyValues.keyValues foreach {
+      stats.keyValues foreach {
         keyValue =>
           if (minKey == null) minKey = keyValue.key
           lastKeyValue = keyValue
@@ -231,24 +231,24 @@ private[core] case object Segment extends LazyLogging {
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
       mmap = segmentConfig.mmap,
-      segments = transient
+      transient = transient
     )
   }
 
   def persistent(pathsDistributor: PathsDistributor,
                  createdInLevel: Int,
                  mmap: MMAP.Segment,
-                 segments: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                       functionStore: FunctionStore,
-                                                       fileSweeper: FileSweeperActor,
-                                                       bufferCleaner: ByteBufferSweeperActor,
-                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                       blockCache: Option[BlockCache.State],
-                                                       segmentIO: SegmentIO,
-                                                       idGenerator: IDGenerator,
-                                                       forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] =
-    segments.mapRecover(
+                 transient: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                        functionStore: FunctionStore,
+                                                        fileSweeper: FileSweeperActor,
+                                                        bufferCleaner: ByteBufferSweeperActor,
+                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                        blockCache: Option[BlockCache.State],
+                                                        segmentIO: SegmentIO,
+                                                        idGenerator: IDGenerator,
+                                                        forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] =
+    transient.mapRecover(
       block =
         segment =>
           if (segment.isEmpty) {
@@ -503,7 +503,7 @@ private[core] case object Segment extends LazyLogging {
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
       maxKeyValueCountPerSegment = maxKeyValueCountPerSegment,
-      keyValues = builder,
+      stats = builder
     )
   }
 

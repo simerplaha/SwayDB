@@ -308,7 +308,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             maxKeyValueCountPerSegment = segmentConfig.maxCount,
             pathsDistributor = pathsDistributor,
             createdInLevel = createdInLevel,
-            keyValues = MergeStats.memoryBuilder(keyValues).close
+            stats = MergeStats.memoryBuilder(keyValues).close
           )
         else
           Segment.persistent(

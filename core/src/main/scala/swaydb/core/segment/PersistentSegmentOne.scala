@@ -271,7 +271,6 @@ protected object PersistentSegmentOne {
 
             case _ =>
               collection.iterator() foreach stats.add
-
           }
 
         case value: KeyValue =>
@@ -327,7 +326,7 @@ protected object PersistentSegmentOne {
           pathsDistributor = pathsDistributor,
           createdInLevel = createdInLevel,
           mmap = segmentConfig.mmap,
-          segments = segments
+          transient = segments
         )
       } else {
         PersistentSegment.emptySlice
@@ -455,7 +454,7 @@ protected case class PersistentSegmentOne(file: DBFile,
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
       mmap = segmentConfig.mmap,
-      segments = segments
+      transient = segments
     )
   }
 
