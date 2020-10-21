@@ -282,7 +282,14 @@ private[core] object Level extends LazyLogging {
           segmentsToCopy.size >= take
       }
 
-    (segmentsToCopy, segmentsToMerge.sortBy(_.segmentSize)(Ordering.Int.reverse))
+    //Important! segments returns should be in order
+    val segmentsToMergeSorted =
+      segmentsToMerge
+        .sortBy(_.segmentSize)(Ordering.Int.reverse)
+        .take(take)
+        .sortBy(_.minKey)
+
+    (segmentsToCopy, segmentsToMergeSorted)
   }
 
   def shouldCollapse(level: NextLevel,
@@ -1490,7 +1497,7 @@ private[core] case class Level(dirs: Seq[Dir],
     dirs.forall(_.path.exists)
 
   override def levelSize: Long =
-    appendix.cache.foldLeft(0)(_ + _._2.segmentSize)
+    appendix.cache.foldLeft(0L)(_ + _._2.segmentSize)
 
   override def sizeOfSegments: Long =
     levelSize + nextLevel.map(_.levelSize).getOrElse(0L)

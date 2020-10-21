@@ -28,7 +28,6 @@ import java.nio.file.{Path, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
@@ -46,13 +45,17 @@ import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.{Aggregator, IO}
 
-import scala.concurrent.duration.Deadline
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 protected object PersistentSegmentOne {
 
@@ -271,6 +274,17 @@ protected case class PersistentSegmentOne(file: DBFile,
   def copyTo(toPath: Path): Path =
     file copyTo toPath
 
+
+  private def buildMergeStats(assignables: Iterable[Assignable],
+                              stats: MergeStats[KeyValue, ListBuffer]): Unit =
+    assignables foreach {
+      case collection: Assignable.Collection =>
+        collection.iterator() foreach stats.add
+
+      case value: KeyValue =>
+        stats add value
+    }
+
   /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
@@ -288,29 +302,68 @@ protected case class PersistentSegmentOne(file: DBFile,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
 
-    val segments =
-      SegmentRef.put(
-        ref = ref,
+    def writeGap(gap: Iterable[Assignable]): Slice[PersistentSegment] = {
+      val stats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory)
+
+      buildMergeStats(gap, stats)
+
+      Segment.persistent(
+        pathsDistributor = pathsDistributor,
+        createdInLevel = createdInLevel,
+        bloomFilterConfig = bloomFilterConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig,
+        mergeStats = stats.close(sortedIndexConfig.enableAccessPositionIndex)
+      )
+    }
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val minGapSize = if (mergeableCount == 0) 0 else (mergeableCount / 3) max 100
+
+    val (mergeableHead, mergeableTail, future) =
+      Segment.writeGapsConcurrently[PersistentSegment](
         headGap = headGap,
         tailGap = tailGap,
-        mergeableCount = mergeableCount,
-        mergeable = mergeable,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
+        emptySlice = PersistentSegment.emptySlice,
+        minGapSize = minGapSize
+      )(writeGap)
 
-    Segment.persistent(
-      pathsDistributor = pathsDistributor,
-      createdInLevel = createdInLevel,
-      mmap = segmentConfig.mmap,
-      segments = segments
-    )
+    val midSegments =
+      if (mergeableCount > 0) {
+        val segments =
+          SegmentRef.put(
+            ref = ref,
+            headGap = mergeableHead,
+            tailGap = mergeableTail,
+            mergeableCount = mergeableCount,
+            mergeable = mergeable,
+            removeDeletes = removeDeletes,
+            createdInLevel = createdInLevel,
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig,
+            segmentConfig = segmentConfig
+          )
+
+        Segment.persistent(
+          pathsDistributor = pathsDistributor,
+          createdInLevel = createdInLevel,
+          mmap = segmentConfig.mmap,
+          segments = segments
+        )
+      } else {
+        PersistentSegment.emptySlice
+      }
+
+    val (headSegments, tailSegments) = Await.result(future, 10.seconds)
+
+    headSegments ++ midSegments ++ tailSegments
   }
 
   def refresh(removeDeletes: Boolean,

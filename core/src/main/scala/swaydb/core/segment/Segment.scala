@@ -58,6 +58,7 @@ import swaydb.{Aggregator, IO}
 import scala.annotation.tailrec
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Deadline
 
 private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
@@ -1087,6 +1088,37 @@ private[core] case object Segment extends LazyLogging {
       !iterator.hasNext //no next segment.
     }
   }
+
+  def writeGapsConcurrently[S <: Segment](headGap: Iterable[Assignable],
+                                          tailGap: Iterable[Assignable],
+                                          emptySlice: Slice[S],
+                                          minGapSize: Int)(f: Iterable[Assignable] => Slice[S])(implicit ec: ExecutionContext): (Iterable[Assignable], Iterable[Assignable], Future[(Slice[S], Slice[S])]) =
+    if (headGap.isEmpty && tailGap.isEmpty) {
+      (headGap, tailGap, Future.successful((emptySlice, emptySlice)))
+    } else {
+      val (head, headFuture: Future[Slice[S]]) =
+        if (headGap.size < minGapSize)
+          (headGap, Future.successful(emptySlice))
+        else
+          (Assignable.emptyIterable, Future(f(headGap)))
+
+      val (tail, tailFuture: Future[Slice[S]]) =
+        if (tailGap.size < minGapSize)
+          (tailGap, Future.successful(emptySlice))
+        else
+          (Assignable.emptyIterable, Future(f(tailGap)))
+
+      val future =
+        headFuture flatMap {
+          head =>
+            tailFuture map {
+              tail =>
+                (head, tail)
+            }
+        }
+
+      (head, tail, future)
+    }
 }
 
 private[core] trait Segment extends FileSweeperItem with SegmentOption with Assignable.Collection { self =>

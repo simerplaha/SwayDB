@@ -40,4 +40,6 @@ trait PersistentSegment extends Segment {
 
 object PersistentSegment {
   val emptySlice: Slice[PersistentSegment] = Slice.empty[PersistentSegment]
+
+  val emptyFutureSlice = Slice.empty[scala.concurrent.Future[PersistentSegment]]
 }

@@ -40,5 +40,11 @@ object StorageUnits {
     @inline final def gb: Int = measure.mb * 1000
 
     @inline final def kb: Int = (measure * 1000).toInt
+
+    @inline final def mb_long: Long = (measure * 1000000L).toLong
+
+    @inline final def gb_long: Long = measure.mb_long * 1000L
+
+    @inline final def kb_long: Long = (measure * 1000L).toLong
   }
 }
