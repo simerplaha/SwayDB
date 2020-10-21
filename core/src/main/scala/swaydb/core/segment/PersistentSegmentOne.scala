@@ -483,9 +483,6 @@ protected case class PersistentSegmentOne(file: DBFile,
   def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     SegmentRef.higher(key, threadState)
 
-  def toSlice(): Slice[Persistent] =
-    ref.toSlice()
-
   def iterator(): Iterator[Persistent] =
     ref.iterator()
 

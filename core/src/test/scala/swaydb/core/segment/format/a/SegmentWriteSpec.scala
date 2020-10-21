@@ -791,7 +791,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             copiedSegment.path shouldBe targetPath
 
             //original segment should still exist
-            segment.toSlice() shouldBe keyValuesReadOnly
+            segment.iterator().toList shouldBe keyValuesReadOnly
         }
       }
     }

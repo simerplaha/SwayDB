@@ -442,7 +442,7 @@ protected case class PersistentSegmentMany(file: DBFile,
       .get
 
   private val segmentRefsCache: CacheNoIO[Unit, Iterable[SegmentRef]] =
-    Cache.noIO[Unit, Iterable[SegmentRef]](true, true, None) {
+    Cache.noIO[Unit, Iterable[SegmentRef]](synchronised = true, stored = true, None) {
       (_, _) =>
         val uniqueRefs = ListBuffer.empty[SegmentRef]
 

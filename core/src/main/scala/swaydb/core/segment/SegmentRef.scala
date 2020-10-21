@@ -843,7 +843,10 @@ private[core] class SegmentRef(val path: Path,
                                val minKey: Slice[Byte],
                                val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
                                val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                         keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with LazyLogging {
+                                                                         keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with Assignable.Collection with LazyLogging {
+
+  override def key: Slice[Byte] =
+    minKey
 
   override def isNoneS: Boolean =
     false
@@ -891,12 +894,6 @@ private[core] class SegmentRef(val path: Path,
         reader = bloomFilterReader
       )
   }
-
-  def toSlice(): Slice[Persistent] =
-    segmentBlockCache.toSlice()
-
-  def toSlice(keyValueCount: Int): Slice[Persistent] =
-    segmentBlockCache toSlice keyValueCount
 
   def iterator(): Iterator[Persistent] =
     segmentBlockCache.iterator()

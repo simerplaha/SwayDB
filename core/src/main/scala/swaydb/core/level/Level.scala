@@ -282,7 +282,7 @@ private[core] object Level extends LazyLogging {
           segmentsToCopy.size >= take
       }
 
-    //Important! segments returns should be in order
+    //Important! returned segments should always be in order
     val segmentsToMergeSorted =
       segmentsToMerge
         .sortBy(_.segmentSize)(Ordering.Int.reverse)

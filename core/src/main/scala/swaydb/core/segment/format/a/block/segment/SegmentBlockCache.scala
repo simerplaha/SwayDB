@@ -501,23 +501,6 @@ private[core] class SegmentBlockCache(path: Path,
   def cachedFooter(): Option[SegmentFooterBlock] =
     footerBlockCache.get()
 
-  def toSlice(): Slice[Persistent] = {
-    val keyValueCount = getFooter().keyValueCount
-    val aggregator = Slice.newAggregator[Persistent](keyValueCount)
-
-    iterator() foreach aggregator.add
-
-    aggregator.result
-  }
-
-  def toSlice(keyValueCount: Int): Slice[Persistent] = {
-    val aggregator = Slice.newAggregator[Persistent](keyValueCount)
-
-    iterator() foreach aggregator.add
-
-    aggregator.result
-  }
-
   /**
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
