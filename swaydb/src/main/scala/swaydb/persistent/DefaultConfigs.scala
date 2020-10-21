@@ -51,7 +51,7 @@ object DefaultConfigs {
 
   def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.On =
     SortedKeyIndex.On(
-      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
+      prefixCompression = PrefixCompression.On(keysOnly = false, interval = PrefixCompression.resetCompressionAt(5)),
       enablePositionIndex = true,
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
@@ -164,17 +164,17 @@ object DefaultConfigs {
   def levelOneThrottle(meter: LevelMeter): Throttle = {
     val segmentsCount = 100.mb_long - meter.levelSize
     //    val segmentsCount = 5 - meter.segmentsCount
-    Throttle(segmentsCount.nano, 1)
+    Throttle(segmentsCount.nano, 3)
   }
 
   def levelTwoThrottle(meter: LevelMeter): Throttle = {
     val segmentsCount = 500.mb_long - meter.levelSize
-    Throttle(segmentsCount.nano, 1)
+    Throttle(segmentsCount.nano, 2)
   }
 
   def levelThreeThrottle(meter: LevelMeter): Throttle = {
     val segmentsCount = 1.gb_long - meter.levelSize
-    Throttle(segmentsCount.nano, 1)
+    Throttle(segmentsCount.nano, 2)
   }
 
   def levelFourThrottle(meter: LevelMeter): Throttle = {

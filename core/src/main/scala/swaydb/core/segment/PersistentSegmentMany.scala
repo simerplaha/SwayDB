@@ -54,6 +54,7 @@ import swaydb.data.{MaxKey, Reserve}
 import swaydb.{Error, IO}
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
 
 protected case object PersistentSegmentMany {
@@ -509,7 +510,8 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
+          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
+                                                                                                           executionContext: ExecutionContext): Slice[PersistentSegment] = {
 
     val transient: Iterable[TransientSegment] =
       SegmentRef.put(

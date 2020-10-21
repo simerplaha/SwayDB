@@ -371,7 +371,7 @@ private[core] case object Segment extends LazyLogging {
                                                         blockCache: Option[BlockCache.State],
                                                         segmentIO: SegmentIO,
                                                         idGenerator: IDGenerator,
-                                                        forceSaveApplier: ForceSaveApplier): Slice[Segment] =
+                                                        forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] =
     segment match {
       case segment: PersistentSegment =>
         val nextPath = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
@@ -1159,7 +1159,8 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
+          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
+                                                                                                           executionContext: ExecutionContext): Slice[Segment]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

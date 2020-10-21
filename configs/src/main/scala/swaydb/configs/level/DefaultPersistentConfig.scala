@@ -106,17 +106,17 @@ object DefaultPersistentConfig extends LazyLogging {
         acceleration = acceleration,
         throttle = levelZeroThrottle
       )
-      .withPersistentLevel1(level1Config.copy(throttle = levelOneThrottle))
-      .withPersistentLevel(level1Config.copy(throttle = levelTwoThrottle)) //level2
-      .withPersistentLevel(level1Config.copy(throttle = levelThreeThrottle)) //level3
-      .withPersistentLevel(level1Config.copy(throttle = levelFourThrottle)) //level4
-      .withPersistentLevel(level1Config.copy(throttle = levelFiveThrottle)) //level5
+      //            .withPersistentLevel1(level1Config.copy(throttle = levelOneThrottle))
+      //            .withPersistentLevel(level1Config.copy(throttle = levelTwoThrottle)) //level2
+      //            .withPersistentLevel(level1Config.copy(throttle = levelThreeThrottle)) //level3
+      //            .withPersistentLevel(level1Config.copy(throttle = levelFourThrottle)) //level4
+      //            .withPersistentLevel(level1Config.copy(throttle = levelFiveThrottle)) //level5
+      //            .withPersistentLevel(level1Config.copy(throttle = levelSixThrottle)) //level6
+      .withPersistentLevel1(level1Config.copy(throttle = levelOneThrottle, segmentConfig = segmentConfig.copy(minSegmentSize = (segmentConfig.minSegmentSize * 0.15).toInt)))
+      .withPersistentLevel(level1Config.copy(throttle = levelTwoThrottle, segmentConfig = segmentConfig.copy(minSegmentSize = (segmentConfig.minSegmentSize * 0.25).toInt))) //level2
+      .withPersistentLevel(level1Config.copy(throttle = levelThreeThrottle, segmentConfig = segmentConfig.copy(minSegmentSize = (segmentConfig.minSegmentSize * 0.50).toInt))) //level3
+      .withPersistentLevel(level1Config.copy(throttle = levelFourThrottle, segmentConfig = segmentConfig.copy(minSegmentSize = (segmentConfig.minSegmentSize * 0.75).toInt))) //level4
+      .withPersistentLevel(level1Config.copy(throttle = levelFiveThrottle, segmentConfig = segmentConfig)) //level5
       .withPersistentLevel(level1Config.copy(throttle = levelSixThrottle)) //level6
-//      .withPersistentLevel1(level1Config.copy(segmentConfig = segmentConfig.copy(minSegmentSize = (segmentConfig.minSegmentSize * 0.10).toInt)))
-//      .withPersistentLevel(level1Config.copy(throttle = levelTwoThrottle, segmentConfig = segmentConfig.copy(minSegmentSize = (segmentConfig.minSegmentSize * 0.20).toInt))) //level2
-//      .withPersistentLevel(level1Config.copy(throttle = levelThreeThrottle, segmentConfig = segmentConfig.copy(minSegmentSize = (segmentConfig.minSegmentSize * 0.25).toInt))) //level3
-//      .withPersistentLevel(level1Config.copy(throttle = levelFourThrottle, segmentConfig = segmentConfig.copy(minSegmentSize = (segmentConfig.minSegmentSize * 0.50).toInt))) //level4
-//      .withPersistentLevel(level1Config.copy(throttle = levelFiveThrottle, segmentConfig = segmentConfig.copy(minSegmentSize = (segmentConfig.minSegmentSize * 0.75).toInt))) //level5
-//      .withPersistentLevel(level1Config.copy(throttle = levelSixThrottle)) //level6
   }
 }

@@ -49,6 +49,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
 
 protected case class MemorySegment(path: Path,
@@ -83,7 +84,8 @@ protected case class MemorySegment(path: Path,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config,
-                   pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] =
+                   pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                                       executionContext: ExecutionContext): Slice[Segment] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
