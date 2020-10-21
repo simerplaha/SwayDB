@@ -519,6 +519,9 @@ abstract class SliceBase[+T](array: Array[T],
   def sorted[B >: T](implicit ordering: Ordering[B]): Slice[B] =
     Slice(toArrayCopy.sorted(ordering))
 
+  def sortBy[B >: T, C](f: T => C)(implicit ordering: Ordering[C]): Slice[B] =
+    Slice(toArrayCopy.sortBy(f)(ordering))
+
   def currentWritePosition =
     writePosition
 

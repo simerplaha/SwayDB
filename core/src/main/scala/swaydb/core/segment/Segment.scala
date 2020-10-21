@@ -1091,22 +1091,22 @@ private[core] case object Segment extends LazyLogging {
 
   def writeGapsConcurrently[S <: Segment](headGap: Iterable[Assignable],
                                           tailGap: Iterable[Assignable],
-                                          emptySlice: Slice[S],
-                                          minGapSize: Int)(f: Iterable[Assignable] => Slice[S])(implicit ec: ExecutionContext): (Iterable[Assignable], Iterable[Assignable], Future[(Slice[S], Slice[S])]) =
+                                          empty: Slice[S],
+                                          minGapSize: Int)(thunk: Iterable[Assignable] => Slice[S])(implicit ec: ExecutionContext): (Iterable[Assignable], Iterable[Assignable], Future[(Slice[S], Slice[S])]) =
     if (headGap.isEmpty && tailGap.isEmpty) {
-      (headGap, tailGap, Future.successful((emptySlice, emptySlice)))
+      (headGap, tailGap, Future.successful((empty, empty)))
     } else {
       val (head, headFuture: Future[Slice[S]]) =
         if (headGap.size < minGapSize)
-          (headGap, Future.successful(emptySlice))
+          (headGap, Future.successful(empty))
         else
-          (Assignable.emptyIterable, Future(f(headGap)))
+          (Assignable.emptyIterable, Future(thunk(headGap)))
 
       val (tail, tailFuture: Future[Slice[S]]) =
         if (tailGap.size < minGapSize)
-          (tailGap, Future.successful(emptySlice))
+          (tailGap, Future.successful(empty))
         else
-          (Assignable.emptyIterable, Future(f(tailGap)))
+          (Assignable.emptyIterable, Future(thunk(tailGap)))
 
       val future =
         headFuture flatMap {

@@ -580,45 +580,45 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
   }
 
-  "Segment" should {
-    "open a closed Segment on read and clear footer" in {
-      runThis(10.times) {
-        TestCaseSweeper {
-          implicit sweeper =>
-            //        implicit val fileSweeper = FileSweeper.Disabled
-            implicit val blockCache: Option[BlockCache.State] = None
-            implicit val fileSweeper = FileSweeper(50, ActorConfig.TimeLoop("", 10.seconds, TestExecutionContext.executionContext)).sweep().actor
+  "open a closed Segment on read and clear footer" in {
+    runThis(10.times) {
+      TestCaseSweeper {
+        implicit sweeper =>
+          //        implicit val fileSweeper = FileSweeper.Disabled
+          implicit val blockCache: Option[BlockCache.State] = None
+          implicit val fileSweeper = FileSweeper(50, ActorConfig.TimeLoop("", 10.seconds, TestExecutionContext.executionContext)).sweep().actor
 
-            val keyValues = randomizedKeyValues(keyValuesCount)
-            val segment = TestSegment(keyValues)
+          val keyValues = randomizedKeyValues(keyValuesCount)
+          val segment = TestSegment(keyValues)
 
-            def close: Unit = {
-              segment.close
-              if (levelStorage.persistent) {
-                //also clear the cache so that if the key-value is a group on open file is still reopened
-                //instead of just reading from in-memory Group key-value.
-                eitherOne(segment.clearCachedKeyValues(), segment.clearAllCaches())
-                segment.isFileDefined shouldBe false
-                segment.isOpen shouldBe false
-              }
+          def close: Unit = {
+            segment.close
+            if (levelStorage.persistent) {
+              //also clear the cache so that if the key-value is a group on open file is still reopened
+              //instead of just reading from in-memory Group key-value.
+              eitherOne(segment.clearCachedKeyValues(), segment.clearAllCaches())
+              segment.isFileDefined shouldBe false
+              segment.isOpen shouldBe false
             }
+          }
 
-            def open(keyValue: KeyValue): Unit = {
-              segment.get(keyValue.key, ThreadReadState.random).runRandomIO.value.getUnsafe shouldBe keyValue
-              segment.isFileDefined shouldBe true
-              segment.isOpen shouldBe true
-            }
+          def open(keyValue: KeyValue): Unit = {
+            segment.get(keyValue.key, ThreadReadState.random).runRandomIO.value.getUnsafe shouldBe keyValue
+            segment.isFileDefined shouldBe true
+            segment.isOpen shouldBe true
+          }
 
-            keyValues foreach {
-              keyValue =>
-                close
-                open(keyValue)
-            }
-        }
+          keyValues foreach {
+            keyValue =>
+              close
+              open(keyValue)
+          }
       }
     }
+  }
 
-    "fail read and write operations on a Segment that does not exists" in {
+  "fail read and write operations on a Segment that does not exists" when {
+    def executeTest(gaped: Boolean): Unit =
       TestCaseSweeper {
         implicit sweeper =>
 
@@ -656,12 +656,22 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           IO(segment.get(keyValues.head.key, ThreadReadState.random)).left.get.exception shouldBe a[NoSuchFileException]
 
+          val (head, mid, tail) =
+            if (gaped) {
+              //if gaped, slice and merge
+              val groups = keyValues.groupedSlice(3)
+              groups should have size 3
+              (groups.head, groups.dropHead().head, groups.last)
+            } else {
+              (Assignable.emptyIterable, keyValues, Assignable.emptyIterable)
+            }
+
           IO {
             segment.put(
-              headGap = Assignable.emptyIterable,
-              tailGap = Assignable.emptyIterable,
-              mergeableCount = keyValues.size,
-              mergeable = keyValues.iterator,
+              headGap = head,
+              tailGap = tail,
+              mergeableCount = mid.size,
+              mergeable = mid.iterator,
               removeDeletes = false,
               createdInLevel = 0,
               valuesConfig = valuesConfig,
@@ -688,54 +698,68 @@ sealed trait SegmentWriteSpec extends TestBase {
 
           segment.isOpen shouldBe false
           segment.isFileDefined shouldBe false
+
+          if (persistent && gaped) {
+            //if gap wait for gap segments to be created.
+            sleep(2.seconds)
+            //failure should triggered recovery and then cleanup so the directory should be empty.
+            Effect.isEmptyOrNotExists(segment.path.getParent).value shouldBe true
+          }
       }
+
+    "gaped" in {
+      executeTest(gaped = true)
     }
 
-    "reopen closed channel for read when closed by LimitQueue" in {
-      if (memory) {
-        //memory Segments do not value closed via
-      } else {
-        runThis(5.times, log = true) {
-          TestCaseSweeper {
-            implicit sweeper =>
-              implicit val fileSweeper = FileSweeper(1, ActorConfig.TimeLoop("", 2.second, ec)).actor.sweep()
+    "no gaps" in {
+      executeTest(gaped = false)
+    }
+  }
 
-              val keyValues = randomizedKeyValues(keyValuesCount)
+  "reopen closed channel for read when closed by LimitQueue" in {
+    if (memory) {
+      //memory Segments do not value closed via
+    } else {
+      runThis(5.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            implicit val fileSweeper = FileSweeper(1, ActorConfig.TimeLoop("", 2.second, ec)).actor.sweep()
 
-              val segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = true, mmap = MMAP.Off(TestForceSave.channel()), cacheOnAccess = true)
+            val keyValues = randomizedKeyValues(keyValuesCount)
 
-              val segment1 =
-                TestSegment(
-                  keyValues = keyValues,
-                  segmentConfig = segmentConfig
-                )
+            val segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = true, mmap = MMAP.Off(TestForceSave.channel()), cacheOnAccess = true)
 
-              segment1.isOpen shouldBe !segmentConfig.cacheBlocksOnCreate
-              segment1.getKeyValueCount() shouldBe keyValues.size
-              segment1.isOpen shouldBe !segmentConfig.cacheBlocksOnCreate
+            val segment1 =
+              TestSegment(
+                keyValues = keyValues,
+                segmentConfig = segmentConfig
+              )
 
-              //create another segment should close segment 1
-              val segment2 = TestSegment(keyValues)
-              segment2.getKeyValueCount() shouldBe keyValues.size
+            segment1.isOpen shouldBe !segmentConfig.cacheBlocksOnCreate
+            segment1.getKeyValueCount() shouldBe keyValues.size
+            segment1.isOpen shouldBe !segmentConfig.cacheBlocksOnCreate
 
-              eventual(5.seconds) {
-                //segment one is closed
-                segment1.isOpen shouldBe false
-              }
+            //create another segment should close segment 1
+            val segment2 = TestSegment(keyValues)
+            segment2.getKeyValueCount() shouldBe keyValues.size
 
-              eventual(5.second) {
-                //when it's close clear all the caches so that key-values do not get read from the cache.
-                eitherOne(segment1.clearAllCaches(), segment1.clearCachedKeyValues())
-                //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
-                segment1.get(keyValues.head.key, ThreadReadState.random).getUnsafe shouldBe keyValues.head
-                segment1.isOpen shouldBe true
-              }
+            eventual(5.seconds) {
+              //segment one is closed
+              segment1.isOpen shouldBe false
+            }
 
-              eventual(5.seconds) {
-                //segment2 is closed
-                segment2.isOpen shouldBe false
-              }
-          }
+            eventual(5.second) {
+              //when it's close clear all the caches so that key-values do not get read from the cache.
+              eitherOne(segment1.clearAllCaches(), segment1.clearCachedKeyValues())
+              //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
+              segment1.get(keyValues.head.key, ThreadReadState.random).getUnsafe shouldBe keyValues.head
+              segment1.isOpen shouldBe true
+            }
+
+            eventual(5.seconds) {
+              //segment2 is closed
+              segment2.isOpen shouldBe false
+            }
         }
       }
     }
@@ -1266,114 +1290,149 @@ sealed trait SegmentWriteSpec extends TestBase {
       }
     }
 
-    "return multiple new segments with merged key values" in {
-      TestCaseSweeper {
-        implicit sweeper =>
+    "return multiple new segments with merged key values" when {
+      def doTest(gaped: Boolean) =
+        runThis(2.times, log = true) {
+          TestCaseSweeper {
+            implicit sweeper =>
 
-          val keyValues = randomizedKeyValues(keyValuesCount)
-          val segment = TestSegment(keyValues)
+              val oldKeyValues = randomizedKeyValues(30, startId = Some(0))
 
-          val newKeyValues = randomizedKeyValues(keyValuesCount)
+              val (headKeyValues, midKeyValues, tailKeyValues, oldSegment, expectedKeyValues) =
+                if (gaped) {
+                  val groups = oldKeyValues.groupedSlice(3)
+                  groups should have size 3
 
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
-          val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-          val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
-          val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+                  val head = groups.head
+                  val mid = groups.dropHead().head
+                  val tail = groups.last
 
-          val newSegments =
-            segment.put(
-              headGap = Assignable.emptyIterable,
-              tailGap = Assignable.emptyIterable,
-              mergeableCount = newKeyValues.size,
-              mergeable = newKeyValues.iterator,
-              removeDeletes = false,
-              createdInLevel = 0,
-              valuesConfig = valuesConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig.copy(minSize = segment.segmentSize / 10)
-            ).map(_.sweep())
+                  val builder = MergeStats.random()
 
-          newSegments.size should be > 1
+                  SegmentMerger.merge(
+                    newKeyValues = mid,
+                    oldKeyValues = mid,
+                    stats = builder,
+                    isLastLevel = false
+                  )
 
-          val allReadKeyValues = newSegments.flatMap(_.iterator())
+                  val expectedKeyValues =
+                    head ++ builder.result ++ tail
 
-          val builder = MergeStats.random()
+                  (head, mid, tail, TestSegment(mid), expectedKeyValues)
+                } else {
+                  val newKeyValues = oldKeyValues
 
-          //give merge a very large size so that there are no splits (test convenience)
-          SegmentMerger.merge(
-            newKeyValues = newKeyValues,
-            oldKeyValues = keyValues,
-            stats = builder,
-            isLastLevel = false
-          )
+                  val builder = MergeStats.random()
 
-          //allReadKeyValues are read from multiple Segments so valueOffsets will be invalid so stats will be invalid
-          allReadKeyValues shouldBe builder.result
+                  SegmentMerger.merge(
+                    newKeyValues = newKeyValues,
+                    oldKeyValues = oldKeyValues,
+                    stats = builder,
+                    isLastLevel = false
+                  )
+
+                  (Assignable.emptyIterable, newKeyValues, Assignable.emptyIterable, TestSegment(oldKeyValues), builder.result)
+                }
+
+              val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+              val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+              val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+              val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+              val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+              val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+
+              val newSegments =
+                oldSegment.put(
+                  headGap = headKeyValues,
+                  tailGap = tailKeyValues,
+                  mergeableCount = midKeyValues.size,
+                  mergeable = midKeyValues.iterator,
+                  removeDeletes = false,
+                  createdInLevel = 0,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig.copy(minSize = oldSegment.segmentSize / 10)
+                ).map(_.sweep())
+
+              newSegments.size should be > 1
+
+              newSegments.flatMap(_.iterator()) shouldBe expectedKeyValues
+          }
+        }
+
+      "gaped" in {
+        doTest(gaped = true)
+      }
+
+      "no gaps" in {
+        doTest(gaped = false)
       }
     }
 
     "fail put and delete partially written batch Segments if there was a failure in creating one of them" in {
-      if (memory) {
-        // not for in-memory Segments
-      } else {
-        TestCaseSweeper {
-          implicit sweeper =>
+      if (memory)
+        cancel("Test not need for Memory Segment")
+      else
+        runThis(10.times, log = true) {
+          TestCaseSweeper {
+            implicit sweeper =>
 
-            val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
-            val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-            val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
-            val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-            val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
-            val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+              val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+              val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+              val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+              val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+              val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+              val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
 
-            val keyValues = randomizedKeyValues(keyValuesCount)
-            val segment = TestSegment(keyValues)
-            val newKeyValues = randomizedKeyValues(keyValuesCount)
+              val keyValues = randomizedKeyValues(keyValuesCount)
+              val segment = TestSegment(keyValues)
+              val newKeyValues = randomizedKeyValues(keyValuesCount)
 
-            val tenthSegmentId = {
-              val segmentNumber = (segment.path.fileId._1 + 10).toSegmentFileId
-              segment.path.getParent.resolve(segmentNumber)
-            }
-
-            //create a segment with the next id in sequence which should fail put with FileAlreadyExistsException
-            val segmentToFailPut = TestSegment(path = tenthSegmentId)
-
-            assertThrows[FileAlreadyExistsException] {
-              segment.put(
-                headGap = Assignable.emptyIterable,
-                tailGap = Assignable.emptyIterable,
-                mergeableCount = newKeyValues.size,
-                mergeable = newKeyValues.iterator,
-                removeDeletes = false,
-                createdInLevel = 0,
-                valuesConfig = valuesConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig,
-                segmentConfig = segmentConfig.copy(minSize = 50.bytes)
-              ).map(_.sweep())
-            }
-
-            //the folder should contain only the original segment and the segmentToFailPut
-            def assertFinalFiles() = segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
-
-            //if windows execute all stashed actor messages
-            if (OperatingSystem.isWindows) {
-              eventual(1.minute) {
-                sweeper.receiveAll()
-                assertFinalFiles()
+              val tenthSegmentId = {
+                val segmentNumber = (segment.path.fileId._1 + 10).toSegmentFileId
+                segment.path.getParent.resolve(segmentNumber)
               }
-            } else {
-              assertFinalFiles()
-            }
+
+              //create a segment with the next id in sequence which should fail put with FileAlreadyExistsException
+              val segmentToFailPut = TestSegment(path = tenthSegmentId)
+
+              assertThrows[FileAlreadyExistsException] {
+                segment.put(
+                  //randomly create gaps
+                  headGap = eitherOne(Assignable.emptyIterable, randomizedKeyValues(keyValuesCount)),
+                  tailGap = eitherOne(Assignable.emptyIterable, randomizedKeyValues(keyValuesCount)),
+                  mergeableCount = newKeyValues.size,
+                  mergeable = newKeyValues.iterator,
+                  removeDeletes = false,
+                  createdInLevel = 0,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig.copy(minSize = 50.bytes)
+                ).map(_.sweep())
+              }
+
+              //the folder should contain only the original segment and the segmentToFailPut
+              def assertFinalFiles() = segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
+
+              //if windows execute all stashed actor messages
+              if (OperatingSystem.isWindows)
+                eventual(10.seconds) {
+                  sweeper.receiveAll()
+                  assertFinalFiles()
+                }
+              else
+                eventual(10.seconds) {
+                  assertFinalFiles()
+                }
+          }
         }
-      }
     }
 
     "return new segment with deleted KeyValues if all keys were deleted and removeDeletes is false" in {
@@ -1531,7 +1590,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "return no new segments if all the KeyValues in the Segment were deleted and if remove deletes is true" in {
-      runThis(50.times) {
+      runThis(50.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
 
@@ -1551,8 +1610,8 @@ sealed trait SegmentWriteSpec extends TestBase {
             deleteKeyValues add Memory.Range(5, 10, FromValue.Null, Value.remove(None))
 
             segment.put(
-              headGap = Assignable.emptyIterable,
-              tailGap = Assignable.emptyIterable,
+              headGap = eitherOne(Assignable.emptyIterable, Slice(Memory.remove(0))),
+              tailGap = eitherOne(Assignable.emptyIterable, Slice(Memory.remove(10), Memory.Range(11, 20, FromValue.Null, Value.remove(None)))),
               mergeableCount = deleteKeyValues.size,
               mergeable = deleteKeyValues.iterator,
               removeDeletes = true,
