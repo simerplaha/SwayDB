@@ -35,30 +35,30 @@ import scala.annotation.tailrec
 private[core] object MinMax {
 
   implicit class MinMaxByteImplicits(minMax: MinMax[Slice[Byte]]) {
-    def unslice(): MinMax[Slice[Byte]] =
+    @inline def unslice(): MinMax[Slice[Byte]] =
       MinMax(
         min = minMax.min.unslice(),
         max = minMax.max.unslice()
       )
   }
 
-  private def minimum[T](left: T,
-                         right: T)(implicit ordering: Ordering[T]): T =
+  @inline private def minimum[T](left: T,
+                                 right: T)(implicit ordering: Ordering[T]): T =
     if (ordering.compare(left, right) <= 0)
       left
     else
       right
 
-  private def maximum[T](left: T,
-                         right: T)(implicit ordering: Ordering[T]): T =
+  @inline private def maximum[T](left: T,
+                                 right: T)(implicit ordering: Ordering[T]): T =
     if (ordering.compare(left, right) >= 0)
       left
     else
       right
 
-  private def pickOne[T](someKey1: Option[T],
-                         someKey2: Option[T],
-                         condition: (T, T) => T): Option[T] =
+  @inline private def pickOne[T](someKey1: Option[T],
+                                 someKey2: Option[T],
+                                 condition: (T, T) => T): Option[T] =
     someKey1 match {
       case Some(key1) =>
         someKey2 match {
