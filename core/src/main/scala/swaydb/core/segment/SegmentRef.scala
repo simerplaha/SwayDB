@@ -25,12 +25,17 @@
 package swaydb.core.segment
 
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
+import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.actor.FileSweeper.FileSweeperActor
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
+import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -42,8 +47,8 @@ import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCac
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.util.MinMax
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
+import swaydb.core.util.{IDGenerator, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -51,6 +56,8 @@ import swaydb.data.util.{SomeOrNone, TupleOrNone}
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 
 private[core] sealed trait SegmentRefOption extends SomeOrNone[SegmentRefOption, SegmentRef] {
   override def noneS: SegmentRefOption = SegmentRef.Null
@@ -835,6 +842,165 @@ private[core] object SegmentRef {
       valuesConfig = valuesConfig,
       segmentConfig = segmentConfig
     )
+  }
+
+
+  /**
+   * GOAL: The goal of this is to avoid create small segments and to parallelise only if
+   * there is enough work for two threads otherwise do the work in the current thread.
+   *
+   * On failure perform clean up.
+   */
+  def putParallel(ref: SegmentRef,
+                  headGap: Iterable[Assignable],
+                  tailGap: Iterable[Assignable],
+                  mergeableCount: Int,
+                  mergeable: Iterator[Assignable],
+                  removeDeletes: Boolean,
+                  createdInLevel: Int,
+                  valuesConfig: ValuesBlock.Config,
+                  sortedIndexConfig: SortedIndexBlock.Config,
+                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                  hashIndexConfig: HashIndexBlock.Config,
+                  bloomFilterConfig: BloomFilterBlock.Config,
+                  segmentConfig: SegmentBlock.Config,
+                  pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                                      executionContext: ExecutionContext,
+                                                      keyOrder: KeyOrder[Slice[Byte]],
+                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                      functionStore: FunctionStore,
+                                                      blockCache: Option[BlockCache.State],
+                                                      fileSweeper: FileSweeperActor,
+                                                      bufferCleaner: ByteBufferSweeperActor,
+                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                      forceSaveApplier: ForceSaveApplier,
+                                                      segmentIO: SegmentIO): Slice[PersistentSegment] = {
+
+    //collect all new Segments for cleanup in-case there is a failure.
+    val recoveryQueue = new ConcurrentLinkedQueue[PersistentSegment]()
+
+    def putGap(gap: Iterable[Assignable]): Slice[PersistentSegment] = {
+      val stats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory)
+
+      val copiedSegments = ListBuffer.empty[PersistentSegment]
+
+      gap foreach {
+        case collection: Assignable.Collection =>
+          collection match {
+            case segment: Segment =>
+              Segment.copyToPersist(
+                segment = segment,
+                createdInLevel = createdInLevel,
+                pathsDistributor = pathsDistributor,
+                removeDeletes = removeDeletes,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
+                segmentConfig = segmentConfig
+              ) foreach {
+                segment =>
+                  recoveryQueue add segment
+                  copiedSegments += segment
+              }
+
+            case _ =>
+              collection.iterator() foreach stats.add
+          }
+
+        case value: KeyValue =>
+          stats add value
+      }
+
+      val gapedSegments =
+        Segment.persistent(
+          pathsDistributor = pathsDistributor,
+          createdInLevel = createdInLevel,
+          bloomFilterConfig = bloomFilterConfig,
+          hashIndexConfig = hashIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig,
+          mergeStats = stats.close(sortedIndexConfig.enableAccessPositionIndex)
+        )
+
+      gapedSegments foreach recoveryQueue.add
+
+      gapedSegments ++ copiedSegments
+    }
+
+    //if mergeable is empty min gap requirement is 0 so that Segments get copied else
+    //there should be at least of quarter or 100 key-values for gaps to be created.
+    val minGapSize = if (mergeableCount == 0) 0 else (mergeableCount / 4) min 100
+
+    val (mergeableHead, mergeableTail, future) =
+      Segment.writeGapsConcurrently[PersistentSegment](
+        headGap = headGap,
+        tailGap = tailGap,
+        empty = PersistentSegment.emptySlice,
+        minGapSize = minGapSize
+      )(thunk = putGap)
+
+    def putMid(): Slice[PersistentSegment] = {
+      val segments =
+        SegmentRef.put(
+          ref = ref,
+          headGap = mergeableHead,
+          tailGap = mergeableTail,
+          mergeableCount = mergeableCount,
+          mergeable = mergeable,
+          removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
+
+      val midSegment =
+        Segment.persistent(
+          pathsDistributor = pathsDistributor,
+          createdInLevel = createdInLevel,
+          mmap = segmentConfig.mmap,
+          transient = segments
+        )
+
+      midSegment foreach recoveryQueue.add
+
+      midSegment
+    }
+
+    if (mergeableCount > 0) {
+      try {
+        val midSegments = putMid()
+        val (headSegments, tailSegments) = Await.result(future, 5.minutes)
+        headSegments ++ midSegments ++ tailSegments
+      } catch {
+        case throwable: Throwable =>
+          //do delete after the future is complete
+          future.onComplete {
+            _ =>
+              recoveryQueue.forEach(_.delete)
+          }
+
+          throw throwable
+      }
+    } else {
+      val (headSegments, tailSegments) =
+        try
+          Await.result(future, 5.minutes)
+        catch {
+          case throwable: Throwable =>
+            recoveryQueue.forEach(_.delete)
+            throw throwable
+        }
+
+      headSegments ++ tailSegments
+    }
   }
 }
 

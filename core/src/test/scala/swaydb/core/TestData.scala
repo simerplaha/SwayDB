@@ -52,7 +52,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
-import swaydb.core.segment.merge.MergeStats
+import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO, ThreadReadState}
 import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.data.accelerate.Accelerator
@@ -1604,16 +1604,9 @@ object TestData {
 
   def getMaxKey(transient: Memory): MaxKey[Slice[Byte]] =
     transient match {
-      case last: Memory.Remove =>
+      case last: Memory.Fixed =>
         MaxKey.Fixed(last.key)
-      case last: Memory.Put =>
-        MaxKey.Fixed(last.key)
-      case last: Memory.Update =>
-        MaxKey.Fixed(last.key)
-      case last: Memory.Function =>
-        MaxKey.Fixed(last.key)
-      case last: Memory.PendingApply =>
-        MaxKey.Fixed(last.key)
+
       case last: Memory.Range =>
         MaxKey.Range(last.fromKey, last.toKey)
     }
@@ -1916,6 +1909,22 @@ object TestData {
         case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
           toKey.readInt() + incrementBy
       }
+  }
+
+  def merge(newKeyValues: Slice[KeyValue],
+            oldKeyValues: Slice[KeyValue],
+            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
+    val builder = MergeStats.random()
+
+    SegmentMerger.merge(
+      newKeyValues = newKeyValues,
+      oldKeyValues = oldKeyValues,
+      stats = builder,
+      isLastLevel = isLastLevel
+    )
+
+    builder.keyValues
   }
 
 
