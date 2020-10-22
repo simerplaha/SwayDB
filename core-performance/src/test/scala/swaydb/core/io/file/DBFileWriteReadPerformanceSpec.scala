@@ -33,7 +33,7 @@
 //import swaydb.core.TestData._
 //import swaydb.core.actor.FileSweeper
 //import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-//import swaydb.core.actor.FileSweeper.FileSweeperActor
+//import swaydb.core.actor.FileSweeper
 //import swaydb.core.segment.format.a.block.reader.BlockRefReader
 //import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator, Bytes}
 //import swaydb.core.{TestBase, TestSweeper}
@@ -46,7 +46,7 @@
 //
 //class DBFileWriteReadPerformanceSpec extends TestBase {
 //
-//  implicit val fileSweeper: FileSweeperActor = TestSweeper.fileSweeper
+//  implicit val fileSweeper: FileSweeper = TestSweeper.fileSweeper
 //  implicit val bufferCleaner: ByteBufferSweeperActor  = TestSweeper.bufferCleaner
 //  implicit val memorySweeper = TestSweeper.memorySweeperMax
 //

@@ -24,15 +24,19 @@
 
 package swaydb.data.config.builder
 
+import java.time.Duration
+
 import swaydb.Compression
 import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
 
+import scala.compat.java8.DurationConverters._
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
 class SegmentConfigBuilder {
   private var cacheSegmentBlocksOnCreate: Boolean = _
-  private var deleteSegmentsEventually: Boolean = _
+  private var deleteDelay: FiniteDuration = _
   private var pushForward: Boolean = _
   private var mmap: MMAP.Segment = _
   private var minSegmentSize: Int = _
@@ -51,8 +55,8 @@ object SegmentConfigBuilder {
   }
 
   class Step1(builder: SegmentConfigBuilder) {
-    def deleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
-      builder.deleteSegmentsEventually = deleteSegmentsEventually
+    def deleteDelay(deleteDelay: Duration) = {
+      builder.deleteDelay = deleteDelay.toScala
       new Step2(builder)
     }
   }
@@ -103,7 +107,7 @@ object SegmentConfigBuilder {
     def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       new SegmentConfig(
         cacheSegmentBlocksOnCreate = builder.cacheSegmentBlocksOnCreate,
-        deleteSegmentsEventually = builder.deleteSegmentsEventually,
+        deleteDelay = builder.deleteDelay,
         pushForward = builder.pushForward,
         mmap = builder.mmap,
         minSegmentSize = builder.minSegmentSize,

@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
@@ -73,7 +73,7 @@ protected object PersistentSegmentOne {
                                            functionStore: FunctionStore,
                                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                            blockCache: Option[BlockCache.State],
-                                           fileSweeper: FileSweeperActor,
+                                           fileSweeper: FileSweeper,
                                            bufferCleaner: ByteBufferSweeperActor,
                                            forceSaveApplier: ForceSaveApplier,
                                            segmentIO: SegmentIO): PersistentSegmentOne =
@@ -110,7 +110,7 @@ protected object PersistentSegmentOne {
                                                          functionStore: FunctionStore,
                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                          blockCache: Option[BlockCache.State],
-                                                         fileSweeper: FileSweeperActor,
+                                                         fileSweeper: FileSweeper,
                                                          bufferCleaner: ByteBufferSweeperActor,
                                                          forceSaveApplier: ForceSaveApplier,
                                                          segmentIO: SegmentIO): PersistentSegmentOne = {
@@ -156,7 +156,7 @@ protected object PersistentSegmentOne {
                           functionStore: FunctionStore,
                           blockCache: Option[BlockCache.State],
                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                          fileSweeper: FileSweeperActor,
+                          fileSweeper: FileSweeper,
                           bufferCleaner: ByteBufferSweeperActor,
                           forceSaveApplier: ForceSaveApplier,
                           segmentIO: SegmentIO): PersistentSegment = {
@@ -234,7 +234,7 @@ protected case class PersistentSegmentOne(file: DBFile,
                                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                                 functionStore: FunctionStore,
                                                                                 blockCache: Option[BlockCache.State],
-                                                                                fileSweeper: FileSweeperActor,
+                                                                                fileSweeper: FileSweeper,
                                                                                 bufferCleaner: ByteBufferSweeperActor,
                                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                 forceSaveApplier: ForceSaveApplier,
@@ -260,8 +260,8 @@ protected case class PersistentSegmentOne(file: DBFile,
   def isFileDefined =
     file.isFileDefined
 
-  def deleteSegmentsEventually =
-    fileSweeper send FileSweeper.Command.Delete(this)
+  def delete(delay: FiniteDuration) =
+    fileSweeper send FileSweeper.Command.Delete(this, delay.fromNow)
 
   def delete: Unit = {
     logger.trace(s"{}: DELETING FILE", path)

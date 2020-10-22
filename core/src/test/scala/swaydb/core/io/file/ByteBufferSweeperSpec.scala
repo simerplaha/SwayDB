@@ -36,7 +36,7 @@ import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
@@ -62,8 +62,8 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
         implicit sweeper =>
           import sweeper._
 
-          implicit val fileSweeper: FileSweeperActor =
-            FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep().actor
+          implicit val fileSweeper: FileSweeper =
+            FileSweeper(1, ActorConfig.Basic("FileSweet test - clear a MMAP file", TestExecutionContext.executionContext)).sweep().fetch
 
           val file: DBFile =
             DBFile.mmapWriteAndRead(
@@ -78,7 +78,8 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
 
           val innerFile = file.file.asInstanceOf[MMAPFile]
 
-          fileSweeper.terminateAndRecover[Glass, Unit](_ => ())
+          fileSweeper.closer.terminateAndRecover[Glass, Unit](_ => ())
+          fileSweeper.deleter.terminateAndRecover[Glass, Unit](_ => ())
 
           eventual(2.seconds) {
             innerFile.isBufferEmpty shouldBe true
@@ -94,7 +95,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
           import sweeper._
           implicit val ec = TestExecutionContext.executionContext
 
-          implicit val fileSweeper = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 0.second, TestExecutionContext.executionContext)).sweep().actor
+          implicit val fileSweeper = FileSweeper(1, ActorConfig.Timer("FileSweeper Test Timer", 0.second, TestExecutionContext.executionContext)).sweep().fetch
           implicit val cleaner: ByteBufferSweeperActor = ByteBufferSweeper(messageReschedule = 0.millisecond).sweep()
           val bytes = randomBytesSlice()
 
@@ -138,7 +139,8 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
           //keep this test running for a few seconds.
           sleep(timeout)
 
-          fileSweeper.terminateAndRecover(_ => ()).await(10.seconds)
+          fileSweeper.closer.terminateAndRecover(_ => ()).await(10.seconds)
+          fileSweeper.deleter.terminateAndRecover(_ => ()).await(10.seconds)
           fileSweeper.messageCount shouldBe 0
           closing.await(1.second)
           Future.sequence(readingFutures).await(1.second)

@@ -28,7 +28,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map
@@ -37,7 +37,7 @@ import swaydb.core.map.serializer.{AppliedFunctionsMapEntryReader, AppliedFuncti
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.{Actor, Error, IO}
+import swaydb.{Error, IO}
 
 import scala.collection.mutable.ListBuffer
 
@@ -54,7 +54,7 @@ case object AppliedFunctionsMap extends LazyLogging {
 
     implicit val functionsEntryWriter = AppliedFunctionsMapEntryWriter.FunctionsPutMapEntryWriter
     implicit val functionsEntryReader = AppliedFunctionsMapEntryReader.FunctionsMapEntryReader
-    implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
+    implicit val fileSweeper: FileSweeper = FileSweeper.Off
     implicit val keyOrder = KeyOrder.default
 
     map.Map.persistent[Slice[Byte], Slice.Null.type, AppliedFunctionsMapCache](

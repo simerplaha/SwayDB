@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.brake.BrakePedal
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
@@ -52,7 +52,7 @@ private[core] object Maps extends LazyLogging {
 
   def memory[K, V, C <: MapCache[K, V]](fileSize: Long,
                                         acceleration: LevelZeroMeter => Accelerator)(implicit keyOrder: KeyOrder[K],
-                                                                                     fileSweeper: FileSweeperActor,
+                                                                                     fileSweeper: FileSweeper,
                                                                                      bufferCleaner: ByteBufferSweeperActor,
                                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                      cacheBuilder: MapCacheBuilder[C],
@@ -77,7 +77,7 @@ private[core] object Maps extends LazyLogging {
                                             fileSize: Long,
                                             acceleration: LevelZeroMeter => Accelerator,
                                             recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
-                                                                    fileSweeper: FileSweeperActor,
+                                                                    fileSweeper: FileSweeper,
                                                                     bufferCleaner: ByteBufferSweeperActor,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
@@ -143,7 +143,7 @@ private[core] object Maps extends LazyLogging {
                                                  mmap: MMAP.Map,
                                                  fileSize: Long,
                                                  recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
-                                                                         fileSweeper: FileSweeperActor,
+                                                                         fileSweeper: FileSweeper,
                                                                          bufferCleaner: ByteBufferSweeperActor,
                                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                          mapReader: MapEntryReader[MapEntry[K, V]],
@@ -266,7 +266,7 @@ private[core] object Maps extends LazyLogging {
 
   def nextMapUnsafe[K, V, C <: MapCache[K, V]](nextMapSize: Long,
                                                currentMap: Map[K, V, C])(implicit keyOrder: KeyOrder[K],
-                                                                         fileSweeper: FileSweeperActor,
+                                                                         fileSweeper: FileSweeper,
                                                                          bufferCleaner: ByteBufferSweeperActor,
                                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                          skipListMerger: MapCacheBuilder[C],
@@ -293,7 +293,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
                                                     fileSize: Long,
                                                     acceleration: LevelZeroMeter => Accelerator,
                                                     @volatile private var currentMap: Map[K, V, C])(implicit keyOrder: KeyOrder[K],
-                                                                                                    fileSweeper: FileSweeperActor,
+                                                                                                    fileSweeper: FileSweeper,
                                                                                                     val bufferCleaner: ByteBufferSweeperActor,
                                                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                     cacheBuilder: MapCacheBuilder[C],

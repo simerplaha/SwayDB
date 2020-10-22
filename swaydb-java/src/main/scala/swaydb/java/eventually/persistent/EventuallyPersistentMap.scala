@@ -44,8 +44,10 @@ import swaydb.java.{KeyComparator, KeyOrderConverter}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
+import scala.compat.java8.DurationConverters.DurationOps
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
@@ -63,7 +65,7 @@ object EventuallyPersistentMap {
                               private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                               private var cacheKeyValueIds: Boolean = true,
                               private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                              private var deleteMemorySegmentsEventually: Boolean = false,
+                              private var memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                               private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                               private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                               private var atomic: Atomic = CommonConfigs.atomic(),
@@ -155,8 +157,8 @@ object EventuallyPersistentMap {
       this
     }
 
-    def setDeleteMemorySegmentsEventually(deleteMemorySegmentsEventually: Boolean) = {
-      this.deleteMemorySegmentsEventually = deleteMemorySegmentsEventually
+    def setMemorySegmentDeleteDelay(memorySegmentDeleteDelay: java.time.Duration) = {
+      this.memorySegmentDeleteDelay = memorySegmentDeleteDelay.toScala
       this
     }
 
@@ -250,7 +252,7 @@ object EventuallyPersistentMap {
           cacheKeyValueIds = cacheKeyValueIds,
           parallelMerge = parallelMerge,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
-          deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          memorySegmentDeleteDelay = memorySegmentDeleteDelay,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.apply,

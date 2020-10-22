@@ -143,7 +143,7 @@ private[core] object CoreInitializer extends LazyLogging {
     validationResult match {
       case IO.Right(_) =>
 
-        implicit val fileSweeper: ActorRef[FileSweeper.Command, Unit] =
+        implicit val fileSweeper: FileSweeper =
           FileSweeper(fileCache)
 
         val memorySweeper: Option[MemorySweeper.On] =
@@ -199,7 +199,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     maxCount = config.maxKeyValuesPerSegment,
                     pushForward = config.copyForward,
                     mmap = MMAP.Off(ForceSave.Off),
-                    deleteEventually = config.deleteSegmentsEventually,
+                    deleteDelay = config.deleteDelay,
                     compressions = _ => Seq.empty
                   ),
                 levelStorage = LevelStorage.Memory(dir = memoryLevelPath.resolve(id.toString)),

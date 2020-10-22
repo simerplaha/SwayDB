@@ -50,7 +50,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             memoryLevelMergeParallelism: ParallelMerge,
             memoryLevelMinSegmentSize: Int,
             memoryLevelMaxKeyValuesCountPerSegment: Int,
-            deleteMemorySegmentsEventually: Boolean,
+            memorySegmentDeleteDelay: FiniteDuration,
             persistentLevelAppendixFlushCheckpointSize: Int,
             mmapPersistentLevelAppendix: MMAP.Map,
             persistentLevelMergeParallelism: ParallelMerge,
@@ -78,7 +78,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         minSegmentSize = memoryLevelMinSegmentSize,
         maxKeyValuesPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
         copyForward = false,
-        deleteSegmentsEventually = deleteMemorySegmentsEventually,
+        deleteDelay = memorySegmentDeleteDelay,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {

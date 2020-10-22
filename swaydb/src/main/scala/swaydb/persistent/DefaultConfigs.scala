@@ -112,7 +112,7 @@ object DefaultConfigs {
   def segmentConfig(cacheDataBlockOnAccess: Boolean = false): SegmentConfig =
     SegmentConfig(
       cacheSegmentBlocksOnCreate = true,
-      deleteSegmentsEventually = false,
+      deleteDelay = CommonConfigs.segmentDeleteDelay,
       pushForward = true,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
       minSegmentSize = CommonConfigs.segmentSize,

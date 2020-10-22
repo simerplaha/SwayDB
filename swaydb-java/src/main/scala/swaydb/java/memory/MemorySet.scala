@@ -51,7 +51,7 @@ object MemorySet {
   final class Config[A, F](private var mapSize: Int = CommonConfigs.mapSize,
                            private var minSegmentSize: Int = CommonConfigs.segmentSize,
                            private var maxKeyValuesPerSegment: Int = Int.MaxValue,
-                           private var deleteSegmentsEventually: Boolean = false,
+                           private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                            private var atomic: Atomic = CommonConfigs.atomic(),
                            private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
@@ -97,8 +97,8 @@ object MemorySet {
       this
     }
 
-    def setDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
-      this.deleteSegmentsEventually = deleteSegmentsEventually
+    def setDeleteDelay(deleteDelay: FiniteDuration) = {
+      this.deleteDelay = deleteDelay
       this
     }
 
@@ -158,7 +158,7 @@ object MemorySet {
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
-          deleteSegmentsEventually = deleteSegmentsEventually,
+          deleteDelay = deleteDelay,
           parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,

@@ -351,7 +351,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       TestCaseSweeper {
         implicit sweeper =>
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.mb, deleteEventually = false, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 10.mb, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
           val targetSegmentKeyValues = randomIntKeyStringValues()
           val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).runRandomIO.right.value

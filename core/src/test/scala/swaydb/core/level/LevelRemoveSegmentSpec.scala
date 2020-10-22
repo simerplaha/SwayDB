@@ -28,7 +28,6 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
@@ -38,7 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 
 class LevelRemoveSegmentSpec0 extends LevelRemoveSegmentSpec
 
@@ -75,7 +74,7 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
       TestCaseSweeper {
         implicit sweeper =>
 
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteEventually = false, mmap = mmapSegments))
+          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = mmapSegments))
           level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).runRandomIO.right.value
 
           level.removeSegments(level.segmentsInLevel()).runRandomIO.right.value

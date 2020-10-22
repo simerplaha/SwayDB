@@ -27,7 +27,7 @@ package swaydb
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.build.Build
 import swaydb.core.level.tool.AppendixRepairer
 import swaydb.data.MaxKey
@@ -49,7 +49,7 @@ object SwayDB extends LazyLogging {
    */
   def repairAppendix[K](levelPath: Path,
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
-                                                                fileSweeper: FileSweeperActor,
+                                                                fileSweeper: FileSweeper,
                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[swaydb.Error.Level, RepairResult[K]] =
   //convert to typed result.
     AppendixRepairer(levelPath, repairStrategy) match {

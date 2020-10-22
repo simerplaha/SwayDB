@@ -41,6 +41,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
 object Queue extends LazyLogging {
 
@@ -59,7 +60,7 @@ object Queue extends LazyLogging {
                        otherDirs: Seq[Dir] = Seq.empty,
                        cacheKeyValueIds: Boolean = true,
                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                       deleteMemorySegmentsEventually: Boolean = false,
+                       memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                        parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                        atomic: Atomic = CommonConfigs.atomic(),
@@ -96,7 +97,7 @@ object Queue extends LazyLogging {
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
-          deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          memorySegmentDeleteDelay = memorySegmentDeleteDelay,
           parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,

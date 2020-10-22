@@ -28,14 +28,13 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
-import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Java.JavaFunction
-import swaydb.data.util.StorageUnits._
+import swaydb.data.{Atomic, Functions, OptimiseWrites}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{KeyComparator, KeyOrderConverter, MultiMap}
 import swaydb.memory.DefaultConfigs
@@ -52,7 +51,7 @@ object MemoryMultiMap {
   final class Config[M, K, V, F](private var mapSize: Int = CommonConfigs.mapSize,
                                  private var minSegmentSize: Int = CommonConfigs.segmentSize,
                                  private var maxKeyValuesPerSegment: Int = Int.MaxValue,
-                                 private var deleteSegmentsEventually: Boolean = false,
+                                 private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                                  private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                  private var atomic: Atomic = CommonConfigs.atomic(),
                                  private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
@@ -100,8 +99,8 @@ object MemoryMultiMap {
       this
     }
 
-    def setDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
-      this.deleteSegmentsEventually = deleteSegmentsEventually
+    def setDeleteDelay(deleteDelay: FiniteDuration) = {
+      this.deleteDelay = deleteDelay
       this
     }
 
@@ -161,7 +160,7 @@ object MemoryMultiMap {
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
-          deleteSegmentsEventually = deleteSegmentsEventually,
+          deleteDelay = deleteDelay,
           parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,

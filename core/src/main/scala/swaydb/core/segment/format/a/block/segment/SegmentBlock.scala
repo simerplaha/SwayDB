@@ -46,6 +46,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 private[core] case object SegmentBlock extends LazyLogging {
@@ -67,7 +68,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         maxCount = config.maxKeyValuesPerSegment,
         pushForward = config.pushForward,
         mmap = config.mmap,
-        deleteEventually = config.deleteSegmentsEventually,
+        deleteDelay = config.deleteDelay,
         compressions = config.compression
       )
 
@@ -78,7 +79,7 @@ private[core] case object SegmentBlock extends LazyLogging {
               maxCount: Int,
               pushForward: Boolean,
               mmap: MMAP.Segment,
-              deleteEventually: Boolean,
+              deleteDelay: FiniteDuration,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       applyInternal(
         fileOpenIOStrategy = fileOpenIOStrategy,
@@ -88,7 +89,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         maxCount = maxCount,
         pushForward = pushForward,
         mmap = mmap,
-        deleteEventually = deleteEventually,
+        deleteDelay = deleteDelay,
         compressions =
           uncompressedBlockInfo =>
             Try(compressions(uncompressedBlockInfo))
@@ -104,7 +105,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                                     maxCount: Int,
                                     pushForward: Boolean,
                                     mmap: MMAP.Segment,
-                                    deleteEventually: Boolean,
+                                    deleteDelay: FiniteDuration,
                                     compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
       new Config(
         fileOpenIOStrategy = fileOpenIOStrategy,
@@ -114,7 +115,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         maxCount = maxCount max 1,
         pushForward = pushForward,
         mmap = mmap,
-        deleteEventually = deleteEventually,
+        deleteDelay = deleteDelay,
         compressions = compressions
       )
   }
@@ -126,8 +127,11 @@ private[core] case object SegmentBlock extends LazyLogging {
                        val maxCount: Int,
                        val pushForward: Boolean,
                        val mmap: MMAP.Segment,
-                       val deleteEventually: Boolean,
+                       val deleteDelay: FiniteDuration,
                        val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
+
+    val isDeleteEventually: Boolean =
+      deleteDelay.fromNow.hasTimeLeft()
 
     def copy(minSize: Int = minSize, maxCount: Int = maxCount, mmap: MMAP.Segment = mmap): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
@@ -138,7 +142,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         maxCount = maxCount,
         pushForward = pushForward,
         mmap = mmap,
-        deleteEventually = deleteEventually,
+        deleteDelay = deleteDelay,
         compressions = compressions
       )
   }

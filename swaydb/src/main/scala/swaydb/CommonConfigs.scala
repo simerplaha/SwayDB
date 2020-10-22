@@ -36,6 +36,8 @@ case object CommonConfigs {
 
   def segmentSize: Int = 16.mb
 
+  def segmentDeleteDelay = 5.seconds
+
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
       increaseMapSizeOnMapCount = 3,

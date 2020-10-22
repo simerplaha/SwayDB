@@ -33,6 +33,7 @@ import swaydb.data.config.builder.{MemoryLevelConfigBuilder, MemoryLevelZeroConf
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.Java.JavaFunction
 
+import scala.compat.java8.DurationConverters.DurationOps
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
@@ -162,7 +163,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
   def withMemoryLevel1(minSegmentSize: Int,
                        maxKeyValuesPerSegment: Int,
                        copyForward: Boolean,
-                       deleteSegmentsEventually: Boolean,
+                       deleteDelay: FiniteDuration,
                        compactionExecutionContext: CompactionExecutionContext,
                        throttle: LevelMeter => Throttle) =
     SwayDBPersistentConfig(
@@ -172,7 +173,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           copyForward = copyForward,
-          deleteSegmentsEventually = deleteSegmentsEventually,
+          deleteDelay = deleteDelay,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         ),
@@ -244,7 +245,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
   def withMemoryLevel1(minSegmentSize: Int,
                        maxKeyValuesPerSegment: Int,
                        copyForward: Boolean,
-                       deleteSegmentsEventually: Boolean,
+                       deleteDelay: FiniteDuration,
                        compactionExecutionContext: CompactionExecutionContext,
                        throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
     SwayDBMemoryConfig(
@@ -254,7 +255,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           copyForward = copyForward,
-          deleteSegmentsEventually = deleteSegmentsEventually,
+          deleteDelay = deleteDelay,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         ),
@@ -281,7 +282,7 @@ object MemoryLevelConfig {
 case class MemoryLevelConfig(minSegmentSize: Int,
                              maxKeyValuesPerSegment: Int,
                              copyForward: Boolean,
-                             deleteSegmentsEventually: Boolean,
+                             deleteDelay: FiniteDuration,
                              compactionExecutionContext: CompactionExecutionContext,
                              throttle: LevelMeter => Throttle) extends LevelConfig {
 
@@ -294,8 +295,8 @@ case class MemoryLevelConfig(minSegmentSize: Int,
   def copyWithCopyForward(copyForward: Boolean) =
     this.copy(copyForward = copyForward)
 
-  def copyWithDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) =
-    this.copy(deleteSegmentsEventually = deleteSegmentsEventually)
+  def copyWithDeleteDelay(deleteDelay: java.time.Duration) =
+    this.copy(deleteDelay = deleteDelay.toScala)
 
   def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) =
     this.copy(compactionExecutionContext = compactionExecutionContext)
@@ -432,7 +433,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
   def withMemoryLevel(minSegmentSize: Int,
                       maxKeyValuesPerSegment: Int,
                       copyForward: Boolean,
-                      deleteSegmentsEventually: Boolean,
+                      deleteDelay: FiniteDuration,
                       compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
@@ -441,7 +442,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
         minSegmentSize = minSegmentSize,
         maxKeyValuesPerSegment = maxKeyValuesPerSegment,
         copyForward = copyForward,
-        deleteSegmentsEventually = deleteSegmentsEventually,
+        deleteDelay = deleteDelay,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       )
@@ -496,7 +497,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
   def withMemoryLevel(minSegmentSize: Int,
                       maxKeyValuesPerSegment: Int,
                       copyForward: Boolean,
-                      deleteSegmentsEventually: Boolean,
+                      deleteDelay: FiniteDuration,
                       compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
 
@@ -506,7 +507,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           copyForward = copyForward,
-          deleteSegmentsEventually = deleteSegmentsEventually,
+          deleteDelay = deleteDelay,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )

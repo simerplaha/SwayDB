@@ -150,7 +150,7 @@ class DBFileSpec extends TestBase with MockFactory {
           val bytes = randomBytesSlice()
 
           //      //opening a file should trigger the onOpen function
-          //      implicit val fileSweeper = mock[FileSweeperActor]
+          //      implicit val fileSweeper = mock[FileSweeper]
           //
           //      fileSweeper.close _ expects * onCall {
           //        dbFile: FileSweeperItem =>
@@ -215,7 +215,7 @@ class DBFileSpec extends TestBase with MockFactory {
           val bytes = randomBytesSlice()
 
           //      //opening a file should trigger the onOpen function
-          //      implicit val fileSweeper = mock[FileSweeperActor]
+          //      implicit val fileSweeper = mock[FileSweeper]
           //      fileSweeper.close _ expects * onCall {
           //        dbFile: FileSweeperItem =>
           //          dbFile.path shouldBe testFile
@@ -288,7 +288,7 @@ class DBFileSpec extends TestBase with MockFactory {
           val bytes = Slice("bytes one".getBytes())
 
           //      //opening a file should trigger the onOpen function
-          //      implicit val fileSweeper = mock[FileSweeperActor]
+          //      implicit val fileSweeper = mock[FileSweeper]
           //      fileSweeper.close _ expects * onCall {
           //        dbFile: FileSweeperItem =>
           //          dbFile.path shouldBe testFile

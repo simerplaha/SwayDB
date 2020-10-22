@@ -44,8 +44,10 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
+import scala.compat.java8.DurationConverters.DurationOps
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
@@ -63,7 +65,7 @@ object EventuallyPersistentSet {
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
                            private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                           private var deleteMemorySegmentsEventually: Boolean = false,
+                           private var memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                            private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                            private var atomic: Atomic = CommonConfigs.atomic(),
@@ -154,8 +156,8 @@ object EventuallyPersistentSet {
       this
     }
 
-    def setDeleteMemorySegmentsEventually(deleteMemorySegmentsEventually: Boolean) = {
-      this.deleteMemorySegmentsEventually = deleteMemorySegmentsEventually
+    def setMemorySegmentDeleteDelay(memorySegmentDeleteDelay: java.time.Duration) = {
+      this.memorySegmentDeleteDelay = memorySegmentDeleteDelay.toScala
       this
     }
 
@@ -248,7 +250,7 @@ object EventuallyPersistentSet {
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
-          deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          memorySegmentDeleteDelay = memorySegmentDeleteDelay,
           parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,

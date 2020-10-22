@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.LevelRef
@@ -62,7 +62,7 @@ object TestCaseSweeper extends LazyLogging {
 
   def apply(): TestCaseSweeper =
     new TestCaseSweeper(
-      fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeperActor](true, true, None)((_, _) => createFileSweeper())),
+      fileSweepers = ListBuffer(Cache.noIO[Unit, FileSweeper](true, true, None)((_, _) => createFileSweeper())),
       cleaners = ListBuffer(Cache.noIO[Unit, ByteBufferSweeperActor](true, true, None)((_, _) => createBufferCleaner())),
       blockCaches = ListBuffer(Cache.noIO[Unit, Option[BlockCache.State]](true, true, None)((_, _) => createBlockCacheRandom())),
       allMemorySweepers = ListBuffer(Cache.noIO[Unit, Option[MemorySweeper.All]](true, true, None)((_, _) => createMemorySweeperMax())),
@@ -149,7 +149,11 @@ object TestCaseSweeper extends LazyLogging {
     sweeper.allMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
     sweeper.blockMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
     sweeper.cacheMemorySweepers.foreach(_.get().foreach(_.foreach(_.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
-    sweeper.fileSweepers.foreach(_.get().foreach(_.receiveAllForce[Glass, Unit](_ => ())))
+    sweeper.fileSweepers.foreach(_.get().foreach {
+      actor =>
+        actor.closer.receiveAllForce[Glass, Unit](_ => ())
+        actor.deleter.receiveAllForce[Glass, Unit](_ => ())
+    })
     sweeper.cleaners.foreach(_.get().foreach(_.actor.receiveAllForce[Glass, Unit](_ => ())))
     sweeper.blockCaches.foreach(_.get().foreach(_.foreach(_.sweeper.actor.foreach(_.receiveAllForce[Glass, Unit](_ => ())))))
   }
@@ -211,13 +215,13 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepBufferCleaner keyValue
   }
 
-  implicit class FileCleanerSweeperImplicits(keyValue: FileSweeperActor) {
-    def sweep()(implicit sweeper: TestCaseSweeper): FileSweeperActor =
+  implicit class FileCleanerSweeperImplicits(keyValue: FileSweeper) {
+    def sweep()(implicit sweeper: TestCaseSweeper): FileSweeper =
       sweeper sweepFileSweeper keyValue
   }
 
-  implicit class FileCleanerCacheSweeperImplicits(cache: CacheNoIO[Unit, FileSweeperActor]) {
-    def sweep()(implicit sweeper: TestCaseSweeper): CacheNoIO[Unit, FileSweeperActor] =
+  implicit class FileCleanerCacheSweeperImplicits(cache: CacheNoIO[Unit, FileSweeper]) {
+    def sweep()(implicit sweeper: TestCaseSweeper): CacheNoIO[Unit, FileSweeper] =
       sweeper sweepFileSweeper cache
   }
 
@@ -261,7 +265,7 @@ object TestCaseSweeper extends LazyLogging {
  * }}}
  */
 
-class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeperActor]],
+class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileSweeper]],
                       private val cleaners: ListBuffer[CacheNoIO[Unit, ByteBufferSweeperActor]],
                       private val blockCaches: ListBuffer[CacheNoIO[Unit, Option[BlockCache.State]]],
                       private val allMemorySweepers: ListBuffer[CacheNoIO[Unit, Option[MemorySweeper.All]]],
@@ -282,7 +286,7 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
 
 
   implicit val forceSaveApplier: ForceSaveApplier = ForceSaveApplier.On
-  implicit lazy val fileSweeper: FileSweeperActor = fileSweepers.head.value(())
+  implicit lazy val fileSweeper: FileSweeper = fileSweepers.head.value(())
   implicit lazy val cleaner: ByteBufferSweeperActor = cleaners.head.value(())
   implicit lazy val blockCache: Option[BlockCache.State] = blockCaches.head.value(())
 
@@ -360,10 +364,10 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
   def sweepBufferCleaner(bufferCleaner: ByteBufferSweeperActor): ByteBufferSweeperActor =
     removeReplaceCache(cleaners, bufferCleaner)
 
-  def sweepFileSweeper(actor: FileSweeperActor): FileSweeperActor =
+  def sweepFileSweeper(actor: FileSweeper): FileSweeper =
     removeReplaceCache(fileSweepers, actor)
 
-  def sweepFileSweeper(actor: CacheNoIO[Unit, FileSweeperActor]): CacheNoIO[Unit, FileSweeperActor] = {
+  def sweepFileSweeper(actor: CacheNoIO[Unit, FileSweeper]): CacheNoIO[Unit, FileSweeper] = {
     //if previous cache is uninitialised overwrite it with this new one
     if (fileSweepers.lastOption.exists(_.get().isEmpty))
       fileSweepers.remove(0)

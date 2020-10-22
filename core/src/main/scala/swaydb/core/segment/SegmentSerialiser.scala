@@ -29,7 +29,7 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
@@ -55,7 +55,7 @@ private[core] sealed trait SegmentSerialiser {
                                    timeOrder: TimeOrder[Slice[Byte]],
                                    functionStore: FunctionStore,
                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                   fileSweeper: FileSweeperActor,
+                                   fileSweeper: FileSweeper,
                                    bufferCleaner: ByteBufferSweeperActor,
                                    blockCache: Option[BlockCache.State],
                                    forceSaveApplier: ForceSaveApplier,
@@ -121,7 +121,7 @@ private[core] object SegmentSerialiser {
                                      timeOrder: TimeOrder[Slice[Byte]],
                                      functionStore: FunctionStore,
                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                     fileSweeper: FileSweeperActor,
+                                     fileSweeper: FileSweeper,
                                      bufferCleaner: ByteBufferSweeperActor,
                                      blockCache: Option[BlockCache.State],
                                      forceSaveApplier: ForceSaveApplier,

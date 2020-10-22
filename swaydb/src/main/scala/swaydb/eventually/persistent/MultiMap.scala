@@ -43,6 +43,7 @@ import swaydb.serializers.Serializer
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, MultiMap, PureFunction}
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.reflect.ClassTag
 
 object MultiMap extends LazyLogging {
@@ -64,7 +65,7 @@ object MultiMap extends LazyLogging {
                                                           otherDirs: Seq[Dir] = Seq.empty,
                                                           cacheKeyValueIds: Boolean = true,
                                                           mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
-                                                          deleteMemorySegmentsEventually: Boolean = false,
+                                                          memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                                                           parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                                                           optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                           atomic: Atomic = CommonConfigs.atomic(),
@@ -112,7 +113,7 @@ object MultiMap extends LazyLogging {
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
-          deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+          memorySegmentDeleteDelay = memorySegmentDeleteDelay,
           parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,

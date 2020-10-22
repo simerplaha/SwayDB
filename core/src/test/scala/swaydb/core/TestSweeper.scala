@@ -27,7 +27,7 @@ package swaydb.core
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.CommonAssertions._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 import swaydb.data.config.{ActorConfig, MemoryCache}
@@ -75,7 +75,7 @@ private[swaydb] object TestSweeper {
   def randomBlockCache: Option[BlockCache.State] =
     orNone(createBlockCache(createMemorySweeperRandom()))
 
-  def createFileSweeper(): FileSweeperActor =
+  def createFileSweeper(): FileSweeper =
     FileSweeper(1000, ActorConfig.Basic("Basic test 3", DefaultExecutionContext.sweeperEC)).value(())
 
   def createBufferCleaner(): ByteBufferSweeperActor =

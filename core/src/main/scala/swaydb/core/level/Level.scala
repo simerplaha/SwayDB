@@ -32,7 +32,7 @@ import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
@@ -108,7 +108,7 @@ private[core] object Level extends LazyLogging {
                                               functionStore: FunctionStore,
                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                               blockCache: Option[BlockCache.State],
-                                              fileSweeper: FileSweeperActor,
+                                              fileSweeper: FileSweeper,
                                               bufferCleaner: ByteBufferSweeperActor,
                                               forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
@@ -342,7 +342,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                               val keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                              val fileSweeper: FileSweeperActor,
+                                                              val fileSweeper: FileSweeper,
                                                               val bufferCleaner: ByteBufferSweeperActor,
                                                               val blockCache: Option[BlockCache.State],
                                                               val segmentIDGenerator: IDGenerator,
@@ -628,8 +628,8 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def deleteCopiedSegments(copiedSegments: Iterable[Segment]): Unit =
-    if (segmentConfig.deleteEventually)
-      copiedSegments foreach (_.deleteSegmentsEventually)
+    if (segmentConfig.isDeleteEventually)
+      copiedSegments foreach (_.delete(segmentConfig.deleteDelay))
     else
       copiedSegments
         .foreach {
@@ -956,8 +956,8 @@ private[core] case class Level(dirs: Seq[Dir],
             entry =>
               appendix.writeSafe(entry).transform(_ => ()) onRightSideEffect {
                 _ =>
-                  if (segmentConfig.deleteEventually)
-                    segment.deleteSegmentsEventually
+                  if (segmentConfig.isDeleteEventually)
+                    segment.delete(segmentConfig.deleteDelay)
                   else
                     IO(segment.delete) onLeftSideEffect {
                       failure =>
@@ -1004,8 +1004,8 @@ private[core] case class Level(dirs: Seq[Dir],
             // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
             // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
             // Segments on reboot.
-            if (segmentConfig.deleteEventually) {
-              segmentsToRemove foreach (_.deleteSegmentsEventually)
+            if (segmentConfig.isDeleteEventually) {
+              segmentsToRemove foreach (_.delete(segmentConfig.deleteDelay))
               IO.zero
             } else {
               IO(Segment.deleteSegments(segmentsToRemove)) recoverWith {
@@ -1064,8 +1064,8 @@ private[core] case class Level(dirs: Seq[Dir],
         ) transform {
           _ =>
             //delete the segments merged with self.
-            if (segmentConfig.deleteEventually)
-              segmentsToMerge foreach (_.deleteSegmentsEventually)
+            if (segmentConfig.isDeleteEventually)
+              segmentsToMerge foreach (_.delete(segmentConfig.deleteDelay))
             else
               segmentsToMerge foreach {
                 segment =>
@@ -1134,11 +1134,11 @@ private[core] case class Level(dirs: Seq[Dir],
                     _ =>
                       logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, assignments.map(_.segment.path.toString))
                       //delete assigned segments as they are replaced with new segments.
-                      if (segmentConfig.deleteEventually)
+                      if (segmentConfig.isDeleteEventually)
                         targetSegmentAndNewSegments foreach {
                           case (originalSegment, newSegments) =>
                             if (newSegments.replaced)
-                              originalSegment.deleteSegmentsEventually
+                              originalSegment.delete(segmentConfig.deleteDelay)
                         }
                       else
                         targetSegmentAndNewSegments foreach {

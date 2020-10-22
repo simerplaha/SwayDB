@@ -29,7 +29,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.util.IDGenerator
@@ -49,7 +49,7 @@ private[core] object Map extends LazyLogging {
                                             flushOnOverflow: Boolean,
                                             fileSize: Long,
                                             dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                               fileSweeper: FileSweeperActor,
+                                                                               fileSweeper: FileSweeper,
                                                                                bufferCleaner: ByteBufferSweeperActor,
                                                                                writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                reader: MapEntryReader[MapEntry[K, V]],
@@ -67,7 +67,7 @@ private[core] object Map extends LazyLogging {
                                             mmap: MMAP.Map,
                                             flushOnOverflow: Boolean,
                                             fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                            fileSweeper: FileSweeperActor,
+                                                            fileSweeper: FileSweeper,
                                                             bufferCleaner: ByteBufferSweeperActor,
                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                             cacheBuilder: MapCacheBuilder[C],

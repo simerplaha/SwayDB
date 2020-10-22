@@ -25,6 +25,7 @@
 package swaydb.core
 
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.matchers.should.Matchers._
@@ -92,6 +93,9 @@ object TestData {
 
   def randomBoolean(): Boolean =
     Random.nextBoolean()
+
+  def randomFiniteDuration(maxSeconds: Int = 10): FiniteDuration =
+    new FiniteDuration(randomIntMax(maxSeconds), TimeUnit.SECONDS)
 
   implicit class ReopenSegment(segment: PersistentSegment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -475,7 +479,7 @@ object TestData {
     def random(hasCompression: Boolean = randomBoolean(),
                minSegmentSize: Int = randomIntMax(4.mb),
                maxKeyValuesPerSegment: Int = randomIntMax(100000),
-               deleteEventually: Boolean = randomBoolean(),
+               deleteDelay: FiniteDuration = randomFiniteDuration(),
                mmap: MMAP.Segment = MMAP.randomForSegment(),
                pushForward: Boolean = randomBoolean(),
                cacheBlocksOnCreate: Boolean = randomBoolean(),
@@ -488,7 +492,7 @@ object TestData {
         minSize = minSegmentSize,
         pushForward = pushForward,
         mmap = mmap,
-        deleteEventually = deleteEventually,
+        deleteDelay = deleteDelay,
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
 
@@ -497,7 +501,7 @@ object TestData {
                 cacheBlocksOnCreate: Boolean = randomBoolean(),
                 compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = _ => randomCompressionsOrEmpty(),
                 maxKeyValuesPerSegment: Int = randomIntMax(1000000),
-                deleteEventually: Boolean = randomBoolean(),
+                deleteDelay: FiniteDuration = randomFiniteDuration(),
                 mmap: MMAP.Segment = MMAP.randomForSegment(),
                 pushForward: Boolean = randomBoolean(),
                 minSegmentSize: Int = randomIntMax(30.mb)): SegmentBlock.Config =
@@ -509,7 +513,7 @@ object TestData {
         minSize = minSegmentSize,
         pushForward = pushForward,
         mmap = mmap,
-        deleteEventually = deleteEventually,
+        deleteDelay = deleteDelay,
         compressions = compressions
       )
   }

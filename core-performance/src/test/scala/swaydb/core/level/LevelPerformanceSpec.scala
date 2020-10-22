@@ -180,7 +180,7 @@
 //      //        ),
 //      segmentConfig = SegmentBlock.Config.default,
 //      pushForward = true,
-//      deleteSegmentsEventually = false
+//      deleteDelay = Duration.Zero
 //    )
 //
 //  level.putKeyValuesTest(keyValues).runRandomIO.right.value

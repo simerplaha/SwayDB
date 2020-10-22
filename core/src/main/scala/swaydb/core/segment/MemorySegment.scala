@@ -29,7 +29,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
@@ -51,7 +51,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Deadline
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 protected case class MemorySegment(path: Path,
                                    minKey: Slice[Byte],
@@ -65,7 +65,7 @@ protected case class MemorySegment(path: Path,
                                    nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                                          functionStore: FunctionStore,
-                                                                         fileSweeper: FileSweeperActor) extends Segment with LazyLogging {
+                                                                         fileSweeper: FileSweeper) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -275,8 +275,8 @@ protected case class MemorySegment(path: Path,
   override def isFooterDefined: Boolean =
     !deleted
 
-  override def deleteSegmentsEventually: Unit =
-    fileSweeper send FileSweeper.Command.Delete(this)
+  def delete(delay: FiniteDuration): Unit =
+    fileSweeper send FileSweeper.Command.Delete(this, delay.fromNow)
 
   override def clearCachedKeyValues(): Unit =
     ()

@@ -32,7 +32,7 @@ import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
@@ -50,7 +50,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                     flushOnOverflow: Boolean,
                                                     fileSize: Long,
                                                     dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                                       fileSweeper: FileSweeperActor,
+                                                                                       fileSweeper: FileSweeper,
                                                                                        bufferCleaner: ByteBufferSweeperActor,
                                                                                        reader: MapEntryReader[MapEntry[K, V]],
                                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -89,7 +89,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                     mmap: MMAP.Map,
                                                     flushOnOverflow: Boolean,
                                                     fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                                    fileSweeper: FileSweeperActor,
+                                                                    fileSweeper: FileSweeper,
                                                                     bufferCleaner: ByteBufferSweeperActor,
                                                                     cacheBuilder: MapCacheBuilder[C],
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -115,7 +115,7 @@ private[map] object PersistentMap extends LazyLogging {
 
   private[map] def firstFile(folder: Path,
                              memoryMapped: MMAP.Map,
-                             fileSize: Long)(implicit fileSweeper: FileSweeperActor,
+                             fileSize: Long)(implicit fileSweeper: FileSweeper,
                                              bufferCleaner: ByteBufferSweeperActor,
                                              forceSaveApplier: ForceSaveApplier): DBFile =
     memoryMapped match {
@@ -147,7 +147,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                       cache: C,
                                                       dropCorruptedTailEntries: Boolean)(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                          mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                                         fileSweeper: FileSweeperActor,
+                                                                                         fileSweeper: FileSweeper,
                                                                                          bufferCleaner: ByteBufferSweeperActor,
                                                                                          forceSaveApplier: ForceSaveApplier): RecoveryResult[DBFile] = {
 
@@ -210,7 +210,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                        mmap: MMAP.Map,
                                                        fileSize: Long,
                                                        cache: C)(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                 fileSweeper: FileSweeperActor,
+                                                                 fileSweeper: FileSweeper,
                                                                  bufferCleaner: ByteBufferSweeperActor,
                                                                  forceSaveApplier: ForceSaveApplier): Option[DBFile] =
     oldFiles.lastOption map {
@@ -242,7 +242,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                        mmap: MMAP.Map,
                                                        size: Long,
                                                        cache: C)(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                 fileSweeper: FileSweeperActor,
+                                                                 fileSweeper: FileSweeper,
                                                                  bufferCleaner: ByteBufferSweeperActor,
                                                                  forceSaveApplier: ForceSaveApplier): DBFile = {
 
@@ -283,7 +283,7 @@ protected case class PersistentMap[K, V, C <: MapCache[K, V]](path: Path,
                                                               fileSize: Long,
                                                               flushOnOverflow: Boolean,
                                                               cache: C,
-                                                              private var currentFile: DBFile)(implicit val fileSweeper: FileSweeperActor,
+                                                              private var currentFile: DBFile)(implicit val fileSweeper: FileSweeper,
                                                                                                val bufferCleaner: ByteBufferSweeperActor,
                                                                                                val writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                val forceSaveApplier: ForceSaveApplier) extends Map[K, V, C] with LazyLogging {

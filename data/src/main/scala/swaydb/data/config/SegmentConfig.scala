@@ -24,10 +24,14 @@
 
 package swaydb.data.config
 
+import java.time.Duration
+
 import swaydb.Compression
 import swaydb.data.config.builder.SegmentConfigBuilder
 import swaydb.data.util.Java.JavaFunction
 
+import scala.compat.java8.DurationConverters._
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
 object SegmentConfig {
@@ -36,7 +40,7 @@ object SegmentConfig {
 }
 
 case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
-                         deleteSegmentsEventually: Boolean,
+                         deleteDelay: FiniteDuration,
                          pushForward: Boolean,
                          mmap: MMAP.Segment,
                          minSegmentSize: Int,
@@ -48,8 +52,8 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
   def copyWithCacheSegmentBlocksOnCreate(cacheSegmentBlocksOnCreate: Boolean): SegmentConfig =
     this.copy(cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate)
 
-  def copyWithDeleteSegmentsEventually(deleteSegmentsEventually: Boolean): SegmentConfig =
-    this.copy(deleteSegmentsEventually = deleteSegmentsEventually)
+  def copyWithDeleteDelay(deleteDelay: Duration): SegmentConfig =
+    this.copy(deleteDelay = deleteDelay.toScala)
 
   def copyWithPushForward(pushForward: Boolean): SegmentConfig =
     this.copy(pushForward = pushForward)

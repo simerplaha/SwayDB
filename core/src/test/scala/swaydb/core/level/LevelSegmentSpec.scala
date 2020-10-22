@@ -50,7 +50,7 @@ import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Random
 
 class LevelSegmentSpec0 extends LevelSegmentSpec
@@ -203,7 +203,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
               val keyValues = randomPutKeyValues(100)
 
-              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, deleteEventually = false, mmap = mmapSegments), levelStorage = storage)
+              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, deleteDelay = Duration.Zero, mmap = mmapSegments), levelStorage = storage)
 
               level.putKeyValuesTest(keyValues).runRandomIO.right.value
               level.segmentsCount() shouldBe keyValues.size
@@ -322,7 +322,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues))
               val targetSegment = TestSegment(keyValues.last).runRandomIO.right.value
 
-              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 150.bytes, deleteEventually = false, mmap = mmapSegments))
+              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 150.bytes, deleteDelay = Duration.Zero, mmap = mmapSegments))
               level.put(targetSegment, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
 
               //segment to copy

@@ -56,7 +56,7 @@ class Persistent_NonAtomic_WeatherDataSpec extends WeatherDataSpec {
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      acceleration = Accelerator.brake(),
-      //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(true).copy(deleteSegmentsEventually = false),
+      //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(true).copy(deleteDelay = Duration.Zero),
       //      memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb)
     ).get.sweep(_.delete().get)
 }
@@ -71,7 +71,7 @@ class Persistent_Atomic_WeatherDataSpec extends WeatherDataSpec {
       //      mmapAppendix = MMAP.randomForMap(),
       //      cacheKeyValueIds = randomBoolean(),
       //      acceleration = Accelerator.brake(),
-      //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(true).copy(deleteSegmentsEventually = false),
+      //      segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig(true).copy(deleteDelay = Duration.Zero),
       //      memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb)
     ).get.sweep(_.delete().get)
 }

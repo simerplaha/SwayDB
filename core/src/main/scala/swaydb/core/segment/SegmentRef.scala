@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
@@ -645,7 +645,7 @@ private[core] object SegmentRef {
                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                    functionStore: FunctionStore,
                                                    blockCache: Option[BlockCache.State],
-                                                   fileSweeper: FileSweeperActor,
+                                                   fileSweeper: FileSweeper,
                                                    bufferCleaner: ByteBufferSweeperActor,
                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                    forceSaveApplier: ForceSaveApplier,
@@ -924,7 +924,7 @@ private[core] object SegmentRef {
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
                                                       blockCache: Option[BlockCache.State],
-                                                      fileSweeper: FileSweeperActor,
+                                                      fileSweeper: FileSweeper,
                                                       bufferCleaner: ByteBufferSweeperActor,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                       forceSaveApplier: ForceSaveApplier,

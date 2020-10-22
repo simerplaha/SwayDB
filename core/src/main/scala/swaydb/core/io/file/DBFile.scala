@@ -29,7 +29,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
 import swaydb.data.Reserve
 import swaydb.data.cache.Cache
@@ -47,7 +47,7 @@ object DBFile extends LazyLogging {
                 fileOpenIOStrategy: IOStrategy.ThreadSafe,
                 file: Option[DBFileType],
                 blockCacheFileId: Long,
-                autoClose: Boolean)(implicit fileSweeper: FileSweeperActor,
+                autoClose: Boolean)(implicit fileSweeper: FileSweeper,
                                     bufferCleaner: ByteBufferSweeperActor,
                                     forceSaveApplier: ForceSaveApplier) = {
 
@@ -125,7 +125,7 @@ object DBFile extends LazyLogging {
                    fileOpenIOStrategy: IOStrategy.ThreadSafe,
                    blockCacheFileId: Long,
                    autoClose: Boolean,
-                   forceSave: ForceSave.ChannelFiles)(implicit fileSweeper: FileSweeperActor,
+                   forceSave: ForceSave.ChannelFiles)(implicit fileSweeper: FileSweeper,
                                                       blockCache: Option[BlockCache.State],
                                                       bufferCleaner: ByteBufferSweeperActor,
                                                       forceSaveApplier: ForceSaveApplier): DBFile = {
@@ -154,7 +154,7 @@ object DBFile extends LazyLogging {
                   fileOpenIOStrategy: IOStrategy.ThreadSafe,
                   autoClose: Boolean,
                   blockCacheFileId: Long,
-                  checkExists: Boolean = true)(implicit fileSweeper: FileSweeperActor,
+                  checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                                blockCache: Option[BlockCache.State],
                                                bufferCleaner: ByteBufferSweeperActor,
                                                forceSaveApplier: ForceSaveApplier): DBFile =
@@ -187,7 +187,7 @@ object DBFile extends LazyLogging {
                        deleteAfterClean: Boolean,
                        forceSave: ForceSave.MMAPFiles,
                        blockCacheFileId: Long,
-                       bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeperActor,
+                       bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeper,
                                                      blockCache: Option[BlockCache.State],
                                                      bufferCleaner: ByteBufferSweeperActor,
                                                      forceSaveApplier: ForceSaveApplier): DBFile = {
@@ -221,7 +221,7 @@ object DBFile extends LazyLogging {
                        deleteAfterClean: Boolean,
                        forceSave: ForceSave.MMAPFiles,
                        blockCacheFileId: Long,
-                       bytes: Slice[Byte])(implicit fileSweeper: FileSweeperActor,
+                       bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
                                            blockCache: Option[BlockCache.State],
                                            bufferCleaner: ByteBufferSweeperActor,
                                            forceSaveApplier: ForceSaveApplier): DBFile =
@@ -249,7 +249,7 @@ object DBFile extends LazyLogging {
                autoClose: Boolean,
                deleteAfterClean: Boolean,
                blockCacheFileId: Long,
-               checkExists: Boolean = true)(implicit fileSweeper: FileSweeperActor,
+               checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                             blockCache: Option[BlockCache.State],
                                             bufferCleaner: ByteBufferSweeperActor,
                                             forceSaveApplier: ForceSaveApplier): DBFile =
@@ -282,7 +282,7 @@ object DBFile extends LazyLogging {
                blockCacheFileId: Long,
                autoClose: Boolean,
                deleteAfterClean: Boolean,
-               forceSave: ForceSave.MMAPFiles)(implicit fileSweeper: FileSweeperActor,
+               forceSave: ForceSave.MMAPFiles)(implicit fileSweeper: FileSweeper,
                                                blockCache: Option[BlockCache.State],
                                                bufferCleaner: ByteBufferSweeperActor,
                                                forceSaveApplier: ForceSaveApplier): DBFile = {

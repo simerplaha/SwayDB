@@ -32,7 +32,7 @@ import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.Exception.FunctionNotFound
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue.{Put, PutOption}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
@@ -122,7 +122,7 @@ private[core] case object LevelZero extends LazyLogging {
               levelLock flatMap {
                 lock =>
                   //LevelZero does not required FileSweeper since they are all Map files.
-                  implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
+                  implicit val fileSweeper: FileSweeper = FileSweeper.Off
                   logger.info("{}: Recovering logs.", levelZeroDirectory)
 
                   val maps =
@@ -209,7 +209,7 @@ private[core] case object LevelZero extends LazyLogging {
           timer map {
             case (timer, appliedFunctionsMap) =>
               //LevelZero does not required FileSweeper since they are all Map files.
-              implicit val fileSweeper: FileSweeperActor = Actor.deadActor()
+              implicit val fileSweeper: FileSweeper = FileSweeper.Off
               implicit val implicitTimer: Timer = timer
 
               val map =

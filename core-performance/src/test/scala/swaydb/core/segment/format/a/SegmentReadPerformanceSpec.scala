@@ -25,7 +25,7 @@
 //package swaydb.core.segment.format.a
 //
 //import swaydb.core.TestData._
-//import swaydb.core.actor.FileSweeper.FileSweeperActor
+//import swaydb.core.actor.FileSweeper
 //import swaydb.core.actor.{FileSweeper, MemorySweeper}
 //import swaydb.core.data.Memory
 //import swaydb.core.io.file.BlockCache
@@ -76,7 +76,7 @@
 //  val keyValuesCount = 1000000
 //  //    override def deleteFiles = false
 //
-//  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeperActor = TestSweeper.fileSweeper
+//  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper = TestSweeper.fileSweeper
 //  //        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeperMax
 //  //      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
 //  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None

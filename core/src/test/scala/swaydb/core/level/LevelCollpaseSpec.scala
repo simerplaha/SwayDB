@@ -120,7 +120,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
               //          implicit val compressionType: Option[KeyValueCompressionType] = randomCompressionTypeOption(keyValuesCount)
               //disable throttling so that it does not automatically collapse small Segments
-              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = false, deleteEventually = false, mmap = mmapSegments))
+              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = false, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
               assertAllSegmentsCreatedInLevel(level)
 

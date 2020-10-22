@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper.FileSweeperActor
+import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -60,7 +60,7 @@ import scala.annotation.tailrec
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.Deadline
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Try
 
 private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
@@ -85,7 +85,7 @@ private[core] case object Segment extends LazyLogging {
              stats: MergeStats.Memory.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
-                                                        fileSweeper: FileSweeperActor,
+                                                        fileSweeper: FileSweeper,
                                                         idGenerator: IDGenerator): Slice[MemorySegment] =
     if (stats.isEmpty) {
       throw IO.throwable("Empty key-values submitted to memory Segment.")
@@ -210,7 +210,7 @@ private[core] case object Segment extends LazyLogging {
                  mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                                      functionStore: FunctionStore,
-                                                                     fileSweeper: FileSweeperActor,
+                                                                     fileSweeper: FileSweeper,
                                                                      bufferCleaner: ByteBufferSweeperActor,
                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                      blockCache: Option[BlockCache.State],
@@ -243,7 +243,7 @@ private[core] case object Segment extends LazyLogging {
                  transient: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
-                                                        fileSweeper: FileSweeperActor,
+                                                        fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                         blockCache: Option[BlockCache.State],
@@ -299,7 +299,7 @@ private[core] case object Segment extends LazyLogging {
   private def segmentFile(path: Path,
                           mmap: MMAP.Segment,
                           segmentBytes: Slice[Slice[Byte]])(implicit segmentIO: SegmentIO,
-                                                            fileSweeper: FileSweeperActor,
+                                                            fileSweeper: FileSweeper,
                                                             bufferCleaner: ByteBufferSweeperActor,
                                                             blockCache: Option[BlockCache.State],
                                                             forceSaveApplier: ForceSaveApplier): DBFile =
@@ -368,7 +368,7 @@ private[core] case object Segment extends LazyLogging {
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                        fileSweeper: FileSweeperActor,
+                                                        fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         blockCache: Option[BlockCache.State],
                                                         segmentIO: SegmentIO,
@@ -435,7 +435,7 @@ private[core] case object Segment extends LazyLogging {
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                        fileSweeper: FileSweeperActor,
+                                                        fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         blockCache: Option[BlockCache.State],
                                                         segmentIO: SegmentIO,
@@ -473,7 +473,7 @@ private[core] case object Segment extends LazyLogging {
                    maxKeyValueCountPerSegment: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                     functionStore: FunctionStore,
-                                                    fileSweeper: FileSweeperActor,
+                                                    fileSweeper: FileSweeper,
                                                     idGenerator: IDGenerator): Slice[MemorySegment] =
     copyToMemory(
       keyValues = segment.iterator(),
@@ -492,7 +492,7 @@ private[core] case object Segment extends LazyLogging {
                    createdInLevel: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
-                                        fileSweeper: FileSweeperActor,
+                                        fileSweeper: FileSweeper,
                                         idGenerator: IDGenerator): Slice[MemorySegment] = {
     val builder =
       new MergeStats.Memory.Closed[Iterable](
@@ -524,7 +524,7 @@ private[core] case object Segment extends LazyLogging {
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                         fileSweeper: FileSweeperActor,
+                                         fileSweeper: FileSweeper,
                                          bufferCleaner: ByteBufferSweeperActor,
                                          blockCache: Option[BlockCache.State],
                                          segmentIO: SegmentIO,
@@ -622,7 +622,7 @@ private[core] case object Segment extends LazyLogging {
                                   functionStore: FunctionStore,
                                   blockCache: Option[BlockCache.State],
                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                  fileSweeper: FileSweeperActor,
+                                  fileSweeper: FileSweeper,
                                   bufferCleaner: ByteBufferSweeperActor,
                                   forceSaveApplier: ForceSaveApplier): PersistentSegment = {
 
@@ -1196,7 +1196,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def delete: Unit
 
-  def deleteSegmentsEventually: Unit
+  def delete(delay: FiniteDuration): Unit
 
   def close: Unit
 
