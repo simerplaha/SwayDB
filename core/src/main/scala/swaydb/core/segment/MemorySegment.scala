@@ -85,7 +85,7 @@ protected case class MemorySegment(path: Path,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config,
                    pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                       executionContext: ExecutionContext): Slice[Segment] =
+                                                       executionContext: ExecutionContext): SegmentPutResult[Slice[MemorySegment]] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -102,16 +102,19 @@ protected case class MemorySegment(path: Path,
         isLastLevel = removeDeletes
       )
 
-      if (stats.isEmpty)
-        Slice.empty
-      else
-        Segment.memory(
-          minSegmentSize = segmentConfig.minSize,
-          maxKeyValueCountPerSegment = segmentConfig.maxCount,
-          pathsDistributor = pathsDistributor,
-          createdInLevel = createdInLevel,
-          stats = stats.close
-        )
+      val newSegments =
+        if (stats.isEmpty)
+          Slice.empty
+        else
+          Segment.memory(
+            minSegmentSize = segmentConfig.minSize,
+            maxKeyValueCountPerSegment = segmentConfig.maxCount,
+            pathsDistributor = pathsDistributor,
+            createdInLevel = createdInLevel,
+            stats = stats.close
+          )
+
+      SegmentPutResult[Slice[MemorySegment]](result = newSegments, replaced = true)
     }
 
   override def refresh(removeDeletes: Boolean,

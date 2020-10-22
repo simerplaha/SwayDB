@@ -638,6 +638,58 @@ private[core] object SegmentRef {
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
+          segmentConfig: SegmentBlock.Config,
+          pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                              keyOrder: KeyOrder[Slice[Byte]],
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore,
+                                              blockCache: Option[BlockCache.State],
+                                              fileSweeper: FileSweeperActor,
+                                              bufferCleaner: ByteBufferSweeperActor,
+                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                              forceSaveApplier: ForceSaveApplier,
+                                              segmentIO: SegmentIO): SegmentPutResult[Slice[PersistentSegment]] = {
+    //if it's the last Level do full merge to clear any removed key-values.
+    val segments =
+      SegmentRef.put(
+        ref = ref,
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
+      )
+
+    val newSegments =
+      Segment.persistent(
+        pathsDistributor = pathsDistributor,
+        createdInLevel = createdInLevel,
+        mmap = segmentConfig.mmap,
+        transient = segments
+      )
+
+    new SegmentPutResult[Slice[PersistentSegment]](result = newSegments, replaced = true)
+  }
+
+  def put(ref: SegmentRef,
+          headGap: Iterable[Assignable],
+          tailGap: Iterable[Assignable],
+          mergeableCount: Int,
+          mergeable: Iterator[Assignable],
+          removeDeletes: Boolean,
+          createdInLevel: Int,
+          valuesConfig: ValuesBlock.Config,
+          sortedIndexConfig: SortedIndexBlock.Config,
+          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+          hashIndexConfig: HashIndexBlock.Config,
+          bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): Slice[TransientSegment] =
@@ -874,7 +926,7 @@ private[core] object SegmentRef {
                                                       bufferCleaner: ByteBufferSweeperActor,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                       forceSaveApplier: ForceSaveApplier,
-                                                      segmentIO: SegmentIO): Slice[PersistentSegment] = {
+                                                      segmentIO: SegmentIO): SegmentPutResult[Slice[PersistentSegment]] = {
 
     //collect all new Segments for cleanup in-case there is a failure.
     val recoveryQueue = new ConcurrentLinkedQueue[PersistentSegment]()
@@ -978,7 +1030,8 @@ private[core] object SegmentRef {
       try {
         val midSegments = putMid()
         val (headSegments, tailSegments) = Await.result(future, 5.minutes)
-        headSegments ++ midSegments ++ tailSegments
+        val newSegments = headSegments ++ midSegments ++ tailSegments
+        SegmentPutResult(result = newSegments, replaced = true)
       } catch {
         case throwable: Throwable =>
           //do delete after the future is complete
@@ -999,7 +1052,9 @@ private[core] object SegmentRef {
             throw throwable
         }
 
-      headSegments ++ tailSegments
+      val newSegments = headSegments ++ tailSegments
+
+      SegmentPutResult(result = newSegments, replaced = false)
     }
   }
 }

@@ -1160,7 +1160,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): Slice[Segment]
+                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[Segment]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

@@ -27,6 +27,7 @@ package swaydb.core.map
 import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer.{MapCodec, MapEntryWriter}
+import swaydb.core.segment.Segment
 import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -88,6 +89,8 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 }
 
 private[swaydb] case object MapEntry {
+
+  val noneSegment = Option.empty[MapEntry[Slice[Byte], Segment]]
 
   val emptyListMemory = List.empty[MapEntry[Slice[Byte], Memory]]
 

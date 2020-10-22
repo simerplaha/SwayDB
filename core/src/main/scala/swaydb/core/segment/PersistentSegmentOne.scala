@@ -293,33 +293,25 @@ protected case class PersistentSegmentOne(file: DBFile,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): Slice[PersistentSegment] =
-    if (removeDeletes) {
-      //if it's the last Level do full merge to clear any removed key-values.
-      val segments =
-        SegmentRef.put(
-          ref = ref,
-          headGap = headGap,
-          tailGap = tailGap,
-          mergeableCount = mergeableCount,
-          mergeable = mergeable,
-          removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig
-        )
-
-      Segment.persistent(
-        pathsDistributor = pathsDistributor,
+                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
+    if (removeDeletes)
+      SegmentRef.put(
+        ref = ref,
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
+        removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
-        mmap = segmentConfig.mmap,
-        transient = segments
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig,
+        pathsDistributor = pathsDistributor
       )
-    } else {
+    else
       SegmentRef.putParallel(
         ref = ref,
         headGap = headGap,
@@ -336,7 +328,6 @@ protected case class PersistentSegmentOne(file: DBFile,
         segmentConfig = segmentConfig,
         pathsDistributor = pathsDistributor
       )
-    }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

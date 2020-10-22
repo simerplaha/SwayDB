@@ -1115,11 +1115,11 @@ private[core] case class Level(dirs: Seq[Dir],
             mergeParallelism = mergeParallelism
           ) flatMap {
             targetSegmentAndNewSegments =>
-              targetSegmentAndNewSegments.foldLeftRecoverIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-                case (mapEntry, (originalSegment, newSegments, _)) =>
+              targetSegmentAndNewSegments.foldLeftRecoverIO(MapEntry.noneSegment) {
+                case (mapEntry, (originalSegment, newSegments)) =>
                   buildNewMapEntry(
-                    newSegments = newSegments,
-                    originalSegmentMayBe = originalSegment,
+                    newSegments = newSegments.result,
+                    originalSegmentMayBe = if (newSegments.replaced) originalSegment else Segment.Null,
                     initialMapEntry = mapEntry
                   ).toOptionValue
 
@@ -1135,14 +1135,19 @@ private[core] case class Level(dirs: Seq[Dir],
                       logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, assignments.map(_.segment.path.toString))
                       //delete assigned segments as they are replaced with new segments.
                       if (segmentConfig.deleteEventually)
-                        targetSegmentAndNewSegments foreach (_._3.foreachS(_.deleteSegmentsEventually))
+                        targetSegmentAndNewSegments foreach {
+                          case (originalSegment, newSegments) =>
+                            if (newSegments.replaced)
+                              originalSegment.deleteSegmentsEventually
+                        }
                       else
                         targetSegmentAndNewSegments foreach {
-                          case (_, _, segmentToDelete) =>
-                            IO(segmentToDelete.foreachS(_.delete)) onLeftSideEffect {
-                              exception =>
-                                logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segmentToDelete.toOptionS.map(_.path), exception)
-                            }
+                          case (originalSegment, newSegments) =>
+                            if (newSegments.replaced)
+                              IO(originalSegment.delete) onLeftSideEffect {
+                                exception =>
+                                  logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, originalSegment.path, exception)
+                              }
                         }
                   }
 
@@ -1153,8 +1158,8 @@ private[core] case class Level(dirs: Seq[Dir],
                 failure =>
                   logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", failure)
                   targetSegmentAndNewSegments foreach {
-                    case (_, newSegments, _) =>
-                      newSegments foreach {
+                    case (_, newSegments) =>
+                      newSegments.result foreach {
                         segment =>
                           IO(segment.delete) onLeftSideEffect {
                             exception =>
@@ -1169,8 +1174,8 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def putAssigned(assignments: Iterable[Assignment[ListBuffer[Assignable]]],
-                          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, Slice[Segment], SegmentOption)]] =
-    assignments.mapParallel[(Segment, Slice[Segment], SegmentOption)](parallelism = mergeParallelism, timeout = 20.minutes)(
+                          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[Segment]])]] =
+    assignments.mapParallel[(Segment, SegmentPutResult[Slice[Segment]])](parallelism = mergeParallelism, timeout = 20.minutes)(
       block = {
         assignment =>
           IO {
@@ -1191,7 +1196,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 pathsDistributor = pathDistributor.addPriorityPath(assignment.segment.path.getParent)
               )
 
-            (assignment.segment, newSegments, assignment.segment)
+            (assignment.segment, newSegments)
           }
       },
       recover =
@@ -1200,8 +1205,8 @@ private[core] case class Level(dirs: Seq[Dir],
           logFailure(s"${pathDistributor.head}: Failed to do putAssignedKeyValues, Reverting and deleting written ${targetSegmentAndNewSegments.size} segments", failure)
 
           targetSegmentAndNewSegments foreach {
-            case (_, newSegments, _) =>
-              newSegments foreach {
+            case (_, newSegments) =>
+              newSegments.result foreach {
                 segment =>
                   IO(segment.delete) onLeftSideEffect {
                     exception =>

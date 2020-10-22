@@ -511,8 +511,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): Slice[PersistentSegment] = {
-
+                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] = {
     val transient: Iterable[TransientSegment] =
       SegmentRef.put(
         oldKeyValuesCount = getKeyValueCount(),
@@ -531,12 +530,15 @@ protected case class PersistentSegmentMany(file: DBFile,
         segmentConfig = segmentConfig
       )
 
-    Segment.persistent(
-      pathsDistributor = pathsDistributor,
-      mmap = segmentConfig.mmap,
-      createdInLevel = createdInLevel,
-      transient = transient
-    )
+    val newSegments =
+      Segment.persistent(
+        pathsDistributor = pathsDistributor,
+        mmap = segmentConfig.mmap,
+        createdInLevel = createdInLevel,
+        transient = transient
+      )
+
+    SegmentPutResult(result = newSegments, replaced = true)
   }
 
   def refresh(removeDeletes: Boolean,
