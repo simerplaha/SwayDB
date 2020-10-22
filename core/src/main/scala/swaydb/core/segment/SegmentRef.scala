@@ -50,6 +50,7 @@ import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
 import swaydb.core.util.{IDGenerator, MinMax}
 import swaydb.data.MaxKey
+import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.{SomeOrNone, TupleOrNone}
@@ -626,29 +627,29 @@ private[core] object SegmentRef {
           }
       }
 
-  def put(ref: SegmentRef,
-          headGap: Iterable[Assignable],
-          tailGap: Iterable[Assignable],
-          mergeableCount: Int,
-          mergeable: Iterator[Assignable],
-          removeDeletes: Boolean,
-          createdInLevel: Int,
-          valuesConfig: ValuesBlock.Config,
-          sortedIndexConfig: SortedIndexBlock.Config,
-          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-          hashIndexConfig: HashIndexBlock.Config,
-          bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                              keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore,
-                                              blockCache: Option[BlockCache.State],
-                                              fileSweeper: FileSweeperActor,
-                                              bufferCleaner: ByteBufferSweeperActor,
-                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                              forceSaveApplier: ForceSaveApplier,
-                                              segmentIO: SegmentIO): SegmentPutResult[Slice[PersistentSegment]] = {
+  def mergePut(ref: SegmentRef,
+               headGap: Iterable[Assignable],
+               tailGap: Iterable[Assignable],
+               mergeableCount: Int,
+               mergeable: Iterator[Assignable],
+               removeDeletes: Boolean,
+               createdInLevel: Int,
+               valuesConfig: ValuesBlock.Config,
+               sortedIndexConfig: SortedIndexBlock.Config,
+               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+               hashIndexConfig: HashIndexBlock.Config,
+               bloomFilterConfig: BloomFilterBlock.Config,
+               segmentConfig: SegmentBlock.Config,
+               pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                                   keyOrder: KeyOrder[Slice[Byte]],
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   functionStore: FunctionStore,
+                                                   blockCache: Option[BlockCache.State],
+                                                   fileSweeper: FileSweeperActor,
+                                                   bufferCleaner: ByteBufferSweeperActor,
+                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                   forceSaveApplier: ForceSaveApplier,
+                                                   segmentIO: SegmentIO): SegmentPutResult[Slice[PersistentSegment]] = {
     //if it's the last Level do full merge to clear any removed key-values.
     val segments =
       SegmentRef.put(
@@ -910,6 +911,7 @@ private[core] object SegmentRef {
                   mergeable: Iterator[Assignable],
                   removeDeletes: Boolean,
                   createdInLevel: Int,
+                  segmentParallelism: SegmentParallelism,
                   valuesConfig: ValuesBlock.Config,
                   sortedIndexConfig: SortedIndexBlock.Config,
                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -988,11 +990,12 @@ private[core] object SegmentRef {
     val minGapSize = if (mergeableCount == 0) 0 else (mergeableCount / 4) min 100
 
     val (mergeableHead, mergeableTail, future) =
-      Segment.writeGapsConcurrently[PersistentSegment](
+      Segment.writeGapsParallel[PersistentSegment](
         headGap = headGap,
         tailGap = tailGap,
         empty = PersistentSegment.emptySlice,
-        minGapSize = minGapSize
+        minGapSize = minGapSize,
+        segmentParallelism = segmentParallelism
       )(thunk = putGap)
 
     def putMid(): Slice[PersistentSegment] = {

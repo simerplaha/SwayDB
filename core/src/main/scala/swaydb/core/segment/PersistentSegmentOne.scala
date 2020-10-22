@@ -49,6 +49,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util._
 import swaydb.data.MaxKey
+import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -286,6 +287,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
+          segmentParallelism: SegmentParallelism,
           valuesConfig: ValuesBlock.Config,
           sortedIndexConfig: SortedIndexBlock.Config,
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -295,7 +297,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                            executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
     if (removeDeletes)
-      SegmentRef.put(
+      SegmentRef.mergePut(
         ref = ref,
         headGap = headGap,
         tailGap = tailGap,
@@ -320,6 +322,7 @@ protected case class PersistentSegmentOne(file: DBFile,
         mergeable = mergeable,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
+        segmentParallelism = segmentParallelism,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,

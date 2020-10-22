@@ -47,6 +47,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.cache.{Cache, CacheNoIO}
+import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -504,6 +505,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
+          segmentParallelism: SegmentParallelism,
           valuesConfig: ValuesBlock.Config,
           sortedIndexConfig: SortedIndexBlock.Config,
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,

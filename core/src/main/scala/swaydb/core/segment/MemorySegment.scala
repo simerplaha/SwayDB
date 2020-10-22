@@ -44,6 +44,7 @@ import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
+import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -78,6 +79,7 @@ protected case class MemorySegment(path: Path,
                    mergeable: Iterator[Assignable],
                    removeDeletes: Boolean,
                    createdInLevel: Int,
+                   segmentParallelism: SegmentParallelism,
                    valuesConfig: ValuesBlock.Config,
                    sortedIndexConfig: SortedIndexBlock.Config,
                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,

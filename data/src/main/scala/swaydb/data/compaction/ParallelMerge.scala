@@ -35,7 +35,7 @@ sealed trait ParallelMerge {
   def segmentParallelism: Int
   def segmentParallelismTimeout: FiniteDuration
 
-  def segment: SegmentParallelism
+  def ofSegment: SegmentParallelism
 }
 
 object ParallelMerge {
@@ -73,7 +73,7 @@ object ParallelMerge {
                 levelParallelismTimeout: FiniteDuration,
                 segmentParallelism: Int,
                 segmentParallelismTimeout: FiniteDuration) extends ParallelMerge {
-    val segment: SegmentParallelism =
+    val ofSegment: SegmentParallelism =
       new SegmentParallelism(
         parallelism = segmentParallelism,
         timeout = segmentParallelismTimeout
@@ -88,7 +88,7 @@ object ParallelMerge {
     final override val segmentParallelism: Int = 0
     final override val segmentParallelismTimeout: FiniteDuration = 0.seconds
 
-    final override val segment: SegmentParallelism = new SegmentParallelism(0, 0.seconds)
+    final override val ofSegment: SegmentParallelism = new SegmentParallelism(0, 0.seconds)
   }
 
   //used internally

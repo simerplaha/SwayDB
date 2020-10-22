@@ -49,6 +49,7 @@ import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
+import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -60,6 +61,7 @@ import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Deadline
+import scala.util.Try
 
 private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
   override def noneS: SegmentOption =
@@ -1089,24 +1091,29 @@ private[core] case object Segment extends LazyLogging {
     }
   }
 
-  def writeGapsConcurrently[S <: Segment](headGap: Iterable[Assignable],
-                                          tailGap: Iterable[Assignable],
-                                          empty: Slice[S],
-                                          minGapSize: Int)(thunk: Iterable[Assignable] => Slice[S])(implicit ec: ExecutionContext): (Iterable[Assignable], Iterable[Assignable], Future[(Slice[S], Slice[S])]) =
+  def writeGapsParallel[S <: Segment](headGap: Iterable[Assignable],
+                                      tailGap: Iterable[Assignable],
+                                      empty: Slice[S],
+                                      minGapSize: Int,
+                                      segmentParallelism: SegmentParallelism)(thunk: Iterable[Assignable] => Slice[S])(implicit ec: ExecutionContext): (Iterable[Assignable], Iterable[Assignable], Future[(Slice[S], Slice[S])]) =
     if (headGap.isEmpty && tailGap.isEmpty) {
       (headGap, tailGap, Future.successful((empty, empty)))
     } else {
-      val (head, headFuture: Future[Slice[S]]) =
-        if (headGap.size < minGapSize)
-          (headGap, Future.successful(empty))
-        else
-          (Assignable.emptyIterable, Future(thunk(headGap)))
+      var availableThreads = segmentParallelism.parallelism
 
-      val (tail, tailFuture: Future[Slice[S]]) =
-        if (tailGap.size < minGapSize)
-          (tailGap, Future.successful(empty))
-        else
-          (Assignable.emptyIterable, Future(thunk(tailGap)))
+      def runConcurrentMayBe(gap: Iterable[Assignable]) =
+        if (gap.size < minGapSize) {
+          (gap, Future.successful(empty))
+        } else if (availableThreads <= 0) {
+          (Assignable.emptyIterable, Future.fromTry(Try(thunk(gap))))
+        } else {
+          availableThreads -= 1
+          (Assignable.emptyIterable, Future(thunk(gap)))
+        }
+
+      val (head, headFuture: Future[Slice[S]]) = runConcurrentMayBe(headGap)
+
+      val (tail, tailFuture: Future[Slice[S]]) = runConcurrentMayBe(tailGap)
 
       val future =
         headFuture flatMap {
@@ -1153,6 +1160,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
+          segmentParallelism: SegmentParallelism,
           valuesConfig: ValuesBlock.Config,
           sortedIndexConfig: SortedIndexBlock.Config,
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
