@@ -31,6 +31,7 @@ import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
+import swaydb.data.compaction.ParallelMerge
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -66,7 +67,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       val totalCopies =
         copyForwardForEach(
           levels = state.levelsReversed,
-          mergeParallelism = state.mergeParallelism
+          parallelMerge = state.parallelMerge
         )(state.executionContext)
       logger.debug(s"${state.name}: Copies $totalCopies compacted. Continuing compaction.")
     }
@@ -112,7 +113,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         val stateId = level.stateId
         if (currentState.forall(state => shouldRun(level, stateId, state))) {
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: ${if (currentState.isEmpty) "Initial run" else "shouldRun = true"}.")
-          val nextState = runJob(level = level, stateId = stateId, mergeParallelism = state.mergeParallelism)(state.executionContext)
+          val nextState = runJob(level = level, stateId = stateId, parallelMerge = state.parallelMerge)(state.executionContext)
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: next state $nextState.")
           state.compactionStates.put(
             key = level,
@@ -133,20 +134,20 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
    */
   private[throttle] def runJob(level: LevelRef,
                                stateId: Long,
-                               mergeParallelism: Int)(implicit ec: ExecutionContext): ThrottleLevelState =
+                               parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
     level match {
       case zero: LevelZero =>
         pushForward(
           zero = zero,
           stateId = stateId,
-          mergeParallelism = mergeParallelism
+          parallelMerge = parallelMerge
         )
 
       case level: NextLevel =>
         pushForward(
           level = level,
           stateId = stateId,
-          mergeParallelism = mergeParallelism
+          parallelMerge = parallelMerge
         )
 
       case TrashLevel =>
@@ -160,14 +161,14 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
   private[throttle] def pushForward(zero: LevelZero,
                                     stateId: Long,
-                                    mergeParallelism: Int)(implicit ec: ExecutionContext): ThrottleLevelState =
+                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
     zero.nextLevel match {
       case Some(nextLevel) =>
         pushForward(
           zero = zero,
           nextLevel = nextLevel,
           stateId = stateId,
-          mergeParallelism = mergeParallelism
+          parallelMerge = parallelMerge
         )
 
       case None =>
@@ -181,7 +182,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[throttle] def pushForward(zero: LevelZero,
                                     nextLevel: NextLevel,
                                     stateId: Long,
-                                    mergeParallelism: Int)(implicit ec: ExecutionContext): ThrottleLevelState =
+                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
     zero.maps.nextJob() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
@@ -190,7 +191,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
           nextLevel = nextLevel,
           stateId = stateId,
           map = map,
-          mergeParallelism = mergeParallelism
+          parallelMerge = parallelMerge
         )
 
       case None =>
@@ -205,10 +206,10 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                     nextLevel: NextLevel,
                                     stateId: Long,
                                     map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                                    mergeParallelism: Int)(implicit ec: ExecutionContext): ThrottleLevelState =
+                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
     nextLevel.put(
       map = map,
-      mergeParallelism = mergeParallelism
+      parallelMerge = parallelMerge
     ) match {
       case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
@@ -268,11 +269,11 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
   private[throttle] def pushForward(level: NextLevel,
                                     stateId: Long,
-                                    mergeParallelism: Int)(implicit ec: ExecutionContext): ThrottleLevelState =
+                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
     pushForward(
       level = level,
       segmentsToPush = level.nextThrottlePushCount max 1,
-      mergeParallelism = mergeParallelism
+      parallelMerge = parallelMerge
     ) match {
       case IO.Right(IO.Right(pushed)) =>
         logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
@@ -297,7 +298,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
   private def pushForward(level: NextLevel,
                           segmentsToPush: Int,
-                          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
+                          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
     level.nextLevel match {
       case Some(nextLevel) =>
         val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
@@ -309,7 +310,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
           segments = copyable,
           thisLevel = level,
           nextLevel = nextLevel,
-          mergeParallelism = mergeParallelism
+          parallelMerge = parallelMerge
         ) flatMap {
           case IO.Right(copied) =>
             if (copied >= segmentsToPush)
@@ -319,7 +320,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                 segments = mergeable take segmentsToPush,
                 thisLevel = level,
                 nextLevel = nextLevel,
-                mergeParallelism = mergeParallelism,
+                parallelMerge = parallelMerge,
               ).transform(_.transform(_ + copied))
 
           case IO.Left(error) =>
@@ -333,7 +334,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
             checkExpired = true,
             remainingCompactions = segmentsToPush,
             segmentsCompacted = 0,
-            mergeParallelism = mergeParallelism
+            parallelMerge = parallelMerge
           )
         )(IO.ExceptionHandler.PromiseUnit)
     }
@@ -343,7 +344,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                              checkExpired: Boolean,
                              remainingCompactions: Int,
                              segmentsCompacted: Int,
-                             mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Int] = {
+                             parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Int] = {
     logger.debug(s"Level(${level.levelNumber}): Last level compaction. checkExpired = $checkExpired. remainingCompactions = $remainingCompactions. segmentsCompacted = $segmentsCompacted.")
     if (level.hasNextLevel || remainingCompactions <= 0) {
       IO.Right[swaydb.Error.Level, Int](segmentsCompacted)
@@ -359,7 +360,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                 checkExpired = checkExpired,
                 remainingCompactions = remainingCompactions - 1,
                 segmentsCompacted = segmentsCompacted + 1,
-                mergeParallelism = mergeParallelism
+                parallelMerge = parallelMerge
               )
 
             case IO.Left(_) =>
@@ -369,7 +370,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                 checkExpired = false,
                 remainingCompactions = remainingCompactions,
                 segmentsCompacted = segmentsCompacted,
-                mergeParallelism = mergeParallelism
+                parallelMerge = parallelMerge
               )
 
             case IO.Right(IO.Left(_)) =>
@@ -379,7 +380,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                 checkExpired = false,
                 remainingCompactions = remainingCompactions,
                 segmentsCompacted = segmentsCompacted,
-                mergeParallelism = mergeParallelism
+                parallelMerge = parallelMerge
               )
           }
 
@@ -390,14 +391,14 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
             checkExpired = false,
             remainingCompactions = remainingCompactions,
             segmentsCompacted = segmentsCompacted,
-            mergeParallelism = mergeParallelism
+            parallelMerge = parallelMerge
           )
       }
     } else {
       logger.debug(s"Level(${level.levelNumber}): Collapse run.")
       level.collapse(
         segments = level.optimalSegmentsToCollapse(remainingCompactions max 2),
-        mergeParallelism = mergeParallelism
+        parallelMerge = parallelMerge
       ) match { //need at least 2 for collapse.
         case IO.Right(IO.Right(count)) =>
           logger.debug(s"Level(${level.levelNumber}): Collapsed $count small segments.")
@@ -406,7 +407,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
             checkExpired = checkExpired,
             remainingCompactions = if (count == 0) 0 else remainingCompactions - count,
             segmentsCompacted = segmentsCompacted + count,
-            mergeParallelism = mergeParallelism
+            parallelMerge = parallelMerge
           )
 
         case IO.Left(_) =>
@@ -416,7 +417,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
             checkExpired = checkExpired,
             remainingCompactions = 0,
             segmentsCompacted = segmentsCompacted,
-            mergeParallelism = mergeParallelism
+            parallelMerge = parallelMerge
           )
 
         case IO.Right(IO.Left(_)) =>
@@ -426,7 +427,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
             checkExpired = checkExpired,
             remainingCompactions = 0,
             segmentsCompacted = segmentsCompacted,
-            mergeParallelism = mergeParallelism
+            parallelMerge = parallelMerge
           )
       }
     }
@@ -437,10 +438,10 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
    * each Level starting from the lowest level first.
    */
   private[throttle] def copyForwardForEach(levels: Slice[LevelRef],
-                                           mergeParallelism: Int)(implicit executionContext: ExecutionContext): Int =
+                                           parallelMerge: ParallelMerge)(implicit executionContext: ExecutionContext): Int =
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>
-        val copied = copyForward(level = level, mergeParallelism = mergeParallelism)
+        val copied = copyForward(level = level, parallelMerge = parallelMerge)
         logger.debug(s"Level(${level.levelNumber}): Compaction copied $copied.")
         totalCopies + copied
 
@@ -449,7 +450,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     }
 
   private def copyForward(level: NextLevel,
-                          mergeParallelism: Int)(implicit executionContext: ExecutionContext): Int =
+                          parallelMerge: ParallelMerge)(implicit executionContext: ExecutionContext): Int =
     level.nextLevel match {
       case Some(nextLevel) =>
         val segmentsInLevel = level.segmentsInLevel()
@@ -459,7 +460,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
           segments = copyable,
           thisLevel = level,
           nextLevel = nextLevel,
-          mergeParallelism = mergeParallelism
+          parallelMerge = parallelMerge
         ) match {
           case IO.Right(IO.Right(copied)) =>
             logger.debug(s"Level(${level.levelNumber}): Forward copied $copied Segments.")
@@ -482,11 +483,11 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[throttle] def putForward(segments: Iterable[Segment],
                                    thisLevel: NextLevel,
                                    nextLevel: NextLevel,
-                                   mergeParallelism: Int)(implicit executionContext: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
+                                   parallelMerge: ParallelMerge)(implicit executionContext: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
     if (segments.isEmpty)
       IO.zeroZero
     else
-      nextLevel.put(segments = segments, mergeParallelism = mergeParallelism) map {
+      nextLevel.put(segments = segments, parallelMerge = parallelMerge) map {
         case IO.Right(_) =>
           thisLevel
             .removeSegments(segments)

@@ -31,7 +31,7 @@ import java.util.concurrent.ExecutorService
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -62,7 +62,7 @@ object PersistentMap {
                               private var appendixFlushCheckpointSize: Int = 2.mb,
                               private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                               private var cacheKeyValueIds: Boolean = true,
-                              private var mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                              private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                               private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                               private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -95,8 +95,8 @@ object PersistentMap {
       this
     }
 
-    def setMergeParallelism(parallel: Int) = {
-      this.mergeParallelism = parallel
+    def setParallelMerge(parallel: ParallelMerge) = {
+      this.parallelMerge = parallel
       this
     }
 
@@ -272,7 +272,7 @@ object PersistentMap {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
-          mergeParallelism = mergeParallelism,
+          parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
@@ -298,7 +298,7 @@ object PersistentMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge))
         )
 
       swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Glass]])

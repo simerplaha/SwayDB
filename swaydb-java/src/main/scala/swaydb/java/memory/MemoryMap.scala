@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutorService
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -54,7 +54,7 @@ object MemoryMap {
                               private var deleteSegmentsEventually: Boolean = false,
                               private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                               private var atomic: Atomic = CommonConfigs.atomic(),
-                              private var mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                              private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                               private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
@@ -73,8 +73,8 @@ object MemoryMap {
       this
     }
 
-    def setMergeParallelism(parallel: Int) = {
-      this.mergeParallelism = parallel
+    def setParallelMerge(parallel: ParallelMerge) = {
+      this.parallelMerge = parallel
       this
     }
 
@@ -160,7 +160,7 @@ object MemoryMap {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
-          mergeParallelism = mergeParallelism,
+          parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
@@ -173,7 +173,7 @@ object MemoryMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge))
         )
 
       swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Glass]])

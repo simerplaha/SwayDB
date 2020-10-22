@@ -29,7 +29,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config._
 
 import scala.concurrent.ExecutionContext
@@ -47,13 +47,13 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             clearAppliedFunctionsOnBoot: Boolean,
             maxMemoryLevelSize: Int,
             maxSegmentsToPush: Int,
-            memoryLevelMergeParallelism: Int,
+            memoryLevelMergeParallelism: ParallelMerge,
             memoryLevelMinSegmentSize: Int,
             memoryLevelMaxKeyValuesCountPerSegment: Int,
             deleteMemorySegmentsEventually: Boolean,
             persistentLevelAppendixFlushCheckpointSize: Int,
             mmapPersistentLevelAppendix: MMAP.Map,
-            persistentLevelMergeParallelism: Int,
+            persistentLevelMergeParallelism: ParallelMerge,
             persistentLevelSortedKeyIndex: SortedKeyIndex,
             persistentLevelRandomSearchIndex: RandomSearchIndex,
             persistentLevelBinarySearchIndex: BinarySearchIndex,

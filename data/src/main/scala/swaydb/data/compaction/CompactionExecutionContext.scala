@@ -31,13 +31,13 @@ import scala.concurrent.ExecutionContext
 sealed trait CompactionExecutionContext
 object CompactionExecutionContext {
 
-  def create(service: ExecutorService, mergeParallelism: Int): Create =
+  def create(service: ExecutorService, parallelMerge: ParallelMerge): Create =
     Create(
       executionContext = ExecutionContext.fromExecutorService(service),
-      mergeParallelism = mergeParallelism
+      parallelMerge = parallelMerge
     )
 
-  case class Create(executionContext: ExecutionContext, mergeParallelism: Int) extends CompactionExecutionContext
+  case class Create(executionContext: ExecutionContext, parallelMerge: ParallelMerge) extends CompactionExecutionContext
 
   def shared(): CompactionExecutionContext.Shared =
     Shared

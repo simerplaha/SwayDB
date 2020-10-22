@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutorService
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.compaction.ParallelMerge
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -63,7 +64,7 @@ object EventuallyPersistentMap {
                               private var cacheKeyValueIds: Boolean = true,
                               private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                               private var deleteMemorySegmentsEventually: Boolean = false,
-                              private var mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                              private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                               private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                               private var atomic: Atomic = CommonConfigs.atomic(),
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
@@ -89,8 +90,8 @@ object EventuallyPersistentMap {
       this
     }
 
-    def setMergeParallelism(parallel: Int) = {
-      this.mergeParallelism = parallel
+    def setParallelMerge(parallel: ParallelMerge) = {
+      this.parallelMerge = parallel
       this
     }
 
@@ -247,7 +248,7 @@ object EventuallyPersistentMap {
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
-          mergeParallelism = mergeParallelism,
+          parallelMerge = parallelMerge,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
           optimiseWrites = optimiseWrites,
@@ -268,7 +269,7 @@ object EventuallyPersistentMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge))
         )
 
       swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Glass]])

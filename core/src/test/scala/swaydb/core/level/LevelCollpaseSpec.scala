@@ -101,7 +101,7 @@ sealed trait LevelCollapseSpec extends TestBase {
             }
           //delete half of the key values which will create small Segments
           level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).runRandomIO.right.value
-          level.collapse(level.segmentsInLevel(), randomMaxParallelism()).right.right.value.right.value
+          level.collapse(level.segmentsInLevel(), randomParallelMerge()).right.right.value.right.value
           //since every second key-value was delete, the number of Segments is reduced to half
           level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
           assertReads(Slice(keyValuesNoDeleted.toArray), level)
@@ -149,7 +149,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
               //reopen the Level with larger min segment size
               val reopenLevel = level.reopen(segmentSize = 20.mb)
-              reopenLevel.collapse(segments, randomMaxParallelism()).right.right.value.right.value
+              reopenLevel.collapse(segments, randomParallelMerge()).right.right.value.right.value
 
               //resulting segments is 1
               eventually {
@@ -198,7 +198,7 @@ sealed trait LevelCollapseSpec extends TestBase {
           }
 
           sleep(20.seconds)
-          level.collapse(level.segmentsInLevel(), randomMaxParallelism()).right.right.value.right.value
+          level.collapse(level.segmentsInLevel(), randomParallelMerge()).right.right.value.right.value
           level.segmentFilesInAppendix should be <= ((segmentCountBeforeDelete / 2) + 1)
 
           assertReads(Slice(keyValuesNotExpired.toArray), level)
@@ -213,13 +213,13 @@ sealed trait LevelCollapseSpec extends TestBase {
 
         val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
         val maps = TestMap(keyValues)
-        level.put(maps, randomMaxParallelism()).right.right.value.right.value
+        level.put(maps, randomParallelMerge()).right.right.value.right.value
 
         val nextLevel = TestLevel()
-        nextLevel.put(level.segmentsInLevel(), randomMaxParallelism()).right.right.value.right.value
+        nextLevel.put(level.segmentsInLevel(), randomParallelMerge()).right.right.value.right.value
 
         if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe level.levelNumber)
-        nextLevel.collapse(nextLevel.segmentsInLevel(), randomMaxParallelism()).right.right.value.right.value
+        nextLevel.collapse(nextLevel.segmentsInLevel(), randomParallelMerge()).right.right.value.right.value
         nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)
     }
   }

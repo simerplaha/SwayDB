@@ -150,7 +150,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           segments should have size 1
           val segment = segments.head
 
-          level.put(Seq(segment), randomMaxParallelism()).right.right.value.right.value
+          level.put(Seq(segment), randomParallelMerge()).right.right.value.right.value
 
           level.meter.segmentsCount shouldBe 1
           level.meter.levelSize shouldBe segment.segmentSize
@@ -184,7 +184,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           segments should have size 1
           val segment = segments.head
 
-          level2.put(Seq(segment), randomMaxParallelism()).right.right.value.right.value
+          level2.put(Seq(segment), randomParallelMerge()).right.right.value.right.value
 
           level1.meter.levelSize shouldBe 0
           level1.meter.segmentsCount shouldBe 0
@@ -210,7 +210,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
 
           val putKeyValues = randomPutKeyValues(keyValuesCount)
           val segment = TestSegment(putKeyValues).runRandomIO.right.value
-          level2.put(Seq(segment), randomMaxParallelism()).right.right.value.right.value
+          level2.put(Seq(segment), randomParallelMerge()).right.right.value.right.value
 
           level1.meterFor(3) shouldBe empty
       }

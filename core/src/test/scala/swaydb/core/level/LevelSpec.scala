@@ -156,7 +156,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
 
             val segment = TestSegment(randomKeyValues(keyValuesCount))
 
-            level.put(segment, randomMaxParallelism()).value.value should not be empty
+            level.put(segment, randomParallelMerge()).value.value should not be empty
 
             if (segment.isMMAP && OperatingSystem.isWindows) {
               level.close[Glass]()
@@ -381,7 +381,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
               TestSegment(keyValues.head).runRandomIO.right.value,
               TestSegment(keyValues.last).runRandomIO.right.value
             )
-          level.put(segments, randomMaxParallelism()).right.right.value.right.value
+          level.put(segments, randomParallelMerge()).right.right.value.right.value
       }
     }
   }

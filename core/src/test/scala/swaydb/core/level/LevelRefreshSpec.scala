@@ -109,10 +109,10 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
           val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
           val maps = TestMap(keyValues)
-          level.put(maps, randomMaxParallelism()).right.right.value
+          level.put(maps, randomParallelMerge()).right.right.value
 
           val nextLevel = TestLevel()
-          nextLevel.put(level.segmentsInLevel(), randomMaxParallelism()).right.right.value
+          nextLevel.put(level.segmentsInLevel(), randomParallelMerge()).right.right.value
 
           if (persistent)
             nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe level.levelNumber)

@@ -28,7 +28,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config._
 import swaydb.data.{Atomic, OptimiseWrites}
 
@@ -49,7 +49,7 @@ object DefaultPersistentConfig extends LazyLogging {
             recoveryMode: RecoveryMode,
             mmapAppendix: MMAP.Map,
             appendixFlushCheckpointSize: Int,
-            mergeParallelism: Int,
+            parallelMerge: ParallelMerge,
             sortedKeyIndex: SortedKeyIndex,
             randomSearchIndex: RandomSearchIndex,
             binarySearchIndex: BinarySearchIndex,
@@ -100,7 +100,7 @@ object DefaultPersistentConfig extends LazyLogging {
         clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
-        compactionExecutionContext = CompactionExecutionContext.Create(executionContext, mergeParallelism),
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext, parallelMerge),
         optimiseWrites = optimiseWrites,
         atomic = atomic,
         acceleration = acceleration,

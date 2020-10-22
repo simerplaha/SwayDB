@@ -41,6 +41,7 @@ import swaydb.core.util.PipeOps._
 import swaydb.core.util.{Extension, IDGenerator}
 import swaydb.core._
 import swaydb.data.RunThis._
+import swaydb.data.compaction.ParallelMerge
 import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -92,7 +93,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val keyValues = randomIntKeyStringValues(keyValuesCount)
             val segment = TestSegment(keyValues)
             segment.close.runRandomIO.right.value
-            level.put(segment, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+            level.put(segment, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
             assertReads(keyValues, level)
         }
       }
@@ -105,11 +106,11 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.bytes, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount)
             val segment = TestSegment(keyValues)
-            level.put(segment, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+            level.put(segment, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
 
             val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
             val segment2 = TestSegment(keyValues2).runRandomIO.right.value
-            level.put(segment2, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+            level.put(segment2, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
 
             assertGet(keyValues, level)
             assertGet(keyValues2, level)
@@ -132,7 +133,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 }
 
             val segments = Seq(TestSegment(keyValues1).runRandomIO.right.value, TestSegment(keyValues2).runRandomIO.right.value, TestSegment(keyValues3).runRandomIO.right.value)
-            level.put(segments, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+            level.put(segments, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
 
             assertReads(keyValues, level)
         }
@@ -158,7 +159,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 TestSegment(keyValues3, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments))
               )
 
-            level.put(segments, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+            level.put(segments, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
 
             assertReads(allKeyValues, level)
         }
@@ -244,7 +245,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               Seq.empty,
               segmentToCopy,
               Seq.empty,
-              randomMaxParallelism()
+              randomParallelMerge()
             ).runRandomIO.right.value should contain only level.levelNumber
 
             level.isEmpty shouldBe false
@@ -261,12 +262,12 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val targetSegment = TestSegment(keyValues.last).runRandomIO.right.value
 
             val level = TestLevel()
-            level.put(targetSegment, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+            level.put(targetSegment, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
             level.put(
               segmentsToMerge = segmentToMerge,
               segmentsToCopy = segmentToCopy,
               targetSegments = Seq(targetSegment),
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ).runRandomIO.right.value should contain only level.levelNumber
 
             level.isEmpty shouldBe false
@@ -289,7 +290,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             if (isWindowsAndMMAPSegments())
               sweeper.receiveAll()
 
-            val result = level.put(segment, randomMaxParallelism()).right.right.value.left.get
+            val result = level.put(segment, randomParallelMerge()).right.right.value.left.get
             if (persistent)
               result.exception shouldBe a[NoSuchFileException]
             else
@@ -308,7 +309,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val keyValues = randomKeyValues(keyValuesCount)
             val segmentsToMerge = TestSegment(keyValues)
             val level = TestLevel()
-            level.put(Seq(segmentsToMerge), Seq(), Seq(), randomMaxParallelism()).left.get shouldBe a[swaydb.Error.MergeInvokedWithoutTargetSegment]
+            level.put(Seq(segmentsToMerge), Seq(), Seq(), randomParallelMerge()).left.get shouldBe a[swaydb.Error.MergeInvokedWithoutTargetSegment]
         }
       }
 
@@ -322,7 +323,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val targetSegment = TestSegment(keyValues.last).runRandomIO.right.value
 
               val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 150.bytes, deleteEventually = false, mmap = mmapSegments))
-              level.put(targetSegment, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+              level.put(targetSegment, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
 
               //segment to copy
               val id = IDGenerator.segment(level.segmentIDGenerator.next + 9)
@@ -337,7 +338,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 segmentsToMerge = segmentToMerge,
                 segmentsToCopy = segmentToCopy,
                 targetSegments = Seq(targetSegment),
-                mergeParallelism = randomMaxParallelism()
+                parallelMerge = randomParallelMerge()
               ).left.get.exception shouldBe a[FileAlreadyExistsException]
 
               if (isWindowsAndMMAPSegments())
@@ -374,7 +375,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 segmentsToMerge = Seq.empty,
                 segmentsToCopy = segmentToCopy,
                 targetSegments = Seq.empty,
-                mergeParallelism = randomMaxParallelism()
+                parallelMerge = randomParallelMerge()
               ).left.get.exception shouldBe a[FileAlreadyExistsException]
 
               if (isWindowsAndMMAPSegments())
@@ -414,13 +415,13 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               assignables = keyValues,
               targetSegments = Seq(segment),
               appendEntry = None,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ).value //write first Segment to Level
 
             assertGetFromThisLevelOnly(keyValues, level)
 
-            level.put(TestSegment(keyValues.take(1)), randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
-            level.put(TestSegment(keyValues.takeRight(1)), randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+            level.put(TestSegment(keyValues.take(1)), randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
+            level.put(TestSegment(keyValues.takeRight(1)), randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
         }
       }
 
@@ -437,7 +438,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               assignables = keyValues,
               targetSegments = Seq(TestSegment(keyValues)),
               appendEntry = None,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ).runRandomIO.right.value //write first Segment to Level
 
             assertGetFromThisLevelOnly(keyValues, level)
@@ -454,8 +455,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 (segments, Iterable.empty)
             }
 
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall { //copy into next Level
-              (segments: Iterable[Segment], parallel: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: ParallelMerge)(_: ExecutionContext)) expects(*, *, *) onCall { //copy into next Level
+              (segments: Iterable[Segment], parallel: ParallelMerge, _: ExecutionContext) =>
                 segments should have size 1
                 segments.head.path shouldBe segment.path
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
@@ -466,7 +467,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
             (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
-            level.put(segment, randomMaxParallelism()).right.right.value.right.value should contain only Int.MaxValue
+            level.put(segment, randomParallelMerge()).right.right.value.right.value should contain only Int.MaxValue
 
             assertGet(keyValues, level) //previous existing key-values should still exist
             assertGetNoneFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
@@ -486,7 +487,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               assignables = keyValues,
               targetSegments = Seq(TestSegment(keyValues)),
               appendEntry = None,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ).runRandomIO.right.value //write first Segment to Level
 
             assertGetFromThisLevelOnly(keyValues, level)
@@ -507,7 +508,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
             (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
-            level.put(segment, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+            level.put(segment, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
 
             assertGet(keyValues, level) //previous existing key-values should still exist
             assertGetFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
@@ -527,7 +528,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               assignables = keyValues,
               targetSegments = Seq(TestSegment(keyValues)),
               appendEntry = None,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ).runRandomIO.right.value //write first Segment to Level
             assertGet(keyValues, level)
 
@@ -545,8 +546,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 (Seq(segments.last), Seq(segments.head)) //last Segment is copyable.
             }
 
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall { //successfully copied last Segment into next Level.
-              (segments: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: ParallelMerge)(_: ExecutionContext)) expects(*, *, *) onCall { //successfully copied last Segment into next Level.
+              (segments: Iterable[Segment], _: ParallelMerge, _: ExecutionContext) =>
                 segments should have size 1
                 segments.head.path shouldBe segment3.path
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
@@ -557,7 +558,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
             (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
-            level.put(Seq(segment2, segment3), randomMaxParallelism()).right.right.value.right.value should contain only(level.levelNumber, Int.MaxValue)
+            level.put(Seq(segment2, segment3), randomParallelMerge()).right.right.value.right.value should contain only(level.levelNumber, Int.MaxValue)
 
             assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
             //segment2's key-values still readable from upper Level since they were copied locally.
@@ -579,7 +580,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               assignables = keyValues,
               targetSegments = Seq(TestSegment(keyValues)),
               appendEntry = None,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ).runRandomIO.right.value //write first Segment to Level
 
             assertGet(keyValues, level)
@@ -596,8 +597,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 (segments, Iterable.empty)
             }
 
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall { //copy into next Level
-              (segments: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: ParallelMerge)(_: ExecutionContext)) expects(*, *, *) onCall { //copy into next Level
+              (segments: Iterable[Segment], _: ParallelMerge, _: ExecutionContext) =>
                 segments should have size 1
                 segments.head.path shouldBe segment.path
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
@@ -608,7 +609,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
             (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
-            level.put(segment, randomMaxParallelism()).right.right.value.right.value should contain only level.levelNumber
+            level.put(segment, randomParallelMerge()).right.right.value.right.value should contain only level.levelNumber
 
             assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
             assertGetFromThisLevelOnly(keyValues2, level) //all key-values value persisted into upper level.

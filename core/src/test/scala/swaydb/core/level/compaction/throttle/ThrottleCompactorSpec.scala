@@ -87,7 +87,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel()
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-            val parallelism = randomMaxParallelism()
+            val parallelism = randomParallelMerge()
 
             val actors =
               ThrottleCompactor.createActors(
@@ -104,7 +104,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
             actor.state.await.child shouldBe empty
-            actor.state.await.mergeParallelism shouldBe parallelism
+            actor.state.await.parallelMerge shouldBe parallelism
         }
       }
 
@@ -114,7 +114,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel()
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-            val parallelism = randomMaxParallelism()
+            val parallelism = randomParallelMerge()
 
             val actors =
               ThrottleCompactor.createActors(
@@ -131,12 +131,12 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) should contain only zero.rootPath
             actor.state.await.child shouldBe defined
-            actor.state.await.mergeParallelism shouldBe parallelism
+            actor.state.await.parallelMerge shouldBe parallelism
 
             val childActor = actor.state.await.child.get.state.await
             childActor.child shouldBe empty
             childActor.levels.map(_.rootPath) should contain only nextLevel.rootPath
-            childActor.mergeParallelism shouldBe parallelism
+            childActor.parallelMerge shouldBe parallelism
         }
       }
 
@@ -147,7 +147,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-            val parallelism = randomMaxParallelism()
+            val parallelism = randomParallelMerge()
 
             val actors =
               ThrottleCompactor.createActors(
@@ -165,7 +165,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath, nextLevel2.rootPath)
             actor.state.await.child shouldBe empty
-            actor.state.await.mergeParallelism shouldBe parallelism
+            actor.state.await.parallelMerge shouldBe parallelism
         }
       }
 
@@ -176,8 +176,8 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
             val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
-            val parallelism1 = randomMaxParallelism()
-            val parallelism2 = randomMaxParallelism()
+            val parallelism1 = randomParallelMerge()
+            val parallelism2 = randomParallelMerge()
 
             val actors =
               ThrottleCompactor.createActors(
@@ -195,12 +195,12 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             actor.state.await.compactionStates shouldBe empty
             actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
             actor.state.await.child shouldBe defined
-            actor.state.await.mergeParallelism shouldBe parallelism1
+            actor.state.await.parallelMerge shouldBe parallelism1
 
             val childActor = actor.state.await.child.get.state.await
             childActor.child shouldBe empty
             childActor.levels.map(_.rootPath) should contain only nextLevel2.rootPath
-            childActor.mergeParallelism shouldBe parallelism2
+            childActor.parallelMerge shouldBe parallelism2
         }
       }
     }
@@ -218,7 +218,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
           //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
           executionContext = TestExecutionContext.executionContext,
           compactionStates = mutable.Map.empty,
-          mergeParallelism = randomMaxParallelism()
+          parallelMerge = randomParallelMerge()
         )
 
       (level, nextLevel, testState)
@@ -462,7 +462,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
               //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
               executionContext = TestExecutionContext.executionContext,
               compactionStates = mutable.Map.empty,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             )
 
           implicit val compaction = mock[Compaction[ThrottleState]]

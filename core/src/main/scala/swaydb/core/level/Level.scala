@@ -53,7 +53,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -604,8 +604,8 @@ private[core] case class Level(dirs: Seq[Dir],
    * @returns A Set of persisted Segment ID's
    */
   def put(segment: Segment,
-          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
-    put(Seq(segment), mergeParallelism)
+          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+    put(Seq(segment), parallelMerge)
 
   /**
    * Persists multiple [[Segment]] to this Level.
@@ -613,7 +613,7 @@ private[core] case class Level(dirs: Seq[Dir],
    * @returns A Set of persisted [[Segment]] ID's
    */
   def put(segments: Iterable[Segment],
-          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
+          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
     reserveAndRelease(segments) {
       val appendixSegments = appendix.cache.values()
@@ -622,7 +622,7 @@ private[core] case class Level(dirs: Seq[Dir],
         segmentsToMerge = segmentToMerge,
         segmentsToCopy = segmentToCopy,
         targetSegments = appendixSegments,
-        mergeParallelism = mergeParallelism
+        parallelMerge = parallelMerge
       )
     }
   }
@@ -652,9 +652,9 @@ private[core] case class Level(dirs: Seq[Dir],
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
                          targetSegments: Iterable[Segment],
-                         mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Set[Int]] =
+                         parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Set[Int]] =
     if (segmentsToCopy.nonEmpty)
-      copyForwardOrCopyLocal(segmentsToCopy, mergeParallelism) flatMap {
+      copyForwardOrCopyLocal(segmentsToCopy, parallelMerge) flatMap {
         newlyCopiedSegments =>
           //Segments were copied into this Level.
           if (newlyCopiedSegments.value.nonEmpty)
@@ -667,7 +667,7 @@ private[core] case class Level(dirs: Seq[Dir],
                       assignables = segmentsToMerge,
                       targetSegments = targetSegments,
                       appendEntry = Some(copiedSegmentsEntry),
-                      mergeParallelism = mergeParallelism
+                      parallelMerge = parallelMerge
                     )
                   else
                     appendix.writeSafe(copiedSegmentsEntry)
@@ -690,7 +690,7 @@ private[core] case class Level(dirs: Seq[Dir],
               assignables = segmentsToMerge,
               targetSegments = targetSegments,
               appendEntry = None,
-              mergeParallelism = mergeParallelism
+              parallelMerge = parallelMerge
             ) transform {
               _ =>
                 newlyCopiedSegments.levelsUpdated + levelNumber
@@ -704,14 +704,14 @@ private[core] case class Level(dirs: Seq[Dir],
         assignables = segmentsToMerge,
         targetSegments = targetSegments,
         appendEntry = None,
-        mergeParallelism = mergeParallelism
+        parallelMerge = parallelMerge
       ) transform {
         _ =>
           Set(levelNumber)
       }
 
   def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
+          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
     reserveAndRelease(map) {
 
@@ -723,13 +723,13 @@ private[core] case class Level(dirs: Seq[Dir],
           map = map,
           targetSegments = appendixValues,
           appendEntry = None,
-          mergeParallelism = mergeParallelism
+          parallelMerge = parallelMerge
         ) transform {
           _ =>
             Set(levelNumber)
         }
       else
-        copyForwardOrCopyLocal(map, mergeParallelism)
+        copyForwardOrCopyLocal(map, parallelMerge)
           .flatMap {
             newSegments =>
               if (newSegments.value.nonEmpty)
@@ -755,8 +755,8 @@ private[core] case class Level(dirs: Seq[Dir],
    * @return empty if copied into next Level else Segments copied into this Level.
    */
   private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-                                     mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
-    val forwardResult = forward(map, mergeParallelism)
+                                     parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
+    val forwardResult = forward(map, parallelMerge)
     if (forwardResult.value)
       IO.Right(forwardResult.updateValue(Segment.emptyIterable))
     else
@@ -773,12 +773,12 @@ private[core] case class Level(dirs: Seq[Dir],
    * Returns segments that were not forwarded.
    */
   private def forward(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-                      mergeParallelism: Int)(implicit ec: ExecutionContext): CompactionResult[Boolean] = {
+                      parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): CompactionResult[Boolean] = {
     logger.trace(s"{}: forwarding {} Map. pushForward = ${segmentConfig.pushForward}", pathDistributor.head, map.pathOption)
     if (segmentConfig.pushForward)
       nextLevel match {
         case Some(nextLevel) if nextLevel.isCopyable(map) =>
-          nextLevel.put(map, mergeParallelism) match {
+          nextLevel.put(map, parallelMerge) match {
             case IO.Right(result) =>
               result match {
                 case IO.Right(levelsUpdated) =>
@@ -840,8 +840,8 @@ private[core] case class Level(dirs: Seq[Dir],
    * Returns newly created Segments in this Level.
    */
   private def copyForwardOrCopyLocal(segments: Iterable[Segment],
-                                     mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
-    val segmentsNotForwarded = forward(segments, mergeParallelism)
+                                     parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
+    val segmentsNotForwarded = forward(segments, parallelMerge)
     if (segmentsNotForwarded.value.isEmpty)
       IO.Right(segmentsNotForwarded) //all were forwarded.
     else
@@ -858,7 +858,7 @@ private[core] case class Level(dirs: Seq[Dir],
    * @return segments that were not forwarded.
    */
   private def forward(segments: Iterable[Segment],
-                      mergeParallelism: Int)(implicit ec: ExecutionContext): CompactionResult[Iterable[Segment]] = {
+                      parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): CompactionResult[Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments. pushForward = ${segmentConfig.pushForward}", pathDistributor.head, segments.map(_.path.toString))
     if (segmentConfig.pushForward)
       nextLevel match {
@@ -867,7 +867,7 @@ private[core] case class Level(dirs: Seq[Dir],
           if (copyable.isEmpty)
             CompactionResult(segments)
           else
-            nextLevel.put(copyable, mergeParallelism) match {
+            nextLevel.put(copyable, parallelMerge) match {
               case IO.Right(forwardResult) =>
                 forwardResult match {
                   case IO.Right(forwardedTo) =>
@@ -1022,7 +1022,7 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   def collapse(segments: Iterable[Segment],
-               mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
+               parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
     logger.trace(s"{}: Collapsing '{}' segments", pathDistributor.head, segments.size)
     if (segments.isEmpty || appendix.cache.maxKeyValueCount == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](IO.zero)(IO.ExceptionHandler.PromiseUnit)
@@ -1060,7 +1060,7 @@ private[core] case class Level(dirs: Seq[Dir],
           assignables = segmentsToMerge,
           targetSegments = targetSegments,
           appendEntry = appendEntry,
-          mergeParallelism = mergeParallelism
+          parallelMerge = parallelMerge
         ) transform {
           _ =>
             //delete the segments merged with self.
@@ -1083,14 +1083,14 @@ private[core] case class Level(dirs: Seq[Dir],
   @inline private[core] def assignAndPut(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
                                          targetSegments: Iterable[Segment],
                                          appendEntry: Option[MapEntry[Slice[Byte], Segment]],
-                                         mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] =
+                                         parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] =
 
     assignAndPut(
       assignablesCount = 1,
       assignables = Seq(Assignable.Collection.fromMap(map)),
       targetSegments = targetSegments,
       appendEntry = appendEntry,
-      mergeParallelism = mergeParallelism
+      parallelMerge = parallelMerge
     )
 
   /**
@@ -1100,7 +1100,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                  assignables: Iterable[Assignable],
                                  targetSegments: Iterable[Segment],
                                  appendEntry: Option[MapEntry[Slice[Byte], Segment]],
-                                 mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] = {
+                                 parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
     IO(SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](assignablesCount, assignables, targetSegments)) flatMap {
       assignments =>
@@ -1112,7 +1112,7 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", pathDistributor.head, assignments.map(_.segment.path.toString), assignables.size)
           putAssigned(
             assignments = assignments,
-            mergeParallelism = mergeParallelism
+            parallelMerge = parallelMerge
           ) flatMap {
             targetSegmentAndNewSegments =>
               targetSegmentAndNewSegments.foldLeftRecoverIO(MapEntry.noneSegment) {
@@ -1174,8 +1174,8 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def putAssigned(assignments: Iterable[Assignment[ListBuffer[Assignable]]],
-                          mergeParallelism: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[Segment]])]] =
-    assignments.mapParallel[(Segment, SegmentPutResult[Slice[Segment]])](parallelism = mergeParallelism, timeout = 20.minutes)(
+                          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[Segment]])]] =
+    assignments.mapParallel[(Segment, SegmentPutResult[Slice[Segment]])](parallelism = parallelMerge.levelParallelism, timeout = parallelMerge.levelParallelismTimeout)(
       block = {
         assignment =>
           IO {

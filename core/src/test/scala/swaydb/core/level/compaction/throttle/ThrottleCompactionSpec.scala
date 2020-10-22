@@ -36,6 +36,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core._
 import swaydb.data.RunThis._
+import swaydb.data.compaction.ParallelMerge
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -88,7 +89,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           segments = Iterable.empty,
           thisLevel = thisLevel,
           nextLevel = nextLevel,
-          mergeParallelism = randomMaxParallelism()
+          parallelMerge = randomParallelMerge()
         ).right.right.value shouldBe IO.zero
       }
     }
@@ -104,8 +105,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             val segments = Seq(TestSegment(keyValues(0)), TestSegment(keyValues(1)))
 
             //next level should value a put for all the input Segments
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
-              (putSegments: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: ParallelMerge)(_: ExecutionContext)) expects(*, *, *) onCall {
+              (putSegments: Iterable[Segment], _: ParallelMerge, _: ExecutionContext) =>
                 putSegments.map(_.path) shouldBe segments.map(_.path)
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -122,7 +123,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
               segments = segments,
               thisLevel = thisLevel,
               nextLevel = nextLevel,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ).right.right.value.right.value shouldBe segments.size
         }
       }
@@ -139,8 +140,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             val segments = Seq(TestSegment(keyValues(0)), TestSegment(keyValues(1)))
 
             //next level should value a put for all the input Segments
-            (nextLevel.put(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
-              (putSegments: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (nextLevel.put(_: Iterable[Segment], _: ParallelMerge)(_: ExecutionContext)) expects(*, *, *) onCall {
+              (putSegments: Iterable[Segment], _: ParallelMerge, _: ExecutionContext) =>
                 putSegments.map(_.path) shouldBe segments.map(_.path)
                 implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
                 IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -158,7 +159,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
               segments = segments,
               thisLevel = thisLevel,
               nextLevel = nextLevel,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ).right.right.value.right.value shouldBe segments.size
         }
       }
@@ -170,7 +171,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
       "it's the last Level and is empty" in {
         TestCaseSweeper {
           implicit sweeper =>
-            ThrottleCompaction.copyForwardForEach(Slice(TestLevel()), randomMaxParallelism()) shouldBe 0
+            ThrottleCompaction.copyForwardForEach(Slice(TestLevel()), randomParallelMerge()) shouldBe 0
         }
       }
 
@@ -183,7 +184,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
             ThrottleCompaction.copyForwardForEach(
               levels = level.reverseLevels.toSlice,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ) shouldBe 0
 
             if (persistent)
@@ -213,7 +214,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
               val actualCopied =
                 ThrottleCompaction.copyForwardForEach(
                   levels = level1.reverseLevels.toSlice,
-                  mergeParallelism = randomMaxParallelism()
+                  parallelMerge = randomParallelMerge()
                 )
 
               actualCopied shouldBe expectedCopiedSegments
@@ -248,7 +249,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
             ThrottleCompaction.copyForwardForEach(
               levels = level1.reverseLevels.toSlice,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             )
 
             //top levels are level, second last level value all overlapping Segments, last Level gets the rest.
@@ -277,7 +278,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             checkExpired = randomBoolean(),
             remainingCompactions = randomIntMax(10),
             segmentsCompacted = 0,
-            mergeParallelism = randomMaxParallelism()
+            parallelMerge = randomParallelMerge()
           ) shouldBe IO.zero
         }
       }
@@ -292,7 +293,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             checkExpired = randomBoolean(),
             remainingCompactions = randomIntMax(10),
             segmentsCompacted = 10,
-            mergeParallelism = randomMaxParallelism()
+            parallelMerge = randomParallelMerge()
           ) shouldBe IO.Right(10)
         }
       }
@@ -334,7 +335,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
               checkExpired = true,
               remainingCompactions = 5,
               segmentsCompacted = 0,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ) shouldBe IO.Right(5)
         }
       }
@@ -368,8 +369,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
                 segments.take(count)
             }
 
-            (level.collapse(_: Iterable[Segment], _: Int)(_: ExecutionContext)) expects(*, *, *) onCall {
-              (segmentsToCollapse: Iterable[Segment], _: Int, _: ExecutionContext) =>
+            (level.collapse(_: Iterable[Segment], _: ParallelMerge)(_: ExecutionContext)) expects(*, *, *) onCall {
+              (segmentsToCollapse: Iterable[Segment], _: ParallelMerge, _: ExecutionContext) =>
                 segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
                 segments --= segmentsToCollapse
                 IO.Right(IO(segmentsToCollapse.size))(IO.ExceptionHandler.PromiseUnit)
@@ -382,7 +383,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
               checkExpired = false,
               remainingCompactions = 5,
               segmentsCompacted = 0,
-              mergeParallelism = randomMaxParallelism()
+              parallelMerge = randomParallelMerge()
             ) shouldBe IO.Right(5)
         }
       }

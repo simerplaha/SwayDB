@@ -31,7 +31,7 @@ import swaydb.configs.level.{DefaultExecutionContext, DefaultPersistentConfig}
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
@@ -58,7 +58,7 @@ object Map extends LazyLogging {
                                                        appendixFlushCheckpointSize: Int = 2.mb,
                                                        otherDirs: Seq[Dir] = Seq.empty,
                                                        cacheKeyValueIds: Boolean = true,
-                                                       mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                                                       parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                                                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                        atomic: Atomic = CommonConfigs.atomic(),
                                                        acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
@@ -85,7 +85,7 @@ object Map extends LazyLogging {
                                                                                                                                    sequencer: Sequencer[BAG] = null,
                                                                                                                                    byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                    typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism),
+                                                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(parallelMerge),
                                                                                                                                    buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map)): BAG[swaydb.Map[K, V, F, BAG]] =
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
@@ -107,7 +107,7 @@ object Map extends LazyLogging {
               recoveryMode = recoveryMode,
               mmapAppendix = mmapAppendix,
               appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-              mergeParallelism = mergeParallelism,
+              parallelMerge = parallelMerge,
               sortedKeyIndex = sortedKeyIndex,
               randomSearchIndex = randomSearchIndex,
               binarySearchIndex = binarySearchIndex,

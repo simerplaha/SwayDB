@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
@@ -68,7 +68,7 @@ object MultiMap extends LazyLogging {
                                                           appendixFlushCheckpointSize: Int = 2.mb,
                                                           otherDirs: Seq[Dir] = Seq.empty,
                                                           cacheKeyValueIds: Boolean = true,
-                                                          mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                                                          parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                                                           optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                           atomic: Atomic = CommonConfigs.atomic(),
                                                           acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
@@ -96,7 +96,7 @@ object MultiMap extends LazyLogging {
                                                                                                                                       sequencer: Sequencer[BAG] = null,
                                                                                                                                       byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                       typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                                      compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(mergeParallelism),
+                                                                                                                                      compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(parallelMerge),
                                                                                                                                       buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap)): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
       implicit val multiKeySerializer: Serializer[MultiKey[M, K]] = MultiKey.serializer(keySerializer, mapKeySerializer)
@@ -119,7 +119,7 @@ object MultiMap extends LazyLogging {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
-          mergeParallelism = mergeParallelism,
+          parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration,

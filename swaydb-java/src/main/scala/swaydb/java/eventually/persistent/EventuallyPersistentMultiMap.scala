@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutorService
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.compaction.ParallelMerge
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -63,7 +64,7 @@ object EventuallyPersistentMultiMap {
                                  private var cacheKeyValueIds: Boolean = true,
                                  private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                  private var deleteMemorySegmentsEventually: Boolean = false,
-                                 private var mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                                 private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                                  private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                  private var atomic: Atomic = CommonConfigs.atomic(),
                                  private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
@@ -90,8 +91,8 @@ object EventuallyPersistentMultiMap {
       this
     }
 
-    def setMergeParallelism(parallel: Int) = {
-      this.mergeParallelism = parallel
+    def setParallelMerge(parallel: ParallelMerge) = {
+      this.parallelMerge = parallel
       this
     }
 
@@ -250,7 +251,7 @@ object EventuallyPersistentMultiMap {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
-          mergeParallelism = mergeParallelism,
+          parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.apply,
@@ -270,7 +271,7 @@ object EventuallyPersistentMultiMap {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.glass,
           byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism))
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge))
         )
 
       swaydb.java.MultiMap[M, K, V, F](scalaMap.asInstanceOf[swaydb.MultiMap[M, K, V, F, Glass]])

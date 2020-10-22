@@ -158,7 +158,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
         val keyValues = randomPutKeyValues(keyValuesCount)
         val maps = TestMap(keyValues)
 
-        level1.put(maps, randomMaxParallelism()).right.right.value.right.value should contain only level2.levelNumber
+        level1.put(maps, randomParallelMerge()).right.right.value.right.value should contain only level2.levelNumber
 
         level1.isEmpty shouldBe true
         level2.isEmpty shouldBe false

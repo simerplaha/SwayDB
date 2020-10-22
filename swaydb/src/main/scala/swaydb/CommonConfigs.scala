@@ -26,6 +26,7 @@ package swaydb
 
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.compaction.ParallelMerge
 
 import scala.concurrent.duration._
 
@@ -46,8 +47,15 @@ case object CommonConfigs {
       logAsWarning = false
     )
 
-  def mergeParallelism(): Int =
-    Runtime.getRuntime.availableProcessors() / 2
+  def parallelMerge(): ParallelMerge =
+    ParallelMerge.On(
+      levelParallelism = Runtime.getRuntime.availableProcessors() / 2,
+      levelParallelismTimeout = 1.hour,
+      //disable Segment parallelism because default tuning is for small machines
+      //this can be turned on similar to above if you have more cores.
+      segmentParallelism = 0,
+      segmentParallelismTimeout = 0.seconds
+    )
 
   def optimiseWrites(): OptimiseWrites =
     OptimiseWrites.RandomOrder

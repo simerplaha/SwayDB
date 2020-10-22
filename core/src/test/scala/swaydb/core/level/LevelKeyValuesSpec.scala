@@ -358,7 +358,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
           val keyValues = randomPutKeyValues()
           implicit val ec = TestExecutionContext.executionContext
-          level.assignAndPut(keyValues.size, keyValues, Seq(targetSegment), None, randomMaxParallelism()).runRandomIO.right.value
+          level.assignAndPut(keyValues.size, keyValues, Seq(targetSegment), None, randomParallelMerge()).runRandomIO.right.value
 
           if (isWindowsAndMMAPSegments())
             sweeper.receiveAll()
@@ -391,7 +391,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           keyValues.add(Persistent.Put(_key = 1235, None, null, Time.empty, 10, 10, 10, 10, 10, 0)) //give it a null Reader so that it fails reading the value.
 
           implicit val ec = TestExecutionContext.executionContext
-          val failed = level.assignAndPut(keyValues.size, keyValues, Iterable(targetSegment), None, randomMaxParallelism())
+          val failed = level.assignAndPut(keyValues.size, keyValues, Iterable(targetSegment), None, randomParallelMerge())
           failed.isLeft shouldBe true
           failed.left.get.exception shouldBe a[NullPointerException]
 

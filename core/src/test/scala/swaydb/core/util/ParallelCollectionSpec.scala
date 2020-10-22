@@ -46,7 +46,7 @@ class ParallelCollectionSpec extends AnyWordSpec with Matchers {
           val seq = 0 to 20
 
           val failAt = Math.abs(Random.nextInt(seq.size))
-          val parallelism = randomMaxParallelism()
+          val parallelism = randomParallelMerge()
 
           println(s"failAt: $failAt. parallelism = $parallelism")
 
@@ -60,8 +60,10 @@ class ParallelCollectionSpec extends AnyWordSpec with Matchers {
           @volatile var recoverSuccesses: Iterable[String] = null
           @volatile var failed: Throwable = null
 
+          val parallelMerge = randomParallelMerge()
+
           val result =
-            seq.mapParallel[String](parallelism = randomMaxParallelism(), timeout = 5.seconds)(
+            seq.mapParallel[String](parallelism = parallelMerge.levelParallelism, timeout = parallelMerge.levelParallelismTimeout)(
               block = block,
               recover = {
                 case (success, error) =>
@@ -91,8 +93,10 @@ class ParallelCollectionSpec extends AnyWordSpec with Matchers {
           @volatile var recoverSuccesses: Iterable[String] = null
           @volatile var failed: Throwable = null
 
+          val parallelMerge = randomParallelMerge()
+
           val result =
-            seq.mapParallel[String](parallelism = randomMaxParallelism(), timeout = 5.seconds)(
+            seq.mapParallel[String](parallelism = parallelMerge.levelParallelism, timeout = parallelMerge.levelParallelismTimeout)(
               block = block,
               recover = {
                 case (success, error) =>

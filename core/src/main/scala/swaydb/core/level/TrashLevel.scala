@@ -27,16 +27,15 @@ package swaydb.core.level
 import java.nio.file.{Path, Paths}
 
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.data.{KeyValue, Memory, MemoryOption}
+import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.Futures
 import swaydb.{Error, IO}
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Promise}
 
 private[core] object TrashLevel extends NextLevel {
 
@@ -161,15 +160,15 @@ private[core] object TrashLevel extends NextLevel {
    * Return empty Set here because it's Trash level and does not require compaction.
    */
   override def put(segment: Segment,
-                   mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Set[Int]]] =
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
   override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                   mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
   override def put(segments: Iterable[Segment],
-                   mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
     IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
@@ -188,7 +187,7 @@ private[core] object TrashLevel extends NextLevel {
     IO.unitUnit
 
   override def collapse(segments: Iterable[Segment],
-                        mergeParallelism: Int)(implicit ec: ExecutionContext): IO[Nothing, IO[Error.Segment, Int]] =
+                        parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Nothing, IO[Error.Segment, Int]] =
     IO.Right[Nothing, IO[Error.Segment, Int]](IO.Right(segments.size))(IO.ExceptionHandler.Nothing)
 
   override def isZero: Boolean =

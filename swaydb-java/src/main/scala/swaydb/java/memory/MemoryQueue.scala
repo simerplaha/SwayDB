@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.{Atomic, OptimiseWrites}
@@ -49,7 +49,7 @@ object MemoryQueue {
                         private var deleteSegmentsEventually: Boolean = false,
                         private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                         private var atomic: Atomic = CommonConfigs.atomic(),
-                        private var mergeParallelism: Int = CommonConfigs.mergeParallelism(),
+                        private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
                         private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -63,8 +63,8 @@ object MemoryQueue {
       this
     }
 
-    def setMergeParallelism(parallel: Int) = {
-      this.mergeParallelism = parallel
+    def setParallelMerge(parallel: ParallelMerge) = {
+      this.parallelMerge = parallel
       this
     }
 
@@ -131,7 +131,7 @@ object MemoryQueue {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
-          mergeParallelism = mergeParallelism,
+          parallelMerge = parallelMerge,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
@@ -140,7 +140,7 @@ object MemoryQueue {
           threadStateCache = threadStateCache
         )(serializer = serializer,
           bag = Bag.glass,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(mergeParallelism)))
+          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge)))
 
       swaydb.java.Queue[A](scalaQueue)
     }
