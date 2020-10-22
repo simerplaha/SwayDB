@@ -64,11 +64,12 @@ object ParallelCollection {
     if (jobsCount <= 1 || parallelism <= 1) {
       val series = SeriesVolatile[B](jobsCount)
 
-      iterable.zipWithIndex foreach {
-        case (job, index) =>
+      iterable.foldLeft(0) {
+        case (index, job) =>
           block(job) match {
             case IO.Right(outcome) =>
               series.set(index, outcome)
+              index + 1
 
             case IO.Left(error) =>
               val left = IO.Left[E, SeriesVolatile[B]](error)
@@ -82,7 +83,14 @@ object ParallelCollection {
     } else {
       @volatile var failure: IO.Left[E, SeriesVolatile[B]] = null
 
-      val jobs: Array[A] = Array.from[A](iterable)
+      val jobs: Array[A] = new Array[A](jobsCount)
+
+      iterable.foldLeft(0) {
+        case (index, item) =>
+          jobs(index) = item
+          index + 1
+      }
+
       val jobIndex = new AtomicInteger(0)
 
       val series = SeriesVolatile[B](jobsCount)
@@ -133,7 +141,6 @@ object ParallelCollection {
         Await.result(Future.sequence(parallelJobs), timeout)
       catch {
         case throwable: Throwable =>
-          throwable.printStackTrace()
           failure = IO.failed(throwable)
       }
 
