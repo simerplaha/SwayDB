@@ -26,6 +26,7 @@ package swaydb.core.actor
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Bag.Implicits._
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.{ActorConfig, FileCache}
@@ -34,8 +35,6 @@ import swaydb.{Actor, ActorRef, Bag, IO}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
 import scala.ref.WeakReference
-import Bag.Implicits._
-import swaydb.core.actor.FileSweeper.Command
 
 private[core] trait FileSweeperItem {
   def path: Path
@@ -54,10 +53,10 @@ private[swaydb] sealed trait FileSweeper {
   def executionContext: ExecutionContext =
     closer.executionContext
 
-  def send(command: Command.Close): Unit =
+  def send(command: FileSweeper.Command.Close): Unit =
     closer.send(command)
 
-  def send(command: Command.Delete): Unit =
+  def send(command: FileSweeper.Command.Delete): Unit =
     deleter.send(command)
 }
 
