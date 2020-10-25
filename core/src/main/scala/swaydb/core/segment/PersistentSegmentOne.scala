@@ -314,7 +314,7 @@ protected case class PersistentSegmentOne(file: DBFile,
         pathsDistributor = pathsDistributor
       )
     else
-      SegmentRef.putParallel(
+      SegmentRef.fastPut(
         ref = ref,
         headGap = headGap,
         tailGap = tailGap,

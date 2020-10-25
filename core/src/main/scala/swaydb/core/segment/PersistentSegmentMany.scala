@@ -515,7 +515,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                            executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] = {
     val transient: Iterable[TransientSegment] =
-      SegmentRef.put(
+      SegmentRef.mergeWrite(
         oldKeyValuesCount = getKeyValueCount(),
         oldKeyValues = iterator(),
         headGap = headGap,
