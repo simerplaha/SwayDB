@@ -513,35 +513,24 @@ protected case class PersistentSegmentMany(file: DBFile,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] = {
-    val transient: Iterable[TransientSegment] =
-      SegmentRef.mergeWrite(
-        oldKeyValuesCount = getKeyValueCount(),
-        oldKeyValues = iterator(),
-        headGap = headGap,
-        tailGap = tailGap,
-        mergeableCount = mergeableCount,
-        mergeable = mergeable,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-
-    val newSegments =
-      Segment.persistent(
-        pathsDistributor = pathsDistributor,
-        mmap = segmentConfig.mmap,
-        createdInLevel = createdInLevel,
-        transient = transient
-      )
-
-    SegmentPutResult(result = newSegments, replaced = true)
-  }
+                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
+    Segment.mergePut(
+      headGap = headGap,
+      tailGap = tailGap,
+      mergeableCount = mergeableCount,
+      mergeable = mergeable,
+      oldKeyValuesCount = getKeyValueCount(),
+      oldKeyValues = iterator(),
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig,
+      pathsDistributor = pathsDistributor
+    )
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -551,28 +540,19 @@ protected case class PersistentSegmentMany(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
-
-    val transient: Iterable[TransientSegment] =
-      SegmentRef.refreshForNewLevel(
-        keyValues = iterator(),
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-
-    Segment.persistent(
-      pathsDistributor = pathsDistributor,
-      mmap = segmentConfig.mmap,
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] =
+    Segment.refreshForNewLevelPut(
+      removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
-      transient = transient
+      keyValues = iterator(),
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig,
+      pathsDistributor = pathsDistributor
     )
-  }
 
   def getFromCache(key: Slice[Byte]): PersistentOption =
     segments

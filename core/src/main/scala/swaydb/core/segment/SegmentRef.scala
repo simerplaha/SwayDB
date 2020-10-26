@@ -51,6 +51,7 @@ import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListConcurre
 import swaydb.core.util.{IDGenerator, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
+import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.{SomeOrNone, TupleOrNone}
@@ -692,8 +693,8 @@ private[core] object SegmentRef {
                  hashIndexConfig: HashIndexBlock.Config,
                  bloomFilterConfig: BloomFilterBlock.Config,
                  segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   functionStore: FunctionStore): Slice[TransientSegment] =
+                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                     functionStore: FunctionStore): Slice[TransientSegment] =
     mergeWrite(
       oldKeyValuesCount = ref.getKeyValueCount(),
       oldKeyValues = ref.iterator(),
@@ -725,8 +726,8 @@ private[core] object SegmentRef {
                  hashIndexConfig: HashIndexBlock.Config,
                  bloomFilterConfig: BloomFilterBlock.Config,
                  segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   functionStore: FunctionStore): Slice[TransientSegment] = {
+                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                     functionStore: FunctionStore): Slice[TransientSegment] = {
 
     val builder = MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
@@ -937,7 +938,7 @@ private[core] object SegmentRef {
     //MergeState builder.
     if (footer.createdInLevel == createdInLevel) {
       val iterator = ref.iterator()
-      refreshForSameLevel(
+      Segment.refreshForSameLevel(
         sortedIndexBlock = ref.segmentBlockCache.getSortedIndex(),
         valuesBlock = ref.segmentBlockCache.getValues(),
         iterator = iterator,
@@ -953,7 +954,7 @@ private[core] object SegmentRef {
       )
     }
     else
-      refreshForNewLevel(
+      Segment.refreshForNewLevel(
         keyValues = ref.iterator(),
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
@@ -966,100 +967,44 @@ private[core] object SegmentRef {
       )
   }
 
-  /**
-   * This refresh does not compute new sortedIndex size and uses existing. Saves an iteration
-   * and performs refresh instantly.
-   */
-  def refreshForSameLevel(sortedIndexBlock: SortedIndexBlock,
-                          valuesBlock: Option[ValuesBlock],
-                          iterator: Iterator[Persistent],
-                          keyValuesCount: Int,
-                          removeDeletes: Boolean,
-                          createdInLevel: Int,
-                          valuesConfig: ValuesBlock.Config,
-                          sortedIndexConfig: SortedIndexBlock.Config,
-                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                          hashIndexConfig: HashIndexBlock.Config,
-                          bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
+  def refreshPut(ref: SegmentRef,
+                 removeDeletes: Boolean,
+                 createdInLevel: Int,
+                 valuesConfig: ValuesBlock.Config,
+                 sortedIndexConfig: SortedIndexBlock.Config,
+                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                 hashIndexConfig: HashIndexBlock.Config,
+                 bloomFilterConfig: BloomFilterBlock.Config,
+                 segmentConfig: SegmentBlock.Config,
+                 pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                                     keyOrder: KeyOrder[Slice[Byte]],
+                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                     functionStore: FunctionStore,
+                                                     blockCache: Option[BlockCache.State],
+                                                     fileSweeper: FileSweeper,
+                                                     bufferCleaner: ByteBufferSweeperActor,
+                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                     forceSaveApplier: ForceSaveApplier,
+                                                     segmentIO: SegmentIO): Slice[PersistentSegment] = {
 
-    val sortedIndexSize =
-      sortedIndexBlock.compressionInfo match {
-        case Some(compressionInfo) =>
-          compressionInfo.decompressedLength
-
-        case None =>
-          sortedIndexBlock.offset.size
-      }
-
-    val valuesSize =
-      valuesBlock match {
-        case Some(valuesBlock) =>
-          valuesBlock.compressionInfo match {
-            case Some(value) =>
-              value.decompressedLength
-
-            case None =>
-              valuesBlock.offset.size
-          }
-        case None =>
-          0
-      }
-
-    val keyValues =
-      Segment
-        .toMemoryIterator(iterator, removeDeletes)
-        .to(Iterable)
-
-    val mergeStats =
-      new MergeStats.Persistent.Closed[Iterable](
-        isEmpty = false,
-        keyValuesCount = keyValuesCount,
-        keyValues = keyValues,
-        totalValuesSize = valuesSize,
-        maxSortedIndexSize = sortedIndexSize
+    val segments =
+      SegmentRef.refresh(
+        ref = ref,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
       )
 
-    SegmentBlock.writeOneOrMany(
-      mergeStats = mergeStats,
+    Segment.persistent(
+      pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
-      bloomFilterConfig = bloomFilterConfig,
-      hashIndexConfig = hashIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig
-    )
-  }
-
-  def refreshForNewLevel(keyValues: Iterator[Persistent],
-                         removeDeletes: Boolean,
-                         createdInLevel: Int,
-                         valuesConfig: ValuesBlock.Config,
-                         sortedIndexConfig: SortedIndexBlock.Config,
-                         binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                         hashIndexConfig: HashIndexBlock.Config,
-                         bloomFilterConfig: BloomFilterBlock.Config,
-                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
-    val memoryKeyValues =
-      Segment
-        .toMemoryIterator(keyValues, removeDeletes)
-        .to(Iterable)
-
-    val builder =
-      MergeStats
-        .persistentBuilder(memoryKeyValues)
-        .close(sortedIndexConfig.enableAccessPositionIndex)
-
-    SegmentBlock.writeOneOrMany(
-      mergeStats = builder,
-      createdInLevel = createdInLevel,
-      bloomFilterConfig = bloomFilterConfig,
-      hashIndexConfig = hashIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig
+      mmap = segmentConfig.mmap,
+      transient = segments
     )
   }
 }

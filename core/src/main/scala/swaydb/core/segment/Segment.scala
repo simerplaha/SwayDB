@@ -509,6 +509,197 @@ private[core] case object Segment extends LazyLogging {
     )
   }
 
+  def mergePut(headGap: Iterable[Assignable],
+               tailGap: Iterable[Assignable],
+               mergeableCount: Int,
+               mergeable: Iterator[Assignable],
+               oldKeyValuesCount: Int,
+               oldKeyValues: Iterator[Persistent],
+               removeDeletes: Boolean,
+               createdInLevel: Int,
+               valuesConfig: ValuesBlock.Config,
+               sortedIndexConfig: SortedIndexBlock.Config,
+               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+               hashIndexConfig: HashIndexBlock.Config,
+               bloomFilterConfig: BloomFilterBlock.Config,
+               segmentConfig: SegmentBlock.Config,
+               pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                                   keyOrder: KeyOrder[Slice[Byte]],
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   functionStore: FunctionStore,
+                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                   fileSweeper: FileSweeper,
+                                                   bufferCleaner: ByteBufferSweeperActor,
+                                                   blockCache: Option[BlockCache.State],
+                                                   segmentIO: SegmentIO,
+                                                   forceSaveApplier: ForceSaveApplier): SegmentPutResult[Slice[PersistentSegment]] = {
+    val transient: Iterable[TransientSegment] =
+      SegmentRef.mergeWrite(
+        oldKeyValuesCount = oldKeyValuesCount,
+        oldKeyValues = oldKeyValues,
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
+      )
+
+    val newSegments =
+      Segment.persistent(
+        pathsDistributor = pathsDistributor,
+        mmap = segmentConfig.mmap,
+        createdInLevel = createdInLevel,
+        transient = transient
+      )
+
+    SegmentPutResult(result = newSegments, replaced = true)
+  }
+
+  /**
+   * This refresh does not compute new sortedIndex size and uses existing. Saves an iteration
+   * and performs refresh instantly.
+   */
+  def refreshForSameLevel(sortedIndexBlock: SortedIndexBlock,
+                          valuesBlock: Option[ValuesBlock],
+                          iterator: Iterator[Persistent],
+                          keyValuesCount: Int,
+                          removeDeletes: Boolean,
+                          createdInLevel: Int,
+                          valuesConfig: ValuesBlock.Config,
+                          sortedIndexConfig: SortedIndexBlock.Config,
+                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                          hashIndexConfig: HashIndexBlock.Config,
+                          bloomFilterConfig: BloomFilterBlock.Config,
+                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
+
+    val sortedIndexSize =
+      sortedIndexBlock.compressionInfo match {
+        case Some(compressionInfo) =>
+          compressionInfo.decompressedLength
+
+        case None =>
+          sortedIndexBlock.offset.size
+      }
+
+    val valuesSize =
+      valuesBlock match {
+        case Some(valuesBlock) =>
+          valuesBlock.compressionInfo match {
+            case Some(value) =>
+              value.decompressedLength
+
+            case None =>
+              valuesBlock.offset.size
+          }
+        case None =>
+          0
+      }
+
+    val keyValues =
+      Segment
+        .toMemoryIterator(iterator, removeDeletes)
+        .to(Iterable)
+
+    val mergeStats =
+      new MergeStats.Persistent.Closed[Iterable](
+        isEmpty = false,
+        keyValuesCount = keyValuesCount,
+        keyValues = keyValues,
+        totalValuesSize = valuesSize,
+        maxSortedIndexSize = sortedIndexSize
+      )
+
+    SegmentBlock.writeOneOrMany(
+      mergeStats = mergeStats,
+      createdInLevel = createdInLevel,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig
+    )
+  }
+
+  def refreshForNewLevel(keyValues: Iterator[Persistent],
+                         removeDeletes: Boolean,
+                         createdInLevel: Int,
+                         valuesConfig: ValuesBlock.Config,
+                         sortedIndexConfig: SortedIndexBlock.Config,
+                         binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                         hashIndexConfig: HashIndexBlock.Config,
+                         bloomFilterConfig: BloomFilterBlock.Config,
+                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
+    val memoryKeyValues =
+      Segment
+        .toMemoryIterator(keyValues, removeDeletes)
+        .to(Iterable)
+
+    val builder =
+      MergeStats
+        .persistentBuilder(memoryKeyValues)
+        .close(sortedIndexConfig.enableAccessPositionIndex)
+
+    SegmentBlock.writeOneOrMany(
+      mergeStats = builder,
+      createdInLevel = createdInLevel,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig
+    )
+  }
+
+  def refreshForNewLevelPut(removeDeletes: Boolean,
+                            createdInLevel: Int,
+                            keyValues: Iterator[Persistent],
+                            valuesConfig: ValuesBlock.Config,
+                            sortedIndexConfig: SortedIndexBlock.Config,
+                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                            hashIndexConfig: HashIndexBlock.Config,
+                            bloomFilterConfig: BloomFilterBlock.Config,
+                            segmentConfig: SegmentBlock.Config,
+                            pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                                                keyOrder: KeyOrder[Slice[Byte]],
+                                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                                functionStore: FunctionStore,
+                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                fileSweeper: FileSweeper,
+                                                                bufferCleaner: ByteBufferSweeperActor,
+                                                                blockCache: Option[BlockCache.State],
+                                                                segmentIO: SegmentIO,
+                                                                forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
+
+    val transient: Iterable[TransientSegment] =
+      Segment.refreshForNewLevel(
+        keyValues = keyValues,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
+      )
+
+    Segment.persistent(
+      pathsDistributor = pathsDistributor,
+      mmap = segmentConfig.mmap,
+      createdInLevel = createdInLevel,
+      transient = transient
+    )
+  }
+
   def apply(path: Path,
             formatId: Byte,
             createdInLevel: Int,

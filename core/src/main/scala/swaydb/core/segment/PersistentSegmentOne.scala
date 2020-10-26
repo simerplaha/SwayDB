@@ -340,28 +340,19 @@ protected case class PersistentSegmentOne(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
-
-    val segments =
-      SegmentRef.refresh(
-        ref = ref,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-
-    Segment.persistent(
-      pathsDistributor = pathsDistributor,
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] =
+    SegmentRef.refreshPut(
+      ref = ref,
+      removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
-      mmap = segmentConfig.mmap,
-      transient = segments
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig,
+      pathsDistributor = pathsDistributor
     )
-  }
 
   def getFromCache(key: Slice[Byte]): PersistentOption =
     ref getFromCache key
