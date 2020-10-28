@@ -38,7 +38,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.merge.MergeStats.Persistent
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, SegmentRef}
 import swaydb.core.util.{Bytes, Collections}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder

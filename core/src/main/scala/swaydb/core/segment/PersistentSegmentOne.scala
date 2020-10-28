@@ -25,12 +25,11 @@
 package swaydb.core.segment
 
 import java.nio.file.{Path, Paths}
-import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
@@ -46,19 +45,15 @@ import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.{Aggregator, IO}
 
-import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
-import scala.util.{Failure, Success, Try}
 
 protected object PersistentSegmentOne {
 
@@ -129,6 +124,7 @@ protected object PersistentSegmentOne {
         path = file.path,
         minKey = minKey,
         maxKey = maxKey,
+        nearestPutDeadline = nearestExpiryDeadline,
         blockRef = segmentBlockRef,
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,
@@ -240,18 +236,13 @@ protected case class PersistentSegmentOne(file: DBFile,
                                                                                 forceSaveApplier: ForceSaveApplier,
                                                                                 segmentIO: SegmentIO) extends PersistentSegment with LazyLogging {
 
-  implicit val segmentCacheImplicit: SegmentRef = ref
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
-  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
-  implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
-
   override def formatId: Byte = PersistentSegmentOne.formatId
 
   def path = file.path
 
   override def close: Unit = {
     file.close()
-    ref.clearBlockCache()
+    ref.clearAllCaches()
   }
 
   def isOpen: Boolean =
@@ -270,7 +261,7 @@ protected case class PersistentSegmentOne(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure.value.exception)
     } map {
       _ =>
-        ref.clearBlockCache()
+        ref.clearAllCaches()
     }
   }
 
@@ -358,7 +349,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     ref getFromCache key
 
   def mightContainKey(key: Slice[Byte]): Boolean =
-    ref mightContain key
+    ref mightContainKey key
 
   override def mightContainFunction(key: Slice[Byte]): Boolean =
     minMaxFunctionId exists {
@@ -370,13 +361,13 @@ protected case class PersistentSegmentOne(file: DBFile,
     }
 
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
-    SegmentRef.get(key, threadState)
+    ref.get(key, threadState)
 
   def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
-    SegmentRef.lower(key, threadState)
+    ref.lower(key, threadState)
 
   def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
-    SegmentRef.higher(key, threadState)
+    ref.higher(key, threadState)
 
   def iterator(): Iterator[Persistent] =
     ref.iterator()
@@ -413,7 +404,7 @@ protected case class PersistentSegmentOne(file: DBFile,
 
   def clearAllCaches(): Unit = {
     clearCachedKeyValues()
-    ref.clearBlockCache()
+    ref.clearAllCaches()
   }
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
@@ -426,6 +417,6 @@ protected case class PersistentSegmentOne(file: DBFile,
     ref.areAllCachesEmpty
 
   def cachedKeyValueSize: Int =
-    ref.cacheSize
+    ref.cachedKeyValueSize
 
 }

@@ -64,7 +64,7 @@ object TransientSegmentSerialiser {
           Slice(Memory.Put(maxKey, value, one.nearestPutDeadline, Time.empty))
         else
           Slice(
-            Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, None, Time.empty)),
+            Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, one.nearestPutDeadline, Time.empty)),
             Memory.Put(maxKey, value, one.nearestPutDeadline, Time.empty)
           )
 
@@ -84,7 +84,7 @@ object TransientSegmentSerialiser {
             else
               Value.Put(Slice.Null, one.nearestPutDeadline, Time.empty)
 
-          Slice(Memory.Range(one.minKey, maxKey, fromValue, Value.Update(value, None, Time.empty)))
+          Slice(Memory.Range(one.minKey, maxKey, fromValue, Value.Update(value, one.nearestPutDeadline, Time.empty)))
         }
     }
 
@@ -111,6 +111,7 @@ object TransientSegmentSerialiser {
             path = path.resolve(s".ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Fixed(range.toKey.unslice()),
+            nearestPutDeadline = deadline,
             blockRef =
               BlockRefReader(
                 ref = reader,
@@ -133,6 +134,7 @@ object TransientSegmentSerialiser {
             path = path.resolve(s".ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Range(maxKeyMinKey.unslice(), range.toKey.unslice()),
+            nearestPutDeadline = deadline,
             blockRef =
               BlockRefReader(
                 ref = reader,
@@ -176,6 +178,7 @@ object TransientSegmentSerialiser {
         path = path.resolve(s".ref.$segmentOffset"),
         minKey = put.key,
         maxKey = MaxKey.Fixed(put.key.unslice()),
+        nearestPutDeadline = put.deadline,
         blockRef =
           BlockRefReader(
             ref = reader,
@@ -198,6 +201,7 @@ object TransientSegmentSerialiser {
         path = path.resolve(s".ref.$segmentOffset"),
         minKey = put.key.unslice(),
         maxKey = MaxKey.Range(maxKeyMinKey.unslice(), put.key.unslice()),
+        nearestPutDeadline = put.deadline,
         blockRef =
           BlockRefReader(
             ref = reader,

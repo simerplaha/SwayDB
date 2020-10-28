@@ -32,4 +32,10 @@ object SegmentPutResult {
 }
 
 class SegmentPutResult[+A](val result: A,
-                           val replaced: Boolean)
+                           val replaced: Boolean) {
+  def map[B](f: A => B): SegmentPutResult[B] =
+    new SegmentPutResult[B](
+      result = f(result),
+      replaced = replaced
+    )
+}

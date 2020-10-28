@@ -24,17 +24,16 @@
 
 package swaydb.core.segment
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
-import swaydb.core.actor.MemorySweeper
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
+import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -48,34 +47,34 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
-import swaydb.core.util.{IDGenerator, MinMax}
+import swaydb.core.util.{IDGenerator, MinMax, UUIDs}
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
-import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.{SomeOrNone, TupleOrNone}
+import swaydb.data.util.{SomeOrNoneCovariant, TupleOrNone}
 
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
-private[core] sealed trait SegmentRefOption extends SomeOrNone[SegmentRefOption, SegmentRef] {
-  override def noneS: SegmentRefOption = SegmentRef.Null
+private[core] sealed trait SegmentRefOption extends SomeOrNoneCovariant[SegmentRefOption, SegmentRef] {
+  override def noneC: SegmentRefOption = SegmentRef.Null
 }
 
-private[core] object SegmentRef {
+private[core] case object SegmentRef {
 
   final case object Null extends SegmentRefOption {
-    override def isNoneS: Boolean = true
+    override def isNoneC: Boolean = true
 
-    override def getS: SegmentRef = throw new Exception("SegmentRef is of type Null")
+    override def getC: SegmentRef = throw new Exception("SegmentRef is of type Null")
   }
 
   def apply(path: Path,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
+            nearestPutDeadline: Option[Deadline],
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -122,6 +121,7 @@ private[core] object SegmentRef {
       path = path,
       maxKey = maxKey,
       minKey = minKey,
+      nearestPutDeadline = nearestPutDeadline,
       skipList = skipList,
       segmentBlockCache = segmentBlockCache
     )
@@ -241,7 +241,7 @@ private[core] object SegmentRef {
               floorRange
 
             case floorValue =>
-              if (footer.hasRange || segmentRef.mightContain(key)) {
+              if (footer.hasRange || segmentRef.mightContainKey(key)) {
                 val bestStart =
                   SegmentRef.bestStartForGetOrHigherSearch(
                     key = key,
@@ -931,13 +931,12 @@ private[core] object SegmentRef {
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
-
     val footer = ref.getFooter()
+    val iterator = ref.iterator()
     //if it's created in the same level the required spaces for sortedIndex and values
     //will be the same as existing or less than the current sizes so there is no need to create a
     //MergeState builder.
-    if (footer.createdInLevel == createdInLevel) {
-      val iterator = ref.iterator()
+    if (footer.createdInLevel == createdInLevel)
       Segment.refreshForSameLevel(
         sortedIndexBlock = ref.segmentBlockCache.getSortedIndex(),
         valuesBlock = ref.segmentBlockCache.getValues(),
@@ -952,10 +951,9 @@ private[core] object SegmentRef {
         bloomFilterConfig = bloomFilterConfig,
         segmentConfig = segmentConfig
       )
-    }
     else
       Segment.refreshForNewLevel(
-        keyValues = ref.iterator(),
+        keyValues = iterator,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         valuesConfig = valuesConfig,
@@ -1012,17 +1010,20 @@ private[core] object SegmentRef {
 private[core] class SegmentRef(val path: Path,
                                val maxKey: MaxKey[Slice[Byte]],
                                val minKey: Slice[Byte],
+                               val nearestPutDeadline: Option[Deadline],
                                val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
                                val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                         keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with Assignable.Collection with LazyLogging {
+                                                                         keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with LazyLogging {
 
-  override def key: Slice[Byte] =
-    minKey
+  implicit val self: SegmentRef = this
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
+  implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
 
-  override def isNoneS: Boolean =
+  override def isNoneC: Boolean =
     false
 
-  override def getS: SegmentRef =
+  override def getC: SegmentRef =
     this
 
   /**
@@ -1057,7 +1058,7 @@ private[core] class SegmentRef(val path: Path,
         Persistent.Null
     }
 
-  def mightContain(key: Slice[Byte]): Boolean = {
+  def mightContainKey(key: Slice[Byte]): Boolean = {
     val bloomFilterReader = segmentBlockCache.createBloomFilterReaderOrNull()
     bloomFilterReader == null ||
       BloomFilterBlock.mightContain(
@@ -1099,13 +1100,13 @@ private[core] class SegmentRef(val path: Path,
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
     skipList.exists(_.contains(key))
 
-  def cacheSize: Int =
+  def cachedKeyValueSize: Int =
     skipList.foldLeft(0)(_ + _.size)
 
   def clearCachedKeyValues() =
     skipList.foreach(_.clear())
 
-  def clearBlockCache() =
+  def clearAllCaches() =
     segmentBlockCache.clear()
 
   def areAllCachesEmpty =
@@ -1117,7 +1118,12 @@ private[core] class SegmentRef(val path: Path,
   def segmentSize: Int =
     segmentBlockCache.segmentSize
 
-  def isInitialised() =
-    segmentBlockCache.isCached
+  def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+    SegmentRef.get(key, threadState)
 
+  def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+    SegmentRef.lower(key, threadState)
+
+  def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+    SegmentRef.higher(key, threadState)
 }

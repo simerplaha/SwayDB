@@ -105,6 +105,7 @@ protected case object PersistentSegmentMany {
                   path = file.path.resolve(s".ref.$offset"),
                   minKey = one.minKey,
                   maxKey = one.maxKey,
+                  nearestPutDeadline = one.nearestPutDeadline,
                   blockRef = blockRef,
                   segmentIO = segmentIO,
                   valuesReaderCacheable = one.valuesUnblockedReader,
@@ -304,6 +305,7 @@ protected case object PersistentSegmentMany {
         path = file.path,
         minKey = minKey,
         maxKey = maxKey,
+        nearestPutDeadline = None,
         blockRef = listSegmentRef,
         segmentIO = segmentIO,
         valuesReaderCacheable = None,
@@ -389,6 +391,9 @@ protected case object PersistentSegmentMany {
                                minKey: Slice[Byte],
                                maxKey: MaxKey[Slice[Byte]],
                                fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                                                  functionStore: FunctionStore,
+                                                                                  blockCache: Option[BlockCache.State],
                                                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                   blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                   segmentIO: SegmentIO): SegmentRef = {
@@ -401,6 +406,8 @@ protected case object PersistentSegmentMany {
       path = file.path,
       minKey = minKey,
       maxKey = maxKey,
+      //ListSegment does not store deadline. This is stored at the higher Level.
+      nearestPutDeadline = None,
       blockRef = listSegmentRef,
       segmentIO = segmentIO,
       valuesReaderCacheable = None,
@@ -515,12 +522,12 @@ protected case class PersistentSegmentMany(file: DBFile,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                            executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
     Segment.mergePut(
+      oldKeyValuesCount = getKeyValueCount(),
+      oldKeyValues = iterator(),
       headGap = headGap,
       tailGap = tailGap,
       mergeableCount = mergeableCount,
       mergeable = mergeable,
-      oldKeyValuesCount = getKeyValueCount(),
-      oldKeyValues = iterator(),
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
       valuesConfig = valuesConfig,
@@ -557,24 +564,24 @@ protected case class PersistentSegmentMany(file: DBFile,
   def getFromCache(key: Slice[Byte]): PersistentOption =
     segments
       .floor(key)
-      .flatMapSomeS(Persistent.Null: PersistentOption)(_.getFromCache(key))
+      .flatMapSomeC(Persistent.Null: PersistentOption)(_.getFromCache(key))
 
   def mightContainKey(key: Slice[Byte]): Boolean =
     segments
       .floor(key)
-      .existsS(_.mightContain(key))
+      .existsC(_.mightContainKey(key))
 
   /**
    * [[PersistentSegmentMany]] is not aware of [[minMaxFunctionId]].
    * It should be deferred to [[SegmentRef]].
    */
   override def mightContainFunction(key: Slice[Byte]): Boolean =
-    segmentRefs exists (_.mightContain(key))
+    segmentRefs exists (_.mightContainKey(key))
 
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     segments
       .floor(key)
-      .flatMapSomeS(Persistent.Null: PersistentOption) {
+      .flatMapSomeC(Persistent.Null: PersistentOption) {
         implicit ref =>
           SegmentRef.get(
             key = key,
@@ -585,7 +592,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     segments
       .lower(key)
-      .flatMapSomeS(Persistent.Null: PersistentOption) {
+      .flatMapSomeC(Persistent.Null: PersistentOption) {
         implicit ref =>
           SegmentRef.lower(
             key = key,
@@ -598,9 +605,9 @@ protected case class PersistentSegmentMany(file: DBFile,
                                       threadState: ThreadReadState): PersistentOption =
     segments
       .higher(key)
-      .flatMapSomeS(Persistent.Null: PersistentOption) {
+      .flatMapSomeC(Persistent.Null: PersistentOption) {
         implicit higherSegment =>
-          if (floorSegment.existsS(_.path == higherSegment.path))
+          if (floorSegment.existsC(_.path == higherSegment.path))
             Persistent.Null
           else
             SegmentRef.higher(
@@ -613,7 +620,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     val floorSegment = segments.floor(key)
 
     floorSegment
-      .flatMapSomeS(Persistent.Null: PersistentOption) {
+      .flatMapSomeC(Persistent.Null: PersistentOption) {
         implicit ref =>
           SegmentRef.higher(
             key = key,
@@ -668,13 +675,13 @@ protected case class PersistentSegmentMany(file: DBFile,
     clearCachedKeyValues()
     segmentsCache.clear()
     segmentRefsCache.clear()
-    segmentRefs.foreach(_.clearBlockCache())
+    segmentRefs.foreach(_.clearAllCaches())
   }
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
     segments
       .floor(key)
-      .forallS(_.isInKeyValueCache(key))
+      .forallC(_.isInKeyValueCache(key))
 
   def isKeyValueCacheEmpty: Boolean =
     segmentRefs.forall(_.isKeyValueCacheEmpty)
@@ -683,5 +690,5 @@ protected case class PersistentSegmentMany(file: DBFile,
     segmentRefs.forall(_.areAllCachesEmpty)
 
   def cachedKeyValueSize: Int =
-    segmentRefs.foldLeft(0)(_ + _.cacheSize)
+    segmentRefs.foldLeft(0)(_ + _.cachedKeyValueSize)
 }

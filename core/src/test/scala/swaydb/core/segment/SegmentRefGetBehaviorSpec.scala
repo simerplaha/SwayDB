@@ -40,7 +40,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.MaxKey
 import swaydb.data.RunThis._
-import swaydb.data.order.KeyOrder
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -54,13 +54,25 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
   implicit val cacheMemorySweeper: Option[MemorySweeper.Cache] = None
   implicit val blockMemorySweeper: Option[MemorySweeper.Block] = None
 
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit def segmentIO: SegmentIO = SegmentIO.random
+
   "get" when {
     implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
 
     "key is > MaxKey.Fixed" should {
       "return none" in {
         implicit val segmentSearcher = mock[SegmentSearcher]
-        implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Fixed[Slice[Byte]](100), minKey = 0, None, null)
+        implicit val segmentRef =
+          new SegmentRef(
+            path = Paths.get("1"),
+            maxKey = MaxKey.Fixed[Slice[Byte]](100),
+            minKey = 0,
+            nearestPutDeadline = None,
+            skipList = None,
+            segmentBlockCache = null
+          )
+
         SegmentRef.get(key = 101, threadState = null) shouldBe Persistent.Null
 
       }
@@ -69,7 +81,15 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
     "key is > MaxKey.Range" should {
       "return none" in {
         implicit val segmentSearcher = mock[SegmentSearcher]
-        implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Range[Slice[Byte]](90, 100), minKey = 0, None, null)
+        implicit val segmentRef =
+          new SegmentRef(
+            path = Paths.get("1"),
+            maxKey = MaxKey.Range[Slice[Byte]](90, 100),
+            minKey = 0,
+            nearestPutDeadline = None,
+            skipList = None,
+            segmentBlockCache = null
+          )
         SegmentRef.get(key = 100, threadState = null) shouldBe Persistent.Null
         SegmentRef.get(key = 101, threadState = null) shouldBe Persistent.Null
 
@@ -96,6 +116,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
               path = path,
               maxKey = MaxKey.Fixed[Slice[Byte]](Int.MaxValue),
               minKey = 0,
+              nearestPutDeadline = None,
               skipList = None,
               segmentBlockCache = segmentBlockCache.head
             )
