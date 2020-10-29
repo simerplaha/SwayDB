@@ -1428,4 +1428,16 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   override def getS: Segment =
     this
+
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: Segment =>
+        this.path == other.path
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    path.hashCode()
 }
