@@ -26,12 +26,10 @@ package swaydb.java.persistent
 
 import java.nio.file.Path
 import java.util.Collections
-import java.util.concurrent.ExecutorService
 
-import swaydb.{Bag, CommonConfigs, Glass}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
@@ -39,9 +37,9 @@ import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
+import swaydb.{Bag, CommonConfigs, Glass}
 
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
@@ -55,7 +53,7 @@ object PersistentQueue {
                         private var appendixFlushCheckpointSize: Int = 2.mb,
                         private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                         private var cacheKeyValueIds: Boolean = true,
-                        private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                        private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                         private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                         private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -75,7 +73,6 @@ object PersistentQueue {
                         private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                         private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
-                        private var compactionEC: Option[ExecutionContext] = None,
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {
@@ -83,8 +80,8 @@ object PersistentQueue {
       this
     }
 
-    def setParallelMerge(parallel: ParallelMerge) = {
-      this.parallelMerge = parallel
+    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
+      this.compactionExecutionContext = Some(executionContext)
       this
     }
 
@@ -213,11 +210,6 @@ object PersistentQueue {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: ExecutorService) = {
-      this.compactionEC = Some(ExecutionContext.fromExecutorService(executionContext))
-      this
-    }
-
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
         swaydb.persistent.Queue[A, Glass](
@@ -229,7 +221,7 @@ object PersistentQueue {
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
-          parallelMerge = parallelMerge,
+          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           optimiseWrites = optimiseWrites,
@@ -249,10 +241,7 @@ object PersistentQueue {
           levelFourThrottle = levelFourThrottle.asScala,
           levelFiveThrottle = levelFiveThrottle.asScala,
           levelSixThrottle = levelSixThrottle.asScala
-        )(serializer = serializer,
-          bag = Bag.glass,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge))
-        )
+        )(serializer = serializer, bag = Bag.glass)
 
       swaydb.java.Queue[A](scalaQueue)
     }

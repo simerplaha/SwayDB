@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.ParallelMerge
+import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
@@ -42,8 +42,7 @@ import swaydb.multimap.{MultiKey, MultiValue}
 import swaydb.serializers.Serializer
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, MultiMap, PureFunction}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object MultiMap extends LazyLogging {
@@ -66,7 +65,7 @@ object MultiMap extends LazyLogging {
                                                           cacheKeyValueIds: Boolean = true,
                                                           mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                           memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                                                          parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                                                          compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                                                           optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                           atomic: Atomic = CommonConfigs.atomic(),
                                                           acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
@@ -87,7 +86,6 @@ object MultiMap extends LazyLogging {
                                                                                                                                                             sequencer: Sequencer[BAG] = null,
                                                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                             typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                                                            compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(parallelMerge),
                                                                                                                                                             buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.MultiMap)): BAG[MultiMap[M, K, V, F, BAG]] =
     bag.suspend {
 
@@ -114,7 +112,7 @@ object MultiMap extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           memorySegmentDeleteDelay = memorySegmentDeleteDelay,
-          parallelMerge = parallelMerge,
+          compactionExecutionContext = compactionExecutionContext,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration,
@@ -134,7 +132,6 @@ object MultiMap extends LazyLogging {
           sequencer = sequencer,
           functions = functionStore,
           byteKeyOrder = internalKeyOrder,
-          compactionEC = compactionEC,
           buildValidator = buildValidator and BuildValidator.MultiMapFileExists(dir.resolve(swaydb.MultiMap.folderName))
         )
 

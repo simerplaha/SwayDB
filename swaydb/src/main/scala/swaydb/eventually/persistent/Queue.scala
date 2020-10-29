@@ -27,21 +27,20 @@ package swaydb.eventually.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Bag, CommonConfigs}
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.build.BuildValidator
-import swaydb.data.{Atomic, DataType, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.ParallelMerge
+import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{Atomic, DataType, OptimiseWrites}
 import swaydb.serializers.Serializer
+import swaydb.{Bag, CommonConfigs}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 
 object Queue extends LazyLogging {
 
@@ -61,7 +60,7 @@ object Queue extends LazyLogging {
                        cacheKeyValueIds: Boolean = true,
                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                        memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                       parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                       compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                        atomic: Atomic = CommonConfigs.atomic(),
                        acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
@@ -76,7 +75,6 @@ object Queue extends LazyLogging {
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                          bag: Bag[BAG],
                                                                                                                          sequencer: Sequencer[BAG] = null,
-                                                                                                                         compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(parallelMerge),
                                                                                                                          buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Queue)): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =
@@ -98,7 +96,7 @@ object Queue extends LazyLogging {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           memorySegmentDeleteDelay = memorySegmentDeleteDelay,
-          parallelMerge = parallelMerge,
+          compactionExecutionContext = compactionExecutionContext,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration,

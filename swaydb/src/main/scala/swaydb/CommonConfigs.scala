@@ -24,9 +24,10 @@
 
 package swaydb
 
-import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.ParallelMerge
+import swaydb.data.compaction.{CompactionExecutionContext, ParallelMerge}
+import swaydb.data.{Atomic, OptimiseWrites}
 
 import scala.concurrent.duration._
 
@@ -58,6 +59,18 @@ case object CommonConfigs {
       segmentParallelism = 0,
       segmentParallelismTimeout = 0.seconds
     )
+
+  def compactionExecutionContext(): CompactionExecutionContext.Create = {
+    //init default parallel merge config
+    val parallelMerge = CommonConfigs.parallelMerge()
+    //create default compaction execution context passing it parallelMerge for parallelMerge's threads to be created
+    val executionContext = DefaultExecutionContext.compactionEC(parallelMerge = parallelMerge)
+    //create compaction config
+    CompactionExecutionContext.Create(
+      executionContext = executionContext,
+      parallelMerge = parallelMerge
+    )
+  }
 
   def optimiseWrites(): OptimiseWrites =
     OptimiseWrites.RandomOrder

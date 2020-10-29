@@ -31,7 +31,7 @@ import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultExecution
 import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.ParallelMerge
+import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
@@ -42,8 +42,7 @@ import swaydb.function.FunctionConverter
 import swaydb.serializers.Serializer
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, PureFunction}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
@@ -66,7 +65,7 @@ object Map extends LazyLogging {
                                                        cacheKeyValueIds: Boolean = true,
                                                        mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                        memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                                                       parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                                                       compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                                                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                        atomic: Atomic = CommonConfigs.atomic(),
                                                        acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
@@ -86,7 +85,6 @@ object Map extends LazyLogging {
                                                                                                                                                          sequencer: Sequencer[BAG] = null,
                                                                                                                                                          byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                          typedKeyOrder: KeyOrder[K] = null,
-                                                                                                                                                         compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(parallelMerge),
                                                                                                                                                          buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Map)): BAG[swaydb.Map[K, V, F, BAG]] =
     bag.suspend {
 
@@ -109,13 +107,13 @@ object Map extends LazyLogging {
               clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
               maxMemoryLevelSize = maxMemoryLevelSize,
               maxSegmentsToPush = maxSegmentsToPush,
-              memoryLevelMergeParallelism = parallelMerge,
+              memoryLevelCompactionExecutionContext = compactionExecutionContext,
               memoryLevelMinSegmentSize = memoryLevelSegmentSize,
               memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
               memorySegmentDeleteDelay = memorySegmentDeleteDelay,
               persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
               mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
-              persistentLevelMergeParallelism = parallelMerge,
+              persistentLevelCompactionExecutionContext = compactionExecutionContext,
               persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
               persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex,
               persistentLevelBinarySearchIndex = binarySearchIndex,

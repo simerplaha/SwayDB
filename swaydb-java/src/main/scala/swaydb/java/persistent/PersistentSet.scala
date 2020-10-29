@@ -26,12 +26,11 @@ package swaydb.java.persistent
 
 import java.nio.file.Path
 import java.util.Collections
-import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -45,7 +44,6 @@ import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
@@ -62,7 +60,7 @@ object PersistentSet {
                            private var appendixFlushCheckpointSize: Int = 2.mb,
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
-                           private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                           private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
@@ -83,19 +81,18 @@ object PersistentSet {
                            private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
                            private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
-                           private var typedComparator: KeyComparator[A] = null,
-                           private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
-                                                                                      serializer: Serializer[A],
-                                                                                      functions: Functions[F],
-                                                                                      evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
+                           private var typedComparator: KeyComparator[A] = null)(implicit functionClassTag: ClassTag[F],
+                                                                                 serializer: Serializer[A],
+                                                                                 functions: Functions[F],
+                                                                                 evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
       this
     }
 
-    def setParallelMerge(parallel: ParallelMerge) = {
-      this.parallelMerge = parallel
+    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
+      this.compactionExecutionContext = Some(executionContext)
       this
     }
 
@@ -244,11 +241,6 @@ object PersistentSet {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: ExecutorService) = {
-      this.compactionEC = Some(ExecutionContext.fromExecutorService(executionContext))
-      this
-    }
-
     def get(): swaydb.java.Set[A, F] = {
       val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[A]] =
         Eithers.nullCheck(
@@ -273,7 +265,7 @@ object PersistentSet {
           cacheKeyValueIds = cacheKeyValueIds,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
-          parallelMerge = parallelMerge,
+          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,
@@ -295,8 +287,7 @@ object PersistentSet {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Set[A]]],
           bag = Bag.glass,
           functions = functions.asInstanceOf[Functions[PureFunction.Set[A]]],
-          byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge))
+          byteKeyOrder = scalaKeyOrder
         )
 
       swaydb.java.Set[A, F](scalaMap.asInstanceOf[swaydb.Set[A, F, Glass]])

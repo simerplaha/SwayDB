@@ -24,12 +24,10 @@
 
 package swaydb.java.memory
 
-import java.util.concurrent.ExecutorService
-
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -42,7 +40,6 @@ import swaydb.serializers.Serializer
 import swaydb.{Bag, CommonConfigs, Glass}
 
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object MemorySetMap {
@@ -53,7 +50,7 @@ object MemorySetMap {
                            private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                            private var atomic: Atomic = CommonConfigs.atomic(),
-                           private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                           private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
                            private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -61,7 +58,6 @@ object MemorySetMap {
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                            private var typedComparator: KeyComparator[K] = null,
-                           private var compactionEC: Option[ExecutionContext] = None,
                            keySerializer: Serializer[K],
                            valueSerializer: Serializer[V]) {
 
@@ -70,8 +66,8 @@ object MemorySetMap {
       this
     }
 
-    def setParallelMerge(parallel: ParallelMerge) = {
-      this.parallelMerge = parallel
+    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
+      this.compactionExecutionContext = Some(executionContext)
       this
     }
 
@@ -135,11 +131,6 @@ object MemorySetMap {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: ExecutorService) = {
-      this.compactionEC = Some(ExecutionContext.fromExecutorService(executionContext))
-      this
-    }
-
     def get(): swaydb.java.SetMap[K, V] = {
       val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -157,7 +148,7 @@ object MemorySetMap {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteDelay = deleteDelay,
-          parallelMerge = parallelMerge,
+          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
@@ -167,8 +158,7 @@ object MemorySetMap {
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
           bag = Bag.glass,
-          byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge))
+          byteKeyOrder = scalaKeyOrder
         )
 
       swaydb.java.SetMap[K, V](scalaMap)

@@ -27,7 +27,7 @@ package swaydb.memory
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.sequencer.Sequencer
@@ -36,7 +36,6 @@ import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.serializers.Serializer
 import swaydb.{Bag, CommonConfigs}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 object Queue extends LazyLogging {
@@ -49,7 +48,7 @@ object Queue extends LazyLogging {
                        maxKeyValuesPerSegment: Int = Int.MaxValue,
                        fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                        deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                       parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                       compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                        atomic: Atomic = CommonConfigs.atomic(),
                        acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
@@ -57,8 +56,7 @@ object Queue extends LazyLogging {
                        lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                          bag: Bag[BAG],
-                                                                                                                         sequencer: Sequencer[BAG] = null,
-                                                                                                                         compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(parallelMerge)): BAG[swaydb.Queue[A]] =
+                                                                                                                         sequencer: Sequencer[BAG] = null): BAG[swaydb.Queue[A]] =
     bag.suspend {
       implicit val queueSerialiser: Serializer[(Long, A)] =
         swaydb.Queue.serialiser[A](serializer)
@@ -73,7 +71,7 @@ object Queue extends LazyLogging {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteDelay = deleteDelay,
-          parallelMerge = parallelMerge,
+          compactionExecutionContext = compactionExecutionContext,
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration,

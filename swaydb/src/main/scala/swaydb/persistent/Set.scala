@@ -32,7 +32,7 @@ import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
@@ -43,7 +43,6 @@ import swaydb.function.FunctionConverter
 import swaydb.serializers.{Default, Serializer}
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, PureFunction}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
@@ -64,7 +63,7 @@ object Set extends LazyLogging {
                                                  cacheKeyValueIds: Boolean = true,
                                                  optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                  atomic: Atomic = CommonConfigs.atomic(),
-                                                 parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                                                 compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                                                  acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
                                                  threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                  sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
@@ -88,7 +87,6 @@ object Set extends LazyLogging {
                                                                                                                              functions: Functions[F],
                                                                                                                              byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                              typedKeyOrder: KeyOrder[A] = null,
-                                                                                                                             compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(parallelMerge),
                                                                                                                              buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
@@ -111,7 +109,7 @@ object Set extends LazyLogging {
               recoveryMode = recoveryMode,
               mmapAppendix = mmapAppendix,
               appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-              parallelMerge = parallelMerge,
+              compactionExecutionContext = compactionExecutionContext,
               sortedKeyIndex = sortedKeyIndex,
               randomSearchIndex = randomSearchIndex,
               binarySearchIndex = binarySearchIndex,

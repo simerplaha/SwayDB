@@ -25,12 +25,11 @@
 package swaydb.configs.level
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
+import swaydb.data.{Atomic, OptimiseWrites}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultMemoryConfig extends LazyLogging {
@@ -44,18 +43,18 @@ object DefaultMemoryConfig extends LazyLogging {
             minSegmentSize: Int,
             maxKeyValuesPerSegment: Int,
             deleteDelay: FiniteDuration,
-            parallelMerge: ParallelMerge,
+            compactionExecutionContext: CompactionExecutionContext.Create,
             acceleration: LevelZeroMeter => Accelerator,
             levelZeroThrottle: LevelZeroMeter => FiniteDuration,
             lastLevelThrottle: LevelMeter => Throttle,
             optimiseWrites: OptimiseWrites,
-            atomic: Atomic)(implicit executionContext: ExecutionContext): SwayDBMemoryConfig =
+            atomic: Atomic): SwayDBMemoryConfig =
     ConfigWizard
       .withMemoryLevel0(
         mapSize = mapSize,
         appliedFunctionsMapSize = appliedFunctionsMapSize,
         clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
-        compactionExecutionContext = CompactionExecutionContext.Create(executionContext, parallelMerge),
+        compactionExecutionContext = compactionExecutionContext,
         optimiseWrites = optimiseWrites,
         atomic = atomic,
         acceleration = acceleration,

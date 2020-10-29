@@ -26,12 +26,11 @@ package swaydb.java.eventually.persistent
 
 import java.nio.file.Path
 import java.util.Collections
-import java.util.concurrent.ExecutorService
 
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.ParallelMerge
+import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -46,8 +45,7 @@ import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
 import scala.compat.java8.DurationConverters.DurationOps
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
@@ -66,7 +64,7 @@ object EventuallyPersistentSet {
                            private var cacheKeyValueIds: Boolean = true,
                            private var mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                            private var memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                           private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                           private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                            private var atomic: Atomic = CommonConfigs.atomic(),
                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
@@ -80,19 +78,18 @@ object EventuallyPersistentSet {
                            private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(DefaultExecutionContext.sweeperEC),
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
-                           private var typedComparator: KeyComparator[A] = null,
-                           private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
-                                                                                      serializer: Serializer[A],
-                                                                                      functions: Functions[F],
-                                                                                      evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
+                           private var typedComparator: KeyComparator[A] = null)(implicit functionClassTag: ClassTag[F],
+                                                                                 serializer: Serializer[A],
+                                                                                 functions: Functions[F],
+                                                                                 evd: F <:< PureFunction[A, Nothing, Apply.Set[Nothing]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
       this
     }
 
-    def setParallelMerge(parallel: ParallelMerge) = {
-      this.parallelMerge = parallel
+    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
+      this.compactionExecutionContext = Some(executionContext)
       this
     }
 
@@ -221,11 +218,6 @@ object EventuallyPersistentSet {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: ExecutorService) = {
-      this.compactionEC = Some(ExecutionContext.fromExecutorService(executionContext))
-      this
-    }
-
     def get(): swaydb.java.Set[A, F] = {
       val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[A]] =
         Eithers.nullCheck(
@@ -251,7 +243,7 @@ object EventuallyPersistentSet {
           cacheKeyValueIds = cacheKeyValueIds,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
           memorySegmentDeleteDelay = memorySegmentDeleteDelay,
-          parallelMerge = parallelMerge,
+          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.apply,
@@ -268,8 +260,7 @@ object EventuallyPersistentSet {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Set[A]]],
           bag = Bag.glass,
           functions = functions.asInstanceOf[Functions[PureFunction.Set[A]]],
-          byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge))
+          byteKeyOrder = scalaKeyOrder
         )
 
       swaydb.java.Set[A, F](scalaMap.asInstanceOf[swaydb.Set[A, F, Glass]])

@@ -24,12 +24,10 @@
 
 package swaydb.java.memory
 
-import java.util.concurrent.ExecutorService
-
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -42,7 +40,6 @@ import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag, CommonConfigs, Glass, PureFunction}
 
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
@@ -54,27 +51,26 @@ object MemoryMap {
                               private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                               private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                               private var atomic: Atomic = CommonConfigs.atomic(),
-                              private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                              private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
                               private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
                               private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                               private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                               private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
-                              private var typedComparator: KeyComparator[K] = null,
-                              private var compactionEC: Option[ExecutionContext] = None)(implicit functionClassTag: ClassTag[F],
-                                                                                         keySerializer: Serializer[K],
-                                                                                         valueSerializer: Serializer[V],
-                                                                                         functions: Functions[F],
-                                                                                         evd: F <:< PureFunction[K, V, Apply.Map[V]]) {
+                              private var typedComparator: KeyComparator[K] = null)(implicit functionClassTag: ClassTag[F],
+                                                                                    keySerializer: Serializer[K],
+                                                                                    valueSerializer: Serializer[V],
+                                                                                    functions: Functions[F],
+                                                                                    evd: F <:< PureFunction[K, V, Apply.Map[V]]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
       this
     }
 
-    def setParallelMerge(parallel: ParallelMerge) = {
-      this.parallelMerge = parallel
+    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
+      this.compactionExecutionContext = Some(executionContext)
       this
     }
 
@@ -138,11 +134,6 @@ object MemoryMap {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: ExecutorService) = {
-      this.compactionEC = Some(ExecutionContext.fromExecutorService(executionContext))
-      this
-    }
-
     def get(): swaydb.java.Map[K, V, F] = {
       val comparator: Either[KeyComparator[Slice[java.lang.Byte]], KeyComparator[K]] =
         Eithers.nullCheck(
@@ -160,7 +151,7 @@ object MemoryMap {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteDelay = deleteDelay,
-          parallelMerge = parallelMerge,
+          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
@@ -172,8 +163,7 @@ object MemoryMap {
           functions = functions.asInstanceOf[Functions[PureFunction.Map[K, V]]],
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction.Map[K, V]]],
           bag = Bag.glass,
-          byteKeyOrder = scalaKeyOrder,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge))
+          byteKeyOrder = scalaKeyOrder
         )
 
       swaydb.java.Map[K, V, F](scalaMap.asInstanceOf[swaydb.Map[K, V, F, Glass]])

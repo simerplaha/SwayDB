@@ -32,7 +32,7 @@ import swaydb.core.Core
 import swaydb.core.build.BuildValidator
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.ParallelMerge
+import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
@@ -43,16 +43,13 @@ import swaydb.function.FunctionConverter
 import swaydb.serializers.{Default, Serializer}
 import swaydb.{Apply, CommonConfigs, KeyOrderConverter, PureFunction}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object Set extends LazyLogging {
 
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-   *
-   *
    */
   def apply[A, F <: PureFunction.Set[A], BAG[_]](dir: Path,
                                                  mapSize: Int = CommonConfigs.mapSize,
@@ -67,7 +64,7 @@ object Set extends LazyLogging {
                                                  cacheKeyValueIds: Boolean = true,
                                                  mmapPersistentLevelAppendix: MMAP.Map = DefaultConfigs.mmap(),
                                                  memorySegmentDeleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
-                                                 parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                                                 compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                                                  optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                  atomic: Atomic = CommonConfigs.atomic(),
                                                  acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
@@ -86,7 +83,6 @@ object Set extends LazyLogging {
                                                                                                                                                    sequencer: Sequencer[BAG] = null,
                                                                                                                                                    byteKeyOrder: KeyOrder[Slice[Byte]] = null,
                                                                                                                                                    typedKeyOrder: KeyOrder[A] = null,
-                                                                                                                                                   compactionEC: ExecutionContext = DefaultExecutionContext.compactionEC(parallelMerge),
                                                                                                                                                    buildValidator: BuildValidator = BuildValidator.DisallowOlderVersions(DataType.Set)): BAG[swaydb.Set[A, F, BAG]] =
     bag.suspend {
       implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
@@ -109,13 +105,13 @@ object Set extends LazyLogging {
               clearAppliedFunctionsOnBoot = clearAppliedFunctionsOnBoot,
               maxMemoryLevelSize = maxMemoryLevelSize,
               maxSegmentsToPush = maxSegmentsToPush,
-              memoryLevelMergeParallelism = parallelMerge,
+              memoryLevelCompactionExecutionContext = compactionExecutionContext,
               memoryLevelMinSegmentSize = memoryLevelSegmentSize,
               memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
               memorySegmentDeleteDelay = memorySegmentDeleteDelay,
               persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
               mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
-              persistentLevelMergeParallelism = parallelMerge,
+              persistentLevelCompactionExecutionContext = compactionExecutionContext,
               persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
               persistentLevelRandomSearchIndex = persistentLevelRandomSearchIndex,
               persistentLevelBinarySearchIndex = binarySearchIndex,

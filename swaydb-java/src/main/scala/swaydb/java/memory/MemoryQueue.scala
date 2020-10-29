@@ -24,11 +24,9 @@
 
 package swaydb.java.memory
 
-import java.util.concurrent.ExecutorService
-
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.util.Java.JavaFunction
 import swaydb.data.{Atomic, OptimiseWrites}
@@ -38,7 +36,6 @@ import swaydb.serializers.Serializer
 import swaydb.{Bag, CommonConfigs, Glass}
 
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object MemoryQueue {
@@ -49,13 +46,12 @@ object MemoryQueue {
                         private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                         private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                         private var atomic: Atomic = CommonConfigs.atomic(),
-                        private var parallelMerge: ParallelMerge = CommonConfigs.parallelMerge(),
+                        private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
                         private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                         private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                        private var compactionEC: Option[ExecutionContext] = None,
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {
@@ -63,8 +59,8 @@ object MemoryQueue {
       this
     }
 
-    def setParallelMerge(parallel: ParallelMerge) = {
-      this.parallelMerge = parallel
+    def setCompactionExecutionContext(executionContext: CompactionExecutionContext.Create) = {
+      this.compactionExecutionContext = Some(executionContext)
       this
     }
 
@@ -118,11 +114,6 @@ object MemoryQueue {
       this
     }
 
-    def setCompactionExecutionContext(executionContext: ExecutorService) = {
-      this.compactionEC = Some(ExecutionContext.fromExecutorService(executionContext))
-      this
-    }
-
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
         swaydb.memory.Queue[A, Glass](
@@ -131,16 +122,14 @@ object MemoryQueue {
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           fileCache = fileCache,
           deleteDelay = deleteDelay,
-          parallelMerge = parallelMerge,
+          compactionExecutionContext = compactionExecutionContext getOrElse CommonConfigs.compactionExecutionContext(),
           optimiseWrites = optimiseWrites,
           atomic = atomic,
           acceleration = acceleration.asScala,
           levelZeroThrottle = levelZeroThrottle.asScala,
           lastLevelThrottle = lastLevelThrottle.asScala,
           threadStateCache = threadStateCache
-        )(serializer = serializer,
-          bag = Bag.glass,
-          compactionEC = compactionEC.getOrElse(DefaultExecutionContext.compactionEC(parallelMerge)))
+        )(serializer = serializer, bag = Bag.glass)
 
       swaydb.java.Queue[A](scalaQueue)
     }
