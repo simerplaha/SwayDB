@@ -197,8 +197,8 @@ private[core] object MergeStats {
     class Closed[+T[_]](val isEmpty: Boolean,
                         val keyValuesCount: Int,
                         val keyValues: T[data.Memory],
-                        var maxSortedIndexSize: Int,
-                        var totalValuesSize: Int)
+                        val maxSortedIndexSize: Int,
+                        val totalValuesSize: Int)
   }
 
   object Memory {

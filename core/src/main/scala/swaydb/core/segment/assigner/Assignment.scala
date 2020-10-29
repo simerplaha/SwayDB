@@ -25,7 +25,6 @@
 package swaydb.core.segment.assigner
 
 import swaydb.Aggregator
-import swaydb.core.segment.Segment
 
 import scala.collection.mutable.ListBuffer
 
@@ -37,8 +36,10 @@ import scala.collection.mutable.ListBuffer
  * @param midOverlap Overlapping key-values that require merge.
  * @param tailGap    Tail key-values that can be added directly to the Segment without merge
  * @tparam GAP [[Aggregator]]'s result type that will store all gap key-values.
+ * @tparam SEG Target Segment to which key-values should be assigned to.
+ *             This can be a [[swaydb.core.segment.Segment]] or [[swaydb.core.segment.SegmentRef]]
  */
-case class Assignment[GAP](segment: Segment,
-                           headGap: Aggregator[Assignable, GAP],
-                           midOverlap: ListBuffer[Assignable],
-                           tailGap: Aggregator[Assignable, GAP])
+case class Assignment[GAP, SEG](segment: SEG,
+                                headGap: Aggregator[Assignable, GAP],
+                                midOverlap: ListBuffer[Assignable],
+                                tailGap: Aggregator[Assignable, GAP])

@@ -24,7 +24,7 @@
 
 package swaydb.core.segment
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.typesafe.scalalogging.LazyLogging
@@ -33,7 +33,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
+import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -47,7 +47,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
-import swaydb.core.util.{IDGenerator, MinMax, UUIDs}
+import swaydb.core.util.{IDGenerator, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -1126,4 +1126,16 @@ private[core] class SegmentRef(val path: Path,
 
   def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     SegmentRef.higher(key, threadState)
+
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: SegmentRef =>
+        this.path == other.path
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    path.hashCode()
 }

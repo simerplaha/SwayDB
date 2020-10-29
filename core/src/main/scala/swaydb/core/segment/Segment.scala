@@ -870,28 +870,51 @@ private[core] case object Segment extends LazyLogging {
     }
 
   def keyOverlaps(keyValue: KeyValue,
-                  segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+                  segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+    keyOverlaps(
+      keyValue = keyValue,
+      minKey = segment.minKey,
+      maxKey = segment.maxKey
+    )
+
+  def keyOverlaps(keyValue: KeyValue,
+                  minKey: Slice[Byte],
+                  maxKey: MaxKey[Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
     import keyOrder._
-    keyValue.key >= segment.minKey && {
-      if (segment.maxKey.inclusive)
-        keyValue.key <= segment.maxKey.maxKey
+    keyValue.key >= minKey && {
+      if (maxKey.inclusive)
+        keyValue.key <= maxKey.maxKey
       else
-        keyValue.key < segment.maxKey.maxKey
+        keyValue.key < maxKey.maxKey
     }
   }
 
   def overlaps(assignable: Assignable,
                segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+    overlaps(
+      assignable = assignable,
+      minKey = segment.minKey,
+      maxKey = segment.maxKey
+    )
+
+  def overlaps(assignable: Assignable,
+               minKey: Slice[Byte],
+               maxKey: MaxKey[Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     assignable match {
       case keyValue: KeyValue =>
-        keyOverlaps(keyValue, segment)
+        keyOverlaps(
+          keyValue = keyValue,
+          minKey = minKey,
+          maxKey = maxKey
+        )
 
       case collection: Assignable.Collection =>
         overlaps(
           minKey = collection.key,
           maxKey = collection.maxKey.maxKey,
           maxKeyInclusive = collection.maxKey.inclusive,
-          segment = segment
+          targetMinKey = minKey,
+          targetMaxKey = maxKey
         )
     }
 
@@ -899,7 +922,20 @@ private[core] case object Segment extends LazyLogging {
                maxKey: Slice[Byte],
                maxKeyInclusive: Boolean,
                segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
-    Slice.intersects((minKey, maxKey, maxKeyInclusive), (segment.minKey, segment.maxKey.maxKey, segment.maxKey.inclusive))
+    overlaps(
+      minKey = minKey,
+      maxKey = maxKey,
+      maxKeyInclusive = maxKeyInclusive,
+      targetMinKey = segment.minKey,
+      targetMaxKey = segment.maxKey
+    )
+
+  def overlaps(minKey: Slice[Byte],
+               maxKey: Slice[Byte],
+               maxKeyInclusive: Boolean,
+               targetMinKey: Slice[Byte],
+               targetMaxKey: MaxKey[Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+    Slice.intersects((minKey, maxKey, maxKeyInclusive), (targetMinKey, targetMaxKey.maxKey, targetMaxKey.inclusive))
 
   def overlaps(minKey: Slice[Byte],
                maxKey: Slice[Byte],

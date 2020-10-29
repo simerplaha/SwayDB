@@ -1173,7 +1173,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  private def putAssigned(assignments: Iterable[Assignment[ListBuffer[Assignable]]],
+  private def putAssigned(assignments: Iterable[Assignment[ListBuffer[Assignable], Segment]],
                           parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[Segment]])]] =
     assignments.mapParallel[(Segment, SegmentPutResult[Slice[Segment]])](parallelism = parallelMerge.levelParallelism, timeout = parallelMerge.levelParallelismTimeout)(
       block = {
