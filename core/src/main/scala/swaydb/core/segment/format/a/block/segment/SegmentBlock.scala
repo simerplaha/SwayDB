@@ -172,7 +172,7 @@ private[core] case object SegmentBlock extends LazyLogging {
     if (mergeStats.isEmpty) {
       Slice.empty
     } else {
-      val singles: Slice[TransientSegment.One] =
+      val ones: Slice[TransientSegment.One] =
         writeOnes(
           mergeStats = mergeStats,
           createdInLevel = createdInLevel,
@@ -186,26 +186,26 @@ private[core] case object SegmentBlock extends LazyLogging {
 
       writeOneOrMany(
         createdInLevel = createdInLevel,
-        singles = singles,
+        ones = ones,
         sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
         segmentConfig = segmentConfig
       )
     }
 
-  protected def writeOneOrMany(createdInLevel: Int,
-                               singles: Slice[TransientSegment.One],
-                               sortedIndexConfig: SortedIndexBlock.Config,
-                               valuesConfig: ValuesBlock.Config,
-                               segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
-    if (singles.isEmpty) {
+  def writeOneOrMany(createdInLevel: Int,
+                     ones: Slice[TransientSegment.One],
+                     sortedIndexConfig: SortedIndexBlock.Config,
+                     valuesConfig: ValuesBlock.Config,
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
+    if (ones.isEmpty) {
       Slice.empty
     } else {
       val groups: Slice[Slice[TransientSegment.One]] =
         Collections.groupedBySize[TransientSegment.One](
           minGroupSize = segmentConfig.minSize,
           itemSize = _.segmentSize,
-          items = singles
+          items = ones
         )
 
       groups map {

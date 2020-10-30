@@ -57,7 +57,7 @@ case object CommonConfigs {
       //disable Segment parallelism because default tuning is for small machines
       //this can be turned on similar to above if you have more cores.
       segmentParallelism = 0,
-      segmentParallelismTimeout = 0.seconds
+      segmentParallelismTimeout = 5.seconds
     )
 
   def compactionExecutionContext(): CompactionExecutionContext.Create = {

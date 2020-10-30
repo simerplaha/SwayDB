@@ -532,6 +532,9 @@ private[core] class SegmentBlockCache(path: Path,
   def readAllBytes(): Slice[Byte] =
     segmentBlockRef.copy().readFullBlock()
 
+  def offset(): SegmentBlock.Offset =
+    segmentBlockRef.offset
+
   def clear(): Unit =
     allCaches.foreach(_.clear())
 

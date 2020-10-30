@@ -72,32 +72,41 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
   "refresh" should {
     "remove expired key-values" in {
-      TestCaseSweeper {
-        implicit sweeper =>
-          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, mmap = mmapSegments))
-          val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
-          level.putKeyValuesTest(keyValues).runRandomIO.right.value
-          //dispatch another put request so that existing Segment gets split
-          level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
-          level.segmentsCount() should be >= 1
+      runThis(5.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.byte, mmap = mmapSegments))
+            val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
+            level.putKeyValuesTest(keyValues).runRandomIO.right.value
+            //dispatch another put request so that existing Segment gets split
+            level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
+            level.segmentsCount() should be >= 1
 
-          //expire all key-values
-          level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, Value.FromValue.Null, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO.right.value
-          level.segmentFilesInAppendix should be > 1
+            //expire all key-values
+            level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, Value.FromValue.Null, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO.right.value
+            level.segmentFilesInAppendix should be > 1
 
-          sleep(3.seconds)
-          level.segmentsInLevel() foreach {
-            segment =>
-              level.refresh(segment).right.right.value
-          }
+            sleep(3.seconds)
 
-          if (isWindowsAndMMAPSegments())
-            eventual(10.seconds) {
-              sweeper.receiveAll()
-              level.segmentFilesInAppendix shouldBe 0
+            //refresh multiple times if necessary to cover cases if throttle only allows
+            //small number of segments to be refreshed at a time.
+            var attempts = 20
+            while (level.segmentFilesInAppendix != 0 && attempts > 0) {
+              level.segmentsInLevel() foreach {
+                segment =>
+                  level.refresh(segment).right.right.value
+              }
+              attempts -= 1
             }
-          else
-            level.segmentFilesInAppendix shouldBe 0
+
+            if (isWindowsAndMMAPSegments())
+              eventual(10.seconds) {
+                sweeper.receiveAll()
+                level.segmentFilesInAppendix shouldBe 0
+              }
+            else
+              level.segmentFilesInAppendix shouldBe 0
+        }
       }
     }
 

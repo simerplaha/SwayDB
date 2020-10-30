@@ -29,7 +29,6 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -469,7 +468,7 @@ protected case class PersistentSegmentMany(file: DBFile,
         uniqueRefs
     }
 
-  def segmentRefs: Iterable[SegmentRef] =
+  @inline def segmentRefs: Iterable[SegmentRef] =
     segmentRefsCache.value(())
 
   def path = file.path
@@ -486,8 +485,13 @@ protected case class PersistentSegmentMany(file: DBFile,
   def isFileDefined =
     file.isFileDefined
 
-  def delete(delay: FiniteDuration) =
-    fileSweeper send FileSweeper.Command.Delete(this, delay.fromNow)
+  def delete(delay: FiniteDuration) = {
+    val deadline = delay.fromNow
+    if (deadline.isOverdue())
+      this.delete
+    else
+      fileSweeper send FileSweeper.Command.Delete(this, deadline)
+  }
 
   def delete: Unit = {
     logger.trace(s"{}: DELETING FILE", path)
@@ -521,23 +525,68 @@ protected case class PersistentSegmentMany(file: DBFile,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                            executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
-    Segment.mergePut(
-      oldKeyValuesCount = getKeyValueCount(),
-      oldKeyValues = iterator(),
-      headGap = headGap,
-      tailGap = tailGap,
-      mergeableCount = mergeableCount,
-      mergeable = mergeable,
-      removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentConfig = segmentConfig,
-      pathsDistributor = pathsDistributor
-    )
+    if (removeDeletes) {
+      Segment.mergePut(
+        oldKeyValuesCount = getKeyValueCount(),
+        oldKeyValues = iterator(),
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig,
+        pathsDistributor = pathsDistributor
+      )
+    } else if (mergeableCount == 0) {
+      val writeResult =
+        SegmentRef.fastPutMany(
+          assignables = Seq(headGap, tailGap),
+          segmentParallelism = segmentParallelism,
+          removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig,
+          pathsDistributor = pathsDistributor
+        ).get
+
+      val slice = Slice.of[PersistentSegment](writeResult.foldLeft(0)(_ + _.size))
+
+      writeResult foreach slice.addAll
+
+      SegmentPutResult(
+        result = slice,
+        replaced = false
+      )
+    } else {
+      SegmentRef.fastAssignPutWithGaps(
+        path = path,
+        headGap = headGap,
+        tailGap = tailGap,
+        segmentRefs = segmentRefs,
+        assignableCount = mergeableCount,
+        assignables = mergeable,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        segmentParallelism = segmentParallelism,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig,
+        pathsDistributor = pathsDistributor
+      )
+    }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

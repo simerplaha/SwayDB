@@ -1318,11 +1318,11 @@ private[core] case object Segment extends LazyLogging {
     }
   }
 
-  def writeGapsParallel[S <: Segment](headGap: Iterable[Assignable],
-                                      tailGap: Iterable[Assignable],
-                                      empty: Slice[S],
-                                      minGapSize: Int,
-                                      segmentParallelism: SegmentParallelism)(thunk: Iterable[Assignable] => Slice[S])(implicit ec: ExecutionContext): (Iterable[Assignable], Iterable[Assignable], Future[(Slice[S], Slice[S])]) =
+  def runOnGapsParallel[A](headGap: Iterable[Assignable],
+                           tailGap: Iterable[Assignable],
+                           empty: A,
+                           minGapSize: Int,
+                           segmentParallelism: SegmentParallelism)(thunk: Iterable[Assignable] => A)(implicit ec: ExecutionContext): (Iterable[Assignable], Iterable[Assignable], Future[(A, A)]) =
     if (headGap.isEmpty && tailGap.isEmpty) {
       (headGap, tailGap, Future.successful((empty, empty)))
     } else {
@@ -1338,9 +1338,9 @@ private[core] case object Segment extends LazyLogging {
           (Assignable.emptyIterable, Future(thunk(gap)))
         }
 
-      val (head, headFuture: Future[Slice[S]]) = runConcurrentMayBe(headGap)
+      val (head, headFuture: Future[A]) = runConcurrentMayBe(headGap)
 
-      val (tail, tailFuture: Future[Slice[S]]) = runConcurrentMayBe(tailGap)
+      val (tail, tailFuture: Future[A]) = runConcurrentMayBe(tailGap)
 
       val future =
         headFuture flatMap {

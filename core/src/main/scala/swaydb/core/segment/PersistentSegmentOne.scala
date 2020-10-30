@@ -58,8 +58,8 @@ import scala.concurrent.duration._
 protected object PersistentSegmentOne {
 
   val formatId = 126.toByte
-  val formatIdSlice = Slice(formatId)
-  val formatIdSliceSlice = Slice(formatIdSlice)
+  val formatIdSlice: Slice[Byte] = Slice(formatId)
+  val formatIdSliceSlice: Slice[Slice[Byte]] = Slice(formatIdSlice)
 
   def apply(file: DBFile,
             createdInLevel: Int,
@@ -251,8 +251,13 @@ protected case class PersistentSegmentOne(file: DBFile,
   def isFileDefined =
     file.isFileDefined
 
-  def delete(delay: FiniteDuration) =
-    fileSweeper send FileSweeper.Command.Delete(this, delay.fromNow)
+  def delete(delay: FiniteDuration): Unit = {
+    val deadline = delay.fromNow
+    if (deadline.isOverdue())
+      this.delete
+    else
+      fileSweeper send FileSweeper.Command.Delete(this, deadline)
+  }
 
   def delete: Unit = {
     logger.trace(s"{}: DELETING FILE", path)

@@ -58,7 +58,6 @@ object TransientSegment {
                  minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                  nearestPutDeadline: Option[Deadline],
                  valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                 sortedIndexClosedState: SortedIndexBlock.State,
                  sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
                  hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                  binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],

@@ -83,12 +83,12 @@ object ParallelMerge {
   sealed trait Off extends ParallelMerge
   case object Off extends Off {
     final override val levelParallelism: Int = 0
-    final override val levelParallelismTimeout: FiniteDuration = 0.seconds
+    final override val levelParallelismTimeout: FiniteDuration = 5.seconds
 
     final override val segmentParallelism: Int = 0
-    final override val segmentParallelismTimeout: FiniteDuration = 0.seconds
+    final override val segmentParallelismTimeout: FiniteDuration = 5.seconds
 
-    final override val ofSegment: SegmentParallelism = new SegmentParallelism(0, 0.seconds)
+    final override val ofSegment: SegmentParallelism = new SegmentParallelism(0, 5.seconds)
   }
 
   //used internally

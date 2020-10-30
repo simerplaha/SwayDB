@@ -275,8 +275,13 @@ protected case class MemorySegment(path: Path,
   override def isFooterDefined: Boolean =
     !deleted
 
-  def delete(delay: FiniteDuration): Unit =
-    fileSweeper send FileSweeper.Command.Delete(this, delay.fromNow)
+  def delete(delay: FiniteDuration): Unit = {
+    val deadline = delay.fromNow
+    if (deadline.isOverdue())
+      this.delete
+    else
+      fileSweeper send FileSweeper.Command.Delete(this, deadline)
+  }
 
   override def clearCachedKeyValues(): Unit =
     ()
