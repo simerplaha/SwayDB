@@ -24,7 +24,7 @@
 
 package swaydb.core.io.file
 
-import java.nio.channels.FileChannel
+import java.nio.channels.{FileChannel, WritableByteChannel}
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{Path, StandardOpenOption}
 import java.nio.{BufferOverflowException, MappedByteBuffer}
@@ -97,7 +97,7 @@ private[file] object MMAPFile {
 }
 
 private[file] class MMAPFile(val path: Path,
-                             channel: FileChannel,
+                             val channel: FileChannel,
                              mode: MapMode,
                              bufferSize: Long,
                              val blockCacheFileId: Long,
@@ -118,6 +118,9 @@ private[file] class MMAPFile(val path: Path,
   private val open = new AtomicBoolean(true)
   //Increments on each request made to this object and decrements on request's end.
   private val referenceCount = new AtomicLong(0)
+
+  override private[file] def writeableChannel: WritableByteChannel =
+    channel
 
   /**
    * [[buffer]] is set to null for safely clearing it from the RAM. Setting it to null
@@ -207,6 +210,14 @@ private[file] class MMAPFile(val path: Path,
         }
         append(slice)
     }
+
+  override def transfer(position: Long, count: Long, transferTo: DBFileType): Long =
+    Effect.transfer(
+      position = position,
+      count = count,
+      from = channel,
+      transferTo = transferTo.writeableChannel
+    )
 
   def read(position: Int, size: Int): Slice[Byte] =
     watchNullPointer {

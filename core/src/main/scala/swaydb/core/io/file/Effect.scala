@@ -25,7 +25,7 @@
 package swaydb.core.io.file
 
 import java.io.IOException
-import java.nio.channels.WritableByteChannel
+import java.nio.channels.{FileChannel, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.util
@@ -120,6 +120,9 @@ private[core] object Effect extends LazyLogging {
     if (written != bytes.size)
       throw swaydb.Exception.FailedToWriteAllBytes(written, bytes.size, bytes.size)
   }
+
+  def transfer(position: Long, count: Long, from: FileChannel, transferTo: WritableByteChannel): Long =
+    from.transferTo(position, count, transferTo)
 
   def copy(copyFrom: Path,
            copyTo: Path): Path =

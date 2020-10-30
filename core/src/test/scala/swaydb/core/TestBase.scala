@@ -55,7 +55,7 @@ import swaydb.core.util.queue.VolatileQueue
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
-import swaydb.data.config.{Dir, MMAP, RecoveryMode}
+import swaydb.data.config.{Dir, IOStrategy, MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
@@ -459,6 +459,32 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       blockCacheFileId = BlockCacheFileIDGenerator.next,
       bytes = bytes
     ).sweep()
+  }
+
+  def createWriteableMMAPFile(path: Path, bufferSize: Long)(implicit sweeper: TestCaseSweeper): DBFile = {
+    import sweeper._
+
+    DBFile.mmapInit(
+      path = path,
+      fileOpenIOStrategy = randomThreadSafeIOStrategy(),
+      autoClose = true,
+      deleteAfterClean = OperatingSystem.isWindows,
+      forceSave = TestForceSave.mmap(),
+      blockCacheFileId = BlockCacheFileIDGenerator.next,
+      bufferSize = bufferSize
+    ).sweep()
+  }
+
+  def createWriteableChannelFile(path: Path)(implicit sweeper: TestCaseSweeper): DBFile = {
+    import sweeper._
+
+    DBFile.channelWrite(
+      path = path,
+      fileOpenIOStrategy = randomThreadSafeIOStrategy(),
+      blockCacheFileId = 0,
+      autoClose = true,
+      forceSave = TestForceSave.channel()
+    )
   }
 
   def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {

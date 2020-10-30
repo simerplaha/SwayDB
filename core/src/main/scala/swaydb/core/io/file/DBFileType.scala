@@ -24,6 +24,7 @@
 
 package swaydb.core.io.file
 
+import java.nio.channels.WritableByteChannel
 import java.nio.file.Path
 
 import swaydb.core.actor.FileSweeperItem
@@ -32,6 +33,8 @@ import swaydb.data.slice.Slice
 private[file] trait DBFileType extends FileSweeperItem {
 
   val path: Path
+
+  private[file] def writeableChannel: WritableByteChannel
 
   def blockCacheFileId: Long
 
@@ -56,6 +59,8 @@ private[file] trait DBFileType extends FileSweeperItem {
   def append(slice: Slice[Byte]): Unit
 
   def append(slice: Iterable[Slice[Byte]]): Unit
+
+  def transfer(position: Long, count: Long, transferTo: DBFileType): Long
 
   def read(position: Int, size: Int): Slice[Byte]
 

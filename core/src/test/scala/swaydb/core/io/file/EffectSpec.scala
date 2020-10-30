@@ -266,6 +266,36 @@ class EffectSpec extends TestBase {
     }
   }
 
+  "transfer" in {
+    TestCaseSweeper {
+      implicit sweeper =>
+        val bytes = randomBytesSlice(size = 100)
+        //test when files are both channel and mmap
+        val files = createDBFiles(mmapBytes = bytes, channelBytes = bytes)
+        files should have size 2
+
+        files foreach {
+          file =>
+            //transfer bytes to both mmap and channel files
+            val targetMMAPFile = createWriteableMMAPFile(randomFilePath, 100)
+            val targetChannelFile = createWriteableChannelFile(randomFilePath)
+
+            Seq(targetMMAPFile, targetChannelFile) foreach {
+              targetFile =>
+                file.transfer(position = 0, count = 10, transferTo = targetFile)
+                targetFile.close()
+
+                val fileReaders = createAllFilesReaders(targetFile.path)
+                fileReaders should have size 2
+                fileReaders foreach {
+                  reader =>
+                    reader.read(10) shouldBe bytes.take(10)
+                }
+            }
+        }
+    }
+  }
+
   "benchmark" in {
     TestCaseSweeper {
       implicit sweeper =>

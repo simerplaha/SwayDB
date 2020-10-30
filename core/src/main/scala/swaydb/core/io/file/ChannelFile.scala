@@ -25,7 +25,7 @@
 package swaydb.core.io.file
 
 import java.nio.ByteBuffer
-import java.nio.channels.FileChannel
+import java.nio.channels.{FileChannel, WritableByteChannel}
 import java.nio.file.{Path, StandardOpenOption}
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -69,6 +69,7 @@ private[file] class ChannelFile(val path: Path,
                                 forceSave: ForceSave.ChannelFiles,
                                 val blockCacheFileId: Long)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
 
+
   //Force is applied on files after they are marked immutable so it only needs
   //to be invoked once.
   private val forced = {
@@ -77,6 +78,9 @@ private[file] class ChannelFile(val path: Path,
     else
       new AtomicBoolean(mode == StandardOpenOption.READ)
   }
+
+  override private[file] def writeableChannel: WritableByteChannel =
+    channel
 
   def close(): Unit = {
     forceSaveApplied.beforeClose(this, forceSave)
@@ -88,6 +92,14 @@ private[file] class ChannelFile(val path: Path,
 
   def append(slice: Iterable[Slice[Byte]]): Unit =
     Effect.writeUnclosed(channel, slice)
+
+  override def transfer(position: Long, count: Long, transferTo: DBFileType): Long =
+    Effect.transfer(
+      position = position,
+      count = count,
+      from = channel,
+      transferTo = transferTo.writeableChannel
+    )
 
   def read(position: Int, size: Int): Slice[Byte] = {
     val buffer = ByteBuffer.allocate(size)

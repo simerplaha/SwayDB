@@ -1164,7 +1164,7 @@ object TestData {
     slice
   }
 
-  def randomBytesSlice(size: Int = 10) = Slice(randomBytes(size))
+  def randomBytesSlice(size: Int = 10): Slice[Byte] = Slice(randomBytes(size))
 
   def randomBytesSliceOption(size: Int = 10): Option[Slice[Byte]] =
     randomBytesSliceOptional(size).toOptionC

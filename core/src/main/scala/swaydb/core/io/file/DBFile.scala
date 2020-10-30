@@ -29,7 +29,6 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, FileSweeperItem}
 import swaydb.data.Reserve
 import swaydb.data.cache.Cache
@@ -424,6 +423,13 @@ class DBFile(val path: Path,
         file = fileCache.value(()).get,
         state = blockCache
       )
+
+  def transfer(position: Long, count: Long, transferTo: DBFile): Long =
+    file.transfer(
+      position = position,
+      count = count,
+      transferTo = transferTo.file
+    )
 
   def get(position: Int): Byte =
     if (blockCache.isDefined)
