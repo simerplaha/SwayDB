@@ -43,7 +43,9 @@ import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
+import swaydb.serializers._
 import swaydb.{Error, IO}
 
 class SegmentRefSpec extends TestBase with MockFactory {
@@ -158,6 +160,265 @@ class SegmentRefSpec extends TestBase with MockFactory {
             putResult.left.get.exception shouldBe a[NoSuchFileException]
 
             Effect.isEmptyOrNotExists(pathDistributor.headPath).get shouldBe true
+        }
+      }
+    }
+  }
+
+  "fastAssignPutWithGaps" should {
+    "succeed" in {
+      runThis(10.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            import sweeper._
+
+            //create a many segment with SegmentRef
+            val segmentKeyValues: Slice[Memory] = randomKeyValues(100, startId = Some(100))
+
+            //large segmentSize so that single segment with multiple SegmentRefs is created
+            val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(minSegmentSize = 4.mb, maxKeyValuesPerSegment = segmentKeyValues.size / 2)
+            implicit val pathDistributor = createPathDistributor.sweep(_.headPath.sweep())
+
+            val segment = TestSegment.many(keyValues = segmentKeyValues, segmentConfig = segmentConfig)
+
+            segment should have size 1
+            segment.head.isInstanceOf[PersistentSegmentMany] shouldBe true
+
+            val manySegment = segment.head.asInstanceOf[PersistentSegmentMany]
+            manySegment.segmentRefs should have size 2
+
+            //fetch the SegmentRefs
+            val segmentRef1 = manySegment.segmentRefs.head
+            val segmentRef2 = manySegment.segmentRefs.last
+
+            //provide gap key-values
+            val segmentRef2MaxKey = segmentRef2.maxKey.maxKey.readInt()
+            val headGap = Slice(Memory.put(1, 1))
+            val tailGap = Slice(Memory.put(segmentRef2MaxKey + 1, segmentRef2MaxKey + 1))
+
+            val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+            val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+            val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+            val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+            val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+
+            /**
+             * WITH GAP
+             */
+            {
+              val putResult =
+                SegmentRef.fastAssignPutWithGaps(
+                  headGap = headGap,
+                  tailGap = tailGap,
+                  segmentRefs = Seq(segmentRef1, segmentRef2),
+                  assignableCount = segmentKeyValues.size,
+                  assignables = segmentKeyValues.iterator,
+                  removeDeletes = false,
+                  createdInLevel = 1,
+                  segmentParallelism = randomParallelMerge().ofSegment,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig,
+                  pathsDistributor = pathDistributor
+                )
+
+              putResult.replaced shouldBe true
+              val allKeyValues = headGap ++ segmentKeyValues ++ tailGap
+              putResult.result.flatMap(_.iterator()).toList shouldBe allKeyValues
+            }
+
+            /**
+             * WITHOUT GAP
+             */
+            {
+              val putResult =
+                SegmentRef.fastAssignPutWithGaps(
+                  headGap = Iterable.empty,
+                  tailGap = Iterable.empty,
+                  segmentRefs = Seq(segmentRef1, segmentRef2),
+                  assignableCount = segmentKeyValues.size,
+                  assignables = segmentKeyValues.iterator,
+                  removeDeletes = false,
+                  createdInLevel = 1,
+                  segmentParallelism = randomParallelMerge().ofSegment,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig,
+                  pathsDistributor = pathDistributor
+                )
+
+              putResult.result should have size 1
+              putResult.replaced shouldBe true
+              putResult.result.flatMap(_.iterator()).toList shouldBe segmentKeyValues
+            }
+
+            /**
+             * WITHOUT MID
+             */
+            {
+              val putResult =
+                SegmentRef.fastAssignPutWithGaps(
+                  headGap = headGap,
+                  tailGap = tailGap,
+                  segmentRefs = Seq(segmentRef1, segmentRef2),
+                  assignableCount = 0,
+                  assignables = Iterator.empty,
+                  removeDeletes = false,
+                  createdInLevel = 1,
+                  segmentParallelism = randomParallelMerge().ofSegment,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig,
+                  pathsDistributor = pathDistributor
+                )
+
+              putResult.result should have size 2
+              putResult.replaced shouldBe false
+              putResult.result.flatMap(_.iterator()).toList shouldBe (headGap ++ tailGap)
+            }
+        }
+      }
+    }
+  }
+
+  "fastAssignPut" when {
+    "there are many SegmentRef that are randomly updated" should {
+      "succeed" in {
+        runThis(10.times, log = true) {
+          TestCaseSweeper {
+            implicit sweeper =>
+              import sweeper._
+
+              //create a many segment with SegmentRef
+              val segmentKeyValues: Slice[Memory] = randomKeyValues(10000, startId = Some(100))
+
+              //large segmentSize so that single segment with multiple SegmentRefs is created. Create many SegmentRefs
+              val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(minSegmentSize = 10.mb, maxKeyValuesPerSegment = segmentKeyValues.size / 10)
+              implicit val pathDistributor = createPathDistributor.sweep(_.headPath.sweep())
+
+              val segment = TestSegment.many(keyValues = segmentKeyValues, segmentConfig = segmentConfig)
+
+              segment should have size 1
+              segment.head.isInstanceOf[PersistentSegmentMany] shouldBe true
+
+              val manySegment = segment.head.asInstanceOf[PersistentSegmentMany]
+              val segmentRefs = manySegment.segmentRefs.toArray
+              segmentRefs should have size 10
+
+              //random select SegmentRefs to update. SegmentRefs that are no updated should still exists.
+              val segment1KeyValue = Memory.put(segmentRefs(1).minKey, "updated")
+              val segment3KeyValue = Memory.put(segmentRefs(3).minKey, "updated")
+              val segment4KeyValue = Memory.put(segmentRefs(4).minKey, "updated")
+              val segment8KeyValue = Memory.put(segmentRefs(8).minKey, "updated")
+              val updatedKeyValues = Slice(segment1KeyValue, segment3KeyValue, segment4KeyValue, segment8KeyValue)
+
+              //expected merge result.
+              val expectedOutcome = merge(newKeyValues = updatedKeyValues, oldKeyValues = segmentKeyValues, isLastLevel = false)
+
+              //provide gap key-values
+              val segmentRef2MaxKey = segmentRefs.last.maxKey.maxKey.readInt()
+              val headGap = Slice(Memory.put(1, 1))
+              val tailGap = Slice(Memory.put(segmentRef2MaxKey + 1, segmentRef2MaxKey + 1))
+
+              val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+              val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+              val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+              val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+              val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+
+              /**
+               * WITH GAP
+               */
+              {
+                val putResult =
+                  SegmentRef.fastAssignPutWithGaps(
+                    headGap = headGap,
+                    tailGap = tailGap,
+                    segmentRefs = segmentRefs,
+                    assignableCount = updatedKeyValues.size,
+                    assignables = updatedKeyValues.iterator,
+                    removeDeletes = false,
+                    createdInLevel = 1,
+                    segmentParallelism = randomParallelMerge().ofSegment,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    segmentConfig = segmentConfig,
+                    pathsDistributor = pathDistributor
+                  )
+
+                putResult.replaced shouldBe true
+                val allKeyValues = headGap ++ expectedOutcome ++ tailGap
+                putResult.result.flatMap(_.iterator()).toList shouldBe allKeyValues
+              }
+
+              /**
+               * WITHOUT GAP
+               */
+              {
+                val putResult =
+                  SegmentRef.fastAssignPutWithGaps(
+                    headGap = Iterable.empty,
+                    tailGap = Iterable.empty,
+                    segmentRefs = segmentRefs,
+                    assignableCount = updatedKeyValues.size,
+                    assignables = updatedKeyValues.iterator,
+                    removeDeletes = false,
+                    createdInLevel = 1,
+                    segmentParallelism = randomParallelMerge().ofSegment,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    segmentConfig = segmentConfig,
+                    pathsDistributor = pathDistributor
+                  )
+
+                putResult.result should have size 1
+                putResult.replaced shouldBe true
+                putResult.result.flatMap(_.iterator()).toList shouldBe expectedOutcome
+              }
+
+              /**
+               * WITHOUT MID
+               */
+              {
+                val putResult =
+                  SegmentRef.fastAssignPutWithGaps(
+                    headGap = headGap,
+                    tailGap = tailGap,
+                    segmentRefs = segmentRefs,
+                    assignableCount = 0,
+                    assignables = Iterator.empty,
+                    removeDeletes = false,
+                    createdInLevel = 1,
+                    segmentParallelism = randomParallelMerge().ofSegment,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    segmentConfig = segmentConfig,
+                    pathsDistributor = pathDistributor
+                  )
+
+                putResult.result should have size 2
+                putResult.replaced shouldBe false
+                putResult.result.flatMap(_.iterator()).toList shouldBe (headGap ++ tailGap)
+              }
+          }
         }
       }
     }

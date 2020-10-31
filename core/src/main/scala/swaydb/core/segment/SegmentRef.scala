@@ -1232,8 +1232,7 @@ private[core] case object SegmentRef extends LazyLogging {
     }
   }
 
-  def fastAssignPutWithGaps(path: Path,
-                            headGap: Iterable[Assignable],
+  def fastAssignPutWithGaps(headGap: Iterable[Assignable],
                             tailGap: Iterable[Assignable],
                             segmentRefs: Iterable[SegmentRef],
                             assignableCount: Int,
@@ -1277,46 +1276,55 @@ private[core] case object SegmentRef extends LazyLogging {
       else
         Iterable.empty
 
-    try
-      SegmentRef.fastAssignPut(
-        path = path,
-        segmentRefs = segmentRefs,
-        assignableCount = assignableCount,
-        assignables = assignables,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        segmentParallelism = segmentParallelism,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig,
-        pathsDistributor = pathsDistributor
-      ) map {
-        slice =>
-          if (gapInsert.isEmpty) {
-            slice
-          } else {
-            val mergedSlice = Slice.of[PersistentSegment](gapInsert.foldLeft(0)(_ + _.size) + slice.size)
-
-            gapInsert foreach mergedSlice.addAll
-            mergedSlice addAll slice
-
-            mergedSlice.sortBy(_.key)(keyOrder)
-          }
+    //if there are assigned key-values then return the gapInserts
+    if (assignableCount == 0) {
+      if (gapInsert.isEmpty) {
+        SegmentPutResult(result = Slice.empty, replaced = false)
+      } else {
+        val gapSlice = Slice.of[PersistentSegment](gapInsert.foldLeft(0)(_ + _.size))
+        gapInsert foreach gapSlice.addAll
+        SegmentPutResult(result = gapSlice, replaced = false)
       }
-    catch {
-      case throwable: Throwable =>
-        //clear gap segments
-        gapInsert.foreach(_.foreach(_.delete))
+    } else { //else merge assigned key-values
+      try
+        SegmentRef.fastAssignPut(
+          segmentRefs = segmentRefs,
+          assignableCount = assignableCount,
+          assignables = assignables,
+          removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel,
+          segmentParallelism = segmentParallelism,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig,
+          pathsDistributor = pathsDistributor
+        ) map {
+          slice =>
+            if (gapInsert.isEmpty) {
+              slice
+            } else {
+              val mergedSlice = Slice.of[PersistentSegment](gapInsert.foldLeft(0)(_ + _.size) + slice.size)
 
-        throw throwable
+              gapInsert foreach mergedSlice.addAll
+              mergedSlice addAll slice
+
+              mergedSlice.sortBy(_.key)(keyOrder)
+            }
+        }
+      catch {
+        case throwable: Throwable =>
+          //clear gap segments
+          gapInsert.foreach(_.foreach(_.delete))
+
+          throw throwable
+      }
     }
   }
 
-  def fastAssignPut(path: Path,
-                    segmentRefs: Iterable[SegmentRef],
+  def fastAssignPut(segmentRefs: Iterable[SegmentRef],
                     assignableCount: Int,
                     assignables: Iterator[Assignable],
                     removeDeletes: Boolean,
@@ -1339,6 +1347,7 @@ private[core] case object SegmentRef extends LazyLogging {
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                         segmentIO: SegmentIO,
                                                         forceSaveApplier: ForceSaveApplier): SegmentPutResult[Slice[PersistentSegment]] = {
+    //assign key-values to Segment and then perform merge.
     val assignments =
       SegmentAssigner.assignUnsafeGapsSegmentRef[ListBuffer[Assignable]](
         assignablesCount = assignableCount,
@@ -1348,7 +1357,7 @@ private[core] case object SegmentRef extends LazyLogging {
 
     if (assignments.isEmpty) {
       val exception = swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignableCount)
-      val error = s"$path: Assigned segments are empty."
+      val error = "Assigned segments are empty."
       logger.error(error, exception)
       throw exception
     } else {
@@ -1363,6 +1372,7 @@ private[core] case object SegmentRef extends LazyLogging {
 
           var old: SegmentRef = nextOldOrNull()
 
+          //insert SegmentRefs directly that are not assigned or do not require merging.
           while (old != null && old != assignment.segment) {
             ones +=
               TransientSegment.One(

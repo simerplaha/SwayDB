@@ -525,7 +525,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                            executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
-    if (removeDeletes) {
+    if (removeDeletes)
       Segment.mergePut(
         oldKeyValuesCount = getKeyValueCount(),
         oldKeyValues = iterator(),
@@ -543,33 +543,8 @@ protected case class PersistentSegmentMany(file: DBFile,
         segmentConfig = segmentConfig,
         pathsDistributor = pathsDistributor
       )
-    } else if (mergeableCount == 0) {
-      val writeResult =
-        SegmentRef.fastPutMany(
-          assignables = Seq(headGap, tailGap),
-          segmentParallelism = segmentParallelism,
-          removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig,
-          pathsDistributor = pathsDistributor
-        ).get
-
-      val slice = Slice.of[PersistentSegment](writeResult.foldLeft(0)(_ + _.size))
-
-      writeResult foreach slice.addAll
-
-      SegmentPutResult(
-        result = slice,
-        replaced = false
-      )
-    } else {
+    else
       SegmentRef.fastAssignPutWithGaps(
-        path = path,
         headGap = headGap,
         tailGap = tailGap,
         segmentRefs = segmentRefs,
@@ -586,7 +561,6 @@ protected case class PersistentSegmentMany(file: DBFile,
         segmentConfig = segmentConfig,
         pathsDistributor = pathsDistributor
       )
-    }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
