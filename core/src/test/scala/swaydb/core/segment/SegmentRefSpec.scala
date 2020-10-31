@@ -39,7 +39,7 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
+import swaydb.core.{TestBase, TestCaseSweeper, TestData, TestExecutionContext, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -322,7 +322,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
               val updatedKeyValues = Slice(segment1KeyValue, segment3KeyValue, segment4KeyValue, segment8KeyValue)
 
               //expected merge result.
-              val expectedOutcome = merge(newKeyValues = updatedKeyValues, oldKeyValues = segmentKeyValues, isLastLevel = false)
+              val expectedOutcome = TestData.merge(newKeyValues = updatedKeyValues, oldKeyValues = segmentKeyValues, isLastLevel = false)
 
               //provide gap key-values
               val segmentRef2MaxKey = segmentRefs.last.maxKey.maxKey.readInt()

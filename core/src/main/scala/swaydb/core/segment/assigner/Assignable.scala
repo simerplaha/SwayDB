@@ -48,7 +48,7 @@ trait Assignable {
 object Assignable {
 
   val emptyIterable = Iterable.empty[Assignable]
-  val emptyIterator = Iterator.empty[Assignable]
+  val emptyIterator: Iterator[Assignable] = Iterator.empty
 
   implicit val nothingCreator: Aggregator.Creator[Assignable, Nothing] =
     Aggregator.Creator.nothing[Assignable]()
