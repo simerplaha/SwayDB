@@ -39,15 +39,13 @@ import swaydb.data.slice.Slice
 import scala.concurrent.duration.Deadline
 
 sealed trait TransientSegment {
-  def isEmpty: Boolean
+  def hasEmptyByteSlice: Boolean
   def minKey: Slice[Byte]
   def maxKey: MaxKey[Slice[Byte]]
   def segmentSize: Int
   def segmentBytes: Slice[Slice[Byte]]
   def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
   def nearestPutDeadline: Option[Deadline]
-  def flattenSegmentBytes: Slice[Byte]
-  def flattenSegment: (Slice[Byte], Option[Deadline])
 }
 
 object TransientSegment {
@@ -64,25 +62,11 @@ object TransientSegment {
                  bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
                  footerUnblocked: Option[SegmentFooterBlock]) extends TransientSegment {
 
-    override def isEmpty: Boolean =
-      segmentBytes.exists(_.isEmpty)
+    override def hasEmptyByteSlice: Boolean =
+      segmentBytes.isEmpty || segmentBytes.exists(_.isEmpty)
 
     override def segmentSize =
       segmentBytes.foldLeft(0)(_ + _.size)
-
-    override def flattenSegmentBytes: Slice[Byte] = {
-      val size = segmentBytes.foldLeft(0)(_ + _.size)
-      val slice = Slice.of[Byte](size)
-      segmentBytes foreach (slice addAll _)
-      assert(slice.isFull)
-      slice
-    }
-
-    override def flattenSegment: (Slice[Byte], Option[Deadline]) =
-      (flattenSegmentBytes, nearestPutDeadline)
-
-    override def toString: String =
-      s"TransientSegment Segment. Size: ${segmentSize}"
 
     def toKeyValue(offset: Int, size: Int): Slice[Memory] =
       TransientSegmentSerialiser.toKeyValue(
@@ -90,6 +74,9 @@ object TransientSegment {
         offset = offset,
         size = size
       )
+
+    override def toString: String =
+      s"TransientSegment Segment. Size: $segmentSize"
   }
 
   case class Many(minKey: Slice[Byte],
@@ -100,22 +87,11 @@ object TransientSegment {
                   segments: Slice[TransientSegment.One],
                   segmentBytes: Slice[Slice[Byte]]) extends TransientSegment {
 
-    override def isEmpty: Boolean =
-      segmentBytes.exists(_.isEmpty)
+    override def hasEmptyByteSlice: Boolean =
+      segmentBytes.isEmpty || segmentBytes.exists(_.isEmpty)
 
     override def segmentSize: Int =
       segmentBytes.foldLeft(0)(_ + _.size)
-
-    override def flattenSegmentBytes: Slice[Byte] = {
-      val size = segmentBytes.foldLeft(0)(_ + _.size)
-      val slice = Slice.of[Byte](size)
-      segmentBytes foreach (slice addAll _)
-      assert(slice.isFull)
-      slice
-    }
-
-    override def flattenSegment: (Slice[Byte], Option[Deadline]) =
-      (flattenSegmentBytes, nearestPutDeadline)
 
     override def toString: String =
       s"TransientSegment Segment. Size: $segmentSize"

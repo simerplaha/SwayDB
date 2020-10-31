@@ -1939,5 +1939,17 @@ object TestData {
     builder.keyValues
   }
 
+  implicit class TransientSegmentImplicits(segment: TransientSegment) {
 
+    def flattenSegmentBytes: Slice[Byte] = {
+      val size = segment.segmentBytes.foldLeft(0)(_ + _.size)
+      val slice = Slice.of[Byte](size)
+      segment.segmentBytes foreach (slice addAll _)
+      assert(slice.isFull)
+      slice
+    }
+
+    def flattenSegment: (Slice[Byte], Option[Deadline]) =
+      (flattenSegmentBytes, segment.nearestPutDeadline)
+  }
 }

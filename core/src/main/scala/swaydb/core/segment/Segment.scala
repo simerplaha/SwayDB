@@ -253,7 +253,7 @@ private[core] case object Segment extends LazyLogging {
     transient.mapRecover(
       block =
         segment =>
-          if (segment.isEmpty) {
+          if (segment.hasEmptyByteSlice) {
             //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
             //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
             throw IO.throwable("Empty key-values submitted to persistent Segment.")

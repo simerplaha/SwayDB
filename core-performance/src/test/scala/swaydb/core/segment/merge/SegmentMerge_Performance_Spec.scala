@@ -29,6 +29,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -60,13 +61,16 @@ class SegmentMerge_Performance_Spec extends TestBase {
       }
     }
 
-    Benchmark(s"SegmentMerger performance") {
-      SegmentMerger.merge(
-        newKeyValues = keyValues,
-        oldKeyValues = keyValues,
-        stats = MergeStats.persistent(Aggregator.listBuffer),
-        isLastLevel = false
-      )
+    //run multiple times because first is warmup
+    runThis(4.times, log = true) {
+      Benchmark(s"SegmentMerger performance") {
+        SegmentMerger.merge(
+          newKeyValues = keyValues,
+          oldKeyValues = keyValues,
+          stats = MergeStats.persistent(Aggregator.listBuffer),
+          isLastLevel = false
+        )
+      }
     }
   }
 }
