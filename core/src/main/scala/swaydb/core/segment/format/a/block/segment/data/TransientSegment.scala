@@ -39,13 +39,17 @@ import swaydb.data.slice.Slice
 import scala.concurrent.duration.Deadline
 
 sealed trait TransientSegment {
-  def hasEmptyByteSlice: Boolean
   def minKey: Slice[Byte]
   def maxKey: MaxKey[Slice[Byte]]
-  def segmentSize: Int
   def segmentBytes: Slice[Slice[Byte]]
   def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
   def nearestPutDeadline: Option[Deadline]
+
+  def hasEmptyByteSlice: Boolean =
+    segmentBytes.isEmpty || segmentBytes.exists(_.isEmpty)
+
+  def segmentSize =
+    segmentBytes.foldLeft(0)(_ + _.size)
 }
 
 object TransientSegment {
@@ -62,12 +66,6 @@ object TransientSegment {
                  bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
                  footerUnblocked: Option[SegmentFooterBlock]) extends TransientSegment {
 
-    override def hasEmptyByteSlice: Boolean =
-      segmentBytes.isEmpty || segmentBytes.exists(_.isEmpty)
-
-    override def segmentSize =
-      segmentBytes.foldLeft(0)(_ + _.size)
-
     def toKeyValue(offset: Int, size: Int): Slice[Memory] =
       TransientSegmentSerialiser.toKeyValue(
         one = this,
@@ -76,7 +74,7 @@ object TransientSegment {
       )
 
     override def toString: String =
-      s"TransientSegment Segment. Size: $segmentSize"
+      s"TransientSegment.${this.productPrefix}. Size: $segmentSize.bytes"
   }
 
   case class Many(minKey: Slice[Byte],
@@ -87,13 +85,7 @@ object TransientSegment {
                   segments: Slice[TransientSegment.One],
                   segmentBytes: Slice[Slice[Byte]]) extends TransientSegment {
 
-    override def hasEmptyByteSlice: Boolean =
-      segmentBytes.isEmpty || segmentBytes.exists(_.isEmpty)
-
-    override def segmentSize: Int =
-      segmentBytes.foldLeft(0)(_ + _.size)
-
     override def toString: String =
-      s"TransientSegment Segment. Size: $segmentSize"
+      s"TransientSegment.${this.productPrefix}. Size: $segmentSize.bytes"
   }
 }

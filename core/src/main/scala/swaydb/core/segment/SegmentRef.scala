@@ -1009,7 +1009,7 @@ private[core] case object SegmentRef extends LazyLogging {
 
     //if mergeable is empty min gap requirement is 0 so that Segments get copied else
     //there should be at least of quarter or 100 key-values for gaps to be created.
-    val minGapSize = if (mergeableCount == 0) 0 else (mergeableCount / 4) min 100
+    val minGapSize = if (mergeableCount == 0) 0 else (mergeableCount / 4) max 100
 
     val (mergeableHead, mergeableTail, future) =
       Segment.runOnGapsParallel[Slice[PersistentSegment]](
@@ -1193,7 +1193,7 @@ private[core] case object SegmentRef extends LazyLogging {
 
     //if mergeable is empty min gap requirement is 0 so that Segments get copied else
     //there should be at least of quarter or 100 key-values for gaps to be created.
-    val minGapSize = if (mergeableCount == 0) 0 else (mergeableCount / 4) min 100
+    val minGapSize = if (mergeableCount == 0) 0 else (mergeableCount / 4) max 100
 
     val (mergeableHead, mergeableTail, future) =
       Segment.runOnGapsParallel[ListBuffer[TransientSegment.One]](
