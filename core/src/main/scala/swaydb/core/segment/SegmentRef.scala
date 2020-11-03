@@ -1112,7 +1112,7 @@ private[core] case object SegmentRef extends LazyLogging {
 
     val stats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory)
 
-    val gapSegments = ListBuffer.empty[TransientSegment.One]
+    val finalOnes = ListBuffer.empty[TransientSegment.One]
 
     assignables foreach {
       case collection: Assignable.Collection =>
@@ -1130,7 +1130,7 @@ private[core] case object SegmentRef extends LazyLogging {
           segmentConfig = segmentConfig
         ) foreach {
           segment =>
-            gapSegments += segment
+            finalOnes += segment
         }
 
       case value: KeyValue =>
@@ -1148,10 +1148,10 @@ private[core] case object SegmentRef extends LazyLogging {
       segmentConfig = segmentConfig
     ) foreach {
       segment =>
-        gapSegments += segment
+        finalOnes += segment
     }
 
-    gapSegments
+    finalOnes
   }
 
   def fastWriteOne(ref: SegmentRef,
@@ -1232,99 +1232,9 @@ private[core] case object SegmentRef extends LazyLogging {
     }
   }
 
-  def fastAssignPutWithGaps(headGap: Iterable[Assignable],
-                            tailGap: Iterable[Assignable],
-                            segmentRefs: Iterable[SegmentRef],
-                            assignableCount: Int,
-                            assignables: Iterator[Assignable],
-                            removeDeletes: Boolean,
-                            createdInLevel: Int,
-                            segmentParallelism: SegmentParallelism,
-                            valuesConfig: ValuesBlock.Config,
-                            sortedIndexConfig: SortedIndexBlock.Config,
-                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                            hashIndexConfig: HashIndexBlock.Config,
-                            bloomFilterConfig: BloomFilterBlock.Config,
-                            segmentConfig: SegmentBlock.Config,
-                            pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                                executionContext: ExecutionContext,
-                                                                keyOrder: KeyOrder[Slice[Byte]],
-                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                functionStore: FunctionStore,
-                                                                blockCache: Option[BlockCache.State],
-                                                                fileSweeper: FileSweeper,
-                                                                bufferCleaner: ByteBufferSweeperActor,
-                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                segmentIO: SegmentIO,
-                                                                forceSaveApplier: ForceSaveApplier): SegmentPutResult[Slice[PersistentSegment]] = {
-    //TODO - when gaps are being written fast assign can occur on current thread.
-    val gapInsert: Iterable[Slice[PersistentSegment]] =
-      if (headGap.nonEmpty || tailGap.nonEmpty)
-        SegmentRef.fastPutMany(
-          assignables = Seq(headGap, tailGap),
-          removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel,
-          segmentParallelism = segmentParallelism,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig,
-          pathsDistributor = pathsDistributor
-        ).get
-      else
-        Iterable.empty
-
-    //if there are assigned key-values then return the gapInserts
-    if (assignableCount == 0) {
-      if (gapInsert.isEmpty) {
-        SegmentPutResult(result = Slice.empty, replaced = false)
-      } else {
-        val gapSlice = Slice.of[PersistentSegment](gapInsert.foldLeft(0)(_ + _.size))
-        gapInsert foreach gapSlice.addAll
-        SegmentPutResult(result = gapSlice, replaced = false)
-      }
-    } else { //else merge assigned key-values
-      try
-        SegmentRef.fastAssignPut(
-          segmentRefs = segmentRefs,
-          assignableCount = assignableCount,
-          assignables = assignables,
-          removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel,
-          segmentParallelism = segmentParallelism,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig,
-          pathsDistributor = pathsDistributor
-        ) map {
-          slice =>
-            if (gapInsert.isEmpty) {
-              slice
-            } else {
-              val mergedSlice = Slice.of[PersistentSegment](gapInsert.foldLeft(0)(_ + _.size) + slice.size)
-
-              gapInsert foreach mergedSlice.addAll
-              mergedSlice addAll slice
-
-              mergedSlice.sortBy(_.key)(keyOrder)
-            }
-        }
-      catch {
-        case throwable: Throwable =>
-          //clear gap segments
-          gapInsert.foreach(_.foreach(_.delete))
-
-          throw throwable
-      }
-    }
-  }
-
-  def fastAssignPut(segmentRefs: Iterable[SegmentRef],
+  def fastAssignPut(headGap: Iterable[Assignable],
+                    tailGap: Iterable[Assignable],
+                    segmentRefs: Iterable[SegmentRef],
                     assignableCount: Int,
                     assignables: Iterator[Assignable],
                     removeDeletes: Boolean,
@@ -1347,61 +1257,58 @@ private[core] case object SegmentRef extends LazyLogging {
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                         segmentIO: SegmentIO,
                                                         forceSaveApplier: ForceSaveApplier): SegmentPutResult[Slice[PersistentSegment]] = {
-    //assign key-values to Segment and then perform merge.
-    val assignments =
-      SegmentAssigner.assignUnsafeGapsSegmentRef[ListBuffer[Assignable]](
-        assignablesCount = assignableCount,
-        assignables = assignables,
-        segments = segmentRefs
-      )
 
-    if (assignments.isEmpty) {
-      val exception = swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignableCount)
-      val error = "Assigned segments are empty."
-      logger.error(error, exception)
-      throw exception
+    if (assignableCount == 0) {
+      //if there are no assignments write gaps and return.
+      val gapInsert =
+        SegmentRef.fastPutMany(
+          assignables = Seq(headGap, tailGap),
+          removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel,
+          segmentParallelism = segmentParallelism,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig,
+          pathsDistributor = pathsDistributor
+        ).get
+
+      if (gapInsert.isEmpty) {
+        SegmentPutResult(result = Slice.empty, replaced = false)
+      } else {
+        val gapSlice = Slice.of[PersistentSegment](gapInsert.foldLeft(0)(_ + _.size))
+        gapInsert foreach gapSlice.addAll
+        SegmentPutResult(result = gapSlice, replaced = false)
+      }
     } else {
-      val oldRefs = segmentRefs.iterator
+      //assign key-values to Segment and then perform merge.
+      val assignments =
+        SegmentAssigner.assignUnsafeGapsSegmentRef[ListBuffer[Assignable]](
+          assignablesCount = assignableCount,
+          assignables = assignables,
+          segments = segmentRefs
+        )
 
-      def nextOldOrNull() = if (oldRefs.hasNext) oldRefs.next() else null
+      if (assignments.isEmpty) {
+        val exception = swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignableCount)
+        val error = "Assigned segments are empty."
+        logger.error(error, exception)
+        throw exception
+      } else {
+        //keep oldRefs that are not assign and make sure they are added in order.
+        val oldRefs = segmentRefs.iterator
 
-      val ones = ListBuffer.empty[TransientSegment.One]
+        def nextOldOrNull() = if (oldRefs.hasNext) oldRefs.next() else null
 
-      assignments foreach {
-        assignment =>
+        val ones = ListBuffer.empty[TransientSegment.One]
 
-          var old: SegmentRef = nextOldOrNull()
-
-          //insert SegmentRefs directly that are not assigned or do not require merging.
-          while (old != null && old != assignment.segment) {
-            ones +=
-              TransientSegment.One(
-                minKey = old.minKey,
-                maxKey = old.maxKey,
-                segmentBytes = Slice(old.readAllBytes()),
-                minMaxFunctionId = None,
-                nearestPutDeadline = old.nearestPutDeadline,
-                valuesUnblockedReader = None,
-                sortedIndexUnblockedReader = None,
-                hashIndexUnblockedReader = None,
-                binarySearchUnblockedReader = None,
-                bloomFilterUnblockedReader = None,
-                footerUnblocked = None
-              )
-
-            old = nextOldOrNull()
-          }
-
-          val result =
-            SegmentRef.fastWriteOne(
-              ref = assignment.segment,
-              headGap = assignment.headGap.result,
-              tailGap = assignment.tailGap.result,
-              mergeableCount = assignment.midOverlap.size,
-              mergeable = assignment.midOverlap.iterator,
-              removeDeletes = removeDeletes,
+        if (headGap.nonEmpty)
+          ones ++=
+            fastWriteOne(
+              assignables = headGap,
               createdInLevel = createdInLevel,
-              segmentParallelism = segmentParallelism,
               valuesConfig = valuesConfig,
               sortedIndexConfig = sortedIndexConfig,
               binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1410,65 +1317,123 @@ private[core] case object SegmentRef extends LazyLogging {
               segmentConfig = segmentConfig
             )
 
-          if (result.replaced) {
-            ones ++= result.result
-          } else {
-            val merge =
-              result.result :+
+        assignments foreach {
+          assignment =>
+
+            var oldRef: SegmentRef = nextOldOrNull()
+
+            //insert SegmentRefs directly that are not assigned or do not require merging making
+            //sure they are inserted in order.
+            while (oldRef != null && oldRef != assignment.segment) {
+              ones +=
                 TransientSegment.One(
-                  minKey = assignment.segment.minKey,
-                  maxKey = assignment.segment.maxKey,
-                  segmentBytes = Slice(assignment.segment.readAllBytes()),
+                  minKey = oldRef.minKey,
+                  maxKey = oldRef.maxKey,
+                  segmentBytes = Slice(oldRef.readAllBytes()),
                   minMaxFunctionId = None,
-                  nearestPutDeadline = assignment.segment.nearestPutDeadline,
-                  valuesUnblockedReader = None,
-                  sortedIndexUnblockedReader = None,
-                  hashIndexUnblockedReader = None,
-                  binarySearchUnblockedReader = None,
-                  bloomFilterUnblockedReader = None,
-                  footerUnblocked = None
+                  nearestPutDeadline = oldRef.nearestPutDeadline,
+                  valuesUnblockedReader = oldRef.segmentBlockCache.cachedValuesSliceReader(),
+                  sortedIndexUnblockedReader = oldRef.segmentBlockCache.cachedSortedIndexSliceReader(),
+                  hashIndexUnblockedReader = oldRef.segmentBlockCache.cachedHashIndexSliceReader(),
+                  binarySearchUnblockedReader = oldRef.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
+                  bloomFilterUnblockedReader = oldRef.segmentBlockCache.cachedBloomFilterSliceReader(),
+                  footerUnblocked = oldRef.segmentBlockCache.cachedFooter()
                 )
 
-            ones ++= merge.sortBy(_.minKey)(keyOrder)
-          }
-      }
+              oldRef = nextOldOrNull()
+            }
 
-      oldRefs foreach {
-        old =>
-          ones +=
-            TransientSegment.One(
-              minKey = old.minKey,
-              maxKey = old.maxKey,
-              segmentBytes = Slice(old.readAllBytes()),
-              minMaxFunctionId = None,
-              nearestPutDeadline = old.nearestPutDeadline,
-              valuesUnblockedReader = None,
-              sortedIndexUnblockedReader = None,
-              hashIndexUnblockedReader = None,
-              binarySearchUnblockedReader = None,
-              bloomFilterUnblockedReader = None,
-              footerUnblocked = None
+            val result =
+              SegmentRef.fastWriteOne(
+                ref = assignment.segment,
+                headGap = assignment.headGap.result,
+                tailGap = assignment.tailGap.result,
+                mergeableCount = assignment.midOverlap.size,
+                mergeable = assignment.midOverlap.iterator,
+                removeDeletes = removeDeletes,
+                createdInLevel = createdInLevel,
+                segmentParallelism = segmentParallelism,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
+                segmentConfig = segmentConfig
+              )
+
+            if (result.replaced) {
+              ones ++= result.result
+            } else {
+              val merge =
+                result.result :+
+                  TransientSegment.One(
+                    minKey = assignment.segment.minKey,
+                    maxKey = assignment.segment.maxKey,
+                    segmentBytes = Slice(assignment.segment.readAllBytes()),
+                    minMaxFunctionId = None,
+                    nearestPutDeadline = assignment.segment.nearestPutDeadline,
+                    valuesUnblockedReader = assignment.segment.segmentBlockCache.cachedValuesSliceReader(),
+                    sortedIndexUnblockedReader = assignment.segment.segmentBlockCache.cachedSortedIndexSliceReader(),
+                    hashIndexUnblockedReader = assignment.segment.segmentBlockCache.cachedHashIndexSliceReader(),
+                    binarySearchUnblockedReader = assignment.segment.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
+                    bloomFilterUnblockedReader = assignment.segment.segmentBlockCache.cachedBloomFilterSliceReader(),
+                    footerUnblocked = assignment.segment.segmentBlockCache.cachedFooter()
+                  )
+
+              ones ++= merge.sortBy(_.minKey)(keyOrder)
+            }
+        }
+
+        oldRefs foreach {
+          oldRef =>
+            ones +=
+              TransientSegment.One(
+                minKey = oldRef.minKey,
+                maxKey = oldRef.maxKey,
+                segmentBytes = Slice(oldRef.readAllBytes()),
+                minMaxFunctionId = None,
+                nearestPutDeadline = oldRef.nearestPutDeadline,
+                valuesUnblockedReader = oldRef.segmentBlockCache.cachedValuesSliceReader(),
+                sortedIndexUnblockedReader = oldRef.segmentBlockCache.cachedSortedIndexSliceReader(),
+                hashIndexUnblockedReader = oldRef.segmentBlockCache.cachedHashIndexSliceReader(),
+                binarySearchUnblockedReader = oldRef.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
+                bloomFilterUnblockedReader = oldRef.segmentBlockCache.cachedBloomFilterSliceReader(),
+                footerUnblocked = oldRef.segmentBlockCache.cachedFooter()
+              )
+        }
+
+        if (tailGap.nonEmpty)
+          ones ++=
+            fastWriteOne(
+              assignables = tailGap,
+              createdInLevel = createdInLevel,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              segmentConfig = segmentConfig
             )
+
+        val newMany =
+          SegmentBlock.writeOneOrMany(
+            createdInLevel = createdInLevel,
+            ones = Slice.from(ones, ones.size),
+            sortedIndexConfig = sortedIndexConfig,
+            valuesConfig = valuesConfig,
+            segmentConfig = segmentConfig
+          )
+
+        val newSegments =
+          Segment.persistent(
+            pathsDistributor = pathsDistributor,
+            mmap = segmentConfig.mmap,
+            createdInLevel = createdInLevel,
+            transient = newMany
+          )
+
+        SegmentPutResult(result = newSegments, replaced = true)
       }
-
-      val newMany =
-        SegmentBlock.writeOneOrMany(
-          createdInLevel = createdInLevel,
-          ones = Slice.from(ones, ones.size),
-          sortedIndexConfig = sortedIndexConfig,
-          valuesConfig = valuesConfig,
-          segmentConfig = segmentConfig
-        )
-
-      val newSegments =
-        Segment.persistent(
-          pathsDistributor = pathsDistributor,
-          mmap = segmentConfig.mmap,
-          createdInLevel = createdInLevel,
-          transient = newMany
-        )
-
-      SegmentPutResult(result = newSegments, replaced = true)
     }
   }
 

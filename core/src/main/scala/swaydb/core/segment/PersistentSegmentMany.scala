@@ -544,7 +544,7 @@ protected case class PersistentSegmentMany(file: DBFile,
         pathsDistributor = pathsDistributor
       )
     else
-      SegmentRef.fastAssignPutWithGaps(
+      SegmentRef.fastAssignPut(
         headGap = headGap,
         tailGap = tailGap,
         segmentRefs = segmentRefs,

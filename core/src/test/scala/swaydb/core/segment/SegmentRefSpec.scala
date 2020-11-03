@@ -165,8 +165,8 @@ class SegmentRefSpec extends TestBase with MockFactory {
     }
   }
 
-  "fastAssignPutWithGaps" should {
-    "succeed" in {
+  "fastAssignPut" when {
+    "basic setting" in {
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
@@ -207,7 +207,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
              */
             {
               val putResult =
-                SegmentRef.fastAssignPutWithGaps(
+                SegmentRef.fastAssignPut(
                   headGap = headGap,
                   tailGap = tailGap,
                   segmentRefs = Seq(segmentRef1, segmentRef2),
@@ -235,7 +235,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
              */
             {
               val putResult =
-                SegmentRef.fastAssignPutWithGaps(
+                SegmentRef.fastAssignPut(
                   headGap = Iterable.empty,
                   tailGap = Iterable.empty,
                   segmentRefs = Seq(segmentRef1, segmentRef2),
@@ -263,7 +263,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
              */
             {
               val putResult =
-                SegmentRef.fastAssignPutWithGaps(
+                SegmentRef.fastAssignPut(
                   headGap = headGap,
                   tailGap = tailGap,
                   segmentRefs = Seq(segmentRef1, segmentRef2),
@@ -288,9 +288,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
         }
       }
     }
-  }
 
-  "fastAssignPut" when {
     "there are many SegmentRef that are randomly updated" should {
       "succeed" in {
         runThis(10.times, log = true) {
@@ -340,7 +338,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
                */
               {
                 val putResult =
-                  SegmentRef.fastAssignPutWithGaps(
+                  SegmentRef.fastAssignPut(
                     headGap = headGap,
                     tailGap = tailGap,
                     segmentRefs = segmentRefs,
@@ -368,7 +366,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
                */
               {
                 val putResult =
-                  SegmentRef.fastAssignPutWithGaps(
+                  SegmentRef.fastAssignPut(
                     headGap = Iterable.empty,
                     tailGap = Iterable.empty,
                     segmentRefs = segmentRefs,
@@ -396,7 +394,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
                */
               {
                 val putResult =
-                  SegmentRef.fastAssignPutWithGaps(
+                  SegmentRef.fastAssignPut(
                     headGap = headGap,
                     tailGap = tailGap,
                     segmentRefs = segmentRefs,
@@ -423,4 +421,5 @@ class SegmentRefSpec extends TestBase with MockFactory {
       }
     }
   }
+
 }

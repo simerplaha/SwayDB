@@ -51,7 +51,7 @@ object DefaultConfigs {
 
   def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.On =
     SortedKeyIndex.On(
-      prefixCompression = PrefixCompression.On(keysOnly = false, interval = PrefixCompression.resetCompressionAt(5)),
+      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
       enablePositionIndex = true,
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
@@ -163,32 +163,32 @@ object DefaultConfigs {
 
   def levelOneThrottle(meter: LevelMeter): Throttle = {
     //    val segmentsCount = 100.mb_long - meter.levelSize
-    val segmentsCount = 20 - meter.segmentsCount
-    Throttle(segmentsCount.nano, 3)
+    val segmentsCount = 5 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 3)
   }
 
   def levelTwoThrottle(meter: LevelMeter): Throttle = {
     //    val segmentsCount = 500.mb_long - meter.levelSize
-    val segmentsCount = 40 - meter.segmentsCount
-    Throttle(segmentsCount.nano, 2)
+    val segmentsCount = 50 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 2)
   }
 
   def levelThreeThrottle(meter: LevelMeter): Throttle = {
     //    val segmentsCount = 1.gb_long - meter.levelSize
-    val segmentsCount = 80 - meter.segmentsCount
-    Throttle(segmentsCount.nano, 2)
+    val segmentsCount = 500 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 2)
   }
 
   def levelFourThrottle(meter: LevelMeter): Throttle = {
     //    val segmentsCount = 2.gb_long - meter.levelSize
-    val segmentsCount = 160 - meter.segmentsCount
-    Throttle(segmentsCount.nano, 1)
+    val segmentsCount = 5000 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 1)
   }
 
   def levelFiveThrottle(meter: LevelMeter): Throttle = {
     //    val segmentsCount = 3.gb_long - meter.levelSize
-    val segmentsCount = 320 - meter.segmentsCount
-    Throttle(segmentsCount.nano, 1)
+    val segmentsCount = 10000 - meter.segmentsCount
+    Throttle(segmentsCount.seconds, 1)
   }
 
   def levelSixThrottle(meter: LevelMeter): Throttle =

@@ -33,17 +33,17 @@ import scala.concurrent.duration._
 
 case object CommonConfigs {
   //4098 being the default file-system blockSize.
-  def mapSize: Int = 16.mb
+  def mapSize: Int = 32.mb
 
-  def segmentSize: Int = 16.mb
+  def segmentSize: Int = 32.mb
 
-  def segmentDeleteDelay = 5.seconds
+  def segmentDeleteDelay = 10.seconds
 
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
       increaseMapSizeOnMapCount = 3,
-      increaseMapSizeBy = 2,
-      maxMapSize = CommonConfigs.mapSize * 3,
+      increaseMapSizeBy = 1,
+      maxMapSize = CommonConfigs.mapSize,
       brakeOnMapCount = 4,
       brakeFor = 1.milliseconds,
       releaseRate = 0.01.millisecond,
