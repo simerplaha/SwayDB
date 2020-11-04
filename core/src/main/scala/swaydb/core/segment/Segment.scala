@@ -296,11 +296,14 @@ private[core] case object Segment extends LazyLogging {
 
                 PersistentSegmentOne(
                   file = file,
-                  createdInLevel = createdInLevel,
+                  createdInLevel = segment.segmentRef.createdInLevel,
                   segment = segment
                 )
 
               case segment: TransientSegment.Many =>
+                //many can contain remote segments so createdInLevel is the smallest remote.
+                var createdInLevelMin = createdInLevel
+
                 val file: DBFile =
                   segmentFile(
                     path = path,
@@ -310,8 +313,10 @@ private[core] case object Segment extends LazyLogging {
                       file => {
                         file.append(segment.fileHeader)
                         file.append(segment.listSegment.bodyBytes)
+
                         segment.segments foreach {
                           case remote: TransientSegment.Remote =>
+                            createdInLevelMin = createdInLevelMin min remote.segmentRef.createdInLevel
                             remote.segmentRef.segmentBlockCache.transfer(0, remote.segmentSize, file)
 
                           case one: TransientSegment.One =>
@@ -322,7 +327,7 @@ private[core] case object Segment extends LazyLogging {
 
                 PersistentSegmentMany(
                   file = file,
-                  createdInLevel = createdInLevel,
+                  createdInLevel = createdInLevelMin,
                   segment = segment
                 )
             }
