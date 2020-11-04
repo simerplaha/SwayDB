@@ -71,51 +71,51 @@ object TransientSegment {
       )
   }
 
-  case class Remote(fileHeader: Slice[Byte], segmentRef: SegmentRef) extends Singleton {
+  case class Remote(fileHeader: Slice[Byte], ref: SegmentRef) extends Singleton {
     override def minKey: Slice[Byte] =
-      segmentRef.minKey
+      ref.minKey
 
     override def maxKey: MaxKey[Slice[Byte]] =
-      segmentRef.maxKey
+      ref.maxKey
 
     override def nearestPutDeadline: Option[Deadline] =
-      segmentRef.nearestPutDeadline
+      ref.nearestPutDeadline
 
     override def minMaxFunctionId: Option[MinMax[Slice[Byte]]] =
-      segmentRef.minMaxFunctionId
+      ref.minMaxFunctionId
 
     override def hasEmptyByteSlice: Boolean =
       fileHeader.isEmpty || hasEmptyByteSliceIgnoreHeader
 
     override def hasEmptyByteSliceIgnoreHeader: Boolean =
-      segmentRef.segmentSize == 0
+      ref.segmentSize == 0
 
     override def segmentSize: Int =
-      fileHeader.size + segmentRef.segmentSize
+      fileHeader.size + ref.segmentSize
 
     override def segmentSizeIgnoreHeader: Int =
-      segmentRef.segmentSize
+      ref.segmentSize
 
     override def valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-      segmentRef.segmentBlockCache.cachedValuesSliceReader()
+      ref.segmentBlockCache.cachedValuesSliceReader()
 
     override def sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
-      segmentRef.segmentBlockCache.cachedSortedIndexSliceReader()
+      ref.segmentBlockCache.cachedSortedIndexSliceReader()
 
     override def hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]] =
-      segmentRef.segmentBlockCache.cachedHashIndexSliceReader()
+      ref.segmentBlockCache.cachedHashIndexSliceReader()
 
     override def binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]] =
-      segmentRef.segmentBlockCache.cachedBinarySearchIndexSliceReader()
+      ref.segmentBlockCache.cachedBinarySearchIndexSliceReader()
 
     override def bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]] =
-      segmentRef.segmentBlockCache.cachedBloomFilterSliceReader()
+      ref.segmentBlockCache.cachedBloomFilterSliceReader()
 
     override def footerUnblocked: Option[SegmentFooterBlock] =
-      segmentRef.segmentBlockCache.cachedFooter()
+      ref.segmentBlockCache.cachedFooter()
 
     override def toString: String =
-      s"TransientSegment.${this.productPrefix}. Size: ${segmentRef.segmentSize}.bytes"
+      s"TransientSegment.${this.productPrefix}. Size: ${ref.segmentSize}.bytes"
 
     override def copyWithFileHeader(fileHeader: Slice[Byte]): Remote =
       copy(fileHeader = fileHeader)

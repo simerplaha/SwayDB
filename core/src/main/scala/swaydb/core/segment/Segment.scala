@@ -290,13 +290,13 @@ private[core] case object Segment extends LazyLogging {
                     applier =
                       file => {
                         file.append(segment.fileHeader)
-                        segment.segmentRef.segmentBlockCache.transfer(0, segmentSize, file)
+                        segment.ref.segmentBlockCache.transfer(0, segmentSize, file)
                       }
                   )
 
                 PersistentSegmentOne(
                   file = file,
-                  createdInLevel = segment.segmentRef.createdInLevel,
+                  createdInLevel = segment.ref.createdInLevel,
                   segment = segment
                 )
 
@@ -316,8 +316,8 @@ private[core] case object Segment extends LazyLogging {
 
                         segment.segments foreach {
                           case remote: TransientSegment.Remote =>
-                            createdInLevelMin = createdInLevelMin min remote.segmentRef.createdInLevel
-                            remote.segmentRef.segmentBlockCache.transfer(0, remote.segmentSize, file)
+                            createdInLevelMin = createdInLevelMin min remote.ref.createdInLevel
+                            remote.ref.segmentBlockCache.transfer(0, remote.segmentSize, file)
 
                           case one: TransientSegment.One =>
                             file.append(one.bodyBytes)

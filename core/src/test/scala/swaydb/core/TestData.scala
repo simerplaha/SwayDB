@@ -1949,7 +1949,7 @@ object TestData {
         case segment: TransientSegment.Singleton =>
           segment match {
             case segment: TransientSegment.Remote =>
-              slice addAll segment.segmentRef.readAllBytes()
+              slice addAll segment.ref.readAllBytes()
 
             case segment: TransientSegment.One =>
               slice addAll segment.fileHeader

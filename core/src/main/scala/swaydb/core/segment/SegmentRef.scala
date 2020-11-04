@@ -1303,10 +1303,10 @@ private[core] case object SegmentRef extends LazyLogging {
 
         def nextOldOrNull() = if (oldRefs.hasNext) oldRefs.next() else null
 
-        val ones = ListBuffer.empty[TransientSegment.Singleton]
+        val singles = ListBuffer.empty[TransientSegment.Singleton]
 
         if (headGap.nonEmpty)
-          ones ++=
+          singles ++=
             fastWriteOne(
               assignables = headGap,
               createdInLevel = createdInLevel,
@@ -1326,7 +1326,7 @@ private[core] case object SegmentRef extends LazyLogging {
             //insert SegmentRefs directly that are not assigned or do not require merging making
             //sure they are inserted in order.
             while (oldRef != null && oldRef != assignment.segment) {
-              ones += TransientSegment.Remote(fileHeader = Slice.emptyBytes, segmentRef = oldRef)
+              singles += TransientSegment.Remote(fileHeader = Slice.emptyBytes, ref = oldRef)
 
               oldRef = nextOldOrNull()
             }
@@ -1350,21 +1350,21 @@ private[core] case object SegmentRef extends LazyLogging {
               )
 
             if (result.replaced) {
-              ones ++= result.result
+              singles ++= result.result
             } else {
-              val merge = result.result :+ TransientSegment.Remote(fileHeader = Slice.emptyBytes, segmentRef = assignment.segment)
+              val merge = result.result :+ TransientSegment.Remote(fileHeader = Slice.emptyBytes, ref = assignment.segment)
 
-              ones ++= merge.sortBy(_.minKey)(keyOrder)
+              singles ++= merge.sortBy(_.minKey)(keyOrder)
             }
         }
 
         oldRefs foreach {
           oldRef =>
-            ones += TransientSegment.Remote(fileHeader = Slice.emptyBytes, segmentRef = oldRef)
+            singles += TransientSegment.Remote(fileHeader = Slice.emptyBytes, ref = oldRef)
         }
 
         if (tailGap.nonEmpty)
-          ones ++=
+          singles ++=
             fastWriteOne(
               assignables = tailGap,
               createdInLevel = createdInLevel,
@@ -1379,7 +1379,7 @@ private[core] case object SegmentRef extends LazyLogging {
         val newMany =
           SegmentBlock.writeOneOrMany(
             createdInLevel = createdInLevel,
-            ones = Slice.from(ones, ones.size),
+            ones = Slice.from(singles, singles.size),
             sortedIndexConfig = sortedIndexConfig,
             valuesConfig = valuesConfig,
             segmentConfig = segmentConfig
