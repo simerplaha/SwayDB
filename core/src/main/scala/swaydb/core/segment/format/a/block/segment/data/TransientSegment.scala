@@ -44,6 +44,7 @@ sealed trait TransientSegment {
   def maxKey: MaxKey[Slice[Byte]]
   def hasEmptyByteSlice: Boolean
   def nearestPutDeadline: Option[Deadline]
+  def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
   def segmentSize: Int
 }
 
@@ -79,6 +80,9 @@ object TransientSegment {
 
     override def nearestPutDeadline: Option[Deadline] =
       segmentRef.nearestPutDeadline
+
+    override def minMaxFunctionId: Option[MinMax[Slice[Byte]]] =
+      segmentRef.minMaxFunctionId
 
     override def hasEmptyByteSlice: Boolean =
       fileHeader.isEmpty || hasEmptyByteSliceIgnoreHeader

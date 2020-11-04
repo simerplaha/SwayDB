@@ -69,6 +69,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
             maxKey = MaxKey.Fixed[Slice[Byte]](100),
             minKey = 0,
             nearestPutDeadline = None,
+            minMaxFunctionId = None,
             skipList = None,
             segmentBlockCache = null
           )
@@ -87,6 +88,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
             maxKey = MaxKey.Range[Slice[Byte]](90, 100),
             minKey = 0,
             nearestPutDeadline = None,
+            minMaxFunctionId = None,
             skipList = None,
             segmentBlockCache = null
           )
@@ -117,6 +119,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
               maxKey = MaxKey.Fixed[Slice[Byte]](Int.MaxValue),
               minKey = 0,
               nearestPutDeadline = None,
+              minMaxFunctionId = None,
               skipList = None,
               segmentBlockCache = segmentBlockCache.head
             )

@@ -104,6 +104,7 @@ protected case object PersistentSegmentMany {
                   minKey = singleton.minKey,
                   maxKey = singleton.maxKey,
                   nearestPutDeadline = singleton.nearestPutDeadline,
+                  minMaxFunctionId = singleton.minMaxFunctionId,
                   blockRef = blockRef,
                   segmentIO = segmentIO,
                   valuesReaderCacheable = singleton.valuesUnblockedReader,
@@ -304,6 +305,7 @@ protected case object PersistentSegmentMany {
         minKey = minKey,
         maxKey = maxKey,
         nearestPutDeadline = None,
+        minMaxFunctionId = None,
         blockRef = listSegmentRef,
         segmentIO = segmentIO,
         valuesReaderCacheable = None,
@@ -405,6 +407,7 @@ protected case object PersistentSegmentMany {
       minKey = minKey,
       maxKey = maxKey,
       //ListSegment does not store deadline. This is stored at the higher Level.
+      minMaxFunctionId = None,
       nearestPutDeadline = None,
       blockRef = listSegmentRef,
       segmentIO = segmentIO,
@@ -593,12 +596,14 @@ protected case class PersistentSegmentMany(file: DBFile,
       .floor(key)
       .existsC(_.mightContainKey(key))
 
-  /**
-   * [[PersistentSegmentMany]] is not aware of [[minMaxFunctionId]].
-   * It should be deferred to [[SegmentRef]].
-   */
   override def mightContainFunction(key: Slice[Byte]): Boolean =
-    segmentRefs exists (_.mightContainKey(key))
+    minMaxFunctionId exists {
+      minMaxFunctionId =>
+        MinMax.contains(
+          key = key,
+          minMax = minMaxFunctionId
+        )(FunctionStore.order)
+    }
 
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     segments

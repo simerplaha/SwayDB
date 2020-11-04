@@ -76,14 +76,7 @@ protected object PersistentSegmentOne {
       createdInLevel = createdInLevel,
       minKey = segment.minKey,
       maxKey = segment.maxKey,
-      minMaxFunctionId =
-        segment match {
-          case _: TransientSegment.Remote =>
-            None
-
-          case one: TransientSegment.One =>
-            one.minMaxFunctionId
-        },
+      minMaxFunctionId = segment.minMaxFunctionId,
       segmentSize = segment.segmentSize,
       nearestExpiryDeadline = segment.nearestPutDeadline,
       valuesReaderCacheable = segment.valuesUnblockedReader,
@@ -131,6 +124,7 @@ protected object PersistentSegmentOne {
         minKey = minKey,
         maxKey = maxKey,
         nearestPutDeadline = nearestExpiryDeadline,
+        minMaxFunctionId = minMaxFunctionId,
         blockRef = segmentBlockRef,
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,

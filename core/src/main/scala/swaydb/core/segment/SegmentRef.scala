@@ -76,6 +76,7 @@ private[core] case object SegmentRef extends LazyLogging {
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             nearestPutDeadline: Option[Deadline],
+            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -123,6 +124,7 @@ private[core] case object SegmentRef extends LazyLogging {
       maxKey = maxKey,
       minKey = minKey,
       nearestPutDeadline = nearestPutDeadline,
+      minMaxFunctionId = minMaxFunctionId,
       skipList = skipList,
       segmentBlockCache = segmentBlockCache
     )
@@ -1485,6 +1487,7 @@ private[core] class SegmentRef(val path: Path,
                                val maxKey: MaxKey[Slice[Byte]],
                                val minKey: Slice[Byte],
                                val nearestPutDeadline: Option[Deadline],
+                               val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
                                val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                          keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with LazyLogging {

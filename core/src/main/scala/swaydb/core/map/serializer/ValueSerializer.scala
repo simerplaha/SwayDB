@@ -27,10 +27,11 @@ package swaydb.core.map.serializer
 import swaydb.IO
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, MinMax}
 import swaydb.core.util.Times._
 import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.Options.OptionsImplicits
 
 import scala.annotation.implicitNotFound
 import scala.collection.mutable
@@ -402,6 +403,50 @@ private[core] object ValueSerializer {
                   right.size +
                   totalSize
             } + totalSize
+      }
+  }
+
+  implicit object MinMaxSerialiser extends ValueSerializer[Option[MinMax[Slice[Byte]]]] {
+    override def write(minMax: Option[MinMax[Slice[Byte]]], bytes: Slice[Byte]): Unit =
+      minMax match {
+        case Some(minMax) =>
+          bytes addUnsignedInt minMax.min.size
+          bytes addAll minMax.min
+          minMax.max match {
+            case Some(max) =>
+              bytes addUnsignedInt max.size
+              bytes addAll max
+
+            case None =>
+              bytes addUnsignedInt 0
+          }
+
+        case None =>
+          bytes addUnsignedInt 0
+      }
+
+    override def read(reader: ReaderBase[Byte]): Option[MinMax[Slice[Byte]]] = {
+      val minIdSize = reader.readUnsignedInt()
+      if (minIdSize == 0)
+        None
+      else {
+        val minId = reader.read(minIdSize)
+        val maxIdSize = reader.readUnsignedInt()
+        val maxId = if (maxIdSize == 0) None else Some(reader.read(maxIdSize))
+        Some(MinMax(minId, maxId))
+      }
+    }
+
+    override def bytesRequired(minMax: Option[MinMax[Slice[Byte]]]): Int =
+      minMax match {
+        case Some(minMax) =>
+          Bytes.sizeOfUnsignedInt(minMax.min.size) +
+            minMax.min.size +
+            Bytes.sizeOfUnsignedInt(minMax.max.valueOrElse(_.size, 0)) +
+            minMax.max.valueOrElse(_.size, 0)
+
+        case None =>
+          1
       }
   }
 

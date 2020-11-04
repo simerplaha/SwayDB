@@ -29,6 +29,7 @@ import java.nio.file.Path
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Memory, Persistent, Time, Value}
 import swaydb.core.io.reader.Reader
+import swaydb.core.map.serializer.ValueSerializer.MinMaxSerialiser
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -50,10 +51,14 @@ object TransientSegmentSerialiser {
                  size: Int): Slice[Memory] =
     singleton.maxKey match {
       case MaxKey.Fixed(maxKey) =>
-        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2))
+        val minMaxFunctionBytesSize = MinMaxSerialiser.bytesRequired(singleton.minMaxFunctionId)
+
+        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2) + minMaxFunctionBytesSize)
         value add 0 //fixed maxKey id
         value addUnsignedInt offset
         value addUnsignedInt size
+
+        MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
 
         /**
          * - nearestDeadline is stored so that the parent many segment knows which segment to refresh.
@@ -69,10 +74,13 @@ object TransientSegmentSerialiser {
           )
 
       case MaxKey.Range(fromKey, maxKey) =>
-        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2) + fromKey.size)
+        val minMaxFunctionBytesSize = MinMaxSerialiser.bytesRequired(singleton.minMaxFunctionId)
+
+        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2) + minMaxFunctionBytesSize + fromKey.size)
         value add 1 //range maxKey id
         value addUnsignedInt offset
         value addUnsignedInt size
+        MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
         value addAll fromKey
 
         if (singleton.minKey equals maxKey) {
@@ -107,11 +115,13 @@ object TransientSegmentSerialiser {
         if (maxKeyId == 0) {
           val segmentOffset = valueReader.readUnsignedInt()
           val segmentSize = valueReader.readUnsignedInt()
+          val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
           SegmentRef(
             path = path.resolve(s".ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Fixed(range.toKey.unslice()),
             nearestPutDeadline = deadline,
+            minMaxFunctionId = minMaxFunctionId,
             blockRef =
               BlockRefReader(
                 ref = reader,
@@ -129,12 +139,14 @@ object TransientSegmentSerialiser {
         } else if (maxKeyId == 1) {
           val segmentOffset = valueReader.readUnsignedInt()
           val segmentSize = valueReader.readUnsignedInt()
+          val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
           val maxKeyMinKey = valueReader.readRemaining()
           SegmentRef(
             path = path.resolve(s".ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Range(maxKeyMinKey.unslice(), range.toKey.unslice()),
             nearestPutDeadline = deadline,
+            minMaxFunctionId = minMaxFunctionId,
             blockRef =
               BlockRefReader(
                 ref = reader,
@@ -174,11 +186,13 @@ object TransientSegmentSerialiser {
     if (maxKeyId == 0) {
       val segmentOffset = valueReader.readUnsignedInt()
       val segmentSize = valueReader.readUnsignedInt()
+      val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
       SegmentRef(
         path = path.resolve(s".ref.$segmentOffset"),
         minKey = put.key,
         maxKey = MaxKey.Fixed(put.key.unslice()),
         nearestPutDeadline = put.deadline,
+        minMaxFunctionId = minMaxFunctionId,
         blockRef =
           BlockRefReader(
             ref = reader,
@@ -196,12 +210,14 @@ object TransientSegmentSerialiser {
     } else if (maxKeyId == 1) {
       val segmentOffset = valueReader.readUnsignedInt()
       val segmentSize = valueReader.readUnsignedInt()
+      val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
       val maxKeyMinKey = valueReader.readRemaining()
       SegmentRef(
         path = path.resolve(s".ref.$segmentOffset"),
         minKey = put.key.unslice(),
         maxKey = MaxKey.Range(maxKeyMinKey.unslice(), put.key.unslice()),
         nearestPutDeadline = put.deadline,
+        minMaxFunctionId = minMaxFunctionId,
         blockRef =
           BlockRefReader(
             ref = reader,

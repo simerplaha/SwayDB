@@ -38,8 +38,8 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.merge.MergeStats.Persistent
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, SegmentRef}
-import swaydb.core.util.{Bytes, Collections}
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
+import swaydb.core.util.{Bytes, Collections, MinMax}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -216,8 +216,12 @@ private[core] case object SegmentBlock extends LazyLogging {
             val listKeyValue: Persistent.Builder[Memory, Slice] =
               MergeStats.persistent(Slice.newAggregator(segments.size * 2))
 
+            var minMaxFunctionId = Option.empty[MinMax[Slice[Byte]]]
+
             segments.foldLeft(0) {
               case (offset, segment) =>
+                minMaxFunctionId = MinMax.minMaxFunctionOption(segment.minMaxFunctionId, minMaxFunctionId)
+
                 val segmentSize = segment.segmentSize
                 listKeyValue addAll segment.toKeyValue(offset, segmentSize)
                 offset + segmentSize
@@ -262,9 +266,7 @@ private[core] case object SegmentBlock extends LazyLogging {
             TransientSegment.Many(
               minKey = segments.head.minKey,
               maxKey = segments.last.maxKey,
-              //minMaxFunctionId is not stored in Many. All functionId request should be deferred
-              //onto the SegmentRefs itself.
-              minMaxFunctionId = None,
+              minMaxFunctionId = minMaxFunctionId,
               fileHeader = fileHeader,
               nearestPutDeadline = listSegment.nearestPutDeadline,
               listSegment = listSegment,

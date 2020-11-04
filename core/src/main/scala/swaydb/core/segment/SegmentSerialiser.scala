@@ -29,11 +29,11 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
-import swaydb.core.actor.MemorySweeper
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
-import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
+import swaydb.core.map.serializer.ValueSerializer.MinMaxSerialiser
+import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -96,22 +96,7 @@ private[core] object SegmentSerialiser {
         .addAll(maxKeyBytes)
         .addUnsignedLong(segment.nearestPutDeadline.valueOrElse(_.time.toNanos, 0L))
 
-      segment.minMaxFunctionId match {
-        case Some(minMaxFunctionId) =>
-          bytes addUnsignedInt minMaxFunctionId.min.size
-          bytes addAll minMaxFunctionId.min
-          minMaxFunctionId.max match {
-            case Some(max) =>
-              bytes addUnsignedInt max.size
-              bytes addAll max
-
-            case None =>
-              bytes addUnsignedInt 0
-          }
-
-        case None =>
-          bytes addUnsignedInt 0
-      }
+      MinMaxSerialiser.write(segment.minMaxFunctionId, bytes)
     }
 
     def read(reader: ReaderBase[Byte],
@@ -160,17 +145,7 @@ private[core] object SegmentSerialiser {
           Some(Deadline((deadlineNanos, TimeUnit.NANOSECONDS)))
       }
 
-      val minMaxFunctionId = {
-        val minIdSize = reader.readUnsignedInt()
-        if (minIdSize == 0)
-          None
-        else {
-          val minId = reader.read(minIdSize)
-          val maxIdSize = reader.readUnsignedInt()
-          val maxId = if (maxIdSize == 0) None else Some(reader.read(maxIdSize))
-          Some(MinMax(minId, maxId))
-        }
-      }
+      val minMaxFunctionId = MinMaxSerialiser.read(reader)
 
       val fileType = Effect.numberFileId(segmentPath)._2
 
@@ -205,16 +180,7 @@ private[core] object SegmentSerialiser {
         }
 
       val minMaxFunctionIdBytesRequires =
-        segment.minMaxFunctionId match {
-          case Some(minMax) =>
-            Bytes.sizeOfUnsignedInt(minMax.min.size) +
-              minMax.min.size +
-              Bytes.sizeOfUnsignedInt(minMax.max.valueOrElse(_.size, 0)) +
-              minMax.max.valueOrElse(_.size, 0)
-
-          case None =>
-            1
-        }
+        MinMaxSerialiser.bytesRequired(segment.minMaxFunctionId)
 
       ByteSizeOf.byte + //formatId
         ByteSizeOf.byte + //segmentFormatId
