@@ -60,7 +60,7 @@ private[file] trait DBFileType extends FileSweeperItem {
 
   def append(slice: Iterable[Slice[Byte]]): Unit
 
-  def transfer(position: Long, count: Long, transferTo: DBFileType): Long
+  def transfer(position: Int, count: Int, transferTo: DBFileType): Int
 
   def read(position: Int, size: Int): Slice[Byte]
 

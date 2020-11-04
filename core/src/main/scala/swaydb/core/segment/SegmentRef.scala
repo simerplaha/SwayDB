@@ -1257,7 +1257,6 @@ private[core] case object SegmentRef extends LazyLogging {
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                         segmentIO: SegmentIO,
                                                         forceSaveApplier: ForceSaveApplier): SegmentPutResult[Slice[PersistentSegment]] = {
-
     if (assignableCount == 0) {
       //if there are no assignments write gaps and return.
       val gapInsert =
@@ -1302,7 +1301,7 @@ private[core] case object SegmentRef extends LazyLogging {
 
         def nextOldOrNull() = if (oldRefs.hasNext) oldRefs.next() else null
 
-        val ones = ListBuffer.empty[TransientSegment.One]
+        val ones = ListBuffer.empty[TransientSegment.Singleton]
 
         if (headGap.nonEmpty)
           ones ++=
@@ -1325,20 +1324,7 @@ private[core] case object SegmentRef extends LazyLogging {
             //insert SegmentRefs directly that are not assigned or do not require merging making
             //sure they are inserted in order.
             while (oldRef != null && oldRef != assignment.segment) {
-              ones +=
-                TransientSegment.One(
-                  minKey = oldRef.minKey,
-                  maxKey = oldRef.maxKey,
-                  segmentBytes = Slice(oldRef.readAllBytes()),
-                  minMaxFunctionId = None,
-                  nearestPutDeadline = oldRef.nearestPutDeadline,
-                  valuesUnblockedReader = oldRef.segmentBlockCache.cachedValuesSliceReader(),
-                  sortedIndexUnblockedReader = oldRef.segmentBlockCache.cachedSortedIndexSliceReader(),
-                  hashIndexUnblockedReader = oldRef.segmentBlockCache.cachedHashIndexSliceReader(),
-                  binarySearchUnblockedReader = oldRef.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
-                  bloomFilterUnblockedReader = oldRef.segmentBlockCache.cachedBloomFilterSliceReader(),
-                  footerUnblocked = oldRef.segmentBlockCache.cachedFooter()
-                )
+              ones += TransientSegment.Remote(fileHeader = Slice.emptyBytes, segmentRef = oldRef)
 
               oldRef = nextOldOrNull()
             }
@@ -1364,21 +1350,7 @@ private[core] case object SegmentRef extends LazyLogging {
             if (result.replaced) {
               ones ++= result.result
             } else {
-              val merge =
-                result.result :+
-                  TransientSegment.One(
-                    minKey = assignment.segment.minKey,
-                    maxKey = assignment.segment.maxKey,
-                    segmentBytes = Slice(assignment.segment.readAllBytes()),
-                    minMaxFunctionId = None,
-                    nearestPutDeadline = assignment.segment.nearestPutDeadline,
-                    valuesUnblockedReader = assignment.segment.segmentBlockCache.cachedValuesSliceReader(),
-                    sortedIndexUnblockedReader = assignment.segment.segmentBlockCache.cachedSortedIndexSliceReader(),
-                    hashIndexUnblockedReader = assignment.segment.segmentBlockCache.cachedHashIndexSliceReader(),
-                    binarySearchUnblockedReader = assignment.segment.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
-                    bloomFilterUnblockedReader = assignment.segment.segmentBlockCache.cachedBloomFilterSliceReader(),
-                    footerUnblocked = assignment.segment.segmentBlockCache.cachedFooter()
-                  )
+              val merge = result.result :+ TransientSegment.Remote(fileHeader = Slice.emptyBytes, segmentRef = assignment.segment)
 
               ones ++= merge.sortBy(_.minKey)(keyOrder)
             }
@@ -1386,20 +1358,7 @@ private[core] case object SegmentRef extends LazyLogging {
 
         oldRefs foreach {
           oldRef =>
-            ones +=
-              TransientSegment.One(
-                minKey = oldRef.minKey,
-                maxKey = oldRef.maxKey,
-                segmentBytes = Slice(oldRef.readAllBytes()),
-                minMaxFunctionId = None,
-                nearestPutDeadline = oldRef.nearestPutDeadline,
-                valuesUnblockedReader = oldRef.segmentBlockCache.cachedValuesSliceReader(),
-                sortedIndexUnblockedReader = oldRef.segmentBlockCache.cachedSortedIndexSliceReader(),
-                hashIndexUnblockedReader = oldRef.segmentBlockCache.cachedHashIndexSliceReader(),
-                binarySearchUnblockedReader = oldRef.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
-                bloomFilterUnblockedReader = oldRef.segmentBlockCache.cachedBloomFilterSliceReader(),
-                footerUnblocked = oldRef.segmentBlockCache.cachedFooter()
-              )
+            ones += TransientSegment.Remote(fileHeader = Slice.emptyBytes, segmentRef = oldRef)
         }
 
         if (tailGap.nonEmpty)

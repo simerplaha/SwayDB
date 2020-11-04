@@ -60,6 +60,9 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
 
   override def getPosition: Int = position
 
+  def transfer(position: Int, count: Int, transferTo: DBFile): Unit =
+    file.transfer(position = position, count = count, transferTo = transferTo)
+
   override def get() = {
     val byte = file get position
     position += 1

@@ -169,7 +169,8 @@ private[core] object Block extends LazyLogging {
       TransientSegment.One(
         minKey = blocks.minKey,
         maxKey = blocks.maxKey,
-        segmentBytes = segmentBytes,
+        fileHeader = Slice.emptyBytes,
+        bodyBytes = segmentBytes,
         minMaxFunctionId = blocks.functionMinMax,
         nearestPutDeadline = blocks.nearestDeadline,
         valuesUnblockedReader = blocks.valuesUnblockedReader,
@@ -198,7 +199,8 @@ private[core] object Block extends LazyLogging {
       TransientSegment.One(
         minKey = blocks.minKey,
         maxKey = blocks.maxKey,
-        segmentBytes = Slice(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes),
+        fileHeader = Slice.emptyBytes,
+        bodyBytes = Slice(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes),
         minMaxFunctionId = blocks.functionMinMax,
         nearestPutDeadline = blocks.nearestDeadline,
         valuesUnblockedReader = blocks.valuesUnblockedReader,

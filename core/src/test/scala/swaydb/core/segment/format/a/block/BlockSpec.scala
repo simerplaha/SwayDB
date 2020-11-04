@@ -107,7 +107,7 @@ class BlockSpec extends TestBase {
           val blockedSegment = Block.block(segment, Seq.empty, "test-segment-block")
 
           //first slice gets written
-          blockedSegment.segmentBytes.head.exists(_ != 0) shouldBe true
+          blockedSegment.flattenSegmentBytes.exists(_ != 0) shouldBe true
           val ref = BlockRefReader[SegmentBlock.Offset](blockedSegment.flattenSegmentBytes)
 
           //read header
@@ -201,7 +201,8 @@ class BlockSpec extends TestBase {
           val compressedSegment = Block.block(uncompressedSegment, Seq(compression), "test-segment-block")
 
           compressedSegment.hashCode() should not be uncompressedSegment.hashCode() //different object, because it's compressed.
-          compressedSegment.segmentBytes should have size 2 //compressed
+          compressedSegment.fileHeader shouldBe empty
+          compressedSegment.bodyBytes should not be empty
 
           val ref = BlockRefReader[SegmentBlock.Offset](compressedSegment.flattenSegmentBytes)
 

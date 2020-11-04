@@ -194,15 +194,15 @@ private[core] case object SegmentBlock extends LazyLogging {
     }
 
   def writeOneOrMany(createdInLevel: Int,
-                     ones: Slice[TransientSegment.One],
+                     ones: Slice[TransientSegment.Singleton],
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
                      segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
     if (ones.isEmpty) {
       Slice.empty
     } else {
-      val groups: Slice[Slice[TransientSegment.One]] =
-        Collections.groupedBySize[TransientSegment.One](
+      val groups: Slice[Slice[TransientSegment.Singleton]] =
+        Collections.groupedBySize[TransientSegment.Singleton](
           minGroupSize = segmentConfig.minSize,
           itemSize = _.segmentSize,
           items = ones
@@ -211,8 +211,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       groups map {
         segments =>
           if (segments.size == 1) {
-            val segment = segments.head
-            segment.copy(segmentBytes = PersistentSegmentOne.formatIdSliceSlice ++ segment.segmentBytes)
+            segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice)
           } else {
             val listKeyValue: Persistent.Builder[Memory, Slice] =
               MergeStats.persistent(Slice.newAggregator(segments.size * 2))
@@ -254,33 +253,22 @@ private[core] case object SegmentBlock extends LazyLogging {
               ByteSizeOf.byte +
                 Bytes.sizeOfUnsignedInt(listSegmentSize)
 
-            val slotsRequired = segments.foldLeft(headerSize + listSegment.segmentBytes.size)(_ + _.segmentBytes.size)
-
-            val segmentBytes = Slice.of[Slice[Byte]](slotsRequired)
-
-            val headerBytes = Slice.of[Byte](headerSize)
-            headerBytes add PersistentSegmentMany.formatId
-            headerBytes addUnsignedInt listSegmentSize
-
-            segmentBytes add headerBytes
-            segmentBytes addAll listSegment.segmentBytes
-            segments foreach {
-              segment =>
-                segmentBytes addAll segment.segmentBytes
-            }
+            val fileHeader = Slice.of[Byte](headerSize)
+            fileHeader add PersistentSegmentMany.formatId
+            fileHeader addUnsignedInt listSegmentSize
 
             assert(listSegment.minMaxFunctionId.isEmpty, "minMaxFunctionId was not empty")
 
             TransientSegment.Many(
               minKey = segments.head.minKey,
               maxKey = segments.last.maxKey,
-              headerSize = headerSize,
               //minMaxFunctionId is not stored in Many. All functionId request should be deferred
               //onto the SegmentRefs itself.
               minMaxFunctionId = None,
+              fileHeader = fileHeader,
               nearestPutDeadline = listSegment.nearestPutDeadline,
-              segments = Slice(listSegment) ++ segments,
-              segmentBytes = segmentBytes
+              listSegment = listSegment,
+              segments = segments
             )
           }
       }

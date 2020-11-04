@@ -211,13 +211,32 @@ private[file] class MMAPFile(val path: Path,
         append(slice)
     }
 
-  override def transfer(position: Long, count: Long, transferTo: DBFileType): Long =
-    Effect.transfer(
-      position = position,
-      count = count,
-      from = channel,
-      transferTo = transferTo.writeableChannel
-    )
+  override def transfer(position: Int, count: Int, transferTo: DBFileType): Int =
+    transferTo match {
+      case _: ChannelFile =>
+        //TODO - Is forceSave really required here? Can a buffer contain bytes that FileChannel is unaware of?
+        this.forceSave()
+
+        val transferred =
+          Effect.transfer(
+            position = position,
+            count = count,
+            from = channel,
+            transferTo = transferTo.writeableChannel
+          )
+
+        assert(transferred == count, s"$transferred != $count")
+
+        transferred
+
+      case target: MMAPFile =>
+        val duplicate = buffer.duplicate()
+        duplicate.position(position)
+        duplicate.limit(position + count)
+
+        target.buffer.put(duplicate)
+        count
+    }
 
   def read(position: Int, size: Int): Slice[Byte] =
     watchNullPointer {

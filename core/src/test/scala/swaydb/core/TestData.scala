@@ -1942,9 +1942,26 @@ object TestData {
   implicit class TransientSegmentImplicits(segment: TransientSegment) {
 
     def flattenSegmentBytes: Slice[Byte] = {
-      val size = segment.segmentBytes.foldLeft(0)(_ + _.size)
+      val size = segment.segmentSize
       val slice = Slice.of[Byte](size)
-      segment.segmentBytes foreach (slice addAll _)
+
+      segment match {
+        case segment: TransientSegment.Singleton =>
+          segment match {
+            case segment: TransientSegment.Remote =>
+              slice addAll segment.segmentRef.readAllBytes()
+
+            case segment: TransientSegment.One =>
+              slice addAll segment.fileHeader
+              segment.bodyBytes foreach (slice addAll _)
+          }
+
+        case segment: TransientSegment.Many =>
+          slice addAll segment.fileHeader
+          segment.listSegment.bodyBytes foreach slice.addAll
+          segment.segments.foreach(single => slice.addAll(single.flattenSegmentBytes))
+      }
+
       assert(slice.isFull)
       slice
     }

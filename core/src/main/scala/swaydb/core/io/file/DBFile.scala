@@ -214,6 +214,40 @@ object DBFile extends LazyLogging {
     file
   }
 
+  def mmapWriteAndReadApplier(path: Path,
+                              fileOpenIOStrategy: IOStrategy.ThreadSafe,
+                              autoClose: Boolean,
+                              deleteAfterClean: Boolean,
+                              forceSave: ForceSave.MMAPFiles,
+                              blockCacheFileId: Long,
+                              bufferSize: Int,
+                              applier: DBFile => Unit)(implicit fileSweeper: FileSweeper,
+                                                       blockCache: Option[BlockCache.State],
+                                                       bufferCleaner: ByteBufferSweeperActor,
+                                                       forceSaveApplier: ForceSaveApplier): DBFile = {
+    val file =
+      mmapInit(
+        path = path,
+        fileOpenIOStrategy = fileOpenIOStrategy,
+        bufferSize = bufferSize,
+        blockCacheFileId = blockCacheFileId,
+        autoClose = autoClose,
+        forceSave = forceSave,
+        deleteAfterClean = deleteAfterClean
+      )
+
+    try
+      applier(file)
+    catch {
+      case throwable: Throwable =>
+        logger.error(s"Failed to write MMAP file with applier. Closing file: $path", throwable)
+        file.close()
+        throw throwable
+    }
+
+    file
+  }
+
   def mmapWriteAndRead(path: Path,
                        fileOpenIOStrategy: IOStrategy.ThreadSafe,
                        autoClose: Boolean,
@@ -424,7 +458,7 @@ class DBFile(val path: Path,
         state = blockCache
       )
 
-  def transfer(position: Long, count: Long, transferTo: DBFile): Long =
+  def transfer(position: Int, count: Int, transferTo: DBFile): Long =
     file.transfer(
       position = position,
       count = count,

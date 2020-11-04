@@ -29,6 +29,7 @@ import java.nio.file.Path
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Persistent
+import swaydb.core.io.file.DBFile
 import swaydb.core.segment.SegmentIO
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -534,6 +535,9 @@ private[core] class SegmentBlockCache(path: Path,
 
   def offset(): SegmentBlock.Offset =
     segmentBlockRef.offset
+
+  def transfer(position: Int, count: Int, transferTo: DBFile): Unit =
+    segmentBlockRef.transfer(position = position, count = count, transferTo = transferTo)
 
   def clear(): Unit =
     allCaches.foreach(_.clear())

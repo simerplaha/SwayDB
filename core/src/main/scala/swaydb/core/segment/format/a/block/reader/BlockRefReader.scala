@@ -25,10 +25,10 @@
 package swaydb.core.segment.format.a.block.reader
 
 import swaydb.core.io.file.DBFile
-import swaydb.core.io.reader.Reader
+import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.{Reader, Slice, SliceReader}
 import swaydb.data.util.ByteOps
 
 private[core] object BlockRefReader {
@@ -106,6 +106,16 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
     state moveTo newPosition
     this
   }
+
+  def transfer(position: Int, count: Int, transferTo: DBFile): Unit =
+    reader match {
+      case reader: FileReader =>
+        reader.transfer(position = offset.start + position, count = count, transferTo = transferTo)
+
+      case SliceReader(slice, position) =>
+        val toTransfer = slice.drop(offset.start + position).take(count)
+        transferTo.append(toTransfer)
+    }
 
   def readFullBlockAndGetReader()(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     BlockRefReader(readFullBlock())

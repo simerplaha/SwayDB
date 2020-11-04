@@ -50,7 +50,7 @@ import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
-import swaydb.data.config.{Dir, MMAP}
+import swaydb.data.config.{Dir, ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.{FiniteDurations, SomeOrNone}
@@ -260,15 +260,40 @@ private[core] case object Segment extends LazyLogging {
           } else {
             val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
 
-            val file: DBFile =
-              segmentFile(
-                mmap = mmap,
-                segmentBytes = segment.segmentBytes,
-                path = path
-              )
-
             segment match {
               case segment: TransientSegment.One =>
+                val file: DBFile =
+                  segmentFile(
+                    path = path,
+                    mmap = mmap,
+                    segmentSize = segment.segmentSize,
+                    applier =
+                      file => {
+                        file.append(segment.fileHeader)
+                        file.append(segment.bodyBytes)
+                      }
+                  )
+
+                PersistentSegmentOne(
+                  file = file,
+                  createdInLevel = createdInLevel,
+                  segment = segment
+                )
+
+              case segment: TransientSegment.Remote =>
+                val segmentSize = segment.segmentSize
+                val file: DBFile =
+                  segmentFile(
+                    path = path,
+                    mmap = mmap,
+                    segmentSize = segmentSize,
+                    applier =
+                      file => {
+                        file.append(segment.fileHeader)
+                        segment.segmentRef.segmentBlockCache.transfer(0, segmentSize, file)
+                      }
+                  )
+
                 PersistentSegmentOne(
                   file = file,
                   createdInLevel = createdInLevel,
@@ -276,6 +301,25 @@ private[core] case object Segment extends LazyLogging {
                 )
 
               case segment: TransientSegment.Many =>
+                val file: DBFile =
+                  segmentFile(
+                    path = path,
+                    mmap = mmap,
+                    segmentSize = segment.segmentSize,
+                    applier =
+                      file => {
+                        file.append(segment.fileHeader)
+                        file.append(segment.listSegment.bodyBytes)
+                        segment.segments foreach {
+                          case remote: TransientSegment.Remote =>
+                            remote.segmentRef.segmentBlockCache.transfer(0, remote.segmentSize, file)
+
+                          case one: TransientSegment.One =>
+                            file.append(one.bodyBytes)
+                        }
+                      }
+                  )
+
                 PersistentSegmentMany(
                   file = file,
                   createdInLevel = createdInLevel,
@@ -298,38 +342,80 @@ private[core] case object Segment extends LazyLogging {
 
   private def segmentFile(path: Path,
                           mmap: MMAP.Segment,
-                          segmentBytes: Slice[Slice[Byte]])(implicit segmentIO: SegmentIO,
-                                                            fileSweeper: FileSweeper,
-                                                            bufferCleaner: ByteBufferSweeperActor,
-                                                            blockCache: Option[BlockCache.State],
-                                                            forceSaveApplier: ForceSaveApplier): DBFile =
+                          segmentSize: Int,
+                          applier: DBFile => Unit)(implicit segmentIO: SegmentIO,
+                                                   fileSweeper: FileSweeper,
+                                                   bufferCleaner: ByteBufferSweeperActor,
+                                                   blockCache: Option[BlockCache.State],
+                                                   forceSaveApplier: ForceSaveApplier): DBFile =
     mmap match {
       case MMAP.On(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
-        DBFile.mmapWriteAndRead(
+        DBFile.mmapWriteAndReadApplier(
           path = path,
           fileOpenIOStrategy = segmentIO.fileOpenIO,
           autoClose = true,
           deleteAfterClean = deleteAfterClean,
           forceSave = forceSave,
           blockCacheFileId = BlockCacheFileIDGenerator.next,
-          bytes = segmentBytes
+          bufferSize = segmentSize,
+          applier = applier
         )
 
       case MMAP.ReadOnly(deleteAfterClean) =>
+        val channelWrite =
+          DBFile.channelWrite(
+            path = path,
+            fileOpenIOStrategy = segmentIO.fileOpenIO,
+            blockCacheFileId = BlockCacheFileIDGenerator.next,
+            autoClose = true,
+            forceSave = ForceSave.Off
+          )
+
+        try
+          applier(channelWrite)
+        catch {
+          case throwable: Throwable =>
+            logger.error(s"Failed to write $mmap file with applier. Closing file: $path", throwable)
+            channelWrite.close()
+            throw throwable
+        }
+
+        channelWrite.close()
+
         DBFile.mmapRead(
-          path = Effect.write(path, segmentBytes),
+          path = channelWrite.path,
           fileOpenIOStrategy = segmentIO.fileOpenIO,
-          blockCacheFileId = BlockCacheFileIDGenerator.next,
           autoClose = true,
-          deleteAfterClean = deleteAfterClean
+          deleteAfterClean = deleteAfterClean,
+          blockCacheFileId = BlockCacheFileIDGenerator.next
         )
 
       case _: MMAP.Off =>
+        val channelWrite =
+          DBFile.channelWrite(
+            path = path,
+            fileOpenIOStrategy = segmentIO.fileOpenIO,
+            blockCacheFileId = BlockCacheFileIDGenerator.next,
+            autoClose = true,
+            forceSave = ForceSave.Off
+          )
+
+        try
+          applier(channelWrite)
+        catch {
+          case throwable: Throwable =>
+            logger.error(s"Failed to write $mmap file with applier. Closing file: $path", throwable)
+            channelWrite.close()
+            throw throwable
+        }
+
+        channelWrite.close()
+
         DBFile.channelRead(
-          path = Effect.write(path, segmentBytes),
+          path = channelWrite.path,
           fileOpenIOStrategy = segmentIO.fileOpenIO,
-          blockCacheFileId = BlockCacheFileIDGenerator.next,
-          autoClose = true
+          autoClose = true,
+          blockCacheFileId = BlockCacheFileIDGenerator.next
         )
 
       //another case if mmapReads is false, write bytes in mmaped mode and then close and re-open for read. Currently not inuse.

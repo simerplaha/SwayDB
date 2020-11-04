@@ -71,20 +71,20 @@ class ClosedBlocksWithFooter(val minKey: Slice[Byte],
     val allBytes = Slice.of[Slice[Byte]](13)
     allBytes add segmentHeader
 
-    valuesBlockHeader foreach (allBytes add _)
-    valuesBlock foreach (allBytes add _)
+    valuesBlockHeader foreach allBytes.add
+    valuesBlock foreach allBytes.add
 
     allBytes add sortedIndexBlockHeader
     allBytes add sortedIndexBlock
 
-    hashIndexBlockHeader foreach (allBytes add _)
-    hashIndexBlock foreach (allBytes add _)
+    hashIndexBlockHeader foreach allBytes.add
+    hashIndexBlock foreach allBytes.add
 
-    binarySearchIndexBlockHeader foreach (allBytes add _)
-    binarySearchIndexBlock foreach (allBytes add _)
+    binarySearchIndexBlockHeader foreach allBytes.add
+    binarySearchIndexBlock foreach allBytes.add
 
-    bloomFilterBlockHeader foreach (allBytes add _)
-    bloomFilterBlock foreach (allBytes add _)
+    bloomFilterBlockHeader foreach allBytes.add
+    bloomFilterBlock foreach allBytes.add
 
     allBytes add footerBlock
   }

@@ -93,13 +93,21 @@ private[file] class ChannelFile(val path: Path,
   def append(slice: Iterable[Slice[Byte]]): Unit =
     Effect.writeUnclosed(channel, slice)
 
-  override def transfer(position: Long, count: Long, transferTo: DBFileType): Long =
-    Effect.transfer(
-      position = position,
-      count = count,
-      from = channel,
-      transferTo = transferTo.writeableChannel
-    )
+  override def transfer(position: Int, count: Int, transferTo: DBFileType): Int =
+    transferTo match {
+      case target: ChannelFile =>
+        Effect.transfer(
+          position = position,
+          count = count,
+          from = channel,
+          transferTo = target.writeableChannel
+        )
+
+      case target: MMAPFile =>
+        val bytes = read(position = position, size = count)
+        target.append(bytes)
+        bytes.size
+    }
 
   def read(position: Int, size: Int): Slice[Byte] = {
     val buffer = ByteBuffer.allocate(size)

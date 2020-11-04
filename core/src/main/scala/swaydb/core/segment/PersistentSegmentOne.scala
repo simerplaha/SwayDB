@@ -59,25 +59,31 @@ protected object PersistentSegmentOne {
 
   val formatId = 126.toByte
   val formatIdSlice: Slice[Byte] = Slice(formatId)
-  val formatIdSliceSlice: Slice[Slice[Byte]] = Slice(formatIdSlice)
 
   def apply(file: DBFile,
             createdInLevel: Int,
-            segment: TransientSegment.One)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                           timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore,
-                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                           blockCache: Option[BlockCache.State],
-                                           fileSweeper: FileSweeper,
-                                           bufferCleaner: ByteBufferSweeperActor,
-                                           forceSaveApplier: ForceSaveApplier,
-                                           segmentIO: SegmentIO): PersistentSegmentOne =
+            segment: TransientSegment.Singleton)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                 functionStore: FunctionStore,
+                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                 blockCache: Option[BlockCache.State],
+                                                 fileSweeper: FileSweeper,
+                                                 bufferCleaner: ByteBufferSweeperActor,
+                                                 forceSaveApplier: ForceSaveApplier,
+                                                 segmentIO: SegmentIO): PersistentSegmentOne =
     PersistentSegmentOne(
       file = file,
       createdInLevel = createdInLevel,
       minKey = segment.minKey,
       maxKey = segment.maxKey,
-      minMaxFunctionId = segment.minMaxFunctionId,
+      minMaxFunctionId =
+        segment match {
+          case _: TransientSegment.Remote =>
+            None
+
+          case one: TransientSegment.One =>
+            one.minMaxFunctionId
+        },
       segmentSize = segment.segmentSize,
       nearestExpiryDeadline = segment.nearestPutDeadline,
       valuesReaderCacheable = segment.valuesUnblockedReader,
@@ -423,5 +429,4 @@ protected case class PersistentSegmentOne(file: DBFile,
 
   def cachedKeyValueSize: Int =
     ref.cachedKeyValueSize
-
 }

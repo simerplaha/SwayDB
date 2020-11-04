@@ -45,10 +45,10 @@ import swaydb.data.util.ByteSizeOf
 
 object TransientSegmentSerialiser {
 
-  def toKeyValue(one: TransientSegment.One,
+  def toKeyValue(singleton: TransientSegment.Singleton,
                  offset: Int,
                  size: Int): Slice[Memory] =
-    one.maxKey match {
+    singleton.maxKey match {
       case MaxKey.Fixed(maxKey) =>
         val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2))
         value add 0 //fixed maxKey id
@@ -60,12 +60,12 @@ object TransientSegmentSerialiser {
          * - minMaxFunctionIds are not stored here. All request for mightContainFunction are deferred onto the SegmentRef itself.
          */
 
-        if (one.minKey equals maxKey)
-          Slice(Memory.Put(maxKey, value, one.nearestPutDeadline, Time.empty))
+        if (singleton.minKey equals maxKey)
+          Slice(Memory.Put(maxKey, value, singleton.nearestPutDeadline, Time.empty))
         else
           Slice(
-            Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, one.nearestPutDeadline, Time.empty)),
-            Memory.Put(maxKey, value, one.nearestPutDeadline, Time.empty)
+            Memory.Range(singleton.minKey, maxKey, Value.FromValue.Null, Value.Update(value, singleton.nearestPutDeadline, Time.empty)),
+            Memory.Put(maxKey, value, singleton.nearestPutDeadline, Time.empty)
           )
 
       case MaxKey.Range(fromKey, maxKey) =>
@@ -75,16 +75,16 @@ object TransientSegmentSerialiser {
         value addUnsignedInt size
         value addAll fromKey
 
-        if (one.minKey equals maxKey) {
-          Slice(Memory.Put(maxKey, value, one.nearestPutDeadline, Time.empty))
+        if (singleton.minKey equals maxKey) {
+          Slice(Memory.Put(maxKey, value, singleton.nearestPutDeadline, Time.empty))
         } else {
           val fromValue =
-            if (one.nearestPutDeadline.isEmpty)
+            if (singleton.nearestPutDeadline.isEmpty)
               Value.FromValue.Null
             else
-              Value.Put(Slice.Null, one.nearestPutDeadline, Time.empty)
+              Value.Put(Slice.Null, singleton.nearestPutDeadline, Time.empty)
 
-          Slice(Memory.Range(one.minKey, maxKey, fromValue, Value.Update(value, one.nearestPutDeadline, Time.empty)))
+          Slice(Memory.Range(singleton.minKey, maxKey, fromValue, Value.Update(value, singleton.nearestPutDeadline, Time.empty)))
         }
     }
 

@@ -121,8 +121,11 @@ private[core] object Effect extends LazyLogging {
       throw swaydb.Exception.FailedToWriteAllBytes(written, bytes.size, bytes.size)
   }
 
-  def transfer(position: Long, count: Long, from: FileChannel, transferTo: WritableByteChannel): Long =
-    from.transferTo(position, count, transferTo)
+  def transfer(position: Int, count: Int, from: FileChannel, transferTo: WritableByteChannel): Int = {
+    val transferCount = from.transferTo(position, count, transferTo)
+    assert(transferCount <= Int.MaxValue, s"$transferCount is not <= ${Int.MaxValue}")
+    transferCount.toInt
+  }
 
   def copy(copyFrom: Path,
            copyTo: Path): Path =

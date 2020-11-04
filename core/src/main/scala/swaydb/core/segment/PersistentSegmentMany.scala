@@ -81,16 +81,15 @@ protected case object PersistentSegmentMany {
         implicit val blockMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
         val firstSegmentOffset =
-          segment.headerSize +
-            segment.segments.head.segmentSize
+          segment.fileHeader.size +
+            segment.listSegment.segmentSizeIgnoreHeader
 
         //drop head ignoring the list block.
         segment
           .segments
-          .dropHead()
           .foldLeft(firstSegmentOffset) {
-            case (offset, one) =>
-              val thisSegmentSize = one.segmentSize
+            case (offset, singleton) =>
+              val thisSegmentSize = singleton.segmentSize
 
               val blockRef =
                 BlockRefReader(
@@ -102,20 +101,20 @@ protected case object PersistentSegmentMany {
               val ref =
                 SegmentRef(
                   path = file.path.resolve(s".ref.$offset"),
-                  minKey = one.minKey,
-                  maxKey = one.maxKey,
-                  nearestPutDeadline = one.nearestPutDeadline,
+                  minKey = singleton.minKey,
+                  maxKey = singleton.maxKey,
+                  nearestPutDeadline = singleton.nearestPutDeadline,
                   blockRef = blockRef,
                   segmentIO = segmentIO,
-                  valuesReaderCacheable = one.valuesUnblockedReader,
-                  sortedIndexReaderCacheable = one.sortedIndexUnblockedReader,
-                  hashIndexReaderCacheable = one.hashIndexUnblockedReader,
-                  binarySearchIndexReaderCacheable = one.binarySearchUnblockedReader,
-                  bloomFilterReaderCacheable = one.bloomFilterUnblockedReader,
-                  footerCacheable = one.footerUnblocked
+                  valuesReaderCacheable = singleton.valuesUnblockedReader,
+                  sortedIndexReaderCacheable = singleton.sortedIndexUnblockedReader,
+                  hashIndexReaderCacheable = singleton.hashIndexUnblockedReader,
+                  binarySearchIndexReaderCacheable = singleton.binarySearchUnblockedReader,
+                  bloomFilterReaderCacheable = singleton.bloomFilterUnblockedReader,
+                  footerCacheable = singleton.footerUnblocked
                 )
 
-              skipList.put(one.minKey, ref)
+              skipList.put(singleton.minKey, ref)
 
               offset + thisSegmentSize
           }
