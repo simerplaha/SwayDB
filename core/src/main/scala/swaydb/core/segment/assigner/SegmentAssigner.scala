@@ -56,7 +56,7 @@ private[core] object SegmentAssigner {
     assignUnsafe[Nothing, Segment](
       assignablesCount = assignables.size,
       assignables = assignables.iterator,
-      segments = segments,
+      segmentsIterator = segments.iterator,
       noGaps = true
     )
 
@@ -66,7 +66,7 @@ private[core] object SegmentAssigner {
     assignUnsafe[Nothing, Segment](
       assignablesCount = assignablesCount,
       assignables = assignables.iterator,
-      segments = segments,
+      segmentsIterator = segments.iterator,
       noGaps = true
     )
 
@@ -76,7 +76,7 @@ private[core] object SegmentAssigner {
     assignUnsafe[GAP, Segment](
       assignablesCount = assignables.size,
       assignables = assignables.iterator,
-      segments = segments,
+      segmentsIterator = segments.iterator,
       noGaps = false
     )
 
@@ -87,7 +87,7 @@ private[core] object SegmentAssigner {
     assignUnsafe[GAP, Segment](
       assignablesCount = assignablesCount,
       assignables = assignables.iterator,
-      segments = segments,
+      segmentsIterator = segments.iterator,
       noGaps = false
     )
 
@@ -98,7 +98,18 @@ private[core] object SegmentAssigner {
     assignUnsafe[GAP, SegmentRef](
       assignablesCount = assignablesCount,
       assignables = assignables,
-      segments = segments,
+      segmentsIterator = segments.iterator,
+      noGaps = false
+    )
+
+  def assignUnsafeGapsSegmentRef[GAP](assignablesCount: Int,
+                                      assignables: Iterator[Assignable],
+                                      segments: Iterator[SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                      gapCreator: Aggregator.Creator[Assignable, GAP]): ListBuffer[Assignment[GAP, SegmentRef]] =
+    assignUnsafe[GAP, SegmentRef](
+      assignablesCount = assignablesCount,
+      assignables = assignables,
+      segmentsIterator = segments,
       noGaps = false
     )
 
@@ -108,15 +119,13 @@ private[core] object SegmentAssigner {
    */
   private def assignUnsafe[GAP, SEG >: Null](assignablesCount: Int,
                                              assignables: Iterator[Assignable],
-                                             segments: Iterable[SEG],
+                                             segmentsIterator: Iterator[SEG],
                                              noGaps: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               gapCreator: Aggregator.Creator[Assignable, GAP],
                                                               segmentType: AssignmentTarget[SEG]): ListBuffer[Assignment[GAP, SEG]] = {
     import keyOrder._
 
     val assignments = ListBuffer.empty[Assignment[GAP, SEG]]
-
-    val segmentsIterator = segments.iterator
 
     def getNextSegmentMayBe(): SEG = if (segmentsIterator.hasNext) segmentsIterator.next() else null
 

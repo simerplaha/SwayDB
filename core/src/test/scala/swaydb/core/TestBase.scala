@@ -268,7 +268,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+          segmentConfig =
+            if (persistent)
+              segmentConfig.copy(minSize = Int.MaxValue, maxCount = eitherOne(randomIntMax(keyValues.size), Int.MaxValue))
+            else
+              segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
         )
 
       segments should have size 1

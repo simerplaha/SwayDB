@@ -1288,11 +1288,11 @@ private[core] case class Level(dirs: Seq[Dir],
   override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
     Get(key, readState)
 
-  private def mightContainKeyInThisLevel(key: Slice[Byte]): Boolean =
+  private def mightContainKeyInThisLevel(key: Slice[Byte], threadReadState: ThreadReadState): Boolean =
     appendix
       .cache
       .floor(key)
-      .existsS(_.mightContainKey(key))
+      .existsS(_.mightContainKey(key, threadReadState))
 
   private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): Boolean =
     appendix
@@ -1311,9 +1311,9 @@ private[core] case class Level(dirs: Seq[Dir],
             }
       }
 
-  override def mightContainKey(key: Slice[Byte]): Boolean =
-    mightContainKeyInThisLevel(key) ||
-      nextLevel.exists(_.mightContainKey(key))
+  override def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean =
+    mightContainKeyInThisLevel(key, threadState) ||
+      nextLevel.exists(_.mightContainKey(key, threadState))
 
   override def mightContainFunction(functionId: Slice[Byte]): Boolean =
     mightContainFunctionInThisLevel(functionId) ||

@@ -478,7 +478,7 @@ object TestData {
 
     def random(hasCompression: Boolean = randomBoolean(),
                minSegmentSize: Int = randomIntMax(4.mb),
-               maxKeyValuesPerSegment: Int = randomIntMax(100000),
+               maxKeyValuesPerSegment: Int = eitherOne(randomIntMax(100), randomIntMax(100000)),
                deleteDelay: FiniteDuration = randomFiniteDuration(),
                mmap: MMAP.Segment = MMAP.randomForSegment(),
                pushForward: Boolean = randomBoolean(),

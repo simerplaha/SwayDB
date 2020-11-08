@@ -123,7 +123,7 @@ private[core] object TrashLevel extends NextLevel {
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     None
 
-  override def mightContainKey(key: Slice[Byte]): Boolean =
+  override def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean =
     false
 
   override def mightContainFunction(key: Slice[Byte]): Boolean =

@@ -188,6 +188,8 @@ private[core] case object SegmentBlock extends LazyLogging {
         createdInLevel = createdInLevel,
         ones = ones,
         sortedIndexConfig = sortedIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
         valuesConfig = valuesConfig,
         segmentConfig = segmentConfig
       )
@@ -196,6 +198,8 @@ private[core] case object SegmentBlock extends LazyLogging {
   def writeOneOrMany(createdInLevel: Int,
                      ones: Slice[TransientSegment.Singleton],
                      sortedIndexConfig: SortedIndexBlock.Config,
+                     hashIndexConfig: HashIndexBlock.Config,
+                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
                      segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
     if (ones.isEmpty) {
@@ -241,8 +245,8 @@ private[core] case object SegmentBlock extends LazyLogging {
                 mergeStats = closedListKeyValues,
                 createdInLevel = createdInLevel,
                 bloomFilterConfig = BloomFilterBlock.Config.disabled,
-                hashIndexConfig = HashIndexBlock.Config.disabled,
-                binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
+                hashIndexConfig = hashIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
                 sortedIndexConfig = modifiedSortedIndex,
                 valuesConfig = valuesConfig,
                 segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)

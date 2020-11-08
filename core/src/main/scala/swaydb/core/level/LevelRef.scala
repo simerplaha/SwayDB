@@ -203,7 +203,7 @@ private[core] trait LevelRef {
   def floor(key: Slice[Byte],
             readState: ThreadReadState): KeyValue.PutOption
 
-  def mightContainKey(key: Slice[Byte]): Boolean
+  def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean
 
   def lower(key: Slice[Byte],
             readState: ThreadReadState): KeyValue.PutOption

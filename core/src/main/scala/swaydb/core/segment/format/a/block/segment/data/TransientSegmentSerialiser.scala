@@ -96,6 +96,67 @@ object TransientSegmentSerialiser {
         }
     }
 
+  def offset(persistent: Persistent): Int =
+    persistent match {
+      case fixed: Persistent.Put =>
+        fixed.getOrFetchValue.getC.dropHead().readUnsignedInt()
+
+      case range: Persistent.Range =>
+        range.fetchRangeValueUnsafe match {
+          case update: Value.Update =>
+            update.value.getC.dropHead().readUnsignedInt()
+
+          case rangeValue =>
+            throw new Exception(s"Invalid range value ${rangeValue.getClass.getName}")
+        }
+
+      case keyValue =>
+        throw new Exception(s"Invalid key-value ${keyValue.getClass.getName}")
+    }
+
+  def toSegmentRef(path: Path,
+                   reader: BlockRefReader[SegmentBlock.Offset],
+                   persistent: Persistent,
+                   valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                   sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                   hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+                   binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                   bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                segmentIO: SegmentIO,
+                                                                blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef =
+    persistent match {
+      case persistent: Persistent.Put =>
+        toSegmentRef(
+          path = path,
+          reader = reader,
+          put = persistent,
+          valuesReaderCacheable = valuesReaderCacheable,
+          sortedIndexReaderCacheable = sortedIndexReaderCacheable,
+          hashIndexReaderCacheable = hashIndexReaderCacheable,
+          binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
+          bloomFilterReaderCacheable = bloomFilterReaderCacheable,
+          footerCacheable = footerCacheable
+        )
+
+      case range: Persistent.Range =>
+        toSegmentRef(
+          path = path,
+          reader = reader,
+          range = range,
+          valuesReaderCacheable = valuesReaderCacheable,
+          sortedIndexReaderCacheable = sortedIndexReaderCacheable,
+          hashIndexReaderCacheable = hashIndexReaderCacheable,
+          binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
+          bloomFilterReaderCacheable = bloomFilterReaderCacheable,
+          footerCacheable = footerCacheable
+        )
+
+      case keyValue =>
+        throw new Exception(s"Invalid key-value ${keyValue.getClass.getName}")
+    }
+
   def toSegmentRef(path: Path,
                    reader: BlockRefReader[SegmentBlock.Offset],
                    range: Persistent.Range,
@@ -117,7 +178,7 @@ object TransientSegmentSerialiser {
           val segmentSize = valueReader.readUnsignedInt()
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
           SegmentRef(
-            path = path.resolve(s".ref.$segmentOffset"),
+            path = path.resolve(s"ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Fixed(range.toKey.unslice()),
             nearestPutDeadline = deadline,
@@ -142,7 +203,7 @@ object TransientSegmentSerialiser {
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
           val maxKeyMinKey = valueReader.readRemaining()
           SegmentRef(
-            path = path.resolve(s".ref.$segmentOffset"),
+            path = path.resolve(s"ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Range(maxKeyMinKey.unslice(), range.toKey.unslice()),
             nearestPutDeadline = deadline,
@@ -188,7 +249,7 @@ object TransientSegmentSerialiser {
       val segmentSize = valueReader.readUnsignedInt()
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
       SegmentRef(
-        path = path.resolve(s".ref.$segmentOffset"),
+        path = path.resolve(s"ref.$segmentOffset"),
         minKey = put.key,
         maxKey = MaxKey.Fixed(put.key.unslice()),
         nearestPutDeadline = put.deadline,
@@ -213,7 +274,7 @@ object TransientSegmentSerialiser {
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
       val maxKeyMinKey = valueReader.readRemaining()
       SegmentRef(
-        path = path.resolve(s".ref.$segmentOffset"),
+        path = path.resolve(s"ref.$segmentOffset"),
         minKey = put.key.unslice(),
         maxKey = MaxKey.Range(maxKeyMinKey.unslice(), put.key.unslice()),
         nearestPutDeadline = put.deadline,

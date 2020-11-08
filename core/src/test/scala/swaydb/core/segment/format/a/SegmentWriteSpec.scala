@@ -194,7 +194,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   Slice(segment.ref.skipList.get)
 
                 case segment: PersistentSegmentMany =>
-                  segment.segmentRefs.map(_.skipList.get)
+                  segment.getAllSegmentRefs.map(_.skipList.get)
               }
 
             skipList.size should be > 0
@@ -805,7 +805,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             val keyValues = randomizedKeyValues(keyValuesCount)
             val keyValuesReadOnly = keyValues
 
-            val segment = TestSegment(keyValues).asInstanceOf[PersistentSegmentOne]
+            val segment = TestSegment(keyValues).asInstanceOf[PersistentSegment]
             val targetPath = createRandomIntDirectory.resolve(nextId + s".${Extension.Seg}")
 
             segment.copyTo(targetPath)

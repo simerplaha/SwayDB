@@ -881,9 +881,7 @@ private[core] case object Segment extends LazyLogging {
         maxKey = maxKey,
         segmentSize = segmentSize,
         minMaxFunctionId = minMaxFunctionId,
-        nearestExpiryDeadline = nearestExpiryDeadline,
-        //todo initial should be set for many copied Segment.
-        initial = None
+        nearestExpiryDeadline = nearestExpiryDeadline
       )
     else
       throw new Exception(s"Invalid segment formatId: $formatId")
@@ -955,10 +953,23 @@ private[core] case object Segment extends LazyLogging {
         segment.segmentSize
 
       case segment: PersistentSegmentOne =>
-        val footer = segment.ref.getFooter()
-        footer.sortedIndexOffset.size +
-          footer.valuesOffset.map(_.size).getOrElse(0)
+        segmentSizeForMerge(segment.ref)
+
+      case segment: PersistentSegmentMany =>
+        val listSegmentSize = segmentSizeForMerge(segment.listSegment)
+
+        //1+ for formatId
+        segment.getAllSegmentRefs().foldLeft(1 + listSegmentSize) {
+          case (size, ref) =>
+            size + segmentSizeForMerge(ref)
+        }
     }
+
+  def segmentSizeForMerge(segment: SegmentRef): Int = {
+    val footer = segment.getFooter()
+    footer.sortedIndexOffset.size +
+      footer.valuesOffset.map(_.size).getOrElse(0)
+  }
 
   def keyOverlaps(keyValue: KeyValue,
                   segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
@@ -1500,7 +1511,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def getFromCache(key: Slice[Byte]): KeyValueOption
 
-  def mightContainKey(key: Slice[Byte]): Boolean
+  def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 

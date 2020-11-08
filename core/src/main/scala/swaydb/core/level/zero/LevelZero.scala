@@ -995,14 +995,14 @@ private[swaydb] case class LevelZero(path: Path,
   def existsOnDisk: Boolean =
     Effect.exists(path)
 
-  def mightContainKey(key: Slice[Byte]): Boolean = {
+  def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean = {
     val mightContainInMaps =
       maps.find[MemoryOption](
         nullResult = Memory.Null,
         matcher = _.cache.getOptimised(key)
       )
 
-    mightContainInMaps != Memory.Null || nextLevel.exists(_.mightContainKey(key))
+    mightContainInMaps != Memory.Null || nextLevel.exists(_.mightContainKey(key, threadState))
   }
 
   private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =

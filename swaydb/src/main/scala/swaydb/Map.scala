@@ -223,7 +223,7 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
     bag.suspend(core.contains(key, core.readStates.get()))
 
   def mightContain(key: K): BAG[Boolean] =
-    bag.suspend(core mightContainKey key)
+    bag.suspend(core.mightContainKey(key, core.readStates.get()))
 
   def mightContainFunction(function: F)(implicit evd: F <:< PureFunction.Map[K, V]): BAG[Boolean] =
     bag.suspend(core mightContainFunction Slice.writeString[Byte](function.id))

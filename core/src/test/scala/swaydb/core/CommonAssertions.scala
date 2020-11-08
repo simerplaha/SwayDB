@@ -750,7 +750,7 @@ object CommonAssertions {
                   segment: Segment) = {
     keyValues.par.count {
       keyValue =>
-        IO.Defer(segment.mightContainKey(keyValue.key)).runRandomIO.right.value
+        IO.Defer(segment.mightContainKey(keyValue.key, ThreadReadState.random)).runRandomIO.right.value
     } shouldBe keyValues.size
 
     if (segment.hasBloomFilter || segment.memory)
@@ -782,7 +782,7 @@ object CommonAssertions {
     if (segment.hasBloomFilter)
       (1 to 1000).par.count {
         _ =>
-          segment.mightContainKey(randomBytesSlice(100)).runRandomIO.right.value
+          segment.mightContainKey(randomBytesSlice(100), ThreadReadState.random).runRandomIO.right.value
       } should be < 1000
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State)(implicit ec: ExecutionContext = TestExecutionContext.executionContext) =

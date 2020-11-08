@@ -185,11 +185,11 @@ class SegmentRefSpec extends TestBase with MockFactory {
             segment.head.isInstanceOf[PersistentSegmentMany] shouldBe true
 
             val manySegment = segment.head.asInstanceOf[PersistentSegmentMany]
-            manySegment.segmentRefs should have size 2
+            manySegment.getAllSegmentRefs() should have size 2
 
             //fetch the SegmentRefs
-            val segmentRef1 = manySegment.segmentRefs.head
-            val segmentRef2 = manySegment.segmentRefs.last
+            val segmentRef1 = manySegment.getAllSegmentRefs().toList.head
+            val segmentRef2 = manySegment.getAllSegmentRefs().toList.last
 
             //provide gap key-values
             val segmentRef2MaxKey = segmentRef2.maxKey.maxKey.readInt()
@@ -210,7 +210,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
                 SegmentRef.fastAssignPut(
                   headGap = headGap,
                   tailGap = tailGap,
-                  segmentRefs = Seq(segmentRef1, segmentRef2),
+                  segmentRefs = Iterator(segmentRef1, segmentRef2),
                   assignableCount = segmentKeyValues.size,
                   assignables = segmentKeyValues.iterator,
                   removeDeletes = false,
@@ -238,7 +238,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
                 SegmentRef.fastAssignPut(
                   headGap = Iterable.empty,
                   tailGap = Iterable.empty,
-                  segmentRefs = Seq(segmentRef1, segmentRef2),
+                  segmentRefs = Iterator(segmentRef1, segmentRef2),
                   assignableCount = segmentKeyValues.size,
                   assignables = segmentKeyValues.iterator,
                   removeDeletes = false,
@@ -266,7 +266,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
                 SegmentRef.fastAssignPut(
                   headGap = headGap,
                   tailGap = tailGap,
-                  segmentRefs = Seq(segmentRef1, segmentRef2),
+                  segmentRefs = Iterator(segmentRef1, segmentRef2),
                   assignableCount = 0,
                   assignables = Iterator.empty,
                   removeDeletes = false,
@@ -309,7 +309,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
               segment.head.isInstanceOf[PersistentSegmentMany] shouldBe true
 
               val manySegment = segment.head.asInstanceOf[PersistentSegmentMany]
-              val segmentRefs = manySegment.segmentRefs.toArray
+              val segmentRefs = manySegment.getAllSegmentRefs().toArray
               segmentRefs should have size 10
 
               //random select SegmentRefs to update. SegmentRefs that are no updated should still exists.
@@ -341,7 +341,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
                   SegmentRef.fastAssignPut(
                     headGap = headGap,
                     tailGap = tailGap,
-                    segmentRefs = segmentRefs,
+                    segmentRefs = segmentRefs.iterator,
                     assignableCount = updatedKeyValues.size,
                     assignables = updatedKeyValues.iterator,
                     removeDeletes = false,
@@ -369,7 +369,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
                   SegmentRef.fastAssignPut(
                     headGap = Iterable.empty,
                     tailGap = Iterable.empty,
-                    segmentRefs = segmentRefs,
+                    segmentRefs = segmentRefs.iterator,
                     assignableCount = updatedKeyValues.size,
                     assignables = updatedKeyValues.iterator,
                     removeDeletes = false,
@@ -397,7 +397,7 @@ class SegmentRefSpec extends TestBase with MockFactory {
                   SegmentRef.fastAssignPut(
                     headGap = headGap,
                     tailGap = tailGap,
-                    segmentRefs = segmentRefs,
+                    segmentRefs = segmentRefs.iterator,
                     assignableCount = 0,
                     assignables = Iterator.empty,
                     removeDeletes = false,

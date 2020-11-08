@@ -178,7 +178,7 @@ protected case class MemorySegment(path: Path,
             skipList.get(key)
       }
 
-  def mightContainKey(key: Slice[Byte]): Boolean =
+  def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else

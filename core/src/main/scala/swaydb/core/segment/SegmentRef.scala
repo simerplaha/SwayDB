@@ -244,7 +244,7 @@ private[core] case object SegmentRef extends LazyLogging {
               floorRange
 
             case floorValue =>
-              if (footer.hasRange || segmentRef.mightContainKey(key)) {
+              if (footer.hasRange || segmentRef.mightContainKey(key, threadState)) {
                 val bestStart =
                   SegmentRef.bestStartForGetOrHigherSearch(
                     key = key,
@@ -1236,7 +1236,7 @@ private[core] case object SegmentRef extends LazyLogging {
 
   def fastAssignPut(headGap: Iterable[Assignable],
                     tailGap: Iterable[Assignable],
-                    segmentRefs: Iterable[SegmentRef],
+                    segmentRefs: Iterator[SegmentRef],
                     assignableCount: Int,
                     assignables: Iterator[Assignable],
                     removeDeletes: Boolean,
@@ -1284,12 +1284,14 @@ private[core] case object SegmentRef extends LazyLogging {
         SegmentPutResult(result = gapSlice, replaced = false)
       }
     } else {
+      val (assignmentSegments, untouchedSegments) = segmentRefs.duplicate
+
       //assign key-values to Segment and then perform merge.
       val assignments =
         SegmentAssigner.assignUnsafeGapsSegmentRef[ListBuffer[Assignable]](
           assignablesCount = assignableCount,
           assignables = assignables,
-          segments = segmentRefs
+          segments = assignmentSegments
         )
 
       if (assignments.isEmpty) {
@@ -1299,9 +1301,8 @@ private[core] case object SegmentRef extends LazyLogging {
         throw exception
       } else {
         //keep oldRefs that are not assign and make sure they are added in order.
-        val oldRefs = segmentRefs.iterator
 
-        def nextOldOrNull() = if (oldRefs.hasNext) oldRefs.next() else null
+        def nextOldOrNull() = if (untouchedSegments.hasNext) untouchedSegments.next() else null
 
         val singles = ListBuffer.empty[TransientSegment.Singleton]
 
@@ -1358,7 +1359,7 @@ private[core] case object SegmentRef extends LazyLogging {
             }
         }
 
-        oldRefs foreach {
+        untouchedSegments foreach {
           oldRef =>
             singles += TransientSegment.Remote(fileHeader = Slice.emptyBytes, ref = oldRef)
         }
@@ -1381,6 +1382,8 @@ private[core] case object SegmentRef extends LazyLogging {
             createdInLevel = createdInLevel,
             ones = Slice.from(singles, singles.size),
             sortedIndexConfig = sortedIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
             valuesConfig = valuesConfig,
             segmentConfig = segmentConfig
           )
@@ -1535,7 +1538,7 @@ private[core] class SegmentRef(val path: Path,
         Persistent.Null
     }
 
-  def mightContainKey(key: Slice[Byte]): Boolean = {
+  def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean = {
     val bloomFilterReader = segmentBlockCache.createBloomFilterReaderOrNull()
     bloomFilterReader == null ||
       BloomFilterBlock.mightContain(

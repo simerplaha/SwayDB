@@ -270,8 +270,8 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
                readState: ThreadReadState): BAG[Boolean] =
     execute(_.contains(key, readState))
 
-  def mightContainKey(key: Slice[Byte]): BAG[Boolean] =
-    execute(_.mightContainKey(key))
+  def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): BAG[Boolean] =
+    execute(_.mightContainKey(key, threadState))
 
   def mightContainFunction(functionId: Slice[Byte]): BAG[Boolean] =
     execute(_.mightContainFunction(functionId))

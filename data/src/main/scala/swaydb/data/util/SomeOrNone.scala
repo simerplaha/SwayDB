@@ -43,84 +43,90 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] { selfS: T =>
 
   def getS: SOME
 
-  def toOptionS: Option[SOME] =
+  @inline def toOptionS: Option[SOME] =
     if (isSomeS)
       Some(getS)
     else
       None
 
-  def isSomeS: Boolean =
+  @inline def isSomeS: Boolean =
     !isNoneS
 
-  def mapS[B](f: SOME => B): Option[B] =
+  @inline def mapS[B](f: SOME => B): Option[B] =
     if (isSomeS)
       Some(f(getS))
     else
       None
 
-  def flatMapS[B <: T](f: SOME => B): T =
+  @inline def mapOrElseS[B](empty: => B)(f: SOME => B): B =
+    if (isSomeS)
+      f(getS)
+    else
+      empty
+
+  @inline def flatMapS[B <: T](f: SOME => B): T =
     if (isSomeS)
       f(getS)
     else
       noneS
 
-  def flatMapSomeS[T2](none: T2)(f: SOME => T2): T2 =
+  @inline def flatMapSomeS[T2](none: T2)(f: SOME => T2): T2 =
     if (isSomeS)
       f(getS)
     else
       none
 
-  def flatMapOptionS[B](f: SOME => Option[B]): Option[B] =
+  @inline def flatMapOptionS[B](f: SOME => Option[B]): Option[B] =
     if (isSomeS)
       f(getS)
     else
       None
 
-  def foreachS[B](f: SOME => B): Unit =
+  @inline def foreachS[B](f: SOME => B): Unit =
     if (isSomeS)
       f(getS)
 
-  def getOrElseS[B >: SOME](other: => B): SOME =
+  @inline def getOrElseS[B >: SOME](other: => B): SOME =
     if (isSomeS)
       getS
     else
       other.asInstanceOf[SOME]
 
-  def orElseS[B <: T](other: => B): T =
+  @inline def orElseS[B <: T](other: => B): T =
     if (isSomeS)
       selfS
     else
       other
 
-  def existsS(f: SOME => Boolean): Boolean =
+  @inline def existsS(f: SOME => Boolean): Boolean =
     isSomeS && f(getS)
 
-  def forallS(f: SOME => Boolean): Boolean =
+  @inline def forallS(f: SOME => Boolean): Boolean =
     isNoneS || f(getS)
 
-  def containsS(f: SOME): Boolean =
+  @inline def containsS(f: SOME): Boolean =
     isSomeS && getS == f
 
-  def valueOrElseS[B](f: SOME => B, orElse: B): B =
+  @inline def valueOrElseS[B](f: SOME => B, orElse: B): B =
     if (isSomeS)
       f(getS)
     else
       orElse
 
-  def foldLeftS[B](initial: B)(f: (B, SOME) => B): B =
+  @inline def foldLeftS[B](initial: B)(f: (B, SOME) => B): B =
     if (isSomeS)
       f(initial, getS)
     else
       initial
 
-  def onSomeSideEffectS(f: SOME => Unit): T = {
+  @inline def onSomeSideEffectS(f: SOME => Unit): T = {
     if (isSomeS)
       f(getS)
 
     selfS
   }
 
-  def onSideEffectS(f: T => Unit): T = {
+  @inline def onSideEffectS(f: T => Unit): T = {
     f(selfS)
     selfS
   }
@@ -134,84 +140,90 @@ private[swaydb] trait SomeOrNoneCovariant[+T, +SOME <: T] { selfC: T =>
 
   def getC: SOME
 
-  def toOptionC: Option[SOME] =
+  @inline def toOptionC: Option[SOME] =
     if (isSomeC)
       Some(getC)
     else
       None
 
-  def isSomeC: Boolean =
+  @inline def isSomeC: Boolean =
     !isNoneC
 
-  def mapC[B](f: SOME => B): Option[B] =
+  @inline def mapC[B](f: SOME => B): Option[B] =
     if (isSomeC)
       Some(f(getC))
     else
       None
 
-  def flatMapC[B >: T](f: SOME => B): T =
-    if (isSomeC)
-      f(getC).asInstanceOf[T]
-    else
-      noneC
-
-  def flatMapSomeC[T2](none: T2)(f: SOME => T2): T2 =
+  @inline def mapOrElseC[B](none: => B)(f: SOME => B): B =
     if (isSomeC)
       f(getC)
     else
       none
 
-  def flatMapOptionC[B](f: SOME => Option[B]): Option[B] =
+  @inline def flatMapC[B >: T](f: SOME => B): T =
+    if (isSomeC)
+      f(getC).asInstanceOf[T]
+    else
+      noneC
+
+  @inline def flatMapSomeC[T2](none: T2)(f: SOME => T2): T2 =
+    if (isSomeC)
+      f(getC)
+    else
+      none
+
+  @inline def flatMapOptionC[B](f: SOME => Option[B]): Option[B] =
     if (isSomeC)
       f(getC)
     else
       None
 
-  def foreachC[B](f: SOME => B): Unit =
+  @inline def foreachC[B](f: SOME => B): Unit =
     if (isSomeC)
       f(getC)
 
-  def getOrElseC[B >: SOME](other: => B): SOME =
+  @inline def getOrElseC[B >: SOME](other: => B): SOME =
     if (isSomeC)
       getC
     else
       other.asInstanceOf[SOME]
 
-  def orElseC[B >: T](other: => B): T =
+  @inline def orElseC[B >: T](other: => B): T =
     if (isSomeC)
       selfC
     else
       other.asInstanceOf[T]
 
-  def valueOrElseC[B](f: SOME => B, orElse: B): B =
+  @inline def valueOrElseC[B](f: SOME => B, orElse: B): B =
     if (isSomeC)
       f(getC)
     else
       orElse
 
-  def existsC(f: SOME => Boolean): Boolean =
+  @inline def existsC(f: SOME => Boolean): Boolean =
     isSomeC && f(getC)
 
-  def forallC(f: SOME => Boolean): Boolean =
+  @inline def forallC(f: SOME => Boolean): Boolean =
     isNoneC || f(getC)
 
-  def containsC[B >: SOME](f: B): Boolean =
+  @inline def containsC[B >: SOME](f: B): Boolean =
     isSomeC && getC == f
 
-  def foldLeftC[B](initial: B)(f: (B, SOME) => B): B =
+  @inline def foldLeftC[B](initial: B)(f: (B, SOME) => B): B =
     if (isSomeC)
       f(initial, getC)
     else
       initial
 
-  def onSomeSideEffectC(f: SOME => Unit): T = {
+  @inline def onSomeSideEffectC(f: SOME => Unit): T = {
     if (isSomeC)
       f(getC)
 
     selfC
   }
 
-  def onSideEffectC(f: T => Unit): T = {
+  @inline def onSideEffectC(f: T => Unit): T = {
     f(selfC)
     selfC
   }

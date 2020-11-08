@@ -209,12 +209,12 @@ protected object PersistentSegmentOne {
       minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
       segmentSize = fileSize,
       nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline,
-      valuesReaderCacheable = segmentBlockCache.valuesReaderCacheable,
-      sortedIndexReaderCacheable = segmentBlockCache.sortedIndexReaderCacheable,
-      hashIndexReaderCacheable = segmentBlockCache.hashIndexReaderCacheable,
-      binarySearchIndexReaderCacheable = segmentBlockCache.binarySearchIndexReaderCacheable,
-      bloomFilterReaderCacheable = segmentBlockCache.bloomFilterReaderCacheable,
-      footerCacheable = segmentBlockCache.footerCacheable
+      valuesReaderCacheable = segmentBlockCache.cachedValuesSliceReader(),
+      sortedIndexReaderCacheable = segmentBlockCache.cachedSortedIndexSliceReader(),
+      hashIndexReaderCacheable = segmentBlockCache.cachedHashIndexSliceReader(),
+      binarySearchIndexReaderCacheable = segmentBlockCache.cachedBinarySearchIndexSliceReader(),
+      bloomFilterReaderCacheable = segmentBlockCache.cachedBloomFilterSliceReader(),
+      footerCacheable = segmentBlockCache.cachedFooter()
     )
   }
 }
@@ -353,8 +353,8 @@ protected case class PersistentSegmentOne(file: DBFile,
   def getFromCache(key: Slice[Byte]): PersistentOption =
     ref getFromCache key
 
-  def mightContainKey(key: Slice[Byte]): Boolean =
-    ref mightContainKey key
+  def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean =
+    ref.mightContainKey(key, threadState)
 
   override def mightContainFunction(key: Slice[Byte]): Boolean =
     minMaxFunctionId exists {

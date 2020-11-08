@@ -28,6 +28,7 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.io.file.Effect._
+import swaydb.core.segment.ThreadReadState
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -82,10 +83,10 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
           def assert(level: Level) = {
             keyValues foreach {
               keyValue =>
-                level.mightContainKey(keyValue.key).runRandomIO.right.value shouldBe true
+                level.mightContainKey(keyValue.key, ThreadReadState.random).runRandomIO.right.value shouldBe true
             }
 
-            level.mightContainKey("THIS KEY DOES NOT EXISTS").runRandomIO.right.value shouldBe false
+            level.mightContainKey("THIS KEY DOES NOT EXISTS", ThreadReadState.random).runRandomIO.right.value shouldBe false
           }
 
           val level = TestLevel(bloomFilterConfig = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.01))

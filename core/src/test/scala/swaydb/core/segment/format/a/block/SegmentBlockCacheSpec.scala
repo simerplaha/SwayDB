@@ -9,7 +9,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Memory
-import swaydb.core.segment.PersistentSegmentOne
+import swaydb.core.segment.{MemorySegment, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -337,49 +337,67 @@ class SegmentBlockCacheSpec extends TestBase {
                 hashIndexConfig = HashIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false),
                 bloomFilterConfig = BloomFilterBlock.Config.random(hasCompression = false, cacheOnAccess = false),
                 segmentConfig = SegmentBlock.Config.random(hasCompression = false, cacheOnAccess = false, cacheBlocksOnCreate = false, mmap = mmapSegments)
-              ).asInstanceOf[PersistentSegmentOne]
+              )
 
-            val blockCache = segment.ref.segmentBlockCache
+            val refs =
+              segment match {
+                case segment: PersistentSegment =>
+                  segment match {
+                    case segment: PersistentSegmentMany =>
+                      segment.getAllSegmentRefs().toList
 
-            def assertIsCached() = {
-              blockCache.createSortedIndexReader().isFile shouldBe false
-              Option(blockCache.createValuesReaderOrNull()).foreach(_.isFile shouldBe false)
-              Option(blockCache.createHashIndexReaderOrNull()).foreach(_.isFile shouldBe true)
+                    case segment: PersistentSegmentOne =>
+                      List(segment.ref)
+                  }
+              }
+
+            refs.size should be >= 1
+
+            refs foreach {
+              ref =>
+                val blockCache = ref.segmentBlockCache
+
+                def assertIsCached() = {
+                  blockCache.createSortedIndexReader().isFile shouldBe false
+                  Option(blockCache.createValuesReaderOrNull()).foreach(_.isFile shouldBe false)
+                  Option(blockCache.createHashIndexReaderOrNull()).foreach(_.isFile shouldBe true)
+                }
+
+                def assertIsNotCached() = {
+                  blockCache.createSortedIndexReader().isFile shouldBe true
+                  Option(blockCache.createValuesReaderOrNull()).foreach(_.isFile shouldBe true)
+                  Option(blockCache.createHashIndexReaderOrNull()).foreach(_.isFile shouldBe true)
+                }
+
+                //initially they are not cached
+                assertIsNotCached()
+
+                //read all an expect sortedIndex and value bytes to get cached but not hashIndex
+                blockCache.iterator().foreach(_ => ())
+
+                assertIsCached()
+
+                //clear cache
+                blockCache.clear()
+
+                //reverts back to not caching
+                assertIsNotCached()
+
+                //read all
+                blockCache.iterator().foreach(_ => ())
+
+                //caches all again
+                assertIsCached()
+
+                //clear cache
+                blockCache.clear()
+
+                //no caching
+                assertIsNotCached()
+
+                segment.close
             }
 
-            def assertIsNotCached() = {
-              blockCache.createSortedIndexReader().isFile shouldBe true
-              Option(blockCache.createValuesReaderOrNull()).foreach(_.isFile shouldBe true)
-              Option(blockCache.createHashIndexReaderOrNull()).foreach(_.isFile shouldBe true)
-            }
-
-            //initially they are not cached
-            assertIsNotCached()
-
-            //read all an expect sortedIndex and value bytes to get cached but not hashIndex
-            blockCache.iterator().foreach(_ => ())
-
-            assertIsCached()
-
-            //clear cache
-            blockCache.clear()
-
-            //reverts back to not caching
-            assertIsNotCached()
-
-            //read all
-            blockCache.iterator().foreach(_ => ())
-
-            //caches all again
-            assertIsCached()
-
-            //clear cache
-            blockCache.clear()
-
-            //no caching
-            assertIsNotCached()
-
-            segment.close
         }
       }
     }
