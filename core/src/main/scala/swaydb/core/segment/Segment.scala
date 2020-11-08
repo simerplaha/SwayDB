@@ -282,6 +282,7 @@ private[core] case object Segment extends LazyLogging {
 
               case segment: TransientSegment.Remote =>
                 val segmentSize = segment.segmentSize
+
                 val file: DBFile =
                   segmentFile(
                     path = path,
@@ -290,7 +291,7 @@ private[core] case object Segment extends LazyLogging {
                     applier =
                       file => {
                         file.append(segment.fileHeader)
-                        segment.ref.segmentBlockCache.transfer(0, segmentSize, file)
+                        segment.ref.segmentBlockCache.transfer(0, segment.segmentSizeIgnoreHeader, file)
                       }
                   )
 

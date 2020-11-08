@@ -280,6 +280,41 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       segments.head
     }
 
+    def one(keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
+            createdInLevel: Int = 1,
+            path: Path = testSegmentFile,
+            valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+            sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                       sweeper: TestCaseSweeper): Segment = {
+
+      val segmentNumber = Effect.numberFileId(path)._1 - 1
+
+      implicit val idGenerator: IDGenerator = IDGenerator(segmentNumber)
+
+      implicit val pathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
+
+      val segments =
+        many(
+          createdInLevel = createdInLevel,
+          keyValues = keyValues,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+        )
+
+      segments should have size 1
+
+      segments.head
+    }
+
     def many(createdInLevel: Int = 1,
              keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
@@ -810,7 +845,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   def assertSegment[T](keyValues: Slice[Memory],
                        assert: (Slice[Memory], Segment) => T,
                        segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments),
-                       ensureOneSegmentOnly: Boolean = true,
+                       ensureOneSegmentOnly: Boolean = false,
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false,
                        valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
@@ -822,25 +857,27 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                                                                                                     segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
 
-    //ensure that only one segment gets created
-    val adjustedSegmentConfig =
-      if (!ensureOneSegmentOnly || keyValues.size == 1)
-        segmentConfig //one doesn't matter.
-      else if (memory)
-        segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-      else
-        segmentConfig.copy(minSize = Int.MaxValue, maxCount = randomIntMax(keyValues.size + 1))
-
     val segment =
-      TestSegment(
-        keyValues = keyValues,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = adjustedSegmentConfig
-      )
+      if (ensureOneSegmentOnly)
+        TestSegment.one(
+          keyValues = keyValues,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
+      else
+        TestSegment(
+          keyValues = keyValues,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
 
     if (closeAfterCreate) segment.close
 

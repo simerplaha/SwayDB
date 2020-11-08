@@ -133,6 +133,10 @@ private[core] case object SegmentBlock extends LazyLogging {
     val isDeleteEventually: Boolean =
       deleteDelay.fromNow.hasTimeLeft()
 
+    //disables splitting of segments and creates a single segment.
+    def singleton: Config =
+      this.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+
     def copy(minSize: Int = minSize, maxCount: Int = maxCount, mmap: MMAP.Segment = mmap): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
         fileOpenIOStrategy = fileOpenIOStrategy,
@@ -249,7 +253,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                 binarySearchIndexConfig = binarySearchIndexConfig,
                 sortedIndexConfig = modifiedSortedIndex,
                 valuesConfig = valuesConfig,
-                segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+                segmentConfig = segmentConfig.singleton
               )
 
             assert(listSegments.size == 1, s"listSegments.size: ${listSegments.size} != 1")

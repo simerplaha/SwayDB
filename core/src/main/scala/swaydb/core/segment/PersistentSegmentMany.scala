@@ -544,6 +544,7 @@ protected case class PersistentSegmentMany(file: DBFile,
 
   override def close: Unit = {
     file.close()
+    segmentsCache.forEach((_, ref) => ref.clearAllCaches())
     segmentsCache.clear()
   }
 
@@ -568,7 +569,10 @@ protected case class PersistentSegmentMany(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure.value.exception)
     } map {
       _ =>
-        segmentsCache.clear()
+        segmentsCache.forEach {
+          (_, ref) =>
+            ref.clearAllCaches()
+        }
     }
   }
 
