@@ -32,8 +32,7 @@ import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
-import swaydb.core.actor.MemorySweeper
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
@@ -52,6 +51,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
+import swaydb.core.util.ParallelCollection._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.Dir
@@ -60,8 +60,8 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.data.util.FiniteDurations
 import swaydb.{Bag, Error, IO}
-import ParallelCollection._
 
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Promise}
@@ -1103,72 +1103,86 @@ private[core] case class Level(dirs: Seq[Dir],
                                  parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
     IO(SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](assignablesCount, assignables, targetSegments)) flatMap {
-      assignments =>
+      assignments: ListBuffer[Assignment[ListBuffer[Assignable], Segment]] =>
         logger.trace(s"{}: Assigned segments {} for {} KeyValues.", pathDistributor.head, assignments.map(_.segment.path.toString), assignables.size)
         if (assignments.isEmpty) {
           logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
           IO.Left[swaydb.Error.Level, Unit](swaydb.Error.MergeInvokedWithoutTargetSegment(assignables.size))
         } else {
           logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", pathDistributor.head, assignments.map(_.segment.path.toString), assignables.size)
-          putAssigned(
-            assignments = assignments,
-            parallelMerge = parallelMerge
-          ) flatMap {
-            targetSegmentAndNewSegments =>
-              targetSegmentAndNewSegments.foldLeftRecoverIO(MapEntry.noneSegment) {
-                case (mapEntry, (originalSegment, newSegments)) =>
-                  buildNewMapEntry(
-                    newSegments = newSegments.result,
-                    originalSegmentMayBe = if (newSegments.replaced) originalSegment else Segment.Null,
-                    initialMapEntry = mapEntry
-                  ).toOptionValue
+          assignments.grouped(parallelMerge.levelParallelism).to(Iterable).mapRecoverIO[Unit](
+            assignments =>
+              putAssigned(
+                assignments = assignments,
+                appendEntry = appendEntry,
+                parallelMerge = parallelMerge
+              )
+          ).transform(_ => ())
+        }
+    }
+  }
 
-              } flatMap {
-                case Some(mapEntry) =>
-                  //also write appendEntry to this mapEntry before committing entries to appendix.
-                  //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
-                  //which will remove oldEntries with duplicates with newer keys.
-                  val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
+  private def putAssigned(assignments: ListBuffer[Assignment[ListBuffer[Assignable], Segment]],
+                          appendEntry: Option[MapEntry[Slice[Byte], Segment]],
+                          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] = {
+    logger.trace(s"${pathDistributor.head}: PutAssigned ${assignments.size} Assignments.")
+    putAssigned(
+      assignments = assignments,
+      parallelMerge = parallelMerge
+    ) flatMap {
+      targetSegmentAndNewSegments =>
+        targetSegmentAndNewSegments.foldLeftRecoverIO(MapEntry.noneSegment) {
+          case (mapEntry, (originalSegment, newSegments)) =>
+            buildNewMapEntry(
+              newSegments = newSegments.result,
+              originalSegmentMayBe = if (newSegments.replaced) originalSegment else Segment.Null,
+              initialMapEntry = mapEntry
+            ).toOptionValue
 
-                  appendix.writeSafe(mapEntryToWrite) transform {
-                    _ =>
-                      logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, assignments.map(_.segment.path.toString))
-                      //delete assigned segments as they are replaced with new segments.
-                      if (segmentConfig.isDeleteEventually)
-                        targetSegmentAndNewSegments foreach {
-                          case (originalSegment, newSegments) =>
-                            if (newSegments.replaced)
-                              originalSegment.delete(segmentConfig.deleteDelay)
-                        }
-                      else
-                        targetSegmentAndNewSegments foreach {
-                          case (originalSegment, newSegments) =>
-                            if (newSegments.replaced)
-                              IO(originalSegment.delete) onLeftSideEffect {
-                                exception =>
-                                  logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, originalSegment.path, exception)
-                              }
-                        }
-                  }
+        } flatMap {
+          case Some(mapEntry) =>
+            //also write appendEntry to this mapEntry before committing entries to appendix.
+            //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
+            //which will remove oldEntries with duplicates with newer keys.
+            val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
 
-                case None =>
-                  IO.failed(s"${pathDistributor.head}: Failed to create map entry")
-
-              } onLeftSideEffect {
-                failure =>
-                  logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", failure)
+            appendix.writeSafe(mapEntryToWrite) transform {
+              _ =>
+                logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, assignments.map(_.segment.path.toString))
+                //delete assigned segments as they are replaced with new segments.
+                if (segmentConfig.isDeleteEventually)
                   targetSegmentAndNewSegments foreach {
-                    case (_, newSegments) =>
-                      newSegments.result foreach {
-                        segment =>
-                          IO(segment.delete) onLeftSideEffect {
-                            exception =>
-                              logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segment.path, exception)
-                          }
-                      }
+                    case (originalSegment, newSegments) =>
+                      if (newSegments.replaced)
+                        originalSegment.delete(segmentConfig.deleteDelay)
                   }
-              }
-          }
+                else
+                  targetSegmentAndNewSegments foreach {
+                    case (originalSegment, newSegments) =>
+                      if (newSegments.replaced)
+                        IO(originalSegment.delete) onLeftSideEffect {
+                          exception =>
+                            logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, originalSegment.path, exception)
+                        }
+                  }
+            }
+
+          case None =>
+            IO.failed(s"${pathDistributor.head}: Failed to create map entry")
+
+        } onLeftSideEffect {
+          failure =>
+            logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", failure)
+            targetSegmentAndNewSegments foreach {
+              case (_, newSegments) =>
+                newSegments.result foreach {
+                  segment =>
+                    IO(segment.delete) onLeftSideEffect {
+                      exception =>
+                        logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segment.path, exception)
+                    }
+                }
+            }
         }
     }
   }
