@@ -48,6 +48,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -84,66 +85,88 @@ protected case object PersistentSegmentMany {
 
     val firstSegmentOffset = segment.fileHeader.size + listSegmentSize
 
-    val blockRef =
-      BlockRefReader(
-        file = file,
-        start = segment.fileHeader.size,
-        fileSize = listSegmentSize
-      )
+    val cacheBlocksOnCreate = segment.listSegment.sortedIndexUnblockedReader.isDefined
+
+    //enable cache only if cacheBlocksOnCreate is true.
+    if (cacheBlocksOnCreate)
+      segment
+        .segments
+        .foldLeft(firstSegmentOffset) {
+          case (actualOffset, singleton) =>
+            val thisSegmentSize = singleton.segmentSize
+
+            val blockRef =
+              BlockRefReader(
+                file = file,
+                start = actualOffset,
+                fileSize = thisSegmentSize
+              )
+
+            val pathNameOffset = actualOffset - firstSegmentOffset
+
+            val ref =
+              SegmentRef(
+                path = file.path.resolve(s"ref.$pathNameOffset"),
+                minKey = singleton.minKey,
+                maxKey = singleton.maxKey,
+                nearestPutDeadline = singleton.nearestPutDeadline,
+                minMaxFunctionId = singleton.minMaxFunctionId,
+                blockRef = blockRef,
+                segmentIO = segmentIO,
+                valuesReaderCacheable = singleton.valuesUnblockedReader,
+                sortedIndexReaderCacheable = singleton.sortedIndexUnblockedReader,
+                hashIndexReaderCacheable = singleton.hashIndexUnblockedReader,
+                binarySearchIndexReaderCacheable = singleton.binarySearchUnblockedReader,
+                bloomFilterReaderCacheable = singleton.bloomFilterUnblockedReader,
+                footerCacheable = singleton.footerUnblocked
+              )
+
+            segments.put(pathNameOffset, ref)
+
+            actualOffset + thisSegmentSize
+        }
 
     val listSegment =
-      SegmentRef(
-        path = file.path,
-        minKey = segment.listSegment.minKey,
-        maxKey = segment.listSegment.maxKey,
-        nearestPutDeadline = segment.listSegment.nearestPutDeadline,
-        minMaxFunctionId = segment.listSegment.minMaxFunctionId,
-        blockRef = blockRef,
-        segmentIO = segmentIO,
-        valuesReaderCacheable = segment.listSegment.valuesUnblockedReader,
-        sortedIndexReaderCacheable = segment.listSegment.sortedIndexUnblockedReader,
-        hashIndexReaderCacheable = segment.listSegment.hashIndexUnblockedReader,
-        binarySearchIndexReaderCacheable = segment.listSegment.binarySearchUnblockedReader,
-        bloomFilterReaderCacheable = segment.listSegment.bloomFilterUnblockedReader,
-        footerCacheable = segment.listSegment.footerUnblocked
-      )
+      if (cacheBlocksOnCreate)
+        Some(
+          SegmentRef(
+            path = file.path,
+            minKey = segment.listSegment.minKey,
+            maxKey = segment.listSegment.maxKey,
+            nearestPutDeadline = segment.listSegment.nearestPutDeadline,
+            minMaxFunctionId = segment.listSegment.minMaxFunctionId,
+            blockRef =
+              BlockRefReader(
+                file = file,
+                start = segment.fileHeader.size,
+                fileSize = listSegmentSize
+              ),
+            segmentIO = segmentIO,
+            valuesReaderCacheable = segment.listSegment.valuesUnblockedReader,
+            sortedIndexReaderCacheable = segment.listSegment.sortedIndexUnblockedReader,
+            hashIndexReaderCacheable = segment.listSegment.hashIndexUnblockedReader,
+            binarySearchIndexReaderCacheable = segment.listSegment.binarySearchUnblockedReader,
+            bloomFilterReaderCacheable = segment.listSegment.bloomFilterUnblockedReader,
+            footerCacheable = segment.listSegment.footerUnblocked
+          )
+        )
+      else
+        None
 
-    //TODO fetch only if configured.
-    segment
-      .segments
-      .foldLeft(firstSegmentOffset) {
-        case (actualOffset, singleton) =>
-          val thisSegmentSize = singleton.segmentSize
-
-          val blockRef =
-            BlockRefReader(
-              file = file,
-              start = actualOffset,
-              fileSize = thisSegmentSize
-            )
-
-          val pathNameOffset = actualOffset - firstSegmentOffset
-
-          val ref =
-            SegmentRef(
-              path = file.path.resolve(s"ref.$pathNameOffset"),
-              minKey = singleton.minKey,
-              maxKey = singleton.maxKey,
-              nearestPutDeadline = singleton.nearestPutDeadline,
-              minMaxFunctionId = singleton.minMaxFunctionId,
-              blockRef = blockRef,
-              segmentIO = segmentIO,
-              valuesReaderCacheable = singleton.valuesUnblockedReader,
-              sortedIndexReaderCacheable = singleton.sortedIndexUnblockedReader,
-              hashIndexReaderCacheable = singleton.hashIndexUnblockedReader,
-              binarySearchIndexReaderCacheable = singleton.binarySearchUnblockedReader,
-              bloomFilterReaderCacheable = singleton.bloomFilterUnblockedReader,
-              footerCacheable = singleton.footerUnblocked
-            )
-
-          segments.put(pathNameOffset, ref)
-
-          actualOffset + thisSegmentSize
+    val listSegmentCache =
+      Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = listSegment) {
+        (_, _) =>
+          initListSegment(
+            file = file,
+            minKey = segment.listSegment.minKey,
+            maxKey = segment.listSegment.maxKey,
+            fileBlockRef =
+              BlockRefReader(
+                file = file,
+                start = 1,
+                fileSize = segment.segmentSize - 1
+              )
+          )
       }
 
     PersistentSegmentMany(
@@ -154,7 +177,7 @@ protected case object PersistentSegmentMany {
       minMaxFunctionId = segment.minMaxFunctionId,
       segmentSize = segment.segmentSize,
       nearestPutDeadline = segment.nearestPutDeadline,
-      listSegment = listSegment,
+      listSegmentCache = listSegmentCache,
       segmentsCache = segments
     )
   }
@@ -184,13 +207,16 @@ protected case object PersistentSegmentMany {
         fileSize = segmentSize - 1
       )
 
-    val listSegment =
-      initListSegment(
-        file = file,
-        minKey = minKey,
-        maxKey = maxKey,
-        fileBlockRef = fileBlockRef
-      )
+    val listSegmentCache =
+      Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = None) {
+        (_, _) =>
+          initListSegment(
+            file = file,
+            minKey = minKey,
+            maxKey = maxKey,
+            fileBlockRef = fileBlockRef
+          )
+      }
 
     new PersistentSegmentMany(
       file = file,
@@ -200,7 +226,7 @@ protected case object PersistentSegmentMany {
       minMaxFunctionId = minMaxFunctionId,
       segmentSize = segmentSize,
       nearestPutDeadline = nearestExpiryDeadline,
-      listSegment = listSegment,
+      listSegmentCache = listSegmentCache,
       segmentsCache = new ConcurrentHashMap()
     )
   }
@@ -289,23 +315,28 @@ protected case object PersistentSegmentMany {
 
     val deadlineFunctionId = DeadlineAndFunctionId(allKeyValues)
 
-    val listSegmentWithMinMax =
-      initListSegment(
-        file = file,
-        minKey = segmentRefKeyValues.head.key.unslice(),
-        maxKey = maxKey,
-        fileBlockRef = fileBlockRef
-      )
+    val minKey = segmentRefKeyValues.head.key.unslice()
+
+    val listSegmentCache =
+      Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = None) {
+        case (_, _) =>
+          initListSegment(
+            file = file,
+            minKey = minKey,
+            maxKey = maxKey,
+            fileBlockRef = fileBlockRef
+          )
+      }
 
     PersistentSegmentMany(
       file = file,
       segmentSize = file.fileSize.toInt,
       createdInLevel = footer.createdInLevel,
-      minKey = listSegmentWithMinMax.minKey,
-      maxKey = listSegmentWithMinMax.maxKey,
+      minKey = minKey,
+      maxKey = maxKey,
       minMaxFunctionId = deadlineFunctionId.minMaxFunctionId.map(_.unslice()),
       nearestPutDeadline = deadlineFunctionId.nearestDeadline,
-      listSegment = listSegmentWithMinMax,
+      listSegmentCache = listSegmentCache,
       //above parsed segmentRefs cannot be used here because
       //it's MaxKey.Range's minKey is set to the Segment's minKey
       //instead of the Segment's last range key-values minKey.
@@ -455,7 +486,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                                            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                            segmentSize: Int,
                                            nearestPutDeadline: Option[Deadline],
-                                           listSegment: SegmentRef,
+                                           listSegmentCache: CacheNoIO[Unit, SegmentRef],
                                            private[segment] val segmentsCache: ConcurrentHashMap[Int, SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                    functionStore: FunctionStore,
@@ -469,14 +500,14 @@ protected case class PersistentSegmentMany(file: DBFile,
 
   override def formatId: Byte = PersistentSegmentMany.formatId
 
-  val firstSegmentStartOffset: Int =
-    1 + Bytes.sizeOfUnsignedInt(listSegment.segmentSize) + listSegment.segmentSize
-
   private def fetchSegmentRef(persistent: Persistent): SegmentRef = {
     val offset = TransientSegmentSerialiser.offset(persistent)
     implicit val segment: SegmentRef = segmentsCache.get(offset)
 
     if (segment == null) {
+      val listSegment = listSegmentCache.value(())
+      val firstSegmentStartOffset: Int = 1 + Bytes.sizeOfUnsignedInt(listSegment.segmentSize) + listSegment.segmentSize
+
       //initialise segment
       val thisSegmentBlockRef =
         BlockRefReader(
@@ -515,7 +546,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   @inline def getAllSegmentRefs(): Iterator[SegmentRef] =
     new Iterator[SegmentRef] {
       var nextRef: SegmentRef = null
-      val iter = listSegment.iterator()
+      val iter = listSegmentCache.value(()).iterator()
 
       @tailrec
       final override def hasNext: Boolean =
@@ -546,6 +577,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     file.close()
     segmentsCache.forEach((_, ref) => ref.clearAllCaches())
     segmentsCache.clear()
+    listSegmentCache.clear()
   }
 
   def isOpen: Boolean =
@@ -667,7 +699,9 @@ protected case class PersistentSegmentMany(file: DBFile,
     Persistent.Null
   }
 
-  def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean =
+  def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean = {
+    val listSegment = listSegmentCache.value(())
+
     listSegment.get(key, threadState) match {
       case _: Persistent =>
         true
@@ -681,6 +715,7 @@ protected case class PersistentSegmentMany(file: DBFile,
             false
         }
     }
+  }
 
   override def mightContainFunction(key: Slice[Byte]): Boolean =
     minMaxFunctionId exists {
@@ -691,7 +726,9 @@ protected case class PersistentSegmentMany(file: DBFile,
         )(FunctionStore.order)
     }
 
-  def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+  def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
+    val listSegment = listSegmentCache.value(())
+
     listSegment.get(key, threadState) match {
       case persistent: Persistent =>
         fetchSegmentRef(persistent).get(key, threadState)
@@ -705,8 +742,11 @@ protected case class PersistentSegmentMany(file: DBFile,
             Persistent.Null
         }
     }
+  }
 
-  def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+  def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
+    val listSegment = listSegmentCache.value(())
+
     listSegment.lower(key, threadState) match {
       case persistent: Persistent =>
         fetchSegmentRef(persistent).lower(key, threadState)
@@ -714,10 +754,13 @@ protected case class PersistentSegmentMany(file: DBFile,
       case Persistent.Null =>
         Persistent.Null
     }
+  }
 
   private def higherFromHigherSegment(key: Slice[Byte],
                                       floorSegment: SegmentRefOption,
-                                      threadState: ThreadReadState): PersistentOption =
+                                      threadState: ThreadReadState): PersistentOption = {
+    val listSegment = listSegmentCache.value(())
+
     listSegment.higher(key, threadState) match {
       case segmentKeyValue: Persistent =>
         val higherSegment = fetchSegmentRef(segmentKeyValue)
@@ -730,8 +773,11 @@ protected case class PersistentSegmentMany(file: DBFile,
       case Persistent.Null =>
         Persistent.Null
     }
+  }
 
   def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
+    val listSegment = listSegmentCache.value(())
+
     val floorSegment: SegmentRefOption =
       listSegment.get(key = key, threadState = threadState) match {
         case persistent: Persistent =>
@@ -798,6 +844,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     clearCachedKeyValues()
     segmentsCache.asScala.values.foreach(_.clearAllCaches())
     segmentsCache.clear()
+    listSegmentCache.clear()
   }
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean = {
@@ -817,7 +864,7 @@ protected case class PersistentSegmentMany(file: DBFile,
       .forall(_.isKeyValueCacheEmpty)
 
   def areAllCachesEmpty: Boolean =
-    segmentsCache.isEmpty
+    segmentsCache.isEmpty && !listSegmentCache.isCached
 
   def cachedKeyValueSize: Int =
     segmentsCache

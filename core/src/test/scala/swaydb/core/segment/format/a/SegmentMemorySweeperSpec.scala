@@ -53,38 +53,40 @@ class SegmentMemorySweeperSpec extends TestBase {
 
   "PersistentSegment" should {
     "drop Group key-value only after it's been decompressed" in {
-      TestCaseSweeper {
-        implicit sweeper =>
-          //add key-values to the right of the group
-          val keyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(1))
+      runThis(10.times, log = true) {
+        TestCaseSweeper {
+          implicit sweeper =>
+            //add key-values to the right of the group
+            val keyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(1))
 
-          //set the limiter to drop key-values fast
-          implicit val memorySweeper: MemorySweeper.KeyValue =
-            MemorySweeper(MemoryCache.KeyValueCacheOnly(1, None, Some(ActorConfig.TimeLoop("", 2.seconds, ec))))
-              .value
-              .asInstanceOf[MemorySweeper.KeyValue]
-              .sweep()
+            //set the limiter to drop key-values fast
+            implicit val memorySweeper: MemorySweeper.KeyValue =
+              MemorySweeper(MemoryCache.KeyValueCacheOnly(1, None, Some(ActorConfig.TimeLoop("", 2.seconds, ec))))
+                .value
+                .asInstanceOf[MemorySweeper.KeyValue]
+                .sweep()
 
-          //create persistent Segment
-          val segment =
-            TestSegment(
-              keyValues = keyValues,
-              segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false, mmap = mmapSegments)
-            )
+            //create persistent Segment
+            val segment =
+              TestSegment(
+                keyValues = keyValues,
+                segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false, mmap = mmapSegments)
+              )
 
-          //initially Segment's cache is empty
-          segment.areAllCachesEmpty shouldBe true
+            //initially Segment's cache is empty
+            segment.areAllCachesEmpty shouldBe true
 
-          //read all key-values and this should trigger dropping of key-values
-          //read sequentially so that groups are added to the queue in sequential and also dropped.
-          Benchmark("Reading all key-values sequentially.") {
-            assertGetSequential(keyValues, segment)
-          }
+            //read all key-values and this should trigger dropping of key-values
+            //read sequentially so that groups are added to the queue in sequential and also dropped.
+            Benchmark("Reading all key-values sequentially.") {
+              assertGetSequential(keyValues, segment)
+            }
 
-          //eventually all other key-values are dropped and the group remains.
-          eventual(4.seconds)(segment.cachedKeyValueSize shouldBe 0)
+            //eventually all other key-values are dropped and the group remains.
+            eventual(4.seconds)(segment.cachedKeyValueSize shouldBe 0)
 
-          segment.close
+            segment.close
+        }
       }
     }
   }

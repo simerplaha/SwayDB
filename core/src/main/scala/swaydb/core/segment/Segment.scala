@@ -957,7 +957,7 @@ private[core] case object Segment extends LazyLogging {
         segmentSizeForMerge(segment.ref)
 
       case segment: PersistentSegmentMany =>
-        val listSegmentSize = segmentSizeForMerge(segment.listSegment)
+        val listSegmentSize = segmentSizeForMerge(segment.listSegmentCache.value(()))
 
         //1+ for formatId
         segment.getAllSegmentRefs().foldLeft(1 + listSegmentSize) {

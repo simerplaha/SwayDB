@@ -12,10 +12,10 @@
 [build-badge]: https://github.com/simerplaha/SwayDB/workflows/Build/badge.svg
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-Embeddable **persistent** and **in-memory** key-value storage engine aimed for **high performance** & **resource efficiency**. 
+Embeddable **persistent** and **in-memory** key-value storage engine for **high performance** & **resource efficiency**. 
 
-_High level goal is to be efficient at **managing bytes** on-disk and in-memory by recognising reoccurring patterns 
-in serialised bytes without restricting the **core** implementation to any specific data model (SQL, No-SQL, Queue etc) 
+_We aim to be efficient at **managing bytes** on-disk and in-memory by recognising reoccurring patterns 
+in serialised bytes without restricting the **core** implementation to any specific data model (SQL, NoSQL etc) 
 or storage type (Disk or RAM). The core provides many configurations that can be manually tuned for custom use-cases, 
 but we aim to eventually implement automatic runtime tuning when we are able to collect and analyse runtime machine
 statistics & read-write patterns._

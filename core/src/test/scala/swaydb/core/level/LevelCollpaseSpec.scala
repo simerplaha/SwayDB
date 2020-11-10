@@ -113,7 +113,7 @@ sealed trait LevelCollapseSpec extends TestBase {
       if (memory) {
         //memory Level cannot be reopened.
       } else {
-        runThis(1.times) {
+        runThis(10.times, log = true) {
           TestCaseSweeper {
             implicit sweeper =>
               import sweeper._
@@ -124,7 +124,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
               assertAllSegmentsCreatedInLevel(level)
 
-              val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
+              val keyValues = randomPutKeyValues(1000, valueSize = 0, addPutDeadlines = false)(TestTimer.Empty)
               level.putKeyValuesTest(keyValues).runRandomIO.right.value
               //dispatch another push to trigger split
               level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
@@ -134,18 +134,19 @@ sealed trait LevelCollapseSpec extends TestBase {
 
               //reopening the Level will make the Segments unreadable.
               //reopen the Segments
-              val segments =
-              level.segmentsInLevel().map {
-                case segment: PersistentSegment =>
-                  Segment(
-                    path = segment.path,
-                    mmap = mmapSegments,
-                    checkExists = true
-                  )
 
-                case _ =>
-                  fail("Expected PersistentSegment")
-              }
+              val segments =
+                level.segmentsInLevel().map {
+                  case segment: PersistentSegment =>
+                    Segment(
+                      path = segment.path,
+                      mmap = mmapSegments,
+                      checkExists = true
+                    )
+
+                  case _ =>
+                    fail("Expected PersistentSegment")
+                }
 
               //reopen the Level with larger min segment size
               val reopenLevel = level.reopen(segmentSize = 20.mb)

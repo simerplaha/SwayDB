@@ -122,7 +122,7 @@ class AppendixRepairerSpec extends TestBase {
     }
 
     "report duplicate Segments" in {
-      runThis(1.times, log = true) {
+      runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
             import sweeper._
@@ -130,7 +130,7 @@ class AppendixRepairerSpec extends TestBase {
             val level = TestLevel(
               segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())),
               nextLevel = Some(TestLevel()),
-              throttle = (_) => Throttle(Duration.Zero, 0)
+              throttle = _ => Throttle(Duration.Zero, 0)
             )
 
             val keyValues = randomizedKeyValues(1000)
