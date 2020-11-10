@@ -55,7 +55,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
-import scala.collection.compat._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.jdk.CollectionConverters._
@@ -259,7 +258,7 @@ protected case object PersistentSegmentMany {
         fileSize = file.fileSize.toInt - 1
       )
 
-    val listSegment =
+    val listSegment: SegmentRef =
       initListSegment(
         file = file,
         minKey = null,
