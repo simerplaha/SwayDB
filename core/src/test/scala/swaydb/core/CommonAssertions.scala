@@ -98,8 +98,8 @@ object CommonAssertions {
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                      segmentIO: SegmentIO = SegmentIO.random): Unit = {
-      val actualMemory = actual.toMemory
-      val expectedMemory = expected.toMemory
+      val actualMemory = actual.toMemory()
+      val expectedMemory = expected.toMemory()
 
       actualMemory should be(expectedMemory.unslice())
     }
@@ -293,7 +293,7 @@ object CommonAssertions {
     implicit val optimiseWrites: OptimiseWrites = OptimiseWrites.random
     implicit val atomic: Atomic = Atomic.random
     val cache = LevelZeroMapCache.builder.create()
-    (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach {
+    (oldKeyValues ++ newKeyValues).map(_.toMemory()) foreach {
       memory =>
         //        if (randomBoolean())
         //          cache.writeNonAtomic(MapEntry.Put(memory.key, memory))
@@ -302,7 +302,7 @@ object CommonAssertions {
     }
 
     val cachedKeyValues = cache.skipList.values()
-    cachedKeyValues shouldBe expected.map(_.toMemory).toList
+    cachedKeyValues shouldBe expected.map(_.toMemory()).toList
     cachedKeyValues
   }
 
@@ -480,7 +480,7 @@ object CommonAssertions {
     //LevelZero does not write Groups therefore this unzip is required.
       actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
         case (mapEntry, keyValue) =>
-          val newEntry = MapEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue.toMemory)
+          val newEntry = MapEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue.toMemory())
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
   }
@@ -564,13 +564,13 @@ object CommonAssertions {
 
   implicit class PersistentKeyValueKeyValueImplicits(actual: Persistent) {
     def shouldBe(expected: Memory) = {
-      actual.toMemory() shouldBe expected.toMemory
+      actual.toMemory() shouldBe expected.toMemory()
     }
   }
 
   implicit class PersistentKeyValueImplicits(actual: Persistent) {
     def shouldBe(expected: Persistent) =
-      actual.toMemory shouldBe expected.toMemory
+      actual.toMemory() shouldBe expected.toMemory()
   }
 
   implicit class SegmentImplicits(actual: Segment) {
@@ -910,7 +910,7 @@ object CommonAssertions {
           val stringInfos: Slice[String] =
             Slice.from(segment.iterator(), segment.getKeyValueCount()) map {
               keyValue =>
-                keyValue.toMemory match {
+                keyValue.toMemory() match {
                   case response: Memory =>
                     response match {
                       case fixed: Memory.Fixed =>
@@ -980,7 +980,7 @@ object CommonAssertions {
           case ex: Throwable =>
             println(
               "Test failed for key: " + keyValue.key.readInt() +
-                s" expired: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
+                s" expired: ${keyValue.toMemory().indexEntryDeadline.map(_.hasTimeLeft())}" +
                 s" class: ${keyValue.getClass.getSimpleName}"
             )
             fail(ex)
@@ -997,7 +997,7 @@ object CommonAssertions {
           case ex: Exception =>
             println(
               "Test failed for key: " + keyValue.key.readInt() +
-                s" indexEntryDeadline: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
+                s" indexEntryDeadline: ${keyValue.toMemory().indexEntryDeadline.map(_.hasTimeLeft())}" +
                 s" class: ${keyValue.getClass.getSimpleName}"
             )
             throw ex
@@ -1035,7 +1035,7 @@ object CommonAssertions {
     keyValues
       .lastOption
       .map(_.key)
-      .flatMap(level.get(_, ThreadReadState.random).runRandomIO.right.value.toOptionPut.map(_.toMemory)) shouldBe keyValues.lastOption
+      .flatMap(level.get(_, ThreadReadState.random).runRandomIO.right.value.toOptionPut.map(_.toMemory())) shouldBe keyValues.lastOption
   }
 
   def assertGetNoneFromThisLevelOnly(keyValues: Iterable[KeyValue],
@@ -1065,7 +1065,7 @@ object CommonAssertions {
           case ex: Exception =>
             println(
               "Test failed for key: " + keyValue.key.readInt() +
-                s" indexEntryDeadline: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
+                s" indexEntryDeadline: ${keyValue.toMemory().indexEntryDeadline.map(_.hasTimeLeft())}" +
                 s" class: ${keyValue.getClass.getSimpleName}"
             )
             throw ex
@@ -1086,7 +1086,7 @@ object CommonAssertions {
           case ex: Exception =>
             println(
               "Test failed for key: " + keyValue.key.readInt() +
-                s" indexEntryDeadline: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
+                s" indexEntryDeadline: ${keyValue.toMemory().indexEntryDeadline.map(_.hasTimeLeft())}" +
                 s" class: ${keyValue.getClass.getSimpleName}"
             )
             throw ex

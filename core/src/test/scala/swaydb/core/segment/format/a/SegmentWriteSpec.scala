@@ -224,7 +224,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           def doAssert(keyValues: Slice[Memory]) = {
 
             //read key-values so they are all part of the same byte array.
-            val readKeyValues = writeAndRead(keyValues).get.map(_.toMemory)
+            val readKeyValues = writeAndRead(keyValues).get.map(_.toMemory())
 
             //assert that readKeyValues keys are not sliced.
             readKeyValues foreach assertNotSliced

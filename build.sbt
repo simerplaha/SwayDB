@@ -4,13 +4,13 @@ import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
 
 val lz4Version = "1.7.1"
-val snappyVersion = "1.1.8"
+val snappyVersion = "1.1.8.1"
 val logbackClassicVersion = "1.2.3"
 val scalaLoggingVersion = "3.9.2"
 val scalaMockVersion = "5.0.0"
-val scalaTestVersion = "3.2.0"
+val scalaTestVersion = "3.2.2"
 val boopickleVersion = "1.3.3"
-val monixVersion = "3.2.2"
+val monixVersion = "3.3.0"
 val zioVersion = "1.0.3"
 val catsEffectVersion = "2.2.0"
 val scalaJava8CompatVersion = "0.9.1"

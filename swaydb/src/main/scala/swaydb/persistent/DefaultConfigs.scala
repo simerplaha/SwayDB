@@ -140,7 +140,7 @@ object DefaultConfigs {
     ByteCacheOnly(
       minIOSeekSize = 4096,
       skipBlockCacheSeekSize = 4096 * 10,
-      cacheCapacity = 2.gb,
+      cacheCapacity = 1.gb,
       actorConfig =
         ActorConfig.TimeLoop(
           name = s"${this.getClass.getName} - MemoryCache Actor",

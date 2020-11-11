@@ -61,7 +61,6 @@ private[core] object LevelZeroMapCache {
               @BeanProperty @volatile var hasRange: Boolean,
               @BeanProperty @volatile var mutable: Boolean)
 
-
   @inline def apply()(implicit keyOrder: KeyOrder[Slice[Byte]],
                       timeOrder: TimeOrder[Slice[Byte]],
                       functionStore: FunctionStore,

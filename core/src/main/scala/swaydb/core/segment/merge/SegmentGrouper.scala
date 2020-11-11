@@ -41,7 +41,7 @@ private[core] object SegmentGrouper extends LazyLogging {
       if (keyValueToMerge != null)
         builder add keyValueToMerge
     } else {
-      builder add keyValue.toMemory
+      builder add keyValue.toMemory()
     }
   }
 

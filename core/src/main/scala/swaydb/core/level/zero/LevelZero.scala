@@ -477,7 +477,6 @@ private[swaydb] case class LevelZero(path: Path,
     cleared
   }
 
-
   def isFunctionApplied(functionId: Slice[Byte]): Boolean =
     appliedFunctionsMap.exists(_.cache.skipList.contains(functionId))
 

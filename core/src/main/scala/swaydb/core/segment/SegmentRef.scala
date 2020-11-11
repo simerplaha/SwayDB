@@ -899,7 +899,7 @@ private[core] case object SegmentRef extends LazyLogging {
                                                   forceSaveApplier: ForceSaveApplier,
                                                   segmentIO: SegmentIO): Slice[PersistentSegment] = {
 
-    val stats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory)
+    val stats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory())
 
     val newSegments = ListBuffer.empty[PersistentSegment]
 
@@ -1112,13 +1112,13 @@ private[core] case object SegmentRef extends LazyLogging {
                                                        forceSaveApplier: ForceSaveApplier,
                                                        segmentIO: SegmentIO): ListBuffer[TransientSegment.One] = {
 
-    val stats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory)
+    val stats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory())
 
     val finalOnes = ListBuffer.empty[TransientSegment.One]
 
     assignables foreach {
       case collection: Assignable.Collection =>
-        val collectionStats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory)
+        val collectionStats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory())
         collection.iterator() foreach collectionStats.add
 
         SegmentBlock.writeOnes(

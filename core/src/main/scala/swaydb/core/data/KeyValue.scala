@@ -57,7 +57,7 @@ private[core] sealed trait KeyValue extends Assignable {
   def key: Slice[Byte]
 
   def indexEntryDeadline: Option[Deadline]
-  def toMemory: Memory
+  def toMemory(): Memory
 
   def keyLength =
     key.size

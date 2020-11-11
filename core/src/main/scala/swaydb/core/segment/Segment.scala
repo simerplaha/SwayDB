@@ -1397,7 +1397,7 @@ private[core] case object Segment extends LazyLogging {
             if (removeDeletes)
               SegmentGrouper.addLastLevel(nextKeyValue)
             else
-              nextKeyValue.toMemory
+              nextKeyValue.toMemory()
 
           if (nextKeyValueOrNull == null) {
             hasNext

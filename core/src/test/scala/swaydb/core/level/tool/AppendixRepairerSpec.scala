@@ -202,7 +202,7 @@ class AppendixRepairerSpec extends TestBase {
 
               def createOverlappingSegment() = {
                 val numberOfKeyValuesToOverlap = randomNextInt(3) max 1
-                val keyValuesToOverlap = Random.shuffle(segment.iterator().runRandomIO.value.toList).take(numberOfKeyValuesToOverlap).map(_.toMemory).toSlice
+                val keyValuesToOverlap = Random.shuffle(segment.iterator().runRandomIO.value.toList).take(numberOfKeyValuesToOverlap).map(_.toMemory()).toSlice
                 //create overlapping Segment
                 val overlappingSegment = TestSegment(keyValuesToOverlap, segmentConfig = SegmentBlock.Config.random(mmap = MMAP.Off(TestForceSave.channel())))
                 Effect.copy(overlappingSegment.path, overlappingLevelSegmentPath)
