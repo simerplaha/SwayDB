@@ -79,7 +79,8 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       //this is because processing all levels would take some time and during that time
       //level0 might fill up with level1 and level2 being empty and level0 maps not being
       //able to merged instantly.
-      currentJobs = state.levels.sorted(state.ordering).take(3)
+      //currentJobs = state.levels.sorted(state.ordering).take(3)
+      currentJobs = state.levels.sorted(state.ordering)
     )
   }
 

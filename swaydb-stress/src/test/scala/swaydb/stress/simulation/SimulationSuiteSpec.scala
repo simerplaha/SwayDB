@@ -52,7 +52,7 @@ class Persistent_NonAtomic_SimulationSpec extends SimulationSpec {
                        sweeper: TestCaseSweeper) =
     swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
       dir = randomDir,
-      acceleration = Accelerator.brake(),
+      //      acceleration = Accelerator.brake(),
       atomic = Atomic.Off,
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),
@@ -68,7 +68,7 @@ class Persistent_Atomic_SimulationSpec extends SimulationSpec {
                        sweeper: TestCaseSweeper) =
     swaydb.persistent.Map[Long, Domain, PureFunction.Map[Long, Domain], IO.ApiIO](
       dir = randomDir,
-      acceleration = Accelerator.brake(),
+      //      acceleration = Accelerator.brake(),
       atomic = Atomic.On,
       //      mmapMaps = MMAP.randomForMap(),
       //      mmapAppendix = MMAP.randomForMap(),

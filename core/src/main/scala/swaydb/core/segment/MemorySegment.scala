@@ -29,7 +29,6 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
-import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
