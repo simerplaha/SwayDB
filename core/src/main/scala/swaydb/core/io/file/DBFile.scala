@@ -432,18 +432,14 @@ class DBFile(val path: Path,
   def read(position: Int, size: Int): Slice[Byte] =
     if (size == 0)
       Slice.emptyBytes
+    else if (blockCache.isDefined)
+      read(
+        position = position,
+        size = size,
+        blockCache = blockCache.get
+      )
     else
-      blockCache match {
-        case Some(blockCache) =>
-          read(
-            position = position,
-            size = size,
-            blockCache = blockCache
-          )
-
-        case None =>
-          fileCache.value(()).get.read(position, size)
-      }
+      fileCache.value(()).get.read(position, size)
 
   def read(position: Int,
            size: Int,

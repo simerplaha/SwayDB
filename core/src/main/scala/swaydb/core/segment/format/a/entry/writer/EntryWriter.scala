@@ -123,13 +123,13 @@ private[core] object EntryWriter {
       builder = builder
     )
 
-  def maxEntrySize(keySize: Int,
-                   hasAccessIndexPosition: Boolean): Int =
+  @inline def maxEntrySize(keySize: Int,
+                           hasAccessIndexPosition: Boolean): Int =
     Bytes.sizeOfUnsignedInt(keySize) + //size of key
       keySize + //key itself
       maxEntrySize(hasAccessIndexPosition)
 
-  def maxEntrySize(hasAccessIndexPosition: Boolean): Int =
+  @inline def maxEntrySize(hasAccessIndexPosition: Boolean): Int =
     if (hasAccessIndexPosition)
       tailBytesWithAccessIndexPosition
     else
