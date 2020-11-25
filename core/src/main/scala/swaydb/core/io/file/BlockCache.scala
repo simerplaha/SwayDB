@@ -65,7 +65,11 @@ private[core] object BlockCache extends LazyLogging {
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
       skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
-      map = HashedMap.concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]](Slice.Null)
+      map =
+        HashedMap.concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]](
+          nullValue = Slice.Null,
+          initialCapacity = Some(memorySweeper.cacheSize / memorySweeper.blockSize)
+        )
     )
 
   def init(memorySweeper: MemorySweeper.All) =
@@ -73,7 +77,11 @@ private[core] object BlockCache extends LazyLogging {
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
       skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
-      map = HashedMap.concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]](Slice.Null)
+      map =
+        HashedMap.concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]](
+          nullValue = Slice.Null,
+          initialCapacity = Some(memorySweeper.cacheSize / memorySweeper.blockSize)
+        )
     )
 
   class State(val blockSize: Int,

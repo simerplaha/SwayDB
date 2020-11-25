@@ -67,9 +67,9 @@ object Benchmark extends LazyLogging {
 
     val gcTimeTaken = (collectionTimeAfter - collectionTimeBefore) / 1000.0
 
-    val timeWithoutGCTimeTakenRounded = Maths.round(timeTaken - gcTimeTaken)
+    val timeWithoutGCRounded = Maths.round(timeTaken - gcTimeTaken)
 
-    val messageToLog = s"${if (message.isEmpty) "" else s"$message - "}$timeWithoutGCTimeTakenRounded seconds. GC: ${Maths.round(gcTimeTaken)}. Total: ${Maths.round(timeTaken)}"
+    val messageToLog = s"${if (message.isEmpty) "" else s"$message - "}$timeWithoutGCRounded seconds. GC: ${Maths.round(gcTimeTaken)}. Total: ${Maths.round(timeTaken)}"
 
     if (inlinePrint)
       doPrint(message = messageToLog, useLazyLogging = useLazyLogging, newLine = false)
@@ -79,7 +79,7 @@ object Benchmark extends LazyLogging {
     if (!useLazyLogging)
       println
 
-    (result, timeWithoutGCTimeTakenRounded)
+    (result, timeWithoutGCRounded)
   }
 
   def apply[R](message: String, inlinePrint: Boolean = false, useLazyLogging: Boolean = false)(benchmarkThis: => R): R =
