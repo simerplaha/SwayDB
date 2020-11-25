@@ -33,12 +33,12 @@ import swaydb.core.data.Memory
 import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
-import swaydb.core.segment.{PersistentSegmentMany, Segment, SegmentIO, ThreadReadState}
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment, SegmentIO, ThreadReadState}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper, TestTimer}
 import swaydb.data.config.{Dir, IOAction, IOStrategy, MMAP}
@@ -53,29 +53,7 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.duration._
 import scala.util.Random
 
-class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-}
-
-class SegmentReadPerformanceSpec1 extends SegmentReadPerformanceSpec {
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def level0MMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-  override def appendixStorageMMAP = MMAP.On(OperatingSystem.isWindows, forceSave = TestForceSave.mmap())
-}
-
-class SegmentReadPerformanceSpec2 extends SegmentReadPerformanceSpec {
-  override def levelFoldersCount = 10
-  override def mmapSegments = MMAP.Off(forceSave = TestForceSave.channel())
-  override def level0MMAP = MMAP.Off(forceSave = TestForceSave.channel())
-  override def appendixStorageMMAP = MMAP.Off(forceSave = TestForceSave.channel())
-}
-
-class SegmentReadPerformanceSpec3 extends SegmentReadPerformanceSpec {
-  override def inMemoryStorage = true
-}
-
-sealed trait SegmentReadPerformanceSpec extends TestBase {
+class SegmentReadPerformanceSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
@@ -118,7 +96,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     val binarySearchIndexConfig =
       BinarySearchIndexBlock.Config(
         enabled = true,
-        format = BinarySearchEntryFormat.CopyKey,
+        format = BinarySearchEntryFormat.Reference,
         minimumNumberOfKeys = 1,
         searchSortedIndexDirectlyIfPossible = false,
         fullIndex = true,
@@ -131,8 +109,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         },
         compressions = _ => Seq.empty
       )
-    //            binarySearchIndexConfig =
-    //              BinarySearchIndexBlock.Config.disabled
+
+    //    val binarySearchIndexConfig =
+    //      BinarySearchIndexBlock.Config.disabled
 
     val valuesConfig =
       ValuesBlock.Config(
@@ -147,16 +126,23 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         },
         compressions = _ => Seq.empty
       )
-    //          hashIndexConfig =
-    //            HashIndexBlock.Config(
-    //              maxProbe = 5,
-    //              format = HashIndexEntryFormat.Reference,
-    //              minimumNumberOfKeys = 5,
-    //              minimumNumberOfHits = 5,
-    //              allocateSpace = _.requiredSpace,
-    //              ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-    //              compressions = _ => Seq.empty
-    //            )
+
+    //    val hashIndexConfig =
+    //      HashIndexBlock.Config(
+    //        maxProbe = 2,
+    //        format = HashIndexEntryFormat.Reference,
+    //        minimumNumberOfKeys = 5,
+    //        minimumNumberOfHits = 5,
+    //        allocateSpace = _.requiredSpace,
+    //        ioStrategy = {
+    //          case _: IOAction.ReadDataOverview =>
+    //            IOStrategy.ConcurrentIO(cacheOnAccess = true)
+    //
+    //          case _: IOAction.DecompressAction =>
+    //            IOStrategy.ConcurrentIO(cacheOnAccess = false)
+    //        },
+    //        compressions = _ => Seq.empty
+    //      )
 
     val hashIndexConfig = HashIndexBlock.Config.disabled
 
@@ -184,8 +170,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         cacheBlocksOnCreate = false,
         minSize = Int.MaxValue,
         maxCount =
-          //          keyValuesCount / 100,
-          keyValuesCount,
+          keyValuesCount / 100,
+        //          keyValuesCount,
         pushForward = false,
         mmap = mmapSegments,
         deleteDelay = 0.seconds,
@@ -230,81 +216,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       }
 
     segments should have size 1
-    segments.head.getClass.getSimpleName shouldBe "PersistentSegmentOne"
+    //    segments.head.getClass.getSimpleName shouldBe "PersistentSegmentMany"
     segments.head
   }
 
-  def assertGet(segment: Segment) = {
-    val readState = ThreadReadState.limitHashMap(1)
-    shuffledKeyValues foreach {
-      keyValue =>
-        //        if (keyValue.key.readInt() % 1000 == 0)
-        //          segment.get(shuffledKeyValues.head.key, readState)
-        //
-        //        val key = keyValue.key.readInt()
-        ////        if (key % 1000 == 0)
-        //          println(key)
-        //        val found = segment.get(keyValue.key).get.get
-        //        found.getOrFetchValue
-        //            segment.get(keyValue.key, readState).getUnsafe.key shouldBe keyValue.key
-        segment.get(keyValue.key, readState).getUnsafe
-    }
-  }
-
-  def assertHigher(segment: Segment) = {
-    val readState = ThreadReadState.hashMap()
-    (0 until keyValues.size - 1) foreach {
-      index =>
-        //        segment.higherKey(keyValues(index).key)
-        //        println(s"index: $index")
-        val keyValue = keyValues(index)
-
-        //        if (keyValue.key.readInt() % 1000 == 0) {
-        //          val key = keyValues(randomIntMax(index)).key
-        //          if (randomBoolean())
-        //            segment.higher(key, readState).getUnsafe
-        //          else if (randomBoolean())
-        //            segment.lower(key, readState).getUnsafe
-        //          else
-        //            segment.get(key, readState).getUnsafe.key shouldBe key
-        //        }
-
-        //        val expectedHigher = unGroupedKeyValues(index + 1)
-        //        segment.higher(keyValue.key).get.get shouldBe expectedHigher
-        segment.higher(keyValue.key, readState).getUnsafe
-    }
-  }
-
-  def assertLower(segment: Segment) = {
-    val readState = ThreadReadState.hashMap()
-    (1 until keyValues.size).reverse foreach {
-      index =>
-        //        println(s"index: $index")
-        //        segment.lowerKeyValue(keyValues(index).key)
-
-        val keyValue = keyValues(index)
-
-        //        if (keyValue.key.readInt() % 1000 == 0) {
-        //          val key = keyValues(randomIntMax(index)).key
-        //          if (randomBoolean())
-        //            segment.higher(key, readState).getUnsafe
-        //          else if (randomBoolean())
-        //            segment.lower(key, readState).getUnsafe
-        //          else
-        //            segment.get(key, readState).getUnsafe.key shouldBe key
-        //        }
-
-        //        println
-        //        println(s"Key: ${keyValue.key.readInt()}")
-
-        //        if (keyValue.key.readInt() % 1000 == 0)
-        //          segment.higher(keyValues(randomIntMax(index)).key, readState)
-
-        //        val expectedLower = unGroupedKeyValues(index - 1)
-        //        segment.lower(keyValue.key).value.get shouldBe expectedLower
-        segment.lower(keyValue.key, readState).getUnsafe
-    }
-  }
 
   //  def reopenSegment() = {
   //    println("Re-opening Segment")
@@ -325,9 +240,28 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   //      )
   //  }
 
-  "Segment value benchmark 1" in {
+  "Get" in {
     TestCaseSweeper {
       implicit sweeper =>
+
+        def assertGet(segment: Segment) = {
+          val readState = ThreadReadState.limitHashMap(1)
+          shuffledKeyValues foreach {
+            keyValue =>
+              //        if (keyValue.key.readInt() % 1000 == 0)
+              //          segment.get(shuffledKeyValues.head.key, readState)
+              //
+              //        val key = keyValue.key.readInt()
+              ////        if (key % 1000 == 0)
+              //          println(key)
+              //        val found = segment.get(keyValue.key).get.get
+              //        found.getOrFetchValue
+              //            segment.get(keyValue.key, readState).getUnsafe.key shouldBe keyValue.key
+              segment.get(keyValue.key, readState).getUnsafe
+          }
+        }
+
+
         val segment = initSegment().sweep()
 
         //    val all = segment.getAll()
@@ -336,22 +270,22 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         //    println(s"not PrefixedCompressed count: ${keyValues.count(!_.isPrefixCompressed)}")
         //    println
 
-        //    segment.asInstanceOf[PersistentSegmentOne].ref.segmentBlockCache.getHashIndex() foreach {
-        //      hashIndex =>
-        //        println(s"hashIndex.hit: ${hashIndex.hit}")
-        //        println(s"hashIndex.miss: ${hashIndex.miss}")
-        //        println(s"hashIndex.size: ${hashIndex.offset.size}")
-        //        println
-        //    }
+        //        segment.asInstanceOf[PersistentSegmentOne].ref.segmentBlockCache.getHashIndex() foreach {
+        //          hashIndex =>
+        //            println(s"hashIndex.hit: ${hashIndex.hit}")
+        //            println(s"hashIndex.miss: ${hashIndex.miss}")
+        //            println(s"hashIndex.size: ${hashIndex.offset.size}")
+        //            println
+        //        }
         //
-        //    segment.asInstanceOf[PersistentSegmentOne].ref.segmentBlockCache.getBinarySearchIndex() foreach {
-        //      binarySearch =>
-        //        println(s"binarySearch.valuesCount: ${binarySearch.valuesCount}")
-        //        println(s"binarySearch.bytesPerValue: ${binarySearch.bytesPerValue}")
-        //        println(s"binarySearch.isFullIndex: ${binarySearch.isFullIndex}")
-        //        println(s"binarySearch.size: ${binarySearch.offset.size}")
-        //        println
-        //    }
+        //        segment.asInstanceOf[PersistentSegmentOne].ref.segmentBlockCache.getBinarySearchIndex() foreach {
+        //          binarySearch =>
+        //            println(s"binarySearch.valuesCount: ${binarySearch.valuesCount}")
+        //            println(s"binarySearch.bytesPerValue: ${binarySearch.bytesPerValue}")
+        //            println(s"binarySearch.isFullIndex: ${binarySearch.isFullIndex}")
+        //            println(s"binarySearch.size: ${binarySearch.offset.size}")
+        //            println
+        //        }
 
         //    (0 to EntryReader.readers.last.maxID) foreach {
         //      id =>
@@ -392,9 +326,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           //      segment.getAll().get
         }
 
-        Benchmark(s"value ${keyValues.size} key values when Segment ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
-          assertGet(segment)
-        }
+        //        Benchmark(s"value ${keyValues.size} key values ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
+        //          assertGet(segment)
+        //        }
 
         def printStats() = {
 
@@ -408,16 +342,16 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           //      println("failedHashIndexSeeks: " + SegmentSearcher.failedHashIndexSeeks)
           //      println
 
-          //      println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
-          //      println("binarySuccessfulDirectSeeks: " + BinarySearchIndexBlock.binarySuccessfulDirectSeeks)
-          //      println("binarySuccessfulSeeksWithWalkForward: " + BinarySearchIndexBlock.binarySuccessfulSeeksWithWalkForward)
-          //      println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
-          //      println("failedWithLower: " + BinarySearchIndexBlock.failedWithLower)
-          //      println("greaterLower: " + BinarySearchIndexBlock.greaterLower)
-          //      println("sameLower: " + BinarySearchIndexBlock.sameLower)
-          //      println("Total hops: " + BinarySearchIndexBlock.totalHops)
-          //      println("maxHops: " + BinarySearchIndexBlock.maxHop)
-          //      println("minHop: " + BinarySearchIndexBlock.minHop)
+          //          println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
+          //          println("binarySuccessfulDirectSeeks: " + BinarySearchIndexBlock.binarySuccessfulDirectSeeks)
+          //          println("binarySuccessfulSeeksWithWalkForward: " + BinarySearchIndexBlock.binarySuccessfulSeeksWithWalkForward)
+          //          println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
+          //          println("failedWithLower: " + BinarySearchIndexBlock.failedWithLower)
+          //          println("greaterLower: " + BinarySearchIndexBlock.greaterLower)
+          //          println("sameLower: " + BinarySearchIndexBlock.sameLower)
+          //          println("Total hops: " + BinarySearchIndexBlock.totalHops)
+          //          println("maxHops: " + BinarySearchIndexBlock.maxHop)
+          //          println("minHop: " + BinarySearchIndexBlock.minHop)
           println
 
           //      println("diskSeeks: " + BlockCache.diskSeeks)
@@ -450,7 +384,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       //
       //    //todo - TOO MANY BINARY HOPS BUT SUCCESSES ARE LESS.
       //    //
-      //    Benchmark(s"value ${keyValues.size} key values when Segment ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
+      //    Benchmark(s"value ${keyValues.size} key values ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
       //      assertGet(segment)
       //      //      segment.getAll().get
       //    }
@@ -461,45 +395,94 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     }
   }
 
-  //  "Segment value benchmark 2" in {
-  //    Benchmark(s"value ${keyValues.size} cached key values when Segment ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
-  //      assertGet(segment)
-  //    }
-  //  }
+  "Higher" in {
+    TestCaseSweeper {
+      implicit sweeper =>
+        def assertHigher(segment: Segment) = {
+          val readState = ThreadReadState.hashMap()
+          (0 until keyValues.size - 1) foreach {
+            index =>
+              //        segment.higherKey(keyValues(index).key)
+              //        println(s"index: $index")
+              val keyValue = keyValues(index)
 
-  //  "Segment higher benchmark 5" in {
-  //    initSegment()
-  //    //    if (persistent) reopenSegment()
-  //    Benchmark(s"higher ${keyValues.size} higher keys when Segment ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
-  //      assertHigher(segment)
-  //    }
-  //
-  //    Benchmark(s"higher ${keyValues.size} higher keys when Segment ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
-  //      assertHigher(segment)
-  //    }
-  //  }
-  //
-  //  "Segment higher benchmark 6" in {
-  //    Benchmark(s"higher ${keyValues.size} cached higher keys when Segment ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
-  //      assertHigher(segment)
-  //    }
-  //  }
-  //
-  //  "Segment lower benchmark 3" in {
-  //    initSegment()
-  //    //    if (persistent) reopenSegment()
-  //    Benchmark(s"lower ${keyValues.size} lower keys when Segment ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
-  //      assertLower(segment)
-  //    }
-  //
-  //    Benchmark(s"lower ${keyValues.size} lower keys when Segment ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
-  //      assertLower(segment)
-  //    }
-  //  }
-  //
-  //  "Segment lower benchmark 4" in {
-  //    Benchmark(s"lower ${keyValues.size} cached lower keys when Segment ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
-  //      assertLower(segment)
-  //    }
-  //  }
+              //        if (keyValue.key.readInt() % 1000 == 0) {
+              //          val key = keyValues(randomIntMax(index)).key
+              //          if (randomBoolean())
+              //            segment.higher(key, readState).getUnsafe
+              //          else if (randomBoolean())
+              //            segment.lower(key, readState).getUnsafe
+              //          else
+              //            segment.get(key, readState).getUnsafe.key shouldBe key
+              //        }
+
+              //        val expectedHigher = unGroupedKeyValues(index + 1)
+              //        segment.higher(keyValue.key).get.get shouldBe expectedHigher
+              segment.higher(keyValue.key, readState).getUnsafe
+          }
+        }
+
+        val segment = initSegment().sweep()
+
+        //    if (persistent) reopenSegment()
+        Benchmark(s"higher ${keyValues.size} higher keys ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
+          assertHigher(segment)
+        }
+
+        Benchmark(s"higher ${keyValues.size} higher keys ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
+          assertHigher(segment)
+        }
+
+        Benchmark(s"higher ${keyValues.size} higher keys ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
+          assertHigher(segment)
+        }
+    }
+  }
+
+  "Lower" in {
+    TestCaseSweeper {
+      implicit sweeper =>
+
+        def assertLower(segment: Segment) = {
+          val readState = ThreadReadState.hashMap()
+          (1 until keyValues.size).reverse foreach {
+            index =>
+              //        println(s"index: $index")
+              //        segment.lowerKeyValue(keyValues(index).key)
+
+              val keyValue = keyValues(index)
+
+              //        if (keyValue.key.readInt() % 1000 == 0) {
+              //          val key = keyValues(randomIntMax(index)).key
+              //          if (randomBoolean())
+              //            segment.higher(key, readState).getUnsafe
+              //          else if (randomBoolean())
+              //            segment.lower(key, readState).getUnsafe
+              //          else
+              //            segment.get(key, readState).getUnsafe.key shouldBe key
+              //        }
+
+              //        println
+              //        println(s"Key: ${keyValue.key.readInt()}")
+
+              //        if (keyValue.key.readInt() % 1000 == 0)
+              //          segment.higher(keyValues(randomIntMax(index)).key, readState)
+
+              //        val expectedLower = unGroupedKeyValues(index - 1)
+              //        segment.lower(keyValue.key).value.get shouldBe expectedLower
+              segment.lower(keyValue.key, readState).getUnsafe
+          }
+        }
+
+        val segment = initSegment().sweep()
+        //    if (persistent) reopenSegment()
+        Benchmark(s"lower ${keyValues.size} lower keys ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
+          assertLower(segment)
+        }
+
+        Benchmark(s"lower ${keyValues.size} lower keys ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
+          assertLower(segment)
+        }
+    }
+  }
 }

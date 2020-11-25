@@ -296,7 +296,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
       implicit val idGenerator: IDGenerator = IDGenerator(segmentNumber)
 
-      implicit val pathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
+      implicit val pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
 
       val segments =
         many(
@@ -316,7 +316,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     }
 
     def many(createdInLevel: Int = 1,
-             path: Path = testSegmentFile,
              keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental()),
              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
@@ -325,12 +324,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
              bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(mmap = mmapSegments))(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                                        pathsDistributor: PathsDistributor,
                                                                                                         idGenerator: IDGenerator,
                                                                                                         sweeper: TestCaseSweeper): Slice[Segment] = {
-
       import sweeper._
-
-      implicit val pathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
 
       implicit val segmentIO: SegmentIO =
         SegmentIO(
