@@ -238,8 +238,8 @@ private[core] case object SegmentBlock extends LazyLogging {
             val closedListKeyValues = listKeyValue.close(hasAccessPositionIndex = true, optimiseForReverseIteration = true)
 
             val modifiedSortedIndex =
-              if (sortedIndexConfig.enableAccessPositionIndex || sortedIndexConfig.normaliseIndex)
-                sortedIndexConfig.copy(enableAccessPositionIndex = false, normaliseIndex = false)
+              if (sortedIndexConfig.normaliseIndex)
+                sortedIndexConfig.copy(normaliseIndex = false)
               else
                 sortedIndexConfig
 
