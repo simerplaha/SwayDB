@@ -199,7 +199,8 @@ object PersistentReader extends LazyLogging {
       indexOffset = indexOffset,
       valueOffset = valueOffset,
       valueLength = valueLength,
-      sortedIndexAccessPosition = sortedIndexAccessPosition
+      sortedIndexAccessPosition = sortedIndexAccessPosition,
+      previousIndexOffset = previousIndexOffset
     )
   }
 

@@ -62,15 +62,15 @@ class KeyMatcherSpec extends TestBase {
 
   implicit def toFixed(int: Int): Persistent.Fixed =
     if (whichKeyValue == 1)
-      Put(_key = int, None, null, Time.empty, 0, 0, 0, 0, 0, 0)
+      Put(_key = int, None, null, Time.empty, 0, 0, 0, 0, 0, 0, 0)
     else if (whichKeyValue == 2)
-      Update(_key = int, None, null, Time.empty, 0, 0, 0, 0, 0, 0)
+      Update(_key = int, None, null, Time.empty, 0, 0, 0, 0, 0, 0, 0)
     else if (whichKeyValue == 3)
-      Function(_key = int, null, Time.empty, 0, 0, 0, 0, 0, 0)
+      Function(_key = int, null, Time.empty, 0, 0, 0, 0, 0, 0, 0)
     else if (whichKeyValue == 4)
-      PendingApply(_key = int, Time.empty, None, null, 0, 0, 0, 0, 0, 0)
+      PendingApply(_key = int, Time.empty, None, null, 0, 0, 0, 0, 0, 0, 0)
     else
-      Remove(_key = int, null, Time.empty, 0, 0, 0, 0)
+      Remove(_key = int, null, Time.empty, 0, 0, 0, 0, 0)
 
   object RangeImplicits {
 
@@ -86,7 +86,7 @@ class KeyMatcherSpec extends TestBase {
       }
 
     implicit def toRange(tuple: (Int, Int)): Persistent.Range =
-      Persistent.Range(_fromKey = tuple._1, _toKey = tuple._2, valueCache = noneRangeValueCache, 0, 0, 0, 0, 0, 0)
+      Persistent.Range(_fromKey = tuple._1, _toKey = tuple._2, valueCache = noneRangeValueCache, 0, 0, 0, 0, 0, 0, 0)
 
     implicit def toSomeRange(tuple: (Int, Int)): Option[Persistent.Range] =
       Some(tuple)

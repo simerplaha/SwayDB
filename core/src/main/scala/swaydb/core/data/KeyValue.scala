@@ -765,6 +765,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
   def nextIndexOffset: Int
   def nextKeySize: Int
   def sortedIndexAccessPosition: Int
+  def previousIndexOffset: Int
 
   /**
    * If key-value is read from copied HashIndex then keyValue.nextKeySize can be 0 (unknown) so always
@@ -917,7 +918,8 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): T
+              sortedIndexAccessPosition: Int,
+              previousIndexOffset: Int): T
   }
 
   object Remove extends Reader[Persistent.Remove] {
@@ -930,15 +932,17 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): Persistent.Remove =
+              sortedIndexAccessPosition: Int,
+              previousIndexOffset: Int): Persistent.Remove =
       Persistent.Remove(
         _key = key,
+        deadline = deadline,
+        _time = time,
         indexOffset = indexOffset,
         nextIndexOffset = nextIndexOffset,
         nextKeySize = nextKeySize,
-        deadline = deadline,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        _time = time
+        previousIndexOffset = previousIndexOffset
       )
 
   }
@@ -949,7 +953,8 @@ private[core] object Persistent {
                     indexOffset: Int,
                     nextIndexOffset: Int,
                     nextKeySize: Int,
-                    sortedIndexAccessPosition: Int) extends Persistent.Fixed with KeyValue.Remove {
+                    sortedIndexAccessPosition: Int,
+                    previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Remove {
     override val valueLength: Int = 0
     override val isValueCached: Boolean = true
     override val valueOffset: Int = -1
@@ -1004,7 +1009,8 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): Persistent.Put =
+              sortedIndexAccessPosition: Int,
+              previousIndexOffset: Int): Persistent.Put =
       new Put(
         _key = key,
         deadline = deadline,
@@ -1027,7 +1033,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
   }
 
@@ -1040,7 +1047,8 @@ private[core] object Persistent {
                  indexOffset: Int,
                  valueOffset: Int,
                  valueLength: Int,
-                 sortedIndexAccessPosition: Int) extends Persistent.Fixed with KeyValue.Put {
+                 sortedIndexAccessPosition: Int,
+                 previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Put {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1108,7 +1116,8 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): Persistent.Update =
+              sortedIndexAccessPosition: Int,
+              previousIndexOffset: Int): Persistent.Update =
       new Update(
         _key = key,
         deadline = deadline,
@@ -1131,7 +1140,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
   }
 
@@ -1144,7 +1154,8 @@ private[core] object Persistent {
                     indexOffset: Int,
                     valueOffset: Int,
                     valueLength: Int,
-                    sortedIndexAccessPosition: Int) extends Persistent.Fixed with KeyValue.Update {
+                    sortedIndexAccessPosition: Int,
+                    previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Update {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1209,7 +1220,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
 
     override def toPut(deadline: Option[Deadline]): Persistent.Put =
@@ -1223,7 +1235,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
 
     def toPersistent: Persistent.Update =
@@ -1241,7 +1254,8 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): Persistent.Function =
+              sortedIndexAccessPosition: Int,
+              previousIndexOffset: Int): Persistent.Function =
       apply(
         key = key,
         valuesReaderOrNull = valuesReaderOrNull,
@@ -1251,7 +1265,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
 
     def apply(key: Slice[Byte],
@@ -1262,7 +1277,8 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): Persistent.Function =
+              sortedIndexAccessPosition: Int,
+              previousIndexOffset: Int): Persistent.Function =
       new Function(
         _key = key,
         valueCache =
@@ -1282,7 +1298,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
   }
 
@@ -1294,7 +1311,8 @@ private[core] object Persistent {
                       indexOffset: Int,
                       valueOffset: Int,
                       valueLength: Int,
-                      sortedIndexAccessPosition: Int) extends Persistent.Fixed with KeyValue.Function {
+                      sortedIndexAccessPosition: Int,
+                      previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.Function {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1348,7 +1366,8 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): Persistent.PendingApply =
+              sortedIndexAccessPosition: Int,
+              previousIndexOffset: Int): Persistent.PendingApply =
       new PendingApply(
         _key = key,
         _time = time,
@@ -1374,7 +1393,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
   }
 
@@ -1387,7 +1407,8 @@ private[core] object Persistent {
                           indexOffset: Int,
                           valueOffset: Int,
                           valueLength: Int,
-                          sortedIndexAccessPosition: Int) extends Persistent.Fixed with KeyValue.PendingApply {
+                          sortedIndexAccessPosition: Int,
+                          previousIndexOffset: Int) extends Persistent.Fixed with KeyValue.PendingApply {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1435,7 +1456,8 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): Persistent.Range =
+              sortedIndexAccessPosition: Int,
+              previousIndexOffset: Int): Persistent.Range =
       apply(
         key = key,
         valuesReaderOrNull = valuesReaderOrNull,
@@ -1444,7 +1466,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
 
     def apply(key: Slice[Byte],
@@ -1454,7 +1477,8 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): Range = {
+              sortedIndexAccessPosition: Int,
+              previousIndexOffset: Int): Range = {
       val (fromKey, toKey) = Bytes.decompressJoin(key)
       Range.parsedKey(
         fromKey = fromKey,
@@ -1465,7 +1489,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
     }
 
@@ -1477,7 +1502,8 @@ private[core] object Persistent {
                   indexOffset: Int,
                   valueOffset: Int,
                   valueLength: Int,
-                  sortedIndexAccessPosition: Int): Persistent.Range =
+                  sortedIndexAccessPosition: Int,
+                  previousIndexOffset: Int): Persistent.Range =
       Range(
         _fromKey = fromKey,
         _toKey = toKey,
@@ -1504,7 +1530,8 @@ private[core] object Persistent {
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
-        sortedIndexAccessPosition = sortedIndexAccessPosition
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        previousIndexOffset = previousIndexOffset
       )
   }
 
@@ -1516,7 +1543,8 @@ private[core] object Persistent {
                            indexOffset: Int,
                            valueOffset: Int,
                            valueLength: Int,
-                           sortedIndexAccessPosition: Int) extends Persistent with KeyValue.Range with Partial.Range {
+                           sortedIndexAccessPosition: Int,
+                           previousIndexOffset: Int) extends Persistent with KeyValue.Range with Partial.Range {
 
     def fromKey = _fromKey
 

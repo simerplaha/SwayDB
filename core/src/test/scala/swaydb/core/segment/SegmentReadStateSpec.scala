@@ -51,7 +51,8 @@ class SegmentReadStateSpec extends AnyWordSpec with Matchers {
       indexOffset = 0,
       valueOffset = 0,
       valueLength = 0,
-      sortedIndexAccessPosition = 1
+      sortedIndexAccessPosition = 1,
+      previousIndexOffset = 0,
     )
 
   def nextKeyValue =
@@ -66,7 +67,8 @@ class SegmentReadStateSpec extends AnyWordSpec with Matchers {
       indexOffset = 100,
       valueOffset = 0,
       valueLength = 0,
-      sortedIndexAccessPosition = 1
+      sortedIndexAccessPosition = 1,
+      previousIndexOffset = 1
     )
 
   "createOnSuccessSequentialRead" in {

@@ -141,7 +141,8 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
               indexOffset = indexOffset,
               nextIndexOffset = nextIndexOffset,
               nextKeySize = 4,
-              sortedIndexAccessPosition = 0
+              sortedIndexAccessPosition = 0,
+              previousIndexOffset = 0
             )
 
           val keyValue1 = testKeyValue(key = 1, indexOffset = 0, nextIndexOffset = 1)
