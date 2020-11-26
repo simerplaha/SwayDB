@@ -73,6 +73,7 @@ object PersistentReader extends LazyLogging {
                             sortedIndexEndOffset: Int,
                             normalisedByteSize: Int,
                             hasAccessPositionIndex: Boolean,
+                            optimisedForReverseIteration: Boolean,
                             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                             reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]): T = {
     val tailReader = Reader(tailIndexEntry)
@@ -92,6 +93,7 @@ object PersistentReader extends LazyLogging {
       sortedIndexEndOffset = sortedIndexEndOffset,
       normalisedByteSize = normalisedByteSize,
       hasAccessPositionIndex = hasAccessPositionIndex,
+      optimisedForReverseIteration = optimisedForReverseIteration,
       valuesReaderOrNull = valuesReaderOrNull,
       reader = reader
     )
@@ -109,12 +111,19 @@ object PersistentReader extends LazyLogging {
                             sortedIndexEndOffset: Int,
                             normalisedByteSize: Int,
                             hasAccessPositionIndex: Boolean,
+                            optimisedForReverseIteration: Boolean,
                             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                             reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]): T = {
     val baseId = binder.keyValueId adjustKeyValueIdToBaseId keyValueId
 
     val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)
+        tailReader.readUnsignedInt()
+      else
+        0
+
+    val previousIndexOffset =
+      if (optimisedForReverseIteration)
         tailReader.readUnsignedInt()
       else
         0

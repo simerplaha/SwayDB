@@ -132,5 +132,8 @@ private[a] object KeyWriter extends KeyWriter {
       builder.bytes addUnsignedInt sortedIndexAccessPosition
       builder.accessPositionIndex = sortedIndexAccessPosition
     }
+
+    if (builder.optimiseForReverseIteration)
+      builder.bytes addUnsignedInt builder.previousIndexOffset
   }
 }

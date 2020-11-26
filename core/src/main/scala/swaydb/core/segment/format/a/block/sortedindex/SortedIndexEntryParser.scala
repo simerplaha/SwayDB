@@ -75,6 +75,7 @@ object SortedIndexEntryParser {
         sortedIndexEndOffset = sortedIndexReader.block.sortedIndexEndOffsetForReads,
         normalisedByteSize = sortedIndexReader.block.normalisedByteSize,
         hasAccessPositionIndex = sortedIndexReader.block.enableAccessPositionIndex,
+        optimisedForReverseIteration = sortedIndexReader.block.optimiseForReverseIteration,
         valuesReaderOrNull = valuesReaderOrNull
       )
   }

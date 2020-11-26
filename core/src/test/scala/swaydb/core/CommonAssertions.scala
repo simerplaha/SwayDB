@@ -1496,7 +1496,7 @@ object CommonAssertions {
           .persistentBuilder(keyValues)
           .close(
             hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-            optimiseForReverseIteration = sortedIndexConfig.enableAccessPositionIndex
+            optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
           ),
       createdInLevel = Int.MaxValue,
       bloomFilterConfig = bloomFilterConfig,

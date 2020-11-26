@@ -76,6 +76,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
             sortedIndexEndOffset = bytes.slice.toOffset,
             normalisedByteSize = 0,
             hasAccessPositionIndex = builder.enableAccessPositionIndex,
+            optimisedForReverseIteration = builder.optimiseForReverseIteration,
             valuesReaderOrNull = keyValue.value.mapC(buildSingleValueReader).orNull
           )
 
@@ -164,6 +165,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
             sortedIndexEndOffset = sortedIndexReader.slice.toOffset,
             normalisedByteSize = 0,
             hasAccessPositionIndex = builder.enableAccessPositionIndex,
+            optimisedForReverseIteration = builder.optimiseForReverseIteration,
             valuesReaderOrNull = valuesReaderOrNull
           )
 
@@ -184,6 +186,7 @@ class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
             sortedIndexEndOffset = sortedIndexReader.slice.toOffset,
             normalisedByteSize = 0,
             hasAccessPositionIndex = builder.enableAccessPositionIndex,
+            optimisedForReverseIteration = builder.optimiseForReverseIteration,
             valuesReaderOrNull = valuesReaderOrNull
           )
 

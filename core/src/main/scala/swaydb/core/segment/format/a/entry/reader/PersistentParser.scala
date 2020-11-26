@@ -45,6 +45,7 @@ object PersistentParser {
             sortedIndexEndOffset: Int,
             normalisedByteSize: Int,
             hasAccessPositionIndex: Boolean,
+            optimisedForReverseIteration: Boolean,
             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
     val reader = Reader(tailBytes)
 
@@ -70,6 +71,7 @@ object PersistentParser {
             sortedIndexEndOffset = sortedIndexEndOffset,
             normalisedByteSize = normalisedByteSize,
             hasAccessPositionIndex = hasAccessPositionIndex,
+            optimisedForReverseIteration = optimisedForReverseIteration,
             valuesReaderOrNull = valuesReaderOrNull,
             reader = readerType
           )
@@ -122,6 +124,7 @@ object PersistentParser {
             keyCompressionOnly = sortedIndex.block.prefixCompressKeysOnly,
             sortedIndexEndOffset = sortedIndex.block.sortedIndexEndOffsetForReads,
             hasAccessPositionIndex = sortedIndex.block.enableAccessPositionIndex,
+            optimisedForReverseIteration = sortedIndex.block.optimiseForReverseIteration,
             valuesReaderOrNull = valuesReaderOrNull,
             reader = reader
           )
@@ -230,6 +233,7 @@ object PersistentParser {
             keyCompressionOnly = sortedIndex.block.prefixCompressKeysOnly,
             sortedIndexEndOffset = sortedIndex.block.sortedIndexEndOffsetForReads,
             hasAccessPositionIndex = sortedIndex.block.enableAccessPositionIndex,
+            optimisedForReverseIteration = sortedIndex.block.optimiseForReverseIteration,
             valuesReaderOrNull = valuesReaderOrNull,
             reader = reader
           )

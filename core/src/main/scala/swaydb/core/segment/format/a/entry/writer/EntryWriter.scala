@@ -50,6 +50,7 @@ private[core] object EntryWriter {
         endValueOffset = -1,
         accessPositionIndex = 0,
         previous = Memory.Null,
+        previousIndexOffset = 0,
         isCurrentPrefixCompressed = false,
         _segmentHasPrefixCompression = false
       )
@@ -67,6 +68,7 @@ private[core] object EntryWriter {
                 var endValueOffset: Int,
                 var accessPositionIndex: Int,
                 var previous: MemoryOption,
+                var previousIndexOffset: Int,
                 //this should be reset to false once the entry is written
                 var isCurrentPrefixCompressed: Boolean,
                 private var _segmentHasPrefixCompression: Boolean) {

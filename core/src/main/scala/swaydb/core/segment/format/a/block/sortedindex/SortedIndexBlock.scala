@@ -381,6 +381,8 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       //skip creating indexEntry.
       state.builder.isCurrentPrefixCompressed = false
     } else {
+      state.builder.previousIndexOffset = positionBeforeWrite
+
       val entry =
         new SecondaryIndexEntry(
           indexOffset = positionBeforeWrite,
