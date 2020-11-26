@@ -1359,7 +1359,13 @@ object CommonAssertions {
 
     val segment =
       SegmentBlock.writeOnes(
-        mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexBlock.enableAccessPositionIndex),
+        mergeStats =
+          MergeStats
+            .persistentBuilder(keyValues)
+            .close(
+              hasAccessPositionIndex = sortedIndexBlock.enableAccessPositionIndex,
+              optimiseForReverseIteration = sortedIndexBlock.optimiseForReverseIteration
+            ),
         createdInLevel = 0,
         bloomFilterConfig = BloomFilterBlock.Config.random,
         hashIndexConfig = HashIndexBlock.Config.random,
@@ -1408,7 +1414,13 @@ object CommonAssertions {
                                                                                  keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeOnes(
-        mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
+        mergeStats =
+          MergeStats
+            .persistentBuilder(keyValues)
+            .close(
+              hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+              optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+            ),
         createdInLevel = 0,
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
@@ -1479,7 +1491,13 @@ object CommonAssertions {
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                             keyOrder: KeyOrder[Slice[Byte]]): Slice[SegmentBlockCache] =
     SegmentBlock.writeOnes(
-      mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
+      mergeStats =
+        MergeStats
+          .persistentBuilder(keyValues)
+          .close(
+            hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+            optimiseForReverseIteration = sortedIndexConfig.enableAccessPositionIndex
+          ),
       createdInLevel = Int.MaxValue,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,

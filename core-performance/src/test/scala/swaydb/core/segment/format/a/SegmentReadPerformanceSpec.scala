@@ -212,7 +212,13 @@ class SegmentReadPerformanceSpec extends TestBase {
           sortedIndexConfig = sortedIndexConfig,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
-          mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex)
+          mergeStats =
+            MergeStats
+              .persistentBuilder(keyValues)
+              .close(
+                hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+                optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+              )
         )
       }
 

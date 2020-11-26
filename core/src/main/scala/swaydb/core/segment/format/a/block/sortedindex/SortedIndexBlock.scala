@@ -187,6 +187,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
               var hasRemoveRange: Boolean,
               var minMaxFunctionId: Option[MinMax[Slice[Byte]]],
               val enableAccessPositionIndex: Boolean,
+              var optimiseForReverseIteration: Boolean,
               val compressDuplicateRangeValues: Boolean,
               val normaliseIndex: Boolean,
               val compressions: UncompressedBlockInfo => Iterable[CompressionInternal],
@@ -261,6 +262,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         prefixCompressKeysOnly = sortedIndexConfig.prefixCompressKeysOnly,
         compressDuplicateValues = compressDuplicateValues,
         enableAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+        optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration,
         bytes = bytes
       )
 
@@ -285,6 +287,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       hasRemoveRange = false,
       minMaxFunctionId = None,
       enableAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+      optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration,
       compressDuplicateRangeValues = compressDuplicateRangeValues,
       normaliseIndex = sortedIndexConfig.normaliseIndex,
       compressions = sortedIndexConfig.compressions,
@@ -455,6 +458,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     state.compressibleBytes = compressionResult.compressedBytes getOrElse normalisedBytes
 
     compressionResult.headerBytes addBoolean state.enableAccessPositionIndex
+    compressionResult.headerBytes addBoolean state.optimiseForReverseIteration
     compressionResult.headerBytes addBoolean state.hasPrefixCompression
     compressionResult.headerBytes addBoolean state.prefixCompressKeysOnly
     compressionResult.headerBytes addBoolean state.normaliseIndex
@@ -482,6 +486,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       SortedIndexBlock(
         offset = SortedIndexBlock.Offset(0, closedState.cacheableBytes.size),
         enableAccessPositionIndex = closedState.enableAccessPositionIndex,
+        optimiseForReverseIteration = closedState.optimiseForReverseIteration,
         hasPrefixCompression = closedState.hasPrefixCompression,
         prefixCompressKeysOnly = closedState.prefixCompressKeysOnly,
         normalised = closedState.normaliseIndex,
@@ -499,6 +504,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
   def read(header: Block.Header[SortedIndexBlock.Offset]): SortedIndexBlock = {
     val enableAccessPositionIndex = header.headerReader.readBoolean()
+    val optimiseForReverseIteration = header.headerReader.readBoolean()
     val hasPrefixCompression = header.headerReader.readBoolean()
     val prefixCompressKeysOnly = header.headerReader.readBoolean()
     val normaliseForBinarySearch = header.headerReader.readBoolean()
@@ -508,12 +514,13 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     SortedIndexBlock(
       offset = header.offset,
       enableAccessPositionIndex = enableAccessPositionIndex,
+      optimiseForReverseIteration = optimiseForReverseIteration,
       hasPrefixCompression = hasPrefixCompression,
       prefixCompressKeysOnly = prefixCompressKeysOnly,
       normalised = normaliseForBinarySearch,
-      segmentMaxIndexEntrySize = segmentMaxIndexEntrySize,
       isPreNormalised = isPreNormalised,
       headerSize = header.headerSize,
+      segmentMaxIndexEntrySize = segmentMaxIndexEntrySize,
       compressionInfo = header.compressionInfo
     )
   }
@@ -579,7 +586,11 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         if (sortedIndexReader.block.isBinarySearchable)
           sortedIndexReader.block.segmentMaxIndexEntrySize
         else
-          EntryWriter.maxEntrySize(keySizeOrZero, sortedIndexReader.block.enableAccessPositionIndex)
+          EntryWriter.maxEntrySize(
+            keySize = keySizeOrZero,
+            hasAccessIndexPosition = sortedIndexReader.block.enableAccessPositionIndex,
+            optimiseForReverseIteration = sortedIndexReader.block.optimiseForReverseIteration
+          )
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntry = sortedIndexReader read (indexSize + ByteSizeOf.varInt)
@@ -618,7 +629,13 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       val openBytes = bytes.openEnd()
 
       //check if the read bytes are enough to parse the entry.
-      val expectedSize = headerIntegerByteSize + headerInteger + EntryWriter.maxEntrySize(sortedIndexReader.block.enableAccessPositionIndex) + ByteSizeOf.varInt
+      val expectedSize =
+        headerIntegerByteSize +
+          headerInteger +
+          EntryWriter.maxEntrySize(
+            hasAccessIndexPosition = sortedIndexReader.block.enableAccessPositionIndex,
+            optimiseForReverseIteration = sortedIndexReader.block.optimiseForReverseIteration
+          ) + ByteSizeOf.varInt
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       //if openBytes results in enough bytes to then read the open bytes only.
@@ -639,7 +656,13 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       )
     } else {
       val headerInteger = sortedIndexReader.readUnsignedInt()
-      val indexSize = EntryWriter.maxEntrySize(headerInteger, sortedIndexReader.block.enableAccessPositionIndex)
+
+      val indexSize =
+        EntryWriter.maxEntrySize(
+          headerInteger,
+          sortedIndexReader.block.enableAccessPositionIndex,
+          sortedIndexReader.block.optimiseForReverseIteration
+        )
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntry = sortedIndexReader read (indexSize + ByteSizeOf.varInt)
@@ -1211,6 +1234,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
 private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           enableAccessPositionIndex: Boolean,
+                                          optimiseForReverseIteration: Boolean,
                                           hasPrefixCompression: Boolean,
                                           prefixCompressKeysOnly: Boolean,
                                           normalised: Boolean,

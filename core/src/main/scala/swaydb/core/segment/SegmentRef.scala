@@ -745,7 +745,11 @@ private[core] case object SegmentRef extends LazyLogging {
       isLastLevel = removeDeletes
     )
 
-    val closed = builder.close(sortedIndexConfig.enableAccessPositionIndex)
+    val closed =
+      builder.close(
+        hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+        optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+      )
 
     SegmentBlock.writeOneOrMany(
       mergeStats = closed,
@@ -821,7 +825,11 @@ private[core] case object SegmentRef extends LazyLogging {
       isLastLevel = removeDeletes
     )
 
-    val closed = builder.close(sortedIndexConfig.enableAccessPositionIndex)
+    val closed =
+      builder.close(
+        hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+        optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+      )
 
     SegmentBlock.writeOnes(
       mergeStats = closed,
@@ -932,6 +940,12 @@ private[core] case object SegmentRef extends LazyLogging {
           stats add value
       }
 
+      val mergeStats =
+        stats.close(
+          hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+          optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+        )
+
       val gapedSegments =
         Segment.persistent(
           pathsDistributor = pathsDistributor,
@@ -942,7 +956,7 @@ private[core] case object SegmentRef extends LazyLogging {
           sortedIndexConfig = sortedIndexConfig,
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
-          mergeStats = stats.close(sortedIndexConfig.enableAccessPositionIndex)
+          mergeStats = mergeStats
         )
 
       (gapedSegments ++ newSegments).sortBy(_.key)(keyOrder)
@@ -1122,7 +1136,11 @@ private[core] case object SegmentRef extends LazyLogging {
         collection.iterator() foreach collectionStats.add
 
         SegmentBlock.writeOnes(
-          mergeStats = collectionStats.close(sortedIndexConfig.enableAccessPositionIndex),
+          mergeStats =
+            collectionStats.close(
+              hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+              optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+            ),
           createdInLevel = createdInLevel,
           bloomFilterConfig = bloomFilterConfig,
           hashIndexConfig = hashIndexConfig,
@@ -1140,7 +1158,11 @@ private[core] case object SegmentRef extends LazyLogging {
     }
 
     SegmentBlock.writeOnes(
-      mergeStats = stats.close(sortedIndexConfig.enableAccessPositionIndex),
+      mergeStats =
+        stats.close(
+          hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+          optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+        ),
       createdInLevel = createdInLevel,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,

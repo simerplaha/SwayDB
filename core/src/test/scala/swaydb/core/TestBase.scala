@@ -358,7 +358,13 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
             sortedIndexConfig = sortedIndexConfig,
             valuesConfig = valuesConfig,
             segmentConfig = segmentConfig,
-            mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex)
+            mergeStats =
+              MergeStats
+                .persistentBuilder(keyValues)
+                .close(
+                  hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+                  optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+                )
           )
 
       segment.foreach(_.sweep())

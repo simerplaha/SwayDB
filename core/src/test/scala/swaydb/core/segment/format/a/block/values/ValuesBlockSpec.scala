@@ -51,7 +51,7 @@ class ValuesBlockSpec extends TestBase {
         val keyValues =
           Slice(Memory.put(key = 1, value = Slice.emptyBytes, removeAfter = 10.seconds), Memory.remove(key = 1))
             .toPersistentMergeBuilder
-            .close(randomBoolean())
+            .close(randomBoolean(), randomBoolean())
 
         keyValues.keyValuesCount shouldBe 2
         keyValues.totalValuesSize shouldBe 0
@@ -59,7 +59,7 @@ class ValuesBlockSpec extends TestBase {
         ValuesBlock.init(
           keyValues = keyValues,
           valuesConfig = ValuesBlock.Config.random,
-          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
+          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
         ) shouldBe empty
       }
     }
@@ -69,12 +69,12 @@ class ValuesBlockSpec extends TestBase {
         val keyValues =
           Slice(Memory.put(key = 1, value = Slice.writeInt[Byte](1), removeAfter = 10.seconds), randomFixedTransientKeyValue(2, 3))
             .toPersistentMergeBuilder
-            .close(randomBoolean())
+            .close(randomBoolean(), randomBoolean())
 
         ValuesBlock.init(
           keyValues = keyValues,
           valuesConfig = ValuesBlock.Config.random,
-          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
+          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
         ) shouldBe defined
       }
     }
@@ -86,13 +86,13 @@ class ValuesBlockSpec extends TestBase {
         val stats =
           randomizedKeyValues(count = randomIntMax(10000) max 1, valueSize = randomIntMax(100) max 1)
             .toPersistentMergeBuilder
-            .close(randomBoolean())
+            .close(randomBoolean(), randomBoolean())
 
         val state =
           ValuesBlock.init(
             keyValues = stats,
             valuesConfig = ValuesBlock.Config.random,
-            builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
+            builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
           ).get
 
         val keyValues = stats.keyValues

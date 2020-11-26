@@ -36,6 +36,7 @@ private[core] object EntryWriter {
     def apply(prefixCompressKeysOnly: Boolean,
               compressDuplicateValues: Boolean,
               enableAccessPositionIndex: Boolean,
+              optimiseForReverseIteration: Boolean,
               bytes: Slice[Byte]): Builder =
       new Builder(
         enablePrefixCompressionForCurrentWrite = false,
@@ -43,6 +44,7 @@ private[core] object EntryWriter {
         compressDuplicateValues = compressDuplicateValues,
         isValueFullyCompressed = false,
         enableAccessPositionIndex = enableAccessPositionIndex,
+        optimiseForReverseIteration = optimiseForReverseIteration,
         bytes = bytes,
         startValueOffset = 0,
         endValueOffset = -1,
@@ -59,6 +61,7 @@ private[core] object EntryWriter {
                 //this should be reset to false once the entry is written
                 var isValueFullyCompressed: Boolean,
                 val enableAccessPositionIndex: Boolean,
+                val optimiseForReverseIteration: Boolean,
                 val bytes: Slice[Byte],
                 var startValueOffset: Int,
                 var endValueOffset: Int,
@@ -92,9 +95,6 @@ private[core] object EntryWriter {
       ByteSizeOf.int + //timeLength
       ByteSizeOf.varLong //time
 
-  private val tailBytesWithAccessIndexPosition =
-    ByteSizeOf.varInt + tailBytes
-
   /**
    * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
    *
@@ -124,14 +124,20 @@ private[core] object EntryWriter {
     )
 
   @inline def maxEntrySize(keySize: Int,
-                           hasAccessIndexPosition: Boolean): Int =
+                           hasAccessIndexPosition: Boolean,
+                           optimiseForReverseIteration: Boolean): Int =
     Bytes.sizeOfUnsignedInt(keySize) + //size of key
       keySize + //key itself
-      maxEntrySize(hasAccessIndexPosition)
+      maxEntrySize(
+        hasAccessIndexPosition = hasAccessIndexPosition,
+        optimiseForReverseIteration = optimiseForReverseIteration
+      )
 
-  @inline def maxEntrySize(hasAccessIndexPosition: Boolean): Int =
-    if (hasAccessIndexPosition)
-      tailBytesWithAccessIndexPosition
-    else
-      tailBytes
+  @inline def maxEntrySize(hasAccessIndexPosition: Boolean,
+                           optimiseForReverseIteration: Boolean): Int = {
+    var size = tailBytes
+    if (hasAccessIndexPosition) size += ByteSizeOf.varInt
+    if (optimiseForReverseIteration) size += ByteSizeOf.varInt
+    size
+  }
 }

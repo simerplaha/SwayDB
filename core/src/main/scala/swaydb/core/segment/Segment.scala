@@ -542,7 +542,10 @@ private[core] case object Segment extends LazyLogging {
     keyValues foreach builder.add
 
     val closedStats =
-      builder close sortedIndexConfig.enableAccessPositionIndex
+      builder.close(
+        hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+        optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+      )
 
     Segment.persistent(
       pathsDistributor = pathsDistributor,
@@ -737,7 +740,10 @@ private[core] case object Segment extends LazyLogging {
     val builder =
       MergeStats
         .persistentBuilder(memoryKeyValues)
-        .close(sortedIndexConfig.enableAccessPositionIndex)
+        .close(
+          hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+          optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+        )
 
     SegmentBlock.writeOneOrMany(
       mergeStats = builder,

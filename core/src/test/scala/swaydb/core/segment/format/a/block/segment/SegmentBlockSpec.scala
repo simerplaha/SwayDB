@@ -60,7 +60,13 @@ class SegmentBlockSpec extends TestBase {
 
       val closedSegment =
         SegmentBlock.writeOneOrMany(
-          mergeStats = MergeStats.persistentBuilder[Memory](ListBuffer.empty).close(sortedIndexConfig.enableAccessPositionIndex),
+          mergeStats =
+            MergeStats
+              .persistentBuilder[Memory](ListBuffer.empty)
+              .close(
+                hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+                optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+              ),
           createdInLevel = randomIntMax(Int.MaxValue),
           valuesConfig = ValuesBlock.Config.random,
           sortedIndexConfig = sortedIndexConfig,

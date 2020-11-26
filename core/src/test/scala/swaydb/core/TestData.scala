@@ -1791,7 +1791,13 @@ object TestData {
                        segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]]): TransientSegment.One = {
       val segments =
         SegmentBlock.writeOnes(
-          mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
+          mergeStats =
+            MergeStats
+              .persistentBuilder(keyValues)
+              .close(
+                hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+                optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+              ),
           createdInLevel = createdInLevel,
           bloomFilterConfig = bloomFilterConfig,
           hashIndexConfig = hashIndexConfig,
@@ -1837,12 +1843,14 @@ object TestData {
                     prefixCompressKeysOnly: Boolean = randomBoolean(),
                     compressDuplicateValues: Boolean = randomBoolean(),
                     enableAccessPositionIndex: Boolean = randomBoolean(),
+                    optimiseForReverseIteration: Boolean = randomBoolean(),
                     allocateBytes: Int = 10000): EntryWriter.Builder = {
     val builder =
       EntryWriter.Builder(
         prefixCompressKeysOnly = prefixCompressKeysOnly,
         compressDuplicateValues = compressDuplicateValues,
         enableAccessPositionIndex = enableAccessPositionIndex,
+        optimiseForReverseIteration = optimiseForReverseIteration,
         bytes = Slice.of[Byte](allocateBytes)
       )
     builder.enablePrefixCompressionForCurrentWrite = enablePrefixCompressionForCurrentWrite

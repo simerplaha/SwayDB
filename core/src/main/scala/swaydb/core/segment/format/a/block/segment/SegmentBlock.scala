@@ -235,8 +235,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                 offset + segmentSize
             }
 
-            //enableAccessPosition and normalising index is current not required for list segment since no binary search is perform.
-            val closedListKeyValues = listKeyValue.close(hasAccessPositionIndex = false)
+            val closedListKeyValues = listKeyValue.close(hasAccessPositionIndex = true, optimiseForReverseIteration = true)
 
             val modifiedSortedIndex =
               if (sortedIndexConfig.enableAccessPositionIndex || sortedIndexConfig.normaliseIndex)

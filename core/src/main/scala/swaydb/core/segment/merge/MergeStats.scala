@@ -100,7 +100,7 @@ private[core] object MergeStats {
     new Buffer(aggregator)
 
   sealed trait Persistent[FROM, +T[_]] {
-    def maxSortedIndexSize(hasAccessPositionIndex: Boolean): Int
+    def maxSortedIndexSize(hasAccessPositionIndex: Boolean, optimiseForReverseIteration: Boolean): Int
     def size: Int
     def isEmpty: Boolean
     def keyValues: T[data.Memory]
@@ -123,13 +123,17 @@ private[core] object MergeStats {
                                var hasPut: Boolean,
                                aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends Persistent[FROM, T] with MergeStats[FROM, T] {
 
-      def close(hasAccessPositionIndex: Boolean): MergeStats.Persistent.Closed[T] =
+      def close(hasAccessPositionIndex: Boolean, optimiseForReverseIteration: Boolean): MergeStats.Persistent.Closed[T] =
         new MergeStats.Persistent.Closed[T](
           isEmpty = this.isEmpty,
           keyValuesCount = size,
           keyValues = keyValues,
           totalValuesSize = totalValuesSize,
-          maxSortedIndexSize = maxSortedIndexSize(hasAccessPositionIndex)
+          maxSortedIndexSize =
+            maxSortedIndexSize(
+              hasAccessPositionIndex = hasAccessPositionIndex,
+              optimiseForReverseIteration = optimiseForReverseIteration
+            )
         )
 
       def hasDeadline = totalDeadlineKeyValues > 0
@@ -143,17 +147,24 @@ private[core] object MergeStats {
         aggregator.result
 
       /**
-       * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
+       * Format - keySize|key|keyValueId|accessIndex?|previousIndexOffset?|deadline|valueOffset|valueLength|time
        */
-      def maxSortedIndexSize(hasAccessPositionIndex: Boolean): Int =
-        (Bytes.sizeOfUnsignedInt(maxMergedKeySize) * totalKeyValueCount) +
-          totalMergedKeysSize +
-          (if (hasAccessPositionIndex) Bytes.sizeOfUnsignedInt(totalKeyValueCount) * totalKeyValueCount else 0) +
-          (KeyValueId.maxKeyValueIdByteSize * totalKeyValueCount) + //keyValueId
-          totalDeadlineKeyValues * ByteSizeOf.varLong + //deadline
-          (Bytes.sizeOfUnsignedInt(totalValuesSize) * totalValuesCount) + //valueOffset
-          (Bytes.sizeOfUnsignedInt(maxValueSize) * totalValuesCount) + //valueLength
-          totalTimesSize
+      def maxSortedIndexSize(hasAccessPositionIndex: Boolean, optimiseForReverseIteration: Boolean): Int = {
+        val maxSize =
+          (Bytes.sizeOfUnsignedInt(maxMergedKeySize) * totalKeyValueCount) +
+            totalMergedKeysSize +
+            (if (hasAccessPositionIndex) Bytes.sizeOfUnsignedInt(totalKeyValueCount) * totalKeyValueCount else 0) +
+            (KeyValueId.maxKeyValueIdByteSize * totalKeyValueCount) + //keyValueId
+            totalDeadlineKeyValues * ByteSizeOf.varLong + //deadline
+            (Bytes.sizeOfUnsignedInt(totalValuesSize) * totalValuesCount) + //valueOffset
+            (Bytes.sizeOfUnsignedInt(maxValueSize) * totalValuesCount) + //valueLength
+            totalTimesSize
+
+        if (optimiseForReverseIteration)
+          maxSize + (Bytes.sizeOfUnsignedInt(maxSize) * totalKeyValueCount)
+        else
+          maxSize
+      }
 
       def updateStats(keyValue: data.Memory): Unit = {
         maxMergedKeySize = this.maxMergedKeySize max keyValue.mergedKey.size

@@ -148,7 +148,10 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         val keyValues = Benchmark("Generating key-values")(
           MergeStats
             .persistentBuilder(randomizedKeyValues(randomIntMax(1000) max 1))
-            .close(sortedIndexConfig.enableAccessPositionIndex)
+            .close(
+              hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+              optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+            )
         )
 
         val state = SortedIndexBlock.init(keyValues, valuesConfig, sortedIndexConfig)
@@ -172,7 +175,10 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         Benchmark("Generating key-values") {
           MergeStats
             .persistentBuilder(randomizedKeyValues(randomIntMax(1000) max 1))
-            .close(sortedIndexConfig.enableAccessPositionIndex)
+            .close(
+              hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+              optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+            )
         }
 
       val sortedIndex = SortedIndexBlock.init(stats, valuesConfig, sortedIndexConfig)
