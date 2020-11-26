@@ -53,6 +53,7 @@ object DefaultConfigs {
     SortedKeyIndex.On(
       prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
       enablePositionIndex = true,
+      optimiseForReverseIteration = true,
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)

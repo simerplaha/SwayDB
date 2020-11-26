@@ -64,6 +64,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             swaydb.data.config.SortedKeyIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
+              optimiseForReverseIteration = randomBoolean(),
               blockIOStrategy = _ => randomIOStrategy(),
               compressions = _ => eitherOne(Seq.empty, Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(Int.MinValue)), (LZ4Instance.Fastest, LZ4Decompressor.Fast))))
             )
@@ -85,6 +86,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             shouldPrefixCompress = prefixCompression.interval.shouldCompress,
             prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
+            optimiseForReverseIteration = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions(),
             enablePrefixCompression = randomBoolean()
@@ -105,6 +107,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             swaydb.data.config.SortedKeyIndex.On(
               prefixCompression = prefixCompression,
               enablePositionIndex = randomBoolean(),
+              optimiseForReverseIteration = randomBoolean(),
               blockIOStrategy = _ => randomIOStrategy(),
               compressions = _ => eitherOne(Seq.empty, Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(Int.MinValue)), (LZ4Instance.Fastest, LZ4Decompressor.Fast))))
             )
@@ -125,6 +128,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             shouldPrefixCompress = _ => false,
             prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
+            optimiseForReverseIteration = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions(),
             enablePrefixCompression = true

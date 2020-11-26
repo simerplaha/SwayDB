@@ -418,6 +418,7 @@ object TestData {
       SortedIndexBlock.Config(
         ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         enablePrefixCompression = randomBoolean(),
+        optimiseForReverseIteration = randomBoolean(),
         shouldPrefixCompress = _ => shouldPrefixCompress,
         prefixCompressKeysOnly = randomBoolean(),
         enableAccessPositionIndex = randomBoolean(),

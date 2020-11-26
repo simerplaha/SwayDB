@@ -69,6 +69,7 @@ class HashIndexBlockSpec extends TestBase {
                   shouldPrefixCompress = _ => randomBoolean(),
                   prefixCompressKeysOnly = randomBoolean(),
                   enableAccessPositionIndex = randomBoolean(),
+                  optimiseForReverseIteration = randomBoolean(),
                   normaliseIndex = randomBoolean(),
                   compressions = _ => compressions
                 ),

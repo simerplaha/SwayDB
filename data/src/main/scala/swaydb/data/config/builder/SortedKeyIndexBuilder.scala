@@ -33,6 +33,7 @@ import scala.jdk.CollectionConverters._
 class SortedKeyIndexBuilder {
   private var prefixCompression: PrefixCompression = _
   private var enablePositionIndex: Boolean = _
+  private var optimiseForReverseIteration: Boolean = _
   private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
 
@@ -53,17 +54,25 @@ object SortedKeyIndexBuilder {
   }
 
   class Step2(builder: SortedKeyIndexBuilder) {
-    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) = {
-      builder.blockIOStrategy = blockIOStrategy
+    def optimiseForReverseIteration(optimiseForReverseIteration: Boolean) = {
+      builder.optimiseForReverseIteration = optimiseForReverseIteration
       new Step3(builder)
     }
   }
 
   class Step3(builder: SortedKeyIndexBuilder) {
+    def blockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) = {
+      builder.blockIOStrategy = blockIOStrategy
+      new Step4(builder)
+    }
+  }
+
+  class Step4(builder: SortedKeyIndexBuilder) {
     def compressions(compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       SortedKeyIndex.On(
         prefixCompression = builder.prefixCompression,
         enablePositionIndex = builder.enablePositionIndex,
+        optimiseForReverseIteration = builder.optimiseForReverseIteration,
         blockIOStrategy = builder.blockIOStrategy.apply,
         compressions = compressions.apply(_).asScala
       )

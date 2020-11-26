@@ -89,6 +89,7 @@ class SegmentReadPerformanceSpec extends TestBase {
         shouldPrefixCompress = _ % 5 == 0,
         prefixCompressKeysOnly = true,
         enableAccessPositionIndex = true,
+        optimiseForReverseIteration = true,
         normaliseIndex = false,
         compressions = _ => Seq.empty
       )

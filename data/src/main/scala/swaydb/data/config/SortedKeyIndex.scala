@@ -38,6 +38,7 @@ object SortedKeyIndex {
 
   case class On(prefixCompression: PrefixCompression,
                 enablePositionIndex: Boolean,
+                optimiseForReverseIteration: Boolean,
                 blockIOStrategy: IOAction => IOStrategy,
                 compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedKeyIndex {
     def copyWithPrefixCompression(prefixCompression: PrefixCompression) =
@@ -45,6 +46,9 @@ object SortedKeyIndex {
 
     def copyWithEnablePositionIndex(enablePositionIndex: Boolean) =
       this.copy(enablePositionIndex = enablePositionIndex)
+
+    def copyWithOptimiseForReverseIteration(optimise: Boolean) =
+      this.copy(optimiseForReverseIteration = optimise)
 
     def copyWithBlockIOStrategy(blockIOStrategy: JavaFunction[IOAction, IOStrategy]) =
       this.copy(blockIOStrategy = blockIOStrategy.apply)

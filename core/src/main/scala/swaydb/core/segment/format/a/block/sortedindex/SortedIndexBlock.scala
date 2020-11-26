@@ -70,11 +70,12 @@ private[core] case object SortedIndexBlock extends LazyLogging {
     val disabled =
       Config(
         ioStrategy = (dataType: IOAction) => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+        enablePrefixCompression = false,
         shouldPrefixCompress = _ => false,
         prefixCompressKeysOnly = false,
         enableAccessPositionIndex = false,
+        optimiseForReverseIteration = false,
         normaliseIndex = false,
-        enablePrefixCompression = false,
         compressions = (_: UncompressedBlockInfo) => Seq.empty
       )
 
@@ -90,6 +91,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         shouldPrefixCompress = enable.prefixCompression.shouldCompress,
         prefixCompressKeysOnly = enable.prefixCompression.enabled && enable.prefixCompression.keysOnly,
         enableAccessPositionIndex = enable.enablePositionIndex,
+        optimiseForReverseIteration = enable.optimiseForReverseIteration,
         normaliseIndex = enable.prefixCompression.normaliseIndexForBinarySearch,
         enablePrefixCompression = enable.prefixCompression.enabled && !enable.prefixCompression.normaliseIndexForBinarySearch,
         compressions =
@@ -104,6 +106,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
               shouldPrefixCompress: Int => Boolean,
               prefixCompressKeysOnly: Boolean,
               enableAccessPositionIndex: Boolean,
+              optimiseForReverseIteration: Boolean,
               normaliseIndex: Boolean,
               compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
       new Config(
@@ -111,6 +114,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         shouldPrefixCompress = if (normaliseIndex || !enablePrefixCompression) _ => false else shouldPrefixCompress,
         prefixCompressKeysOnly = if (normaliseIndex || !enablePrefixCompression) false else prefixCompressKeysOnly,
         enableAccessPositionIndex = enableAccessPositionIndex,
+        optimiseForReverseIteration = optimiseForReverseIteration,
         enablePrefixCompression = !normaliseIndex && enablePrefixCompression,
         normaliseIndex = normaliseIndex,
         compressions = compressions
@@ -125,6 +129,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
                        val prefixCompressKeysOnly: Boolean,
                        val enableAccessPositionIndex: Boolean,
                        val enablePrefixCompression: Boolean,
+                       val optimiseForReverseIteration: Boolean,
                        val normaliseIndex: Boolean,
                        val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
@@ -133,6 +138,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
              enableAccessPositionIndex: Boolean = enableAccessPositionIndex,
              normaliseIndex: Boolean = normaliseIndex,
              enablePrefixCompression: Boolean = enablePrefixCompression,
+             optimiseForReverseIteration: Boolean = optimiseForReverseIteration,
              compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = compressions) =
     //do not use new here. Submit this to the apply function to that rules for creating the config gets applied.
       Config(
@@ -141,6 +147,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         enableAccessPositionIndex = enableAccessPositionIndex,
         prefixCompressKeysOnly = prefixCompressKeysOnly,
         enablePrefixCompression = enablePrefixCompression,
+        optimiseForReverseIteration = optimiseForReverseIteration,
         normaliseIndex = normaliseIndex,
         compressions = compressions
       )
