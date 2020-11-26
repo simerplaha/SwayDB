@@ -40,7 +40,7 @@ class SegmentConfigBuilder {
   private var pushForward: Boolean = _
   private var mmap: MMAP.Segment = _
   private var minSegmentSize: Int = _
-  private var maxKeyValuesPerSegment: Int = _
+  private var segmentFormat: SegmentFormat = _
   private var fileOpenIOStrategy: IOStrategy.ThreadSafe = _
   private var blockIOStrategy: JavaFunction[IOAction, IOStrategy] = _
 }
@@ -83,8 +83,8 @@ object SegmentConfigBuilder {
   }
 
   class Step5(builder: SegmentConfigBuilder) {
-    def maxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) = {
-      builder.maxKeyValuesPerSegment = maxKeyValuesPerSegment
+    def segmentFormat(segmentFormat: SegmentFormat) = {
+      builder.segmentFormat = segmentFormat
       new Step6(builder)
     }
   }
@@ -111,7 +111,7 @@ object SegmentConfigBuilder {
         pushForward = builder.pushForward,
         mmap = builder.mmap,
         minSegmentSize = builder.minSegmentSize,
-        maxKeyValuesPerSegment = builder.maxKeyValuesPerSegment,
+        segmentFormat = builder.segmentFormat,
         fileOpenIOStrategy = builder.fileOpenIOStrategy,
         blockIOStrategy = builder.blockIOStrategy.apply,
         compression = compression.apply(_).asScala

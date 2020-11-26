@@ -117,7 +117,7 @@ object DefaultConfigs {
       pushForward = true,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
       minSegmentSize = CommonConfigs.segmentSize,
-      maxKeyValuesPerSegment = Int.MaxValue,
+      segmentFormat = SegmentFormat.Flattened,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)

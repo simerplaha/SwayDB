@@ -65,7 +65,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         blockIOStrategy = config.blockIOStrategy,
         cacheBlocksOnCreate = config.cacheSegmentBlocksOnCreate,
         minSize = config.minSegmentSize,
-        maxCount = config.maxKeyValuesPerSegment,
+        maxCount = config.segmentFormat.count,
         pushForward = config.pushForward,
         mmap = config.mmap,
         deleteDelay = config.deleteDelay,
