@@ -114,7 +114,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         shouldPrefixCompress = if (normaliseIndex || !enablePrefixCompression) _ => false else shouldPrefixCompress,
         prefixCompressKeysOnly = if (normaliseIndex || !enablePrefixCompression) false else prefixCompressKeysOnly,
         enableAccessPositionIndex = enableAccessPositionIndex,
-        optimiseForReverseIteration = optimiseForReverseIteration,
+        optimiseForReverseIteration = !normaliseIndex && optimiseForReverseIteration,
         enablePrefixCompression = !normaliseIndex && enablePrefixCompression,
         normaliseIndex = normaliseIndex,
         compressions = compressions

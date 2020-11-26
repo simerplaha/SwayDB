@@ -171,8 +171,8 @@ class SegmentReadPerformanceSpec extends TestBase {
         cacheBlocksOnCreate = false,
         minSize = Int.MaxValue,
         maxCount =
-          keyValuesCount / 100,
-        //          keyValuesCount,
+          //          keyValuesCount / 100,
+          keyValuesCount,
         pushForward = false,
         mmap = mmapSegments,
         deleteDelay = 0.seconds,
@@ -450,9 +450,11 @@ class SegmentReadPerformanceSpec extends TestBase {
     TestCaseSweeper {
       implicit sweeper =>
 
+        val range = (1 until keyValues.size).reverse
+
         def assertLower(segment: Segment) = {
           val readState = ThreadReadState.hashMap()
-          (1 until keyValues.size).reverse foreach {
+          range foreach {
             index =>
               //        println(s"index: $index")
               //        segment.lowerKeyValue(keyValues(index).key)
@@ -483,6 +485,10 @@ class SegmentReadPerformanceSpec extends TestBase {
 
         val segment = initSegment().sweep()
         //    if (persistent) reopenSegment()
+        Benchmark(s"lower ${keyValues.size} lower keys ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
+          assertLower(segment)
+        }
+
         Benchmark(s"lower ${keyValues.size} lower keys ${segment.getClass.getSimpleName}, mmapSegmentWrites = ${mmapSegments.mmapWrites}, mmapSegmentReads = ${mmapSegments.mmapReads}") {
           assertLower(segment)
         }

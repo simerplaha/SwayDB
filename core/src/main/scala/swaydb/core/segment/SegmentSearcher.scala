@@ -213,13 +213,20 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                         partialOrdering: KeyOrder[Persistent.Partial]): PersistentOption =
-    BinarySearchIndexBlock.searchLower(
-      key = key,
-      start = start,
-      end = end,
-      keyValuesCount = keyValueCount,
-      binarySearchIndexReaderOrNull = binarySearchIndexReaderOrNull,
-      sortedIndexReader = sortedIndexReader,
-      valuesReaderOrNull = valuesReaderOrNull
-    )
+    if (sortedIndexReader.block.optimiseForReverseIteration && !sortedIndexReader.block.hasPrefixCompression && end.isSomeS && keyOrder.equiv(key, end.getS.key))
+      SortedIndexBlock.read(
+        fromOffset = end.getS.previousIndexOffset,
+        sortedIndexReader = sortedIndexReader,
+        valuesReaderOrNull = valuesReaderOrNull
+      )
+    else
+      BinarySearchIndexBlock.searchLower(
+        key = key,
+        start = start,
+        end = end,
+        keyValuesCount = keyValueCount,
+        binarySearchIndexReaderOrNull = binarySearchIndexReaderOrNull,
+        sortedIndexReader = sortedIndexReader,
+        valuesReaderOrNull = valuesReaderOrNull
+      )
 }
