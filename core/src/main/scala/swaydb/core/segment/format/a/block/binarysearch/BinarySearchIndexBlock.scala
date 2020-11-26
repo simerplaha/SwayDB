@@ -706,7 +706,7 @@ private[core] case object BinarySearchIndexBlock {
           //but there will be cases with binarySearchIndex is partial || sortedIndex is prefixCompressed
           //which means that accessPositions might not be in sync with binarySearch's positions.
           //Here binarySearchLower will triggers are restart if shiftLeft was not successful.
-          fetchLeft = sortedIndexReader.block.enableAccessPositionIndex && end.existsS(end => ordering.equiv(key, end.key)),
+          fetchLeft = !sortedIndexReader.block.optimiseForReverseIteration && sortedIndexReader.block.enableAccessPositionIndex && end.existsS(end => ordering.equiv(key, end.key)),
           key = key,
           lowest = start,
           highest = end,
@@ -737,7 +737,7 @@ private[core] case object BinarySearchIndexBlock {
     } else {
       val result =
         binarySearchLower(
-          fetchLeft = sortedIndexReader.block.enableAccessPositionIndex && end.existsS(end => ordering.equiv(key, end.key)),
+          fetchLeft = !sortedIndexReader.block.optimiseForReverseIteration && sortedIndexReader.block.enableAccessPositionIndex && end.existsS(end => ordering.equiv(key, end.key)),
           key = key,
           lowest = start,
           highest = end,
