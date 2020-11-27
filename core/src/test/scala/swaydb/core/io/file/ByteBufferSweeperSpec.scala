@@ -120,7 +120,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               file =>
                 Future {
                   while (timeout.hasTimeLeft())
-                    file.get(0).runRandomIO.value shouldBe bytes.head
+                    file.get(paddingLeft = 0, position = 0).runRandomIO.value shouldBe bytes.head
                 }
             }
 

@@ -83,6 +83,9 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
 
   val offset = block.offset
 
+  override val paddingLeft: Int =
+    offset.start
+
   override def isNone: Boolean = false
 
   override val state: BlockReader.State =

@@ -43,7 +43,7 @@ private[file] object ChannelFile {
       mode = StandardOpenOption.WRITE,
       channel = channel,
       forceSave = forceSave,
-      blockCacheFileId = blockCacheFileId
+      blockCacheSourceId = blockCacheFileId
     )
   }
 
@@ -56,7 +56,7 @@ private[file] object ChannelFile {
         mode = StandardOpenOption.READ,
         channel = channel,
         forceSave = ForceSave.Off,
-        blockCacheFileId = blockCacheFileId
+        blockCacheSourceId = blockCacheFileId
       )
     }
     else
@@ -67,7 +67,7 @@ private[file] class ChannelFile(val path: Path,
                                 mode: StandardOpenOption,
                                 channel: FileChannel,
                                 forceSave: ForceSave.ChannelFiles,
-                                val blockCacheFileId: Long)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
+                                val blockCacheSourceId: Long)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
 
 
   //Force is applied on files after they are marked immutable so it only needs
@@ -124,7 +124,7 @@ private[file] class ChannelFile(val path: Path,
     Slice(bytes)
   }
 
-  def fileSize: Long =
+  def size: Long =
     channel.size()
 
   override def isOpen =

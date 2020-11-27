@@ -88,7 +88,7 @@ private[file] object MMAPFile {
       channel = channel,
       mode = mode,
       bufferSize = bufferSize,
-      blockCacheFileId = blockCacheFileId,
+      blockCacheSourceId = blockCacheFileId,
       deleteAfterClean = deleteAfterClean,
       forceSaveConfig = forceSave,
       buffer = buff
@@ -100,7 +100,7 @@ private[file] class MMAPFile(val path: Path,
                              val channel: FileChannel,
                              mode: MapMode,
                              bufferSize: Long,
-                             val blockCacheFileId: Long,
+                             val blockCacheSourceId: Long,
                              val deleteAfterClean: Boolean,
                              val forceSaveConfig: ForceSave.MMAPFiles,
                              @volatile private var buffer: MappedByteBuffer)(implicit cleaner: ByteBufferSweeperActor,
@@ -254,7 +254,7 @@ private[file] class MMAPFile(val path: Path,
       buffer.get(position)
     }
 
-  override def fileSize =
+  override def size =
     watchNullPointer(channel.size())
 
   override def readAll: Slice[Byte] =

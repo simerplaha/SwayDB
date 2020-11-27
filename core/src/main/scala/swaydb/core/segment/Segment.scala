@@ -939,7 +939,7 @@ private[core] case object Segment extends LazyLogging {
       }
 
 
-    val formatId = file.get(0)
+    val formatId = file.get(paddingLeft = 0, position = 0)
 
     val segment =
       if (formatId == PersistentSegmentOne.formatId)

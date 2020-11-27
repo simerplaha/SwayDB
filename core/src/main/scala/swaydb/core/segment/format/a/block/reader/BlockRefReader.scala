@@ -94,6 +94,9 @@ private[core] object BlockRefReader {
 private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
                                                              private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase {
 
+  override val paddingLeft: Int =
+    offset.start
+
   override val state: BlockReader.State =
     BlockReader(offset, reader)
 
@@ -125,4 +128,5 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
       reader = reader.copy(),
       offset = offset
     )
+
 }

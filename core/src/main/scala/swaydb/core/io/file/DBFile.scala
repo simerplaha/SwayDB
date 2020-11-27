@@ -419,21 +419,26 @@ class DBFile(val path: Path,
   def append(slice: Iterable[Slice[Byte]]) =
     fileCache.value(()).get.append(slice)
 
-  def readBlock(position: Int): Option[Slice[Byte]] =
+  def readBlock(paddingLeft: Int,
+                position: Int): Option[Slice[Byte]] =
     blockCache map {
       blockCache =>
         read(
+          paddingLeft = paddingLeft,
           position = position,
           size = blockCache.blockSize,
           blockCache = blockCache
         )
     }
 
-  def read(position: Int, size: Int): Slice[Byte] =
+  def read(paddingLeft: Int,
+           position: Int,
+           size: Int): Slice[Byte] =
     if (size == 0)
       Slice.emptyBytes
     else if (blockCache.isDefined)
       read(
+        paddingLeft = paddingLeft,
         position = position,
         size = size,
         blockCache = blockCache.get
@@ -441,16 +446,18 @@ class DBFile(val path: Path,
     else
       fileCache.value(()).get.read(position, size)
 
-  def read(position: Int,
+  def read(paddingLeft: Int,
+           position: Int,
            size: Int,
            blockCache: BlockCache.State): Slice[Byte] =
     if (size == 0)
       Slice.emptyBytes
     else
       BlockCache.getOrSeek(
+        paddingLeft = paddingLeft,
         position = position,
         size = size,
-        file = fileCache.value(()).get,
+        source = fileCache.value(()).get,
         state = blockCache
       )
 
@@ -461,9 +468,9 @@ class DBFile(val path: Path,
       transferTo = transferTo.file
     )
 
-  def get(position: Int): Byte =
+  def get(paddingLeft: Int, position: Int): Byte =
     if (blockCache.isDefined)
-      read(position, 1).head
+      read(paddingLeft = paddingLeft, position = position, size = 1).head
     else
       fileCache.value(()).get.get(position)
 
@@ -471,7 +478,7 @@ class DBFile(val path: Path,
     fileCache.value(()).get.readAll
 
   def fileSize: Long =
-    fileCache.value(()).get.fileSize
+    fileCache.value(()).get.size
 
   //memory files are never closed, if it's memory file return true.
   def isOpen: Boolean =

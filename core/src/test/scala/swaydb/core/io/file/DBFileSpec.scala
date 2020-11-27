@@ -174,8 +174,8 @@ class DBFileSpec extends TestBase with MockFactory {
           file.append(bytes)
 
           IO(file.readAll).left.value shouldBe a[NonReadableChannelException]
-          IO(file.read(0, 1)).left.value shouldBe a[NonReadableChannelException]
-          IO(file.get(0)).left.value shouldBe a[NonReadableChannelException]
+          IO(file.read(paddingLeft = 0, position = 0, size = 1)).left.value shouldBe a[NonReadableChannelException]
+          IO(file.get(paddingLeft = 0, position = 0)).left.value shouldBe a[NonReadableChannelException]
 
           //closing the channel and reopening it will open it in read only mode
           file.close()
@@ -257,7 +257,7 @@ class DBFileSpec extends TestBase with MockFactory {
           //read bytes one by one
           (0 until bytes.size) foreach {
             index =>
-              readFile.get(index) shouldBe bytes(index)
+              readFile.get(paddingLeft = 0, position = index) shouldBe bytes(index)
           }
           readFile.isOpen shouldBe true
       }
@@ -621,7 +621,7 @@ class DBFileSpec extends TestBase with MockFactory {
           }
 
           def open = {
-            file.read(0, bytes.size) shouldBe bytes
+            file.read(paddingLeft = 0, position = 0, size = bytes.size) shouldBe bytes
             file.isOpen shouldBe true
             file.isFileDefined shouldBe true
           }
@@ -718,7 +718,7 @@ class DBFileSpec extends TestBase with MockFactory {
           file.append(bytes(0))
           file.append(bytes(1))
           file.append(bytes(2))
-          IO(file.read(0, 1)).isLeft shouldBe true //not open for read
+          IO(file.read(paddingLeft = 0, position = 0, size = 1)).isLeft shouldBe true //not open for read
 
           file.close()
 
@@ -772,8 +772,8 @@ class DBFileSpec extends TestBase with MockFactory {
           file.append(bytes(0))
           file.append(bytes(1))
           file.append(bytes(2))
-          file.get(0) shouldBe bytes.head.head
-          file.get(allBytesSize - 1) shouldBe bytes.last.last
+          file.get(paddingLeft = 0, position = 0) shouldBe bytes.head.head
+          file.get(paddingLeft = 0, position = allBytesSize - 1) shouldBe bytes.last.last
 
           val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
@@ -830,8 +830,8 @@ class DBFileSpec extends TestBase with MockFactory {
           file.append(bytes(2))
           file.append(bytes(3))
           file.append(bytes(4))
-          file.get(0) shouldBe bytes.head.head
-          file.get(allBytesSize - 1) shouldBe bytes.last.last
+          file.get(paddingLeft = 0, position = 0) shouldBe bytes.head.head
+          file.get(paddingLeft = 0, position = allBytesSize - 1) shouldBe bytes.last.last
 
           val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
@@ -945,7 +945,7 @@ class DBFileSpec extends TestBase with MockFactory {
             )
 
           file.append(bytes)
-          IO(file.read(0, 1)).isLeft shouldBe true //not open for read
+          IO(file.read(paddingLeft = 0, position = 0, size = 1)).isLeft shouldBe true //not open for read
 
           file.close()
 
@@ -958,11 +958,11 @@ class DBFileSpec extends TestBase with MockFactory {
 
           (0 until bytes.size) foreach {
             index =>
-              readFile.read(index, 1) should contain only bytes(index)
+              readFile.read(paddingLeft = 0, position = index, size = 1) should contain only bytes(index)
           }
 
-          readFile.read(0, bytes.size / 2).toList should contain theSameElementsInOrderAs bytes.dropRight(bytes.size / 2).toList
-          readFile.read(bytes.size / 2, bytes.size / 2).toList should contain theSameElementsInOrderAs bytes.drop(bytes.size / 2).toList
+          readFile.read(paddingLeft = 0, position = 0, size = bytes.size / 2).toList should contain theSameElementsInOrderAs bytes.dropRight(bytes.size / 2).toList
+          readFile.read(paddingLeft = 0, position = bytes.size / 2, size = bytes.size / 2).toList should contain theSameElementsInOrderAs bytes.drop(bytes.size / 2).toList
           //      readFile.get(1000) shouldBe 0
 
           readFile.close()

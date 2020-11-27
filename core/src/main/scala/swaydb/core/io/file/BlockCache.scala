@@ -40,7 +40,7 @@ private[core] object BlockCache extends LazyLogging {
   //  var memorySeeks = 0
   //  var splitsCount = 0
 
-  final case class Key(fileId: Long, position: Int)
+  final case class Key(sourceId: Long, position: Int)
 
   def init(memorySweeper: MemorySweeper): Option[BlockCache.State] =
     memorySweeper match {
@@ -108,16 +108,16 @@ private[core] object BlockCache extends LazyLogging {
 
   def seekSize(keyPosition: Int,
                size: Int,
-               file: DBFileType,
+               source: BlockCacheSource,
                state: State): Int = {
-    val fileSize = file.fileSize
+    val sourceSize = source.size
     val seekSize =
       if (state.blockSize <= 0)
         size
       else
         (state.blockSizeDouble * Math.ceil(Math.abs(size / state.blockSizeDouble))).toInt
 
-    ((fileSize.toInt - keyPosition) min seekSize) max 0
+    ((sourceSize.toInt - keyPosition) min seekSize) max 0
   }
 
   def seekPosition(position: Int, state: State): Int =
@@ -127,27 +127,29 @@ private[core] object BlockCache extends LazyLogging {
       (state.blockSizeDouble * Math.floor(Math.abs(position / state.blockSizeDouble))).toInt
 
   sealed trait BlockIO {
-    def seek(keyPosition: Int,
+    def seek(keyPositionWithoutPadding: Int,
+             keyPosition: Int,
              size: Int,
-             file: DBFileType,
+             source: BlockCacheSource,
              state: State): Slice[Byte]
   }
 
   implicit object BlockIO extends BlockIO {
-    def seek(keyPosition: Int,
+    def seek(keyPositionWithoutPadding: Int,
+             keyPosition: Int,
              size: Int,
-             file: DBFileType,
+             source: BlockCacheSource,
              state: State): Slice[Byte] = {
       val seekedSize =
         seekSize(
           keyPosition = keyPosition,
           size = size,
-          file = file,
+          source = source,
           state = state
         )
 
       val bytes =
-        file
+        source
           .read(
             position = keyPosition,
             size = seekedSize
@@ -159,7 +161,7 @@ private[core] object BlockCache extends LazyLogging {
       } else if (bytes.isEmpty) {
         Slice.emptyBytes
       } else if (bytes.size <= state.blockSize) {
-        val key = Key(file.blockCacheFileId, keyPosition)
+        val key = Key(source.blockCacheSourceId, keyPositionWithoutPadding)
         val value = bytes.unslice()
         state.map.put(key, value)
         state.sweeper.add(key, value, state.map)
@@ -167,14 +169,14 @@ private[core] object BlockCache extends LazyLogging {
       } else {
         //        splitsCount += 1
         var index = 0
-        var position = keyPosition
+        var cachePosition = keyPositionWithoutPadding
         val splits = Math.ceil(bytes.size / state.blockSizeDouble)
         while (index < splits) {
           val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
-          val key = Key(file.blockCacheFileId, position)
+          val key = Key(source.blockCacheSourceId, cachePosition)
           state.map.put(key, bytesToPut)
           state.sweeper.add(key, bytesToPut, state.map)
-          position = position + bytesToPut.size
+          cachePosition = cachePosition + bytesToPut.size
           index += 1
         }
         bytes
@@ -182,15 +184,20 @@ private[core] object BlockCache extends LazyLogging {
     }
   }
 
+  /**
+   * TODO - create an array of size of n bytes and append to it instead of ++
+   */
   @tailrec
-  private def getOrSeek(position: Int,
+  private def getOrSeek(paddingLeft: Int,
+                        position: Int,
                         size: Int,
                         headBytes: Slice[Byte],
-                        file: DBFileType,
+                        source: BlockCacheSource,
                         state: State)(implicit blockIO: BlockIO): Slice[Byte] = {
-    //TODO - create an array of size of n bytes and append to it instead of ++
+    val keyPositionWithoutPadding = seekPosition(position - paddingLeft, state)
     val keyPosition = seekPosition(position, state)
-    state.map.get(Key(file.blockCacheFileId, keyPosition)) match {
+
+    state.map.get(Key(source.blockCacheSourceId, keyPositionWithoutPadding)) match {
       case fromCache: Slice[Byte] =>
         //        println(s"Memory seek size: $size")
         //        memorySeeks += 1
@@ -206,10 +213,11 @@ private[core] object BlockCache extends LazyLogging {
           mergedBytes
         else
           getOrSeek(
+            paddingLeft = paddingLeft,
             position = position + seekedBytes.size,
             size = size - seekedBytes.size,
             headBytes = mergedBytes,
-            file = file,
+            source = source,
             state = state
           )(blockIO)
 
@@ -217,8 +225,9 @@ private[core] object BlockCache extends LazyLogging {
         //        println(s"Disk seek size: $size")
         val seekedBytes =
           blockIO.seek(
+            keyPositionWithoutPadding = keyPositionWithoutPadding,
             keyPosition = keyPosition,
-            file = file,
+            source = source,
             size = position - keyPosition + size,
             state = state
           )
@@ -233,21 +242,23 @@ private[core] object BlockCache extends LazyLogging {
     }
   }
 
-  def getOrSeek(position: Int,
+  def getOrSeek(paddingLeft: Int,
+                position: Int,
                 size: Int,
-                file: DBFileType,
+                source: BlockCacheSource,
                 state: State)(implicit effect: BlockIO): Slice[Byte] =
     if (size >= state.skipBlockCacheSeekSize) //if the seek size is too large then skip block cache and perform direct IO.
-      file
+      source
         .read(
           position = position,
           size = size
         )
     else
       getOrSeek(
+        paddingLeft = paddingLeft,
         position = position,
         size = size,
-        file = file,
+        source = source,
         headBytes = null,
         state = state
       )(effect)

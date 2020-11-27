@@ -24,45 +24,10 @@
 
 package swaydb.core.io.file
 
-import java.nio.channels.WritableByteChannel
-import java.nio.file.Path
-
-import swaydb.core.actor.FileSweeperItem
 import swaydb.data.slice.Slice
 
-private[file] trait DBFileType extends FileSweeperItem with BlockCacheSource {
-
-  val path: Path
-
-  private[file] def writeableChannel: WritableByteChannel
-
+trait BlockCacheSource {
   def blockCacheSourceId: Long
-
-  def delete(): Unit
-
-  def close(): Unit
-
-  def isMemoryMapped: Boolean
-
-  def isLoaded: Boolean
-
-  def isOpen: Boolean
-
-  def isFull: Boolean
-
-  def forceSave(): Unit
-
-  def readAll: Slice[Byte]
-
   def size: Long
-
-  def append(slice: Slice[Byte]): Unit
-
-  def append(slice: Iterable[Slice[Byte]]): Unit
-
-  def transfer(position: Int, count: Int, transferTo: DBFileType): Int
-
   def read(position: Int, size: Int): Slice[Byte]
-
-  def get(position: Int): Byte
 }

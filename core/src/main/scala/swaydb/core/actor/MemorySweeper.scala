@@ -25,7 +25,7 @@
 package swaydb.core.actor
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{KeyValue, Persistent}
+import swaydb.core.data.Persistent
 import swaydb.core.io.file.BlockCache
 import swaydb.core.util.HashedMap
 import swaydb.core.util.skiplist.SkipList
@@ -39,13 +39,8 @@ import scala.ref.WeakReference
 private[core] sealed trait Command
 private[core] object Command {
 
-  sealed trait KeyValueCommand extends Command {
-    val keyValueRef: WeakReference[KeyValue.CacheAble]
-    val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]
-  }
-
   private[actor] class KeyValue(val keyValueRef: WeakReference[Persistent],
-                                val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]) extends KeyValueCommand
+                                val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]) extends Command
 
   private[actor] class Cache(val weight: Int,
                              val cache: WeakReference[swaydb.data.cache.Cache[_, _, _]]) extends Command
@@ -156,7 +151,7 @@ private[core] object MemorySweeper extends LazyLogging {
           ) {
             (command, _) =>
               command match {
-                case command: Command.KeyValueCommand =>
+                case command: Command.KeyValue =>
                   for {
                     skipList <- command.skipListRef.get
                     keyValue <- command.keyValueRef.get

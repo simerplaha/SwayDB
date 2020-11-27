@@ -56,9 +56,10 @@ class BlockCachePerformanceSpec extends TestBase {
             (1 to 1000000) foreach {
               i =>
                 BlockCache.getOrSeek(
+                  paddingLeft = 0,
                   position = randomIntMax(bytes.size),
                   size = 4098,
-                  file = file,
+                  source = file,
                   state = state
                 )
             }

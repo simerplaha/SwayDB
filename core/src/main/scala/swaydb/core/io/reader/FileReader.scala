@@ -33,6 +33,9 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
 
   private var position: Int = 0
 
+  override val paddingLeft: Int =
+    0
+
   def isLoaded: Boolean =
     file.isLoaded
 
@@ -64,7 +67,12 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
     file.transfer(position = position, count = count, transferTo = transferTo)
 
   override def get() = {
-    val byte = file get position
+    val byte =
+      file.get(
+        paddingLeft = paddingLeft,
+        position = position
+      )
+
     position += 1
     byte
   }
@@ -73,7 +81,13 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
     if (size <= 0) {
       Slice.emptyBytes
     } else {
-      val bytes = file.read(position, size)
+      val bytes =
+        file.read(
+          paddingLeft = paddingLeft,
+          position = position,
+          size = size
+        )
+
       position += size
       bytes
     }
