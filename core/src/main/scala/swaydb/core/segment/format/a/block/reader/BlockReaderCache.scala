@@ -51,7 +51,7 @@ object BlockReaderCache {
     if (state.isEmpty)
       Slice.emptyBytes
     else if (position >= state.fromOffset && position <= state.toOffset)
-      state.bytes.drop(position - state.fromOffset) take size
+      state.bytes.take(fromIndex = position - state.fromOffset, count = size)
     else
       Slice.emptyBytes
 }
