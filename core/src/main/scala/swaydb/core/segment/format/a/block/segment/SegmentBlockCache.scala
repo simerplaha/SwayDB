@@ -79,15 +79,15 @@ private[core] object SegmentBlockCache {
 /**
  * Implements configured caching & IO strategies for all blocks within a Segment.
  */
-private[core] class SegmentBlockCache(path: Path,
-                                      val segmentIO: SegmentIO,
-                                      segmentBlockRef: BlockRefReader[SegmentBlock.Offset],
-                                      private var valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                                      private var sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-                                      private var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-                                      private var binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
-                                      private var bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                                      private var footerCacheable: Option[SegmentFooterBlock])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
+private[core] class SegmentBlockCache private(path: Path,
+                                              val segmentIO: SegmentIO,
+                                              segmentBlockRef: BlockRefReader[SegmentBlock.Offset],
+                                              private var valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                                              private var sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                                              private var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+                                              private var binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                                              private var bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+                                              private var footerCacheable: Option[SegmentFooterBlock])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
 
   //names for Unblocked reader caches.
   private val sortedIndexReaderCacheName = "sortedIndexReaderCache"
@@ -553,6 +553,9 @@ private[core] class SegmentBlockCache(path: Path,
 
   def segmentSize: Int =
     segmentBlockRef.offset.size
+
+  def blockCacheSourceId =
+    segmentBlockRef.blockCacheSourceId
 
   invalidateCachedReaders()
 }

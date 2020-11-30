@@ -29,7 +29,8 @@ import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteOps
 
-private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[Byte]) extends Reader[Byte] with LazyLogging {
+private[core] class FileReader(val file: DBFile,
+                               val blockCacheSourceId: Long)(implicit val byteOps: ByteOps[Byte]) extends Reader[Byte] with LazyLogging {
 
   private var position: Int = 0
 
@@ -59,7 +60,13 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
     (file.fileSize - position) >= size
 
   override def copy(): FileReader =
-    new FileReader(file)
+    new FileReader(file, blockCacheSourceId)
+
+  def copy(blockCacheSourceId: Long): FileReader =
+    new FileReader(
+      file = file,
+      blockCacheSourceId = blockCacheSourceId
+    )
 
   override def getPosition: Int = position
 
@@ -69,6 +76,7 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
   override def get() = {
     val byte =
       file.get(
+        sourceId = blockCacheSourceId,
         paddingLeft = paddingLeft,
         position = position
       )
@@ -83,6 +91,7 @@ private[core] class FileReader(val file: DBFile)(implicit val byteOps: ByteOps[B
     } else {
       val bytes =
         file.read(
+          sourceId = blockCacheSourceId,
           paddingLeft = paddingLeft,
           position = position,
           size = size

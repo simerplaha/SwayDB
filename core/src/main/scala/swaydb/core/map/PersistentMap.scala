@@ -124,7 +124,6 @@ private[map] object PersistentMap extends LazyLogging {
           path = folder.resolve(0.toLogFileId),
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
           bufferSize = fileSize,
-          blockCacheFileId = 0,
           autoClose = false,
           deleteAfterClean = deleteAfterClean,
           forceSave = forceSave
@@ -134,7 +133,6 @@ private[map] object PersistentMap extends LazyLogging {
         DBFile.channelWrite(
           path = folder.resolve(0.toLogFileId),
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
-          blockCacheFileId = 0,
           autoClose = false,
           forceSave = forceSave
         )(fileSweeper, None, bufferCleaner, forceSaveApplier)
@@ -157,7 +155,7 @@ private[map] object PersistentMap extends LazyLogging {
       files mapRecover {
         path =>
           logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
-          val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None, bufferCleaner, forceSaveApplier)
+          val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)(fileSweeper, None, bufferCleaner, forceSaveApplier)
           val bytes = file.readAll
           val recovery = MapCodec.read[K, V](bytes, dropCorruptedTailEntries).get
 
@@ -256,7 +254,6 @@ private[map] object PersistentMap extends LazyLogging {
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             bufferSize = bytes.size + size,
-            blockCacheFileId = 0,
             autoClose = false,
             deleteAfterClean = deleteAfterClean,
             forceSave = forceSave
@@ -266,7 +263,6 @@ private[map] object PersistentMap extends LazyLogging {
           DBFile.channelWrite(
             path = nextPath,
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
-            blockCacheFileId = 0,
             autoClose = false,
             forceSave = forceSave
           )(fileSweeper, None, bufferCleaner, forceSaveApplier)

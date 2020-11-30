@@ -39,6 +39,9 @@ case class SliceReader[B](slice: Slice[B],
   override val paddingLeft: Int =
     0
 
+  override def blockCacheSourceId: Long =
+    Long.MinValue
+
   override def size: Long =
     slice.size
 

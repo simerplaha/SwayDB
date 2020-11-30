@@ -500,7 +500,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       autoClose = true,
       deleteAfterClean = OperatingSystem.isWindows,
       forceSave = TestForceSave.mmap(),
-      blockCacheFileId = BlockCacheFileIDGenerator.next,
       bytes = bytes
     ).sweep()
   }
@@ -514,7 +513,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       autoClose = true,
       deleteAfterClean = OperatingSystem.isWindows,
       forceSave = TestForceSave.mmap(),
-      blockCacheFileId = BlockCacheFileIDGenerator.next,
       bufferSize = bufferSize
     ).sweep()
   }
@@ -525,22 +523,18 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     DBFile.channelWrite(
       path = path,
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
-      blockCacheFileId = 0,
       autoClose = true,
       forceSave = TestForceSave.channel()
     )
   }
 
   def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): DBFile = {
-    val blockCacheFileId = BlockCacheFileIDGenerator.next
-
     import sweeper._
 
     val file =
       DBFile.channelWrite(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
-        blockCacheFileId = blockCacheFileId,
         autoClose = true,
         forceSave = TestForceSave.channel()
       ).sweep()
@@ -553,22 +547,21 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       fileOpenIOStrategy = randomThreadSafeIOStrategy(),
       autoClose = true,
       deleteAfterClean = OperatingSystem.isWindows,
-      blockCacheFileId = blockCacheFileId
     ).sweep()
   }
 
   def createMMAPFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
     import sweeper._
 
-    new FileReader(
+    val file =
       DBFile.mmapRead(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
         autoClose = true,
-        deleteAfterClean = OperatingSystem.isWindows,
-        blockCacheFileId = BlockCacheFileIDGenerator.next
+        deleteAfterClean = OperatingSystem.isWindows
       ).sweep()
-    )
+
+    new FileReader(file = file, blockCacheSourceId = BlockCacheFileIDGenerator.next)
   }
 
   def createFileChannelFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
@@ -581,11 +574,10 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       DBFile.channelRead(
         path = path,
         fileOpenIOStrategy = randomThreadSafeIOStrategy(),
-        autoClose = true,
-        blockCacheFileId = BlockCacheFileIDGenerator.next
+        autoClose = true
       ).sweep()
 
-    new FileReader(file)
+    new FileReader(file, BlockCacheFileIDGenerator.next)
   }
 
   def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =

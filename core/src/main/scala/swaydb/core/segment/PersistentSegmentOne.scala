@@ -73,6 +73,7 @@ protected object PersistentSegmentOne {
                                                  segmentIO: SegmentIO): PersistentSegmentOne =
     PersistentSegmentOne(
       file = file,
+      sourceId = segment.blockCacheSourceId,
       createdInLevel = createdInLevel,
       minKey = segment.minKey,
       maxKey = segment.maxKey,
@@ -88,6 +89,7 @@ protected object PersistentSegmentOne {
     )
 
   def apply(file: DBFile,
+            sourceId: Long,
             createdInLevel: Int,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
@@ -115,7 +117,8 @@ protected object PersistentSegmentOne {
       BlockRefReader(
         file = file,
         start = 1,
-        fileSize = segmentSize - 1
+        fileSize = segmentSize - 1,
+        sourceId = sourceId
       )
 
     val ref =
@@ -165,7 +168,8 @@ protected object PersistentSegmentOne {
       BlockRefReader(
         file = file,
         start = 1,
-        fileSize = fileSize - 1
+        fileSize = fileSize - 1,
+        sourceId = BlockCacheFileIDGenerator.next
       )
 
     val segmentBlockCache =
@@ -196,6 +200,7 @@ protected object PersistentSegmentOne {
 
     PersistentSegmentOne(
       file = file,
+      sourceId = BlockCacheFileIDGenerator.next,
       createdInLevel = footer.createdInLevel,
       minKey = keyValues.head.key.unslice(),
       maxKey =
@@ -272,7 +277,6 @@ protected case class PersistentSegmentOne(file: DBFile,
 
   def copyTo(toPath: Path): Path =
     file copyTo toPath
-
 
   /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.

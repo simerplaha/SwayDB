@@ -72,7 +72,6 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               autoClose = true,
               deleteAfterClean = OperatingSystem.isWindows,
               forceSave = TestForceSave.mmap(),
-              blockCacheFileId = BlockCacheFileIDGenerator.next,
               bytes = Slice(randomBytesSlice())
             )
 
@@ -108,7 +107,6 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
                   autoClose = true,
                   deleteAfterClean = OperatingSystem.isWindows,
                   forceSave = TestForceSave.mmap(),
-                  blockCacheFileId = BlockCacheFileIDGenerator.next,
                   bytes = bytes
                 )
             }
@@ -120,7 +118,7 @@ class ByteBufferSweeperSpec extends TestBase with MockFactory {
               file =>
                 Future {
                   while (timeout.hasTimeLeft())
-                    file.get(paddingLeft = 0, position = 0).runRandomIO.value shouldBe bytes.head
+                    file.getSkipCache(position = 0).runRandomIO.value shouldBe bytes.head
                 }
             }
 

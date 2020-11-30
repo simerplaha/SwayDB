@@ -156,7 +156,6 @@ private[core] object SegmentSerialiser {
         path = segmentPath,
         formatId = segmentFormatId,
         createdInLevel = createdInLevel,
-        blockCacheFileId = BlockCacheFileIDGenerator.next,
         mmap = mmapSegment,
         minKey = minKey,
         maxKey = maxKey,

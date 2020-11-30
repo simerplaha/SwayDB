@@ -32,6 +32,7 @@ import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock.ValuesBlockOps
+import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.slice.{Reader, Slice}
 
@@ -46,7 +47,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
           val file = fileReader.file
 
           //DBFile
-          BlockRefReader(file).readRemaining() shouldBe bytes
+          BlockRefReader(file = file, sourceId = BlockCacheFileIDGenerator.next).readRemaining() shouldBe bytes
           //Slice[Byte]
           BlockRefReader[SegmentBlock.Offset](bytes).readRemaining() shouldBe bytes
 

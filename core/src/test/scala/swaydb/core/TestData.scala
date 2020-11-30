@@ -113,7 +113,6 @@ object TestData {
           path = path,
           formatId = segment.formatId,
           createdInLevel = segment.createdInLevel,
-          blockCacheFileId = BlockCacheFileIDGenerator.next,
           mmap = MMAP.randomForSegment(),
           minKey = segment.minKey,
           maxKey = segment.maxKey,

@@ -362,7 +362,6 @@ private[core] case object Segment extends LazyLogging {
           autoClose = true,
           deleteAfterClean = deleteAfterClean,
           forceSave = forceSave,
-          blockCacheFileId = BlockCacheFileIDGenerator.next,
           bufferSize = segmentSize,
           applier = applier
         )
@@ -372,7 +371,6 @@ private[core] case object Segment extends LazyLogging {
           DBFile.channelWrite(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
-            blockCacheFileId = BlockCacheFileIDGenerator.next,
             autoClose = true,
             forceSave = ForceSave.Off
           )
@@ -392,8 +390,7 @@ private[core] case object Segment extends LazyLogging {
           path = channelWrite.path,
           fileOpenIOStrategy = segmentIO.fileOpenIO,
           autoClose = true,
-          deleteAfterClean = deleteAfterClean,
-          blockCacheFileId = BlockCacheFileIDGenerator.next
+          deleteAfterClean = deleteAfterClean
         )
 
       case _: MMAP.Off =>
@@ -401,7 +398,6 @@ private[core] case object Segment extends LazyLogging {
           DBFile.channelWrite(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
-            blockCacheFileId = BlockCacheFileIDGenerator.next,
             autoClose = true,
             forceSave = ForceSave.Off
           )
@@ -420,8 +416,7 @@ private[core] case object Segment extends LazyLogging {
         DBFile.channelRead(
           path = channelWrite.path,
           fileOpenIOStrategy = segmentIO.fileOpenIO,
-          autoClose = true,
-          blockCacheFileId = BlockCacheFileIDGenerator.next
+          autoClose = true
         )
 
       //another case if mmapReads is false, write bytes in mmaped mode and then close and re-open for read. Currently not inuse.
@@ -477,7 +472,6 @@ private[core] case object Segment extends LazyLogging {
               path = nextPath,
               formatId = segment.formatId,
               createdInLevel = segment.createdInLevel,
-              blockCacheFileId = segment.file.blockCacheFileId,
               copiedFrom = Some(segment),
               mmap = segmentConfig.mmap,
               minKey = segment.minKey,
@@ -801,7 +795,6 @@ private[core] case object Segment extends LazyLogging {
   def apply(path: Path,
             formatId: Byte,
             createdInLevel: Int,
-            blockCacheFileId: Long,
             mmap: MMAP.Segment,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
@@ -825,7 +818,6 @@ private[core] case object Segment extends LazyLogging {
           DBFile.mmapRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
-            blockCacheFileId = blockCacheFileId,
             autoClose = true,
             deleteAfterClean = mmap.deleteAfterClean,
             checkExists = checkExists
@@ -835,7 +827,6 @@ private[core] case object Segment extends LazyLogging {
           DBFile.channelRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
-            blockCacheFileId = blockCacheFileId,
             autoClose = true,
             checkExists = checkExists
           )
@@ -846,11 +837,12 @@ private[core] case object Segment extends LazyLogging {
         case Some(one: PersistentSegmentOne) =>
           PersistentSegmentOne(
             file = file,
+            sourceId = one.ref.blockCacheSourceId,
             createdInLevel = createdInLevel,
             minKey = minKey,
             maxKey = maxKey,
-            segmentSize = segmentSize,
             minMaxFunctionId = minMaxFunctionId,
+            segmentSize = segmentSize,
             nearestExpiryDeadline = nearestExpiryDeadline,
             valuesReaderCacheable = one.ref.segmentBlockCache.cachedValuesSliceReader(),
             sortedIndexReaderCacheable = one.ref.segmentBlockCache.cachedSortedIndexSliceReader(),
@@ -866,11 +858,12 @@ private[core] case object Segment extends LazyLogging {
         case None =>
           PersistentSegmentOne(
             file = file,
+            sourceId = BlockCacheFileIDGenerator.next,
             createdInLevel = createdInLevel,
             minKey = minKey,
             maxKey = maxKey,
-            segmentSize = segmentSize,
             minMaxFunctionId = minMaxFunctionId,
+            segmentSize = segmentSize,
             nearestExpiryDeadline = nearestExpiryDeadline,
             valuesReaderCacheable = None,
             sortedIndexReaderCacheable = None,
@@ -881,15 +874,34 @@ private[core] case object Segment extends LazyLogging {
           )
       }
     else if (formatId == PersistentSegmentMany.formatId)
-      PersistentSegmentMany(
-        file = file,
-        createdInLevel = createdInLevel,
-        minKey = minKey,
-        maxKey = maxKey,
-        segmentSize = segmentSize,
-        minMaxFunctionId = minMaxFunctionId,
-        nearestExpiryDeadline = nearestExpiryDeadline
-      )
+      copiedFrom match {
+        case Some(one: PersistentSegmentOne) =>
+          throw new Exception(s"Invalid copy. Copied as ${PersistentSegmentMany.getClass.getSimpleName} but received ${one.getClass.getSimpleName}.")
+
+        case Some(segment: PersistentSegmentMany) =>
+          PersistentSegmentMany(
+            file = file,
+            segmentSize = segmentSize,
+            createdInLevel = createdInLevel,
+            minKey = minKey,
+            maxKey = maxKey,
+            minMaxFunctionId = minMaxFunctionId,
+            nearestExpiryDeadline = nearestExpiryDeadline,
+            copiedFrom = Some(segment)
+          )
+
+        case None =>
+          PersistentSegmentMany(
+            file = file,
+            segmentSize = segmentSize,
+            createdInLevel = createdInLevel,
+            minKey = minKey,
+            maxKey = maxKey,
+            minMaxFunctionId = minMaxFunctionId,
+            nearestExpiryDeadline = nearestExpiryDeadline,
+            copiedFrom = None
+          )
+      }
     else
       throw new Exception(s"Invalid segment formatId: $formatId")
   }
@@ -922,7 +934,6 @@ private[core] case object Segment extends LazyLogging {
           DBFile.mmapRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
-            blockCacheFileId = BlockCacheFileIDGenerator.next,
             autoClose = false,
             deleteAfterClean = mmap.deleteAfterClean,
             checkExists = checkExists
@@ -932,14 +943,12 @@ private[core] case object Segment extends LazyLogging {
           DBFile.channelRead(
             path = path,
             fileOpenIOStrategy = segmentIO.fileOpenIO,
-            blockCacheFileId = BlockCacheFileIDGenerator.next,
             autoClose = false,
             checkExists = checkExists
           )
       }
 
-
-    val formatId = file.get(paddingLeft = 0, position = 0)
+    val formatId = file.getSkipCache(position = 0)
 
     val segment =
       if (formatId == PersistentSegmentOne.formatId)

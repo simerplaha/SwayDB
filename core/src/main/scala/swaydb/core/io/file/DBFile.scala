@@ -45,7 +45,6 @@ object DBFile extends LazyLogging {
                 deleteAfterClean: Boolean,
                 fileOpenIOStrategy: IOStrategy.ThreadSafe,
                 file: Option[DBFileType],
-                blockCacheFileId: Long,
                 autoClose: Boolean)(implicit fileSweeper: FileSweeper,
                                     bufferCleaner: ByteBufferSweeperActor,
                                     forceSaveApplier: ForceSaveApplier) = {
@@ -98,14 +97,10 @@ object DBFile extends LazyLogging {
               if (memoryMapped)
                 MMAPFile.read(
                   path = filePath,
-                  blockCacheFileId = blockCacheFileId,
                   deleteAfterClean = deleteAfterClean
                 )
               else
-                ChannelFile.read(
-                  path = filePath,
-                  blockCacheFileId = blockCacheFileId
-                )
+                ChannelFile.read(path = filePath)
 
             if (autoClose)
               fileSweeper send FileSweeper.Command.Close(closer)
@@ -122,20 +117,18 @@ object DBFile extends LazyLogging {
 
   def channelWrite(path: Path,
                    fileOpenIOStrategy: IOStrategy.ThreadSafe,
-                   blockCacheFileId: Long,
                    autoClose: Boolean,
                    forceSave: ForceSave.ChannelFiles)(implicit fileSweeper: FileSweeper,
                                                       blockCache: Option[BlockCache.State],
                                                       bufferCleaner: ByteBufferSweeperActor,
                                                       forceSaveApplier: ForceSaveApplier): DBFile = {
-    val file = ChannelFile.write(path, blockCacheFileId, forceSave)
+    val file = ChannelFile.write(path, forceSave)
     new DBFile(
       path = path,
       memoryMapped = false,
       autoClose = autoClose,
       deleteAfterClean = false,
       forceSaveConfig = forceSave,
-      blockCacheFileId = blockCacheFileId,
       fileCache =
         fileCache(
           filePath = path,
@@ -143,8 +136,7 @@ object DBFile extends LazyLogging {
           deleteAfterClean = false,
           file = Some(file),
           fileOpenIOStrategy = fileOpenIOStrategy,
-          autoClose = autoClose,
-          blockCacheFileId = blockCacheFileId
+          autoClose = autoClose
         )
     )
   }
@@ -152,7 +144,6 @@ object DBFile extends LazyLogging {
   def channelRead(path: Path,
                   fileOpenIOStrategy: IOStrategy.ThreadSafe,
                   autoClose: Boolean,
-                  blockCacheFileId: Long,
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                                blockCache: Option[BlockCache.State],
                                                bufferCleaner: ByteBufferSweeperActor,
@@ -166,7 +157,6 @@ object DBFile extends LazyLogging {
         autoClose = autoClose,
         deleteAfterClean = false,
         forceSaveConfig = ForceSave.Off,
-        blockCacheFileId = blockCacheFileId,
         fileCache =
           fileCache(
             filePath = path,
@@ -174,7 +164,6 @@ object DBFile extends LazyLogging {
             deleteAfterClean = false,
             fileOpenIOStrategy = fileOpenIOStrategy,
             file = None,
-            blockCacheFileId = blockCacheFileId,
             autoClose = autoClose
           )
       )
@@ -185,7 +174,6 @@ object DBFile extends LazyLogging {
                        autoClose: Boolean,
                        deleteAfterClean: Boolean,
                        forceSave: ForceSave.MMAPFiles,
-                       blockCacheFileId: Long,
                        bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeper,
                                                      blockCache: Option[BlockCache.State],
                                                      bufferCleaner: ByteBufferSweeperActor,
@@ -204,7 +192,6 @@ object DBFile extends LazyLogging {
         path = path,
         fileOpenIOStrategy = fileOpenIOStrategy,
         bufferSize = totalWritten,
-        blockCacheFileId = blockCacheFileId,
         autoClose = autoClose,
         forceSave = forceSave,
         deleteAfterClean = deleteAfterClean
@@ -219,7 +206,6 @@ object DBFile extends LazyLogging {
                               autoClose: Boolean,
                               deleteAfterClean: Boolean,
                               forceSave: ForceSave.MMAPFiles,
-                              blockCacheFileId: Long,
                               bufferSize: Int,
                               applier: DBFile => Unit)(implicit fileSweeper: FileSweeper,
                                                        blockCache: Option[BlockCache.State],
@@ -230,7 +216,6 @@ object DBFile extends LazyLogging {
         path = path,
         fileOpenIOStrategy = fileOpenIOStrategy,
         bufferSize = bufferSize,
-        blockCacheFileId = blockCacheFileId,
         autoClose = autoClose,
         forceSave = forceSave,
         deleteAfterClean = deleteAfterClean
@@ -253,7 +238,6 @@ object DBFile extends LazyLogging {
                        autoClose: Boolean,
                        deleteAfterClean: Boolean,
                        forceSave: ForceSave.MMAPFiles,
-                       blockCacheFileId: Long,
                        bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
                                            blockCache: Option[BlockCache.State],
                                            bufferCleaner: ByteBufferSweeperActor,
@@ -267,7 +251,6 @@ object DBFile extends LazyLogging {
           path = path,
           fileOpenIOStrategy = fileOpenIOStrategy,
           bufferSize = bytes.size,
-          blockCacheFileId = blockCacheFileId,
           autoClose = autoClose,
           forceSave = forceSave,
           deleteAfterClean = deleteAfterClean
@@ -281,7 +264,6 @@ object DBFile extends LazyLogging {
                fileOpenIOStrategy: IOStrategy.ThreadSafe,
                autoClose: Boolean,
                deleteAfterClean: Boolean,
-               blockCacheFileId: Long,
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                             blockCache: Option[BlockCache.State],
                                             bufferCleaner: ByteBufferSweeperActor,
@@ -295,7 +277,6 @@ object DBFile extends LazyLogging {
         autoClose = autoClose,
         deleteAfterClean = deleteAfterClean,
         forceSaveConfig = ForceSave.Off,
-        blockCacheFileId = blockCacheFileId,
         fileCache =
           fileCache(
             filePath = path,
@@ -303,7 +284,6 @@ object DBFile extends LazyLogging {
             deleteAfterClean = deleteAfterClean,
             fileOpenIOStrategy = fileOpenIOStrategy,
             file = None,
-            blockCacheFileId = blockCacheFileId,
             autoClose = autoClose
           )
       )
@@ -312,7 +292,6 @@ object DBFile extends LazyLogging {
   def mmapInit(path: Path,
                fileOpenIOStrategy: IOStrategy.ThreadSafe,
                bufferSize: Long,
-               blockCacheFileId: Long,
                autoClose: Boolean,
                deleteAfterClean: Boolean,
                forceSave: ForceSave.MMAPFiles)(implicit fileSweeper: FileSweeper,
@@ -323,7 +302,6 @@ object DBFile extends LazyLogging {
       MMAPFile.write(
         path = path,
         bufferSize = bufferSize,
-        blockCacheFileId = blockCacheFileId,
         deleteAfterClean = deleteAfterClean,
         forceSave = forceSave
       )
@@ -334,7 +312,6 @@ object DBFile extends LazyLogging {
       autoClose = autoClose,
       deleteAfterClean = deleteAfterClean,
       forceSaveConfig = forceSave,
-      blockCacheFileId = blockCacheFileId,
       fileCache =
         fileCache(
           filePath = path,
@@ -342,7 +319,6 @@ object DBFile extends LazyLogging {
           deleteAfterClean = deleteAfterClean,
           fileOpenIOStrategy = fileOpenIOStrategy,
           file = Some(file),
-          blockCacheFileId = blockCacheFileId,
           autoClose = autoClose
         )
     )
@@ -358,7 +334,6 @@ class DBFile(val path: Path,
              val autoClose: Boolean,
              val deleteAfterClean: Boolean,
              val forceSaveConfig: ForceSave,
-             val blockCacheFileId: Long,
              fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit blockCache: Option[BlockCache.State],
                                                                   bufferCleaner: ByteBufferSweeperActor,
                                                                   forceSaveApplied: ForceSaveApplier) extends LazyLogging {
@@ -419,11 +394,13 @@ class DBFile(val path: Path,
   def append(slice: Iterable[Slice[Byte]]) =
     fileCache.value(()).get.append(slice)
 
-  def readBlock(paddingLeft: Int,
+  def readBlock(sourceId: Long,
+                paddingLeft: Int,
                 position: Int): Option[Slice[Byte]] =
     blockCache map {
       blockCache =>
         read(
+          sourceId = sourceId,
           paddingLeft = paddingLeft,
           position = position,
           size = blockCache.blockSize,
@@ -431,13 +408,15 @@ class DBFile(val path: Path,
         )
     }
 
-  def read(paddingLeft: Int,
+  def read(sourceId: Long,
+           paddingLeft: Int,
            position: Int,
            size: Int): Slice[Byte] =
     if (size == 0)
       Slice.emptyBytes
     else if (blockCache.isDefined)
       read(
+        sourceId = sourceId,
         paddingLeft = paddingLeft,
         position = position,
         size = size,
@@ -446,7 +425,8 @@ class DBFile(val path: Path,
     else
       fileCache.value(()).get.read(position, size)
 
-  def read(paddingLeft: Int,
+  def read(sourceId: Long,
+           paddingLeft: Int,
            position: Int,
            size: Int,
            blockCache: BlockCache.State): Slice[Byte] =
@@ -454,6 +434,7 @@ class DBFile(val path: Path,
       Slice.emptyBytes
     else
       BlockCache.getOrSeek(
+        sourceId = sourceId,
         paddingLeft = paddingLeft,
         position = position,
         size = size,
@@ -468,11 +449,21 @@ class DBFile(val path: Path,
       transferTo = transferTo.file
     )
 
-  def get(paddingLeft: Int, position: Int): Byte =
+  def get(sourceId: Long,
+          paddingLeft: Int,
+          position: Int): Byte =
     if (blockCache.isDefined)
-      read(paddingLeft = paddingLeft, position = position, size = 1).head
+      read(
+        sourceId = sourceId,
+        paddingLeft = paddingLeft,
+        position = position,
+        size = 1
+      ).head
     else
       fileCache.value(()).get.get(position)
+
+  def getSkipCache(position: Int): Byte =
+    fileCache.value(()).get.get(position)
 
   def readAll: Slice[Byte] =
     fileCache.value(()).get.readAll

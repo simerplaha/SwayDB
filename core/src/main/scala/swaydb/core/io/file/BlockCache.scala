@@ -127,7 +127,8 @@ private[core] object BlockCache extends LazyLogging {
       (state.blockSizeDouble * Math.floor(Math.abs(position / state.blockSizeDouble))).toInt
 
   sealed trait BlockIO {
-    def seek(keyPositionWithoutPadding: Int,
+    def seek(sourceId: Long,
+             cachePosition: Int,
              keyPosition: Int,
              size: Int,
              source: BlockCacheSource,
@@ -135,7 +136,8 @@ private[core] object BlockCache extends LazyLogging {
   }
 
   implicit object BlockIO extends BlockIO {
-    def seek(keyPositionWithoutPadding: Int,
+    def seek(sourceId: Long,
+             cachePosition: Int,
              keyPosition: Int,
              size: Int,
              source: BlockCacheSource,
@@ -161,7 +163,7 @@ private[core] object BlockCache extends LazyLogging {
       } else if (bytes.isEmpty) {
         Slice.emptyBytes
       } else if (bytes.size <= state.blockSize) {
-        val key = Key(source.blockCacheSourceId, keyPositionWithoutPadding)
+        val key = Key(sourceId, cachePosition)
         val value = bytes.unslice()
         state.map.put(key, value)
         state.sweeper.add(key, value, state.map)
@@ -169,14 +171,14 @@ private[core] object BlockCache extends LazyLogging {
       } else {
         //        splitsCount += 1
         var index = 0
-        var cachePosition = keyPositionWithoutPadding
+        var currentKeyCachePosition = cachePosition
         val splits = Math.ceil(bytes.size / state.blockSizeDouble)
         while (index < splits) {
           val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
-          val key = Key(source.blockCacheSourceId, cachePosition)
+          val key = Key(sourceId, currentKeyCachePosition)
           state.map.put(key, bytesToPut)
           state.sweeper.add(key, bytesToPut, state.map)
-          cachePosition = cachePosition + bytesToPut.size
+          currentKeyCachePosition = currentKeyCachePosition + bytesToPut.size
           index += 1
         }
         bytes
@@ -185,23 +187,40 @@ private[core] object BlockCache extends LazyLogging {
   }
 
   /**
+   * Fetched bytes from cache accounting for Segments being transferred from one
+   * file to another.
+   *
    * TODO - create an array of size of n bytes and append to it instead of ++
+   *
+   * @param sourceId     unique ID of a logical group of bytes eg: Segment.
+   * @param paddingLeft  how much the same logical bytes have been moved
+   *                     from position 0 to into another file. Eg: if SegmentA
+   *                     was at position 10 and was moved into SegmentB (Many) at position 20
+   *                     SegmentB should access the cache with paddingLeft set as 20 which
+   *                     will allow SegmentB reading bytes already cached by SegmentA.
+   * @param filePosition the actual position within the file.
+   * @param size         the size of bytes to read.
+   * @param headBytes    bytes that should be prepended to the final bytes.
+   * @param source       where the bytes are read from.
+   * @param state        cache state
+   * @param blockIO      IO type.
+   * @return final bytes.
    */
   @tailrec
-  private def getOrSeek(paddingLeft: Int,
-                        position: Int,
+  private def getOrSeek(sourceId: Long,
+                        paddingLeft: Int,
+                        filePosition: Int,
                         size: Int,
                         headBytes: Slice[Byte],
                         source: BlockCacheSource,
                         state: State)(implicit blockIO: BlockIO): Slice[Byte] = {
-    val keyPositionWithoutPadding = seekPosition(position - paddingLeft, state)
-    val keyPosition = seekPosition(position, state)
+    val cachePosition = seekPosition(filePosition - paddingLeft, state)
 
-    state.map.get(Key(source.blockCacheSourceId, keyPositionWithoutPadding)) match {
+    state.map.get(Key(sourceId, cachePosition)) match {
       case fromCache: Slice[Byte] =>
         //        println(s"Memory seek size: $size")
         //        memorySeeks += 1
-        val seekedBytes = fromCache.take(position - keyPosition, size)
+        val seekedBytes = fromCache.take(filePosition - paddingLeft - cachePosition, size)
 
         val mergedBytes =
           if (headBytes == null)
@@ -213,8 +232,9 @@ private[core] object BlockCache extends LazyLogging {
           mergedBytes
         else
           getOrSeek(
+            sourceId = sourceId,
             paddingLeft = paddingLeft,
-            position = position + seekedBytes.size,
+            filePosition = filePosition + seekedBytes.size,
             size = size - seekedBytes.size,
             headBytes = mergedBytes,
             source = source,
@@ -222,18 +242,21 @@ private[core] object BlockCache extends LazyLogging {
           )(blockIO)
 
       case Slice.Null =>
+        val ioPosition = seekPosition(filePosition, state)
+
         //        println(s"Disk seek size: $size")
         val seekedBytes =
           blockIO.seek(
-            keyPositionWithoutPadding = keyPositionWithoutPadding,
-            keyPosition = keyPosition,
+            sourceId = sourceId,
+            cachePosition = cachePosition,
+            keyPosition = ioPosition,
             source = source,
-            size = position - keyPosition + size,
+            size = filePosition - ioPosition + size,
             state = state
           )
 
         val bytesToReturn =
-          seekedBytes.take(position - keyPosition, size)
+          seekedBytes.take(filePosition - ioPosition, size)
 
         if (headBytes == null)
           bytesToReturn
@@ -242,7 +265,8 @@ private[core] object BlockCache extends LazyLogging {
     }
   }
 
-  def getOrSeek(paddingLeft: Int,
+  def getOrSeek(sourceId: Long,
+                paddingLeft: Int,
                 position: Int,
                 size: Int,
                 source: BlockCacheSource,
@@ -255,8 +279,9 @@ private[core] object BlockCache extends LazyLogging {
         )
     else
       getOrSeek(
+        sourceId = sourceId,
         paddingLeft = paddingLeft,
-        position = position,
+        filePosition = position,
         size = size,
         source = source,
         headBytes = null,

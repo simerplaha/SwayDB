@@ -34,29 +34,26 @@ import swaydb.data.config.ForceSave
 import swaydb.data.slice.Slice
 
 private[file] object ChannelFile {
+
   def write(path: Path,
-            blockCacheFileId: Long,
             forceSave: ForceSave.ChannelFiles)(implicit forceSaveApplier: ForceSaveApplier): ChannelFile = {
     val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     new ChannelFile(
       path = path,
       mode = StandardOpenOption.WRITE,
       channel = channel,
-      forceSave = forceSave,
-      blockCacheSourceId = blockCacheFileId
+      forceSave = forceSave
     )
   }
 
-  def read(path: Path,
-           blockCacheFileId: Long)(implicit forceSaveApplier: ForceSaveApplier): ChannelFile =
+  def read(path: Path)(implicit forceSaveApplier: ForceSaveApplier): ChannelFile =
     if (Effect.exists(path)) {
       val channel = FileChannel.open(path, StandardOpenOption.READ)
       new ChannelFile(
         path = path,
         mode = StandardOpenOption.READ,
         channel = channel,
-        forceSave = ForceSave.Off,
-        blockCacheSourceId = blockCacheFileId
+        forceSave = ForceSave.Off
       )
     }
     else
@@ -66,8 +63,7 @@ private[file] object ChannelFile {
 private[file] class ChannelFile(val path: Path,
                                 mode: StandardOpenOption,
                                 channel: FileChannel,
-                                forceSave: ForceSave.ChannelFiles,
-                                val blockCacheSourceId: Long)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
+                                forceSave: ForceSave.ChannelFiles)(implicit forceSaveApplied: ForceSaveApplier) extends LazyLogging with DBFileType {
 
 
   //Force is applied on files after they are marked immutable so it only needs

@@ -1632,6 +1632,9 @@ private[core] class SegmentRef(val path: Path,
   def offset(): SegmentBlock.Offset =
     segmentBlockCache.offset()
 
+  def blockCacheSourceId: Long =
+    segmentBlockCache.blockCacheSourceId
+
   override def equals(other: Any): Boolean =
     other match {
       case other: SegmentRef =>

@@ -31,8 +31,8 @@ private[swaydb] object Reader {
 
   val empty = Reader(Slice.emptyBytes)
 
-  def apply(file: DBFile): FileReader =
-    new FileReader(file)
+  def apply(file: DBFile, sourceId: Long): FileReader =
+    new FileReader(file = file, blockCacheSourceId = sourceId)
 
   def apply(slice: Slice[Byte], position: Int = 0): SliceReader[Byte] =
     SliceReader(

@@ -86,10 +86,9 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
           DBFile.channelRead(
             path = Effect.write(path, bytes),
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            autoClose = true,
-            blockCacheFileId = BlockCacheFileIDGenerator.next
+            autoClose = true
           )
-        val reader = BlockRefReader(channelFile)
+        val reader = BlockRefReader(file = channelFile, sourceId = BlockCacheFileIDGenerator.next)
 
         val bytesToRead = 15
 
