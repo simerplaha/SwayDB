@@ -539,6 +539,12 @@ private[core] class SegmentBlockCache private(path: Path,
   def transfer(position: Int, count: Int, transferTo: DBFile): Unit =
     segmentBlockRef.transfer(position = position, count = count, transferTo = transferTo)
 
+  /**
+   * Transfers bytes at file level. Ignores the [[BlockRefReader]]'s offset.
+   */
+  def transferIgnoreOffset(position: Int, count: Int, transferTo: DBFile): Unit =
+    segmentBlockRef.transferIgnoreOffset(position = position, count = count, transferTo = transferTo)
+
   def clear(): Unit =
     allCaches.foreach(_.clear())
 

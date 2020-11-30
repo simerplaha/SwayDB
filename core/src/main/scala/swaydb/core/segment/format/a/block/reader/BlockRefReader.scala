@@ -147,6 +147,19 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
         transferTo.append(toTransfer)
     }
 
+  /**
+   * Transfers bytes outside this [[BlockRefReader]]'s offset.
+   */
+  def transferIgnoreOffset(position: Int, count: Int, transferTo: DBFile): Unit =
+    reader match {
+      case reader: FileReader =>
+        reader.transfer(position = position, count = count, transferTo = transferTo)
+
+      case SliceReader(slice, position) =>
+        val toTransfer = slice.drop(position).take(count)
+        transferTo.append(toTransfer)
+    }
+
   def readFullBlockAndGetReader()(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     BlockRefReader(readFullBlock())
 

@@ -237,6 +237,66 @@ private[core] case object Segment extends LazyLogging {
     )
   }
 
+  /**
+   * Write segments to target file and also attempts to batch transfer bytes.
+   */
+  private def writeOrTransfer(segments: Slice[TransientSegment.Singleton],
+                              target: DBFile,
+                              createdInLevel: Int): Int = {
+    var createdInLevelMin = createdInLevel
+
+    /**
+     * Batch transfer segments to remote file. This defers transfer to the operating
+     * system skipping the JVM heap.
+     */
+    def batchTransfer(sameFileRemotes: ListBuffer[TransientSegment.Remote]): Unit =
+      if (sameFileRemotes.nonEmpty)
+        if (sameFileRemotes.size == 1) {
+          val remote = sameFileRemotes.head
+          createdInLevelMin = createdInLevelMin min remote.ref.createdInLevel
+          remote.ref.segmentBlockCache.transfer(0, remote.segmentSize, target)
+          sameFileRemotes.clear()
+        } else {
+          sameFileRemotes foreach {
+            remote =>
+              createdInLevelMin = createdInLevelMin min remote.ref.createdInLevel
+          }
+
+          val start = sameFileRemotes.head.ref.offset().start
+          val end = sameFileRemotes.last.ref.offset().end
+          sameFileRemotes.head.ref.segmentBlockCache.transferIgnoreOffset(start, end - start + 1, target)
+          sameFileRemotes.clear()
+        }
+
+    /**
+     * Writes bytes to target file and also tries to transfer Remote Refs which belongs to
+     * same file to be transferred as a single IO operation i.e. batchableRemotes.
+     */
+    val pendingRemotes =
+      segments.foldLeft(ListBuffer.empty[TransientSegment.Remote]) {
+        case (batchableRemotes, nextRemoteOrOne) =>
+          nextRemoteOrOne match {
+            case nextRemote: TransientSegment.Remote =>
+              if (batchableRemotes.isEmpty || (batchableRemotes.last.ref.path.getParent == nextRemote.ref.path.getParent && batchableRemotes.last.ref.offset().end + 1 == nextRemote.ref.offset().start)) {
+                batchableRemotes += nextRemote
+              } else {
+                batchTransfer(batchableRemotes)
+                batchableRemotes += nextRemote
+              }
+
+            case nextOne: TransientSegment.One =>
+              batchTransfer(batchableRemotes)
+              target.append(nextOne.bodyBytes)
+              batchableRemotes
+          }
+      }
+
+    //transfer any remaining remotes.
+    batchTransfer(pendingRemotes)
+
+    createdInLevelMin
+  }
+
   def persistent(pathsDistributor: PathsDistributor,
                  createdInLevel: Int,
                  mmap: MMAP.Segment,
@@ -315,14 +375,14 @@ private[core] case object Segment extends LazyLogging {
                         file.append(segment.fileHeader)
                         file.append(segment.listSegment.bodyBytes)
 
-                        segment.segments foreach {
-                          case remote: TransientSegment.Remote =>
-                            createdInLevelMin = createdInLevelMin min remote.ref.createdInLevel
-                            remote.ref.segmentBlockCache.transfer(0, remote.segmentSize, file)
+                        val batch =
+                          writeOrTransfer(
+                            segments = segment.segments,
+                            target = file,
+                            createdInLevel = createdInLevelMin
+                          )
 
-                          case one: TransientSegment.One =>
-                            file.append(one.bodyBytes)
-                        }
+                        createdInLevelMin = createdInLevelMin min batch
                       }
                   )
 
