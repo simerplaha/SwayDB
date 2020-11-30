@@ -205,6 +205,11 @@ object TestCaseSweeper extends LazyLogging {
       sweeper sweepMemorySweeper keyValue
   }
 
+  implicit class BlockCacheStateSweeperImplicits(state: BlockCache.State) {
+    def sweep()(implicit sweeper: TestCaseSweeper): BlockCache.State =
+      sweeper sweepBlockCacheState state
+  }
+
   implicit class AllMemorySweeperImplicits(keyValue: MemorySweeper.All) {
     def sweep()(implicit sweeper: TestCaseSweeper): MemorySweeper.All =
       sweeper sweepMemorySweeper keyValue
@@ -360,6 +365,9 @@ class TestCaseSweeper(private val fileSweepers: ListBuffer[CacheNoIO[Unit, FileS
 
   def sweepMemorySweeper(sweeper: MemorySweeper.All): MemorySweeper.All =
     removeReplaceOptionalCache(allMemorySweepers, sweeper)
+
+  def sweepBlockCacheState(state: BlockCache.State): BlockCache.State =
+    removeReplaceOptionalCache(blockCaches, state)
 
   def sweepBufferCleaner(bufferCleaner: ByteBufferSweeperActor): ByteBufferSweeperActor =
     removeReplaceCache(cleaners, bufferCleaner)

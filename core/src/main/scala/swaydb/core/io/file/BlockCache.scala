@@ -87,7 +87,7 @@ private[core] object BlockCache extends LazyLogging {
   class State(val blockSize: Int,
               val skipBlockCacheSeekSize: Int,
               val sweeper: MemorySweeper.Block,
-              private[file] val map: HashedMap.Concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]]) {
+              val map: HashedMap.Concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]]) {
     val blockSizeDouble: Double = blockSize
 
     def clear() =

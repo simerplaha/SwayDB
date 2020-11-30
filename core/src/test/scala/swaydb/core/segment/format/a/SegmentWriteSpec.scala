@@ -1045,6 +1045,101 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       }
     }
+
+    "transfer blockCache on copy" in {
+      //when a Segment is copied it's BlockCache bytes should still be accessible.
+      if (persistent)
+        runThis(20.times, log = true) {
+          TestCaseSweeper {
+            implicit sweeper =>
+              TestSweeper.createBlockCacheBlockSweeper().foreach(_.sweep())
+
+              import sweeper._
+
+              val keyValues = randomizedKeyValues(keyValuesCount)
+
+              //disable caching so that blockCache gets used.
+              val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+              val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+              val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+              val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+              val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+              val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(cacheOnAccess = false, cacheBlocksOnCreate = false, hasCompression = false)
+
+              //used to calculate the size of Segment
+              val segment =
+                TestSegment(
+                  keyValues = keyValues,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig
+                )
+
+              segment.clearAllCaches() //fresh start without any existing cached bytes so that blockCache gets used.
+
+              //blockCache is initialised
+              sweeper.blockCache.value.map.asScala shouldBe empty
+              assertGetSequential(keyValues, segment)
+              sweeper.blockCache.value.map.asScala should not be empty //blockCache is populated
+              val blockCacheOld = sweeper.blockCache.value.map.asScala.toList //store the state of cache after initial read
+
+              val pathDistributor = createPathDistributor
+              pathDistributor.dirs.foreach(_.path.sweep())
+
+              //copy the segment
+              val copiedSegments =
+                Segment.copyToPersist(
+                  segment = segment,
+                  createdInLevel = 0,
+                  pathsDistributor = pathDistributor,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig,
+                  removeDeletes = false
+                ).map(_.sweep())
+
+              copiedSegments should have size 1
+              val copiedSegment = copiedSegments.head
+              println("SegmentType - " + copiedSegment.getClass.getSimpleName)
+              copiedSegment.isOpen shouldBe false //it's not opened
+
+              /**
+               * Initial read on copiedSegment
+               */
+              assertGetSequential(keyValues, copiedSegment) //do initial read from copied segment
+              sweeper.blockCache.value.map.asScala.size shouldBe blockCacheOld.size //cache is populated
+              blockCacheOld should contain allElementsOf sweeper.blockCache.value.map.asScala.toList //state is unchanged
+
+              /**
+               * Second read on copiedSegment - do clear on copied segment and read.
+               */
+              copiedSegment.clearAllCaches()
+              assertGetSequential(keyValues, copiedSegment)
+              sweeper.blockCache.value.map.asScala.size should be >= blockCacheOld.size
+
+              //since the state is cleared new sourceIds get assigned but the position and values are still the same.
+              val existingPositionValue =
+                sweeper.blockCache.value.map.asScala map {
+                  case (key, value) =>
+                    (key.position, value)
+                }
+
+              val oldPositionValue =
+                blockCacheOld map {
+                  case (key, value) =>
+                    (key.position, value)
+                }
+
+              oldPositionValue should contain allElementsOf existingPositionValue
+          }
+        }
+    }
   }
 
   "copyToMemory" should {
