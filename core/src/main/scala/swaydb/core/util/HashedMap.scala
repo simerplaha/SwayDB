@@ -64,6 +64,9 @@ private[swaydb] object HashedMap {
     def last: (K, V) =
       asScala.last
 
+    def size =
+      map.size
+
     def asScala: mutable.Map[K, V] =
       map.asScala
 

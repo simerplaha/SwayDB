@@ -24,10 +24,6 @@
 
 package swaydb.core
 
-import java.nio.file.Path
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
-
 import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
@@ -55,7 +51,6 @@ import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO, ThreadReadState}
-import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
@@ -70,6 +65,9 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.{Glass, IO}
 
+import java.nio.file.Path
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

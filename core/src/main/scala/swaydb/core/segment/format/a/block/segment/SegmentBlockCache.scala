@@ -560,8 +560,5 @@ private[core] class SegmentBlockCache private(path: Path,
   def segmentSize: Int =
     segmentBlockRef.offset.size
 
-  def blockCacheSourceId =
-    segmentBlockRef.blockCacheSourceId
-
   invalidateCachedReaders()
 }

@@ -24,16 +24,12 @@
 
 package swaydb.core.segment
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.Paths
-import java.util.concurrent.TimeUnit
-
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
 import swaydb.core.map.serializer.ValueSerializer.MinMaxSerialiser
-import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension}
+import swaydb.core.util.{Bytes, Extension}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -41,6 +37,9 @@ import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.Options._
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Paths
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Deadline
 
 private[core] sealed trait SegmentSerialiser {

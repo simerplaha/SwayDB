@@ -36,12 +36,6 @@ case class SliceReader[B](slice: Slice[B],
 
   def path = Paths.get(this.productPrefix)
 
-  override val paddingLeft: Int =
-    0
-
-  override def blockCacheSourceId: Long =
-    Long.MinValue
-
   override def size: Long =
     slice.size
 

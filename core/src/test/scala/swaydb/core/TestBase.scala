@@ -24,9 +24,6 @@
 
 package swaydb.core
 
-import java.nio.file._
-import java.util.concurrent.atomic.AtomicInteger
-
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -51,19 +48,21 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
+import swaydb.core.util.IDGenerator
 import swaydb.core.util.queue.VolatileQueue
-import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
-import swaydb.data.config.{Dir, IOStrategy, MMAP, RecoveryMode}
+import swaydb.data.config.{Dir, MMAP, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
-import swaydb.{ActorWire, Bag, Glass}
+import swaydb.{ActorWire, Glass}
 
+import java.nio.file._
+import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -460,12 +459,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   def createFile(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): Path =
     Effect.write(testClassDir.resolve(nextSegmentId).sweep(), bytes)
 
-  def createRandomFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader = {
+  def createRandomFileReader(path: Path)(implicit sweeper: TestCaseSweeper): FileReader =
     if (Random.nextBoolean())
       createMMAPFileReader(path)
     else
       createFileChannelFileReader(path)
-  }
 
   def createAllFilesReaders(path: Path)(implicit sweeper: TestCaseSweeper): List[FileReader] =
     List(
@@ -561,7 +559,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         deleteAfterClean = OperatingSystem.isWindows
       ).sweep()
 
-    new FileReader(file = file, blockCacheSourceId = BlockCacheFileIDGenerator.next)
+    new FileReader(file = file)
   }
 
   def createFileChannelFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =
@@ -577,7 +575,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
         autoClose = true
       ).sweep()
 
-    new FileReader(file, BlockCacheFileIDGenerator.next)
+    new FileReader(file = file)
   }
 
   def createRandomFileReader(bytes: Slice[Byte])(implicit sweeper: TestCaseSweeper): FileReader =

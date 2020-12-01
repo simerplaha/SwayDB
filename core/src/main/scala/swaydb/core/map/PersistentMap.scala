@@ -127,7 +127,7 @@ private[map] object PersistentMap extends LazyLogging {
           autoClose = false,
           deleteAfterClean = deleteAfterClean,
           forceSave = forceSave
-        )(fileSweeper, None, bufferCleaner, forceSaveApplier)
+        )
 
       case MMAP.Off(forceSave) =>
         DBFile.channelWrite(
@@ -135,7 +135,7 @@ private[map] object PersistentMap extends LazyLogging {
           fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
           autoClose = false,
           forceSave = forceSave
-        )(fileSweeper, None, bufferCleaner, forceSaveApplier)
+        )
     }
 
 
@@ -155,7 +155,7 @@ private[map] object PersistentMap extends LazyLogging {
       files mapRecover {
         path =>
           logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
-          val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)(fileSweeper, None, bufferCleaner, forceSaveApplier)
+          val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)
           val bytes = file.readAll
           val recovery = MapCodec.read[K, V](bytes, dropCorruptedTailEntries).get
 
@@ -257,7 +257,7 @@ private[map] object PersistentMap extends LazyLogging {
             autoClose = false,
             deleteAfterClean = deleteAfterClean,
             forceSave = forceSave
-          )(fileSweeper, None, bufferCleaner, forceSaveApplier)
+          )
 
         case MMAP.Off(forceSave) =>
           DBFile.channelWrite(
@@ -265,7 +265,7 @@ private[map] object PersistentMap extends LazyLogging {
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(true),
             autoClose = false,
             forceSave = forceSave
-          )(fileSweeper, None, bufferCleaner, forceSaveApplier)
+          )
       }
 
     newFile.append(bytes)

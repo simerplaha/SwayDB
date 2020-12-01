@@ -60,7 +60,7 @@ private[file] trait DBFileType extends FileSweeperItem with BlockCacheSource {
 
   def transfer(position: Int, count: Int, transferTo: DBFileType): Int
 
-  def read(filePosition: Int, size: Int): Slice[Byte]
+  def read(position: Int, size: Int): Slice[Byte]
 
   def get(position: Int): Byte
 }

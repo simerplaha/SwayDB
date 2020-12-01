@@ -1123,23 +1123,123 @@ sealed trait SegmentWriteSpec extends TestBase {
               assertGetSequential(keyValues, copiedSegment)
               sweeper.blockCache.value.map.asScala.size should be >= blockCacheOld.size
 
-              //since the state is cleared new sourceIds get assigned but the position and values are still the same.
-              val existingPositionValue =
-                sweeper.blockCache.value.map.asScala map {
-                  case (key, value) =>
-                    (key.position, value)
-                }
-
-              val oldPositionValue =
-                blockCacheOld map {
-                  case (key, value) =>
-                    (key.position, value)
-                }
-
-              oldPositionValue should contain allElementsOf existingPositionValue
+              blockCacheOld should contain allElementsOf sweeper.blockCache.value.map.asScala
           }
         }
     }
+
+    //    "debugger" in {
+    //      //when a Segment is copied it's BlockCache bytes should still be accessible.
+    //      if (persistent)
+    //        runThis(100.times, log = true) {
+    //          TestCaseSweeper {
+    //            implicit sweeper =>
+    //              TestSweeper.createBlockCacheBlockSweeper().foreach(_.sweep())
+    //
+    //              import sweeper._
+    //
+    //              val keyValues = randomPutKeyValues(100, startId = Some(0))
+    //
+    //              //disable caching so that blockCache gets used.
+    //              val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+    //              val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+    //              val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+    //              val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+    //              val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+    //              val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(cacheOnAccess = false, cacheBlocksOnCreate = true, hasCompression = false).copy(minSize = Int.MaxValue, maxCount = keyValues.size / 10)
+    //
+    //              val path = testSegmentFile
+    //              implicit val pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
+    //
+    //              //used to calculate the size of Segment
+    //              val segment =
+    //                TestSegment.many(
+    //                  keyValues = keyValues,
+    //                  valuesConfig = valuesConfig,
+    //                  sortedIndexConfig = sortedIndexConfig,
+    //                  binarySearchIndexConfig = binarySearchIndexConfig,
+    //                  hashIndexConfig = hashIndexConfig,
+    //                  bloomFilterConfig = bloomFilterConfig,
+    //                  segmentConfig = segmentConfig
+    //                )
+    //
+    //              segment should have size 1
+    //              val many = segment.head.asInstanceOf[PersistentSegmentMany]
+    //              many.blockCache.value.map.asScala shouldBe empty
+    //              many.listSegmentCache.value(()).getKeyValueCount() > 15
+    //
+    //              val manyListSegmentId = many.listSegmentCache.value(()).blockCacheId
+    //
+    //              val threadState = ThreadReadState.random
+    //
+    //              //              Random.shuffle(keyValues.toList) foreach {
+    //              //                keyValue =>
+    //              //                  many.get(keyValue.key, threadState).getUnsafe shouldBe keyValue
+    //              //              }
+    //
+    //              //              keyValues.take(11).takeRight(1) foreach {
+    //              //                keyValue =>
+    //              //                  println(s"get: ${keyValue.key.readInt()}")
+    //              //                  many.get(keyValue.key, threadState).getUnsafe shouldBe keyValue
+    //              //              }
+    //
+    //              //              val keyValuesToWrite = keyValues.drop(randomIntMax(keyValues.size / 2)).take(randomIntMax(keyValues.size))
+    //              val keyValuesToWrite = keyValues.take(5)
+    //
+    //              val newSegmentsResult =
+    //                many.put(
+    //                  headGap = Iterable.empty,
+    //                  tailGap = Iterable.empty,
+    //                  mergeableCount = keyValuesToWrite.size,
+    //                  mergeable = keyValuesToWrite.iterator,
+    //                  removeDeletes = false,
+    //                  createdInLevel = 1,
+    //                  segmentParallelism = randomParallelMerge().segment,
+    //                  valuesConfig = valuesConfig,
+    //                  sortedIndexConfig = sortedIndexConfig,
+    //                  binarySearchIndexConfig = binarySearchIndexConfig,
+    //                  hashIndexConfig = hashIndexConfig,
+    //                  bloomFilterConfig = bloomFilterConfig,
+    //                  segmentConfig = segmentConfig,
+    //                  pathsDistributor = pathsDistributor
+    //                )
+    //
+    //              newSegmentsResult.replaced shouldBe true
+    //              val newSegments = newSegmentsResult.result
+    //
+    //              newSegments should have size 1
+    //              val newMany = newSegments.head.asInstanceOf[PersistentSegmentMany]
+    //
+    //              println(many.getAllSegmentRefs().map(_.path.getFileName).toList)
+    //              println(newMany.getAllSegmentRefs().map(_.path.getFileName).toList)
+    //
+    //              //              many.getAllSegmentRefs().map(_.path.getFileName).toList shouldBe newMany.getAllSegmentRefs().map(_.path.getFileName).toList
+    //
+    //              println(many.getAllSegmentRefs().map(_.blockCacheId).toList)
+    //              println(newMany.getAllSegmentRefs().map(_.blockCacheId).toList)
+    //
+    //              //              newMany.listSegmentCache.value(()).blockCacheId should be > manyListSegmentId
+    //              //
+    //              //              //              Random.shuffle(keyValues.toList) foreach {
+    //              //              keyValues.take(11).takeRight(1) foreach {
+    //              //                keyValue =>
+    //              //                  println(s"get: ${keyValue.key.readInt()}")
+    //              //                  newMany.get(keyValue.key, threadState).getUnsafe shouldBe keyValue
+    //              //              }
+    //
+    //              many.blockCache.get.clear()
+    //              many.getKeyValueCount()
+    //              try
+    //                newMany.getAllSegmentRefs().toList.drop(1).head.getKeyValueCount()
+    //              catch {
+    //                case throwable: Throwable =>
+    //                  throw throwable
+    //              }
+    //
+    //            //              newMany.get(keyValues.last.key, threadState).getUnsafe shouldBe keyValues.last
+    //          }
+    //        }
+    //    }
   }
 
   "copyToMemory" should {

@@ -45,9 +45,9 @@ private[core] object Command {
   private[actor] class Cache(val weight: Int,
                              val cache: WeakReference[swaydb.data.cache.Cache[_, _, _]]) extends Command
 
-  private[actor] class BlockCache(val key: BlockCache.Key,
+  private[actor] class BlockCache(val key: Long,
                                   val valueSize: Int,
-                                  val map: HashedMap.Concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]]) extends Command
+                                  val map: HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]) extends Command
 
 }
 
@@ -194,9 +194,9 @@ private[core] object MemorySweeper extends LazyLogging {
 
   sealed trait Block extends Cache {
 
-    def add(key: BlockCache.Key,
+    def add(key: Long,
             value: Slice[Byte],
-            map: HashedMap.Concurrent[BlockCache.Key, SliceOption[Byte], Slice[Byte]]): Unit =
+            map: HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]): Unit =
       actor foreach {
         actor =>
           actor send new Command.BlockCache(

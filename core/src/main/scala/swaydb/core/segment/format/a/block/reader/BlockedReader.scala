@@ -60,9 +60,6 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
 
   val offset = block.offset
 
-  override val paddingLeft: Int =
-    offset.start
-
   override val state: BlockReader.State =
     BlockReader(offset, reader)
 

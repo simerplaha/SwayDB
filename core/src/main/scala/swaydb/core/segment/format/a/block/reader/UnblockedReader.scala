@@ -83,25 +83,14 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
 
   val offset = block.offset
 
-  override val paddingLeft: Int =
-    offset.start
-
   override def isNone: Boolean = false
 
   override val state: BlockReader.State =
     BlockReader(offset, reader)
 
-  val hasBlockCache =
-    blockSize.isDefined
-
-  def blockSize: Option[Int] =
-    reader match {
-      case reader: FileReader =>
-        reader.file.blockSize
-
-      case SliceReader(_, _) =>
-        None
-    }
+  val hasBlockCache: Boolean =
+  //    blockSize.isDefined
+    false
 
   def underlyingArraySizeOrReaderSize: Int =
     reader match {

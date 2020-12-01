@@ -35,7 +35,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.actor.FileSweeper
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator, Bytes}
+import swaydb.core.util.{Benchmark, Bytes}
 import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.data.config.{ForceSave, IOStrategy}
 import swaydb.data.slice.Slice
@@ -88,7 +88,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
             autoClose = true
           )
-        val reader = BlockRefReader(file = channelFile, sourceId = BlockCacheFileIDGenerator.next)
+        val reader = BlockRefReader(file = channelFile)
 
         val bytesToRead = 15
 

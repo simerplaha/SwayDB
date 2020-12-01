@@ -172,7 +172,7 @@ private[file] class MMAPFile(val path: Path,
       cleaner.actor send
         ByteBufferSweeper.Command.Clean(
           buffer = swapBuffer,
-          hasReference = hasReference,
+          hasReference = hasReference _,
           forced = forced,
           filePath = path,
           forceSave = forceSaveConfig
@@ -231,12 +231,12 @@ private[file] class MMAPFile(val path: Path,
         count
     }
 
-  def read(filePosition: Int, size: Int): Slice[Byte] =
+  def read(position: Int, size: Int): Slice[Byte] =
     watchNullPointer {
       val array = new Array[Byte](size)
       var i = 0
       while (i < size) {
-        array(i) = buffer.get(i + filePosition)
+        array(i) = buffer.get(i + position)
         i += 1
       }
       Slice(array)

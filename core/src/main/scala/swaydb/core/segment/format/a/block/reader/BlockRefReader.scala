@@ -33,57 +33,34 @@ import swaydb.data.util.ByteOps
 
 private[core] object BlockRefReader {
 
-  private def updateSourceId(reader: Reader[Byte], sourceId: Long): Reader[Byte] =
-    reader match {
-      case reader: FileReader =>
-        if (sourceId == reader.blockCacheSourceId)
-          reader
-        else
-          reader.copy(sourceId)
-
-      case slice @ SliceReader(_, _) =>
-        slice
-    }
-
-  def apply(file: DBFile,
-            sourceId: Long): BlockRefReader[SegmentBlock.Offset] =
+  def apply(file: DBFile): BlockRefReader[SegmentBlock.Offset] =
     new BlockRefReader(
       offset = SegmentBlock.Offset(0, file.fileSize.toInt),
-      reader = Reader(file = file, sourceId = sourceId)
+      reader = Reader(file)
     )
 
-  def apply(file: DBFile,
-            fileSize: Int,
-            sourceId: Long): BlockRefReader[SegmentBlock.Offset] =
+  def apply(file: DBFile, fileSize: Int): BlockRefReader[SegmentBlock.Offset] =
     new BlockRefReader(
       offset = SegmentBlock.Offset(0, fileSize),
-      reader = Reader(file = file, sourceId = sourceId)
+      reader = Reader(file)
     )
 
-  def apply(file: DBFile,
-            start: Int,
-            fileSize: Int,
-            sourceId: Long): BlockRefReader[SegmentBlock.Offset] =
+  def apply(file: DBFile, start: Int, fileSize: Int): BlockRefReader[SegmentBlock.Offset] =
     new BlockRefReader(
       offset = SegmentBlock.Offset(start, fileSize),
-      reader = Reader(file = file, sourceId = sourceId)
+      reader = Reader(file)
     )
 
-  def apply[O <: BlockOffset](ref: BlockRefReader[_ <: BlockOffset],
-                              start: Int,
-                              sourceId: Long)(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+  def apply[O <: BlockOffset](ref: BlockRefReader[_ <: BlockOffset], start: Int)(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader[O](
       offset = blockOps.createOffset(ref.offset.start + start, ref.size.toInt),
-      reader = updateSourceId(ref.reader, sourceId)
+      reader = ref.reader
     )
 
-  def apply[O <: BlockOffset](ref: BlockRefReader[_ <: BlockOffset],
-                              start: Int,
-                              size: Int,
-                              sourceId: Long)(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+  def apply[O <: BlockOffset](ref: BlockRefReader[_ <: BlockOffset], start: Int, size: Int)(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader[O](
       offset = blockOps.createOffset(ref.offset.start + start, size),
-      reader = updateSourceId(ref.reader, sourceId)
+      reader = ref.reader
     )
 
   def apply[O <: BlockOffset](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
@@ -112,17 +89,10 @@ private[core] object BlockRefReader {
       offset = blockOps.createOffset(reader.offset.start + offset.start, offset.size),
       reader = reader.reader
     )
-
 }
 
 private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
                                                              private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase {
-
-  override val paddingLeft: Int =
-    offset.start
-
-  def blockCacheSourceId: Long =
-    reader.blockCacheSourceId
 
   override val state: BlockReader.State =
     BlockReader(offset, reader)

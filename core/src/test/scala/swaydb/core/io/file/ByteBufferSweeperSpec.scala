@@ -24,11 +24,6 @@
 
 package swaydb.core.io.file
 
-import java.nio.channels.FileChannel
-import java.nio.channels.FileChannel.MapMode
-import java.nio.file.{Path, Paths, StandardOpenOption}
-import java.util.concurrent.atomic.AtomicBoolean
-
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
@@ -36,9 +31,7 @@ import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
-import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
-import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.RunThis._
 import swaydb.data.config.ActorConfig
@@ -46,6 +39,10 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
 import swaydb.{Bag, Glass, IO}
 
+import java.nio.channels.FileChannel
+import java.nio.channels.FileChannel.MapMode
+import java.nio.file.{Path, Paths, StandardOpenOption}
+import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.concurrent.duration._

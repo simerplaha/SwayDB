@@ -33,7 +33,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.util.{BlockCacheFileIDGenerator, MinMax}
+import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
@@ -69,15 +69,6 @@ object TransientSegment {
         offset = offset,
         size = size
       )
-
-    def blockCacheSourceId: Long =
-      this match {
-        case remote: TransientSegment.Remote =>
-          remote.ref.blockCacheSourceId
-
-        case _: TransientSegment.One =>
-          BlockCacheFileIDGenerator.next
-      }
   }
 
   case class Remote(fileHeader: Slice[Byte], ref: SegmentRef) extends Singleton {

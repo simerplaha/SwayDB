@@ -412,7 +412,6 @@ private[core] case object Segment extends LazyLogging {
                           applier: DBFile => Unit)(implicit segmentIO: SegmentIO,
                                                    fileSweeper: FileSweeper,
                                                    bufferCleaner: ByteBufferSweeperActor,
-                                                   blockCache: Option[BlockCache.State],
                                                    forceSaveApplier: ForceSaveApplier): DBFile =
     mmap match {
       case MMAP.On(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
@@ -897,7 +896,6 @@ private[core] case object Segment extends LazyLogging {
         case Some(one: PersistentSegmentOne) =>
           PersistentSegmentOne(
             file = file,
-            sourceId = one.ref.blockCacheSourceId,
             createdInLevel = createdInLevel,
             minKey = minKey,
             maxKey = maxKey,
@@ -918,7 +916,6 @@ private[core] case object Segment extends LazyLogging {
         case None =>
           PersistentSegmentOne(
             file = file,
-            sourceId = BlockCacheFileIDGenerator.next,
             createdInLevel = createdInLevel,
             minKey = minKey,
             maxKey = maxKey,

@@ -26,8 +26,6 @@ package swaydb.data.slice
 
 trait Reader[B] extends ReaderBase[B] {
 
-  def blockCacheSourceId: Long
-
   def moveTo(position: Long): Reader[B]
 
   def moveTo(position: Int): Reader[B]

@@ -98,8 +98,7 @@ protected case object PersistentSegmentMany {
               BlockRefReader(
                 file = file,
                 start = actualOffset,
-                fileSize = thisSegmentSize,
-                sourceId = singleton.blockCacheSourceId
+                fileSize = thisSegmentSize
               )
 
             val pathNameOffset = actualOffset - firstSegmentOffset
@@ -126,8 +125,6 @@ protected case object PersistentSegmentMany {
             actualOffset + thisSegmentSize
         }
 
-    val listSegmentSourceId = BlockCacheFileIDGenerator.next
-
     val listSegment =
       if (cacheBlocksOnCreate)
         Some(
@@ -141,8 +138,7 @@ protected case object PersistentSegmentMany {
               BlockRefReader(
                 file = file,
                 start = segment.fileHeader.size,
-                fileSize = listSegmentSize,
-                sourceId = listSegmentSourceId
+                fileSize = listSegmentSize
               ),
             segmentIO = segmentIO,
             valuesReaderCacheable = segment.listSegment.valuesUnblockedReader,
@@ -156,29 +152,24 @@ protected case object PersistentSegmentMany {
       else
         None
 
-    val fileBlockSourceId = BlockCacheFileIDGenerator.next
-
     val listSegmentCache =
       Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = listSegment) {
         (_, _) =>
           initListSegment(
             file = file,
-            listSegmentSourceId = listSegmentSourceId,
             minKey = segment.listSegment.minKey,
             maxKey = segment.listSegment.maxKey,
             fileBlockRef =
               BlockRefReader(
                 file = file,
                 start = 1,
-                fileSize = segment.segmentSize - 1,
-                sourceId = fileBlockSourceId
+                fileSize = segment.segmentSize - 1
               )
           )
       }
 
     PersistentSegmentMany(
       file = file,
-      fileBlockSourceId = fileBlockSourceId,
       createdInLevel = createdInLevel,
       minKey = segment.minKey,
       maxKey = segment.maxKey,
@@ -209,64 +200,46 @@ protected case object PersistentSegmentMany {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
-    val (fileBlockSourceId, listSegmentSourceId, segmentCache) =
-      copiedFrom match {
-        case Some(copiedFrom) =>
-          //also populate cache.
-          val segmentCache = new ConcurrentHashMap[Int, SegmentRef]()
+    val segmentCache = new ConcurrentHashMap[Int, SegmentRef]()
 
-          copiedFrom.segmentsCache forEach {
-            (offset, oldRef) =>
+    copiedFrom foreach {
+      copiedFrom =>
+        copiedFrom.segmentsCache forEach {
+          (offset, oldRef) =>
 
-              val oldRefOffset = oldRef.offset()
+            val oldRefOffset = oldRef.offset()
 
-              val ref =
-                SegmentRef(
-                  path = file.path.resolve(s"ref.$offset"),
-                  minKey = oldRef.minKey,
-                  maxKey = oldRef.maxKey,
-                  nearestPutDeadline = oldRef.nearestPutDeadline,
-                  minMaxFunctionId = oldRef.minMaxFunctionId,
-                  blockRef =
-                    BlockRefReader(
-                      file = file,
-                      start = oldRefOffset.start,
-                      fileSize = oldRefOffset.size,
-                      sourceId = oldRef.blockCacheSourceId
-                    ),
-                  segmentIO = segmentIO,
-                  valuesReaderCacheable = oldRef.segmentBlockCache.cachedValuesSliceReader(),
-                  sortedIndexReaderCacheable = oldRef.segmentBlockCache.cachedSortedIndexSliceReader(),
-                  hashIndexReaderCacheable = oldRef.segmentBlockCache.cachedHashIndexSliceReader(),
-                  binarySearchIndexReaderCacheable = oldRef.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
-                  bloomFilterReaderCacheable = oldRef.segmentBlockCache.cachedBloomFilterSliceReader(),
-                  footerCacheable = oldRef.segmentBlockCache.cachedFooter()
-                )
+            val ref =
+              SegmentRef(
+                path = file.path.resolve(s"ref.$offset"),
+                minKey = oldRef.minKey,
+                maxKey = oldRef.maxKey,
+                nearestPutDeadline = oldRef.nearestPutDeadline,
+                minMaxFunctionId = oldRef.minMaxFunctionId,
+                blockRef =
+                  BlockRefReader(
+                    file = file,
+                    start = oldRefOffset.start,
+                    fileSize = oldRefOffset.size
+                  ),
+                segmentIO = segmentIO,
+                valuesReaderCacheable = oldRef.segmentBlockCache.cachedValuesSliceReader(),
+                sortedIndexReaderCacheable = oldRef.segmentBlockCache.cachedSortedIndexSliceReader(),
+                hashIndexReaderCacheable = oldRef.segmentBlockCache.cachedHashIndexSliceReader(),
+                binarySearchIndexReaderCacheable = oldRef.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
+                bloomFilterReaderCacheable = oldRef.segmentBlockCache.cachedBloomFilterSliceReader(),
+                footerCacheable = oldRef.segmentBlockCache.cachedFooter()
+              )
 
-              segmentCache.put(offset, ref)
-          }
-
-          val listSegmentSourceId =
-            copiedFrom.listSegmentCache.get() match {
-              case Some(listSegmentCache) =>
-                listSegmentCache.blockCacheSourceId
-
-              case None =>
-                BlockCacheFileIDGenerator.next
-            }
-
-          (copiedFrom.fileBlockSourceId, listSegmentSourceId, segmentCache)
-
-        case None =>
-          (BlockCacheFileIDGenerator.next, BlockCacheFileIDGenerator.next, new ConcurrentHashMap[Int, SegmentRef]())
-      }
+            segmentCache.put(offset, ref)
+        }
+    }
 
     val fileBlockRef: BlockRefReader[SegmentBlock.Offset] =
       BlockRefReader(
         file = file,
         start = 1,
-        fileSize = segmentSize - 1,
-        sourceId = fileBlockSourceId
+        fileSize = segmentSize - 1
       )
 
     val listSegmentCache =
@@ -274,7 +247,6 @@ protected case object PersistentSegmentMany {
         (_, _) =>
           initListSegment(
             file = file,
-            listSegmentSourceId = listSegmentSourceId,
             minKey = minKey,
             maxKey = maxKey,
             fileBlockRef = fileBlockRef
@@ -283,7 +255,6 @@ protected case object PersistentSegmentMany {
 
     new PersistentSegmentMany(
       file = file,
-      fileBlockSourceId = fileBlockSourceId,
       createdInLevel = createdInLevel,
       minKey = minKey,
       maxKey = maxKey,
@@ -316,25 +287,19 @@ protected case object PersistentSegmentMany {
     if (fileExtension != Extension.Seg)
       throw new Exception(s"Invalid Segment file extension: $fileExtension")
 
-    val fileBlockSourceId = BlockCacheFileIDGenerator.next
-
     val fileBlockRef: BlockRefReader[SegmentBlock.Offset] =
       BlockRefReader(
         file = file,
         start = 1,
-        fileSize = file.fileSize.toInt - 1,
-        sourceId = fileBlockSourceId
+        fileSize = file.fileSize.toInt - 1
       )
-
-    val listSegmentSourceId = BlockCacheFileIDGenerator.next
 
     val listSegment: SegmentRef =
       initListSegment(
         file = file,
         minKey = null,
         maxKey = null,
-        fileBlockRef = fileBlockRef,
-        listSegmentSourceId = listSegmentSourceId
+        fileBlockRef = fileBlockRef
       )
 
     val footer = listSegment.getFooter()
@@ -394,14 +359,12 @@ protected case object PersistentSegmentMany {
             file = file,
             minKey = minKey,
             maxKey = maxKey,
-            fileBlockRef = fileBlockRef,
-            listSegmentSourceId = listSegmentSourceId
+            fileBlockRef = fileBlockRef
           )
       }
 
     PersistentSegmentMany(
       file = file,
-      fileBlockSourceId = fileBlockSourceId,
       segmentSize = file.fileSize.toInt,
       createdInLevel = footer.createdInLevel,
       minKey = minKey,
@@ -466,8 +429,7 @@ protected case object PersistentSegmentMany {
           BlockRefReader[SegmentBlock.Offset](
             ref = fileBlockRef.copy(),
             start = tailSegmentBytesFromOffset,
-            size = tailManySegmentsSize,
-            sourceId = BlockCacheFileIDGenerator.next
+            size = tailManySegmentsSize
           )
 
         val nextSegmentRef =
@@ -518,13 +480,11 @@ protected case object PersistentSegmentMany {
   }
 
   private def initListSegment(file: DBFile,
-                              listSegmentSourceId: Long,
                               minKey: Slice[Byte],
                               maxKey: MaxKey[Slice[Byte]],
                               fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                                                  functionStore: FunctionStore,
-                                                                                 blockCache: Option[BlockCache.State],
                                                                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                  blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                                  segmentIO: SegmentIO): SegmentRef = {
@@ -535,8 +495,7 @@ protected case object PersistentSegmentMany {
       BlockRefReader(
         file = file,
         start = blockedReader.offset.start + blockedReader.getPosition,
-        fileSize = listSegmentSize,
-        sourceId = listSegmentSourceId
+        fileSize = listSegmentSize
       )
 
     SegmentRef(
@@ -560,7 +519,6 @@ protected case object PersistentSegmentMany {
 }
 
 protected case class PersistentSegmentMany(file: DBFile,
-                                           fileBlockSourceId: Long,
                                            createdInLevel: Int,
                                            minKey: Slice[Byte],
                                            maxKey: MaxKey[Slice[Byte]],
@@ -594,8 +552,7 @@ protected case class PersistentSegmentMany(file: DBFile,
         BlockRefReader(
           file = file,
           start = firstSegmentStartOffset,
-          fileSize = this.segmentSize - firstSegmentStartOffset,
-          sourceId = BlockCacheFileIDGenerator.next
+          fileSize = this.segmentSize - firstSegmentStartOffset
         )
 
       val segment =

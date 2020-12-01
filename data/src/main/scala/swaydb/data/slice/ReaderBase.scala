@@ -35,8 +35,6 @@ import scala.annotation.tailrec
 
 trait ReaderBase[B] { self =>
 
-  def paddingLeft: Int
-
   def byteOps: ByteOps[B]
 
   def path: Path

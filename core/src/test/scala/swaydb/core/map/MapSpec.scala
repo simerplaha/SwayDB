@@ -24,8 +24,6 @@
 
 package swaydb.core.map
 
-import java.nio.file.{FileAlreadyExistsException, Path}
-
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -40,17 +38,19 @@ import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO}
+import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.SkipListConcurrent
-import swaydb.core.util.{BlockCacheFileIDGenerator, Extension}
-import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import java.nio.file.{FileAlreadyExistsException, Path}
 
 class MapSpec extends TestBase {
 

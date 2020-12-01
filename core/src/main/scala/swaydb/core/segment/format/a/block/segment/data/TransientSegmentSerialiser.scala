@@ -24,8 +24,6 @@
 
 package swaydb.core.segment.format.a.block.segment.data
 
-import java.nio.file.Path
-
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Memory, Persistent, Time, Value}
 import swaydb.core.io.reader.Reader
@@ -39,11 +37,12 @@ import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.{SegmentIO, SegmentRef}
-import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
+
+import java.nio.file.Path
 
 object TransientSegmentSerialiser {
 
@@ -193,8 +192,7 @@ object TransientSegmentSerialiser {
               BlockRefReader(
                 ref = reader,
                 start = segmentOffset,
-                size = segmentSize,
-                sourceId = BlockCacheFileIDGenerator.next
+                size = segmentSize
               ),
             segmentIO = segmentIO,
             valuesReaderCacheable = valuesReaderCacheable,
@@ -220,8 +218,7 @@ object TransientSegmentSerialiser {
               BlockRefReader(
                 ref = reader,
                 start = segmentOffset,
-                size = segmentSize,
-                sourceId = BlockCacheFileIDGenerator.next
+                size = segmentSize
               ),
             segmentIO = segmentIO,
             valuesReaderCacheable = valuesReaderCacheable,
@@ -269,8 +266,7 @@ object TransientSegmentSerialiser {
           BlockRefReader(
             ref = reader,
             start = segmentOffset,
-            size = segmentSize,
-            sourceId = BlockCacheFileIDGenerator.next
+            size = segmentSize
           ),
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,
@@ -296,8 +292,7 @@ object TransientSegmentSerialiser {
           BlockRefReader(
             ref = reader,
             start = segmentOffset,
-            size = segmentSize,
-            sourceId = BlockCacheFileIDGenerator.next
+            size = segmentSize
           ),
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,
