@@ -107,7 +107,7 @@ private[core] object Level extends LazyLogging {
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore,
                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                              blockCache: Option[BlockCache.State],
+                                              blockSweeper: Option[MemorySweeper.Block],
                                               fileSweeper: FileSweeper,
                                               bufferCleaner: ByteBufferSweeperActor,
                                               forceSaveApplier: ForceSaveApplier): IO[swaydb.Error.Level, Level] = {
@@ -344,7 +344,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               val keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                               val fileSweeper: FileSweeper,
                                                               val bufferCleaner: ByteBufferSweeperActor,
-                                                              val blockCache: Option[BlockCache.State],
+                                                              val blockCacheSweeper: Option[MemorySweeper.Block],
                                                               val segmentIDGenerator: IDGenerator,
                                                               val segmentIO: SegmentIO,
                                                               reserve: ReserveRange.State[Unit],
@@ -805,7 +805,7 @@ private[core] case class Level(dirs: Seq[Dir],
       CompactionResult.`false`
   }
 
-  private[level] def copy(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] =
+  private[level] def copy(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[swaydb.Error.Level, Iterable[Segment]] =
     IO {
       logger.trace(s"{}: Copying {} Map", pathDistributor.head, map.pathOption)
 
@@ -891,7 +891,7 @@ private[core] case class Level(dirs: Seq[Dir],
       CompactionResult(segments)
   }
 
-  private[level] def copyLocal(segments: Iterable[Segment])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
+  private[level] def copyLocal(segments: Iterable[Segment]): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Segments", pathDistributor.head, segments.map(_.path.toString))
     segments.flatMapRecoverIO[Segment](
       ioBlock =

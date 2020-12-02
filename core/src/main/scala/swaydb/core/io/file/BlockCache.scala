@@ -47,30 +47,15 @@ private[core] object BlockCache extends LazyLogging {
 
       case enabled: MemorySweeper.On =>
         enabled match {
-          case block: MemorySweeper.BlockSweeper =>
+          case block: MemorySweeper.Block =>
             Some(BlockCache.init(block))
 
           case _: MemorySweeper.KeyValueSweeper =>
             None
-
-          case both: MemorySweeper.All =>
-            Some(BlockCache.init(both))
         }
     }
 
-  def init(memorySweeper: MemorySweeper.BlockSweeper) =
-    new State(
-      blockSize = memorySweeper.blockSize,
-      sweeper = memorySweeper,
-      skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
-      map =
-        HashedMap.concurrent[Long, SliceOption[Byte], Slice[Byte]](
-          nullValue = Slice.Null,
-          initialCapacity = Some(memorySweeper.cacheSize / memorySweeper.blockSize)
-        )
-    )
-
-  def init(memorySweeper: MemorySweeper.All) =
+  def init(memorySweeper: MemorySweeper.Block): BlockCache.State =
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,

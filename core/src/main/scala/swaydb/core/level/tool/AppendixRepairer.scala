@@ -71,7 +71,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                 )(keyOrder = keyOrder,
                   timeOrder = null,
                   functionStore = null,
-                  blockCache = None,
+                  blockCacheSweeper = None,
                   keyValueMemorySweeper = memorySweeper,
                   fileSweeper = fileSweeper,
                   bufferCleaner = bufferCleaner,

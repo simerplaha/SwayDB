@@ -27,7 +27,7 @@ package swaydb.core.segment
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, Effect, ForceSaveApplier}
+import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map.serializer.ValueSerializer.MinMaxSerialiser
 import swaydb.core.util.{Bytes, Extension}
 import swaydb.data.MaxKey
@@ -56,7 +56,7 @@ private[core] sealed trait SegmentSerialiser {
                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                    fileSweeper: FileSweeper,
                                    bufferCleaner: ByteBufferSweeperActor,
-                                   blockCache: Option[BlockCache.State],
+                                   blockCacheSweeper: Option[MemorySweeper.Block],
                                    forceSaveApplier: ForceSaveApplier,
                                    segmentIO: SegmentIO): Segment
 
@@ -107,7 +107,7 @@ private[core] object SegmentSerialiser {
                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                      fileSweeper: FileSweeper,
                                      bufferCleaner: ByteBufferSweeperActor,
-                                     blockCache: Option[BlockCache.State],
+                                     blockCacheSweeper: Option[MemorySweeper.Block],
                                      forceSaveApplier: ForceSaveApplier,
                                      segmentIO: SegmentIO): Segment = {
 

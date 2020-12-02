@@ -960,7 +960,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               keyValueMemorySweeper = keyValueMemorySweeper,
               fileSweeper = fileSweeper,
               bufferCleaner = cleaner,
-              blockCache = blockCache,
+              blockCacheSweeper = blockSweeperCache,
               forceSaveApplier = forceSaveApplier,
               segmentIO = segmentIO,
               idGenerator = segmentIDGenerator

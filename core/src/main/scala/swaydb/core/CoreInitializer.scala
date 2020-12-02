@@ -149,8 +149,14 @@ private[core] object CoreInitializer extends LazyLogging {
         val memorySweeper: Option[MemorySweeper.On] =
           MemorySweeper(memoryCache)
 
-        implicit val blockCache: Option[BlockCache.State] =
-          memorySweeper flatMap BlockCache.init
+        implicit val blockCacheSweeper: Option[MemorySweeper.Block] =
+          memorySweeper flatMap {
+            case block: MemorySweeper.Block =>
+              Some(block)
+
+            case _: MemorySweeper.KeyValue =>
+              None
+          }
 
         implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] =
           memorySweeper flatMap {

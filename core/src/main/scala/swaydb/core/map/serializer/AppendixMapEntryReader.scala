@@ -43,7 +43,7 @@ private[core] object AppendixMapEntryReader {
                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                     fileSweeper: FileSweeper,
                                     bufferCleaner: ByteBufferSweeperActor,
-                                    blockCache: Option[BlockCache.State],
+                                    blockCacheSweeper: Option[MemorySweeper.Block],
                                     forceSaveApplier: ForceSaveApplier,
                                     segmentIO: SegmentIO): AppendixMapEntryReader =
     new AppendixMapEntryReader(
@@ -59,7 +59,7 @@ private[core] class AppendixMapEntryReader(mmapSegment: MMAP.Segment,
                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                    fileSweeper: FileSweeper,
                                                                    bufferCleaner: ByteBufferSweeperActor,
-                                                                   blockCache: Option[BlockCache.State],
+                                                                   blockCacheSweeper: Option[MemorySweeper.Block],
                                                                    forceSaveApplier: ForceSaveApplier,
                                                                    segmentIO: SegmentIO) {
 

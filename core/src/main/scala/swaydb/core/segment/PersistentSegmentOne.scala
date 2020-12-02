@@ -66,7 +66,7 @@ protected object PersistentSegmentOne {
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore,
                                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                 blockCache: Option[BlockCache.State],
+                                                 blockCacheSweeper: Option[MemorySweeper.Block],
                                                  fileSweeper: FileSweeper,
                                                  bufferCleaner: ByteBufferSweeperActor,
                                                  forceSaveApplier: ForceSaveApplier,
@@ -103,13 +103,11 @@ protected object PersistentSegmentOne {
                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                          functionStore: FunctionStore,
                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                         blockCache: Option[BlockCache.State],
+                                                         blockCacheSweeper: Option[MemorySweeper.Block],
                                                          fileSweeper: FileSweeper,
                                                          bufferCleaner: ByteBufferSweeperActor,
                                                          forceSaveApplier: ForceSaveApplier,
                                                          segmentIO: SegmentIO): PersistentSegmentOne = {
-
-    implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
     val segmentBlockRef =
       BlockRefReader(
@@ -150,14 +148,12 @@ protected object PersistentSegmentOne {
   def apply(file: DBFile)(implicit keyOrder: KeyOrder[Slice[Byte]],
                           timeOrder: TimeOrder[Slice[Byte]],
                           functionStore: FunctionStore,
-                          blockCache: Option[BlockCache.State],
+                          blockCacheSweeper: Option[MemorySweeper.Block],
                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                           fileSweeper: FileSweeper,
                           bufferCleaner: ByteBufferSweeperActor,
                           forceSaveApplier: ForceSaveApplier,
                           segmentIO: SegmentIO): PersistentSegment = {
-
-    implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
     val fileSize = file.fileSize.toInt
 
@@ -229,7 +225,7 @@ protected case class PersistentSegmentOne(file: DBFile,
                                           private[segment] val ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                                 functionStore: FunctionStore,
-                                                                                blockCache: Option[BlockCache.State],
+                                                                                blockCacheSweeper: Option[MemorySweeper.Block],
                                                                                 fileSweeper: FileSweeper,
                                                                                 bufferCleaner: ByteBufferSweeperActor,
                                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],

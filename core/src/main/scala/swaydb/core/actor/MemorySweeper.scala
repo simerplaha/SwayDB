@@ -194,6 +194,10 @@ private[core] object MemorySweeper extends LazyLogging {
 
   sealed trait Block extends Cache {
 
+    def blockSize: Int
+    def cacheSize: Int
+    def skipBlockCacheSeekSize: Int
+
     def add(key: Long,
             value: Slice[Byte],
             map: HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]): Unit =

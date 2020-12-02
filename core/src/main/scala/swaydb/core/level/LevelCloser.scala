@@ -29,18 +29,17 @@ import swaydb.Bag
 import swaydb.Bag.Implicits._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
-import swaydb.core.io.file.BlockCache
 
 object LevelCloser extends LazyLogging {
 
   def close[BAG[_]]()(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                      blockCache: Option[BlockCache.State],
+                      blockCacheSweeper: Option[MemorySweeper.Block],
                       fileSweeper: FileSweeper,
                       bufferCleaner: ByteBufferSweeperActor,
                       bag: Bag[BAG]): BAG[Unit] = {
 
     MemorySweeper.close(keyValueMemorySweeper)
-    BlockCache.close(blockCache)
+    MemorySweeper.close(blockCacheSweeper)
 
     FileSweeper.close()
       .and(ByteBufferSweeper.close())

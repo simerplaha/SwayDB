@@ -213,7 +213,7 @@ private[core] case object Segment extends LazyLogging {
                                                                      fileSweeper: FileSweeper,
                                                                      bufferCleaner: ByteBufferSweeperActor,
                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                     blockCache: Option[BlockCache.State],
+                                                                     blockCacheSweeper: Option[MemorySweeper.Block],
                                                                      segmentIO: SegmentIO,
                                                                      idGenerator: IDGenerator,
                                                                      forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
@@ -306,7 +306,7 @@ private[core] case object Segment extends LazyLogging {
                                                         fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                        blockCache: Option[BlockCache.State],
+                                                        blockCacheSweeper: Option[MemorySweeper.Block],
                                                         segmentIO: SegmentIO,
                                                         idGenerator: IDGenerator,
                                                         forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] =
@@ -516,7 +516,7 @@ private[core] case object Segment extends LazyLogging {
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                         fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                        blockCache: Option[BlockCache.State],
+                                                        blockCacheSweeper: Option[MemorySweeper.Block],
                                                         segmentIO: SegmentIO,
                                                         idGenerator: IDGenerator,
                                                         forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] =
@@ -582,7 +582,7 @@ private[core] case object Segment extends LazyLogging {
                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                         fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                        blockCache: Option[BlockCache.State],
+                                                        blockCacheSweeper: Option[MemorySweeper.Block],
                                                         segmentIO: SegmentIO,
                                                         idGenerator: IDGenerator,
                                                         forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
@@ -678,7 +678,7 @@ private[core] case object Segment extends LazyLogging {
                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                    fileSweeper: FileSweeper,
                                                    bufferCleaner: ByteBufferSweeperActor,
-                                                   blockCache: Option[BlockCache.State],
+                                                   blockCacheSweeper: Option[MemorySweeper.Block],
                                                    segmentIO: SegmentIO,
                                                    forceSaveApplier: ForceSaveApplier): SegmentPutResult[Slice[PersistentSegment]] = {
     val transient: Iterable[TransientSegment] =
@@ -826,7 +826,7 @@ private[core] case object Segment extends LazyLogging {
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                 fileSweeper: FileSweeper,
                                                                 bufferCleaner: ByteBufferSweeperActor,
-                                                                blockCache: Option[BlockCache.State],
+                                                                blockCacheSweeper: Option[MemorySweeper.Block],
                                                                 segmentIO: SegmentIO,
                                                                 forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
 
@@ -867,7 +867,7 @@ private[core] case object Segment extends LazyLogging {
                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                          fileSweeper: FileSweeper,
                                          bufferCleaner: ByteBufferSweeperActor,
-                                         blockCache: Option[BlockCache.State],
+                                         blockCacheSweeper: Option[MemorySweeper.Block],
                                          segmentIO: SegmentIO,
                                          forceSaveApplier: ForceSaveApplier): PersistentSegment = {
 
@@ -976,14 +976,13 @@ private[core] case object Segment extends LazyLogging {
             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
-                                  blockCache: Option[BlockCache.State],
+                                  blockCacheSweeper: Option[MemorySweeper.Block],
                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                   fileSweeper: FileSweeper,
                                   bufferCleaner: ByteBufferSweeperActor,
                                   forceSaveApplier: ForceSaveApplier): PersistentSegment = {
 
     implicit val segmentIO: SegmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
-    implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
     val file =
       mmap match {

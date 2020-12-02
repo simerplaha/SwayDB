@@ -70,13 +70,11 @@ protected case object PersistentSegmentMany {
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore,
                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                            blockCache: Option[BlockCache.State],
+                                            blockCacheSweeper: Option[MemorySweeper.Block],
                                             fileSweeper: FileSweeper,
                                             bufferCleaner: ByteBufferSweeperActor,
                                             segmentIO: SegmentIO,
                                             forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
-
-    implicit val blockMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
     val segments = new ConcurrentHashMap[Int, SegmentRef]()
 
@@ -192,13 +190,11 @@ protected case object PersistentSegmentMany {
                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                        functionStore: FunctionStore,
                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                       blockCache: Option[BlockCache.State],
+                                                       blockCacheSweeper: Option[MemorySweeper.Block],
                                                        fileSweeper: FileSweeper,
                                                        bufferCleaner: ByteBufferSweeperActor,
                                                        segmentIO: SegmentIO,
                                                        forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
-
-    implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
     val segmentCache = new ConcurrentHashMap[Int, SegmentRef]()
 
@@ -275,8 +271,7 @@ protected case object PersistentSegmentMany {
                           timeOrder: TimeOrder[Slice[Byte]],
                           functionStore: FunctionStore,
                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                          blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                          blockCache: Option[BlockCache.State],
+                          blockCacheSweeper: Option[MemorySweeper.Block],
                           fileSweeper: FileSweeper,
                           bufferCleaner: ByteBufferSweeperActor,
                           segmentIO: SegmentIO,
@@ -529,11 +524,10 @@ protected case class PersistentSegmentMany(file: DBFile,
                                            private[segment] val segmentsCache: ConcurrentHashMap[Int, SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                    functionStore: FunctionStore,
-                                                                                                                   blockCache: Option[BlockCache.State],
+                                                                                                                   blockCacheSweeper: Option[MemorySweeper.Block],
                                                                                                                    fileSweeper: FileSweeper,
                                                                                                                    bufferCleaner: ByteBufferSweeperActor,
                                                                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                   blockMemorySweeper: Option[MemorySweeper.Block],
                                                                                                                    segmentIO: SegmentIO,
                                                                                                                    forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
 

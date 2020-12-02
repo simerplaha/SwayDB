@@ -187,7 +187,7 @@ class SegmentReadPerformanceSpec extends TestBase {
     //      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
     implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
 
-    implicit val state: Option[BlockCache.State] =
+    implicit val state: Option[MemorySweeper.Block] =
     //      Some(BlockCache.init(MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, actorConfig = None)))
       None
 

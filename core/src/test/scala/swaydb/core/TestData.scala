@@ -169,7 +169,7 @@ object TestData {
 
       implicit val segmentIO = level.segmentIO
       implicit val fileSweeper = level.fileSweeper
-      implicit val blockCache = level.blockCache
+      implicit val blockCache = level.blockCacheSweeper
       implicit val bufferCleaner = level.bufferCleaner
       implicit val keyValueSweeper = level.keyValueMemorySweeper
       implicit val forceSaveApplier = level.forceSaveApplier
