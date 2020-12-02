@@ -94,16 +94,13 @@ private[core] object BlockRefReader {
 private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
                                                              private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase {
 
-  override val state: BlockReader.State =
-    BlockReader(offset, reader)
-
   override def moveTo(newPosition: Long): BlockRefReader[O] = {
-    state moveTo newPosition.toInt
+    moveTo(newPosition.toInt)
     this
   }
 
   override def moveTo(newPosition: Int): BlockRefReader[O] = {
-    state moveTo newPosition
+    super.moveTo(newPosition)
     this
   }
 

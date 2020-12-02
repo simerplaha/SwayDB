@@ -25,6 +25,8 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
+import swaydb.core.io.file.BlockCacheSource
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceOption}
 
@@ -35,34 +37,72 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with LazyLogging {
 
   private[reader] val reader: Reader[Byte]
 
-  override val isFile: Boolean = reader.isFile
-
   def offset: BlockOffset
 
   def path = reader.path
 
-  def state: BlockReader.State
+  private var position: Int = 0
+
+  override val isFile: Boolean =
+    reader.isFile
+
+  override def remaining: Long =
+    offset.size - position
+
+  def moveTo(position: Int) = {
+    this.position = position
+    this
+  }
+
+  override def hasMore: Boolean =
+    hasAtLeast(1)
+
+  override def hasAtLeast(atLeastSize: Long): Boolean =
+    hasAtLeast(position, atLeastSize)
+
+  def hasAtLeast(fromPosition: Long, atLeastSize: Long): Boolean =
+    (offset.size - fromPosition) >= atLeastSize
 
   override def size: Long =
-    state.offset.size
-
-  def hasMore: Boolean =
-    state.hasMore
-
-  def hasAtLeast(atLeastSize: Long): Boolean =
-    state.hasAtLeast(atLeastSize)
+    offset.size
 
   override def getPosition: Int =
-    state.position
+    position
 
   override def get(): Byte =
-    BlockReader get state
+    if (hasMore) {
+      val byte =
+        reader
+          .moveTo(offset.start + position)
+          .get()
 
-  override def read(size: Int): Slice[Byte] =
-    BlockReader.read(size, state)
+      position += 1
+      byte
+    } else {
+      throw IO.throwable(s"Has no more bytes. Position: $position")
+    }
+
+  override def read(size: Int): Slice[Byte] = {
+    val remaining = this.remaining.toInt
+    if (remaining <= 0) {
+      Slice.emptyBytes
+    } else {
+      val bytesToRead = size min remaining
+
+      val bytes =
+        reader
+          .moveTo(offset.start + position)
+          .read(bytesToRead)
+
+      position += bytesToRead
+      bytes
+    }
+  }
 
   def readFullBlock(): Slice[Byte] =
-    BlockReader readFullBlock state
+    reader
+      .moveTo(offset.start)
+      .read(offset.size)
 
   def readFullBlockOrNone(): SliceOption[Byte] =
     if (offset.size == 0)
@@ -71,5 +111,5 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with LazyLogging {
       readFullBlock()
 
   override def readRemaining(): Slice[Byte] =
-    read(state.remaining)
+    read(remaining)
 }

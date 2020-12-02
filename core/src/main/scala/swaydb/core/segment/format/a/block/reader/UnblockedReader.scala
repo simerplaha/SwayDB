@@ -85,9 +85,6 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
 
   override def isNone: Boolean = false
 
-  override val state: BlockReader.State =
-    BlockReader(offset, reader)
-
   val hasBlockCache: Boolean =
   //    blockSize.isDefined
     false
@@ -102,12 +99,12 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
     }
 
   override def moveTo(newPosition: Long): UnblockedReader[O, B] = {
-    state moveTo newPosition.toInt
+    moveTo(newPosition.toInt)
     this
   }
 
-  def moveTo(newPosition: Int): UnblockedReader[O, B] = {
-    state moveTo newPosition
+  override def moveTo(newPosition: Int): UnblockedReader[O, B] = {
+    super.moveTo(newPosition)
     this
   }
 
