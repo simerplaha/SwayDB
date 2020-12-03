@@ -24,7 +24,6 @@
 
 package swaydb.core.segment.format.a
 
-import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import org.scalatest.OptionValues.convertOptionToValuable
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
@@ -36,11 +35,12 @@ import swaydb.core._
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
+import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
-import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
+import swaydb.core.segment.format.a.block.BlockCache
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -59,6 +59,7 @@ import swaydb.data.util.{ByteSizeOf, OperatingSystem}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._

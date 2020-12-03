@@ -26,7 +26,6 @@ package swaydb.core.actor
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Persistent
-import swaydb.core.io.file.BlockCache
 import swaydb.core.util.HashedMap
 import swaydb.core.util.skiplist.SkipList
 import swaydb.data.config.{ActorConfig, MemoryCache}

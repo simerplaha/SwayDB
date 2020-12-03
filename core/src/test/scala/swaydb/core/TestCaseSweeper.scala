@@ -24,23 +24,22 @@
 
 package swaydb.core
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
-import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
+import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.map.Maps
 import swaydb.core.map.counter.CounterMap
 import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.block.BlockCache
 import swaydb.data.RunThis._
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.{ActorRef, ActorWire, Bag, Glass, Scheduler}
 
+import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.util.Try

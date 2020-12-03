@@ -28,7 +28,7 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.{Segment, SegmentIO, SegmentSerialiser}
 import swaydb.data.config.MMAP

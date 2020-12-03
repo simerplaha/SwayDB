@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.io.file
+package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.MemorySweeper

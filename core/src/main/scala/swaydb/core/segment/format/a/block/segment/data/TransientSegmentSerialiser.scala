@@ -26,9 +26,10 @@ package swaydb.core.segment.format.a.block.segment.data
 
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Memory, Persistent, Time, Value}
-import swaydb.core.io.file.{BlockCache, DBFile}
+import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.ValueSerializer.MinMaxSerialiser
+import swaydb.core.segment.format.a.block.BlockCache
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock

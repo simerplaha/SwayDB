@@ -28,12 +28,11 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
-import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock.ValuesBlockOps
+import swaydb.core.segment.format.a.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.slice.{Reader, Slice}
 

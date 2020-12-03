@@ -25,7 +25,6 @@
 package swaydb.core.segment
 
 import java.nio.file.{Path, Paths}
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
@@ -33,9 +32,10 @@ import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, DBFile, ForceSaveApplier}
+import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
+import swaydb.core.segment.format.a.block.BlockCache
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock

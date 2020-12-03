@@ -26,6 +26,7 @@ package swaydb.core.io.file
 
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
+import swaydb.core.segment.format.a.block.BlockCache
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.util.StorageUnits._

@@ -26,16 +26,16 @@ package swaydb.core.segment
 
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedQueue
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
+import swaydb.core.segment.format.a.block.BlockCache
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock

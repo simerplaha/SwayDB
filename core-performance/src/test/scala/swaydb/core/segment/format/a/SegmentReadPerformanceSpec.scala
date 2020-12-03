@@ -30,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Memory
-import swaydb.core.io.file.{BlockCache, ForceSaveApplier}
+import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}

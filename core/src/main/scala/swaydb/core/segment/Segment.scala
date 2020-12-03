@@ -34,7 +34,7 @@ import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, DBFile, Effect, ForceSaveApplier}
+import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock

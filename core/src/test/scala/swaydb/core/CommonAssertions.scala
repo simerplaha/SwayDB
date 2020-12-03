@@ -24,7 +24,6 @@
 
 package swaydb.core
 
-import java.nio.file.Paths
 import org.scalactic.Equality
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
@@ -36,7 +35,7 @@ import swaydb.core.actor.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
-import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.file.Effect
 import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
@@ -56,17 +55,17 @@ import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCac
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.util.skiplist.{SkipList, SkipListBatchable, SkipListConcurrent}
-import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.RunThis._
-import swaydb.data.cache.CacheNoIO
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption, SliceReader}
+import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{Aggregator, Bag, Error, Glass, IO, OK}
+import swaydb.{Aggregator, Bag, Error, Glass, IO}
 
+import java.nio.file.Paths
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._

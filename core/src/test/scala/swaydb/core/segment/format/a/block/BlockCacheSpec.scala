@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.io.file
+package swaydb.core.segment.format.a.block
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestData._

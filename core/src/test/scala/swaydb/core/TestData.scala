@@ -34,7 +34,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCacheSource, DBFile}
+import swaydb.core.io.file.DBFile
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}

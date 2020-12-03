@@ -24,7 +24,7 @@
 
 package swaydb.core.segment.format.a.block.reader
 
-import swaydb.core.io.file.{BlockCache, DBFile}
+import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.segment.SegmentBlock

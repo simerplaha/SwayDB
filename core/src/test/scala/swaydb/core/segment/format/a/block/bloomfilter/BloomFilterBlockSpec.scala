@@ -27,9 +27,8 @@ package swaydb.core.segment.format.a.block.bloomfilter
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions.{eitherOne, orNone}
 import swaydb.core.TestData._
-import swaydb.core.io.file.BlockCache
-import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.{Block, BlockCache}
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder
