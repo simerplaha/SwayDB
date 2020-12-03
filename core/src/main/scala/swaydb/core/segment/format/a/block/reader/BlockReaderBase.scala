@@ -26,20 +26,26 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.io.file.BlockCacheSource
+import swaydb.core.io.file.{BlockCache, BlockCacheSource}
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceOption}
 
 /**
  * Defers [[ReaderBase]] related operations to [[BlockReader]].
  */
-private[block] trait BlockReaderBase extends ReaderBase[Byte] with LazyLogging {
+private[block] trait BlockReaderBase extends ReaderBase[Byte] with BlockCacheSource with LazyLogging {
 
   private[reader] val reader: Reader[Byte]
 
   def offset: BlockOffset
 
   def path = reader.path
+
+  def blockCache: Option[BlockCache.State]
+
+  //start offset BlockRefReader. BlockCache uses this to maintain
+  //consistent cache even if it gets transferred to another file.
+  def rootBlockRefOffset: BlockOffset
 
   private var position: Int = 0
 
@@ -72,9 +78,17 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with LazyLogging {
   override def get(): Byte =
     if (hasMore) {
       val byte =
-        reader
-          .moveTo(offset.start + position)
-          .get()
+        if (reader.isFile && blockCache.isDefined)
+          BlockCache.getOrSeek(
+            position = offset.start + position - rootBlockRefOffset.start,
+            size = 1,
+            source = this,
+            state = blockCache.get
+          ).head
+        else
+          reader
+            .moveTo(offset.start + position)
+            .get()
 
       position += 1
       byte
@@ -90,14 +104,30 @@ private[block] trait BlockReaderBase extends ReaderBase[Byte] with LazyLogging {
       val bytesToRead = size min remaining
 
       val bytes =
-        reader
-          .moveTo(offset.start + position)
-          .read(bytesToRead)
+        if (reader.isFile && blockCache.isDefined)
+          BlockCache.getOrSeek(
+            position = offset.start + position - rootBlockRefOffset.start,
+            size = bytesToRead,
+            source = this,
+            state = blockCache.get
+          )
+        else
+          reader
+            .moveTo(offset.start + position)
+            .read(bytesToRead)
 
       position += bytesToRead
       bytes
     }
   }
+
+  override def readFromSource(position: Int, size: Int): Slice[Byte] =
+    reader
+      .moveTo(position + rootBlockRefOffset.start)
+      .read(size)
+
+  override def blockCacheMaxBytes: Long =
+    rootBlockRefOffset.size
 
   def readFullBlock(): Slice[Byte] =
     reader

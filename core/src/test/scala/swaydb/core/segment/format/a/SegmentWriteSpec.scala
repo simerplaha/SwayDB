@@ -25,7 +25,6 @@
 package swaydb.core.segment.format.a
 
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
-
 import org.scalatest.OptionValues.convertOptionToValuable
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
@@ -62,6 +61,7 @@ import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
@@ -1049,7 +1049,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     "transfer blockCache on copy" in {
       //when a Segment is copied it's BlockCache bytes should still be accessible.
       if (persistent)
-        runThis(20.times, log = true) {
+        runThis(50.times, log = true) {
           TestCaseSweeper {
             implicit sweeper =>
               TestSweeper.createBlockCacheBlockSweeper().foreach(_.sweep())
@@ -1076,15 +1076,43 @@ sealed trait SegmentWriteSpec extends TestBase {
                   hashIndexConfig = hashIndexConfig,
                   bloomFilterConfig = bloomFilterConfig,
                   segmentConfig = segmentConfig
-                )
+                ).asInstanceOf[PersistentSegment]
 
               segment.clearAllCaches() //fresh start without any existing cached bytes so that blockCache gets used.
 
               //blockCache is initialised
-              sweeper.blockCache.value.map.asScala shouldBe empty
+              def getInnerSegments(segment: PersistentSegment): (Option[SegmentRef], List[SegmentRef]) =
+                segment match {
+                  case many: PersistentSegmentMany =>
+                    val listSegment = many.listSegmentCache.get()
+                    val tailSegments = many.segmentsCache.asScala.values
+                    (listSegment, tailSegments.toList)
+
+                  case one: PersistentSegmentOne =>
+                    (None, List(one.ref))
+                }
+
+              val (preCachingListSegment, preCachingTailSegments) = getInnerSegments(segment)
+              preCachingListSegment shouldBe empty
+              segment match {
+                case _: PersistentSegmentMany =>
+                  preCachingTailSegments shouldBe empty
+
+                case _: PersistentSegmentOne =>
+                  preCachingTailSegments should not be empty
+              }
+
               assertGetSequential(keyValues, segment)
-              sweeper.blockCache.value.map.asScala should not be empty //blockCache is populated
-              val blockCacheOld = sweeper.blockCache.value.map.asScala.toList //store the state of cache after initial read
+
+              val (postCachingListSegment, postCachingTailSegments) = getInnerSegments(segment)
+              segment match {
+                case many: PersistentSegmentMany =>
+                  postCachingListSegment shouldBe defined
+
+                case one: PersistentSegmentOne =>
+                  postCachingListSegment shouldBe empty
+              }
+              postCachingTailSegments should not be empty
 
               val pathDistributor = createPathDistributor
               pathDistributor.dirs.foreach(_.path.sweep())
@@ -1109,21 +1137,41 @@ sealed trait SegmentWriteSpec extends TestBase {
               println("SegmentType - " + copiedSegment.getClass.getSimpleName)
               copiedSegment.isOpen shouldBe false //it's not opened
 
+              def assertBlockCachesAreCopied() = {
+                val (postCopyListSegment, postCopyTailSegments) = getInnerSegments(copiedSegment)
+                segment match {
+                  case _: PersistentSegmentMany =>
+                    val postCopyListSegmentBlockCache = postCopyListSegment.value.blockCache()
+                    val postCacheListSegmentBlockCache = postCachingListSegment.value.blockCache()
+                    postCopyListSegmentBlockCache shouldBe postCacheListSegmentBlockCache
+                    postCopyListSegmentBlockCache.hashCode() shouldBe postCacheListSegmentBlockCache.hashCode()
+
+                  case _: PersistentSegmentOne =>
+                    postCachingListSegment shouldBe empty
+
+                }
+                val postCopyTailSegmentsBlockCache = postCopyTailSegments.map(_.blockCache())
+                val postCachingTailSegmentsBlockCache = postCachingTailSegments.map(_.blockCache())
+                postCopyTailSegmentsBlockCache should have size postCachingTailSegments.size
+                postCopyTailSegmentsBlockCache should contain allElementsOf postCachingTailSegmentsBlockCache
+                postCopyTailSegmentsBlockCache.map(_.hashCode()).sorted shouldBe postCachingTailSegmentsBlockCache.map(_.hashCode()).sorted
+              }
+
               /**
-               * Initial read on copiedSegment
+               * Assert on copiedSegment
                */
+              assertBlockCachesAreCopied()
               assertGetSequential(keyValues, copiedSegment) //do initial read from copied segment
-              sweeper.blockCache.value.map.asScala.size shouldBe blockCacheOld.size //cache is populated
-              blockCacheOld should contain allElementsOf sweeper.blockCache.value.map.asScala.toList //state is unchanged
+              assertBlockCachesAreCopied()
 
               /**
                * Second read on copiedSegment - do clear on copied segment and read.
                */
               copiedSegment.clearAllCaches()
-              assertGetSequential(keyValues, copiedSegment)
-              sweeper.blockCache.value.map.asScala.size should be >= blockCacheOld.size
-
-              blockCacheOld should contain allElementsOf sweeper.blockCache.value.map.asScala
+              Seq(
+                () => assertGetSequential(keyValues, copiedSegment),
+                () => assertGetSequential(keyValues, segment)
+              ).runThisRandomlyInParallel
           }
         }
     }

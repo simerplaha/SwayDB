@@ -907,7 +907,8 @@ private[core] case object Segment extends LazyLogging {
             hashIndexReaderCacheable = one.ref.segmentBlockCache.cachedHashIndexSliceReader(),
             binarySearchIndexReaderCacheable = one.ref.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
             bloomFilterReaderCacheable = one.ref.segmentBlockCache.cachedBloomFilterSliceReader(),
-            footerCacheable = one.ref.segmentBlockCache.cachedFooter()
+            footerCacheable = one.ref.segmentBlockCache.cachedFooter(),
+            previousBlockCache = one.ref.blockCache()
           )
 
         case Some(segment: PersistentSegmentMany) =>
@@ -927,7 +928,8 @@ private[core] case object Segment extends LazyLogging {
             hashIndexReaderCacheable = None,
             binarySearchIndexReaderCacheable = None,
             bloomFilterReaderCacheable = None,
-            footerCacheable = None
+            footerCacheable = None,
+            previousBlockCache = None
           )
       }
     else if (formatId == PersistentSegmentMany.formatId)

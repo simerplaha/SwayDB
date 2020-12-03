@@ -48,14 +48,17 @@ private[core] object BlockCache extends LazyLogging {
       case enabled: MemorySweeper.On =>
         enabled match {
           case block: MemorySweeper.Block =>
-            Some(BlockCache.init(block))
+            Some(BlockCache.fromBlock(block))
 
           case _: MemorySweeper.KeyValueSweeper =>
             None
         }
     }
 
-  def init(memorySweeper: MemorySweeper.Block): BlockCache.State =
+  def init(memorySweeper: Option[MemorySweeper.Block]): Option[BlockCache.State] =
+    memorySweeper.map(fromBlock)
+
+  def fromBlock(memorySweeper: MemorySweeper.Block): BlockCache.State =
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
@@ -93,7 +96,7 @@ private[core] object BlockCache extends LazyLogging {
                size: Int,
                source: BlockCacheSource,
                state: State): Int = {
-    val sourceSize = source.size
+    val sourceSize = source.blockCacheMaxBytes
     val seekSize =
       if (state.blockSize <= 0)
         size
@@ -131,7 +134,7 @@ private[core] object BlockCache extends LazyLogging {
 
       val bytes =
         source
-          .read(
+          .readFromSource(
             position = keyPosition,
             size = seekedSize
           )
@@ -222,7 +225,7 @@ private[core] object BlockCache extends LazyLogging {
                 state: State)(implicit effect: BlockIO): Slice[Byte] =
     if (size >= state.skipBlockCacheSeekSize) //if the seek size is too large then skip block cache and perform direct IO.
       source
-        .read(
+        .readFromSource(
           position = position,
           size = size
         )

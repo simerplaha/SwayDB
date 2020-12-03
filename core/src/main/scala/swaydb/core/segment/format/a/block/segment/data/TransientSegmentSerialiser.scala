@@ -26,13 +26,13 @@ package swaydb.core.segment.format.a.block.segment.data
 
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Memory, Persistent, Time, Value}
+import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.ValueSerializer.MinMaxSerialiser
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
@@ -41,8 +41,6 @@ import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-
-import java.nio.file.Path
 
 object TransientSegmentSerialiser {
 
@@ -118,8 +116,8 @@ object TransientSegmentSerialiser {
         throw new Exception(s"Invalid key-value ${keyValue.getClass.getName}")
     }
 
-  def toSegmentRef(path: Path,
-                   reader: BlockRefReader[SegmentBlock.Offset],
+  def toSegmentRef(file: DBFile,
+                   firstSegmentStartOffset: Int,
                    persistent: Persistent,
                    valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                    sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
@@ -133,8 +131,8 @@ object TransientSegmentSerialiser {
     persistent match {
       case persistent: Persistent.Put =>
         toSegmentRef(
-          path = path,
-          reader = reader,
+          file = file,
+          firstSegmentStartOffset = firstSegmentStartOffset,
           put = persistent,
           valuesReaderCacheable = valuesReaderCacheable,
           sortedIndexReaderCacheable = sortedIndexReaderCacheable,
@@ -146,8 +144,8 @@ object TransientSegmentSerialiser {
 
       case range: Persistent.Range =>
         toSegmentRef(
-          path = path,
-          reader = reader,
+          file = file,
+          firstSegmentStartOffset = firstSegmentStartOffset,
           range = range,
           valuesReaderCacheable = valuesReaderCacheable,
           sortedIndexReaderCacheable = sortedIndexReaderCacheable,
@@ -161,8 +159,8 @@ object TransientSegmentSerialiser {
         throw new Exception(s"Invalid key-value ${keyValue.getClass.getName}")
     }
 
-  def toSegmentRef(path: Path,
-                   reader: BlockRefReader[SegmentBlock.Offset],
+  def toSegmentRef(file: DBFile,
+                   firstSegmentStartOffset: Int,
                    range: Persistent.Range,
                    valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                    sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
@@ -183,16 +181,17 @@ object TransientSegmentSerialiser {
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
 
           SegmentRef(
-            path = path.resolve(s"ref.$segmentOffset"),
+            path = file.path.resolve(s"ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Fixed(range.toKey.unslice()),
             nearestPutDeadline = deadline,
             minMaxFunctionId = minMaxFunctionId,
             blockRef =
               BlockRefReader(
-                ref = reader,
-                start = segmentOffset,
-                size = segmentSize
+                file = file,
+                start = firstSegmentStartOffset + segmentOffset,
+                fileSize = segmentSize,
+                blockCache = BlockCache.init(blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
             valuesReaderCacheable = valuesReaderCacheable,
@@ -209,16 +208,17 @@ object TransientSegmentSerialiser {
           val maxKeyMinKey = valueReader.readRemaining()
 
           SegmentRef(
-            path = path.resolve(s"ref.$segmentOffset"),
+            path = file.path.resolve(s"ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Range(maxKeyMinKey.unslice(), range.toKey.unslice()),
             nearestPutDeadline = deadline,
             minMaxFunctionId = minMaxFunctionId,
             blockRef =
               BlockRefReader(
-                ref = reader,
-                start = segmentOffset,
-                size = segmentSize
+                file = file,
+                start = firstSegmentStartOffset + segmentOffset,
+                fileSize = segmentSize,
+                blockCache = BlockCache.init(blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
             valuesReaderCacheable = valuesReaderCacheable,
@@ -236,8 +236,8 @@ object TransientSegmentSerialiser {
         throw new Exception("Invalid value. Update expected")
     }
 
-  def toSegmentRef(path: Path,
-                   reader: BlockRefReader[SegmentBlock.Offset],
+  def toSegmentRef(file: DBFile,
+                   firstSegmentStartOffset: Int,
                    put: Persistent.Put,
                    valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                    sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
@@ -257,16 +257,17 @@ object TransientSegmentSerialiser {
       val minKey = valueReader.readRemaining()
 
       SegmentRef(
-        path = path.resolve(s"ref.$segmentOffset"),
+        path = file.path.resolve(s"ref.$segmentOffset"),
         minKey = minKey.unslice(),
         maxKey = MaxKey.Fixed(put.key.unslice()),
         nearestPutDeadline = put.deadline,
         minMaxFunctionId = minMaxFunctionId,
         blockRef =
           BlockRefReader(
-            ref = reader,
-            start = segmentOffset,
-            size = segmentSize
+            file = file,
+            start = firstSegmentStartOffset + segmentOffset,
+            fileSize = segmentSize,
+            blockCache = BlockCache.init(blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,
@@ -283,16 +284,17 @@ object TransientSegmentSerialiser {
       val maxKeyMinKey = valueReader.readRemaining()
 
       SegmentRef(
-        path = path.resolve(s"ref.$segmentOffset"),
+        path = file.path.resolve(s"ref.$segmentOffset"),
         minKey = put.key.unslice(),
         maxKey = MaxKey.Range(maxKeyMinKey.unslice(), put.key.unslice()),
         nearestPutDeadline = put.deadline,
         minMaxFunctionId = minMaxFunctionId,
         blockRef =
           BlockRefReader(
-            ref = reader,
-            start = segmentOffset,
-            size = segmentSize
+            file = file,
+            start = firstSegmentStartOffset + segmentOffset,
+            fileSize = segmentSize,
+            blockCache = BlockCache.init(blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,

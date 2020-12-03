@@ -34,6 +34,7 @@ import swaydb.core.TestCaseSweeper._
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.{BlockCacheSource, DBFile}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
@@ -1974,5 +1975,16 @@ object TestData {
 
     def flattenSegment: (Slice[Byte], Option[Deadline]) =
       (flattenSegmentBytes, segment.nearestPutDeadline)
+  }
+
+  implicit class DBFileImplicits(file: DBFile) {
+    def toBlockCacheSource: BlockCacheSource =
+      new BlockCacheSource {
+        override def blockCacheMaxBytes: Long =
+          file.fileSize
+
+        override def readFromSource(position: Int, size: Int): Slice[Byte] =
+          file.read(position = position, size = size)
+      }
   }
 }

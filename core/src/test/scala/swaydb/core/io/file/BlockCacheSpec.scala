@@ -40,16 +40,17 @@ class BlockCacheSpec extends TestBase with MockFactory {
     val blockSize = 10
 
     def createTestData() = {
-      val file = new BlockCacheSource {
-        override def size: Long =
-          bytes.size
+      val file =
+        new BlockCacheSource {
+          override def blockCacheMaxBytes: Long =
+            bytes.size
 
-        override def read(filePosition: Int, size: Int): Slice[Byte] =
-          bytes.drop(filePosition).take(size)
-      }
+          override def readFromSource(filePosition: Int, size: Int): Slice[Byte] =
+            bytes.drop(filePosition).take(size)
+        }
 
       val state =
-        BlockCache.init(MemorySweeper.BlockSweeper(blockSize, 1.mb / 2, 100.mb, None))
+        BlockCache.fromBlock(MemorySweeper.BlockSweeper(blockSize, 1.mb / 2, 100.mb, None))
 
       (file, state)
     }
@@ -60,7 +61,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
         "size == blockSize" in {
           val (source, state) = createTestData()
 
-          (0 to source.size.toInt - blockSize).filter(_ % blockSize == 0) foreach {
+          (0 to source.blockCacheMaxBytes.toInt - blockSize).filter(_ % blockSize == 0) foreach {
             position =>
               val size =
                 BlockCache.seekSize(
@@ -102,7 +103,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
           val (file, state) = createTestData()
           //in reality position should be multiples of blockSize.
           //but this works for the test-case.
-          ((file.size.toInt - blockSize + 1) to file.size.toInt) foreach {
+          ((file.blockCacheMaxBytes.toInt - blockSize + 1) to file.blockCacheMaxBytes.toInt) foreach {
             position =>
               val size =
                 BlockCache.seekSize(
@@ -113,7 +114,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
                 )
 
               println(s"position: $position -> size: $size")
-              size shouldBe file.size.toInt - position
+              size shouldBe file.blockCacheMaxBytes.toInt - position
           }
         }
       }
@@ -123,12 +124,12 @@ class BlockCacheSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
           val bytes: Slice[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
-          val file = createRandomFileReader(bytes).file.file
+          val file = createRandomFileReader(bytes).file.toBlockCacheSource
 
           val blockSize = 10
 
           val state =
-            BlockCache.init(MemorySweeper.BlockSweeper(blockSize, 50000.bytes, 100.mb, None))
+            BlockCache.fromBlock(MemorySweeper.BlockSweeper(blockSize, 50000.bytes, 100.mb, None))
 
           //0 -----------------------------------------> 1000
           //0 read 1
@@ -190,11 +191,11 @@ class BlockCacheSpec extends TestBase with MockFactory {
     TestCaseSweeper {
       implicit sweeper =>
         val bytes: Slice[Byte] = Slice.range(Bytes.zero, Byte.MaxValue)
-        val file = createRandomFileReader(bytes).file.file
+        val file = createRandomFileReader(bytes).file
         runThis(500.times, log = true) {
           val blockSize = randomIntMax(bytes.size * 2)
 
-          val state = BlockCache.init(MemorySweeper.BlockSweeper(blockSize, randomIntMax(Byte.MaxValue).bytes, 100.mb, None))
+          val state = BlockCache.fromBlock(MemorySweeper.BlockSweeper(blockSize, randomIntMax(Byte.MaxValue).bytes, 100.mb, None))
 
           runThis(1000.times) {
             val position = randomNextInt(bytes.size)
@@ -205,7 +206,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
               BlockCache.getOrSeek(
                 position = position,
                 size = readSize,
-                source = file,
+                source = file.toBlockCacheSource,
                 state = state
               )
 

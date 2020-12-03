@@ -58,9 +58,9 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
       implicit sweeper =>
         val bytes = randomBytesSlice(20.mb)
 
-        implicit val state: Option[BlockCache.State] =
-        //          Some(BlockCache.init(MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, actorConfig = None)))
-          None
+        implicit val blockCache: Option[BlockCache.State] =
+          BlockCache.init(MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, actorConfig = None))
+        //          None
 
         val path = randomFilePath
 
@@ -88,7 +88,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
             fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
             autoClose = true
           )
-        val reader = BlockRefReader(file = channelFile)
+        val reader = BlockRefReader(file = channelFile, blockCache = blockCache)
 
         val bytesToRead = 15
 

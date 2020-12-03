@@ -203,7 +203,7 @@ private[core] case object SegmentRef extends LazyLogging {
                                         partialKeyOrder: KeyOrder[Persistent.Partial],
                                         persistentKeyOrder: KeyOrder[Persistent],
                                         segmentSearcher: SegmentSearcher): PersistentOption = {
-    //    println(s"Get: ${key.readInt()}")
+    //    println(s"Get: ${key.readInt()} - ${segmentRef.path}")
     segmentRef.maxKey match {
       case MaxKey.Fixed(maxKey) if keyOrder.gt(key, maxKey) =>
         Persistent.Null
@@ -1631,6 +1631,9 @@ private[core] class SegmentRef(val path: Path,
 
   def offset(): SegmentBlock.Offset =
     segmentBlockCache.offset()
+
+  def blockCache(): Option[BlockCache.State] =
+    segmentBlockCache.blockCache()
 
   override def equals(other: Any): Boolean =
     other match {

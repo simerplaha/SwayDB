@@ -24,7 +24,7 @@
 
 package swaydb.core.io.file
 
-import swaydb.core.TestData.{randomBytesSlice, randomIntMax}
+import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
@@ -48,9 +48,9 @@ class BlockCachePerformanceSpec extends TestBase {
       TestCaseSweeper {
         implicit sweeper =>
           val bytes = Benchmark("Generating bytes")(randomBytesSlice(1.gb))
-          val file = createFileChannelFileReader(bytes).file.file
+          val file = createFileChannelFileReader(bytes).file
 
-          val state = BlockCache.init(MemorySweeper.BlockSweeper(4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, actorConfig = None))
+          val state = BlockCache.fromBlock(MemorySweeper.BlockSweeper(4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, actorConfig = None))
 
           Benchmark.time("Seek") {
             (1 to 1000000) foreach {
@@ -58,7 +58,7 @@ class BlockCachePerformanceSpec extends TestBase {
                 BlockCache.getOrSeek(
                   position = randomIntMax(bytes.size),
                   size = 4098,
-                  source = file,
+                  source = file.toBlockCacheSource,
                   state = state
                 )
             }

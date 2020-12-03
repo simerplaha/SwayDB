@@ -171,7 +171,7 @@ class SegmentReadPerformanceSpec extends TestBase {
         cacheBlocksOnCreate = false,
         minSize = Int.MaxValue,
         maxCount =
-          //          keyValuesCount / 100,
+          //                    keyValuesCount / 100,
           keyValuesCount,
         pushForward = false,
         mmap = mmapSegments,
@@ -188,8 +188,8 @@ class SegmentReadPerformanceSpec extends TestBase {
     implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
 
     implicit val state: Option[MemorySweeper.Block] =
-    //      Some(BlockCache.init(MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, actorConfig = None)))
-      None
+      Some(MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, actorConfig = None))
+    //      None
 
     implicit val segmentIO: SegmentIO =
       SegmentIO(

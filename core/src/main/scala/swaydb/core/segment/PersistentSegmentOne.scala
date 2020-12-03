@@ -84,7 +84,15 @@ protected object PersistentSegmentOne {
       hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
       binarySearchIndexReaderCacheable = segment.binarySearchUnblockedReader,
       bloomFilterReaderCacheable = segment.bloomFilterUnblockedReader,
-      footerCacheable = segment.footerUnblocked
+      footerCacheable = segment.footerUnblocked,
+      previousBlockCache =
+        segment match {
+          case remote: TransientSegment.Remote =>
+            remote.ref.blockCache() orElse BlockCache.init(blockCacheSweeper)
+
+          case _: TransientSegment.One =>
+            BlockCache.init(blockCacheSweeper)
+        }
     )
 
   def apply(file: DBFile,
@@ -99,21 +107,23 @@ protected object PersistentSegmentOne {
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-            footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore,
-                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                         blockCacheSweeper: Option[MemorySweeper.Block],
-                                                         fileSweeper: FileSweeper,
-                                                         bufferCleaner: ByteBufferSweeperActor,
-                                                         forceSaveApplier: ForceSaveApplier,
-                                                         segmentIO: SegmentIO): PersistentSegmentOne = {
+            footerCacheable: Option[SegmentFooterBlock],
+            previousBlockCache: Option[BlockCache.State])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          functionStore: FunctionStore,
+                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                          blockCacheSweeper: Option[MemorySweeper.Block],
+                                                          fileSweeper: FileSweeper,
+                                                          bufferCleaner: ByteBufferSweeperActor,
+                                                          forceSaveApplier: ForceSaveApplier,
+                                                          segmentIO: SegmentIO): PersistentSegmentOne = {
 
     val segmentBlockRef =
       BlockRefReader(
         file = file,
         start = 1,
-        fileSize = segmentSize - 1
+        fileSize = segmentSize - 1,
+        blockCache = previousBlockCache orElse BlockCache.init(blockCacheSweeper)
       )
 
     val ref =
@@ -161,7 +171,8 @@ protected object PersistentSegmentOne {
       BlockRefReader(
         file = file,
         start = 1,
-        fileSize = fileSize - 1
+        fileSize = fileSize - 1,
+        blockCache = None
       )
 
     val segmentBlockCache =
@@ -210,7 +221,8 @@ protected object PersistentSegmentOne {
       hashIndexReaderCacheable = segmentBlockCache.cachedHashIndexSliceReader(),
       binarySearchIndexReaderCacheable = segmentBlockCache.cachedBinarySearchIndexSliceReader(),
       bloomFilterReaderCacheable = segmentBlockCache.cachedBloomFilterSliceReader(),
-      footerCacheable = segmentBlockCache.cachedFooter()
+      footerCacheable = segmentBlockCache.cachedFooter(),
+      previousBlockCache = None
     )
   }
 }

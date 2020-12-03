@@ -25,11 +25,10 @@
 package swaydb.core.segment.format.a.block.segment
 
 import java.nio.file.Path
-
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Persistent
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.segment.SegmentIO
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -282,7 +281,14 @@ private[core] class SegmentBlockCache private(path: Path,
         val offset = getOffset(footer)
         offset match {
           case Some(offset) =>
-            cache value Some(BlockRefReader.moveTo(offset, createSegmentBlockReader()))
+            cache value
+              Some(
+                BlockRefReader.moveTo(
+                  offset = offset,
+                  reader = createSegmentBlockReader(),
+                  blockCache = segmentBlockRef.blockCache
+                )
+              )
 
           case None =>
             cache value None
@@ -297,7 +303,11 @@ private[core] class SegmentBlockCache private(path: Path,
         cache.value {
           val footer = getFooter()
           val segmentReader = createSegmentBlockReader()
-          BlockRefReader.moveTo(offset(footer), segmentReader)
+          BlockRefReader.moveTo(
+            offset = offset(footer),
+            reader = segmentReader,
+            blockCache = segmentBlockRef.blockCache
+          )
         }
       }
       .get
@@ -559,6 +569,9 @@ private[core] class SegmentBlockCache private(path: Path,
 
   def segmentSize: Int =
     segmentBlockRef.offset.size
+
+  def blockCache(): Option[BlockCache.State] =
+    segmentBlockRef.blockCache
 
   invalidateCachedReaders()
 }

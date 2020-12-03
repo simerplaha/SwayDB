@@ -25,8 +25,10 @@
 package swaydb.core.segment.format.a.block.reader
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.TestBase
+import swaydb.core.CommonAssertions.orNone
+import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.core.TestData._
+import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
@@ -45,25 +47,31 @@ class BlockedReaderSpec extends TestBase with MockFactory {
     }
 
     "unblocked Segment" in {
-      implicit val ops = SegmentBlock.SegmentBlockOps
+      TestCaseSweeper {
+        implicit sweeper =>
 
-      val childHeader = Slice(1.toByte, 0.toByte)
-      val childBody = Slice.fill(20)(9.toByte)
-      val childBytes = childHeader ++ childBody
+          val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
 
-      val segmentHeader = Slice(1.toByte, 0.toByte)
-      val segmentBody = childBytes
-      val segmentBytes = segmentHeader ++ segmentBody
+          implicit val ops = SegmentBlock.SegmentBlockOps
 
-      val segmentRef = BlockRefReader[SegmentBlock.Offset](segmentBytes)
-      val segmentUnblocked = Block.unblock(segmentRef)
-      segmentUnblocked.copy().readRemaining() shouldBe childBytes
+          val childHeader = Slice(1.toByte, 0.toByte)
+          val childBody = Slice.fill(20)(9.toByte)
+          val childBytes = childHeader ++ childBody
 
-      val childBlockRef = BlockRefReader.moveTo(0, childBytes.size, segmentUnblocked)
-      childBlockRef.copy().readRemaining() shouldBe childBytes
-      val childUnblockedReader = Block.unblock(childBlockRef)
+          val segmentHeader = Slice(1.toByte, 0.toByte)
+          val segmentBody = childBytes
+          val segmentBytes = segmentHeader ++ segmentBody
 
-      childUnblockedReader.readRemaining() shouldBe childBody
+          val segmentRef = BlockRefReader[SegmentBlock.Offset](segmentBytes)
+          val segmentUnblocked = Block.unblock(segmentRef)
+          segmentUnblocked.copy().readRemaining() shouldBe childBytes
+
+          val childBlockRef = BlockRefReader.moveTo(0, childBytes.size, segmentUnblocked, blockCache)
+          childBlockRef.copy().readRemaining() shouldBe childBytes
+          val childUnblockedReader = Block.unblock(childBlockRef)
+
+          childUnblockedReader.readRemaining() shouldBe childBody
+      }
     }
   }
 }

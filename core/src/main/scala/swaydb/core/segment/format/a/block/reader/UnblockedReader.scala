@@ -24,6 +24,7 @@
 
 package swaydb.core.segment.format.a.block.reader
 
+import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.data.slice.{Reader, Slice, SliceReader}
@@ -44,23 +45,32 @@ private[core] object UnblockedReader {
     override def isNone: Boolean = true
   }
 
-  def empty[O <: BlockOffset, B <: Block[O]](block: B)(implicit blockOps: BlockOps[O, B]) =
+  def empty[O <: BlockOffset, B <: Block[O]](block: B)(implicit blockOps: BlockOps[O, B]) = {
+    val emptyBlock = blockOps.updateBlockOffset(block = block, start = 0, size = 0)
+
     new UnblockedReader[O, B](
-      reader = Reader.empty,
-      block = blockOps.updateBlockOffset(block, 0, 0)
+      block = emptyBlock,
+      rootBlockRefOffset = emptyBlock.offset,
+      blockCache = None,
+      reader = Reader.empty
     )
+  }
 
   def apply[O <: BlockOffset, B <: Block[O]](block: B,
                                              bytes: Slice[Byte]): UnblockedReader[O, B] =
     new UnblockedReader[O, B](
-      reader = Reader(bytes),
-      block = block
+      block = block,
+      rootBlockRefOffset = block.offset,
+      blockCache = None,
+      reader = Reader(bytes)
     )
 
   def moveTo[O <: BlockOffset, B <: Block[O]](offset: O,
                                               reader: UnblockedReader[O, B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     new UnblockedReader[O, B](
       block = blockOps.updateBlockOffset(reader.block, reader.offset.start + offset.start, offset.size),
+      rootBlockRefOffset = reader.rootBlockRefOffset,
+      blockCache = reader.blockCache,
       reader = reader.reader
     )
 
@@ -74,11 +84,15 @@ private[core] object UnblockedReader {
   def fromUncompressed[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B]): UnblockedReader[O, B] =
     new UnblockedReader[O, B](
       block = blockedReader.block,
+      rootBlockRefOffset = blockedReader.rootBlockRefOffset,
+      blockCache = blockedReader.blockCache,
       reader = blockedReader.reader
     )
 }
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
+                                                                             val rootBlockRefOffset: BlockOffset,
+                                                                             val blockCache: Option[BlockCache.State],
                                                                              private[reader] val reader: Reader[Byte])(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase with UnblockedReaderOption[O, B] {
 
   val offset = block.offset
@@ -86,8 +100,7 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
   override def isNone: Boolean = false
 
   val hasBlockCache: Boolean =
-  //    blockSize.isDefined
-    false
+    blockCache.isDefined
 
   def underlyingArraySizeOrReaderSize: Int =
     reader match {
@@ -119,6 +132,8 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
   def copy(): UnblockedReader[O, B] =
     new UnblockedReader(
       block = block,
+      blockCache = blockCache,
+      rootBlockRefOffset = rootBlockRefOffset,
       reader = reader.copy()
     )
 }

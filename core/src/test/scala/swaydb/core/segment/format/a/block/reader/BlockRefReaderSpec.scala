@@ -26,7 +26,9 @@ package swaydb.core.segment.format.a.block.reader
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.compression.CompressionInternal
+import swaydb.core.CommonAssertions.orNone
 import swaydb.core.TestData._
+import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
@@ -45,71 +47,83 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
           val fileReader = createRandomFileReader(bytes)
           val file = fileReader.file
 
+          val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
+
           //DBFile
-          BlockRefReader(file = file).readRemaining() shouldBe bytes
+          BlockRefReader(file = file, blockCache = blockCache).readRemaining() shouldBe bytes
           //Slice[Byte]
           BlockRefReader[SegmentBlock.Offset](bytes).readRemaining() shouldBe bytes
 
           //Reader: FileReader
-          BlockRefReader[SegmentBlock.Offset](fileReader: Reader[Byte]).readRemaining() shouldBe bytes
+          BlockRefReader[SegmentBlock.Offset](fileReader: Reader[Byte], blockCache = blockCache).readRemaining() shouldBe bytes
           //Reader: SliceReader
-          BlockRefReader[SegmentBlock.Offset](Reader(bytes): Reader[Byte]).readRemaining() shouldBe bytes
+          BlockRefReader[SegmentBlock.Offset](Reader(bytes): Reader[Byte], blockCache = blockCache).readRemaining() shouldBe bytes
       }
     }
   }
 
   "moveTo & moveWithin" when {
     "random bytes with header" in {
-      val header = Slice(1.toByte, 0.toByte)
-      val bodyBytes = randomBytesSlice(20)
-      val bytes = header ++ bodyBytes
+      TestCaseSweeper {
+        implicit sweeper =>
+          val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
 
-      val ref = BlockRefReader[ValuesBlock.Offset](bytes)
-      ref.copy().readRemaining() shouldBe bytes
-      ref.copy().moveTo(10).readRemaining() shouldBe bytes.drop(10)
+          val header = Slice(1.toByte, 0.toByte)
+          val bodyBytes = randomBytesSlice(20)
+          val bytes = header ++ bodyBytes
 
-      val blocked = BlockedReader(ref)
-      blocked.copy().readRemaining() shouldBe bodyBytes
+          val ref = BlockRefReader[ValuesBlock.Offset](bytes)
+          ref.copy().readRemaining() shouldBe bytes
+          ref.copy().moveTo(10).readRemaining() shouldBe bytes.drop(10)
 
-      val unblocked = UnblockedReader(blocked, randomBoolean())
-      unblocked.copy().readRemaining() shouldBe bodyBytes
+          val blocked = BlockedReader(ref)
+          blocked.copy().readRemaining() shouldBe bodyBytes
 
-      val moveTo = BlockRefReader.moveTo(5, 5, unblocked)(ValuesBlockOps)
-      moveTo.copy().readRemaining() shouldBe bodyBytes.drop(5).take(5)
+          val unblocked = UnblockedReader(blocked, randomBoolean())
+          unblocked.copy().readRemaining() shouldBe bodyBytes
 
-      val moveWithin = BlockRefReader.moveTo(ValuesBlock.Offset(5, 5), unblocked)(ValuesBlockOps)
-      moveWithin.copy().readRemaining() shouldBe bodyBytes.drop(5).take(5)
+          val moveTo = BlockRefReader.moveTo(5, 5, unblocked, blockCache)(ValuesBlockOps)
+          moveTo.copy().readRemaining() shouldBe bodyBytes.drop(5).take(5)
+
+          val moveWithin = BlockRefReader.moveTo(ValuesBlock.Offset(5, 5), unblocked, blockCache)(ValuesBlockOps)
+          moveWithin.copy().readRemaining() shouldBe bodyBytes.drop(5).take(5)
+      }
     }
 
     "compressed & uncompressed blocks" in {
-      def runTest(compressions: Iterable[CompressionInternal]) = {
-        val body = randomBytesSlice(1000)
-        val compressed = Block.compress(body, compressions, "test")
-        compressed.fixHeaderSize()
+      TestCaseSweeper {
+        implicit sweeper =>
+          val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
 
-        val compressedBytes = compressed.headerBytes ++ compressed.compressedBytes.getOrElse(body)
+          def runTest(compressions: Iterable[CompressionInternal]) = {
+            val body = randomBytesSlice(1000)
+            val compressed = Block.compress(body, compressions, "test")
+            compressed.fixHeaderSize()
 
-        val ref = BlockRefReader[ValuesBlock.Offset](compressedBytes)
-        ref.copy().readRemaining() shouldBe compressedBytes
-        ref.copy().moveTo(10).readRemaining() shouldBe compressedBytes.drop(10)
+            val compressedBytes = compressed.headerBytes ++ compressed.compressedBytes.getOrElse(body)
 
-        val blocked = BlockedReader(ref)
-        blocked.copy().readRemaining() shouldBe compressedBytes.drop(compressed.headerBytes.size)
+            val ref = BlockRefReader[ValuesBlock.Offset](compressedBytes)
+            ref.copy().readRemaining() shouldBe compressedBytes
+            ref.copy().moveTo(10).readRemaining() shouldBe compressedBytes.drop(10)
 
-        val unblocked = UnblockedReader(blocked, randomBoolean())
-        unblocked.copy().readRemaining() shouldBe body
+            val blocked = BlockedReader(ref)
+            blocked.copy().readRemaining() shouldBe compressedBytes.drop(compressed.headerBytes.size)
 
-        val moveTo = BlockRefReader.moveTo(5, 5, unblocked)(ValuesBlockOps)
-        moveTo.copy().readRemaining() shouldBe body.drop(5).take(5)
+            val unblocked = UnblockedReader(blocked, randomBoolean())
+            unblocked.copy().readRemaining() shouldBe body
 
-        val moveWithin = BlockRefReader.moveTo(ValuesBlock.Offset(5, 5), unblocked)(ValuesBlockOps)
-        moveWithin.copy().readRemaining() shouldBe body.drop(5).take(5)
+            val moveTo = BlockRefReader.moveTo(5, 5, unblocked, blockCache)(ValuesBlockOps)
+            moveTo.copy().readRemaining() shouldBe body.drop(5).take(5)
+
+            val moveWithin = BlockRefReader.moveTo(ValuesBlock.Offset(5, 5), unblocked, blockCache)(ValuesBlockOps)
+            moveWithin.copy().readRemaining() shouldBe body.drop(5).take(5)
+          }
+
+          runTest(randomCompressionsLZ4OrSnappyOrEmpty())
+          runTest(Seq(randomCompressionLZ4()))
+          runTest(Seq(randomCompressionSnappy()))
+          runTest(Seq.empty)
       }
-
-      runTest(randomCompressionsLZ4OrSnappyOrEmpty())
-      runTest(Seq(randomCompressionLZ4()))
-      runTest(Seq(randomCompressionSnappy()))
-      runTest(Seq.empty)
     }
   }
 }

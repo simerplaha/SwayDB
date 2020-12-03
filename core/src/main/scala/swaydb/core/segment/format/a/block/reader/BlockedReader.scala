@@ -24,6 +24,7 @@
 
 package swaydb.core.segment.format.a.block.reader
 
+import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
@@ -33,9 +34,11 @@ import swaydb.data.util.ByteOps
 private[core] object BlockedReader {
 
   def apply[O <: BlockOffset, B <: Block[O]](block: B,
-                                             bytes: Slice[Byte]) =
+                                             bytes: Slice[Byte]): BlockedReader[O, B] =
     new BlockedReader[O, B](
       reader = Reader(bytes),
+      blockCache = None,
+      rootBlockRefOffset = block.offset,
       block = block
     )
 
@@ -44,6 +47,8 @@ private[core] object BlockedReader {
     val block = blockOps.readBlock(header)
     new BlockedReader[O, B](
       reader = ref.reader,
+      rootBlockRefOffset = ref.rootBlockRefOffset,
+      blockCache = ref.blockCache,
       block = block
     )
   }
@@ -51,11 +56,15 @@ private[core] object BlockedReader {
   def apply[O <: BlockOffset, B <: Block[O]](block: B, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): BlockedReader[O, B] =
     new BlockedReader[O, B](
       reader = reader.reader,
+      rootBlockRefOffset = reader.rootBlockRefOffset,
+      blockCache = reader.blockCache,
       block = block
     )
 }
 
 private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(private[reader] val reader: Reader[Byte],
+                                                                           val rootBlockRefOffset: BlockOffset,
+                                                                           val blockCache: Option[BlockCache.State],
                                                                            val block: B)(implicit val byteOps: ByteOps[Byte]) extends BlockReaderBase {
 
   val offset = block.offset
@@ -81,6 +90,8 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
   override def copy(): BlockedReader[O, B] =
     new BlockedReader(
       reader = reader.copy(),
+      blockCache = blockCache,
+      rootBlockRefOffset = rootBlockRefOffset,
       block = block
     )
 }

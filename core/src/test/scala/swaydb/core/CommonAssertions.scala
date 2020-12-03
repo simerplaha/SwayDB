@@ -25,7 +25,6 @@
 package swaydb.core
 
 import java.nio.file.Paths
-
 import org.scalactic.Equality
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
@@ -37,8 +36,8 @@ import swaydb.core.actor.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
-import swaydb.core.io.file.Effect
-import swaydb.core.io.reader.Reader
+import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
@@ -63,7 +62,7 @@ import swaydb.data.RunThis._
 import swaydb.data.cache.CacheNoIO
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Reader, Slice, SliceOption}
+import swaydb.data.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.{Aggregator, Bag, Error, Glass, IO, OK}
@@ -1589,7 +1588,14 @@ object CommonAssertions {
     SegmentBlockCache(
       path = Paths.get("test-cache"),
       segmentIO = segmentIO,
-      blockRef = BlockRefReader[SegmentBlock.Offset](reader.copy())(SegmentBlockOps),
+      blockRef =
+        reader match {
+          case reader: FileReader =>
+            BlockRefReader(reader.file, BlockCache.init(blockCacheMemorySweeper))
+
+          case SliceReader(slice, position) =>
+            BlockRefReader[SegmentBlock.Offset](slice.drop(position))(SegmentBlockOps)
+        },
       valuesReaderCacheable = None,
       sortedIndexReaderCacheable = None,
       hashIndexReaderCacheable = None,

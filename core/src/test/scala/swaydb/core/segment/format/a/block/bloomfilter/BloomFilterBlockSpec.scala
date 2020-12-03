@@ -25,8 +25,9 @@
 package swaydb.core.segment.format.a.block.bloomfilter
 
 import org.scalatest.OptionValues._
-import swaydb.core.CommonAssertions.eitherOne
+import swaydb.core.CommonAssertions.{eitherOne, orNone}
 import swaydb.core.TestData._
+import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.{TestBase, TestCaseSweeper}
@@ -62,9 +63,11 @@ class BloomFilterBlockSpec extends TestBase {
 
             BloomFilterBlock.close(filter).value
 
+            val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
+
             Seq(
               BlockRefReader[BloomFilterBlock.Offset](filter.blockBytes),
-              BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(filter.blockBytes))
+              BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(filter.blockBytes), blockCache)
             ) foreach {
               reader =>
                 val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader)
@@ -96,9 +99,11 @@ class BloomFilterBlockSpec extends TestBase {
 
             BloomFilterBlock.close(state).value
 
+            val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
+
             Seq(
               BlockRefReader[BloomFilterBlock.Offset](state.blockBytes),
-              BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.blockBytes))
+              BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.blockBytes), blockCache)
             ) foreach {
               reader =>
                 val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader)
@@ -310,9 +315,11 @@ class BloomFilterBlockSpec extends TestBase {
             reader = BloomFilterBlock.unblockedReader(state)
           )
 
+          val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
+
           Seq(
             BlockRefReader[BloomFilterBlock.Offset](state.blockBytes),
-            BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.blockBytes))
+            BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.blockBytes), blockCache)
           ) foreach {
             blockRefReader =>
               val reader = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](blockRefReader)
