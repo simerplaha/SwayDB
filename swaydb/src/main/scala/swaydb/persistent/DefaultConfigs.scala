@@ -55,7 +55,7 @@ object DefaultConfigs {
       enablePositionIndex = true,
       optimiseForReverseIteration = true,
       blockIOStrategy = {
-        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compressions = _ => Seq.empty
@@ -69,7 +69,7 @@ object DefaultConfigs {
       indexFormat = IndexFormat.Reference,
       allocateSpace = _.requiredSpace,
       blockIOStrategy = {
-        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
@@ -81,7 +81,7 @@ object DefaultConfigs {
       searchSortedIndexDirectly = true,
       indexFormat = IndexFormat.CopyKey,
       blockIOStrategy = {
-        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
@@ -93,7 +93,7 @@ object DefaultConfigs {
       minimumNumberOfKeys = 10,
       updateMaxProbe = optimalMaxProbe => 1,
       blockIOStrategy = {
-        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
@@ -104,7 +104,7 @@ object DefaultConfigs {
       compressDuplicateValues = true,
       compressDuplicateRangeValues = true,
       blockIOStrategy = {
-        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
@@ -120,7 +120,7 @@ object DefaultConfigs {
       segmentFormat = SegmentFormat.Flattened,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
-        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty

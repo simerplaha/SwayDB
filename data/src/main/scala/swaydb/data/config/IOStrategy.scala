@@ -77,6 +77,10 @@ object IOStrategy {
       copy(cacheOnAccess = true)
   }
 
+  object SynchronisedIO {
+    val cached = SynchronisedIO(cacheOnAccess = true)
+  }
+
   case class SynchronisedIO(cacheOnAccess: Boolean) extends ThreadSafe {
     def forceCacheOnAccess: SynchronisedIO =
       copy(cacheOnAccess = true)
