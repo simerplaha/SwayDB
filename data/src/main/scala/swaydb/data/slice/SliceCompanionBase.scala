@@ -285,18 +285,18 @@ trait SliceCompanionBase {
   }
 
   implicit class JavaByteSliced(sliced: Slice[java.lang.Byte]) {
-    def cast: Slice[Byte] =
+    @inline def cast: Slice[Byte] =
       sliced.asInstanceOf[Slice[Byte]]
   }
 
   implicit class ScalaByteSliced(sliced: Slice[Byte]) {
-    def cast: Slice[java.lang.Byte] =
+    @inline def cast: Slice[java.lang.Byte] =
       sliced.asInstanceOf[Slice[java.lang.Byte]]
   }
 
   @inline final def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
     new slice.Slice.SliceBuilder[T](sizeHint)
 
-  private[swaydb] def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Slice[T]] =
+  @inline private[swaydb] final def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Slice[T]] =
     Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](sizeHint))
 }
