@@ -35,7 +35,7 @@ import scala.util.Try
 
 final class ActorWire[I, S] private[swaydb](name: String,
                                             impl: I,
-                                            interval: Option[(FiniteDuration, Int)],
+                                            interval: Option[(FiniteDuration, Long)],
                                             state: S)(implicit val ec: ExecutionContext) { wire =>
 
   private val actor: ActorRef[(I, S) => Unit, S] =

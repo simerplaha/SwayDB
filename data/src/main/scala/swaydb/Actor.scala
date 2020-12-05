@@ -26,9 +26,8 @@ package swaydb
 
 import java.util.TimerTask
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import java.util.function.IntUnaryOperator
-
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicLong}
+import java.util.function.{IntUnaryOperator, LongUnaryOperator}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.IO.ExceptionHandler
@@ -60,7 +59,7 @@ sealed trait ActorRef[-T, S] { self =>
 
   def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit bag: Bag.Async[X]): Actor.Task[R, X]
 
-  def totalWeight: Int
+  def totalWeight: Long
 
   def messageCount: Int
 
@@ -117,7 +116,7 @@ object Actor {
       override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit bag: Bag.Async[X]): X[R] = throw new Exception("Dead Actor")
       override def send(message: T, delay: FiniteDuration): TimerTask = throw new Exception("Dead Actor")
       override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit bag: Bag.Async[X]): Task[R, X] = throw new Exception("Dead Actor")
-      override def totalWeight: Int = throw new Exception("Dead Actor")
+      override def totalWeight: Long = throw new Exception("Dead Actor")
       override def messageCount: Int = throw new Exception("Dead Actor")
       override def isEmpty: Boolean = throw new Exception("Dead Actor")
       override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Error], Actor[T, S]) => Unit): ActorRef[T, S] = throw new Exception("Dead Actor")
@@ -134,7 +133,7 @@ object Actor {
     }
 
   def cacheFromConfig[T](config: ActorConfig,
-                         stashCapacity: Int,
+                         stashCapacity: Long,
                          weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit): ActorRef[T, Unit] =
     config match {
       case config: ActorConfig.Basic =>
@@ -163,7 +162,7 @@ object Actor {
 
   def cacheFromConfig[T, S](config: ActorConfig,
                             state: S,
-                            stashCapacity: Int,
+                            stashCapacity: Long,
                             weigher: T => Int)(execution: (T, Actor[T, S]) => Unit): ActorRef[T, S] =
     config match {
       case config: ActorConfig.Basic =>
@@ -220,7 +219,7 @@ object Actor {
     )
 
   def cache[T](name: String,
-               stashCapacity: Int,
+               stashCapacity: Long,
                weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
                                                                           queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     cache[T, Unit](
@@ -232,7 +231,7 @@ object Actor {
 
   def cache[T, S](name: String,
                   state: S,
-                  stashCapacity: Int,
+                  stashCapacity: Long,
                   weigher: T => Int)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                           queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
@@ -251,7 +250,7 @@ object Actor {
     )
 
   def timer[T](name: String,
-               stashCapacity: Int,
+               stashCapacity: Long,
                interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
                                                                                  queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     timer(
@@ -269,7 +268,7 @@ object Actor {
    */
   def timer[T, S](name: String,
                   state: S,
-                  stashCapacity: Int,
+                  stashCapacity: Long,
                   interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                                  queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
@@ -288,7 +287,7 @@ object Actor {
     )
 
   def timerCache[T](name: String,
-                    stashCapacity: Int,
+                    stashCapacity: Long,
                     weigher: T => Int,
                     interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
                                                                                       queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
@@ -302,7 +301,7 @@ object Actor {
 
   def timerCache[T, S](name: String,
                        state: S,
-                       stashCapacity: Int,
+                       stashCapacity: Long,
                        weigher: T => Int,
                        interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                                       queueOrder: QueueOrder[T]): ActorRef[T, S] =
@@ -325,7 +324,7 @@ object Actor {
    * Stateless [[timerLoop]]
    */
   def timerLoop[T](name: String,
-                   stashCapacity: Int,
+                   stashCapacity: Long,
                    interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
                                                                                      queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     timerLoop(
@@ -343,7 +342,7 @@ object Actor {
    */
   def timerLoop[T, S](name: String,
                       state: S,
-                      stashCapacity: Int,
+                      stashCapacity: Long,
                       interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                                      queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
@@ -362,7 +361,7 @@ object Actor {
     )
 
   def timerLoopCache[T](name: String,
-                        stashCapacity: Int,
+                        stashCapacity: Long,
                         weigher: T => Int,
                         interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
                                                                                           queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
@@ -376,7 +375,7 @@ object Actor {
 
   def timerLoopCache[T, S](name: String,
                            state: S,
-                           stashCapacity: Int,
+                           stashCapacity: Long,
                            weigher: T => Int,
                            interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                                           queueOrder: QueueOrder[T]): ActorRef[T, S] =
@@ -413,7 +412,7 @@ object Actor {
 
   def wireTimer[T](name: String,
                    interval: FiniteDuration,
-                   stashCapacity: Int,
+                   stashCapacity: Long,
                    impl: T)(implicit ec: ExecutionContext): ActorWire[T, Unit] =
     new ActorWire(
       name = name,
@@ -424,7 +423,7 @@ object Actor {
 
   def wireTimer[T, S](name: String,
                       interval: FiniteDuration,
-                      stashCapacity: Int,
+                      stashCapacity: Long,
                       impl: T,
                       state: S)(implicit ec: ExecutionContext): ActorWire[T, S] =
     new ActorWire(
@@ -460,7 +459,7 @@ private class Interval(val delay: FiniteDuration, val isLoop: Boolean)
 class Actor[-T, S](val name: String,
                    val state: S,
                    queue: ActorQueue[(T, Int)],
-                   stashCapacity: Int,
+                   stashCapacity: Long,
                    weigher: T => Int,
                    cached: Boolean,
                    execution: (T, Actor[T, S]) => Unit,
@@ -478,7 +477,7 @@ class Actor[-T, S](val name: String,
   //like when the actor is terminated and we just to apply recovery on all dropped messages eg: closing MMAP files.
   private val priority = AtomicThreadLocalBoolean()
 
-  private val weight = new AtomicInteger(0)
+  private val weight = new AtomicLong(0)
   private val isBasic = interval.isEmpty
   private val isTimerLoop = interval.exists(_.isLoop)
   private val isTimerNoLoop = interval.exists(!_.isLoop)
@@ -492,7 +491,7 @@ class Actor[-T, S](val name: String,
 
   @volatile private var task = Option.empty[TimerTask]
 
-  override def totalWeight: Int =
+  override def totalWeight: Long =
     weight.get()
 
   def messageCount: Int =
@@ -508,8 +507,8 @@ class Actor[-T, S](val name: String,
 
     val currentStashed =
       weight updateAndGet {
-        new IntUnaryOperator {
-          override def applyAsInt(currentWeight: Int): Int =
+        new LongUnaryOperator {
+          override def applyAsLong(currentWeight: Long): Long =
             currentWeight + messageWeight
         }
       }
@@ -549,7 +548,7 @@ class Actor[-T, S](val name: String,
   @inline private def setFree(): Unit =
     Reserve.setFree(busy)
 
-  @inline private def wakeUp(currentStashed: Int): Unit =
+  @inline private def wakeUp(currentStashed: Long): Unit =
     if (isTerminated) //if it's terminated ignore fixedStashSize and process messages immediately.
       terminatedWakeUp() //not using currentStashed here because terminated should always check for current latest count to be more accurate.
     else if (isBasic) //if it's not a timed actor.
@@ -561,7 +560,7 @@ class Actor[-T, S](val name: String,
     if (isNotEmpty && compareSetBusy())
       Future(receive(overflow = Int.MaxValue, wakeUpOnComplete = true, isPriorityReceive = false))
 
-  @inline private def basicWakeUp(currentStashed: Int): Unit = {
+  @inline private def basicWakeUp(currentStashed: Long): Unit = {
     val overflow = currentStashed - fixedStashSize
     val isOverflown = overflow > 0
     //do not check for terminated actor here for receive to apply recovery.
@@ -576,7 +575,7 @@ class Actor[-T, S](val name: String,
    *                      For example: if item's weight is 10 but overflow is 1. This
    *                      will result in the cached messages to be [[Actor.stashCapacity]] - 10.
    */
-  private def timerWakeUp(currentStashed: Int, stashCapacity: Int): Unit =
+  private def timerWakeUp(currentStashed: Long, stashCapacity: Long): Unit =
     if (!terminated.get()) {
       val overflow = currentStashed - stashCapacity
       val isOverflown = overflow > 0
@@ -747,8 +746,8 @@ class Actor[-T, S](val name: String,
 
   //receive can be invoked by busy or receiving booleans. busy is always tried first
   //or receiving is used for priority execution.
-  private def receive(overflow: Int, wakeUpOnComplete: Boolean, isPriorityReceive: Boolean): Unit = {
-    var processedWeight = 0
+  private def receive(overflow: Long, wakeUpOnComplete: Boolean, isPriorityReceive: Boolean): Unit = {
+    var processedWeight = 0L
     var break = false
     try
       //Execute if this the current thread the already set receiving to true or set to true now.
@@ -786,8 +785,8 @@ class Actor[-T, S](val name: String,
     finally {
       if (processedWeight != 0)
         weight updateAndGet {
-          new IntUnaryOperator {
-            override def applyAsInt(currentWeight: Int): Int =
+          new LongUnaryOperator {
+            override def applyAsLong(currentWeight: Long): Long =
               currentWeight - processedWeight
           }
         }

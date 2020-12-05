@@ -74,7 +74,7 @@ object Actor {
       new swaydb.Actor.Task(javaFuture.task.toJava, javaFuture.timer)
     }
 
-    def totalWeight: Int =
+    def totalWeight: Long =
       asScala.totalWeight
 
     def messageCount: Int =

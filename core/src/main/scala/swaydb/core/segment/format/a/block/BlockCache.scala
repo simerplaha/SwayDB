@@ -58,7 +58,20 @@ private[core] object BlockCache extends LazyLogging {
   def init(memorySweeper: Option[MemorySweeper.Block]): Option[BlockCache.State] =
     memorySweeper.map(fromBlock)
 
-  def fromBlock(memorySweeper: MemorySweeper.Block): BlockCache.State =
+  def fromBlock(memorySweeper: MemorySweeper.Block): BlockCache.State = {
+    val initialCapacityInt = {
+      val longCapacity: Long =
+        memorySweeper.cacheSize / memorySweeper.blockSize
+
+      val int = longCapacity.toInt
+      if (int <= 0) {
+        logger.warn(s"WARNING! Initial capacity for BlockCache's HashMap is too large: $longCapacity.bytes. Setting to ${Int.MaxValue}")
+        Int.MaxValue
+      } else {
+        int
+      }
+    }
+
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
@@ -66,9 +79,10 @@ private[core] object BlockCache extends LazyLogging {
       map =
         HashedMap.concurrent[Long, SliceOption[Byte], Slice[Byte]](
           nullValue = Slice.Null,
-          initialCapacity = Some(memorySweeper.cacheSize / memorySweeper.blockSize)
+          initialCapacity = Some(initialCapacityInt)
         )
     )
+  }
 
   class State(val blockSize: Int,
               val skipBlockCacheSeekSize: Int,

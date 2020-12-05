@@ -38,12 +38,12 @@ object MemoryCache {
   case object Off extends MemoryCache
 
   sealed trait On extends MemoryCache {
-    def cacheCapacity: Int
+    def cacheCapacity: Long
   }
 
   sealed trait Block extends On {
     val minIOSeekSize: Int
-    val cacheCapacity: Int
+    val cacheCapacity: Long
     val actorConfig: ActorConfig
   }
 
@@ -58,7 +58,7 @@ object MemoryCache {
 
   case class ByteCacheOnly(minIOSeekSize: Int,
                            skipBlockCacheSeekSize: Int,
-                           cacheCapacity: Int,
+                           cacheCapacity: Long,
                            actorConfig: ActorConfig) extends Block {
     def copyWithMinIOSeekSize(minIOSeekSize: Int) =
       this.copy(minIOSeekSize = minIOSeekSize)
@@ -66,17 +66,17 @@ object MemoryCache {
     def copyWithSkipBlockCacheSeekSize(skipBlockCacheSeekSize: Int) =
       this.copy(skipBlockCacheSeekSize = skipBlockCacheSeekSize)
 
-    def copyWithCacheCapacity(cacheCapacity: Int) =
+    def copyWithCacheCapacity(cacheCapacity: Long) =
       this.copy(cacheCapacity = cacheCapacity)
 
     def copyWithActorConfig(actorConfig: ActorConfig) =
       this.copy(actorConfig = actorConfig)
   }
 
-  case class KeyValueCacheOnly(cacheCapacity: Int,
+  case class KeyValueCacheOnly(cacheCapacity: Long,
                                maxCachedKeyValueCountPerSegment: Option[Int],
                                actorConfig: Option[ActorConfig]) extends On {
-    def copyWithCacheCapacity(cacheCapacity: Int) =
+    def copyWithCacheCapacity(cacheCapacity: Long) =
       this.copy(cacheCapacity = cacheCapacity)
 
     def copyWithMaxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Optional[Int]) =
@@ -88,7 +88,7 @@ object MemoryCache {
 
   case class All(minIOSeekSize: Int,
                  skipBlockCacheSeekSize: Int,
-                 cacheCapacity: Int,
+                 cacheCapacity: Long,
                  maxCachedKeyValueCountPerSegment: Option[Int],
                  sweepCachedKeyValues: Boolean,
                  actorConfig: ActorConfig) extends On with Block {
@@ -98,7 +98,7 @@ object MemoryCache {
     def copyWithSkipBlockCacheSeekSize(skipBlockCacheSeekSize: Int) =
       this.copy(skipBlockCacheSeekSize = skipBlockCacheSeekSize)
 
-    def copyWithCacheCapacity(cacheCapacity: Int) =
+    def copyWithCacheCapacity(cacheCapacity: Long) =
       this.copy(cacheCapacity = cacheCapacity)
 
     def copyWithMaxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Optional[Int]) =

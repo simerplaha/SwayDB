@@ -136,7 +136,7 @@ private[core] object MemorySweeper extends LazyLogging {
   }
 
   protected sealed trait SweeperImplementation {
-    def cacheSize: Int
+    def cacheSize: Long
 
     def actorConfig: Option[ActorConfig]
 
@@ -194,7 +194,7 @@ private[core] object MemorySweeper extends LazyLogging {
   sealed trait Block extends Cache {
 
     def blockSize: Int
-    def cacheSize: Int
+    def cacheSize: Long
     def skipBlockCacheSeekSize: Int
 
     def add(key: Long,
@@ -211,7 +211,7 @@ private[core] object MemorySweeper extends LazyLogging {
   }
 
   case class BlockSweeper(blockSize: Int,
-                          cacheSize: Int,
+                          cacheSize: Long,
                           skipBlockCacheSeekSize: Int,
                           actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block
 
@@ -233,14 +233,14 @@ private[core] object MemorySweeper extends LazyLogging {
         }
   }
 
-  case class KeyValueSweeper(cacheSize: Int,
+  case class KeyValueSweeper(cacheSize: Long,
                              maxKeyValuesPerSegment: Option[Int],
                              actorConfig: Option[ActorConfig]) extends SweeperImplementation with KeyValue {
     override val sweepKeyValues: Boolean = actorConfig.isDefined
   }
 
   case class All(blockSize: Int,
-                 cacheSize: Int,
+                 cacheSize: Long,
                  skipBlockCacheSeekSize: Int,
                  maxKeyValuesPerSegment: Option[Int],
                  sweepKeyValues: Boolean,
