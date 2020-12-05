@@ -287,9 +287,9 @@ private[core] object Level extends LazyLogging {
     //Important! returned segments should always be in order
     val segmentsToMergeSorted =
       segmentsToMerge
-        .sortBy(_._1)(Ordering.Int.reverse)
-        .map(_._2)
+        .sortBy(_._1)
         .take(take)
+        .map(_._2)
         .sortBy(_.minKey)
 
     (segmentsToCopy, segmentsToMergeSorted)
