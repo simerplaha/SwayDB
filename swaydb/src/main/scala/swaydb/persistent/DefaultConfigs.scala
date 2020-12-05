@@ -51,7 +51,12 @@ object DefaultConfigs {
 
   def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.On =
     SortedKeyIndex.On(
-      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
+      //      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
+      prefixCompression =
+        PrefixCompression.On(
+          keysOnly = true,
+          interval = PrefixCompression.Interval.ResetCompressionAt(3)
+        ),
       enablePositionIndex = true,
       optimiseForReverseIteration = true,
       blockIOStrategy = {
@@ -63,7 +68,7 @@ object DefaultConfigs {
 
   def randomSearchIndex(cacheDataBlockOnAccess: Boolean = true): RandomSearchIndex.On =
     RandomSearchIndex.On(
-      maxProbe = 1,
+      maxProbe = 5,
       minimumNumberOfKeys = 5,
       minimumNumberOfHits = 2,
       indexFormat = IndexFormat.Reference,
@@ -89,9 +94,9 @@ object DefaultConfigs {
 
   def mightContainIndex(cacheDataBlockOnAccess: Boolean = true): MightContainIndex.On =
     MightContainIndex.On(
-      falsePositiveRate = 0.01,
+      falsePositiveRate = 0.001,
       minimumNumberOfKeys = 10,
-      updateMaxProbe = optimalMaxProbe => 1,
+      updateMaxProbe = (optimalMaxProbe: Int) => optimalMaxProbe,
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
@@ -117,7 +122,7 @@ object DefaultConfigs {
       pushForward = true,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
       minSegmentSize = CommonConfigs.segmentSize,
-      segmentFormat = SegmentFormat.Flattened,
+      segmentFormat = SegmentFormat.Grouped(30000),
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
@@ -141,7 +146,7 @@ object DefaultConfigs {
     ByteCacheOnly(
       minIOSeekSize = 4096,
       skipBlockCacheSeekSize = 4096 * 10,
-      cacheCapacity = 1.gb,
+      cacheCapacity = 300.mb,
       actorConfig =
         ActorConfig.TimeLoop(
           name = s"${this.getClass.getName} - MemoryCache Actor",
@@ -163,28 +168,43 @@ object DefaultConfigs {
    */
 
   def levelOneThrottle(meter: LevelMeter): Throttle = {
-    val overflow = 100.mb_long - meter.levelSize
-    Throttle(overflow.microseconds, 1)
+    val overflow = ((250.mb_long.toDouble / meter.levelSize) * 100D) - 100
+    if (overflow == Double.PositiveInfinity)
+      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+    else
+      Throttle(overflow.seconds, 1)
   }
 
   def levelTwoThrottle(meter: LevelMeter): Throttle = {
-    val overflow = 1.gb_long - meter.levelSize
-    Throttle(overflow.microseconds, 1)
+    val overflow = ((500.mb_long.toDouble / meter.levelSize) * 100D) - 100
+    if (overflow == Double.PositiveInfinity)
+      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+    else
+      Throttle(overflow.seconds, 1)
   }
 
   def levelThreeThrottle(meter: LevelMeter): Throttle = {
-    val overflow = 10.gb_long - meter.levelSize
-    Throttle(overflow.microseconds, 1)
+    val overflow = ((1.gb_long.toDouble / meter.levelSize) * 100D) - 100
+    if (overflow == Double.PositiveInfinity)
+      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+    else
+      Throttle(overflow.seconds, 1)
   }
 
   def levelFourThrottle(meter: LevelMeter): Throttle = {
-    val overflow = 100.gb_long - meter.levelSize
-    Throttle(overflow.microseconds, 1)
+    val overflow = ((10.gb_long.toDouble / meter.levelSize) * 100D) - 100
+    if (overflow == Double.PositiveInfinity)
+      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+    else
+      Throttle(overflow.seconds, 1)
   }
 
   def levelFiveThrottle(meter: LevelMeter): Throttle = {
-    val overflow = 1000.gb_long - meter.levelSize
-    Throttle(overflow.microseconds, 1)
+    val overflow = ((100.gb_long.toDouble / meter.levelSize) * 100D) - 100
+    if (overflow == Double.PositiveInfinity)
+      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+    else
+      Throttle(overflow.seconds, 1)
   }
 
   def levelSixThrottle(meter: LevelMeter): Throttle =

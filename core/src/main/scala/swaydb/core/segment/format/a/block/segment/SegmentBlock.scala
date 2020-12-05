@@ -248,7 +248,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                 mergeStats = closedListKeyValues,
                 createdInLevel = createdInLevel,
                 bloomFilterConfig = BloomFilterBlock.Config.disabled,
-                hashIndexConfig = hashIndexConfig,
+                hashIndexConfig = HashIndexBlock.Config.disabled,
                 binarySearchIndexConfig = binarySearchIndexConfig,
                 sortedIndexConfig = modifiedSortedIndex,
                 valuesConfig = valuesConfig,

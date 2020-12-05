@@ -755,77 +755,32 @@ protected case class PersistentSegmentMany(file: DBFile,
         )(FunctionStore.order)
     }
 
-  def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
-    val listSegment = listSegmentCache.value(())
-
-    listSegment.get(key, threadState) match {
+  def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+    listSegmentCache.value(()).get(key, threadState) match {
       case persistent: Persistent =>
         fetchSegmentRef(persistent).get(key, threadState)
 
       case Persistent.Null =>
         Persistent.Null
     }
-  }
 
-  def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
-    val listSegment = listSegmentCache.value(())
-
-    listSegment.lower(key, threadState) match {
+  def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+    listSegmentCache.value(()).lower(key, threadState) match {
       case persistent: Persistent =>
         fetchSegmentRef(persistent).lower(key, threadState)
 
       case Persistent.Null =>
         Persistent.Null
     }
-  }
 
-  private def higherFromHigherSegment(key: Slice[Byte],
-                                      floorSegment: SegmentRefOption,
-                                      threadState: ThreadReadState): PersistentOption = {
-    val listSegment = listSegmentCache.value(())
-
-    listSegment.higher(key, threadState) match {
+  def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
+    listSegmentCache.value(()).higher(key, threadState) match {
       case segmentKeyValue: Persistent =>
-        val higherSegment = fetchSegmentRef(segmentKeyValue)
-
-        if (floorSegment containsC higherSegment)
-          Persistent.Null
-        else
-          higherSegment.higher(key, threadState)
+        fetchSegmentRef(segmentKeyValue).higher(key, threadState)
 
       case Persistent.Null =>
         Persistent.Null
     }
-  }
-
-  def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
-    val listSegment = listSegmentCache.value(())
-
-    val floorSegment: SegmentRefOption =
-      listSegment.get(key = key, threadState = threadState) match {
-        case persistent: Persistent =>
-          fetchSegmentRef(persistent)
-
-        case Persistent.Null =>
-          listSegment.lower(key = key, threadState = threadState) match {
-            case persistent: Persistent =>
-              fetchSegmentRef(persistent)
-
-            case Persistent.Null =>
-              SegmentRef.Null
-          }
-      }
-
-    floorSegment
-      .flatMapSomeC(Persistent.Null: PersistentOption)(_.higher(key, threadState))
-      .orElseS {
-        higherFromHigherSegment(
-          key = key,
-          floorSegment = floorSegment,
-          threadState = threadState
-        )
-      }
-  }
 
   override def iterator(): Iterator[Persistent] =
     getAllSegmentRefs().flatMap(_.iterator())
