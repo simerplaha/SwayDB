@@ -47,7 +47,7 @@ import scala.reflect.ClassTag
 object SetMap extends LazyLogging {
 
   def apply[K, V, BAG[_]](dir: Path,
-                          mapSize: Int = CommonConfigs.mapSize,
+                          mapSize: Int = DefaultConfigs.mapSize,
                           mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                           recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                           mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
@@ -57,7 +57,7 @@ object SetMap extends LazyLogging {
                           compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                           optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                           atomic: Atomic = CommonConfigs.atomic(),
-                          acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
+                          acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                           sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                           randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),

@@ -25,30 +25,14 @@
 package swaydb
 
 import swaydb.configs.level.DefaultExecutionContext
-import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, ParallelMerge}
 import swaydb.data.{Atomic, OptimiseWrites}
 
 import scala.concurrent.duration._
 
 case object CommonConfigs {
-  //4098 being the default file-system blockSize.
-  def mapSize: Int = 34.mb
-
-  def segmentSize: Int = 34.mb
 
   def segmentDeleteDelay = 10.seconds
-
-  def accelerator: LevelZeroMeter => Accelerator =
-    Accelerator.brake(
-      increaseMapSizeOnMapCount = 3,
-      increaseMapSizeBy = 1,
-      maxMapSize = CommonConfigs.mapSize,
-      brakeOnMapCount = 4,
-      brakeFor = 1.milliseconds,
-      releaseRate = 0.01.millisecond,
-      logAsWarning = false
-    )
 
   def parallelMerge(): ParallelMerge =
     ParallelMerge.On(

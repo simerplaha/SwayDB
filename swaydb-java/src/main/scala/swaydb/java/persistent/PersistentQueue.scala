@@ -46,7 +46,7 @@ import scala.jdk.CollectionConverters._
 object PersistentQueue {
 
   final class Config[A](dir: Path,
-                        private var mapSize: Int = CommonConfigs.mapSize,
+                        private var mapSize: Int = DefaultConfigs.mapSize,
                         private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                         private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                         private var mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
@@ -72,7 +72,7 @@ object PersistentQueue {
                         private var levelFourThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFourThrottle _).asJava,
                         private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                         private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
-                        private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
+                        private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {

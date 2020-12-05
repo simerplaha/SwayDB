@@ -24,14 +24,31 @@
 
 package swaydb.memory
 
-import swaydb.data.accelerate.LevelZeroMeter
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{ActorConfig, FileCache}
+import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultConfigs {
+
+  //4098 being the default file-system blockSize.
+  def mapSize: Int = 8.mb
+
+  def segmentSize: Int = 4.mb
+
+  def accelerator: LevelZeroMeter => Accelerator =
+    Accelerator.brake(
+      increaseMapSizeOnMapCount = 1,
+      increaseMapSizeBy = 1,
+      maxMapSize = mapSize,
+      brakeOnMapCount = 6,
+      brakeFor = 1.milliseconds,
+      releaseRate = 0.01.millisecond,
+      logAsWarning = false
+    )
 
   def fileCache(implicit ec: ExecutionContext): FileCache.On =
     FileCache.On(

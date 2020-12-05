@@ -58,7 +58,7 @@ object MultiMap extends LazyLogging {
    * @tparam BAG Effect type
    */
   def apply[M, K, V, F <: PureFunction.Map[K, V], BAG[_]](dir: Path,
-                                                          mapSize: Int = CommonConfigs.mapSize,
+                                                          mapSize: Int = DefaultConfigs.mapSize,
                                                           appliedFunctionsMapSize: Int = 4.mb,
                                                           clearAppliedFunctionsOnBoot: Boolean = false,
                                                           mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
@@ -70,7 +70,7 @@ object MultiMap extends LazyLogging {
                                                           compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                                                           optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                           atomic: Atomic = CommonConfigs.atomic(),
-                                                          acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
+                                                          acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
                                                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                           sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                           randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),

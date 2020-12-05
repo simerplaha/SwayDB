@@ -45,15 +45,15 @@ import scala.reflect.ClassTag
 
 object MemorySet {
 
-  final class Config[A, F](private var mapSize: Int = CommonConfigs.mapSize,
-                           private var minSegmentSize: Int = CommonConfigs.segmentSize,
+  final class Config[A, F](private var mapSize: Int = DefaultConfigs.mapSize,
+                           private var minSegmentSize: Int = DefaultConfigs.segmentSize,
                            private var maxKeyValuesPerSegment: Int = Int.MaxValue,
                            private var deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                            private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                            private var atomic: Atomic = CommonConfigs.atomic(),
                            private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
                            private var fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
-                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
+                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                            private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),

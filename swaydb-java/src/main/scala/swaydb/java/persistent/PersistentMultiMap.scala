@@ -51,7 +51,7 @@ import scala.reflect.ClassTag
 object PersistentMultiMap {
 
   final class Config[M, K, V, F](dir: Path,
-                                 private var mapSize: Int = CommonConfigs.mapSize,
+                                 private var mapSize: Int = DefaultConfigs.mapSize,
                                  private var appliedFunctionsMapSize: Int = 4.mb,
                                  private var clearAppliedFunctionsOnBoot: Boolean = false,
                                  private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
@@ -79,7 +79,7 @@ object PersistentMultiMap {
                                  private var levelFourThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFourThrottle _).asJava,
                                  private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                                  private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
-                                 private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
+                                 private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                                  private var byteComparator: KeyComparator[Slice[java.lang.Byte]] = null,
                                  private var typedComparator: KeyComparator[K] = null)(implicit functionClassTag: ClassTag[F],
                                                                                        keySerializer: Serializer[K],

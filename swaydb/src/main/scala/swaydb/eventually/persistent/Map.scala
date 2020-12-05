@@ -53,12 +53,12 @@ object Map extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[K, V, F <: PureFunction.Map[K, V], BAG[_]](dir: Path,
-                                                       mapSize: Int = CommonConfigs.mapSize,
+                                                       mapSize: Int = DefaultConfigs.mapSize,
                                                        appliedFunctionsMapSize: Int = 4.mb,
                                                        clearAppliedFunctionsOnBoot: Boolean = false,
                                                        maxMemoryLevelSize: Int = 100.mb,
                                                        maxSegmentsToPush: Int = 5,
-                                                       memoryLevelSegmentSize: Int = CommonConfigs.segmentSize,
+                                                       memoryLevelSegmentSize: Int = DefaultConfigs.segmentSize,
                                                        memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
                                                        persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                                                        otherDirs: Seq[Dir] = Seq.empty,
@@ -68,7 +68,7 @@ object Map extends LazyLogging {
                                                        compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                                                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                        atomic: Atomic = CommonConfigs.atomic(),
-                                                       acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
+                                                       acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
                                                        persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                        persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                                                        binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),

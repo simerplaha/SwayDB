@@ -25,6 +25,7 @@
 package swaydb.eventually.persistent
 
 import swaydb.CommonConfigs
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
 import swaydb.data.util.StorageUnits._
@@ -33,6 +34,22 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultConfigs {
+
+  //4098 being the default file-system blockSize.
+  def mapSize: Int = 8.mb
+
+  def segmentSize: Int = 8.mb
+
+  def accelerator: LevelZeroMeter => Accelerator =
+    Accelerator.brake(
+      increaseMapSizeOnMapCount = 1,
+      increaseMapSizeBy = 1,
+      maxMapSize = mapSize,
+      brakeOnMapCount = 6,
+      brakeFor = 1.milliseconds,
+      releaseRate = 0.01.millisecond,
+      logAsWarning = false
+    )
 
   def mmap(): MMAP.Off =
     MMAP.Off(
@@ -112,7 +129,7 @@ object DefaultConfigs {
       pushForward = PushForwardStrategy.Off,
       //mmap is disabled for eventually persistent databases to give in-memory levels more memory-space.
       mmap = DefaultConfigs.mmap(),
-      minSegmentSize = CommonConfigs.segmentSize,
+      minSegmentSize = segmentSize,
       segmentFormat = SegmentFormat.Flattened,
       fileOpenIOStrategy = IOStrategy.SynchronisedIO.cached,
       blockIOStrategy = {

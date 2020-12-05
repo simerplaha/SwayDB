@@ -25,7 +25,7 @@
 package swaydb.persistent
 
 import swaydb.CommonConfigs
-import swaydb.data.accelerate.LevelZeroMeter
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.MemoryCache.ByteCacheOnly
 import swaydb.data.config._
@@ -36,6 +36,22 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultConfigs {
+
+  //4098 being the default file-system blockSize.
+  def mapSize: Int = 64.mb
+
+  def segmentSize: Int = 44.mb
+
+  def accelerator: LevelZeroMeter => Accelerator =
+    Accelerator.brake(
+      increaseMapSizeOnMapCount = 1,
+      increaseMapSizeBy = 1,
+      maxMapSize = mapSize,
+      brakeOnMapCount = 6,
+      brakeFor = 1.milliseconds,
+      releaseRate = 0.01.millisecond,
+      logAsWarning = false
+    )
 
   def mmap(): MMAP.On =
     MMAP.On(
@@ -49,7 +65,7 @@ object DefaultConfigs {
         )
     )
 
-  def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.On =
+  def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = false): SortedKeyIndex.On =
     SortedKeyIndex.On(
       prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
       //      prefixCompression =
@@ -66,7 +82,7 @@ object DefaultConfigs {
       compressions = _ => Seq.empty
     )
 
-  def randomSearchIndex(cacheDataBlockOnAccess: Boolean = true): RandomSearchIndex.On =
+  def randomSearchIndex(cacheDataBlockOnAccess: Boolean = false): RandomSearchIndex.On =
     RandomSearchIndex.On(
       maxProbe = 5,
       minimumNumberOfKeys = 5,
@@ -80,7 +96,7 @@ object DefaultConfigs {
       compression = _ => Seq.empty
     )
 
-  def binarySearchIndex(cacheDataBlockOnAccess: Boolean = true): BinarySearchIndex.FullIndex =
+  def binarySearchIndex(cacheDataBlockOnAccess: Boolean = false): BinarySearchIndex.FullIndex =
     BinarySearchIndex.FullIndex(
       minimumNumberOfKeys = 10,
       searchSortedIndexDirectly = true,
@@ -92,7 +108,7 @@ object DefaultConfigs {
       compression = _ => Seq.empty
     )
 
-  def mightContainIndex(cacheDataBlockOnAccess: Boolean = true): MightContainIndex.On =
+  def mightContainIndex(cacheDataBlockOnAccess: Boolean = false): MightContainIndex.On =
     MightContainIndex.On(
       falsePositiveRate = 0.001,
       minimumNumberOfKeys = 10,
@@ -121,7 +137,7 @@ object DefaultConfigs {
       deleteDelay = CommonConfigs.segmentDeleteDelay,
       pushForward = PushForwardStrategy.OnOverflow,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
-      minSegmentSize = CommonConfigs.segmentSize,
+      minSegmentSize = segmentSize,
       segmentFormat = SegmentFormat.Grouped(10000),
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
@@ -146,7 +162,7 @@ object DefaultConfigs {
     ByteCacheOnly(
       minIOSeekSize = 4096,
       skipBlockCacheSeekSize = 4096 * 10,
-      cacheCapacity = 300.mb,
+      cacheCapacity = 100.mb,
       actorConfig =
         ActorConfig.TimeLoop(
           name = s"${this.getClass.getName} - MemoryCache Actor",
@@ -167,42 +183,45 @@ object DefaultConfigs {
    * The lower the [[FiniteDuration]] the higher it's priority.
    */
 
+  val levelOneSize = 512.mb_long.toDouble
+  val idle = Throttle(pushDelay = 365.day, segmentsToPush = 1)
+
   def levelOneThrottle(meter: LevelMeter): Throttle = {
-    val overflow = ((250.mb_long.toDouble / meter.levelSize) * 100D) - 100
+    val overflow = ((levelOneSize / meter.levelSize) * 100D) - 100
     if (overflow == Double.PositiveInfinity)
-      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+      idle
     else
       Throttle(overflow.seconds, 1)
   }
 
   def levelTwoThrottle(meter: LevelMeter): Throttle = {
-    val overflow = ((500.mb_long.toDouble / meter.levelSize) * 100D) - 100
+    val overflow = (((levelOneSize * 10) / meter.levelSize) * 100D) - 100
     if (overflow == Double.PositiveInfinity)
-      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+      idle
     else
       Throttle(overflow.seconds, 1)
   }
 
   def levelThreeThrottle(meter: LevelMeter): Throttle = {
-    val overflow = ((1.gb_long.toDouble / meter.levelSize) * 100D) - 100
+    val overflow = (((levelOneSize * 100) / meter.levelSize) * 100D) - 100
     if (overflow == Double.PositiveInfinity)
-      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+      idle
     else
       Throttle(overflow.seconds, 1)
   }
 
   def levelFourThrottle(meter: LevelMeter): Throttle = {
-    val overflow = ((10.gb_long.toDouble / meter.levelSize) * 100D) - 100
+    val overflow = (((levelOneSize * 1000) / meter.levelSize) * 100D) - 100
     if (overflow == Double.PositiveInfinity)
-      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+      idle
     else
       Throttle(overflow.seconds, 1)
   }
 
   def levelFiveThrottle(meter: LevelMeter): Throttle = {
-    val overflow = ((100.gb_long.toDouble / meter.levelSize) * 100D) - 100
+    val overflow = (((levelOneSize * 10000) / meter.levelSize) * 100D) - 100
     if (overflow == Double.PositiveInfinity)
-      Throttle(pushDelay = 1.day, segmentsToPush = 1)
+      idle
     else
       Throttle(overflow.seconds, 1)
   }

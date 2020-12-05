@@ -48,7 +48,7 @@ object Queue extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[A, BAG[_]](dir: Path,
-                       mapSize: Int = CommonConfigs.mapSize,
+                       mapSize: Int = DefaultConfigs.mapSize,
                        mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                        recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                        mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
@@ -56,7 +56,7 @@ object Queue extends LazyLogging {
                        otherDirs: Seq[Dir] = Seq.empty,
                        cacheKeyValueIds: Boolean = true,
                        compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
-                       acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
+                       acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                        optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                        atomic: Atomic = CommonConfigs.atomic(),

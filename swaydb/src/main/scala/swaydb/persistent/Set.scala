@@ -52,7 +52,7 @@ object Set extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[A, F <: PureFunction.Set[A], BAG[_]](dir: Path,
-                                                 mapSize: Int = CommonConfigs.mapSize,
+                                                 mapSize: Int = DefaultConfigs.mapSize,
                                                  appliedFunctionsMapSize: Int = 4.mb,
                                                  clearAppliedFunctionsOnBoot: Boolean = false,
                                                  mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
@@ -64,7 +64,7 @@ object Set extends LazyLogging {
                                                  optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                                                  atomic: Atomic = CommonConfigs.atomic(),
                                                  compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
-                                                 acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
+                                                 acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
                                                  threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                                                  sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                                                  randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),

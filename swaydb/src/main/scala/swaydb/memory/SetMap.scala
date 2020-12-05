@@ -45,15 +45,15 @@ object SetMap extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[K, V, BAG[_]](mapSize: Int = CommonConfigs.mapSize,
-                          minSegmentSize: Int = CommonConfigs.segmentSize,
+  def apply[K, V, BAG[_]](mapSize: Int = DefaultConfigs.mapSize,
+                          minSegmentSize: Int = DefaultConfigs.segmentSize,
                           maxKeyValuesPerSegment: Int = Int.MaxValue,
                           fileCache: FileCache.On = DefaultConfigs.fileCache(DefaultExecutionContext.sweeperEC),
                           deleteDelay: FiniteDuration = CommonConfigs.segmentDeleteDelay,
                           compactionExecutionContext: CompactionExecutionContext.Create = CommonConfigs.compactionExecutionContext(),
                           optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                           atomic: Atomic = CommonConfigs.atomic(),
-                          acceleration: LevelZeroMeter => Accelerator = CommonConfigs.accelerator,
+                          acceleration: LevelZeroMeter => Accelerator = DefaultConfigs.accelerator,
                           levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                           lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],

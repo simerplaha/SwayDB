@@ -50,7 +50,7 @@ import scala.jdk.CollectionConverters._
 object PersistentSetMap {
 
   final class Config[K, V](dir: Path,
-                           private var mapSize: Int = CommonConfigs.mapSize,
+                           private var mapSize: Int = DefaultConfigs.mapSize,
                            private var mmapMaps: MMAP.Map = DefaultConfigs.mmap(),
                            private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                            private var mmapAppendix: MMAP.Map = DefaultConfigs.mmap(),
@@ -58,7 +58,7 @@ object PersistentSetMap {
                            private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                            private var cacheKeyValueIds: Boolean = true,
                            private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
-                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
+                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                            private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                            private var randomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),

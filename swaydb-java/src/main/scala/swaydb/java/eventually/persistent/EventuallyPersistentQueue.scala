@@ -49,10 +49,10 @@ import scala.jdk.CollectionConverters._
 object EventuallyPersistentQueue {
 
   final class Config[A](dir: Path,
-                        private var mapSize: Int = CommonConfigs.mapSize,
+                        private var mapSize: Int = DefaultConfigs.mapSize,
                         private var maxMemoryLevelSize: Int = 100.mb,
                         private var maxSegmentsToPush: Int = 5,
-                        private var memoryLevelSegmentSize: Int = CommonConfigs.segmentSize,
+                        private var memoryLevelSegmentSize: Int = DefaultConfigs.segmentSize,
                         private var memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
                         private var persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                         private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
@@ -62,7 +62,7 @@ object EventuallyPersistentQueue {
                         private var compactionExecutionContext: Option[CompactionExecutionContext.Create] = None,
                         private var optimiseWrites: OptimiseWrites = CommonConfigs.optimiseWrites(),
                         private var atomic: Atomic = CommonConfigs.atomic(),
-                        private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = CommonConfigs.accelerator.asJava,
+                        private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = DefaultConfigs.accelerator.asJava,
                         private var persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
                         private var persistentLevelRandomSearchIndex: RandomSearchIndex = DefaultConfigs.randomSearchIndex(),
                         private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
