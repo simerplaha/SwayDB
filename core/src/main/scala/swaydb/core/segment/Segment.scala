@@ -1191,6 +1191,10 @@ private[core] case object Segment extends LazyLogging {
                segments2: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     segments2.exists(segment2 => overlaps(segment, segment2))
 
+  def overlapsCount(segment: Segment,
+                    segments2: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Int =
+    segments2.count(segment2 => overlaps(segment, segment2))
+
   def intersects(segments1: Iterable[Segment], segments2: Iterable[Segment]): Boolean =
     if (segments1.isEmpty || segments2.isEmpty)
       false

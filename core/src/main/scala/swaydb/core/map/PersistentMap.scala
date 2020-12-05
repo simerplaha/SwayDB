@@ -24,15 +24,12 @@
 
 package swaydb.core.map
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
-import swaydb.core.actor.ByteBufferSweeper
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
+import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
@@ -41,6 +38,7 @@ import swaydb.data.config.{IOStrategy, MMAP}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
+import java.nio.file.Path
 import scala.annotation.tailrec
 
 private[map] object PersistentMap extends LazyLogging {
@@ -154,25 +152,23 @@ private[map] object PersistentMap extends LazyLogging {
     val recoveredFiles =
       files mapRecover {
         path =>
-          logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
+          logger.info(s"$path: Recovering key-values with dropCorruptedTailEntries set as $dropCorruptedTailEntries.")
           val file = DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)
           val bytes = file.readAll
           val recovery = MapCodec.read[K, V](bytes, dropCorruptedTailEntries).get
 
-          logger.debug("{}: Recovered! Indexing recovered key-values.", path)
+          val entriesCount = recovery.item.map(_.entriesCount).getOrElse(0)
+          val entriesOrEntry = if (entriesCount == 0 || entriesCount > 1) "entries" else "entry"
 
-          val entriesRecovered =
-            recovery.item.foldLeft(0) {
-              case (size, entry) =>
-                //when populating skipList do the same checks a PersistentMap does when writing key-values to the skipList.
-                //Use the merger to write key-values to skipList if the there a range, update or remove(with deadline).
-                //else simply write the key-values to the skipList. This logic should be abstracted out to a common function.
-                //See MapSpec for tests.
-                cache writeNonAtomic entry
-                size + entry.entriesCount
-            }
+          logger.info(s"$path: Indexing $entriesCount $entriesOrEntry.")
 
-          logger.info(s"{}: Recovered {} ${if (entriesRecovered == 0 || entriesRecovered > 1) "entries" else "entry"}.", path, entriesRecovered)
+          //when populating skipList do the same checks a PersistentMap does when writing key-values to the skipList.
+          //Use the merger to write key-values to skipList if the there a range, update or remove(with deadline).{if (entriesCount == 0 || entriesCount > 1) "entries" else "entry"
+          //else simply write the key-values to the skipList. This logic should be abstracted out to a common function.
+          //See MapSpec for tests.
+          recovery.item foreach cache.writeNonAtomic
+
+          logger.debug(s"$path: Indexed!")
           RecoveryResult(file, recovery.result)
       }
 

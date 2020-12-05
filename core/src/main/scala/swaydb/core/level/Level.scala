@@ -265,18 +265,21 @@ private[core] object Level extends LazyLogging {
                                    take: Int)(implicit reserve: ReserveRange.State[Unit],
                                               keyOrder: KeyOrder[Slice[Byte]]): (Iterable[Segment], Iterable[Segment]) = {
     val segmentsToCopy = ListBuffer.empty[Segment]
-    val segmentsToMerge = ListBuffer.empty[Segment]
+    val segmentsToMerge = ListBuffer.empty[(Int, Segment)]
 
     level
       .segmentsInLevel()
       .foreachBreak {
         segment =>
-          if (ReserveRange.isUnreserved(segment) && nextLevel.isUnreserved(segment))
-            if (!Segment.overlaps(segment, nextLevel.segmentsInLevel()))
+          if (ReserveRange.isUnreserved(segment) && nextLevel.isUnreserved(segment)) {
+            val count = Segment.overlapsCount(segment, nextLevel.segmentsInLevel())
+
+            if (count == 0)
               segmentsToCopy += segment
             //only cache enough Segments to merge.
             else
-              segmentsToMerge += segment
+              segmentsToMerge += ((count, segment))
+          }
 
           segmentsToCopy.size >= take
       }
@@ -284,7 +287,8 @@ private[core] object Level extends LazyLogging {
     //Important! returned segments should always be in order
     val segmentsToMergeSorted =
       segmentsToMerge
-        .sortBy(_.segmentSize)(Ordering.Int.reverse)
+        .sortBy(_._1)(Ordering.Int.reverse)
+        .map(_._2)
         .take(take)
         .sortBy(_.minKey)
 
@@ -419,6 +423,9 @@ private[core] case class Level(dirs: Seq[Dir],
 
       override def segmentCountAndLevelSize: (Int, Long) =
         self.segmentCountAndLevelSize
+
+      override val pushForwardStrategy: PushForwardStrategy =
+        self.pushForwardStrategy
     }
 
   def rootPath: Path =

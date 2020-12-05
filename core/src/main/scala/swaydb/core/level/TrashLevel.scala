@@ -181,6 +181,7 @@ private[core] object TrashLevel extends NextLevel {
       override def requiresCleanUp: Boolean = false
       override def segmentCountAndLevelSize: (Int, Long) = (segmentsCount, levelSize)
       override def nextLevelMeter: Option[LevelMeter] = None
+      override def pushForwardStrategy: PushForwardStrategy = TrashLevel.pushForwardStrategy
     }
 
   override def refresh(segment: Segment): IO[Nothing, IO.Right[Nothing, Unit]] =
