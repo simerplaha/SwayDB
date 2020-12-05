@@ -25,7 +25,6 @@
 package swaydb.core.level
 
 import java.nio.file.NoSuchFileException
-
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
@@ -36,7 +35,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
 import swaydb.data.RunThis.eventual
-import swaydb.data.config.MMAP
+import swaydb.data.config.{MMAP, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -153,7 +152,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
       implicit sweeper =>
 
         val level2 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
-        val level1 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = true, mmap = mmapSegments), nextLevel = Some(level2))
+        val level1 = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = PushForwardStrategy.On, mmap = mmapSegments), nextLevel = Some(level2))
 
         val keyValues = randomPutKeyValues(keyValuesCount)
         val maps = TestMap(keyValues)

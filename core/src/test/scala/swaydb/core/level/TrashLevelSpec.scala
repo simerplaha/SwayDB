@@ -34,7 +34,7 @@ import swaydb.core.segment.{Segment, ThreadReadState}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle
-import swaydb.data.config.MMAP
+import swaydb.data.config.{MMAP, PushForwardStrategy}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -73,7 +73,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
     "delete Segments when Push from an upper level" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments)).sweep()
+          val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10), segmentConfig = SegmentBlock.Config.random(pushForward = PushForwardStrategy.On, mmap = mmapSegments)).sweep()
 
           val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.right.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.right.value)
           level.put(segments, randomParallelMerge()).right.right.value.right.value

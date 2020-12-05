@@ -109,7 +109,7 @@ object DefaultConfigs {
     SegmentConfig(
       cacheSegmentBlocksOnCreate = true,
       deleteDelay = CommonConfigs.segmentDeleteDelay,
-      pushForward = false,
+      pushForward = PushForwardStrategy.Off,
       //mmap is disabled for eventually persistent databases to give in-memory levels more memory-space.
       mmap = DefaultConfigs.mmap(),
       minSegmentSize = CommonConfigs.segmentSize,

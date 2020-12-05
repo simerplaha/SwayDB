@@ -480,7 +480,7 @@ object TestData {
                maxKeyValuesPerSegment: Int = eitherOne(randomIntMax(100), randomIntMax(100000)),
                deleteDelay: FiniteDuration = randomFiniteDuration(),
                mmap: MMAP.Segment = MMAP.randomForSegment(),
-               pushForward: Boolean = randomBoolean(),
+               pushForward: PushForwardStrategy = randomPushForwardStrategy(),
                cacheBlocksOnCreate: Boolean = randomBoolean(),
                cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
@@ -502,7 +502,7 @@ object TestData {
                 maxKeyValuesPerSegment: Int = randomIntMax(1000000),
                 deleteDelay: FiniteDuration = randomFiniteDuration(),
                 mmap: MMAP.Segment = MMAP.randomForSegment(),
-                pushForward: Boolean = randomBoolean(),
+                pushForward: PushForwardStrategy = randomPushForwardStrategy(),
                 minSegmentSize: Int = randomIntMax(30.mb)): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
         fileOpenIOStrategy = fileOpenIOStrategy,

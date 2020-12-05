@@ -55,6 +55,9 @@ object AppendixMapCache {
  */
 class AppendixMapCache(skipList: SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]) extends MapCache[Slice[Byte], Segment] {
 
+  def nonEmpty(): Boolean =
+    skipList.nonEmpty
+
   override def writeAtomic(entry: MapEntry[Slice[Byte], Segment]): Unit =
     entry applyBatch skipList
 

@@ -25,12 +25,12 @@
 package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
-
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.{Error, IO}
 
@@ -234,4 +234,10 @@ private[core] object TrashLevel extends NextLevel {
 
   def delete[BAG[_]]()(implicit bag: swaydb.Bag[BAG]): BAG[Unit] =
     bag.unit
+
+  override def isNonEmpty(): Boolean =
+    true
+
+  override def pushForwardStrategy: PushForwardStrategy =
+    PushForwardStrategy.On
 }

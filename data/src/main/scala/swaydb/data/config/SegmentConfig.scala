@@ -41,7 +41,7 @@ object SegmentConfig {
 
 case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          deleteDelay: FiniteDuration,
-                         pushForward: Boolean,
+                         pushForward: PushForwardStrategy,
                          mmap: MMAP.Segment,
                          minSegmentSize: Int,
                          segmentFormat: SegmentFormat,
@@ -55,7 +55,7 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
   def copyWithDeleteDelay(deleteDelay: Duration): SegmentConfig =
     this.copy(deleteDelay = deleteDelay.toScala)
 
-  def copyWithPushForward(pushForward: Boolean): SegmentConfig =
+  def copyWithPushForward(pushForward: PushForwardStrategy): SegmentConfig =
     this.copy(pushForward = pushForward)
 
   def copyWithMmap(mmap: MMAP.Segment): SegmentConfig =

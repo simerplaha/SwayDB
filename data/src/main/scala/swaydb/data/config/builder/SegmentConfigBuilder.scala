@@ -37,7 +37,7 @@ import scala.jdk.CollectionConverters._
 class SegmentConfigBuilder {
   private var cacheSegmentBlocksOnCreate: Boolean = _
   private var deleteDelay: FiniteDuration = _
-  private var pushForward: Boolean = _
+  private var pushForward: PushForwardStrategy = _
   private var mmap: MMAP.Segment = _
   private var minSegmentSize: Int = _
   private var segmentFormat: SegmentFormat = _
@@ -62,7 +62,7 @@ object SegmentConfigBuilder {
   }
 
   class Step2(builder: SegmentConfigBuilder) {
-    def pushForward(pushForward: Boolean) = {
+    def pushForward(pushForward: PushForwardStrategy) = {
       builder.pushForward = pushForward
       new Step3(builder)
     }

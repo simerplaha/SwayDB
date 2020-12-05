@@ -25,7 +25,6 @@
 package swaydb.core.level.tool
 
 import java.nio.file.NoSuchFileException
-
 import swaydb.{Bag, Glass}
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -37,7 +36,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle
-import swaydb.data.config.MMAP
+import swaydb.data.config.{MMAP, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.data.slice.Slice
@@ -67,7 +66,7 @@ class AppendixRepairerSpec extends TestBase {
         TestCaseSweeper {
           implicit sweeper =>
             import sweeper._
-            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())))
+            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = PushForwardStrategy.Off, mmap = MMAP.Off(TestForceSave.channel())))
             level.putKeyValuesTest(randomizedKeyValues(10000)).value
 
             if (level.hasMMAP && OperatingSystem.isWindows)
@@ -94,7 +93,7 @@ class AppendixRepairerSpec extends TestBase {
             import sweeper._
 
             //create empty Level
-            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())))
+            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = PushForwardStrategy.Off, mmap = MMAP.Off(TestForceSave.channel())))
 
             if (level.hasMMAP && OperatingSystem.isWindows) {
               level.close[Glass]()
@@ -128,7 +127,7 @@ class AppendixRepairerSpec extends TestBase {
             import sweeper._
             //create a Level with a sub-level and disable throttling so that compaction does not delete expired key-values
             val level = TestLevel(
-              segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())),
+              segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = PushForwardStrategy.Off, mmap = MMAP.Off(TestForceSave.channel())),
               nextLevel = Some(TestLevel()),
               throttle = _ => Throttle(Duration.Zero, 0)
             )
@@ -181,7 +180,7 @@ class AppendixRepairerSpec extends TestBase {
           val keyValues = randomizedKeyValues(1000)
 
           val level = TestLevel(
-            segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = false, mmap = MMAP.Off(TestForceSave.channel())),
+            segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = PushForwardStrategy.Off, mmap = MMAP.Off(TestForceSave.channel())),
             nextLevel = Some(TestLevel()),
             throttle = (_) => Throttle(Duration.Zero, 0)
           )

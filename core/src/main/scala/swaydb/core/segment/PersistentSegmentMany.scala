@@ -243,7 +243,45 @@ protected case object PersistentSegmentMany {
     }
 
     val copiedFromListSegmentCache =
-      copiedFrom.flatMap(_.listSegmentCache.get())
+      copiedFrom match {
+        case Some(copiedFrom) =>
+          copiedFrom.listSegmentCache.get() match {
+            case Some(copiedFromListRef) =>
+              val copiedFromOffset = copiedFromListRef.offset()
+
+              val ref =
+                SegmentRef(
+                  path = file.path,
+                  minKey = copiedFromListRef.minKey,
+                  maxKey = copiedFromListRef.maxKey,
+                  nearestPutDeadline = copiedFromListRef.nearestPutDeadline,
+                  minMaxFunctionId = copiedFromListRef.minMaxFunctionId,
+                  blockRef =
+                    BlockRefReader(
+                      file = file,
+                      start = copiedFromOffset.start,
+                      fileSize = copiedFromOffset.size,
+                      blockCache = copiedFromListRef.blockCache() orElse BlockCache.init(blockCacheSweeper)
+                    ),
+                  segmentIO = segmentIO,
+                  valuesReaderCacheable = copiedFromListRef.segmentBlockCache.cachedValuesSliceReader(),
+                  sortedIndexReaderCacheable = copiedFromListRef.segmentBlockCache.cachedSortedIndexSliceReader(),
+                  hashIndexReaderCacheable = copiedFromListRef.segmentBlockCache.cachedHashIndexSliceReader(),
+                  binarySearchIndexReaderCacheable = copiedFromListRef.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
+                  bloomFilterReaderCacheable = copiedFromListRef.segmentBlockCache.cachedBloomFilterSliceReader(),
+                  footerCacheable = copiedFromListRef.segmentBlockCache.cachedFooter()
+                )
+
+              Some(ref)
+
+
+            case None =>
+              None
+          }
+
+        case None =>
+          None
+      }
 
     val listSegmentBlockCache =
       copiedFromListSegmentCache

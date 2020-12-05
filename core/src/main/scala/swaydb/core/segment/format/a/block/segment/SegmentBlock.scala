@@ -77,7 +77,7 @@ private[core] case object SegmentBlock extends LazyLogging {
               cacheBlocksOnCreate: Boolean,
               minSize: Int,
               maxCount: Int,
-              pushForward: Boolean,
+              pushForward: PushForwardStrategy,
               mmap: MMAP.Segment,
               deleteDelay: FiniteDuration,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
@@ -103,7 +103,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                                     cacheBlocksOnCreate: Boolean,
                                     minSize: Int,
                                     maxCount: Int,
-                                    pushForward: Boolean,
+                                    pushForward: PushForwardStrategy,
                                     mmap: MMAP.Segment,
                                     deleteDelay: FiniteDuration,
                                     compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
@@ -125,7 +125,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                        val cacheBlocksOnCreate: Boolean,
                        val minSize: Int,
                        val maxCount: Int,
-                       val pushForward: Boolean,
+                       val pushForward: PushForwardStrategy,
                        val mmap: MMAP.Segment,
                        val deleteDelay: FiniteDuration,
                        val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {

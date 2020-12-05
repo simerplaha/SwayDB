@@ -26,7 +26,6 @@ package swaydb.core.level
 
 import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
@@ -54,7 +53,7 @@ import swaydb.core.util.Exceptions._
 import swaydb.core.util.ParallelCollection._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
-import swaydb.data.config.Dir
+import swaydb.data.config.{Dir, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
@@ -357,6 +356,9 @@ private[core] case class Level(dirs: Seq[Dir],
       .path
       .folderId
       .toInt
+
+  override val pushForwardStrategy: PushForwardStrategy =
+    segmentConfig.pushForward
 
   logger.info(s"{}: Level $levelNumber started.", pathDistributor)
 
@@ -751,6 +753,9 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
+  override def isNonEmpty(): Boolean =
+    appendix.cache.nonEmpty()
+
   /**
    * @return empty if copied into next Level else Segments copied into this Level.
    */
@@ -770,14 +775,23 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   /**
+   * Push only if [[swaydb.data.config.PushForwardStrategy]] allows or if compaction for
+   */
+  def isPushForwardStrategySatisfied(nextLevel: NextLevel): Boolean =
+    segmentConfig.pushForward.always || //always push forward
+      //or push forward only if next Level is non-empty or this level is overflown.
+      //      (nextLevel.isNonEmpty() || nextCompactionDelay.fromNow.isOverdue())
+      nextLevel.isNonEmpty()
+
+  /**
    * Returns segments that were not forwarded.
    */
   private def forward(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
                       parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): CompactionResult[Boolean] = {
     logger.trace(s"{}: forwarding {} Map. pushForward = ${segmentConfig.pushForward}", pathDistributor.head, map.pathOption)
-    if (segmentConfig.pushForward)
+    if (segmentConfig.pushForward.on)
       nextLevel match {
-        case Some(nextLevel) if nextLevel.isCopyable(map) =>
+        case Some(nextLevel) if isPushForwardStrategySatisfied(nextLevel) && nextLevel.isCopyable(map) =>
           nextLevel.put(map, parallelMerge) match {
             case IO.Right(result) =>
               result match {
@@ -860,9 +874,9 @@ private[core] case class Level(dirs: Seq[Dir],
   private def forward(segments: Iterable[Segment],
                       parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): CompactionResult[Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments. pushForward = ${segmentConfig.pushForward}", pathDistributor.head, segments.map(_.path.toString))
-    if (segmentConfig.pushForward)
+    if (segmentConfig.pushForward.on)
       nextLevel match {
-        case Some(nextLevel) =>
+        case Some(nextLevel) if isPushForwardStrategySatisfied(nextLevel) =>
           val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
           if (copyable.isEmpty)
             CompactionResult(segments)
@@ -884,7 +898,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 CompactionResult(segments)
             }
 
-        case None =>
+        case Some(_) | None =>
           CompactionResult(segments)
       }
     else

@@ -110,9 +110,10 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       } else {
         logger.debug(s"Level(${level.levelNumber}): ${state.name}: Running compaction.")
         val currentState = state.compactionStates.get(level)
+
         //Level's stateId should only be accessed here before compaction starts for the level.
         val stateId = level.stateId
-        if (currentState.forall(state => shouldRun(level, stateId, state))) {
+        if ((currentState.isEmpty && level.nextCompactionDelay.fromNow.isOverdue()) || currentState.exists(state => shouldRun(level, stateId, state))) {
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: ${if (currentState.isEmpty) "Initial run" else "shouldRun = true"}.")
           val nextState = runJob(level = level, stateId = stateId, parallelMerge = state.parallelMerge)(state.executionContext)
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: next state $nextState.")
@@ -307,8 +308,14 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
         implicit val promise = IO.ExceptionHandler.PromiseUnit
 
+        val segmentsToCopy =
+          if (level.pushForwardStrategy.always) //copy all only if allowed by pushForwardStrategy
+            copyable
+          else
+            copyable.take(segmentsToPush) //else copy enough to satisfy this compaction jobs requirements.
+
         putForward(
-          segments = copyable,
+          segments = segmentsToCopy,
           thisLevel = level,
           nextLevel = nextLevel,
           parallelMerge = parallelMerge
@@ -442,9 +449,13 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                            parallelMerge: ParallelMerge)(implicit executionContext: ExecutionContext): Int =
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>
-        val copied = copyForward(level = level, parallelMerge = parallelMerge)
-        logger.debug(s"Level(${level.levelNumber}): Compaction copied $copied.")
-        totalCopies + copied
+        if (level.pushForwardStrategy.always) {
+          val copied = copyForward(level = level, parallelMerge = parallelMerge)
+          logger.debug(s"Level(${level.levelNumber}): Compaction copied $copied.")
+          totalCopies + copied
+        } else {
+          totalCopies
+        }
 
       case (copies, TrashLevel | _: LevelZero) =>
         copies

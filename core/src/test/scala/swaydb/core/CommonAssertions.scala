@@ -57,7 +57,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.RunThis._
-import swaydb.data.config.IOStrategy
+import swaydb.data.config.{IOStrategy, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption, SliceReader}
 import swaydb.data.{Atomic, OptimiseWrites}
@@ -1552,6 +1552,14 @@ object CommonAssertions {
       IOStrategy.AsyncIO(cacheOnAccess = true) //this not being stored will result in too many retries.
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
+
+  def randomPushForwardStrategy(): PushForwardStrategy =
+    if (randomBoolean())
+      PushForwardStrategy.On
+    else if (randomBoolean())
+      PushForwardStrategy.OnOverflow
+    else
+      PushForwardStrategy.Off
 
   def randomThreadSafeIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
                                  includeReserved: Boolean = true): IOStrategy.ThreadSafe =

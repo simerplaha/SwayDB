@@ -51,12 +51,12 @@ object DefaultConfigs {
 
   def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.On =
     SortedKeyIndex.On(
-      //      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
-      prefixCompression =
-        PrefixCompression.On(
-          keysOnly = true,
-          interval = PrefixCompression.Interval.ResetCompressionAt(3)
-        ),
+      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
+      //      prefixCompression =
+      //        PrefixCompression.On(
+      //          keysOnly = true,
+      //          interval = PrefixCompression.Interval.ResetCompressionAt(3)
+      //        ),
       enablePositionIndex = true,
       optimiseForReverseIteration = true,
       blockIOStrategy = {
@@ -119,10 +119,10 @@ object DefaultConfigs {
     SegmentConfig(
       cacheSegmentBlocksOnCreate = true,
       deleteDelay = CommonConfigs.segmentDeleteDelay,
-      pushForward = true,
+      pushForward = PushForwardStrategy.OnOverflow,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
       minSegmentSize = CommonConfigs.segmentSize,
-      segmentFormat = SegmentFormat.Grouped(30000),
+      segmentFormat = SegmentFormat.Grouped(10000),
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached

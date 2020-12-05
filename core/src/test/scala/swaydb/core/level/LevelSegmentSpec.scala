@@ -25,7 +25,6 @@
 package swaydb.core.level
 
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
-
 import org.scalamock.scalatest.MockFactory
 import swaydb.IO
 import swaydb.IOValues._
@@ -42,7 +41,7 @@ import swaydb.core.util.{Extension, IDGenerator}
 import swaydb.core._
 import swaydb.data.RunThis._
 import swaydb.data.compaction.ParallelMerge
-import swaydb.data.config.{Dir, MMAP}
+import swaydb.data.config.{Dir, MMAP, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
@@ -431,7 +430,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val nextLevel = mock[NextLevel]
             (nextLevel.isTrash _).expects() returning false
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = PushForwardStrategy.On, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
             level.assignAndPut(
               assignablesCount = keyValues.size,
@@ -480,7 +479,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val nextLevel = mock[NextLevel]
             (nextLevel.isTrash _).expects() returning false
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = PushForwardStrategy.On, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
             level.assignAndPut(
               assignablesCount = keyValues.size,
@@ -521,7 +520,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val nextLevel = mock[NextLevel]
             (nextLevel.isTrash _).expects() returning false
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = PushForwardStrategy.On, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
             level.assignAndPut(
               assignablesCount = keyValues.size,
@@ -573,7 +572,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val nextLevel = mock[NextLevel]
             (nextLevel.isTrash _).expects() returning false
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true, mmap = mmapSegments))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = PushForwardStrategy.On, mmap = mmapSegments))
             val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
             level.assignAndPut(
               assignablesCount = keyValues.size,

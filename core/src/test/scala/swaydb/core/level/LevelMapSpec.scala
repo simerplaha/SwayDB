@@ -39,7 +39,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
 import swaydb.data.compaction.ParallelMerge
 import swaydb.data.{Atomic, OptimiseWrites}
-import swaydb.data.config.MMAP
+import swaydb.data.config.{MMAP, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -225,7 +225,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
             (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = PushForwardStrategy.On))
             level.put(map, parallelMerge).right.right.value.right.value should contain only Int.MaxValue
             assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
         }
@@ -261,7 +261,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             (nextLevel.releaseLocks _).expects().returning(IO[swaydb.Error.Close, Unit](())).atLeastOnce()
             (nextLevel.deleteNoSweepNoClose _).expects().returning(IO[swaydb.Error.Level, Unit](())).atLeastOnce()
 
-            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = true))
+            val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random2(pushForward = PushForwardStrategy.On))
             val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000))
             level.assignAndPut(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None, parallelMerge).runRandomIO.right.value
 

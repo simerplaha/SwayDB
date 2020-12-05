@@ -30,6 +30,7 @@ import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
@@ -72,6 +73,10 @@ trait NextLevel extends LevelRef {
   def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
 
   def isCopyable(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean
+
+  def isNonEmpty(): Boolean
+
+  def pushForwardStrategy: PushForwardStrategy
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 

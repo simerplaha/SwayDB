@@ -25,9 +25,8 @@
 package swaydb.data.config.builder
 
 import java.time.Duration
-
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
-import swaydb.data.config.MemoryLevelConfig
+import swaydb.data.config.{MemoryLevelConfig, PushForwardStrategy}
 import swaydb.data.util.Java.JavaFunction
 
 import scala.compat.java8.DurationConverters._
@@ -39,7 +38,7 @@ import scala.concurrent.duration.FiniteDuration
 class MemoryLevelConfigBuilder {
   private var minSegmentSize: Int = _
   private var maxKeyValuesPerSegment: Int = _
-  private var copyForward: Boolean = _
+  private var pushForward: PushForwardStrategy = _
   private var deleteDelay: FiniteDuration = _
   private var compactionExecutionContext: CompactionExecutionContext = _
 }
@@ -61,8 +60,8 @@ object MemoryLevelConfigBuilder {
   }
 
   class Step2(builder: MemoryLevelConfigBuilder) {
-    def copyForward(copyForward: Boolean) = {
-      builder.copyForward = copyForward
+    def pushForward(pushForward: PushForwardStrategy) = {
+      builder.pushForward = pushForward
       new Step3(builder)
     }
   }
@@ -86,7 +85,7 @@ object MemoryLevelConfigBuilder {
       new MemoryLevelConfig(
         minSegmentSize = builder.minSegmentSize,
         maxKeyValuesPerSegment = builder.maxKeyValuesPerSegment,
-        copyForward = builder.copyForward,
+        pushForward = builder.pushForward,
         deleteDelay = builder.deleteDelay,
         compactionExecutionContext = builder.compactionExecutionContext,
         throttle = throttle.apply

@@ -179,7 +179,7 @@
 //      //          compressions = _ => Seq.empty
 //      //        ),
 //      segmentConfig = SegmentBlock.Config.default,
-//      pushForward = true,
+//      pushForward = PushForwardStrategy.On,
 //      deleteDelay = Duration.Zero
 //    )
 //

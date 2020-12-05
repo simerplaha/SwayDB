@@ -202,7 +202,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     cacheBlocksOnCreate = false,
                     minSize = config.minSegmentSize,
                     maxCount = config.maxKeyValuesPerSegment,
-                    pushForward = config.copyForward,
+                    pushForward = config.pushForward,
                     mmap = MMAP.Off(ForceSave.Off),
                     deleteDelay = config.deleteDelay,
                     compressions = _ => Seq.empty

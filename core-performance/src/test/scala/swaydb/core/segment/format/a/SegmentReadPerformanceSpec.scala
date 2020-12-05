@@ -25,7 +25,6 @@
 package swaydb.core.segment.format.a
 
 import java.nio.file.Path
-
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
@@ -41,7 +40,7 @@ import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment, SegmentIO, ThreadReadState}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper, TestTimer}
-import swaydb.data.config.{Dir, IOAction, IOStrategy, MMAP}
+import swaydb.data.config.{Dir, IOAction, IOStrategy, MMAP, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -173,7 +172,7 @@ class SegmentReadPerformanceSpec extends TestBase {
         maxCount =
           //                    keyValuesCount / 100,
           keyValuesCount,
-        pushForward = false,
+        pushForward = PushForwardStrategy.Off,
         mmap = mmapSegments,
         deleteDelay = 0.seconds,
         //              compressions = _ => Seq(CompressionInternal.randomLZ4(Double.MinValue))

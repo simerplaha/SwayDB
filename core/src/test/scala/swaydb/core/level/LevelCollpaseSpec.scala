@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{PersistentSegment, Segment, ThreadReadState}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
-import swaydb.data.config.MMAP
+import swaydb.data.config.{MMAP, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.OperatingSystem
@@ -120,7 +120,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
               //          implicit val compressionType: Option[KeyValueCompressionType] = randomCompressionTypeOption(keyValuesCount)
               //disable throttling so that it does not automatically collapse small Segments
-              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = false, deleteDelay = Duration.Zero, mmap = mmapSegments))
+              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, pushForward = PushForwardStrategy.Off, deleteDelay = Duration.Zero, mmap = mmapSegments))
 
               assertAllSegmentsCreatedInLevel(level)
 
