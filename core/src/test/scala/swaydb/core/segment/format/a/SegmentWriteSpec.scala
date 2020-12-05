@@ -1873,37 +1873,39 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "slice Put range into slice with fromValue set to Remove" in {
-      TestCaseSweeper {
-        implicit sweeper =>
+      runThis(10.times) {
+        TestCaseSweeper {
+          implicit sweeper =>
 
-          implicit val testTimer: TestTimer = TestTimer.Empty
+            implicit val testTimer: TestTimer = TestTimer.Empty
 
-          val keyValues = Slice(Memory.Range(1, 10, FromValue.Null, Value.update(10)))
-          val segment = TestSegment(keyValues)
+            val keyValues = Slice(Memory.Range(1, 10, FromValue.Null, Value.update(10)))
+            val segment = TestSegment(keyValues)
 
-          val deleteKeyValues = Slice.of[Memory](10)
-          (1 to 10).foreach(key => deleteKeyValues add Memory.remove(key))
+            val deleteKeyValues = Slice.of[Memory](10)
+            (1 to 10).foreach(key => deleteKeyValues add Memory.remove(key))
 
-          val removedRanges =
-            segment.put(
-              headGap = Assignable.emptyIterable,
-              tailGap = Assignable.emptyIterable,
-              mergeableCount = deleteKeyValues.size,
-              mergeable = deleteKeyValues.iterator,
-              removeDeletes = false,
-              createdInLevel = 0,
-              segmentParallelism = randomParallelMerge().segment,
-              valuesConfig = ValuesBlock.Config.random,
-              sortedIndexConfig = SortedIndexBlock.Config.random,
-              binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-              hashIndexConfig = HashIndexBlock.Config.random,
-              bloomFilterConfig = BloomFilterBlock.Config.random,
-              segmentConfig = SegmentBlock.Config.random.copy(minSize = 4.mb)
-            ).result.map(_.sweep()).head.iterator().toList
+            val removedRanges =
+              segment.put(
+                headGap = Assignable.emptyIterable,
+                tailGap = Assignable.emptyIterable,
+                mergeableCount = deleteKeyValues.size,
+                mergeable = deleteKeyValues.iterator,
+                removeDeletes = false,
+                createdInLevel = 0,
+                segmentParallelism = randomParallelMerge().segment,
+                valuesConfig = ValuesBlock.Config.random,
+                sortedIndexConfig = SortedIndexBlock.Config.random,
+                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                hashIndexConfig = HashIndexBlock.Config.random,
+                bloomFilterConfig = BloomFilterBlock.Config.random,
+                segmentConfig = SegmentBlock.Config.random
+              ).result.map(_.sweep()).flatMap(_.iterator()).toList
 
-          val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Value.remove(None), Value.update(10))) :+ Memory.remove(10)
+            val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Value.remove(None), Value.update(10))) :+ Memory.remove(10)
 
-          removedRanges shouldBe expected
+            removedRanges shouldBe expected
+        }
       }
     }
 
