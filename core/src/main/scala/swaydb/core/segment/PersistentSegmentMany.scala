@@ -763,13 +763,7 @@ protected case class PersistentSegmentMany(file: DBFile,
         fetchSegmentRef(persistent).get(key, threadState)
 
       case Persistent.Null =>
-        listSegment.lower(key, threadState) match {
-          case persistent: Persistent =>
-            fetchSegmentRef(persistent).get(key, threadState)
-
-          case Persistent.Null =>
-            Persistent.Null
-        }
+        Persistent.Null
     }
   }
 
