@@ -54,110 +54,121 @@ private[core] object Get {
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         currentGetter: CurrentGetter,
                                         nextGetter: NextGetter,
-                                        functionStore: FunctionStore): KeyValue.PutOption = {
-
-    @tailrec
-    def resolve(current: KeyValue): KeyValue.PutOption =
-      current match {
-        case current: KeyValue.Put =>
-          if (current.hasTimeLeft())
-            current
-          else
-            KeyValue.Put.Null
-
-        case current: KeyValue.Remove =>
-          if (current.hasTimeLeft())
-            nextGetter
-              .get(key, readState)
-              .flatMap {
-                next =>
-                  if (next.hasTimeLeft())
-                    RemoveMerger(current, next) match {
-                      case put: KeyValue.Put if put.hasTimeLeft() =>
-                        put
-
-                      case _: KeyValue.Fixed =>
-                        KeyValue.Put.Null
-                    }
-                  else
-                    KeyValue.Put.Null
-              }
-          else
-            KeyValue.Put.Null
-
-        case current: KeyValue.Update =>
-          if (current.hasTimeLeft())
-            nextGetter
-              .get(key, readState)
-              .flatMap {
-                next =>
-                  if (next.hasTimeLeft())
-                    UpdateMerger(current, next) match {
-                      case put: KeyValue.Put if put.hasTimeLeft() =>
-                        put
-
-                      case _: KeyValue.Fixed =>
-                        KeyValue.Put.Null
-                    }
-                  else
-                    KeyValue.Put.Null
-              }
-          else
-            KeyValue.Put.Null
-
-        case current: KeyValue.Range =>
-          val currentValue =
-            if (keyOrder.equiv(current.key, key))
-              current.fetchFromOrElseRangeValueUnsafe
-            else
-              current.fetchRangeValueUnsafe
-
-          if (Value.hasTimeLeft(currentValue))
-            resolve(currentValue.toMemory(key))
-          else
-            KeyValue.Put.Null
-
-        case current: KeyValue.Function =>
-          nextGetter
-            .get(key, readState)
-            .flatMap {
-              next =>
-                if (next.hasTimeLeft())
-                  FunctionMerger(current, next) match {
-                    case put: KeyValue.Put if put.hasTimeLeft() =>
-                      put
-
-                    case _: KeyValue.Fixed =>
-                      KeyValue.Put.Null
-                  }
-                else
-                  KeyValue.Put.Null
-            }
-
-        case current: KeyValue.PendingApply =>
-          nextGetter
-            .get(key, readState)
-            .flatMap {
-              next =>
-                if (next.hasTimeLeft())
-                  PendingApplyMerger(current, next) match {
-                    case put: KeyValue.Put if put.hasTimeLeft() =>
-                      put
-
-                    case _: KeyValue.Fixed =>
-                      KeyValue.Put.Null
-                  }
-                else
-                  KeyValue.Put.Null
-            }
-      }
-
+                                        functionStore: FunctionStore): KeyValue.PutOption =
     currentGetter.get(key, readState) match {
       case current: KeyValue =>
-        resolve(current)
+        resolve(
+          current = current,
+          key = key,
+          readState = readState
+        )
 
       case _: KeyValue.Null =>
-        nextGetter.get(key, readState)
+        nextGetter.get(
+          key = key,
+          readState = readState
+        )
     }
-  }
+
+  @tailrec
+  @inline private def resolve(current: KeyValue,
+                              key: Slice[Byte],
+                              readState: ThreadReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          currentGetter: CurrentGetter,
+                                                          nextGetter: NextGetter,
+                                                          functionStore: FunctionStore): KeyValue.PutOption =
+    current match {
+      case current: KeyValue.Put =>
+        if (current.hasTimeLeft())
+          current
+        else
+          KeyValue.Put.Null
+
+      case current: KeyValue.Remove =>
+        if (current.hasTimeLeft())
+          nextGetter
+            .get(key, readState)
+            .flatMap {
+              next =>
+                if (next.hasTimeLeft())
+                  RemoveMerger(current, next) match {
+                    case put: KeyValue.Put if put.hasTimeLeft() =>
+                      put
+
+                    case _: KeyValue.Fixed =>
+                      KeyValue.Put.Null
+                  }
+                else
+                  KeyValue.Put.Null
+            }
+        else
+          KeyValue.Put.Null
+
+      case current: KeyValue.Update =>
+        if (current.hasTimeLeft())
+          nextGetter
+            .get(key, readState)
+            .flatMap {
+              next =>
+                if (next.hasTimeLeft())
+                  UpdateMerger(current, next) match {
+                    case put: KeyValue.Put if put.hasTimeLeft() =>
+                      put
+
+                    case _: KeyValue.Fixed =>
+                      KeyValue.Put.Null
+                  }
+                else
+                  KeyValue.Put.Null
+            }
+        else
+          KeyValue.Put.Null
+
+      case current: KeyValue.Range =>
+        val currentValue =
+          if (keyOrder.equiv(current.key, key))
+            current.fetchFromOrElseRangeValueUnsafe
+          else
+            current.fetchRangeValueUnsafe
+
+        if (Value.hasTimeLeft(currentValue))
+          resolve(current = currentValue.toMemory(key), key = key, readState = readState)
+        else
+          KeyValue.Put.Null
+
+      case current: KeyValue.Function =>
+        nextGetter
+          .get(key, readState)
+          .flatMap {
+            next =>
+              if (next.hasTimeLeft())
+                FunctionMerger(current, next) match {
+                  case put: KeyValue.Put if put.hasTimeLeft() =>
+                    put
+
+                  case _: KeyValue.Fixed =>
+                    KeyValue.Put.Null
+                }
+              else
+                KeyValue.Put.Null
+          }
+
+      case current: KeyValue.PendingApply =>
+        nextGetter
+          .get(key, readState)
+          .flatMap {
+            next =>
+              if (next.hasTimeLeft())
+                PendingApplyMerger(current, next) match {
+                  case put: KeyValue.Put if put.hasTimeLeft() =>
+                    put
+
+                  case _: KeyValue.Fixed =>
+                    KeyValue.Put.Null
+                }
+              else
+                KeyValue.Put.Null
+          }
+    }
 }
