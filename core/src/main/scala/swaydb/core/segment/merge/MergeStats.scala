@@ -30,7 +30,6 @@ import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.util.ByteSizeOf
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 private[core] sealed trait MergeStats[FROM, +T[_]] extends Aggregator[FROM, T[data.Memory]] {

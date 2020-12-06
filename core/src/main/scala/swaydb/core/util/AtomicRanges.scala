@@ -24,15 +24,14 @@
 
 package swaydb.core.util
 
-import java.util.concurrent.ConcurrentSkipListMap
-import java.util.concurrent.atomic.AtomicLong
-
 import swaydb.Bag
 import swaydb.Bag.Implicits._
 import swaydb.core.util.AtomicRanges.{Action, Value}
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
+import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.atomic.AtomicLong
 import scala.annotation.tailrec
 
 /**

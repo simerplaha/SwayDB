@@ -26,6 +26,7 @@ package swaydb.data.config
 
 sealed trait SegmentFormat {
   def count: Int
+  def enableRootHashIndex: Boolean
 }
 
 case object SegmentFormat {
@@ -35,15 +36,16 @@ case object SegmentFormat {
     SegmentFormat.Flattened
 
   //for Java
-  def grouped(count: Int): SegmentFormat.Grouped =
-    SegmentFormat.Grouped(count)
+  def grouped(count: Int, enableRootHashIndex: Boolean): SegmentFormat.Grouped =
+    SegmentFormat.Grouped(count = count, enableRootHashIndex = enableRootHashIndex)
 
   /**
    * Stores an array of key-values in a single Segment file.
    */
   sealed trait Flattened extends SegmentFormat
   final case object Flattened extends Flattened {
-    override def count: Int = Int.MaxValue
+    override val count: Int = Int.MaxValue
+    override val enableRootHashIndex: Boolean = false
   }
 
   /**
@@ -53,6 +55,10 @@ case object SegmentFormat {
    * and then the group is searched for the key-value.
    *
    * This format can be imagined as - List(1, 2, 3, 4, 5).grouped(2).
+   *
+   * @param enableRootHashIndex if true a root hash index (if configured via [[RandomSearchIndex]]) is created
+   *                            pointing to the min and max key of each group. This is useful if group size is
+   *                            too small eg: 2-3 key-values per group.
    */
-  final case class Grouped(count: Int) extends SegmentFormat
+  final case class Grouped(count: Int, enableRootHashIndex: Boolean) extends SegmentFormat
 }

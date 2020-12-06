@@ -546,12 +546,13 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess = true),
                       blockIOStrategy = _ => randomIOAccess(cacheOnAccess = true),
                       cacheBlocksOnCreate = false,
-                      compressions = _ => compressions(4),
                       minSize = randomIntMax(2.mb),
                       maxCount = randomIntMax(1000),
+                      enableHashIndexForListSegment = randomBoolean(),
                       pushForward = randomPushForwardStrategy(),
                       mmap = MMAP.randomForSegment(),
-                      deleteDelay = randomFiniteDuration()
+                      deleteDelay = randomFiniteDuration(),
+                      compressions = _ => compressions(4)
                     )
                 )
               }
