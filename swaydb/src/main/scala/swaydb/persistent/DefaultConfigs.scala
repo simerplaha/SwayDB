@@ -67,12 +67,12 @@ object DefaultConfigs {
 
   def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = false): SortedKeyIndex.On =
     SortedKeyIndex.On(
-      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
-      //      prefixCompression =
-      //        PrefixCompression.On(
-      //          keysOnly = true,
-      //          interval = PrefixCompression.Interval.ResetCompressionAt(3)
-      //        ),
+      //      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
+      prefixCompression =
+        PrefixCompression.On(
+          keysOnly = true,
+          interval = PrefixCompression.Interval.ResetCompressionAt(3)
+        ),
       enablePositionIndex = true,
       optimiseForReverseIteration = true,
       blockIOStrategy = {
@@ -162,7 +162,7 @@ object DefaultConfigs {
     ByteCacheOnly(
       minIOSeekSize = 4096,
       skipBlockCacheSeekSize = 4096 * 10,
-      cacheCapacity = 100.mb,
+      cacheCapacity = 200.mb,
       actorConfig =
         ActorConfig.TimeLoop(
           name = s"${this.getClass.getName} - MemoryCache Actor",
@@ -183,48 +183,32 @@ object DefaultConfigs {
    * The lower the [[FiniteDuration]] the higher it's priority.
    */
 
-  val levelOneSize = 512.mb_long.toDouble
   val idle = Throttle(pushDelay = 365.day, segmentsToPush = 1)
 
-  def levelOneThrottle(meter: LevelMeter): Throttle = {
-    val overflow = ((levelOneSize / meter.levelSize) * 100D) - 100
-    if (overflow == Double.PositiveInfinity)
+  @inline def calculateThrottle(maxLevelSize: Double, meter: LevelMeter) = {
+    val overflow = ((maxLevelSize / meter.levelSize) * 100D) - 100
+    if (overflow == Double.PositiveInfinity || (overflow >= 0 && meter.pushForwardStrategy == PushForwardStrategy.OnOverflow))
       idle
     else
       Throttle(overflow.seconds, 1)
   }
 
-  def levelTwoThrottle(meter: LevelMeter): Throttle = {
-    val overflow = (((levelOneSize * 10) / meter.levelSize) * 100D) - 100
-    if (overflow == Double.PositiveInfinity)
-      idle
-    else
-      Throttle(overflow.seconds, 1)
-  }
+  val levelOneSize = 512.mb.toDouble
 
-  def levelThreeThrottle(meter: LevelMeter): Throttle = {
-    val overflow = (((levelOneSize * 100) / meter.levelSize) * 100D) - 100
-    if (overflow == Double.PositiveInfinity)
-      idle
-    else
-      Throttle(overflow.seconds, 1)
-  }
+  def levelOneThrottle(meter: LevelMeter): Throttle =
+    calculateThrottle(maxLevelSize = levelOneSize, meter = meter)
 
-  def levelFourThrottle(meter: LevelMeter): Throttle = {
-    val overflow = (((levelOneSize * 1000) / meter.levelSize) * 100D) - 100
-    if (overflow == Double.PositiveInfinity)
-      idle
-    else
-      Throttle(overflow.seconds, 1)
-  }
+  def levelTwoThrottle(meter: LevelMeter): Throttle =
+    calculateThrottle(maxLevelSize = levelOneSize * 10, meter = meter)
 
-  def levelFiveThrottle(meter: LevelMeter): Throttle = {
-    val overflow = (((levelOneSize * 10000) / meter.levelSize) * 100D) - 100
-    if (overflow == Double.PositiveInfinity)
-      idle
-    else
-      Throttle(overflow.seconds, 1)
-  }
+  def levelThreeThrottle(meter: LevelMeter): Throttle =
+    calculateThrottle(maxLevelSize = levelOneSize * 100, meter = meter)
+
+  def levelFourThrottle(meter: LevelMeter): Throttle =
+    calculateThrottle(maxLevelSize = levelOneSize * 1000, meter = meter)
+
+  def levelFiveThrottle(meter: LevelMeter): Throttle =
+    calculateThrottle(maxLevelSize = levelOneSize * 10000, meter = meter)
 
   def levelSixThrottle(meter: LevelMeter): Throttle =
     if (meter.requiresCleanUp)
