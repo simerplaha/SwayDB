@@ -162,14 +162,17 @@ private[core] object MemorySweeper extends LazyLogging {
                   }
 
                 case block: Command.BlockCache =>
-                  block.map.get() foreach {
-                    map =>
-                      map.remove(block.key)
-                      if (map.isEmpty) block.map.clear()
+                  val cacheOptional = block.map.get()
+                  if (cacheOptional.isDefined) {
+                    val cache = cacheOptional.get
+                    cache.remove(block.key)
+                    if (cache.isEmpty) block.map.clear()
                   }
 
                 case cache: Command.Cache =>
-                  cache.cache.get foreach (_.clear())
+                  val cacheOptional = cache.cache.get
+                  if(cacheOptional.isDefined)
+                    cacheOptional.get.clear()
               }
           }
       }
