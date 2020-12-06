@@ -22,9 +22,10 @@
  * permission to convey the resulting work.
  */
 
-import java.nio.file.{Path, Paths}
-
 import swaydb.data.config.Dir
+import swaydb.data.util.StorageUnits.StorageDoubleImplicits
+
+import java.nio.file.{Path, Paths}
 
 package object swaydb {
 
@@ -85,11 +86,25 @@ package object swaydb {
 
   implicit class StorageImplicits(measure: Double) {
 
-    @inline final def mb: Int = (measure * 1000000).toInt
+    val units = new StorageDoubleImplicits(measure)
 
-    @inline final def gb: Int = measure.mb * 1000
+    @inline final def mb: Int =
+      units.mb
 
-    @inline final def kb: Int = measure.mb * 1000
+    @inline final def gb: Int =
+      units.gb
+
+    @inline final def kb: Int =
+      units.kb
+
+    @inline final def mb_long: Long =
+      units.mb_long
+
+    @inline final def gb_long: Long =
+      units.gb_long
+
+    @inline final def kb_long: Long =
+      units.kb_long
   }
 
 }
