@@ -189,6 +189,18 @@ case class MultiMap[M, K, V, F](asScala: swaydb.MultiMap[M, K, V, F, Glass])(imp
   def sizeOfSegments: Long =
     asScala.sizeOfSegments
 
+  def blockCacheSize(): Option[Long] =
+    asScala.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    asScala.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    asScala.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    asScala.pendingDeletes()
+
   def keySize(key: K): Int =
     asScala.keySize(key)
 

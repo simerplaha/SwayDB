@@ -476,6 +476,18 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private val multiMap: Map[MultiK
   def sizeOfSegments: Long =
     multiMap.sizeOfSegments
 
+  def blockCacheSize(): Option[Long] =
+    multiMap.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    multiMap.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    multiMap.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    multiMap.pendingDeletes()
+
   def keySize(key: K): Int =
     (key: Slice[Byte]).size
 

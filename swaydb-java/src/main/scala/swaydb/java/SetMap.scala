@@ -106,6 +106,18 @@ case class SetMap[K, V](asScala: swaydb.SetMap[K, V, Glass]) extends SetMapT[K, 
   def sizeOfSegments: Long =
     asScala.sizeOfSegments
 
+  def blockCacheSize(): Option[Long] =
+    asScala.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    asScala.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    asScala.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    asScala.pendingDeletes()
+
   def timeLeft(key: K): Optional[Duration] =
     asScala.timeLeft(key).asJavaMap(_.toJava)
 

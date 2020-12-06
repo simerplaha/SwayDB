@@ -96,6 +96,14 @@ trait SetMapT[K, V, BAG[_]] extends Source[K, (K, V), BAG] {
 
   def sizeOfSegments: Long
 
+  def blockCacheSize(): Option[Long]
+
+  def cachedKeyValuesSize(): Option[Long]
+
+  def openedFiles(): Option[Long]
+
+  def pendingDeletes(): Option[Long]
+
   def expiration(key: K): BAG[Option[Deadline]]
 
   def timeLeft(key: K): BAG[Option[FiniteDuration]]

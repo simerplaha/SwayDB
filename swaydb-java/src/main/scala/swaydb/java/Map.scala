@@ -184,6 +184,18 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, Glass])(implicit evd: F <:<
   def sizeOfSegments: Long =
     asScala.sizeOfSegments
 
+  def blockCacheSize(): Option[Long] =
+    asScala.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    asScala.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    asScala.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    asScala.pendingDeletes()
+
   def keySize(key: K): Int =
     asScala.keySize(key)
 

@@ -1666,6 +1666,18 @@ private[core] case class Level(dirs: Seq[Dir],
   override def minSegmentSize: Int =
     segmentConfig.minSize
 
+  override def blockCacheSize(): Option[Long] =
+    blockCacheSweeper.flatMap(_.actor.map(_.totalWeight))
+
+  override def cachedKeyValuesSize(): Option[Long] =
+    keyValueMemorySweeper.flatMap(_.actor.map(_.totalWeight))
+
+  override def openedFiles(): Long =
+    fileSweeper.closer.totalWeight
+
+  override def pendingDeletes(): Long =
+    fileSweeper.deleter.totalWeight
+
   /**
    * Closing and delete functions
    */

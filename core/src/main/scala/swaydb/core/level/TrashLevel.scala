@@ -114,6 +114,10 @@ private[core] object TrashLevel extends NextLevel {
   override val sizeOfSegments: Long =
     0
 
+  override def openedFiles(): Long = 0
+
+  override def pendingDeletes(): Long = 0
+
   override def releaseLocks: IO[swaydb.Error.Close, Unit] =
     IO.unit
 
@@ -241,4 +245,10 @@ private[core] object TrashLevel extends NextLevel {
 
   override def pushForwardStrategy: PushForwardStrategy =
     PushForwardStrategy.On
+
+  override def blockCacheSize(): Option[Long] =
+    None
+
+  override def cachedKeyValuesSize(): Option[Long] =
+    None
 }

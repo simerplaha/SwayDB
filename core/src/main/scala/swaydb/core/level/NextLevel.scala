@@ -116,6 +116,10 @@ trait NextLevel extends LevelRef {
 
   def lastSegmentId: Option[Long]
 
+  def openedFiles(): Long
+
+  def pendingDeletes(): Long
+
   def take(count: Int): Slice[Segment]
 
   def takeSmallSegments(size: Int): Iterable[Segment]

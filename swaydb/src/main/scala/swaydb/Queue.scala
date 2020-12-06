@@ -27,9 +27,10 @@ package swaydb
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicLong
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Bytes
+import swaydb.data.accelerate.LevelZeroMeter
+import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.stream.StreamFree
@@ -242,6 +243,27 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Glass],
     set.free.map(_._2)
 
   private def copy(): Unit = ()
+
+  def levelZeroMeter: LevelZeroMeter =
+    set.levelZeroMeter
+
+  def levelMeter(levelNumber: Int): Option[LevelMeter] =
+    set.levelMeter(levelNumber)
+
+  def sizeOfSegments: Long =
+    set.sizeOfSegments
+
+  def blockCacheSize(): Option[Long] =
+    set.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    set.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    set.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    set.pendingDeletes()
 
   def close(): Unit =
     set.close()

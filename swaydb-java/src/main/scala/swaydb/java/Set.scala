@@ -141,6 +141,18 @@ case class Set[A, F](asScala: swaydb.Set[A, F, Glass])(implicit evd: F <:< PureF
   def sizeOfSegments: Long =
     asScala.sizeOfSegments
 
+  def blockCacheSize(): Option[Long] =
+    asScala.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    asScala.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    asScala.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    asScala.pendingDeletes()
+
   def elemSize(elem: A): Int =
     asScala.elemSize(elem)
 

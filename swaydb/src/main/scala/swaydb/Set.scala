@@ -164,6 +164,18 @@ case class Set[A, F, BAG[_]] private(private val core: Core[BAG])(implicit seria
   def sizeOfSegments: Long =
     core.sizeOfSegments
 
+  def blockCacheSize(): Option[Long] =
+    core.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    core.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    core.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    core.pendingDeletes()
+
   def elemSize(elem: A): Int =
     (elem: Slice[Byte]).size
 

@@ -27,8 +27,9 @@ package swaydb.java
 import java.nio.file.Path
 import java.util.Optional
 import java.util.function.Supplier
-
 import swaydb.Glass
+import swaydb.data.accelerate.LevelZeroMeter
+import swaydb.data.compaction.LevelMeter
 
 import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
@@ -70,6 +71,27 @@ case class Queue[A](asScala: swaydb.Queue[A]) extends Stream[A] {
 
   override def asScalaStream: swaydb.Stream[A, Glass] =
     asScala
+
+  def levelZeroMeter: LevelZeroMeter =
+    asScala.levelZeroMeter
+
+  def levelMeter(levelNumber: Int): Option[LevelMeter] =
+    asScala.levelMeter(levelNumber)
+
+  def sizeOfSegments: Long =
+    asScala.sizeOfSegments
+
+  def blockCacheSize(): Option[Long] =
+    asScala.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    asScala.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    asScala.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    asScala.pendingDeletes()
 
   override def equals(other: Any): Boolean =
     other match {

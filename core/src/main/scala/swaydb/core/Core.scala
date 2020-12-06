@@ -266,6 +266,18 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
+  def blockCacheSize(): Option[Long] =
+    zero.blockCacheSize()
+
+   def cachedKeyValuesSize(): Option[Long] =
+     zero.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    zero.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    zero.pendingDeletes()
+
   def contains(key: Slice[Byte],
                readState: ThreadReadState): BAG[Boolean] =
     execute(_.contains(key, readState))

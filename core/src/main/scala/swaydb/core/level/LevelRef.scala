@@ -261,6 +261,10 @@ private[core] trait LevelRef {
 
   def sizeOfSegments: Long
 
+  def blockCacheSize(): Option[Long]
+
+  def cachedKeyValuesSize(): Option[Long]
+
   def close[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit]
 
   def closeNoSweep: IO[swaydb.Error.Level, Unit]

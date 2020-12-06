@@ -102,9 +102,6 @@ private[swaydb] case object FileSweeper extends LazyLogging {
     }
   }
 
-  def weigher(command: Command): Int =
-    if (command.isDelete) 5 else 1
-
   def apply(fileCache: FileCache): Option[FileSweeper] =
     fileCache match {
       case FileCache.Off =>
@@ -170,7 +167,7 @@ private[swaydb] case object FileSweeper extends LazyLogging {
     Actor.cacheFromConfig[Command.Close](
       config = actorConfig,
       stashCapacity = maxOpenSegments,
-      weigher = FileSweeper.weigher
+      weigher = _ => 1
     ) {
       case (command, _) =>
         processCommand(command)

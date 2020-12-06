@@ -991,6 +991,18 @@ private[swaydb] case class LevelZero(path: Path,
         0L
     }
 
+  override def blockCacheSize(): Option[Long] =
+    nextLevel.flatMap(_.blockCacheSize())
+
+  override def cachedKeyValuesSize(): Option[Long] =
+    nextLevel.flatMap(_.cachedKeyValuesSize())
+
+  def openedFiles(): Option[Long] =
+    nextLevel.map(_.openedFiles())
+
+  def pendingDeletes(): Option[Long] =
+    nextLevel.map(_.pendingDeletes())
+
   def existsOnDisk: Boolean =
     Effect.exists(path)
 

@@ -214,6 +214,18 @@ case class SetMap[K, V, BAG[_]] private(private val set: Set[(K, V), Nothing, BA
   def sizeOfSegments: Long =
     set.sizeOfSegments
 
+  def blockCacheSize(): Option[Long] =
+    set.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    set.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    set.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    set.pendingDeletes()
+
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 

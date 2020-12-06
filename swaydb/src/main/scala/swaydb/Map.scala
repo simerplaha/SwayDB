@@ -249,6 +249,18 @@ case class Map[K, V, F, BAG[_]] private(private val core: Core[BAG])(implicit va
   def sizeOfSegments: Long =
     core.sizeOfSegments
 
+  def blockCacheSize(): Option[Long] =
+    core.blockCacheSize()
+
+  def cachedKeyValuesSize(): Option[Long] =
+    core.cachedKeyValuesSize()
+
+  def openedFiles(): Option[Long] =
+    core.openedFiles()
+
+  def pendingDeletes(): Option[Long] =
+    core.pendingDeletes()
+
   def keySize(key: K): Int =
     (key: Slice[Byte]).size
 

@@ -77,6 +77,14 @@ trait SetMapT[K, V] extends swaydb.java.Source[K, KeyVal[K, V]] {
 
   def sizeOfSegments: Long
 
+  def blockCacheSize(): Option[Long]
+
+  def cachedKeyValuesSize(): Option[Long]
+
+  def openedFiles(): Option[Long]
+
+  def pendingDeletes(): Option[Long]
+
   def expiration(key: K): Optional[Expiration]
 
   def timeLeft(key: K): Optional[Duration]
