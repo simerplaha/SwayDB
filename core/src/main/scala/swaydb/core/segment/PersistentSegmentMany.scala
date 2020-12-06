@@ -85,23 +85,14 @@ protected case object PersistentSegmentMany {
 
     val cacheBlocksOnCreate = segment.listSegment.sortedIndexUnblockedReader.isDefined
 
-    //enable cache only if cacheBlocksOnCreate is true.
-    if (cacheBlocksOnCreate)
-      segment
-        .segments
-        .foldLeft(firstSegmentOffset) {
-          case (actualOffset, singleton) =>
-            val thisSegmentSize = singleton.segmentSize
+    //iterate Segments and transfer cache if necessary.
+    segment
+      .segments
+      .foldLeft(firstSegmentOffset) {
+        case (actualOffset, singleton) =>
+          val thisSegmentSize = singleton.segmentSize
 
-            val blockCache =
-              singleton match {
-                case remote: TransientSegment.Remote =>
-                  remote.ref.blockCache() orElse BlockCache.forSearch(maxCacheSizeOrZero = thisSegmentSize, blockSweeper = blockCacheSweeper)
-
-                case _: TransientSegment.One =>
-                  BlockCache.forSearch(maxCacheSizeOrZero = thisSegmentSize, blockSweeper = blockCacheSweeper)
-              }
-
+          def cacheSegmentRef(blockCache: Option[BlockCache.State]) = {
             val blockRef =
               BlockRefReader(
                 file = file,
@@ -130,9 +121,21 @@ protected case object PersistentSegmentMany {
               )
 
             segments.put(ref.minKey, ref)
+          }
 
-            actualOffset + thisSegmentSize
-        }
+          singleton match {
+            case remote: TransientSegment.Remote =>
+              cacheSegmentRef {
+                remote.ref.blockCache() orElse BlockCache.forSearch(maxCacheSizeOrZero = thisSegmentSize, blockSweeper = blockCacheSweeper)
+              }
+
+            case _: TransientSegment.One =>
+              if (cacheBlocksOnCreate)
+                cacheSegmentRef(BlockCache.forSearch(maxCacheSizeOrZero = thisSegmentSize, blockSweeper = blockCacheSweeper))
+          }
+
+          actualOffset + thisSegmentSize
+      }
 
     val listSegmentBlockCache = BlockCache.forSearch(maxCacheSizeOrZero = listSegmentSize, blockSweeper = blockCacheSweeper)
 

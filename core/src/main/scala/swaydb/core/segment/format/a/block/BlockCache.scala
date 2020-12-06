@@ -29,6 +29,7 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.HashedMap
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.util.Options
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.annotation.tailrec
@@ -76,10 +77,11 @@ private[core] object BlockCache extends LazyLogging {
 
       val intCapacity = longCapacity.toInt
 
-      if (intCapacity <= 0) {
-        if (intCapacity < 0)
-          logger.warn(s"WARNING! Initial capacity for BlockCache's HashMap is invalid: $longCapacity.bytes. Using ${classOf[ConcurrentHashMap[_, _]].getSimpleName}'s default initial capacity.")
-        None
+      if (intCapacity < 0) {
+        logger.warn(s"WARNING! Initial capacity for BlockCache's HashMap is invalid: $longCapacity.bytes. Using ${classOf[ConcurrentHashMap[_, _]].getSimpleName}'s default initial capacity.")
+        None //Too many slots. This should not happen otherwise a single Segment could get a HashMap with very large initial size.
+      } else if (intCapacity == 0) {
+        Options.one //only one entry required.
       } else {
         Some(intCapacity)
       }
