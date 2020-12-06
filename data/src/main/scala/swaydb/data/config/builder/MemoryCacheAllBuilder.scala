@@ -35,6 +35,7 @@ class MemoryCacheAllBuilder {
   private var cacheCapacity: Int = _
   private var maxCachedKeyValueCountPerSegment: Option[Int] = _
   private var sweepCachedKeyValues: Boolean = _
+  private var disableForSearchIO: Boolean = _
 }
 
 object MemoryCacheAllBuilder {
@@ -75,11 +76,19 @@ object MemoryCacheAllBuilder {
   }
 
   class Step5(builder: MemoryCacheAllBuilder) {
+    def disableForSearchIO(disableForSearchIO: Boolean) = {
+      builder.disableForSearchIO = disableForSearchIO
+      new Step6(builder)
+    }
+  }
+
+  class Step6(builder: MemoryCacheAllBuilder) {
     def actorConfig(actorConfig: ActorConfig) =
       MemoryCache.All(
         minIOSeekSize = builder.minIOSeekSize,
         skipBlockCacheSeekSize = builder.skipBlockCacheSeekSize,
         cacheCapacity = builder.cacheCapacity,
+        disableForSearchIO = builder.disableForSearchIO,
         maxCachedKeyValueCountPerSegment = builder.maxCachedKeyValueCountPerSegment,
         sweepCachedKeyValues = builder.sweepCachedKeyValues,
         actorConfig = actorConfig

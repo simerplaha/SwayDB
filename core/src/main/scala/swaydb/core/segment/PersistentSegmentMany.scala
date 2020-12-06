@@ -96,10 +96,10 @@ protected case object PersistentSegmentMany {
             val blockCache =
               singleton match {
                 case remote: TransientSegment.Remote =>
-                  remote.ref.blockCache() orElse BlockCache.init(blockCacheSweeper)
+                  remote.ref.blockCache() orElse BlockCache.forSearch(memorySweeper = blockCacheSweeper)
 
                 case _: TransientSegment.One =>
-                  BlockCache.init(blockCacheSweeper)
+                  BlockCache.forSearch(blockCacheSweeper)
               }
 
             val blockRef =
@@ -134,7 +134,7 @@ protected case object PersistentSegmentMany {
             actualOffset + thisSegmentSize
         }
 
-    val listSegmentBlockCache = BlockCache.init(blockCacheSweeper)
+    val listSegmentBlockCache = BlockCache.forSearch(blockCacheSweeper)
 
     val listSegment =
       if (cacheBlocksOnCreate)
@@ -227,7 +227,7 @@ protected case object PersistentSegmentMany {
                     file = file,
                     start = oldRefOffset.start,
                     fileSize = oldRefOffset.size,
-                    blockCache = oldRef.blockCache() orElse BlockCache.init(blockCacheSweeper)
+                    blockCache = oldRef.blockCache() orElse BlockCache.forSearch(blockCacheSweeper)
                   ),
                 segmentIO = segmentIO,
                 valuesReaderCacheable = oldRef.segmentBlockCache.cachedValuesSliceReader(),
@@ -261,7 +261,7 @@ protected case object PersistentSegmentMany {
                       file = file,
                       start = copiedFromOffset.start,
                       fileSize = copiedFromOffset.size,
-                      blockCache = copiedFromListRef.blockCache() orElse BlockCache.init(blockCacheSweeper)
+                      blockCache = copiedFromListRef.blockCache() orElse BlockCache.forSearch(blockCacheSweeper)
                     ),
                   segmentIO = segmentIO,
                   valuesReaderCacheable = copiedFromListRef.segmentBlockCache.cachedValuesSliceReader(),
@@ -286,7 +286,7 @@ protected case object PersistentSegmentMany {
     val listSegmentBlockCache =
       copiedFromListSegmentCache
         .flatMap(_.blockCache())
-        .orElse(BlockCache.init(blockCacheSweeper))
+        .orElse(BlockCache.forSearch(blockCacheSweeper))
 
     val listSegmentCache =
       Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = copiedFromListSegmentCache) {

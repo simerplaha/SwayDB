@@ -44,6 +44,10 @@ object MemoryCache {
   sealed trait Block extends On {
     val minIOSeekSize: Int
     val cacheCapacity: Long
+    /**
+     * Disables caching bytes created by IO.
+     */
+    val disableForSearchIO: Boolean
     val actorConfig: ActorConfig
   }
 
@@ -59,6 +63,7 @@ object MemoryCache {
   case class ByteCacheOnly(minIOSeekSize: Int,
                            skipBlockCacheSeekSize: Int,
                            cacheCapacity: Long,
+                           disableForSearchIO: Boolean,
                            actorConfig: ActorConfig) extends Block {
     def copyWithMinIOSeekSize(minIOSeekSize: Int) =
       this.copy(minIOSeekSize = minIOSeekSize)
@@ -68,6 +73,9 @@ object MemoryCache {
 
     def copyWithCacheCapacity(cacheCapacity: Long) =
       this.copy(cacheCapacity = cacheCapacity)
+
+    def copyWithDisableForSearchIO(disableForSearchIO: Boolean) =
+      this.copy(disableForSearchIO = disableForSearchIO)
 
     def copyWithActorConfig(actorConfig: ActorConfig) =
       this.copy(actorConfig = actorConfig)
@@ -89,6 +97,7 @@ object MemoryCache {
   case class All(minIOSeekSize: Int,
                  skipBlockCacheSeekSize: Int,
                  cacheCapacity: Long,
+                 disableForSearchIO: Boolean,
                  maxCachedKeyValueCountPerSegment: Option[Int],
                  sweepCachedKeyValues: Boolean,
                  actorConfig: ActorConfig) extends On with Block {
@@ -103,6 +112,9 @@ object MemoryCache {
 
     def copyWithMaxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Optional[Int]) =
       this.copy(maxCachedKeyValueCountPerSegment = maxCachedKeyValueCountPerSegment.asScala)
+
+    def copyWithDisableForIO(disableForSearchIO: Boolean) =
+      this.copy(disableForSearchIO = disableForSearchIO)
 
     def copyWithSweepCachedKeyValues(sweepCachedKeyValues: Boolean) =
       this.copy(sweepCachedKeyValues = sweepCachedKeyValues)

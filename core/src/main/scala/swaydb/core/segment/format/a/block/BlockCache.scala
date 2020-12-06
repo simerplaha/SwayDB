@@ -40,7 +40,7 @@ private[core] object BlockCache extends LazyLogging {
   //  var memorySeeks = 0
   //  var splitsCount = 0
 
-  def init(memorySweeper: MemorySweeper): Option[BlockCache.State] =
+  def forSearch(memorySweeper: MemorySweeper): Option[BlockCache.State] =
     memorySweeper match {
       case MemorySweeper.Off =>
         None
@@ -48,17 +48,23 @@ private[core] object BlockCache extends LazyLogging {
       case enabled: MemorySweeper.On =>
         enabled match {
           case block: MemorySweeper.Block =>
-            Some(BlockCache.fromBlock(block))
+            forSearch(Some(block))
 
           case _: MemorySweeper.KeyValueSweeper =>
             None
         }
     }
 
-  def init(memorySweeper: Option[MemorySweeper.Block]): Option[BlockCache.State] =
-    memorySweeper.map(fromBlock)
+  def forSearch(memorySweeper: Option[MemorySweeper.Block]): Option[BlockCache.State] =
+    memorySweeper flatMap {
+      sweeper =>
+        if (sweeper.disableForSearchIO)
+          None
+        else
+          Some(fromBlock(sweeper))
+    }
 
-  def fromBlock(memorySweeper: MemorySweeper.Block): BlockCache.State = {
+  private def fromBlock(memorySweeper: MemorySweeper.Block): BlockCache.State = {
     val initialCapacityInt = {
       val longCapacity: Long =
         memorySweeper.cacheSize / memorySweeper.blockSize

@@ -192,7 +192,7 @@ object TransientSegmentSerialiser {
                 file = file,
                 start = firstSegmentStartOffset + segmentOffset,
                 fileSize = segmentSize,
-                blockCache = BlockCache.init(blockCacheMemorySweeper)
+                blockCache = BlockCache.forSearch(blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
             valuesReaderCacheable = valuesReaderCacheable,
@@ -219,7 +219,7 @@ object TransientSegmentSerialiser {
                 file = file,
                 start = firstSegmentStartOffset + segmentOffset,
                 fileSize = segmentSize,
-                blockCache = BlockCache.init(blockCacheMemorySweeper)
+                blockCache = BlockCache.forSearch(blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
             valuesReaderCacheable = valuesReaderCacheable,
@@ -268,7 +268,7 @@ object TransientSegmentSerialiser {
             file = file,
             start = firstSegmentStartOffset + segmentOffset,
             fileSize = segmentSize,
-            blockCache = BlockCache.init(blockCacheMemorySweeper)
+            blockCache = BlockCache.forSearch(blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,
@@ -295,7 +295,7 @@ object TransientSegmentSerialiser {
             file = file,
             start = firstSegmentStartOffset + segmentOffset,
             fileSize = segmentSize,
-            blockCache = BlockCache.init(blockCacheMemorySweeper)
+            blockCache = BlockCache.forSearch(blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,

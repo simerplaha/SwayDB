@@ -69,6 +69,7 @@ private[core] object MemorySweeper extends LazyLogging {
             blockSize = block.minIOSeekSize,
             cacheSize = block.cacheCapacity,
             skipBlockCacheSeekSize = block.skipBlockCacheSeekSize,
+            disableForSearchIO = block.disableForSearchIO,
             actorConfig = Some(block.actorConfig)
           )
         )
@@ -88,8 +89,9 @@ private[core] object MemorySweeper extends LazyLogging {
             blockSize = block.minIOSeekSize,
             cacheSize = block.cacheCapacity,
             skipBlockCacheSeekSize = block.skipBlockCacheSeekSize,
-            sweepKeyValues = block.sweepCachedKeyValues,
             maxKeyValuesPerSegment = block.maxCachedKeyValueCountPerSegment,
+            sweepKeyValues = block.sweepCachedKeyValues,
+            disableForSearchIO = block.disableForSearchIO,
             actorConfig = Some(block.actorConfig)
           )
         )
@@ -196,6 +198,7 @@ private[core] object MemorySweeper extends LazyLogging {
     def blockSize: Int
     def cacheSize: Long
     def skipBlockCacheSeekSize: Int
+    def disableForSearchIO: Boolean
 
     def add(key: Long,
             value: Slice[Byte],
@@ -213,6 +216,7 @@ private[core] object MemorySweeper extends LazyLogging {
   case class BlockSweeper(blockSize: Int,
                           cacheSize: Long,
                           skipBlockCacheSeekSize: Int,
+                          disableForSearchIO: Boolean,
                           actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block
 
   sealed trait KeyValue extends On {
@@ -244,6 +248,7 @@ private[core] object MemorySweeper extends LazyLogging {
                  skipBlockCacheSeekSize: Int,
                  maxKeyValuesPerSegment: Option[Int],
                  sweepKeyValues: Boolean,
+                 disableForSearchIO: Boolean,
                  actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block with KeyValue
 
 }

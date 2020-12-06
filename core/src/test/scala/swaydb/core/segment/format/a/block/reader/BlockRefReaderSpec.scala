@@ -46,7 +46,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
           val fileReader = createRandomFileReader(bytes)
           val file = fileReader.file
 
-          val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
+          val blockCache = orNone(BlockCache.forSearch(sweeper.blockSweeperCache))
 
           //DBFile
           BlockRefReader(file = file, blockCache = blockCache).readRemaining() shouldBe bytes
@@ -65,7 +65,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
     "random bytes with header" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
+          val blockCache = orNone(BlockCache.forSearch(sweeper.blockSweeperCache))
 
           val header = Slice(1.toByte, 0.toByte)
           val bodyBytes = randomBytesSlice(20)
@@ -92,7 +92,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
     "compressed & uncompressed blocks" in {
       TestCaseSweeper {
         implicit sweeper =>
-          val blockCache = orNone(BlockCache.init(sweeper.blockSweeperCache))
+          val blockCache = orNone(BlockCache.forSearch(sweeper.blockSweeperCache))
 
           def runTest(compressions: Iterable[CompressionInternal]) = {
             val body = randomBytesSlice(1000)

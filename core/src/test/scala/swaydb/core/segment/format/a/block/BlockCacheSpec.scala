@@ -50,9 +50,9 @@ class BlockCacheSpec extends TestBase with MockFactory {
         }
 
       val state =
-        BlockCache.fromBlock(MemorySweeper.BlockSweeper(blockSize, 1.mb / 2, 100.mb, None))
+        BlockCache.forSearch(MemorySweeper.BlockSweeper(blockSize, 1.mb / 2, 100.mb, disableForSearchIO = false, actorConfig = None))
 
-      (file, state)
+      (file, state.get)
     }
 
     "round size" when {
@@ -129,7 +129,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
           val blockSize = 10
 
           val state =
-            BlockCache.fromBlock(MemorySweeper.BlockSweeper(blockSize, 50000.bytes, 100.mb, None))
+            BlockCache.forSearch(Some(MemorySweeper.BlockSweeper(blockSize, 50000.bytes, 100.mb, disableForSearchIO = false, None))).get
 
           //0 -----------------------------------------> 1000
           //0 read 1
@@ -195,7 +195,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
         runThis(500.times, log = true) {
           val blockSize = randomIntMax(bytes.size * 2)
 
-          val state = BlockCache.fromBlock(MemorySweeper.BlockSweeper(blockSize, randomIntMax(Byte.MaxValue).bytes, 100.mb, None))
+          val state = BlockCache.forSearch(Some(MemorySweeper.BlockSweeper(blockSize, randomIntMax(Byte.MaxValue).bytes, 100.mb, false, None))).get
 
           runThis(1000.times) {
             val position = randomNextInt(bytes.size)

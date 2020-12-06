@@ -30,6 +30,7 @@ class ByteCacheOnlyBuilder {
   private var minIOSeekSize: Int = _
   private var skipBlockCacheSeekSize: Int = _
   private var cacheCapacity: Int = _
+  private var disableForSearchIO: Boolean = _
 }
 
 object ByteCacheOnlyBuilder {
@@ -56,11 +57,19 @@ object ByteCacheOnlyBuilder {
   }
 
   class Step3(builder: ByteCacheOnlyBuilder) {
+    def disableForSearchIO(disableForSearchIO: Boolean) = {
+      builder.disableForSearchIO = disableForSearchIO
+      new Step4(builder)
+    }
+  }
+
+  class Step4(builder: ByteCacheOnlyBuilder) {
     def actorConfig(actorConfig: ActorConfig) =
       MemoryCache.ByteCacheOnly(
         minIOSeekSize = builder.minIOSeekSize,
         skipBlockCacheSeekSize = builder.skipBlockCacheSeekSize,
         cacheCapacity = builder.cacheCapacity,
+        disableForSearchIO = builder.disableForSearchIO,
         actorConfig = actorConfig
       )
   }

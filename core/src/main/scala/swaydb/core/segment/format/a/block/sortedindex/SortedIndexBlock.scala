@@ -622,7 +622,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         sortedIndexReader = sortedIndexReader,
         valuesReaderOrNull = valuesReaderOrNull
       )
-    } else if (sortedIndexReader.hasBlockCache) {
+    } else if (sortedIndexReader.hasBlockCache && !sortedIndexReader.blockCache.get.sweeper.disableForSearchIO) {
       val positionBeforeRead = sortedIndexReader.getPosition
       //read the minimum number of bytes required for parse this indexEntry.
       val bytes = sortedIndexReader.read(ByteSizeOf.varInt)

@@ -37,15 +37,15 @@ import scala.concurrent.duration._
 private[swaydb] object TestSweeper {
 
   def createMemorySweeperMax(): Option[MemorySweeper.All] =
-    MemorySweeper(MemoryCache.All(4096, 1.mb / 2, 600.mb, None, false, ActorConfig.TimeLoop("TimeLoop test", 10.seconds, DefaultExecutionContext.sweeperEC)))
+    MemorySweeper(MemoryCache.All(4096, 1.mb / 2, 600.mb, false, None, false, ActorConfig.TimeLoop("TimeLoop test", 10.seconds, DefaultExecutionContext.sweeperEC)))
       .map(_.asInstanceOf[MemorySweeper.All])
 
   def createMemorySweeper10(): Option[MemorySweeper.All] =
-    MemorySweeper(MemoryCache.All(4096, 1.mb / 2, 600.mb, Some(1), false, ActorConfig.TimeLoop("TimeLoop test 2", 10.seconds, DefaultExecutionContext.sweeperEC)))
+    MemorySweeper(MemoryCache.All(4096, 1.mb / 2, 600.mb, false, Some(1), false, ActorConfig.TimeLoop("TimeLoop test 2", 10.seconds, DefaultExecutionContext.sweeperEC)))
       .map(_.asInstanceOf[MemorySweeper.All])
 
   def createMemoryBlockSweeper(): Option[MemorySweeper.BlockSweeper] =
-    MemorySweeper(MemoryCache.ByteCacheOnly(4096, 1.mb / 2, 600.mb, ActorConfig.Basic("Basic Actor", DefaultExecutionContext.sweeperEC)))
+    MemorySweeper(MemoryCache.ByteCacheOnly(4096, 1.mb / 2, 600.mb, disableForSearchIO = false, ActorConfig.Basic("Basic Actor", DefaultExecutionContext.sweeperEC)))
       .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
 
   def createKeyValueSweeperBlock(): Option[MemorySweeper.KeyValueSweeper] =
@@ -60,10 +60,10 @@ private[swaydb] object TestSweeper {
     )
 
   def createBlockCache(memorySweeper: Option[MemorySweeper.All]): Option[BlockCache.State] =
-    memorySweeper.map(BlockCache.fromBlock)
+    BlockCache.forSearch(memorySweeper = memorySweeper)
 
   def createBlockCacheBlockSweeper(blockSweeper: Option[MemorySweeper.BlockSweeper] = createMemoryBlockSweeper()): Option[BlockCache.State] =
-    blockSweeper.map(BlockCache.fromBlock)
+    BlockCache.forSearch(memorySweeper = blockSweeper)
 
   def createBlockCacheRandom(): Option[BlockCache.State] =
     eitherOne(
