@@ -49,7 +49,7 @@ class BlockedReaderSpec extends TestBase with MockFactory {
       TestCaseSweeper {
         implicit sweeper =>
 
-          val blockCache = orNone(BlockCache.forSearch(sweeper.blockSweeperCache))
+          val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
           implicit val ops = SegmentBlock.SegmentBlockOps
 

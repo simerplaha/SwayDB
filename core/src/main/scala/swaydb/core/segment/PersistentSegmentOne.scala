@@ -88,10 +88,10 @@ protected object PersistentSegmentOne {
       previousBlockCache =
         segment match {
           case remote: TransientSegment.Remote =>
-            remote.ref.blockCache() orElse BlockCache.forSearch(blockCacheSweeper)
+            remote.ref.blockCache() orElse BlockCache.forSearch(segment.segmentSize, blockCacheSweeper)
 
           case _: TransientSegment.One =>
-            BlockCache.forSearch(blockCacheSweeper)
+            BlockCache.forSearch(segment.segmentSize, blockCacheSweeper)
         }
     )
 
@@ -118,12 +118,14 @@ protected object PersistentSegmentOne {
                                                           forceSaveApplier: ForceSaveApplier,
                                                           segmentIO: SegmentIO): PersistentSegmentOne = {
 
+    val fileSize = segmentSize - 1
+
     val segmentBlockRef =
       BlockRefReader(
         file = file,
         start = 1,
-        fileSize = segmentSize - 1,
-        blockCache = previousBlockCache orElse BlockCache.forSearch(blockCacheSweeper)
+        fileSize = fileSize,
+        blockCache = previousBlockCache orElse BlockCache.forSearch(fileSize, blockCacheSweeper)
       )
 
     val ref =

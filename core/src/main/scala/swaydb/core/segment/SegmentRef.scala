@@ -1506,6 +1506,30 @@ private[core] case object SegmentRef extends LazyLogging {
       transient = segments
     )
   }
+
+  @inline def contains(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+    keyOrder.gteq(key, ref.minKey) && {
+      if (ref.maxKey.inclusive)
+        keyOrder.lteq(key, ref.maxKey.maxKey)
+      else
+        keyOrder.lt(key, ref.maxKey.maxKey)
+    }
+
+  @inline def containsLower(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+    keyOrder.gt(key, ref.minKey) && {
+      if (ref.maxKey.inclusive)
+        keyOrder.lteq(key, ref.maxKey.maxKey)
+      else
+        keyOrder.lt(key, ref.maxKey.maxKey)
+    }
+
+  @inline def containsHigher(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+    keyOrder.gteq(key, ref.minKey) && {
+      if (ref.maxKey.inclusive)
+        keyOrder.lteq(key, ref.maxKey.maxKey)
+      else
+        keyOrder.lt(key, ref.maxKey.maxKey)
+    }
 }
 
 private[core] class SegmentRef(val path: Path,

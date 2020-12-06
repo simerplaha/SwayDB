@@ -60,10 +60,10 @@ private[swaydb] object TestSweeper {
     )
 
   def createBlockCache(memorySweeper: Option[MemorySweeper.All]): Option[BlockCache.State] =
-    BlockCache.forSearch(memorySweeper = memorySweeper)
+    BlockCache.forSearch(maxCacheSizeOrZero = 0, blockSweeper = memorySweeper)
 
   def createBlockCacheBlockSweeper(blockSweeper: Option[MemorySweeper.BlockSweeper] = createMemoryBlockSweeper()): Option[BlockCache.State] =
-    BlockCache.forSearch(memorySweeper = blockSweeper)
+    BlockCache.forSearch(maxCacheSizeOrZero = 0, blockSweeper = blockSweeper)
 
   def createBlockCacheRandom(): Option[BlockCache.State] =
     eitherOne(

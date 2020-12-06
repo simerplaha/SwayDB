@@ -29,6 +29,7 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.HashedMap
 import swaydb.data.slice.{Slice, SliceOption}
 
+import java.util.concurrent.ConcurrentHashMap
 import scala.annotation.tailrec
 
 /**
@@ -40,7 +41,7 @@ private[core] object BlockCache extends LazyLogging {
   //  var memorySeeks = 0
   //  var splitsCount = 0
 
-  def forSearch(memorySweeper: MemorySweeper): Option[BlockCache.State] =
+  def forSearch(maxCacheSizeOrZero: Int, memorySweeper: MemorySweeper): Option[BlockCache.State] =
     memorySweeper match {
       case MemorySweeper.Off =>
         None
@@ -48,33 +49,38 @@ private[core] object BlockCache extends LazyLogging {
       case enabled: MemorySweeper.On =>
         enabled match {
           case block: MemorySweeper.Block =>
-            forSearch(Some(block))
+            forSearch(maxCacheSizeOrZero = maxCacheSizeOrZero, blockSweeper = Some(block))
 
           case _: MemorySweeper.KeyValueSweeper =>
             None
         }
     }
 
-  def forSearch(memorySweeper: Option[MemorySweeper.Block]): Option[BlockCache.State] =
-    memorySweeper flatMap {
+  def forSearch(maxCacheSizeOrZero: Int, blockSweeper: Option[MemorySweeper.Block]): Option[BlockCache.State] =
+    blockSweeper flatMap {
       sweeper =>
         if (sweeper.disableForSearchIO)
           None
         else
-          Some(fromBlock(sweeper))
+          Some(fromBlock(maxCacheSizeOrZero, sweeper))
     }
 
-  private def fromBlock(memorySweeper: MemorySweeper.Block): BlockCache.State = {
+  /**
+   * @param maxCacheSizeOrZero anything <= 0 sets to use the default initial size.
+   */
+  private def fromBlock(maxCacheSizeOrZero: Int, memorySweeper: MemorySweeper.Block): BlockCache.State = {
     val initialCapacityInt = {
       val longCapacity: Long =
-        memorySweeper.cacheSize / memorySweeper.blockSize
+        maxCacheSizeOrZero / memorySweeper.blockSize
 
-      val int = longCapacity.toInt
-      if (int <= 0) {
-        logger.warn(s"WARNING! Initial capacity for BlockCache's HashMap is too large: $longCapacity.bytes. Setting to ${Int.MaxValue}")
-        Int.MaxValue
+      val intCapacity = longCapacity.toInt
+
+      if (intCapacity <= 0) {
+        if (intCapacity < 0)
+          logger.warn(s"WARNING! Initial capacity for BlockCache's HashMap is invalid: $longCapacity.bytes. Using ${classOf[ConcurrentHashMap[_, _]].getSimpleName}'s default initial capacity.")
+        None
       } else {
-        int
+        Some(intCapacity)
       }
     }
 
@@ -85,7 +91,7 @@ private[core] object BlockCache extends LazyLogging {
       map =
         HashedMap.concurrent[Long, SliceOption[Byte], Slice[Byte]](
           nullValue = Slice.Null,
-          initialCapacity = Some(initialCapacityInt)
+          initialCapacity = initialCapacityInt
         )
     )
   }

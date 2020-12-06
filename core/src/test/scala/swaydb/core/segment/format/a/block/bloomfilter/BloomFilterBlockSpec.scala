@@ -62,7 +62,7 @@ class BloomFilterBlockSpec extends TestBase {
 
             BloomFilterBlock.close(filter).value
 
-            val blockCache = orNone(BlockCache.forSearch(sweeper.blockSweeperCache))
+            val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
             Seq(
               BlockRefReader[BloomFilterBlock.Offset](filter.blockBytes),
@@ -98,7 +98,7 @@ class BloomFilterBlockSpec extends TestBase {
 
             BloomFilterBlock.close(state).value
 
-            val blockCache = orNone(BlockCache.forSearch(sweeper.blockSweeperCache))
+            val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
             Seq(
               BlockRefReader[BloomFilterBlock.Offset](state.blockBytes),
@@ -314,7 +314,7 @@ class BloomFilterBlockSpec extends TestBase {
             reader = BloomFilterBlock.unblockedReader(state)
           )
 
-          val blockCache = orNone(BlockCache.forSearch(sweeper.blockSweeperCache))
+          val blockCache = orNone(BlockCache.forSearch(0, sweeper.blockSweeperCache))
 
           Seq(
             BlockRefReader[BloomFilterBlock.Offset](state.blockBytes),

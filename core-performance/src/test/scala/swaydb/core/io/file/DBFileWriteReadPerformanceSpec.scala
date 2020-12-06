@@ -59,7 +59,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
         val bytes = randomBytesSlice(20.mb)
 
         implicit val blockCache: Option[BlockCache.State] =
-          BlockCache.forSearch(MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, false, actorConfig = None))
+          BlockCache.forSearch(bytes.size, MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, false, actorConfig = None))
         //          None
 
         val path = randomFilePath

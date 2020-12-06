@@ -51,7 +51,7 @@ class BlockCachePerformanceSpec extends TestBase {
           val bytes = Benchmark("Generating bytes")(randomBytesSlice(1.gb))
           val file = createFileChannelFileReader(bytes).file
 
-          val state = BlockCache.forSearch(Some(MemorySweeper.BlockSweeper(4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, false, actorConfig = None))).get
+          val state = BlockCache.forSearch(bytes.size, Some(MemorySweeper.BlockSweeper(4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, false, actorConfig = None))).get
 
           Benchmark.time("Seek") {
             (1 to 1000000) foreach {

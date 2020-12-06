@@ -52,14 +52,15 @@ object TransientSegmentSerialiser {
       case MaxKey.Fixed(maxKey) =>
         val minMaxFunctionBytesSize = MinMaxSerialiser.bytesRequired(singleton.minMaxFunctionId)
 
-        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2) + minMaxFunctionBytesSize + singleton.minKey.size)
+        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 3) + singleton.minKey.size + minMaxFunctionBytesSize)
         value add 0 //fixed maxKey id
+        value addUnsignedInt singleton.minKey.size
+        value addAll singleton.minKey
+
         value addUnsignedInt offset
         value addUnsignedInt size
 
         MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
-
-        value addAll singleton.minKey
 
         /**
          * - nearestDeadline is stored so that the parent many segment knows which segment to refresh.
@@ -112,6 +113,19 @@ object TransientSegmentSerialiser {
           case rangeValue =>
             throw new Exception(s"Invalid range value ${rangeValue.getClass.getName}")
         }
+
+      case keyValue =>
+        throw new Exception(s"Invalid key-value ${keyValue.getClass.getName}")
+    }
+
+  def minKey(persistent: Persistent): Slice[Byte] =
+    persistent match {
+      case fixed: Persistent.Put =>
+        val reader = Reader(slice = fixed.getOrFetchValue.getC, position = 1)
+        reader.read(reader.readUnsignedInt())
+
+      case range: Persistent.Range =>
+        range.fromKey
 
       case keyValue =>
         throw new Exception(s"Invalid key-value ${keyValue.getClass.getName}")
@@ -177,6 +191,7 @@ object TransientSegmentSerialiser {
         val valueReader = Reader(value.getC)
         val maxKeyId = valueReader.get()
         if (maxKeyId == 0) {
+          val minKey = valueReader.skip(valueReader.readUnsignedInt()) //skipMinKey
           val segmentOffset = valueReader.readUnsignedInt()
           val segmentSize = valueReader.readUnsignedInt()
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
@@ -192,7 +207,7 @@ object TransientSegmentSerialiser {
                 file = file,
                 start = firstSegmentStartOffset + segmentOffset,
                 fileSize = segmentSize,
-                blockCache = BlockCache.forSearch(blockCacheMemorySweeper)
+                blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
             valuesReaderCacheable = valuesReaderCacheable,
@@ -219,7 +234,7 @@ object TransientSegmentSerialiser {
                 file = file,
                 start = firstSegmentStartOffset + segmentOffset,
                 fileSize = segmentSize,
-                blockCache = BlockCache.forSearch(blockCacheMemorySweeper)
+                blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
             valuesReaderCacheable = valuesReaderCacheable,
@@ -252,10 +267,10 @@ object TransientSegmentSerialiser {
     val valueReader = Reader(put.getOrFetchValue.getC)
     val maxKeyId = valueReader.get()
     if (maxKeyId == 0) {
+      val minKey = valueReader.read(valueReader.readUnsignedInt())
       val segmentOffset = valueReader.readUnsignedInt()
       val segmentSize = valueReader.readUnsignedInt()
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
-      val minKey = valueReader.readRemaining()
 
       SegmentRef(
         path = file.path.resolve(s"ref.$segmentOffset"),
@@ -268,7 +283,7 @@ object TransientSegmentSerialiser {
             file = file,
             start = firstSegmentStartOffset + segmentOffset,
             fileSize = segmentSize,
-            blockCache = BlockCache.forSearch(blockCacheMemorySweeper)
+            blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,
@@ -295,7 +310,7 @@ object TransientSegmentSerialiser {
             file = file,
             start = firstSegmentStartOffset + segmentOffset,
             fileSize = segmentSize,
-            blockCache = BlockCache.forSearch(blockCacheMemorySweeper)
+            blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,
