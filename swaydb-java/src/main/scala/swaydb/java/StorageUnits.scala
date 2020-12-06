@@ -42,4 +42,13 @@ object StorageUnits {
 
   @inline final def kb(measure: Double): Int =
     measure.kb
+
+  @inline final def mb_long(measure: Double): Long =
+    measure.mb_long
+
+  @inline final def gb_long(measure: Double): Long =
+    measure.gb_long
+
+  @inline final def kb_long(measure: Double): Long =
+    measure.kb_long
 }
