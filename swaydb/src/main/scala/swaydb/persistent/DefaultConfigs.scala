@@ -40,8 +40,6 @@ object DefaultConfigs {
   //4098 being the default file-system blockSize.
   def mapSize: Int = 64.mb
 
-  def segmentSize: Int = 44.mb
-
   def accelerator: LevelZeroMeter => Accelerator =
     Accelerator.brake(
       increaseMapSizeOnMapCount = 1,
@@ -67,12 +65,12 @@ object DefaultConfigs {
 
   def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = false): SortedKeyIndex.On =
     SortedKeyIndex.On(
-      //      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
-      prefixCompression =
-        PrefixCompression.On(
-          keysOnly = true,
-          interval = PrefixCompression.Interval.ResetCompressionAt(3)
-        ),
+      prefixCompression = PrefixCompression.Off(normaliseIndexForBinarySearch = false),
+      //      prefixCompression =
+      //        PrefixCompression.On(
+      //          keysOnly = true,
+      //          interval = PrefixCompression.Interval.ResetCompressionAt(4)
+      //        ),
       enablePositionIndex = true,
       optimiseForReverseIteration = true,
       blockIOStrategy = {
@@ -122,8 +120,8 @@ object DefaultConfigs {
 
   def valuesConfig(cacheDataBlockOnAccess: Boolean = false): ValuesConfig =
     ValuesConfig(
-      compressDuplicateValues = true,
-      compressDuplicateRangeValues = true,
+      compressDuplicateValues = false,
+      compressDuplicateRangeValues = false,
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
@@ -137,7 +135,7 @@ object DefaultConfigs {
       deleteDelay = CommonConfigs.segmentDeleteDelay,
       pushForward = PushForwardStrategy.OnOverflow,
       mmap = MMAP.Off(forceSave = ForceSave.BeforeClose(enableBeforeCopy = false, enableForReadOnlyMode = false, logBenchmark = false)),
-      minSegmentSize = segmentSize,
+      minSegmentSize = 44.mb,
       segmentFormat = SegmentFormat.Grouped(10000),
       fileOpenIOStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       blockIOStrategy = {
@@ -193,7 +191,7 @@ object DefaultConfigs {
       Throttle(overflow.seconds, 1)
   }
 
-  val levelOneSize = 512.mb.toDouble
+  val levelOneSize = 600.mb.toDouble
 
   def levelOneThrottle(meter: LevelMeter): Throttle =
     calculateThrottle(maxLevelSize = levelOneSize, meter = meter)

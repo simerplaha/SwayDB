@@ -113,8 +113,8 @@ object DefaultConfigs {
 
   def valuesConfig(cacheDataBlockOnAccess: Boolean = false): ValuesConfig =
     ValuesConfig(
-      compressDuplicateValues = true,
-      compressDuplicateRangeValues = true,
+      compressDuplicateValues = false,
+      compressDuplicateRangeValues = false,
       blockIOStrategy = {
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO.cached
         case action: IOAction.DecompressAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
@@ -126,7 +126,7 @@ object DefaultConfigs {
     SegmentConfig(
       cacheSegmentBlocksOnCreate = true,
       deleteDelay = CommonConfigs.segmentDeleteDelay,
-      pushForward = PushForwardStrategy.Off,
+      pushForward = PushForwardStrategy.OnOverflow,
       //mmap is disabled for eventually persistent databases to give in-memory levels more memory-space.
       mmap = DefaultConfigs.mmap(),
       minSegmentSize = segmentSize,
@@ -154,7 +154,7 @@ object DefaultConfigs {
     ByteCacheOnly(
       minIOSeekSize = 4096,
       skipBlockCacheSeekSize = 4096 * 10,
-      cacheCapacity = 1.gb,
+      cacheCapacity = 200.mb,
       actorConfig =
         ActorConfig.TimeLoop(
           name = s"${this.getClass.getName} - MemoryCache TimeLoop Actor",

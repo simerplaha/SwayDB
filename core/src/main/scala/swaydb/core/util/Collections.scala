@@ -89,7 +89,7 @@ private[swaydb] object Collections {
 
   /**
    * Groups items ensuring if the input groupSize is > 1 then the output groups
-   * should not contain a single item. Single items value merged into their previous gorup.
+   * should not contain a single item. Single items value merged into their previous group.
    */
   def groupedMergeSingles[T](groupSize: Int,
                              items: List[T],
@@ -111,7 +111,7 @@ private[swaydb] object Collections {
           .of[Slice[T]](items.size)
           .add(Slice.of[T](items.size))
 
-      var currentGroupSize = 0
+      var currentGroupSize: Int = 0
 
       var i = 0
       while (i < items.size) {
