@@ -25,9 +25,7 @@
 package swaydb.core.util
 
 import java.util.concurrent.ConcurrentHashMap
-
-import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import java.util.concurrent.atomic.AtomicLong
 
 private[swaydb] object HashedMap {
 
@@ -40,7 +38,9 @@ private[swaydb] object HashedMap {
         new Concurrent[K, OV, V](new ConcurrentHashMap(), nullValue)
     }
 
-  class Concurrent[K, OV, V <: OV](map: ConcurrentHashMap[K, V], nullValue: OV) {
+  class Concurrent[K, OV, V <: OV](private val map: ConcurrentHashMap[K, V], nullValue: OV) {
+    private val counter = new AtomicLong(map.size())
+
     def get(key: K): OV = {
       val got = map.get(key)
       if (got == null)
@@ -49,28 +49,22 @@ private[swaydb] object HashedMap {
         got
     }
 
-    def put(key: K, value: V): Unit =
+    def put(key: K, value: V): Unit = {
       map.put(key, value)
+      counter.incrementAndGet()
+    }
 
     def contains(key: K): Boolean =
       map.containsKey(key)
 
     def remove(key: K): Unit =
-      map.remove(key)
+      if (map.remove(key) != null)
+        counter.decrementAndGet()
 
-    def head: (K, V) =
-      asScala.head
+    def size() =
+      counter.get()
 
-    def last: (K, V) =
-      asScala.last
-
-    def size =
-      map.size
-
-    def asScala: mutable.Map[K, V] =
-      map.asScala
-
-    def clear(): Unit =
-      map.clear()
+    def isEmpty: Boolean =
+      counter.get() <= 0
   }
 }

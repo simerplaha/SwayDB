@@ -160,7 +160,7 @@ object DefaultConfigs {
     ByteCacheOnly(
       minIOSeekSize = 4096,
       skipBlockCacheSeekSize = 4096 * 10,
-      cacheCapacity = 200.mb,
+      cacheCapacity = 1.gb_long,
       disableForSearchIO = false,
       actorConfig =
         ActorConfig.TimeLoop(

@@ -32,6 +32,9 @@ import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import org.scalatest.OptionValues._
+
+import scala.jdk.CollectionConverters._
 
 class BlockCacheSpec extends TestBase with MockFactory {
 
@@ -134,55 +137,57 @@ class BlockCacheSpec extends TestBase with MockFactory {
           //0 -----------------------------------------> 1000
           //0 read 1
           BlockCache.getOrSeek(position = 0, size = 1, source = file, state = state) shouldBe bytes.take(1)
-          state.map.asScala should have size 1
-          state.map.head shouldBe(0, bytes.take(blockSize))
-          val headBytesHashCode = state.map.head._2.hashCode()
+          val innerScalaMap = getJavaMap(state.mapCache.get().value).asScala
+
+          innerScalaMap should have size 1
+          innerScalaMap.head shouldBe(0, bytes.take(blockSize))
+          val headBytesHashCode = innerScalaMap.head._2.hashCode()
 
           //0 -----------------------------------------> 1000
           //0 read 2
           BlockCache.getOrSeek(position = 0, size = 2, source = file, state = state)(null) shouldBe bytes.take(2)
-          state.map.asScala should have size 1
-          state.map.head shouldBe(0, bytes.take(blockSize))
-          state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
+          innerScalaMap should have size 1
+          innerScalaMap.head shouldBe(0, bytes.take(blockSize))
+          innerScalaMap.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
           //0 -----------------------------------------> 1000
           //0 read 9
           BlockCache.getOrSeek(position = 0, size = 9, source = file, state = state)(null) shouldBe bytes.take(9)
-          state.map.asScala should have size 1
-          state.map.head shouldBe(0, bytes.take(blockSize))
-          state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
+          innerScalaMap should have size 1
+          innerScalaMap.head shouldBe(0, bytes.take(blockSize))
+          innerScalaMap.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
           //0 -----------------------------------------> 1000
           //0 read 10
           BlockCache.getOrSeek(position = 0, size = 10, source = file, state = state)(null) shouldBe bytes.take(10)
-          state.map.asScala should have size 1
-          state.map.head shouldBe(0, bytes.take(blockSize))
-          state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
+          innerScalaMap should have size 1
+          innerScalaMap.head shouldBe(0, bytes.take(blockSize))
+          innerScalaMap.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
           //0 -----------------------------------------> 1000
           //0 read 11
           BlockCache.getOrSeek(position = 0, size = 11, source = file, state = state) shouldBe bytes.take(11)
-          state.map.asScala should have size 2
-          state.map.asScala should contain(10, bytes.drop(blockSize).take(blockSize))
+          innerScalaMap should have size 2
+          innerScalaMap should contain(10, bytes.drop(blockSize).take(blockSize))
 
           //0 -----------------------------------------> 1000
           //0 read 15
           BlockCache.getOrSeek(position = 0, size = 15, source = file, state = state)(null) shouldBe bytes.take(15)
-          state.map.asScala should have size 2
-          state.map.asScala should contain(10, bytes.drop(blockSize).take(blockSize))
+          innerScalaMap should have size 2
+          innerScalaMap should contain(10, bytes.drop(blockSize).take(blockSize))
 
           //0 -----------------------------------------> 1000
           //0 read 19
           BlockCache.getOrSeek(position = 0, size = 19, source = file, state = state)(null) shouldBe bytes.take(19)
-          state.map.asScala should have size 2
-          state.map.asScala should contain(10, bytes.drop(blockSize).take(blockSize))
+          innerScalaMap should have size 2
+          innerScalaMap should contain(10, bytes.drop(blockSize).take(blockSize))
 
 
           //0 -----------------------------------------> 1000
           //0 read 20
           BlockCache.getOrSeek(position = 0, size = 20, source = file, state = state)(null) shouldBe bytes.take(20)
-          state.map.asScala should have size 2
-          state.map.asScala should contain(10, bytes.drop(blockSize).take(blockSize))
+          innerScalaMap should have size 2
+          innerScalaMap should contain(10, bytes.drop(blockSize).take(blockSize))
       }
     }
   }
@@ -213,13 +218,15 @@ class BlockCacheSpec extends TestBase with MockFactory {
             seek shouldBe bytes.drop(position).take(readSize)
           }
 
+          val innerScalaMap = getJavaMap(state.mapCache.get().value).asScala
+
           if (blockSize <= 0)
-            state.map.asScala shouldBe empty
+            innerScalaMap shouldBe empty
           else
-            state.map.asScala should not be empty
+            innerScalaMap should not be empty
 
           val (blockSized, small) =
-            state.map.asScala partition {
+            innerScalaMap partition {
               case (_, bytes) =>
                 bytes.size == state.blockSize
             }
@@ -228,7 +235,7 @@ class BlockCacheSpec extends TestBase with MockFactory {
           small.size should be <= 1
 
           //byte values match the index so all the head bytes should match the index.
-          state.map.asScala foreach {
+          innerScalaMap foreach {
             case (key, bytes) =>
               key shouldBe bytes.head
           }

@@ -28,6 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Persistent
 import swaydb.core.util.HashedMap
 import swaydb.core.util.skiplist.SkipList
+import swaydb.data.cache.CacheNoIO
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
@@ -46,7 +47,7 @@ private[core] object Command {
 
   private[actor] class BlockCache(val key: Long,
                                   val valueSize: Int,
-                                  val map: HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]) extends Command
+                                  val map: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]) extends Command
 
 }
 
@@ -161,7 +162,11 @@ private[core] object MemorySweeper extends LazyLogging {
                   }
 
                 case block: Command.BlockCache =>
-                  block.map remove block.key
+                  block.map.get() foreach {
+                    map =>
+                      map.remove(block.key)
+                      if (map.isEmpty) block.map.clear()
+                  }
 
                 case cache: Command.Cache =>
                   cache.cache.get foreach (_.clear())
@@ -202,7 +207,7 @@ private[core] object MemorySweeper extends LazyLogging {
 
     def add(key: Long,
             value: Slice[Byte],
-            map: HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]): Unit =
+            map: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]): Unit =
       actor foreach {
         actor =>
           actor send new Command.BlockCache(

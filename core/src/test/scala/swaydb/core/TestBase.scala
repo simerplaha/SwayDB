@@ -48,7 +48,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
-import swaydb.core.util.IDGenerator
+import swaydb.core.util.{HashedMap, IDGenerator}
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
@@ -62,6 +62,7 @@ import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
 import swaydb.{ActorWire, Glass}
 
 import java.nio.file._
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration._
 import scala.util.Random
@@ -134,6 +135,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   def getMaps[K, V, C <: MapCache[K, V]](maps: Maps[K, V, C]): VolatileQueue[Map[K, V, C]] = {
     import org.scalatest.PrivateMethodTester._
     val function = PrivateMethod[VolatileQueue[Map[K, V, C]]](Symbol("queue"))
+    maps.invokePrivate(function())
+  }
+
+  def getJavaMap[K, OV, V <: OV](maps: HashedMap.Concurrent[K, OV, V]): ConcurrentHashMap[K, V] = {
+    import org.scalatest.PrivateMethodTester._
+    val function = PrivateMethod[ConcurrentHashMap[K, V]](Symbol("map"))
     maps.invokePrivate(function())
   }
 

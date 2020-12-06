@@ -27,6 +27,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.HashedMap
+import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.slice.{Slice, SliceOption}
 
 import java.util.concurrent.ConcurrentHashMap
@@ -84,29 +85,31 @@ private[core] object BlockCache extends LazyLogging {
       }
     }
 
+    val map =
+      Cache.noIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+        case (_, _) =>
+          HashedMap.concurrent[Long, SliceOption[Byte], Slice[Byte]](
+            nullValue = Slice.Null,
+            initialCapacity = initialCapacityInt
+          )
+      }
+
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
       skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
-      map =
-        HashedMap.concurrent[Long, SliceOption[Byte], Slice[Byte]](
-          nullValue = Slice.Null,
-          initialCapacity = initialCapacityInt
-        )
+      mapCache = map
     )
   }
 
   class State(val blockSize: Int,
               val skipBlockCacheSeekSize: Int,
               val sweeper: MemorySweeper.Block,
-              val map: HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]) {
+              val mapCache: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]) {
     val blockSizeDouble: Double = blockSize
 
     def clear() =
-      map.clear()
-
-    def remove(key: Long) =
-      map remove key
+      mapCache.clear()
   }
 
   def close(blockCache: Option[BlockCache.State]): Unit =
@@ -172,18 +175,20 @@ private[core] object BlockCache extends LazyLogging {
         Slice.emptyBytes
       } else if (bytes.size <= state.blockSize) {
         val value = bytes.unslice()
-        state.map.put(keyPosition, value)
-        state.sweeper.add(keyPosition, value, state.map)
+        val map = state.mapCache.value(())
+        map.put(keyPosition, value)
+        state.sweeper.add(keyPosition, value, state.mapCache)
         bytes
       } else {
         //        splitsCount += 1
         var index = 0
         var position = keyPosition
         val splits = Math.ceil(bytes.size / state.blockSizeDouble)
+        val map = state.mapCache.value(())
         while (index < splits) {
           val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
-          state.map.put(position, bytesToPut)
-          state.sweeper.add(position, bytesToPut, state.map)
+          map.put(position, bytesToPut)
+          state.sweeper.add(position, bytesToPut, state.mapCache)
           position = position + bytesToPut.size
           index += 1
         }
@@ -202,7 +207,7 @@ private[core] object BlockCache extends LazyLogging {
                         source: BlockCacheSource,
                         state: State)(implicit blockIO: BlockIO): Slice[Byte] = {
     val keyPosition = seekPosition(position, state)
-    state.map.get(keyPosition) match {
+    state.mapCache.value(()).get(keyPosition) match {
       case fromCache: Slice[Byte] =>
         //        println(s"Memory seek size: $size")
         //        memorySeeks += 1
