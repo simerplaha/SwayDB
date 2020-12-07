@@ -120,12 +120,12 @@ object TransientSegmentSerialiser {
 
   def minKey(persistent: Persistent): Slice[Byte] =
     persistent match {
+      case range: Persistent.Range =>
+        range.fromKey
+
       case fixed: Persistent.Put =>
         val reader = Reader(slice = fixed.getOrFetchValue.getC, position = 1)
         reader.read(reader.readUnsignedInt())
-
-      case range: Persistent.Range =>
-        range.fromKey
 
       case keyValue =>
         throw new Exception(s"Invalid key-value ${keyValue.getClass.getName}")

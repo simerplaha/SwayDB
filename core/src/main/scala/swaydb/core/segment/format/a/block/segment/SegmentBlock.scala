@@ -223,60 +223,67 @@ private[core] case object SegmentBlock extends LazyLogging {
           items = ones
         )
 
-      groups map {
-        segments =>
-          if (segments.size == 1) {
-            segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice)
-          } else {
-            val listKeyValue: Persistent.Builder[Memory, Slice] =
-              MergeStats.persistent(Slice.newAggregator(segments.size * 2))
+      val many = Slice.of[TransientSegment.Many](groups.size)
 
-            var minMaxFunctionId = Option.empty[MinMax[Slice[Byte]]]
+      var index = 0
 
-            segments.foldLeft(0) {
-              case (offset, segment) =>
-                minMaxFunctionId = MinMax.minMaxFunctionOption(segment.minMaxFunctionId, minMaxFunctionId)
+      while (index < groups.size) {
 
-                val segmentSize = segment.segmentSize
-                listKeyValue addAll segment.toKeyValue(offset, segmentSize)
-                offset + segmentSize
-            }
+        val segments = groups.get(index)
 
-            val closedListKeyValues = listKeyValue.close(hasAccessPositionIndex = true, optimiseForReverseIteration = true)
+        if (segments.size == 1) {
+          segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice)
+        } else {
+          val listKeyValue: Persistent.Builder[Memory, Slice] =
+            MergeStats.persistent(Slice.newAggregator(segments.size * 2))
 
-            val modifiedSortedIndex =
-              if (sortedIndexConfig.normaliseIndex)
-                sortedIndexConfig.copy(normaliseIndex = false)
-              else
-                sortedIndexConfig
+          var minMaxFunctionId = Option.empty[MinMax[Slice[Byte]]]
 
-            val listSegments =
-              writeOnes(
-                mergeStats = closedListKeyValues,
-                createdInLevel = createdInLevel,
-                bloomFilterConfig = BloomFilterBlock.Config.disabled,
-                hashIndexConfig = if (segmentConfig.enableHashIndexForListSegment) hashIndexConfig else HashIndexBlock.Config.disabled,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                sortedIndexConfig = modifiedSortedIndex,
-                valuesConfig = valuesConfig,
-                segmentConfig = segmentConfig.singleton
-              )
+          segments.foldLeft(0) {
+            case (offset, segment) =>
+              minMaxFunctionId = MinMax.minMaxFunctionOption(segment.minMaxFunctionId, minMaxFunctionId)
 
-            assert(listSegments.size == 1, s"listSegments.size: ${listSegments.size} != 1")
+              val segmentSize = segment.segmentSize
+              listKeyValue addAll segment.toKeyValue(offset, segmentSize)
+              offset + segmentSize
+          }
 
-            val listSegment = listSegments.head
-            val listSegmentSize = listSegment.segmentSize
+          val closedListKeyValues = listKeyValue.close(hasAccessPositionIndex = true, optimiseForReverseIteration = true)
 
-            val headerSize =
-              ByteSizeOf.byte +
-                Bytes.sizeOfUnsignedInt(listSegmentSize)
+          val modifiedSortedIndex =
+            if (sortedIndexConfig.normaliseIndex)
+              sortedIndexConfig.copy(normaliseIndex = false)
+            else
+              sortedIndexConfig
 
-            val fileHeader = Slice.of[Byte](headerSize)
-            fileHeader add PersistentSegmentMany.formatId
-            fileHeader addUnsignedInt listSegmentSize
+          val listSegments =
+            writeOnes(
+              mergeStats = closedListKeyValues,
+              createdInLevel = createdInLevel,
+              bloomFilterConfig = BloomFilterBlock.Config.disabled,
+              hashIndexConfig = if (segmentConfig.enableHashIndexForListSegment) hashIndexConfig else HashIndexBlock.Config.disabled,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              sortedIndexConfig = modifiedSortedIndex,
+              valuesConfig = valuesConfig,
+              segmentConfig = segmentConfig.singleton
+            )
 
-            assert(listSegment.minMaxFunctionId.isEmpty, "minMaxFunctionId was not empty")
+          assert(listSegments.size == 1, s"listSegments.size: ${listSegments.size} != 1")
 
+          val listSegment = listSegments.head
+          val listSegmentSize = listSegment.segmentSize
+
+          val headerSize =
+            ByteSizeOf.byte +
+              Bytes.sizeOfUnsignedInt(listSegmentSize)
+
+          val fileHeader = Slice.of[Byte](headerSize)
+          fileHeader add PersistentSegmentMany.formatId
+          fileHeader addUnsignedInt listSegmentSize
+
+          assert(listSegment.minMaxFunctionId.isEmpty, "minMaxFunctionId was not empty")
+
+          many add
             TransientSegment.Many(
               minKey = segments.head.minKey,
               maxKey = segments.last.maxKey,
@@ -286,8 +293,12 @@ private[core] case object SegmentBlock extends LazyLogging {
               listSegment = listSegment,
               segments = segments
             )
-          }
+        }
+
+        index += 1
       }
+
+      many
     }
 
   def writeOnes(mergeStats: MergeStats.Persistent.Closed[Iterable],

@@ -188,7 +188,7 @@ protected case object PersistentSegmentMany {
       segmentSize = segment.segmentSize,
       nearestPutDeadline = segment.nearestPutDeadline,
       listSegmentCache = listSegmentCache,
-      skipList = segments
+      segmentsCache = segments
     )
   }
 
@@ -213,7 +213,7 @@ protected case object PersistentSegmentMany {
 
     copiedFrom foreach {
       copiedFrom =>
-        copiedFrom.skipList forEach {
+        copiedFrom.segmentsCache forEach {
           (offset, oldRef) =>
 
             val oldRefOffset = oldRef.offset()
@@ -322,7 +322,7 @@ protected case object PersistentSegmentMany {
       segmentSize = segmentSize,
       nearestPutDeadline = nearestExpiryDeadline,
       listSegmentCache = listSegmentCache,
-      skipList = segmentCache
+      segmentsCache = segmentCache
     )
   }
 
@@ -431,7 +431,7 @@ protected case object PersistentSegmentMany {
       //above parsed segmentRefs cannot be used here because
       //it's MaxKey.Range's minKey is set to the Segment's minKey
       //instead of the Segment's last range key-values minKey.
-      skipList = new ConcurrentSkipListMap(keyOrder),
+      segmentsCache = new ConcurrentSkipListMap(keyOrder),
     )
   }
 
@@ -576,22 +576,22 @@ protected case class PersistentSegmentMany(file: DBFile,
                                            segmentSize: Int,
                                            nearestPutDeadline: Option[Deadline],
                                            listSegmentCache: CacheNoIO[Unit, SegmentRef],
-                                           private[segment] val skipList: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                          functionStore: FunctionStore,
-                                                                                                                          blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                                                          fileSweeper: FileSweeper,
-                                                                                                                          bufferCleaner: ByteBufferSweeperActor,
-                                                                                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                          segmentIO: SegmentIO,
-                                                                                                                          forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
+                                           private[segment] val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                               timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                               functionStore: FunctionStore,
+                                                                                                                               blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                                                                               fileSweeper: FileSweeper,
+                                                                                                                               bufferCleaner: ByteBufferSweeperActor,
+                                                                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                                               segmentIO: SegmentIO,
+                                                                                                                               forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
 
   override def formatId: Byte = PersistentSegmentMany.formatId
 
   private def fetchSegmentRef(persistent: Persistent,
                               listSegment: SegmentRef): SegmentRef = {
     val minKey = TransientSegmentSerialiser.minKey(persistent)
-    val segment: SegmentRef = skipList.get(minKey)
+    val segment: SegmentRef = segmentsCache.get(minKey)
 
     if (segment == null) {
       val firstSegmentStartOffset: Int = 1 + Bytes.sizeOfUnsignedInt(listSegment.segmentSize) + listSegment.segmentSize
@@ -609,7 +609,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           footerCacheable = None
         )
 
-      val existingSegment = skipList.putIfAbsent(segment.minKey, segment)
+      val existingSegment = segmentsCache.putIfAbsent(segment.minKey, segment)
 
       if (existingSegment == null) {
         //TODO - cache management
@@ -623,6 +623,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     }
   }
 
+  //TODO - do not read sortedIndexBlock if the SegmentRef is already cached in-memory.
   @inline def getAllSegmentRefs(): Iterator[SegmentRef] =
     new Iterator[SegmentRef] {
       var nextRef: SegmentRef = null
@@ -656,8 +657,8 @@ protected case class PersistentSegmentMany(file: DBFile,
 
   override def close: Unit = {
     file.close()
-    skipList.forEach((_, ref) => ref.clearAllCaches())
-    skipList.clear()
+    segmentsCache.values().forEach(_.clearAllCaches())
+    segmentsCache.clear()
     listSegmentCache.clear()
   }
 
@@ -682,7 +683,7 @@ protected case class PersistentSegmentMany(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure.value.exception)
     } map {
       _ =>
-        skipList.forEach {
+        segmentsCache.forEach {
           (_, ref) =>
             ref.clearAllCaches()
         }
@@ -691,6 +692,11 @@ protected case class PersistentSegmentMany(file: DBFile,
 
   def copyTo(toPath: Path): Path =
     file copyTo toPath
+
+  /**
+   * TODO - is parallelism actually fast? Does background Actors slow down creation of futures?
+   *      - are there any failure and retries happening while compaction is in progress?
+   */
 
   /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
@@ -712,7 +718,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                                                                                                            executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
     if (removeDeletes)
       Segment.mergePut(
-        oldKeyValuesCount = getKeyValueCount(),
+        oldKeyValuesCount = getKeyValueCount(), //TODO - getAllSegmentRefs is being called twice here with iterator()
         oldKeyValues = iterator(),
         headGap = headGap,
         tailGap = tailGap,
@@ -770,7 +776,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     )
 
   def getFromCache(key: Slice[Byte]): PersistentOption = {
-    skipList.forEach {
+    segmentsCache.forEach {
       (_, ref) =>
         val got = ref.getFromCache(key)
         if (got.isSomeS)
@@ -808,7 +814,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     }
 
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
-    val floor = skipList.floorEntry(key)
+    val floor = segmentsCache.floorEntry(key)
 
     if (floor != null && SegmentRef.contains(key, floor.getValue)) {
       floor.getValue.get(key, threadState)
@@ -826,7 +832,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   }
 
   def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
-    val lower = skipList.lowerEntry(key)
+    val lower = segmentsCache.lowerEntry(key)
 
     if (lower != null && SegmentRef.containsLower(key, lower.getValue)) {
       lower.getValue.lower(key, threadState)
@@ -856,7 +862,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   }
 
   def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
-    val floor = skipList.floorEntry(key)
+    val floor = segmentsCache.floorEntry(key)
 
     val higherFromFloorSegment =
       if (floor != null)
@@ -883,7 +889,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     getAllSegmentRefs().foldLeft(0)(_ + _.getKeyValueCount())
 
   override def isFooterDefined: Boolean =
-    skipList.asScala.values.exists(_.isFooterDefined)
+    segmentsCache.asScala.values.exists(_.isFooterDefined)
 
   def existsOnDisk: Boolean =
     file.existsOnDisk
@@ -901,20 +907,20 @@ protected case class PersistentSegmentMany(file: DBFile,
     getAllSegmentRefs().exists(_.hasBloomFilter)
 
   def clearCachedKeyValues(): Unit =
-    skipList
+    segmentsCache
       .asScala
       .values
       .foreach(_.clearCachedKeyValues())
 
   def clearAllCaches(): Unit = {
     clearCachedKeyValues()
-    skipList.asScala.values.foreach(_.clearAllCaches())
-    skipList.clear()
+    segmentsCache.values().forEach(_.clearAllCaches())
+    segmentsCache.clear()
     listSegmentCache.clear()
   }
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean = {
-    skipList.forEach {
+    segmentsCache.forEach {
       (_, ref) =>
         if (ref.isInKeyValueCache(key))
           return true
@@ -924,16 +930,16 @@ protected case class PersistentSegmentMany(file: DBFile,
   }
 
   def isKeyValueCacheEmpty: Boolean =
-    skipList
+    segmentsCache
       .asScala
       .values
       .forall(_.isKeyValueCacheEmpty)
 
   def areAllCachesEmpty: Boolean =
-    skipList.isEmpty && !listSegmentCache.isCached
+    segmentsCache.isEmpty && !listSegmentCache.isCached
 
   def cachedKeyValueSize: Int =
-    skipList
+    segmentsCache
       .asScala
       .values
       .foldLeft(0)(_ + _.cachedKeyValueSize)
