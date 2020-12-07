@@ -171,7 +171,7 @@ private[core] object MemorySweeper extends LazyLogging {
 
                 case cache: Command.Cache =>
                   val cacheOptional = cache.cache.get
-                  if(cacheOptional.isDefined)
+                  if (cacheOptional.isDefined)
                     cacheOptional.get.clear()
               }
           }
@@ -192,12 +192,15 @@ private[core] object MemorySweeper extends LazyLogging {
   sealed trait Cache extends On {
 
     def add(weight: Int, cache: swaydb.data.cache.Cache[_, _, _]): Unit =
-      actor foreach {
-        actor =>
-          actor send new Command.Cache(
-            weight = weight,
-            cache = new WeakReference[swaydb.data.cache.Cache[_, _, _]](cache)
-          )
+      if (actor.isDefined) {
+        actor.get send new Command.Cache(
+          weight = weight,
+          cache = new WeakReference[swaydb.data.cache.Cache[_, _, _]](cache)
+        )
+      } else {
+        val exception = new Exception("Cache is not enabled")
+        logger.error(exception.getMessage, exception)
+        throw exception
       }
   }
 
@@ -211,13 +214,16 @@ private[core] object MemorySweeper extends LazyLogging {
     def add(key: Long,
             value: Slice[Byte],
             map: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]): Unit =
-      actor foreach {
-        actor =>
-          actor send new Command.BlockCache(
-            key = key,
-            valueSize = value.underlyingArraySize,
-            map = map
-          )
+      if (actor.isDefined) {
+        actor.get send new Command.BlockCache(
+          key = key,
+          valueSize = value.underlyingArraySize,
+          map = map
+        )
+      } else {
+        val exception = new Exception(s"${classOf[Block].getSimpleName} cache is not enabled")
+        logger.error(exception.getMessage, exception)
+        throw exception
       }
   }
 
@@ -236,12 +242,15 @@ private[core] object MemorySweeper extends LazyLogging {
     def add(keyValue: Persistent,
             skipList: SkipList[_, _, Slice[Byte], _]): Unit =
       if (sweepKeyValues)
-        actor foreach {
-          actor =>
-            actor send new Command.KeyValue(
-              keyValueRef = new WeakReference(keyValue),
-              skipListRef = new WeakReference[SkipList[_, _, Slice[Byte], _]](skipList)
-            )
+        if (actor.isDefined) {
+          actor.get send new Command.KeyValue(
+            keyValueRef = new WeakReference(keyValue),
+            skipListRef = new WeakReference[SkipList[_, _, Slice[Byte], _]](skipList)
+          )
+        } else {
+          val exception = new Exception(s"${classOf[KeyValue].getSimpleName} cache is not enabled")
+          logger.error(exception.getMessage, exception)
+          throw exception
         }
   }
 
