@@ -172,6 +172,7 @@ class SegmentReadPerformanceSpec extends TestBase {
         maxCount =
           //                    keyValuesCount / 100,
           keyValuesCount,
+        segmentRefCacheWeight = 100.bytes,
         enableHashIndexForListSegment = true,
         pushForward = PushForwardStrategy.Off,
         mmap = mmapSegments,

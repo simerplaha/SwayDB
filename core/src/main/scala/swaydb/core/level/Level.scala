@@ -130,7 +130,12 @@ private[core] object Level extends LazyLogging {
 
         val removeDeletes = Level.removeDeletes(nextLevel)
 
-        val appendixReader = new AppendixMapEntryReader(mmapSegment = segmentConfig.mmap, removeDeletes = removeDeletes)
+        val appendixReader =
+          new AppendixMapEntryReader(
+            mmapSegment = segmentConfig.mmap,
+            removeDeletes = removeDeletes,
+            segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight
+          )
 
         import appendixReader._
 

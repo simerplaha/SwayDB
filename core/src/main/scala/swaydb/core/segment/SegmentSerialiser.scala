@@ -49,6 +49,7 @@ private[core] sealed trait SegmentSerialiser {
 
   def read(reader: ReaderBase[Byte],
            mmapSegment: MMAP.Segment,
+           segmentRefCacheWeight: Int,
            checkExists: Boolean,
            removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
@@ -100,6 +101,7 @@ private[core] object SegmentSerialiser {
 
     def read(reader: ReaderBase[Byte],
              mmapSegment: MMAP.Segment,
+             segmentRefCacheWeight: Int,
              checkExists: Boolean,
              removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
@@ -158,6 +160,7 @@ private[core] object SegmentSerialiser {
         mmap = mmapSegment,
         minKey = minKey,
         maxKey = maxKey,
+        segmentRefCacheWeight = segmentRefCacheWeight,
         segmentSize = segmentSize,
         minMaxFunctionId = minMaxFunctionId,
         nearestExpiryDeadline = nearestExpiryDeadline,

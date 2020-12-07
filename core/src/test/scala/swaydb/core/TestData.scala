@@ -115,6 +115,7 @@ object TestData {
           mmap = MMAP.randomForSegment(),
           minKey = segment.minKey,
           maxKey = segment.maxKey,
+          segmentRefCacheWeight = randomIntMax(Byte.MaxValue),
           segmentSize = segment.segmentSize,
           minMaxFunctionId = segment.minMaxFunctionId,
           nearestExpiryDeadline = segment.nearestPutDeadline,
@@ -483,13 +484,15 @@ object TestData {
                pushForward: PushForwardStrategy = randomPushForwardStrategy(),
                cacheBlocksOnCreate: Boolean = randomBoolean(),
                enableHashIndexForListSegment: Boolean = randomBoolean(),
-               cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
+               cacheOnAccess: Boolean = randomBoolean(),
+               segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue)): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
         fileOpenIOStrategy = randomThreadSafeIOStrategy(cacheOnAccess),
         blockIOStrategy = _ => randomIOStrategy(cacheOnAccess),
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSegmentSize,
         maxCount = maxKeyValuesPerSegment,
+        segmentRefCacheWeight = segmentRefCacheWeight,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
         pushForward = pushForward,
         mmap = mmap,
@@ -506,13 +509,15 @@ object TestData {
                 mmap: MMAP.Segment = MMAP.randomForSegment(),
                 enableHashIndexForListSegment: Boolean = randomBoolean(),
                 pushForward: PushForwardStrategy = randomPushForwardStrategy(),
-                minSegmentSize: Int = randomIntMax(30.mb)): SegmentBlock.Config =
+                minSegmentSize: Int = randomIntMax(30.mb),
+                segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue)): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(
         fileOpenIOStrategy = fileOpenIOStrategy,
         blockIOStrategy = blockIOStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
         minSize = minSegmentSize,
         maxCount = maxKeyValuesPerSegment,
+        segmentRefCacheWeight = segmentRefCacheWeight,
         enableHashIndexForListSegment = enableHashIndexForListSegment,
         pushForward = pushForward,
         mmap = mmap,

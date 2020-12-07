@@ -268,7 +268,16 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
+          val appendixReader =
+            AppendixMapEntryReader(
+              mmapSegment =
+                MMAP.On(
+                  deleteAfterClean = OperatingSystem.isWindows,
+                  forceSave = TestForceSave.mmap()
+                ),
+              removeDeletes = false,
+              segmentRefCacheWeight = randomByte()
+            )
 
           import AppendixMapEntryWriter._
           import appendixReader._
@@ -308,7 +317,16 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
+          val appendixReader =
+            AppendixMapEntryReader(
+              mmapSegment =
+                MMAP.On(
+                  deleteAfterClean = OperatingSystem.isWindows,
+                  forceSave = TestForceSave.mmap()
+                ),
+              removeDeletes = false,
+              segmentRefCacheWeight = randomByte()
+            )
 
           import AppendixMapEntryWriter._
           import appendixReader._
@@ -391,7 +409,16 @@ class MapEntrySpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
+          val appendixReader =
+            AppendixMapEntryReader(
+              mmapSegment =
+                MMAP.On(
+                  deleteAfterClean = OperatingSystem.isWindows,
+                  forceSave = TestForceSave.mmap()
+                ),
+              removeDeletes = false,
+              segmentRefCacheWeight = randomByte()
+            )
           import AppendixMapEntryWriter._
           import appendixReader._
 

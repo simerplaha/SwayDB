@@ -162,7 +162,17 @@ class MapSpec extends TestBase {
           import AppendixMapEntryWriter._
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
+          val appendixReader =
+            AppendixMapEntryReader(
+              mmapSegment =
+                MMAP.On(
+                  deleteAfterClean = OperatingSystem.isWindows,
+                  forceSave = TestForceSave.mmap()
+                ),
+              removeDeletes = false,
+              segmentRefCacheWeight = randomByte()
+            )
+
           import appendixReader._
 
           val map =
@@ -255,7 +265,15 @@ class MapSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
+          val appendixReader = AppendixMapEntryReader(
+            mmapSegment =
+              MMAP.On(
+                deleteAfterClean = OperatingSystem.isWindows,
+                forceSave = TestForceSave.mmap()
+              ),
+            removeDeletes = false,
+            segmentRefCacheWeight = randomByte()
+          )
           import AppendixMapEntryWriter._
           import appendixReader._
 
@@ -373,7 +391,17 @@ class MapSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
 
-          val appendixReader = AppendixMapEntryReader(MMAP.On(OperatingSystem.isWindows, TestForceSave.mmap()), removeDeletes = false)
+          val appendixReader =
+            AppendixMapEntryReader(
+              mmapSegment =
+                MMAP.On(
+                  deleteAfterClean = OperatingSystem.isWindows,
+                  forceSave = TestForceSave.mmap()
+                ),
+              removeDeletes = false,
+              segmentRefCacheWeight = randomByte()
+            )
+
           import AppendixMapEntryWriter._
           import appendixReader._
 

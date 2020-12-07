@@ -37,31 +37,34 @@ import swaydb.data.slice.{ReaderBase, Slice}
 
 private[core] object AppendixMapEntryReader {
   def apply(mmapSegment: MMAP.Segment,
-            removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                    timeOrder: TimeOrder[Slice[Byte]],
-                                    functionStore: FunctionStore,
-                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                    fileSweeper: FileSweeper,
-                                    bufferCleaner: ByteBufferSweeperActor,
-                                    blockCacheSweeper: Option[MemorySweeper.Block],
-                                    forceSaveApplier: ForceSaveApplier,
-                                    segmentIO: SegmentIO): AppendixMapEntryReader =
+            removeDeletes: Boolean,
+            segmentRefCacheWeight: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                         timeOrder: TimeOrder[Slice[Byte]],
+                                         functionStore: FunctionStore,
+                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                         fileSweeper: FileSweeper,
+                                         bufferCleaner: ByteBufferSweeperActor,
+                                         blockCacheSweeper: Option[MemorySweeper.Block],
+                                         forceSaveApplier: ForceSaveApplier,
+                                         segmentIO: SegmentIO): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       mmapSegment = mmapSegment,
-      removeDeletes = removeDeletes
+      removeDeletes = removeDeletes,
+      segmentRefCacheWeight = segmentRefCacheWeight
     )
 }
 
 private[core] class AppendixMapEntryReader(mmapSegment: MMAP.Segment,
-                                           removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                   functionStore: FunctionStore,
-                                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                   fileSweeper: FileSweeper,
-                                                                   bufferCleaner: ByteBufferSweeperActor,
-                                                                   blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                   forceSaveApplier: ForceSaveApplier,
-                                                                   segmentIO: SegmentIO) {
+                                           removeDeletes: Boolean,
+                                           segmentRefCacheWeight: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                                       functionStore: FunctionStore,
+                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                       fileSweeper: FileSweeper,
+                                                                       bufferCleaner: ByteBufferSweeperActor,
+                                                                       blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                       forceSaveApplier: ForceSaveApplier,
+                                                                       segmentIO: SegmentIO) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: ReaderBase[Byte]): MapEntry.Put[Slice[Byte], Segment] = {
@@ -69,6 +72,7 @@ private[core] class AppendixMapEntryReader(mmapSegment: MMAP.Segment,
         SegmentSerialiser.FormatA.read(
           reader = reader,
           mmapSegment = mmapSegment,
+          segmentRefCacheWeight = segmentRefCacheWeight,
           checkExists = false,
           removeDeletes = removeDeletes
         )

@@ -232,6 +232,7 @@ private[core] case object Segment extends LazyLogging {
     persistent(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
+      segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
       mmap = segmentConfig.mmap,
       transient = transient
     )
@@ -299,6 +300,7 @@ private[core] case object Segment extends LazyLogging {
 
   def persistent(pathsDistributor: PathsDistributor,
                  createdInLevel: Int,
+                 segmentRefCacheWeight: Int,
                  mmap: MMAP.Segment,
                  transient: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
@@ -389,6 +391,7 @@ private[core] case object Segment extends LazyLogging {
                 PersistentSegmentMany(
                   file = file,
                   createdInLevel = createdInLevelMin,
+                  segmentRefCacheWeight = segmentRefCacheWeight,
                   segment = segment
                 )
             }
@@ -531,13 +534,14 @@ private[core] case object Segment extends LazyLogging {
               path = nextPath,
               formatId = segment.formatId,
               createdInLevel = segment.createdInLevel,
-              copiedFrom = Some(segment),
+              segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
               mmap = segmentConfig.mmap,
               minKey = segment.minKey,
               maxKey = segment.maxKey,
               segmentSize = segment.segmentSize,
               minMaxFunctionId = segment.minMaxFunctionId,
-              nearestExpiryDeadline = segment.nearestPutDeadline
+              nearestExpiryDeadline = segment.nearestPutDeadline,
+              copiedFrom = Some(segment)
             )
           )
         catch {
@@ -703,6 +707,7 @@ private[core] case object Segment extends LazyLogging {
       Segment.persistent(
         pathsDistributor = pathsDistributor,
         mmap = segmentConfig.mmap,
+        segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
         createdInLevel = createdInLevel,
         transient = transient
       )
@@ -845,8 +850,9 @@ private[core] case object Segment extends LazyLogging {
 
     Segment.persistent(
       pathsDistributor = pathsDistributor,
-      mmap = segmentConfig.mmap,
       createdInLevel = createdInLevel,
+      segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+      mmap = segmentConfig.mmap,
       transient = transient
     )
   }
@@ -854,6 +860,7 @@ private[core] case object Segment extends LazyLogging {
   def apply(path: Path,
             formatId: Byte,
             createdInLevel: Int,
+            segmentRefCacheWeight: Int,
             mmap: MMAP.Segment,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
@@ -942,6 +949,7 @@ private[core] case object Segment extends LazyLogging {
             file = file,
             segmentSize = segmentSize,
             createdInLevel = createdInLevel,
+            segmentRefCacheWeight = segmentRefCacheWeight,
             minKey = minKey,
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
@@ -954,6 +962,7 @@ private[core] case object Segment extends LazyLogging {
             file = file,
             segmentSize = segmentSize,
             createdInLevel = createdInLevel,
+            segmentRefCacheWeight = segmentRefCacheWeight,
             minKey = minKey,
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
@@ -1012,7 +1021,8 @@ private[core] case object Segment extends LazyLogging {
       if (formatId == PersistentSegmentOne.formatId)
         PersistentSegmentOne(file = file)
       else if (formatId == PersistentSegmentMany.formatId)
-        PersistentSegmentMany(file = file)
+      //NOTE - segmentRefCacheWeight is 0 because this function use by AppendixRepairer
+        PersistentSegmentMany(file = file, segmentRefCacheWeight = 0)
       else
         throw new Exception(s"Invalid Segment formatId: $formatId")
 

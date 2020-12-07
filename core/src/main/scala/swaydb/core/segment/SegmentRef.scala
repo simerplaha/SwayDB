@@ -673,9 +673,10 @@ private[core] case object SegmentRef extends LazyLogging {
       )
 
     val newSegments =
-      Segment.persistent(
+      Segment. persistent(
         pathsDistributor = pathsDistributor,
         createdInLevel = createdInLevel,
+        segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
         mmap = segmentConfig.mmap,
         transient = segments
       )
@@ -1058,6 +1059,7 @@ private[core] case object SegmentRef extends LazyLogging {
         Segment.persistent(
           pathsDistributor = pathsDistributor,
           createdInLevel = createdInLevel,
+          segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
           mmap = segmentConfig.mmap,
           transient = segments
         )
@@ -1413,8 +1415,9 @@ private[core] case object SegmentRef extends LazyLogging {
         val newSegments =
           Segment.persistent(
             pathsDistributor = pathsDistributor,
-            mmap = segmentConfig.mmap,
             createdInLevel = createdInLevel,
+            segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+            mmap = segmentConfig.mmap,
             transient = newMany
           )
 
@@ -1502,6 +1505,7 @@ private[core] case object SegmentRef extends LazyLogging {
     Segment.persistent(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
+      segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
       mmap = segmentConfig.mmap,
       transient = segments
     )

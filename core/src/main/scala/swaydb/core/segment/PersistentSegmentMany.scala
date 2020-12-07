@@ -67,6 +67,7 @@ protected case object PersistentSegmentMany {
 
   def apply(file: DBFile,
             createdInLevel: Int,
+            segmentRefCacheWeight: Int,
             segment: TransientSegment.Many)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore,
@@ -195,6 +196,7 @@ protected case object PersistentSegmentMany {
   def apply(file: DBFile,
             segmentSize: Int,
             createdInLevel: Int,
+            segmentRefCacheWeight: Int,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -331,15 +333,16 @@ protected case object PersistentSegmentMany {
    *
    * Used when Segment's information is unknown.
    */
-  def apply(file: DBFile)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                          timeOrder: TimeOrder[Slice[Byte]],
-                          functionStore: FunctionStore,
-                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                          blockCacheSweeper: Option[MemorySweeper.Block],
-                          fileSweeper: FileSweeper,
-                          bufferCleaner: ByteBufferSweeperActor,
-                          segmentIO: SegmentIO,
-                          forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
+  def apply(file: DBFile,
+            segmentRefCacheWeight: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore,
+                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                        blockCacheSweeper: Option[MemorySweeper.Block],
+                                        fileSweeper: FileSweeper,
+                                        bufferCleaner: ByteBufferSweeperActor,
+                                        segmentIO: SegmentIO,
+                                        forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
     val fileExtension = Effect.fileExtension(file.path)
 

@@ -213,6 +213,7 @@ private[core] object CoreInitializer extends LazyLogging {
                         cacheBlocksOnCreate = false,
                         minSize = config.minSegmentSize,
                         maxCount = config.maxKeyValuesPerSegment,
+                        segmentRefCacheWeight = 0,
                         enableHashIndexForListSegment = false,
                         pushForward = config.pushForward,
                         mmap = MMAP.Off(ForceSave.Off),
