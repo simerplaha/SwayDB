@@ -47,7 +47,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, Segment, SegmentIO, SegmentRef}
 import swaydb.core.util.{HashedMap, IDGenerator}
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -62,7 +62,7 @@ import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
 import swaydb.{ActorWire, Glass}
 
 import java.nio.file._
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration._
 import scala.util.Random
@@ -142,6 +142,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     import org.scalatest.PrivateMethodTester._
     val function = PrivateMethod[ConcurrentHashMap[K, V]](Symbol("map"))
     maps.invokePrivate(function())
+  }
+
+  def getSegmentsCache(segment: PersistentSegment): ConcurrentSkipListMap[Slice[Byte], SegmentRef] = {
+    import org.scalatest.PrivateMethodTester._
+    val function = PrivateMethod[ConcurrentSkipListMap[Slice[Byte], SegmentRef]](Symbol("segmentsCache"))
+    segment.invokePrivate(function())
   }
 
   def persistent = levelStorage.persistent

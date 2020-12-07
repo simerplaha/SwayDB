@@ -1086,7 +1086,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 segment match {
                   case many: PersistentSegmentMany =>
                     val listSegment = many.listSegmentCache.get()
-                    val tailSegments = many.segmentsCache.asScala.values
+                    val tailSegments = getSegmentsCache(many).asScala.values
                     (listSegment, tailSegments.toList)
 
                   case one: PersistentSegmentOne =>

@@ -576,15 +576,15 @@ protected case class PersistentSegmentMany(file: DBFile,
                                            segmentSize: Int,
                                            nearestPutDeadline: Option[Deadline],
                                            listSegmentCache: CacheNoIO[Unit, SegmentRef],
-                                           private[segment] val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                               functionStore: FunctionStore,
-                                                                                                                               blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                                                               fileSweeper: FileSweeper,
-                                                                                                                               bufferCleaner: ByteBufferSweeperActor,
-                                                                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                               segmentIO: SegmentIO,
-                                                                                                                               forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
+                                           private val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                      functionStore: FunctionStore,
+                                                                                                                      blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                                                                      fileSweeper: FileSweeper,
+                                                                                                                      bufferCleaner: ByteBufferSweeperActor,
+                                                                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                                      segmentIO: SegmentIO,
+                                                                                                                      forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
 
   override def formatId: Byte = PersistentSegmentMany.formatId
 
@@ -623,9 +623,9 @@ protected case class PersistentSegmentMany(file: DBFile,
     }
   }
 
-  //TODO - do not read sortedIndexBlock if the SegmentRef is already cached in-memory.
   @inline def getAllSegmentRefs(): Iterator[SegmentRef] =
     new Iterator[SegmentRef] {
+      //TODO - do not read sortedIndexBlock if the SegmentRef is already cached in-memory.
       var nextRef: SegmentRef = null
       val listSegment = listSegmentCache.value(())
       val iter = listSegment.iterator()
@@ -716,10 +716,15 @@ protected case class PersistentSegmentMany(file: DBFile,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                            executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
-    if (removeDeletes)
+    if (removeDeletes) {
+      //duplicate so that SegmentRefs are not read twice.
+      val (countIterator, keyValuesIterator) = getAllSegmentRefs().duplicate
+      val oldKeyValuesCount = countIterator.foldLeft(0)(_ + _.getKeyValueCount())
+      val oldKeyValues = keyValuesIterator.flatMap(_.iterator())
+
       Segment.mergePut(
-        oldKeyValuesCount = getKeyValueCount(), //TODO - getAllSegmentRefs is being called twice here with iterator()
-        oldKeyValues = iterator(),
+        oldKeyValuesCount = oldKeyValuesCount,
+        oldKeyValues = oldKeyValues,
         headGap = headGap,
         tailGap = tailGap,
         mergeableCount = mergeableCount,
@@ -734,7 +739,7 @@ protected case class PersistentSegmentMany(file: DBFile,
         segmentConfig = segmentConfig,
         pathsDistributor = pathsDistributor
       )
-    else
+    } else {
       SegmentRef.fastAssignPut(
         headGap = headGap,
         tailGap = tailGap,
@@ -752,6 +757,7 @@ protected case class PersistentSegmentMany(file: DBFile,
         segmentConfig = segmentConfig,
         pathsDistributor = pathsDistributor
       )
+    }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
