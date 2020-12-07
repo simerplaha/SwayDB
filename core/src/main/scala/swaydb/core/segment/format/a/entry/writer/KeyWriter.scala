@@ -24,11 +24,10 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.{Memory, MemoryOption}
+import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
-import swaydb.data.util.Options._
 
 trait KeyWriter {
   def write[T <: Memory](current: T,
@@ -43,22 +42,25 @@ private[a] object KeyWriter extends KeyWriter {
    */
   def write[T <: Memory](current: T,
                          builder: EntryWriter.Builder,
-                         deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
-    when[MemoryOption](builder.enablePrefixCompressionForCurrentWrite, Memory.Null)(builder.previous) flatMapOptionS {
-      previous =>
+                         deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit = {
+    val writtenCompressed =
+      if (builder.enablePrefixCompressionForCurrentWrite && builder.previous.isSomeS)
         writeCompressed(
           current = current,
           builder = builder,
           deadlineId = deadlineId,
-          previous = previous
+          previous = builder.previous.getS
         )
-    } getOrElse {
+      else
+        None
+
+    if (writtenCompressed.isEmpty)
       writeUncompressed(
         current = current,
         builder = builder,
         deadlineId = deadlineId
       )
-    }
+  }
 
   private def writeCompressed[T <: Memory](current: T,
                                            builder: EntryWriter.Builder,

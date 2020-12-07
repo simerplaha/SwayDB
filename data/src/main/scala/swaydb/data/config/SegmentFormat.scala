@@ -52,8 +52,8 @@ case object SegmentFormat {
   def keepGroupCacheStrategy(): GroupCacheStrategy.Keep =
     GroupCacheStrategy.Keep
 
-  def weightedGroupCacheStrategy(defaultWeight: Int): GroupCacheStrategy.Weighted =
-    GroupCacheStrategy.Weighted(defaultWeight = defaultWeight)
+  def weightedGroupCacheStrategy(defaultWeight: Int): GroupCacheStrategy.Drop =
+    GroupCacheStrategy.Drop(defaultWeight = defaultWeight)
 
   /**
    * Stores an array of key-values in a single Segment file.
@@ -103,8 +103,8 @@ case object SegmentFormat {
     def keep(): GroupCacheStrategy.Keep =
       GroupCacheStrategy.Keep
 
-    def weighted(defaultWeight: Int): GroupCacheStrategy.Weighted =
-      GroupCacheStrategy.Weighted(defaultWeight)
+    def weighted(defaultWeight: Int): GroupCacheStrategy.Drop =
+      GroupCacheStrategy.Drop(defaultWeight)
 
     /**
      * Keeps all Group references in-memory. Does not drop.
@@ -114,22 +114,22 @@ case object SegmentFormat {
       override val defaultWeight: Int = 0
     }
 
-    case object Weighted extends LazyLogging {
+    case object Drop extends LazyLogging {
 
-      def apply(defaultWeight: Int): GroupCacheStrategy.Weighted =
+      def apply(defaultWeight: Int): GroupCacheStrategy.Drop =
         if (defaultWeight <= 0) {
-          val exception = new Exception(s"${GroupCacheStrategy.productPrefix}.${Weighted.productPrefix} configuration's defaultWeight should be greater than 0. Invalid weight $defaultWeight.")
+          val exception = new Exception(s"${GroupCacheStrategy.productPrefix}.${Drop.productPrefix} configuration's defaultWeight should be greater than 0. Invalid weight $defaultWeight.")
           logger.error(exception.getMessage, exception)
           throw exception
         } else {
-          new Weighted(defaultWeight)
+          new Drop(defaultWeight)
         }
     }
 
     /**
      * Drops Groups when [[MemoryCache]] limit is reached.
      */
-    final case class Weighted private(defaultWeight: Int) extends GroupCacheStrategy
+    final case class Drop private(defaultWeight: Int) extends GroupCacheStrategy
   }
 
 }
