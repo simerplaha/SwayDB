@@ -238,6 +238,10 @@ private[core] object CoreInitializer extends LazyLogging {
                   val exception = new Exception(s"appendixFlushCheckpointSize ${config.appendixFlushCheckpointSize / 1000000}.MB is too large. Maximum limit is 1.GB.")
                   logger.error(exception.getMessage, exception)
                   IO.failed[swaydb.Error.Level, NextLevel](exception)
+                } else if (config.segmentConfig.segmentFormat.groupCacheStrategy.defaultWeight > 0 && blockCacheSweeper.isEmpty && keyValueMemorySweeper.isEmpty) {
+                  val exception = new Exception(s"groupWeight ${config.segmentConfig.segmentFormat.groupCacheStrategy.defaultWeight} is > 0 but no cache management configured. See memoryCache configuration.")
+                  logger.error(exception.getMessage, exception)
+                  IO.failed[swaydb.Error.Level, NextLevel](exception)
                 } else {
                   Level(
                     bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainIndex),

@@ -66,7 +66,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         cacheBlocksOnCreate = config.cacheSegmentBlocksOnCreate,
         minSize = config.minSegmentSize,
         enableHashIndexForListSegment = config.segmentFormat.enableRootHashIndex,
-        segmentRefCacheWeight = config.segmentFormat.groupWeight,
+        segmentRefCacheWeight = config.segmentFormat.groupCacheStrategy.defaultWeight,
         maxCount = config.segmentFormat.count,
         pushForward = config.pushForward,
         mmap = config.mmap,

@@ -34,6 +34,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
 import swaydb.{Actor, ActorRef, Glass}
 
+import java.util.concurrent.ConcurrentSkipListMap
 import scala.ref.WeakReference
 
 private[core] sealed trait Command
@@ -44,6 +45,10 @@ private[core] object Command {
 
   private[actor] class Cache(val weight: Int,
                              val cache: WeakReference[swaydb.data.cache.Cache[_, _, _]]) extends Command
+
+  private[actor] class SkipListMap(val key: Slice[Byte],
+                                   val weight: Int,
+                                   val cache: WeakReference[ConcurrentSkipListMap[Slice[Byte], _]]) extends Command
 
   private[actor] class BlockCache(val key: Long,
                                   val valueSize: Int,
@@ -125,6 +130,9 @@ private[core] object MemorySweeper extends LazyLogging {
       case command: Command.Cache =>
         ByteSizeOf.long + command.weight + 264
 
+      case command: Command.SkipListMap =>
+        ByteSizeOf.long + command.weight + 264
+
       case command: Command.KeyValue =>
         command.keyValueRef.get map {
           keyValue =>
@@ -169,6 +177,11 @@ private[core] object MemorySweeper extends LazyLogging {
                     if (cache.isEmpty) block.map.clear()
                   }
 
+                case ref: Command.SkipListMap =>
+                  val cacheOptional = ref.cache.get
+                  if (cacheOptional.isDefined)
+                    cacheOptional.get.remove(ref.key)
+
                 case cache: Command.Cache =>
                   val cacheOptional = cache.cache.get
                   if (cacheOptional.isDefined)
@@ -187,6 +200,21 @@ private[core] object MemorySweeper extends LazyLogging {
     def actor: Option[ActorRef[Command, Unit]]
 
     def terminateAndClear(): Unit
+
+    def add(key: Slice[Byte],
+            weight: Int,
+            cache: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
+      if (actor.isDefined) {
+        actor.get send new Command.SkipListMap(
+          key = key,
+          weight = weight,
+          cache = new WeakReference(cache)
+        )
+      } else {
+        val exception = new Exception("Cache is not enabled")
+        logger.error(exception.getMessage, exception)
+        throw exception
+      }
   }
 
   sealed trait Cache extends On {

@@ -24,10 +24,13 @@
 
 package swaydb.data.config
 
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.data.config.SegmentFormat.GroupCacheStrategy
+
 sealed trait SegmentFormat {
   def count: Int
   def enableRootHashIndex: Boolean
-  def groupWeight: Int
+  def groupCacheStrategy: GroupCacheStrategy
 }
 
 case object SegmentFormat {
@@ -39,12 +42,18 @@ case object SegmentFormat {
   //for Java
   def grouped(count: Int,
               enableRootHashIndex: Boolean,
-              groupWeight: Int): SegmentFormat.Grouped =
+              groupCache: GroupCacheStrategy): SegmentFormat.Grouped =
     SegmentFormat.Grouped(
       count = count,
       enableRootHashIndex = enableRootHashIndex,
-      groupWeight = groupWeight
+      groupCacheStrategy = groupCache
     )
+
+  def keepGroupCacheStrategy(): GroupCacheStrategy.Keep =
+    GroupCacheStrategy.Keep
+
+  def weightedGroupCacheStrategy(defaultWeight: Int): GroupCacheStrategy.Weighted =
+    GroupCacheStrategy.Weighted(defaultWeight = defaultWeight)
 
   /**
    * Stores an array of key-values in a single Segment file.
@@ -53,7 +62,7 @@ case object SegmentFormat {
   final case object Flattened extends Flattened {
     override val count: Int = Int.MaxValue
     override val enableRootHashIndex: Boolean = false
-    override val groupWeight: Int = 0
+    override val groupCacheStrategy: GroupCacheStrategy = GroupCacheStrategy.Keep
   }
 
   /**
@@ -67,12 +76,13 @@ case object SegmentFormat {
    * @param enableRootHashIndex If true a root hash index (if configured via [[RandomSearchIndex]]) is created
    *                            pointing to the min and max key of each group. This is useful if group size is
    *                            too small eg: 2-3 key-values per group.
-   * @param groupWeight         Sets the weight of the reference object. This is just a plain object which gets
+   * @param groupCacheStrategy  Set how caching of Groups object should be handled.
+   *                            It sets the weight of the group reference object. Group is just a plain object which gets
    *                            stored within the Segment and contains information about the Group and references
    *                            to it's internal caches (NOTE - internal caches are already managed by [[MemoryCache]]).
    *
-   *                            Set this to 0 to keep all read Group reference objects in-memory until the Segment
-   *                            is deleted.
+   *                            Set this to [[GroupCacheStrategy.Keep]] to keep all read Group reference objects
+   *                            in-memory until the Segment is deleted.
    *
    *                            The reason this is configurable is so that we can control the number of in-memory
    *                            objects. With this configuration we can drop the entire Group form memory
@@ -82,5 +92,44 @@ case object SegmentFormat {
    */
   final case class Grouped(count: Int,
                            enableRootHashIndex: Boolean,
-                           groupWeight: Int) extends SegmentFormat
+                           groupCacheStrategy: GroupCacheStrategy) extends SegmentFormat
+
+  sealed trait GroupCacheStrategy {
+    def defaultWeight: Int
+  }
+
+  case object GroupCacheStrategy {
+
+    def keep(): GroupCacheStrategy.Keep =
+      GroupCacheStrategy.Keep
+
+    def weighted(defaultWeight: Int): GroupCacheStrategy.Weighted =
+      GroupCacheStrategy.Weighted(defaultWeight)
+
+    /**
+     * Keeps all Group references in-memory. Does not drop.
+     */
+    sealed trait Keep extends GroupCacheStrategy
+    final case object Keep extends Keep {
+      override val defaultWeight: Int = 0
+    }
+
+    case object Weighted extends LazyLogging {
+
+      def apply(defaultWeight: Int): GroupCacheStrategy.Weighted =
+        if (defaultWeight <= 0) {
+          val exception = new Exception(s"${GroupCacheStrategy.productPrefix}.${Weighted.productPrefix} configuration's defaultWeight should be greater than 0. Invalid weight $defaultWeight.")
+          logger.error(exception.getMessage, exception)
+          throw exception
+        } else {
+          new Weighted(defaultWeight)
+        }
+    }
+
+    /**
+     * Drops Groups when [[MemoryCache]] limit is reached.
+     */
+    final case class Weighted private(defaultWeight: Int) extends GroupCacheStrategy
+  }
+
 }
