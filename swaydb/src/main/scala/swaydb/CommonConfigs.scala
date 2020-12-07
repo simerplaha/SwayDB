@@ -36,7 +36,7 @@ case object CommonConfigs {
 
   def parallelMerge(): ParallelMerge =
     ParallelMerge.On(
-      levelParallelism = Runtime.getRuntime.availableProcessors() / 2,
+      levelParallelism = 0,
       levelParallelismTimeout = 1.hour,
       //disable Segment parallelism because default tuning is for small machines
       //this can be turned on similar to above if you have more cores.
@@ -52,7 +52,8 @@ case object CommonConfigs {
     //create compaction config
     CompactionExecutionContext.Create(
       executionContext = executionContext,
-      parallelMerge = parallelMerge
+      parallelMerge = parallelMerge,
+      resetCompactionPriorityAtInterval = 3
     )
   }
 

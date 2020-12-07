@@ -93,7 +93,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
               ThrottleCompactor.createActors(
                 List(zero, nextLevel),
                 List(
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism),
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism, randomIntMax(Byte.MaxValue).max(1)),
                   CompactionExecutionContext.Shared
                 )
               ).get
@@ -120,8 +120,8 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
               ThrottleCompactor.createActors(
                 List(zero, nextLevel),
                 List(
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism),
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism)
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism, randomIntMax(Byte.MaxValue).max(1)),
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism, randomIntMax(Byte.MaxValue).max(1))
                 )
               ).get
 
@@ -153,7 +153,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
               ThrottleCompactor.createActors(
                 List(zero, nextLevel, nextLevel2),
                 List(
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism),
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism, randomIntMax(Byte.MaxValue).max(1)),
                   CompactionExecutionContext.Shared,
                   CompactionExecutionContext.Shared
                 )
@@ -183,9 +183,9 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
               ThrottleCompactor.createActors(
                 List(zero, nextLevel, nextLevel2),
                 List(
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism1),
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism1, randomIntMax(Byte.MaxValue).max(1)),
                   CompactionExecutionContext.Shared,
-                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism2)
+                  CompactionExecutionContext.Create(TestExecutionContext.executionContext, parallelism2, randomIntMax(Byte.MaxValue).max(1))
                 )
               ).get
 
@@ -214,11 +214,12 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
       val testState =
         ThrottleState(
           levels = Slice(level, nextLevel),
-          child = None,
+          parallelMerge = randomParallelMerge(),
           //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
+          resetCompactionPriorityAtInterval = randomIntMax(Byte.MaxValue).max(1),
+          child = None,
           executionContext = TestExecutionContext.executionContext,
-          compactionStates = mutable.Map.empty,
-          parallelMerge = randomParallelMerge()
+          compactionStates = mutable.Map.empty
         )
 
       (level, nextLevel, testState)
@@ -458,11 +459,12 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
           val testState =
             ThrottleState(
               levels = Slice(level, nextLevel),
-              child = None,
+              parallelMerge = randomParallelMerge(),
               //        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
+              resetCompactionPriorityAtInterval = randomIntMax(Byte.MaxValue).max(1),
+              child = None,
               executionContext = TestExecutionContext.executionContext,
-              compactionStates = mutable.Map.empty,
-              parallelMerge = randomParallelMerge()
+              compactionStates = mutable.Map.empty
             )
 
           implicit val compaction = mock[Compaction[ThrottleState]]

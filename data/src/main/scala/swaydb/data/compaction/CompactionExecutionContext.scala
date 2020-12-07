@@ -24,32 +24,51 @@
 
 package swaydb.data.compaction
 
-import java.util.concurrent.ExecutorService
-
 import swaydb.data.config.ConfigWizard
 
+import java.util.concurrent.ExecutorService
 import scala.concurrent.ExecutionContext
 
 sealed trait CompactionExecutionContext
 object CompactionExecutionContext {
 
   def create(service: ExecutorService,
-             parallelMerge: ParallelMerge): Create =
+             parallelMerge: ParallelMerge,
+             resetCompactionPriorityAtInterval: Int): Create =
     Create(
       executionContext = ExecutionContext.fromExecutorService(service),
-      parallelMerge = parallelMerge
+      parallelMerge = parallelMerge,
+      resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval
     )
+
+  object Create {
+    def apply(executionContext: ExecutionContext,
+              parallelMerge: ParallelMerge,
+              resetCompactionPriorityAtInterval: Int): Create =
+      if (resetCompactionPriorityAtInterval <= 0)
+        throw new Exception(s"Invalid resetCompactionPriorityAtInterval $resetCompactionPriorityAtInterval. Should be greater than zero.")
+      else
+        new Create(
+          executionContext = executionContext,
+          parallelMerge = parallelMerge,
+          resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval
+        )
+  }
 
   /**
    * Starts a new compaction group. Assigning [[Create]] to a Level's default config via [[ConfigWizard]]
    * (see DefaultPersistentConfig for example) will start a new compaction group. If all the subsequent
    * Level's configs are [[Shared]] then they will join this group's compaction thread.
    *
-   * @param executionContext used to execute compaction jobs
-   * @param parallelMerge    see [[ParallelMerge]]
+   * @param executionContext                  used to execute compaction jobs
+   * @param parallelMerge                     see [[ParallelMerge]]
+   * @param resetCompactionPriorityAtInterval Example: if there are 7 Levels then setting this to 2 will
+   *                                          run compaction on a maximum of two levels consecutively before
+   *                                          re-ordering/re-prioritising/re-computing compaction priority.
    */
-  case class Create(executionContext: ExecutionContext,
-                    parallelMerge: ParallelMerge) extends CompactionExecutionContext
+  case class Create private(executionContext: ExecutionContext,
+                            parallelMerge: ParallelMerge,
+                            resetCompactionPriorityAtInterval: Int) extends CompactionExecutionContext
 
   def shared(): CompactionExecutionContext.Shared =
     Shared

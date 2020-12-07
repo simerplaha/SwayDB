@@ -43,6 +43,7 @@ import scala.concurrent.duration.Deadline
  */
 private[core] case class ThrottleState(levels: Slice[LevelRef],
                                        parallelMerge: ParallelMerge,
+                                       resetCompactionPriorityAtInterval: Int,
                                        child: Option[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                        executionContext: ExecutionContext,
                                        compactionStates: mutable.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {

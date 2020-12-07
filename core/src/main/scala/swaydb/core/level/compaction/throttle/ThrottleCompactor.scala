@@ -68,14 +68,14 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     else
       levels
         .zip(executionContexts)
-        .foldLeftRecoverIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext, ParallelMerge)]) {
-          case (jobs, (level, CompactionExecutionContext.Create(executionContext, parallelMerge))) => //new thread pool.
-            jobs += ((ListBuffer(level), executionContext, parallelMerge))
+        .foldLeftRecoverIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext, ParallelMerge, Int)]) {
+          case (jobs, (level, CompactionExecutionContext.Create(executionContext, parallelMerge, resetCompactionPriorityAtInterval))) => //new thread pool.
+            jobs += ((ListBuffer(level), executionContext, parallelMerge, resetCompactionPriorityAtInterval))
             IO.Right(jobs)
 
           case (jobs, (level, CompactionExecutionContext.Shared)) => //share with previous thread pool.
             jobs.lastOption match {
-              case Some((lastGroup, _, _)) =>
+              case Some((lastGroup, _, _, _)) =>
                 lastGroup += level
                 IO.Right(jobs)
 
@@ -91,13 +91,14 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
               jobs
                 .zipWithIndex
                 .foldRight(List.empty[ActorWire[Compactor[ThrottleState], ThrottleState]]) {
-                  case (((jobs, executionContext, parallelMerge), index), children) =>
+                  case (((jobs, executionContext, parallelMerge, resetCompactionPriorityAtInterval), index), children) =>
                     val statesMap = mutable.Map.empty[LevelRef, ThrottleLevelState]
 
                     val state =
                       ThrottleState(
                         levels = Slice(jobs.toArray),
                         parallelMerge = parallelMerge,
+                        resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
                         child = children.headOption,
                         executionContext = executionContext,
                         compactionStates = statesMap

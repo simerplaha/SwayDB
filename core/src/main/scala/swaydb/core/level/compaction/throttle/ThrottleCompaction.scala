@@ -72,15 +72,22 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       logger.debug(s"${state.name}: Copies $totalCopies compacted. Continuing compaction.")
     }
 
+    val levels = state.levels.sorted(state.ordering)
+
+    //process only few job in the current thread and stop so that reordering occurs.
+    //this is because processing all levels would take some time and during that time
+    //level0 might fill up with level1 and level2 being empty and level0 maps not being
+    //able to merged instantly.
+    val jobs =
+    if (state.resetCompactionPriorityAtInterval < state.levels.size)
+      levels.take(state.resetCompactionPriorityAtInterval)
+    else
+      levels
+
     //run compaction jobs
     runJobs(
       state = state,
-      //process only few job in the current thread and stop so that reordering occurs.
-      //this is because processing all levels would take some time and during that time
-      //level0 might fill up with level1 and level2 being empty and level0 maps not being
-      //able to merged instantly.
-      //currentJobs = state.levels.sorted(state.ordering).take(3)
-      currentJobs = state.levels.sorted(state.ordering)
+      currentJobs = jobs
     )
   }
 
