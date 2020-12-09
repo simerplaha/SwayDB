@@ -727,9 +727,8 @@ protected case class PersistentSegmentMany(file: DBFile,
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]] =
+          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+                                              executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]] =
     if (removeDeletes) {
       //duplicate so that SegmentRefs are not read twice.
       val (countIterator, keyValuesIterator) = getAllSegmentRefs().duplicate
@@ -781,8 +780,7 @@ protected case class PersistentSegmentMany(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[TransientSegment] =
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment] =
     Segment.refreshForNewLevel(
       keyValues = iterator(),
       removeDeletes = removeDeletes,

@@ -298,9 +298,8 @@ protected case class PersistentSegmentOne(file: DBFile,
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]] =
+          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+                                              executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]] =
     if (removeDeletes) {
       val newSegments =
         SegmentRef.mergeWrite(
@@ -346,8 +345,7 @@ protected case class PersistentSegmentOne(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[TransientSegment] =
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment] =
     SegmentRef.refresh(
       ref = ref,
       removeDeletes = removeDeletes,

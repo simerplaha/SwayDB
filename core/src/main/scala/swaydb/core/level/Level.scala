@@ -974,8 +974,7 @@ private[core] case class Level(dirs: Seq[Dir],
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig,
-          pathsDistributor = pathDistributor
+          segmentConfig = segmentConfig
         )
       } flatMap {
         newTransientSegments =>
@@ -1320,8 +1319,7 @@ private[core] case class Level(dirs: Seq[Dir],
               binarySearchIndexConfig = binarySearchIndexConfig,
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig,
-              pathsDistributor = pathDistributor.addPriorityPath(assignment.segment.path.getParent)
+              segmentConfig = segmentConfig
             )
 
           (assignment.segment, newSegments)

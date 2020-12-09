@@ -173,7 +173,8 @@ private[core] case object Segment extends LazyLogging {
             hasPut = hasPut,
             createdInLevel = createdInLevel.toInt,
             skipList = skipList,
-            nearestPutDeadline = nearestDeadline
+            nearestPutDeadline = nearestDeadline,
+            pathsDistributor = pathsDistributor
           )
 
         segments += segment
@@ -1318,9 +1319,8 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]]
+          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+                                              executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -1329,8 +1329,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[TransientSegment]
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment]
 
   def getFromCache(key: Slice[Byte]): KeyValueOption
 

@@ -60,10 +60,11 @@ protected case class MemorySegment(path: Path,
                                    hasPut: Boolean,
                                    createdInLevel: Int,
                                    private[segment] val skipList: SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                                   nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                                         functionStore: FunctionStore,
-                                                                         fileSweeper: FileSweeper) extends Segment with LazyLogging {
+                                   nearestPutDeadline: Option[Deadline],
+                                   pathsDistributor: PathsDistributor)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                                       functionStore: FunctionStore,
+                                                                       fileSweeper: FileSweeper) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -83,8 +84,7 @@ protected case class MemorySegment(path: Path,
                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
-                   segmentConfig: SegmentBlock.Config,
-                   pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                   segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
                                                        executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment.MemoryToMemory]] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
@@ -124,8 +124,7 @@ protected case class MemorySegment(path: Path,
                        binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                        hashIndexConfig: HashIndexBlock.Config,
                        bloomFilterConfig: BloomFilterBlock.Config,
-                       segmentConfig: SegmentBlock.Config,
-                       pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[TransientSegment.MemoryToMemory] =
+                       segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.MemoryToMemory] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
