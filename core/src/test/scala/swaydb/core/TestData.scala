@@ -1988,7 +1988,7 @@ object TestData {
       (flattenSegmentBytes, segment.nearestPutDeadline)
   }
 
-  implicit class TransientSegmentsImplicits(segments: Slice[TransientSegment.PersistentTransientSegment]) {
+  implicit class TransientSegmentsImplicits(segments: Slice[TransientSegment.Persistent]) {
 
     def persist(pathDistributor: PathsDistributor,
                 segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue),

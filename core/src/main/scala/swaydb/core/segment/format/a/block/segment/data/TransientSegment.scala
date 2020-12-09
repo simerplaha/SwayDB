@@ -50,9 +50,9 @@ sealed trait TransientSegment {
 
 object TransientSegment {
 
-  sealed trait PersistentTransientSegment extends TransientSegment
+  sealed trait Persistent extends TransientSegment
 
-  sealed trait Singleton extends PersistentTransientSegment {
+  sealed trait Singleton extends Persistent {
     def copyWithFileHeader(headerBytes: Slice[Byte]): Singleton
 
     def hasEmptyByteSliceIgnoreHeader: Boolean
@@ -133,7 +133,7 @@ object TransientSegment {
                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                            hashIndexConfig: HashIndexBlock.Config,
                            bloomFilterConfig: BloomFilterBlock.Config,
-                           segmentConfig: SegmentBlock.Config) extends PersistentTransientSegment {
+                           segmentConfig: SegmentBlock.Config) extends Persistent {
     override def minKey: Slice[Byte] =
       segment.minKey
 
@@ -194,7 +194,7 @@ object TransientSegment {
                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                   nearestPutDeadline: Option[Deadline],
                   listSegment: TransientSegment.One,
-                  segments: Slice[TransientSegment.Singleton]) extends PersistentTransientSegment {
+                  segments: Slice[TransientSegment.Singleton]) extends Persistent {
 
     def hasEmptyByteSlice: Boolean =
       fileHeader.isEmpty || listSegment.hasEmptyByteSliceIgnoreHeader || segments.exists(_.hasEmptyByteSliceIgnoreHeader)
@@ -207,7 +207,7 @@ object TransientSegment {
   }
 
 
-  case class MemoryToMemory(segment: MemorySegment) extends TransientSegment {
+  case class Memory(segment: MemorySegment) extends TransientSegment {
     override def minKey: Slice[Byte] =
       segment.minKey
 

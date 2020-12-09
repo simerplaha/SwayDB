@@ -24,13 +24,11 @@
 
 package swaydb.core.segment
 
-import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
-import swaydb.core.actor.{FileSweeperItem, MemorySweeper}
+import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
@@ -41,27 +39,25 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment.PersistentTransientSegment
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.format.a.entry.id.BaseEntryId.Format.A
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
-import swaydb.data.config.{Dir, ForceSave, MMAP}
+import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.{FiniteDurations, SomeOrNone}
 import swaydb.{Aggregator, IO}
 
+import java.nio.file.Path
 import scala.annotation.tailrec
-import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
@@ -421,7 +417,7 @@ private[core] case object Segment extends LazyLogging {
                                                    blockCacheSweeper: Option[MemorySweeper.Block],
                                                    segmentIO: SegmentReadIO,
                                                    forceSaveApplier: ForceSaveApplier): SegmentPutResult[Slice[PersistentSegment]] = {
-    val transient: Slice[PersistentTransientSegment] =
+    val transient: Slice[TransientSegment.Persistent] =
       SegmentRef.mergeWrite(
         oldKeyValuesCount = oldKeyValuesCount,
         oldKeyValues = oldKeyValues,
@@ -466,7 +462,7 @@ private[core] case object Segment extends LazyLogging {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[PersistentTransientSegment] = {
+                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.Persistent] = {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {
@@ -525,7 +521,7 @@ private[core] case object Segment extends LazyLogging {
                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                          hashIndexConfig: HashIndexBlock.Config,
                          bloomFilterConfig: BloomFilterBlock.Config,
-                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[PersistentTransientSegment] = {
+                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.Persistent] = {
     val memoryKeyValues =
       Segment
         .toMemoryIterator(keyValues, removeDeletes)
@@ -571,7 +567,7 @@ private[core] case object Segment extends LazyLogging {
                                                                 segmentIO: SegmentReadIO,
                                                                 forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
 
-    val transient: Slice[PersistentTransientSegment] =
+    val transient: Slice[TransientSegment.Persistent] =
       Segment.refreshForNewLevel(
         keyValues = keyValues,
         removeDeletes = removeDeletes,

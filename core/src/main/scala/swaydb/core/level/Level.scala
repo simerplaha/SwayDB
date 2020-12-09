@@ -977,14 +977,14 @@ private[core] case class Level(dirs: Seq[Dir],
         newTransientSegments =>
           val newSegmentsIO =
             if (inMemory) {
-              IO(newTransientSegments.asInstanceOf[Slice[TransientSegment.MemoryToMemory]].map(_.segment))
+              IO(newTransientSegments.asInstanceOf[Slice[TransientSegment.Memory]].map(_.segment))
             } else {
               SegmentWriteIO.PersistentIO.persist(
                 pathsDistributor = pathDistributor,
                 createdInLevel = levelNumber,
                 segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
                 mmap = segmentConfig.mmap,
-                transient = newTransientSegments.asInstanceOf[Slice[TransientSegment.PersistentTransientSegment]]
+                transient = newTransientSegments.asInstanceOf[Slice[TransientSegment.Persistent]]
               )
             }
 
@@ -1179,7 +1179,7 @@ private[core] case class Level(dirs: Seq[Dir],
                         val result: SegmentPutResult[Slice[Segment]] =
                           putResult.map {
                             transient =>
-                              transient.asInstanceOf[Slice[TransientSegment.MemoryToMemory]].map(_.segment)
+                              transient.asInstanceOf[Slice[TransientSegment.Memory]].map(_.segment)
                           }
                         (segment, result)
                     }
@@ -1191,7 +1191,7 @@ private[core] case class Level(dirs: Seq[Dir],
                         val result: SegmentPutResult[Slice[PersistentSegment]] =
                           putResult.map {
                             transient =>
-                              val persistentTransientSegment = transient.asInstanceOf[Slice[TransientSegment.PersistentTransientSegment]]
+                              val persistentTransientSegment = transient.asInstanceOf[Slice[TransientSegment.Persistent]]
                               SegmentWriteIO.PersistentIO.persist(
                                 pathsDistributor = pathDistributor,
                                 createdInLevel = levelNumber,
@@ -1206,7 +1206,6 @@ private[core] case class Level(dirs: Seq[Dir],
 
                   IO(persistentResults)
                 }
-
 
               put flatMap {
                 put =>

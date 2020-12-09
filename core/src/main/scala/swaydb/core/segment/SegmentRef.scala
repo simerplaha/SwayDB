@@ -36,7 +36,6 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment.PersistentTransientSegment
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
@@ -642,7 +641,7 @@ private[core] case object SegmentRef extends LazyLogging {
                          bloomFilterConfig: BloomFilterBlock.Config,
                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                             functionStore: FunctionStore): Slice[PersistentTransientSegment] =
+                                                             functionStore: FunctionStore): Slice[TransientSegment.Persistent] =
     mergeWrite(
       oldKeyValuesCount = ref.getKeyValueCount(),
       oldKeyValues = ref.iterator(),
@@ -675,7 +674,7 @@ private[core] case object SegmentRef extends LazyLogging {
                  bloomFilterConfig: BloomFilterBlock.Config,
                  segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                     functionStore: FunctionStore): Slice[PersistentTransientSegment] = {
+                                                     functionStore: FunctionStore): Slice[TransientSegment.Persistent] = {
 
     val builder = MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
@@ -799,8 +798,8 @@ private[core] case object SegmentRef extends LazyLogging {
                      bloomFilterConfig: BloomFilterBlock.Config,
                      segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
                                                          executionContext: ExecutionContext,
-                                                         keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Iterable[Slice[PersistentTransientSegment]]] =
-    assignables.mapParallel[Slice[PersistentTransientSegment]](parallelism = segmentParallelism.parallelism, timeout = segmentParallelism.timeout)(
+                                                         keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Iterable[Slice[TransientSegment.Persistent]]] =
+    assignables.mapParallel[Slice[TransientSegment.Persistent]](parallelism = segmentParallelism.parallelism, timeout = segmentParallelism.timeout)(
       block =
         gap =>
           IO {
@@ -826,11 +825,11 @@ private[core] case object SegmentRef extends LazyLogging {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[PersistentTransientSegment] = {
+              segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.Persistent] = {
 
     val stats = MergeStats.persistent[KeyValue, ListBuffer](Aggregator.listBuffer)(_.toMemory())
 
-    val newSegments = ListBuffer.empty[PersistentTransientSegment]
+    val newSegments = ListBuffer.empty[TransientSegment.Persistent]
 
     assignable foreach {
       case collection: Assignable.Collection =>
@@ -900,9 +899,9 @@ private[core] case object SegmentRef extends LazyLogging {
               segmentConfig: SegmentBlock.Config)(implicit executionContext: ExecutionContext,
                                                   keyOrder: KeyOrder[Slice[Byte]],
                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                  functionStore: FunctionStore): SegmentPutResult[Slice[PersistentTransientSegment]] = {
+                                                  functionStore: FunctionStore): SegmentPutResult[Slice[TransientSegment.Persistent]] = {
 
-    def putGap(gap: Iterable[Assignable]): Slice[PersistentTransientSegment] =
+    def putGap(gap: Iterable[Assignable]): Slice[TransientSegment.Persistent] =
       fastPut(
         assignable = gap,
         removeDeletes = removeDeletes,
@@ -920,7 +919,7 @@ private[core] case object SegmentRef extends LazyLogging {
     val minGapSize = if (mergeableCount == 0) 0 else (mergeableCount / 4) max 100
 
     val (mergeableHead, mergeableTail, future) =
-      Segment.runOnGapsParallel[Slice[PersistentTransientSegment]](
+      Segment.runOnGapsParallel[Slice[TransientSegment.Persistent]](
         headGap = headGap,
         tailGap = tailGap,
         empty = Slice.empty,
@@ -928,7 +927,7 @@ private[core] case object SegmentRef extends LazyLogging {
         segmentParallelism = segmentParallelism
       )(thunk = putGap)
 
-    def putMid(): Slice[PersistentTransientSegment] =
+    def putMid(): Slice[TransientSegment.Persistent] =
       SegmentRef.mergeWrite(
         ref = ref,
         headGap = mergeableHead,
@@ -949,7 +948,7 @@ private[core] case object SegmentRef extends LazyLogging {
       val midSegments = putMid()
       val (headSegments, tailSegments) = Await.result(future, segmentParallelism.timeout)
 
-      val newSegments = Slice.of[PersistentTransientSegment](headSegments.size + midSegments.size + tailSegments.size)
+      val newSegments = Slice.of[TransientSegment.Persistent](headSegments.size + midSegments.size + tailSegments.size)
       newSegments addAll headSegments
       newSegments addAll midSegments
       newSegments addAll tailSegments
@@ -1114,7 +1113,7 @@ private[core] case object SegmentRef extends LazyLogging {
                                                         executionContext: ExecutionContext,
                                                         keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore): SegmentPutResult[Slice[PersistentTransientSegment]] = {
+                                                        functionStore: FunctionStore): SegmentPutResult[Slice[TransientSegment.Persistent]] = {
     if (assignableCount == 0) {
       //if there are no assignments write gaps and return.
       val gapInsert =
@@ -1134,7 +1133,7 @@ private[core] case object SegmentRef extends LazyLogging {
       if (gapInsert.isEmpty) {
         SegmentPutResult(result = Slice.empty, replaced = false)
       } else {
-        val gapSlice = Slice.of[PersistentTransientSegment](gapInsert.foldLeft(0)(_ + _.size))
+        val gapSlice = Slice.of[TransientSegment.Persistent](gapInsert.foldLeft(0)(_ + _.size))
         gapInsert foreach gapSlice.addAll
         SegmentPutResult(result = gapSlice, replaced = false)
       }
@@ -1256,7 +1255,7 @@ private[core] case object SegmentRef extends LazyLogging {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[PersistentTransientSegment] = {
+              segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.Persistent] = {
     val footer = ref.getFooter()
     val iterator = ref.iterator()
     //if it's created in the same level the required spaces for sortedIndex and values

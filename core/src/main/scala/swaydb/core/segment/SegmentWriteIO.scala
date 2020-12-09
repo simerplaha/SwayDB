@@ -33,7 +33,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment.PersistentTransientSegment
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment.Persistent
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -86,7 +86,28 @@ case object SegmentWriteIO extends LazyLogging {
       IO.Right(transient)
   }
 
-  implicit object PersistentIO extends SegmentWriteIO[PersistentTransientSegment, PersistentSegment] {
+  implicit object MemoryIO extends SegmentWriteIO[TransientSegment.Memory, MemorySegment] {
+    override def minKey(segment: MemorySegment): Slice[Byte] =
+      segment.minKey
+
+    override def persist(pathsDistributor: PathsDistributor,
+                         createdInLevel: Int,
+                         segmentRefCacheWeight: Int,
+                         mmap: MMAP.Segment,
+                         transient: Slice[TransientSegment.Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                                    functionStore: FunctionStore,
+                                                                    fileSweeper: FileSweeper,
+                                                                    bufferCleaner: ByteBufferSweeperActor,
+                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                    blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                    segmentReadIO: SegmentReadIO,
+                                                                    idGenerator: IDGenerator,
+                                                                    forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Slice[MemorySegment]] =
+      IO.Right(transient.map(_.segment))
+  }
+
+  implicit object PersistentIO extends SegmentWriteIO[Persistent, PersistentSegment] {
 
     override def minKey(segment: PersistentSegment): Slice[Byte] =
       segment.minKey
@@ -95,16 +116,16 @@ case object SegmentWriteIO extends LazyLogging {
                 createdInLevel: Int,
                 segmentRefCacheWeight: Int,
                 mmap: MMAP.Segment,
-                transient: Slice[PersistentTransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              functionStore: FunctionStore,
-                                                              fileSweeper: FileSweeper,
-                                                              bufferCleaner: ByteBufferSweeperActor,
-                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                              blockCacheSweeper: Option[MemorySweeper.Block],
-                                                              segmentReadIO: SegmentReadIO,
-                                                              idGenerator: IDGenerator,
-                                                              forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Slice[PersistentSegment]] = {
+                transient: Slice[Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore,
+                                              fileSweeper: FileSweeper,
+                                              bufferCleaner: ByteBufferSweeperActor,
+                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                              blockCacheSweeper: Option[MemorySweeper.Block],
+                                              segmentReadIO: SegmentReadIO,
+                                              idGenerator: IDGenerator,
+                                              forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Slice[PersistentSegment]] = {
 
       val iterableIO =
         transient.flatMapRecoverIO[PersistentSegment](

@@ -85,7 +85,7 @@ protected case class MemorySegment(path: Path,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                                       executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment.MemoryToMemory]] =
+                                                       executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment.Memory]] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -112,9 +112,9 @@ protected case class MemorySegment(path: Path,
             pathsDistributor = pathsDistributor,
             createdInLevel = createdInLevel,
             stats = stats.close
-          ).map(TransientSegment.MemoryToMemory)
+          ).map(TransientSegment.Memory)
 
-      SegmentPutResult[Slice[TransientSegment.MemoryToMemory]](result = newSegments, replaced = true)
+      SegmentPutResult[Slice[TransientSegment.Memory]](result = newSegments, replaced = true)
     }
 
   override def refresh(removeDeletes: Boolean,
@@ -124,7 +124,7 @@ protected case class MemorySegment(path: Path,
                        binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                        hashIndexConfig: HashIndexBlock.Config,
                        bloomFilterConfig: BloomFilterBlock.Config,
-                       segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.MemoryToMemory] =
+                       segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.Memory] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -145,7 +145,7 @@ protected case class MemorySegment(path: Path,
         pathsDistributor = pathsDistributor,
         createdInLevel = createdInLevel,
         stats = mergeStats
-      ).map(TransientSegment.MemoryToMemory)
+      ).map(TransientSegment.Memory)
     }
 
   override def getFromCache(key: Slice[Byte]): MemoryOption =
