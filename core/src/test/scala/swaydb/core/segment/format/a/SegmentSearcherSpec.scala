@@ -30,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.{SegmentIO, SegmentSearcher}
+import swaydb.core.segment.{SegmentReadIO, SegmentSearcher}
 import swaydb.core.util.Benchmark
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._
@@ -44,7 +44,7 @@ import scala.util.Try
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(order))
-  implicit def segmentIO = SegmentIO.random
+  implicit def segmentIO = SegmentReadIO.random
 
   def randomlySelectHigher(index: Int, keyValues: Slice[Persistent]): PersistentOption =
     eitherOne(Persistent.Null, Try(keyValues(index + (randomIntMax(keyValues.size) max 1))).toOption.getOrElse(Persistent.Null))

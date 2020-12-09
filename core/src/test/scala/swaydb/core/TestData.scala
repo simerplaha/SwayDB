@@ -37,7 +37,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{Level, NextLevel}
+import swaydb.core.level.{Level, NextLevel, PathsDistributor}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
@@ -51,7 +51,8 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO, ThreadReadState}
+import swaydb.core.segment.{PersistentSegment, Segment, SegmentReadIO, SegmentWriteIO, ThreadReadState}
+import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
@@ -64,7 +65,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.{Glass, IO}
+import swaydb.{Error, Glass, IO}
 
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -99,7 +100,7 @@ object TestData {
   implicit class ReopenSegment(segment: PersistentSegment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                            sweeper: TestCaseSweeper,
-                                                           segmentIO: SegmentIO = SegmentIO.random) {
+                                                           segmentIO: SegmentReadIO = SegmentReadIO.random) {
 
     import sweeper._
 
@@ -1964,7 +1965,7 @@ object TestData {
       segment match {
         case segment: TransientSegment.Singleton =>
           segment match {
-            case segment: TransientSegment.Remote =>
+            case segment: TransientSegment.RemoteRef =>
               slice addAll segment.ref.readAllBytes()
 
             case segment: TransientSegment.One =>
@@ -1984,6 +1985,27 @@ object TestData {
 
     def flattenSegment: (Slice[Byte], Option[Deadline]) =
       (flattenSegmentBytes, segment.nearestPutDeadline)
+  }
+
+  implicit class TransientSegmentsImplicits(segments: Slice[TransientSegment.PersistentTransientSegment]) {
+
+    def persist(pathDistributor: PathsDistributor,
+                segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue),
+                mmap: MMAP.Segment = MMAP.randomForSegment())(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                              idGenerator: IDGenerator,
+                                                              segmentReadIO: SegmentReadIO,
+                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                              testCaseSweeper: TestCaseSweeper): IO[Error.Segment, Slice[PersistentSegment]] = {
+      import testCaseSweeper._
+
+      SegmentWriteIO.PersistentIO.persist(
+        pathsDistributor = pathDistributor,
+        createdInLevel = 1,
+        segmentRefCacheWeight = segmentRefCacheWeight,
+        mmap = mmap,
+        transient = segments
+      ).sweep(_.foreach(_.foreach(_.sweep())))
+    }
   }
 
   implicit class DBFileImplicits(file: DBFile) {

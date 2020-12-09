@@ -29,7 +29,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
-import swaydb.core.segment.SegmentIO
+import swaydb.core.segment.SegmentReadIO
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -47,7 +47,7 @@ import swaydb.{Error, IO}
 private[core] object SegmentBlockCache {
 
   def apply(path: Path,
-            segmentIO: SegmentIO,
+            segmentIO: SegmentReadIO,
             blockRef: BlockRefReader[SegmentBlock.Offset],
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
@@ -79,7 +79,7 @@ private[core] object SegmentBlockCache {
  * Implements configured caching & IO strategies for all blocks within a Segment.
  */
 private[core] class SegmentBlockCache private(path: Path,
-                                              val segmentIO: SegmentIO,
+                                              val segmentIO: SegmentReadIO,
                                               segmentBlockRef: BlockRefReader[SegmentBlock.Offset],
                                               private var valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                                               private var sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],

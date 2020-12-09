@@ -46,6 +46,8 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment.PersistentTransientSegment
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Collections._
@@ -115,8 +117,8 @@ private[core] object Level extends LazyLogging {
       lock =>
         //lock acquired.
         //initialise Segment IO for this Level.
-        implicit val segmentIO: SegmentIO =
-          SegmentIO(
+        implicit val segmentIO: SegmentReadIO =
+          SegmentReadIO(
             bloomFilterConfig = bloomFilterConfig,
             hashIndexConfig = hashIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
@@ -354,7 +356,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               val bufferCleaner: ByteBufferSweeperActor,
                                                               val blockCacheSweeper: Option[MemorySweeper.Block],
                                                               val segmentIDGenerator: IDGenerator,
-                                                              val segmentIO: SegmentIO,
+                                                              val segmentIO: SegmentReadIO,
                                                               reserve: ReserveRange.State[Unit],
                                                               val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
 
@@ -976,27 +978,43 @@ private[core] case class Level(dirs: Seq[Dir],
           pathsDistributor = pathDistributor
         )
       } flatMap {
-        newSegments =>
-          logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", pathDistributor.head, segment.path, newSegments.map(_.path).mkString(", "))
-          buildNewMapEntry(newSegments, segment, None) flatMap {
-            entry =>
-              appendix.writeSafe(entry).transform(_ => ()) onRightSideEffect {
+        newTransientSegments =>
+          val newSegmentsIO =
+            if (inMemory) {
+              IO(newTransientSegments.asInstanceOf[Slice[TransientSegment.MemoryToMemory]].map(_.segment))
+            } else {
+              SegmentWriteIO.PersistentIO.persist(
+                pathsDistributor = pathDistributor,
+                createdInLevel = levelNumber,
+                segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+                mmap = segmentConfig.mmap,
+                transient = newTransientSegments.asInstanceOf[Slice[TransientSegment.PersistentTransientSegment]]
+              )
+            }
+
+          newSegmentsIO flatMap {
+            newSegments =>
+              logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", pathDistributor.head, segment.path, newSegments.map(_.path).mkString(", "))
+              buildNewMapEntry(newSegments, segment, None) flatMap {
+                entry =>
+                  appendix.writeSafe(entry).transform(_ => ()) onRightSideEffect {
+                    _ =>
+                      if (segmentConfig.isDeleteEventually)
+                        segment.delete(segmentConfig.deleteDelay)
+                      else
+                        IO(segment.delete) onLeftSideEffect {
+                          failure =>
+                            logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segment.path, failure)
+                        }
+                  }
+              } onLeftSideEffect {
                 _ =>
-                  if (segmentConfig.isDeleteEventually)
-                    segment.delete(segmentConfig.deleteDelay)
-                  else
-                    IO(segment.delete) onLeftSideEffect {
-                      failure =>
-                        logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segment.path, failure)
-                    }
-              }
-          } onLeftSideEffect {
-            _ =>
-              newSegments foreach {
-                segment =>
-                  IO(segment.delete) onLeftSideEffect {
-                    failure =>
-                      logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segment.path, failure)
+                  newSegments foreach {
+                    segment =>
+                      IO(segment.delete) onLeftSideEffect {
+                        failure =>
+                          logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segment.path, failure)
+                      }
                   }
               }
           }
@@ -1136,7 +1154,7 @@ private[core] case class Level(dirs: Seq[Dir],
           IO.Left[swaydb.Error.Level, Unit](swaydb.Error.MergeInvokedWithoutTargetSegment(assignables.size))
         } else {
           logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", pathDistributor.head, assignments.map(_.segment.path.toString), assignables.size)
-          val putResult: IO[Error.Level, Iterable[(Segment, SegmentPutResult[Slice[Segment]])]] =
+          val putResult: IO[Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]] =
             if (parallelMerge.levelParallelism <= 0)
               putAssigned(
                 assignments = assignments,
@@ -1146,33 +1164,78 @@ private[core] case class Level(dirs: Seq[Dir],
               assignments
                 .grouped(parallelMerge.levelParallelism)
                 .to(Iterable)
-                .flatMapRecoverIO[(Segment, SegmentPutResult[Slice[Segment]])](
+                .flatMapRecoverIO[(Segment, SegmentPutResult[Slice[TransientSegment]])](
                   ioBlock =
                     assignments =>
                       putAssigned(
                         assignments = assignments,
                         parallelMerge = parallelMerge
-                      ),
-                  recover =
-                    (putResult, _) =>
-                      putResult foreach {
-                        case (_, newSegments) =>
-                          newSegments.result foreach {
-                            segment =>
-                              IO(segment.delete) onLeftSideEffect {
-                                exception =>
-                                  logger.error(s"{}: Failed to delete Segment '{}' in recovery", pathDistributor.head, segment.path, exception)
-                              }
-                          }
-                      }
+                      )
                 )
 
           putResult flatMap {
-            putResult =>
-              commit(
-                putResult = putResult,
-                appendEntry = appendEntry
-              )
+            putResult: Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])] =>
+              val put: IO[Error.Level, Iterable[(Segment, SegmentPutResult[Slice[Segment]])]] =
+                if (inMemory)
+                  IO {
+                    putResult map {
+                      case (segment, putResult) =>
+                        val result: SegmentPutResult[Slice[Segment]] =
+                          putResult.map {
+                            transient =>
+                              transient.asInstanceOf[Slice[TransientSegment.MemoryToMemory]].map(_.segment)
+                          }
+                        (segment, result)
+                    }
+                  } else {
+
+                  val persistentResults =
+                    putResult map {
+                      case (segment, putResult) =>
+                        val result: SegmentPutResult[Slice[PersistentSegment]] =
+                          putResult.map {
+                            transient =>
+                              val persistentTransientSegment = transient.asInstanceOf[Slice[TransientSegment.PersistentTransientSegment]]
+                              SegmentWriteIO.PersistentIO.persist(
+                                pathsDistributor = pathDistributor,
+                                createdInLevel = levelNumber,
+                                segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+                                mmap = segmentConfig.mmap,
+                                transient = persistentTransientSegment
+                              ).get
+
+                          }
+                        (segment, result)
+                    }
+
+                  IO(persistentResults)
+                }
+
+
+              put flatMap {
+                put =>
+                  commit(
+                    putResult = put,
+                    appendEntry = appendEntry
+                  )
+              }
+
+              //              val newSegments = putResult.flatMap(_._2.result)
+              //              val newSegmentsSlice = Slice.from(newSegments, newSegments.size)
+              //
+              //              SegmentWriteIO.DefaultIO.persist(
+              //                pathsDistributor = pathDistributor,
+              //                createdInLevel = levelNumber,
+              //                segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+              //                mmap = segmentConfig.mmap,
+              //                transient = newSegmentsSlice
+              //              ) flatMap {
+              //                newSegments =>
+              //                  commit(
+              //                    putResult = putResult,
+              //                    appendEntry = appendEntry
+              //                  )
+              //              }
           }
         }
     }
@@ -1239,47 +1302,29 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def putAssigned(assignments: Iterable[Assignment[ListBuffer[Assignable], Segment]],
-                          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[Segment]])]] =
-    assignments.mapParallel[(Segment, SegmentPutResult[Slice[Segment]])](parallelism = parallelMerge.levelParallelism, timeout = parallelMerge.levelParallelismTimeout)(
-      block = {
-        assignment =>
-          IO {
-            val newSegments =
-              assignment.segment.put(
-                headGap = assignment.headGap.result,
-                tailGap = assignment.tailGap.result,
-                mergeableCount = assignment.midOverlap.size,
-                mergeable = assignment.midOverlap.iterator,
-                removeDeletes = removeDeletedRecords,
-                createdInLevel = levelNumber,
-                segmentParallelism = parallelMerge.segment,
-                valuesConfig = valuesConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig,
-                segmentConfig = segmentConfig,
-                pathsDistributor = pathDistributor.addPriorityPath(assignment.segment.path.getParent)
-              )
+                          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]] =
+    assignments.mapParallel[(Segment, SegmentPutResult[Slice[TransientSegment]])](parallelism = parallelMerge.levelParallelism, timeout = parallelMerge.levelParallelismTimeout)(
+      assignment =>
+        IO {
+          val newSegments =
+            assignment.segment.put(
+              headGap = assignment.headGap.result,
+              tailGap = assignment.tailGap.result,
+              mergeableCount = assignment.midOverlap.size,
+              mergeable = assignment.midOverlap.iterator,
+              removeDeletes = removeDeletedRecords,
+              createdInLevel = levelNumber,
+              segmentParallelism = parallelMerge.segment,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              segmentConfig = segmentConfig,
+              pathsDistributor = pathDistributor.addPriorityPath(assignment.segment.path.getParent)
+            )
 
-            (assignment.segment, newSegments)
-          }
-      },
-      recover =
-        (targetSegmentAndNewSegments, failure) => {
-
-          logFailure(s"${pathDistributor.head}: Failed to do putAssignedKeyValues, Reverting and deleting written ${targetSegmentAndNewSegments.size} segments", failure)
-
-          targetSegmentAndNewSegments foreach {
-            case (_, newSegments) =>
-              newSegments.result foreach {
-                segment =>
-                  IO(segment.delete) onLeftSideEffect {
-                    exception =>
-                      logger.error(s"{}: Failed to delete Segment '{}' in recovery for putAssignedKeyValues", pathDistributor.head, segment.path, exception)
-                  }
-              }
-          }
+          (assignment.segment, newSegments)
         }
     )
 

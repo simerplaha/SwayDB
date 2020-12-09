@@ -32,10 +32,10 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.config.{IOAction, IOStrategy}
 
-private[core] object SegmentIO {
+private[core] object SegmentReadIO {
 
   def defaultSynchronisedStoredIfCompressed =
-    new SegmentIO(
+    new SegmentReadIO(
       fileOpenIO = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       segmentBlockIO = IOStrategy.defaultSynchronised,
       hashIndexBlockIO = IOStrategy.defaultSynchronised,
@@ -51,8 +51,8 @@ private[core] object SegmentIO {
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
             sortedIndexConfig: SortedIndexBlock.Config,
             valuesConfig: ValuesBlock.Config,
-            segmentConfig: SegmentBlock.Config): SegmentIO =
-    new SegmentIO(
+            segmentConfig: SegmentBlock.Config): SegmentReadIO =
+    new SegmentReadIO(
       fileOpenIO = IOStrategy.SynchronisedIO(cacheOnAccess = true),
       segmentBlockIO = segmentConfig.blockIOStrategy,
       hashIndexBlockIO = hashIndexConfig.ioStrategy,
@@ -64,11 +64,11 @@ private[core] object SegmentIO {
     )
 }
 
-private[core] case class SegmentIO(fileOpenIO: IOStrategy.ThreadSafe,
-                                   segmentBlockIO: IOAction => IOStrategy,
-                                   hashIndexBlockIO: IOAction => IOStrategy,
-                                   bloomFilterBlockIO: IOAction => IOStrategy,
-                                   binarySearchIndexBlockIO: IOAction => IOStrategy,
-                                   sortedIndexBlockIO: IOAction => IOStrategy,
-                                   valuesBlockIO: IOAction => IOStrategy,
-                                   segmentFooterBlockIO: IOAction => IOStrategy)
+private[core] case class SegmentReadIO(fileOpenIO: IOStrategy.ThreadSafe,
+                                       segmentBlockIO: IOAction => IOStrategy,
+                                       hashIndexBlockIO: IOAction => IOStrategy,
+                                       bloomFilterBlockIO: IOAction => IOStrategy,
+                                       binarySearchIndexBlockIO: IOAction => IOStrategy,
+                                       sortedIndexBlockIO: IOAction => IOStrategy,
+                                       valuesBlockIO: IOAction => IOStrategy,
+                                       segmentFooterBlockIO: IOAction => IOStrategy)

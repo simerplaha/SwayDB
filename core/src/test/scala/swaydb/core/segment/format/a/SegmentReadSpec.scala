@@ -36,7 +36,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.segment.{Segment, SegmentIO}
+import swaydb.core.segment.{Segment, SegmentReadIO}
 import swaydb.core._
 import swaydb.data.MaxKey
 import swaydb.data.RunThis._
@@ -82,7 +82,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
   def keyValuesCount: Int
 
-  implicit val segmentIO = SegmentIO.random
+  implicit val segmentIO = SegmentReadIO.random
 
   "belongsTo" should {
     "return true if the input key-value belong to the Segment else false when the Segment contains no Range key-value" in {

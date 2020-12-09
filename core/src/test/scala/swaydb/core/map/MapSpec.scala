@@ -37,7 +37,7 @@ import swaydb.core.level.AppendixMapCache
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.serializer._
-import swaydb.core.segment.{Segment, SegmentIO}
+import swaydb.core.segment.{Segment, SegmentReadIO}
 import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.RunThis._
@@ -57,7 +57,7 @@ class MapSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def segmentIO = SegmentIO.random
+  implicit def segmentIO = SegmentReadIO.random
   implicit def optimiseWrites: OptimiseWrites = OptimiseWrites.random
   implicit def atomic = Atomic.random
 

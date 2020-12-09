@@ -95,7 +95,7 @@ object CommonAssertions {
       }
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                     segmentIO: SegmentIO = SegmentIO.random): Unit = {
+                                     segmentIO: SegmentReadIO = SegmentReadIO.random): Unit = {
       val actualMemory = actual.toMemory()
       val expectedMemory = expected.toMemory()
 
@@ -705,8 +705,8 @@ object CommonAssertions {
 
   def assertGet(keyValues: Slice[Memory],
                 rawSegmentReader: Reader[Byte],
-                segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                         blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
+                segmentIO: SegmentReadIO = SegmentReadIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                 blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
     implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
     val blocks = readBlocksFromReader(rawSegmentReader.copy()).get
 
@@ -1379,7 +1379,7 @@ object CommonAssertions {
   }
 
   def readBlocksFromSegment(closedSegment: TransientSegment.One,
-                            segmentIO: SegmentIO = SegmentIO.random,
+                            segmentIO: SegmentReadIO = SegmentReadIO.random,
                             useCacheableReaders: Boolean = randomBoolean())(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
     if (useCacheableReaders && closedSegment.sortedIndexUnblockedReader.isDefined && randomBoolean()) //randomly also use cacheable readers
       IO(readCachedBlocksFromSegment(closedSegment).get)
@@ -1432,7 +1432,7 @@ object CommonAssertions {
     import swaydb.Error.Segment.ExceptionHandler
 
     val segmentIO =
-      SegmentIO(
+      SegmentReadIO(
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1477,7 +1477,7 @@ object CommonAssertions {
     readAll(Reader(bytes))
 
   def readBlocks(bytes: Slice[Byte],
-                 segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
+                 segmentIO: SegmentReadIO = SegmentReadIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
     readBlocksFromReader(Reader(bytes), segmentIO)
 
   def getSegmentBlockCache(keyValues: Slice[Memory],
@@ -1506,7 +1506,7 @@ object CommonAssertions {
     ) map {
       closed =>
         val segmentIO =
-          SegmentIO(
+          SegmentReadIO(
             bloomFilterConfig = bloomFilterConfig,
             hashIndexConfig = hashIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1577,7 +1577,7 @@ object CommonAssertions {
       IOStrategy.ConcurrentIO(cacheOnAccess)
 
   def getSegmentBlockCacheFromSegmentClosed(segment: TransientSegment.One,
-                                            segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): SegmentBlockCache =
+                                            segmentIO: SegmentReadIO = SegmentReadIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): SegmentBlockCache =
     SegmentBlockCache(
       path = Paths.get("test"),
       segmentIO = segmentIO,
@@ -1591,7 +1591,7 @@ object CommonAssertions {
     )
 
   def getSegmentBlockCacheFromReader(reader: Reader[Byte],
-                                     segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): SegmentBlockCache =
+                                     segmentIO: SegmentReadIO = SegmentReadIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): SegmentBlockCache =
     SegmentBlockCache(
       path = Paths.get("test-cache"),
       segmentIO = segmentIO,
@@ -1623,8 +1623,8 @@ object CommonAssertions {
         )
     }
 
-  def readBlocksFromReader(reader: Reader[Byte], segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                          blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] = {
+  def readBlocksFromReader(reader: Reader[Byte], segmentIO: SegmentReadIO = SegmentReadIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                  blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] = {
     val blockCache = getSegmentBlockCacheFromReader(reader, segmentIO)
     readBlocks(blockCache)
   }
@@ -1782,13 +1782,13 @@ object CommonAssertions {
       if (bool) 1 else 0
   }
 
-  implicit class SegmentIOImplicits(io: SegmentIO.type) {
-    def random: SegmentIO =
+  implicit class SegmentIOImplicits(io: SegmentReadIO.type) {
+    def random: SegmentReadIO =
       random(cacheOnAccess = randomBoolean())
 
     def random(cacheOnAccess: Boolean = randomBoolean(),
-               includeReserved: Boolean = true): SegmentIO =
-      SegmentIO(
+               includeReserved: Boolean = true): SegmentReadIO =
+      SegmentReadIO(
         fileOpenIO = randomThreadSafeIOStrategy(cacheOnAccess, includeReserved),
         segmentBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
         hashIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),

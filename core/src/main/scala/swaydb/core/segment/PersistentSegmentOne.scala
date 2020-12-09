@@ -70,7 +70,7 @@ protected object PersistentSegmentOne {
                                                  fileSweeper: FileSweeper,
                                                  bufferCleaner: ByteBufferSweeperActor,
                                                  forceSaveApplier: ForceSaveApplier,
-                                                 segmentIO: SegmentIO): PersistentSegmentOne =
+                                                 segmentIO: SegmentReadIO): PersistentSegmentOne =
     PersistentSegmentOne(
       file = file,
       createdInLevel = createdInLevel,
@@ -87,7 +87,7 @@ protected object PersistentSegmentOne {
       footerCacheable = segment.footerUnblocked,
       previousBlockCache =
         segment match {
-          case remote: TransientSegment.Remote =>
+          case remote: TransientSegment.RemoteRef =>
             remote.ref.blockCache() orElse BlockCache.forSearch(segment.segmentSize, blockCacheSweeper)
 
           case _: TransientSegment.One =>
@@ -116,7 +116,7 @@ protected object PersistentSegmentOne {
                                                           fileSweeper: FileSweeper,
                                                           bufferCleaner: ByteBufferSweeperActor,
                                                           forceSaveApplier: ForceSaveApplier,
-                                                          segmentIO: SegmentIO): PersistentSegmentOne = {
+                                                          segmentIO: SegmentReadIO): PersistentSegmentOne = {
 
     val fileSize = segmentSize - 1
 
@@ -165,7 +165,7 @@ protected object PersistentSegmentOne {
                           fileSweeper: FileSweeper,
                           bufferCleaner: ByteBufferSweeperActor,
                           forceSaveApplier: ForceSaveApplier,
-                          segmentIO: SegmentIO): PersistentSegment = {
+                          segmentIO: SegmentReadIO): PersistentSegment = {
 
     val fileSize = file.fileSize.toInt
 
@@ -244,7 +244,7 @@ protected case class PersistentSegmentOne(file: DBFile,
                                                                                 bufferCleaner: ByteBufferSweeperActor,
                                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                 forceSaveApplier: ForceSaveApplier,
-                                                                                segmentIO: SegmentIO) extends PersistentSegment with LazyLogging {
+                                                                                segmentIO: SegmentReadIO) extends PersistentSegment with LazyLogging {
 
   override def formatId: Byte = PersistentSegmentOne.formatId
 
@@ -300,25 +300,27 @@ protected case class PersistentSegmentOne(file: DBFile,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
-    if (removeDeletes)
-      SegmentRef.mergePut(
-        ref = ref,
-        headGap = headGap,
-        tailGap = tailGap,
-        mergeableCount = mergeableCount,
-        mergeable = mergeable,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig,
-        pathsDistributor = pathsDistributor
-      )
-    else
+                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]] =
+    if (removeDeletes) {
+      val newSegments =
+        SegmentRef.mergeWrite(
+          ref = ref,
+          headGap = headGap,
+          tailGap = tailGap,
+          mergeableCount = mergeableCount,
+          mergeable = mergeable,
+          removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
+
+      SegmentPutResult(result = newSegments, replaced = true)
+    } else {
       SegmentRef.fastPut(
         ref = ref,
         headGap = headGap,
@@ -333,9 +335,9 @@ protected case class PersistentSegmentOne(file: DBFile,
         binarySearchIndexConfig = binarySearchIndexConfig,
         hashIndexConfig = hashIndexConfig,
         bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig,
-        pathsDistributor = pathsDistributor
+        segmentConfig = segmentConfig
       )
+    }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -345,8 +347,8 @@ protected case class PersistentSegmentOne(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] =
-    SegmentRef.refreshPut(
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[TransientSegment] =
+    SegmentRef.refresh(
       ref = ref,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
@@ -355,8 +357,7 @@ protected case class PersistentSegmentOne(file: DBFile,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig,
-      segmentConfig = segmentConfig,
-      pathsDistributor = pathsDistributor
+      segmentConfig = segmentConfig
     )
 
   def getFromCache(key: Slice[Byte]): PersistentOption =

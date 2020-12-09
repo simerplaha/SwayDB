@@ -25,7 +25,6 @@
 package swaydb.core.segment
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO._
@@ -42,8 +41,10 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment.PersistentTransientSegment
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.format.a.entry.id.BaseEntryId.Format.A
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
@@ -214,7 +215,7 @@ private[core] case object Segment extends LazyLogging {
                                                                      bufferCleaner: ByteBufferSweeperActor,
                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                      blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                     segmentIO: SegmentIO,
+                                                                     segmentIO: SegmentReadIO,
                                                                      idGenerator: IDGenerator,
                                                                      forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
     val transient =
@@ -229,280 +230,14 @@ private[core] case object Segment extends LazyLogging {
         segmentConfig = segmentConfig
       )
 
-    persistent(
+    SegmentWriteIO.PersistentIO.persist(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
       segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
       mmap = segmentConfig.mmap,
       transient = transient
-    )
+    ).get
   }
-
-  /**
-   * Write segments to target file and also attempts to batch transfer bytes.
-   */
-  private def writeOrTransfer(segments: Slice[TransientSegment.Singleton],
-                              target: DBFile,
-                              createdInLevel: Int): Int = {
-    var createdInLevelMin = createdInLevel
-
-    /**
-     * Batch transfer segments to remote file. This defers transfer to the operating
-     * system skipping the JVM heap.
-     */
-    def batchTransfer(sameFileRemotes: ListBuffer[TransientSegment.Remote]): Unit =
-      if (sameFileRemotes.nonEmpty)
-        if (sameFileRemotes.size == 1) {
-          val remote = sameFileRemotes.head
-          createdInLevelMin = createdInLevelMin min remote.ref.createdInLevel
-          remote.ref.segmentBlockCache.transfer(0, remote.segmentSize, target)
-          sameFileRemotes.clear()
-        } else {
-          sameFileRemotes foreach {
-            remote =>
-              createdInLevelMin = createdInLevelMin min remote.ref.createdInLevel
-          }
-
-          val start = sameFileRemotes.head.ref.offset().start
-          val end = sameFileRemotes.last.ref.offset().end
-          sameFileRemotes.head.ref.segmentBlockCache.transferIgnoreOffset(start, end - start + 1, target)
-          sameFileRemotes.clear()
-        }
-
-    /**
-     * Writes bytes to target file and also tries to transfer Remote Refs which belongs to
-     * same file to be transferred as a single IO operation i.e. batchableRemotes.
-     */
-    val pendingRemotes =
-      segments.foldLeft(ListBuffer.empty[TransientSegment.Remote]) {
-        case (batchableRemotes, nextRemoteOrOne) =>
-          nextRemoteOrOne match {
-            case nextRemote: TransientSegment.Remote =>
-              if (batchableRemotes.isEmpty || (batchableRemotes.last.ref.path.getParent == nextRemote.ref.path.getParent && batchableRemotes.last.ref.offset().end + 1 == nextRemote.ref.offset().start)) {
-                batchableRemotes += nextRemote
-              } else {
-                batchTransfer(batchableRemotes)
-                batchableRemotes += nextRemote
-              }
-
-            case nextOne: TransientSegment.One =>
-              batchTransfer(batchableRemotes)
-              target.append(nextOne.bodyBytes)
-              batchableRemotes
-          }
-      }
-
-    //transfer any remaining remotes.
-    batchTransfer(pendingRemotes)
-
-    createdInLevelMin
-  }
-
-  def persistent(pathsDistributor: PathsDistributor,
-                 createdInLevel: Int,
-                 segmentRefCacheWeight: Int,
-                 mmap: MMAP.Segment,
-                 transient: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore,
-                                                        fileSweeper: FileSweeper,
-                                                        bufferCleaner: ByteBufferSweeperActor,
-                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                        blockCacheSweeper: Option[MemorySweeper.Block],
-                                                        segmentIO: SegmentIO,
-                                                        idGenerator: IDGenerator,
-                                                        forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] =
-    transient.mapRecover(
-      block =
-        segment =>
-          if (segment.hasEmptyByteSlice) {
-            //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
-            //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
-            throw IO.throwable("Empty key-values submitted to persistent Segment.")
-          } else {
-            val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
-
-            segment match {
-              case segment: TransientSegment.One =>
-                val file: DBFile =
-                  segmentFile(
-                    path = path,
-                    mmap = mmap,
-                    segmentSize = segment.segmentSize,
-                    applier =
-                      file => {
-                        file.append(segment.fileHeader)
-                        file.append(segment.bodyBytes)
-                      }
-                  )
-
-                PersistentSegmentOne(
-                  file = file,
-                  createdInLevel = createdInLevel,
-                  segment = segment
-                )
-
-              case segment: TransientSegment.Remote =>
-                val segmentSize = segment.segmentSize
-
-                val file: DBFile =
-                  segmentFile(
-                    path = path,
-                    mmap = mmap,
-                    segmentSize = segmentSize,
-                    applier =
-                      file => {
-                        file.append(segment.fileHeader)
-                        segment.ref.segmentBlockCache.transfer(0, segment.segmentSizeIgnoreHeader, file)
-                      }
-                  )
-
-                PersistentSegmentOne(
-                  file = file,
-                  createdInLevel = segment.ref.createdInLevel,
-                  segment = segment
-                )
-
-              case segment: TransientSegment.Many =>
-                //many can contain remote segments so createdInLevel is the smallest remote.
-                var createdInLevelMin = createdInLevel
-
-                val file: DBFile =
-                  segmentFile(
-                    path = path,
-                    mmap = mmap,
-                    segmentSize = segment.segmentSize,
-                    applier =
-                      file => {
-                        file.append(segment.fileHeader)
-                        file.append(segment.listSegment.bodyBytes)
-
-                        val batch =
-                          writeOrTransfer(
-                            segments = segment.segments,
-                            target = file,
-                            createdInLevel = createdInLevelMin
-                          )
-
-                        createdInLevelMin = createdInLevelMin min batch
-                      }
-                  )
-
-                PersistentSegmentMany(
-                  file = file,
-                  createdInLevel = createdInLevelMin,
-                  segmentRefCacheWeight = segmentRefCacheWeight,
-                  segment = segment
-                )
-            }
-          },
-      recover =
-        (segments: Slice[PersistentSegment], _: Throwable) =>
-          segments foreach {
-            segmentToDelete =>
-              try
-                segmentToDelete.delete
-              catch {
-                case exception: Exception =>
-                  logger.error(s"Failed to delete Segment '${segmentToDelete.path}' in recover due to failed put", exception)
-              }
-          }
-    )
-
-  private def segmentFile(path: Path,
-                          mmap: MMAP.Segment,
-                          segmentSize: Int,
-                          applier: DBFile => Unit)(implicit segmentIO: SegmentIO,
-                                                   fileSweeper: FileSweeper,
-                                                   bufferCleaner: ByteBufferSweeperActor,
-                                                   forceSaveApplier: ForceSaveApplier): DBFile =
-    mmap match {
-      case MMAP.On(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
-        DBFile.mmapWriteAndReadApplier(
-          path = path,
-          fileOpenIOStrategy = segmentIO.fileOpenIO,
-          autoClose = true,
-          deleteAfterClean = deleteAfterClean,
-          forceSave = forceSave,
-          bufferSize = segmentSize,
-          applier = applier
-        )
-
-      case MMAP.ReadOnly(deleteAfterClean) =>
-        val channelWrite =
-          DBFile.channelWrite(
-            path = path,
-            fileOpenIOStrategy = segmentIO.fileOpenIO,
-            autoClose = true,
-            forceSave = ForceSave.Off
-          )
-
-        try
-          applier(channelWrite)
-        catch {
-          case throwable: Throwable =>
-            logger.error(s"Failed to write $mmap file with applier. Closing file: $path", throwable)
-            channelWrite.close()
-            throw throwable
-        }
-
-        channelWrite.close()
-
-        DBFile.mmapRead(
-          path = channelWrite.path,
-          fileOpenIOStrategy = segmentIO.fileOpenIO,
-          autoClose = true,
-          deleteAfterClean = deleteAfterClean
-        )
-
-      case _: MMAP.Off =>
-        val channelWrite =
-          DBFile.channelWrite(
-            path = path,
-            fileOpenIOStrategy = segmentIO.fileOpenIO,
-            autoClose = true,
-            forceSave = ForceSave.Off
-          )
-
-        try
-          applier(channelWrite)
-        catch {
-          case throwable: Throwable =>
-            logger.error(s"Failed to write $mmap file with applier. Closing file: $path", throwable)
-            channelWrite.close()
-            throw throwable
-        }
-
-        channelWrite.close()
-
-        DBFile.channelRead(
-          path = channelWrite.path,
-          fileOpenIOStrategy = segmentIO.fileOpenIO,
-          autoClose = true
-        )
-
-      //another case if mmapReads is false, write bytes in mmaped mode and then close and re-open for read. Currently not inuse.
-      //    else if (mmap.mmapWrites && !mmap.mmapReads) {
-      //      val file =
-      //        DBFile.mmapWriteAndRead(
-      //          path = path,
-      //          autoClose = true,
-      //          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-      //          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-      //          bytes = segmentBytes
-      //        )
-      //
-      //      //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
-      //      //is probably not the most efficient and should not be used.
-      //      file.close()
-      //      DBFile.channelRead(
-      //        path = file.path,
-      //        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-      //        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-      //        autoClose = true
-      //      )
-      //    }
-    }
 
   def copyToPersist(segment: Segment,
                     createdInLevel: Int,
@@ -520,7 +255,7 @@ private[core] case object Segment extends LazyLogging {
                                                         fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         blockCacheSweeper: Option[MemorySweeper.Block],
-                                                        segmentIO: SegmentIO,
+                                                        segmentIO: SegmentReadIO,
                                                         idGenerator: IDGenerator,
                                                         forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] =
     segment match {
@@ -587,7 +322,7 @@ private[core] case object Segment extends LazyLogging {
                                                         fileSweeper: FileSweeper,
                                                         bufferCleaner: ByteBufferSweeperActor,
                                                         blockCacheSweeper: Option[MemorySweeper.Block],
-                                                        segmentIO: SegmentIO,
+                                                        segmentIO: SegmentReadIO,
                                                         idGenerator: IDGenerator,
                                                         forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
     val builder =
@@ -683,9 +418,9 @@ private[core] case object Segment extends LazyLogging {
                                                    fileSweeper: FileSweeper,
                                                    bufferCleaner: ByteBufferSweeperActor,
                                                    blockCacheSweeper: Option[MemorySweeper.Block],
-                                                   segmentIO: SegmentIO,
+                                                   segmentIO: SegmentReadIO,
                                                    forceSaveApplier: ForceSaveApplier): SegmentPutResult[Slice[PersistentSegment]] = {
-    val transient: Iterable[TransientSegment] =
+    val transient: Slice[PersistentTransientSegment] =
       SegmentRef.mergeWrite(
         oldKeyValuesCount = oldKeyValuesCount,
         oldKeyValues = oldKeyValues,
@@ -704,13 +439,13 @@ private[core] case object Segment extends LazyLogging {
       )
 
     val newSegments =
-      Segment.persistent(
+      SegmentWriteIO.PersistentIO.persist(
         pathsDistributor = pathsDistributor,
         mmap = segmentConfig.mmap,
         segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
         createdInLevel = createdInLevel,
         transient = transient
-      )
+      ).get
 
     SegmentPutResult(result = newSegments, replaced = true)
   }
@@ -730,7 +465,7 @@ private[core] case object Segment extends LazyLogging {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
+                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[PersistentTransientSegment] = {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {
@@ -789,7 +524,7 @@ private[core] case object Segment extends LazyLogging {
                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                          hashIndexConfig: HashIndexBlock.Config,
                          bloomFilterConfig: BloomFilterBlock.Config,
-                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
+                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[PersistentTransientSegment] = {
     val memoryKeyValues =
       Segment
         .toMemoryIterator(keyValues, removeDeletes)
@@ -832,10 +567,10 @@ private[core] case object Segment extends LazyLogging {
                                                                 fileSweeper: FileSweeper,
                                                                 bufferCleaner: ByteBufferSweeperActor,
                                                                 blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                segmentIO: SegmentIO,
+                                                                segmentIO: SegmentReadIO,
                                                                 forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
 
-    val transient: Iterable[TransientSegment] =
+    val transient: Slice[PersistentTransientSegment] =
       Segment.refreshForNewLevel(
         keyValues = keyValues,
         removeDeletes = removeDeletes,
@@ -848,13 +583,13 @@ private[core] case object Segment extends LazyLogging {
         segmentConfig = segmentConfig
       )
 
-    Segment.persistent(
+    SegmentWriteIO.PersistentIO.persist(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
       segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
       mmap = segmentConfig.mmap,
       transient = transient
-    )
+    ).get
   }
 
   def apply(path: Path,
@@ -875,7 +610,7 @@ private[core] case object Segment extends LazyLogging {
                                          fileSweeper: FileSweeper,
                                          bufferCleaner: ByteBufferSweeperActor,
                                          blockCacheSweeper: Option[MemorySweeper.Block],
-                                         segmentIO: SegmentIO,
+                                         segmentIO: SegmentReadIO,
                                          forceSaveApplier: ForceSaveApplier): PersistentSegment = {
 
     val file =
@@ -993,7 +728,7 @@ private[core] case object Segment extends LazyLogging {
                                   bufferCleaner: ByteBufferSweeperActor,
                                   forceSaveApplier: ForceSaveApplier): PersistentSegment = {
 
-    implicit val segmentIO: SegmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
+    implicit val segmentIO: SegmentReadIO = SegmentReadIO.defaultSynchronisedStoredIfCompressed
 
     val file =
       mmap match {
@@ -1585,7 +1320,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[Segment]]
+                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -1595,7 +1330,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[TransientSegment]
 
   def getFromCache(key: Slice[Byte]): KeyValueOption
 

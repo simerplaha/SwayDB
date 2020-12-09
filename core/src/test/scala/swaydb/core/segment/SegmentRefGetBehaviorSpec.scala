@@ -55,7 +55,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
   implicit val blockMemorySweeper: Option[MemorySweeper.Block] = None
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def segmentIO: SegmentIO = SegmentIO.random
+  implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
 
   "get" when {
     implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None

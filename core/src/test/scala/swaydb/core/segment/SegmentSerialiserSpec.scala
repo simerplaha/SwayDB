@@ -44,7 +44,7 @@ class SegmentSerialiserSpec extends TestBase {
 
           implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
           implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-          implicit val segmentIO: SegmentIO = SegmentIO.random
+          implicit val segmentIO: SegmentReadIO = SegmentReadIO.random
 
           val keyValues = randomizedKeyValues(randomIntMax(100) max 1)
           val segment = TestSegment(keyValues)

@@ -75,7 +75,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
                                             blockCacheSweeper: Option[MemorySweeper.Block],
                                             fileSweeper: FileSweeper,
                                             bufferCleaner: ByteBufferSweeperActor,
-                                            segmentIO: SegmentIO,
+                                            segmentIO: SegmentReadIO,
                                             forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
     val segmentsCache = new ConcurrentSkipListMap[Slice[Byte], SegmentRef](keyOrder)
@@ -125,7 +125,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
           }
 
           singleton match {
-            case remote: TransientSegment.Remote =>
+            case remote: TransientSegment.RemoteRef =>
               cacheSegmentRef {
                 remote.ref.blockCache() orElse BlockCache.forSearch(maxCacheSizeOrZero = thisSegmentSize, blockSweeper = blockCacheSweeper)
               }
@@ -209,7 +209,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
                                                        blockCacheSweeper: Option[MemorySweeper.Block],
                                                        fileSweeper: FileSweeper,
                                                        bufferCleaner: ByteBufferSweeperActor,
-                                                       segmentIO: SegmentIO,
+                                                       segmentIO: SegmentReadIO,
                                                        forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
     val segmentsCache = new ConcurrentSkipListMap[Slice[Byte], SegmentRef](keyOrder)
@@ -343,7 +343,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
                                         blockCacheSweeper: Option[MemorySweeper.Block],
                                         fileSweeper: FileSweeper,
                                         bufferCleaner: ByteBufferSweeperActor,
-                                        segmentIO: SegmentIO,
+                                        segmentIO: SegmentReadIO,
                                         forceSaveApplier: ForceSaveApplier): PersistentSegmentMany = {
 
     val fileExtension = Effect.fileExtension(file.path)
@@ -447,7 +447,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
                             maxKey: MaxKey[Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                          blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                         segmentIO: SegmentIO): SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] = {
+                                                         segmentIO: SegmentReadIO): SkipListTreeMap[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] = {
     val blockedReader = Reader(file).moveTo(1)
     val listSegmentSize = blockedReader.readUnsignedInt()
     val listSegment = blockedReader.read(listSegmentSize)
@@ -542,7 +542,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
                                                                                functionStore: FunctionStore,
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                               segmentIO: SegmentIO): SegmentRef = {
+                                                                               segmentIO: SegmentReadIO): SegmentRef = {
     val fileReader = Reader(file).moveTo(1)
     val listSegmentSize = fileReader.readUnsignedInt()
 
@@ -590,7 +590,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                                                                                                                       fileSweeper: FileSweeper,
                                                                                                                       bufferCleaner: ByteBufferSweeperActor,
                                                                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                      segmentIO: SegmentIO,
+                                                                                                                      segmentIO: SegmentReadIO,
                                                                                                                       forceSaveApplier: ForceSaveApplier) extends PersistentSegment with LazyLogging {
 
   override def formatId: Byte = PersistentSegmentMany.formatId
@@ -729,30 +729,32 @@ protected case class PersistentSegmentMany(file: DBFile,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[PersistentSegment]] =
+                                                                                                           executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]] =
     if (removeDeletes) {
       //duplicate so that SegmentRefs are not read twice.
       val (countIterator, keyValuesIterator) = getAllSegmentRefs().duplicate
       val oldKeyValuesCount = countIterator.foldLeft(0)(_ + _.getKeyValueCount())
       val oldKeyValues = keyValuesIterator.flatMap(_.iterator())
 
-      Segment.mergePut(
-        oldKeyValuesCount = oldKeyValuesCount,
-        oldKeyValues = oldKeyValues,
-        headGap = headGap,
-        tailGap = tailGap,
-        mergeableCount = mergeableCount,
-        mergeable = mergeable,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig,
-        pathsDistributor = pathsDistributor
-      )
+      val newSegments =
+        SegmentRef.mergeWrite(
+          oldKeyValuesCount = oldKeyValuesCount,
+          oldKeyValues = oldKeyValues,
+          headGap = headGap,
+          tailGap = tailGap,
+          mergeableCount = mergeableCount,
+          mergeable = mergeable,
+          removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
+
+      SegmentPutResult(result = newSegments, replaced = true)
     } else {
       SegmentRef.fastAssignPut(
         headGap = headGap,
@@ -768,8 +770,7 @@ protected case class PersistentSegmentMany(file: DBFile,
         binarySearchIndexConfig = binarySearchIndexConfig,
         hashIndexConfig = hashIndexConfig,
         bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig,
-        pathsDistributor = pathsDistributor
+        segmentConfig = segmentConfig
       )
     }
 
@@ -781,18 +782,17 @@ protected case class PersistentSegmentMany(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] =
-    Segment.refreshForNewLevelPut(
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[TransientSegment] =
+    Segment.refreshForNewLevel(
+      keyValues = iterator(),
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
-      keyValues = iterator(),
       valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig,
-      segmentConfig = segmentConfig,
-      pathsDistributor = pathsDistributor
+      segmentConfig = segmentConfig
     )
 
   def getFromCache(key: Slice[Byte]): PersistentOption = {

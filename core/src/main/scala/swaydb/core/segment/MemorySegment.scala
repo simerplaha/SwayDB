@@ -24,8 +24,6 @@
 
 package swaydb.core.segment
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
@@ -37,6 +35,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
@@ -47,7 +46,7 @@ import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
-import scala.collection.compat._
+import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -86,7 +85,7 @@ protected case class MemorySegment(path: Path,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config,
                    pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                       executionContext: ExecutionContext): SegmentPutResult[Slice[MemorySegment]] =
+                                                       executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment.MemoryToMemory]] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -113,9 +112,9 @@ protected case class MemorySegment(path: Path,
             pathsDistributor = pathsDistributor,
             createdInLevel = createdInLevel,
             stats = stats.close
-          )
+          ).map(TransientSegment.MemoryToMemory)
 
-      SegmentPutResult[Slice[MemorySegment]](result = newSegments, replaced = true)
+      SegmentPutResult[Slice[TransientSegment.MemoryToMemory]](result = newSegments, replaced = true)
     }
 
   override def refresh(removeDeletes: Boolean,
@@ -126,7 +125,7 @@ protected case class MemorySegment(path: Path,
                        hashIndexConfig: HashIndexBlock.Config,
                        bloomFilterConfig: BloomFilterBlock.Config,
                        segmentConfig: SegmentBlock.Config,
-                       pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] =
+                       pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[TransientSegment.MemoryToMemory] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -147,7 +146,7 @@ protected case class MemorySegment(path: Path,
         pathsDistributor = pathsDistributor,
         createdInLevel = createdInLevel,
         stats = mergeStats
-      )
+      ).map(TransientSegment.MemoryToMemory)
     }
 
   override def getFromCache(key: Slice[Byte]): MemoryOption =

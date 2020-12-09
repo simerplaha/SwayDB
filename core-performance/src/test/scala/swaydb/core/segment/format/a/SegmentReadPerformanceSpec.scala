@@ -37,7 +37,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment, SegmentIO, ThreadReadState}
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment, SegmentReadIO, ThreadReadState}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper, TestTimer}
 import swaydb.data.config.{Dir, IOAction, IOStrategy, MMAP, PushForwardStrategy}
@@ -192,8 +192,8 @@ class SegmentReadPerformanceSpec extends TestBase {
       Some(MemorySweeper.BlockSweeper(blockSize = 4098.bytes, cacheSize = 1.gb, skipBlockCacheSeekSize = 1.mb, disableForSearchIO = false, actorConfig = None))
     //      None
 
-    implicit val segmentIO: SegmentIO =
-      SegmentIO(
+    implicit val segmentIO: SegmentReadIO =
+      SegmentReadIO(
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,

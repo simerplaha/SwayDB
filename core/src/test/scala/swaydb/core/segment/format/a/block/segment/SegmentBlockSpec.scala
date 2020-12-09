@@ -29,7 +29,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.SegmentIO
+import swaydb.core.segment.SegmentReadIO
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -52,7 +52,7 @@ class SegmentBlockSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   implicit def testTimer: TestTimer = TestTimer.random
-  implicit def segmentIO: SegmentIO = SegmentIO.random
+  implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
 
   "SegmentBlock" should {
     "convert empty KeyValues and not throw exception but return empty bytes" in {

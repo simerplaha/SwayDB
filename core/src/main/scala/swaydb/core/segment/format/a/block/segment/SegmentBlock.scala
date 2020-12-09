@@ -32,6 +32,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment.PersistentTransientSegment
 import swaydb.core.segment.format.a.block.segment.data.{ClosedBlocks, ClosedBlocksWithFooter, TransientSegment}
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
@@ -186,7 +187,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[PersistentTransientSegment] =
     if (mergeStats.isEmpty) {
       Slice.empty
     } else {
@@ -219,7 +220,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                      hashIndexConfig: HashIndexBlock.Config,
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[PersistentTransientSegment] =
     if (ones.isEmpty) {
       Slice.empty
     } else {
@@ -230,7 +231,7 @@ private[core] case object SegmentBlock extends LazyLogging {
           items = ones
         )
 
-      val many = Slice.of[TransientSegment.Many](groups.size)
+      val many = Slice.of[TransientSegment.PersistentTransientSegment](groups.size)
 
       var index = 0
 
@@ -239,7 +240,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         val segments = groups.get(index)
 
         if (segments.size == 1) {
-          segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice)
+          many add segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice)
         } else {
           val listKeyValue: Persistent.Builder[Memory, Slice] =
             MergeStats.persistent(Slice.newAggregator(segments.size * 2))

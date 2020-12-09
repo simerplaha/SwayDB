@@ -24,15 +24,15 @@
 
 package swaydb.core.segment.format.a.block.segment.data
 
-import swaydb.core.data.Memory
-import swaydb.core.segment.SegmentRef
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.{MemorySegment, Segment, SegmentRef}
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
@@ -50,7 +50,9 @@ sealed trait TransientSegment {
 
 object TransientSegment {
 
-  sealed trait Singleton extends TransientSegment {
+  sealed trait PersistentTransientSegment extends TransientSegment
+
+  sealed trait Singleton extends PersistentTransientSegment {
     def copyWithFileHeader(headerBytes: Slice[Byte]): Singleton
 
     def hasEmptyByteSliceIgnoreHeader: Boolean
@@ -63,7 +65,7 @@ object TransientSegment {
     def bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]
     def footerUnblocked: Option[SegmentFooterBlock]
 
-    def toKeyValue(offset: Int, size: Int): Slice[Memory] =
+    def toKeyValue(offset: Int, size: Int): Slice[swaydb.core.data.Memory] =
       TransientSegmentSerialiser.toKeyValue(
         singleton = this,
         offset = offset,
@@ -71,7 +73,8 @@ object TransientSegment {
       )
   }
 
-  case class Remote(fileHeader: Slice[Byte], ref: SegmentRef) extends Singleton {
+  case class RemoteRef(fileHeader: Slice[Byte],
+                       ref: SegmentRef) extends Singleton {
     override def minKey: Slice[Byte] =
       ref.minKey
 
@@ -117,9 +120,40 @@ object TransientSegment {
     override def toString: String =
       s"TransientSegment.${this.productPrefix}. Size: ${ref.segmentSize}.bytes"
 
-    override def copyWithFileHeader(fileHeader: Slice[Byte]): Remote =
+    override def copyWithFileHeader(fileHeader: Slice[Byte]): RemoteRef =
       copy(fileHeader = fileHeader)
 
+  }
+
+  case class RemoteSegment(segment: Segment,
+                           removeDeletes: Boolean,
+                           createdInLevel: Int,
+                           valuesConfig: ValuesBlock.Config,
+                           sortedIndexConfig: SortedIndexBlock.Config,
+                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                           hashIndexConfig: HashIndexBlock.Config,
+                           bloomFilterConfig: BloomFilterBlock.Config,
+                           segmentConfig: SegmentBlock.Config) extends PersistentTransientSegment {
+    override def minKey: Slice[Byte] =
+      segment.minKey
+
+    override def maxKey: MaxKey[Slice[Byte]] =
+      segment.maxKey
+
+    override def nearestPutDeadline: Option[Deadline] =
+      segment.nearestPutDeadline
+
+    override def minMaxFunctionId: Option[MinMax[Slice[Byte]]] =
+      segment.minMaxFunctionId
+
+    override def hasEmptyByteSlice: Boolean =
+      false
+
+    override def segmentSize: Int =
+      segment.segmentSize
+
+    override def toString: String =
+      s"TransientSegment.${this.productPrefix}. Size: ${segment.segmentSize}.bytes"
   }
 
   case class One(minKey: Slice[Byte],
@@ -152,7 +186,6 @@ object TransientSegment {
 
     override def toString: String =
       s"TransientSegment.${this.productPrefix}. Size: $segmentSize.bytes"
-
   }
 
   case class Many(minKey: Slice[Byte],
@@ -161,7 +194,7 @@ object TransientSegment {
                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                   nearestPutDeadline: Option[Deadline],
                   listSegment: TransientSegment.One,
-                  segments: Slice[TransientSegment.Singleton]) extends TransientSegment {
+                  segments: Slice[TransientSegment.Singleton]) extends PersistentTransientSegment {
 
     def hasEmptyByteSlice: Boolean =
       fileHeader.isEmpty || listSegment.hasEmptyByteSliceIgnoreHeader || segments.exists(_.hasEmptyByteSliceIgnoreHeader)
@@ -171,5 +204,29 @@ object TransientSegment {
 
     override def toString: String =
       s"TransientSegment.${this.productPrefix}. Size: $segmentSize.bytes"
+  }
+
+
+  case class MemoryToMemory(segment: MemorySegment) extends TransientSegment {
+    override def minKey: Slice[Byte] =
+      segment.minKey
+
+    override def maxKey: MaxKey[Slice[Byte]] =
+      segment.maxKey
+
+    override def nearestPutDeadline: Option[Deadline] =
+      segment.nearestPutDeadline
+
+    override def minMaxFunctionId: Option[MinMax[Slice[Byte]]] =
+      segment.minMaxFunctionId
+
+    override def hasEmptyByteSlice: Boolean =
+      false
+
+    override def segmentSize: Int =
+      segment.segmentSize
+
+    override def toString: String =
+      s"TransientSegment.${this.productPrefix}. Size: ${segment.segmentSize}.bytes"
   }
 }

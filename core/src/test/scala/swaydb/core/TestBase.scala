@@ -47,7 +47,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, Segment, SegmentIO, SegmentRef}
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, Segment, SegmentReadIO, SegmentRef}
 import swaydb.core.util.{HashedMap, IDGenerator}
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -341,8 +341,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                                                                                                         sweeper: TestCaseSweeper): Slice[Segment] = {
       import sweeper._
 
-      implicit val segmentIO: SegmentIO =
-        SegmentIO(
+      implicit val segmentIO: SegmentReadIO =
+        SegmentReadIO(
           bloomFilterConfig = bloomFilterConfig,
           hashIndexConfig = hashIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
@@ -862,7 +862,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                        hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                        bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                     sweeper: TestCaseSweeper,
-                                                                                                    segmentIO: SegmentIO = SegmentIO.random) = {
+                                                                                                    segmentIO: SegmentReadIO = SegmentReadIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
 
     val segment =
@@ -917,4 +917,5 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     segment.close
   }
+
 }

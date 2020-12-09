@@ -30,7 +30,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Persistent
-import swaydb.core.segment.SegmentIO
+import swaydb.core.segment.SegmentReadIO
 import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.values.ValuesBlock
@@ -47,7 +47,7 @@ import scala.collection.mutable.ListBuffer
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   implicit val order = KeyOrder.default
-  implicit def segmentIO = SegmentIO.random
+  implicit def segmentIO = SegmentReadIO.random
 
   "Config" should {
     "disable prefixCompression when normalise defined" in {

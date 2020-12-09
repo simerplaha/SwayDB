@@ -31,7 +31,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.segment.SegmentIO
+import swaydb.core.segment.SegmentReadIO
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -44,7 +44,7 @@ class MapCodecSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def segmentIO: SegmentIO = SegmentIO.random
+  implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
 
   "MemoryMapCodec" should {
     "write and read empty bytes" in {

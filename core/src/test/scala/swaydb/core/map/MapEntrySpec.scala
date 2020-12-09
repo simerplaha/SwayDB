@@ -30,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
-import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
+import swaydb.core.segment.{Segment, SegmentReadIO, SegmentOption}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP
@@ -48,7 +48,7 @@ class MapEntrySpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def segmentIO: SegmentIO = SegmentIO.random
+  implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
 
   val keyValues = randomKeyValues(count = 10)
 

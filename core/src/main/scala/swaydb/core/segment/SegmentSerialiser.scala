@@ -59,7 +59,7 @@ private[core] sealed trait SegmentSerialiser {
                                    bufferCleaner: ByteBufferSweeperActor,
                                    blockCacheSweeper: Option[MemorySweeper.Block],
                                    forceSaveApplier: ForceSaveApplier,
-                                   segmentIO: SegmentIO): Segment
+                                   segmentIO: SegmentReadIO): Segment
 
   def bytesRequired(value: Segment): Int
 
@@ -111,7 +111,7 @@ private[core] object SegmentSerialiser {
                                      bufferCleaner: ByteBufferSweeperActor,
                                      blockCacheSweeper: Option[MemorySweeper.Block],
                                      forceSaveApplier: ForceSaveApplier,
-                                     segmentIO: SegmentIO): Segment = {
+                                     segmentIO: SegmentReadIO): Segment = {
 
       val formatId = reader.get() //formatId
 

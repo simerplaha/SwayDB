@@ -26,7 +26,7 @@ package swaydb.core.segment.assigner
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.{Segment, SegmentIO}
+import swaydb.core.segment.{Segment, SegmentReadIO}
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
@@ -67,7 +67,7 @@ class SegmentAssigner_AssignSegment_Spec3 extends SegmentAssigner_AssignSegment_
 sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit def segmentIO: SegmentIO = SegmentIO.random
+  implicit def segmentIO: SegmentReadIO = SegmentReadIO.random
 
   def keyValueCount: Int
 

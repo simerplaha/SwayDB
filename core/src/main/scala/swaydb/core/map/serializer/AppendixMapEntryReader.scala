@@ -30,7 +30,7 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
-import swaydb.core.segment.{Segment, SegmentIO, SegmentSerialiser}
+import swaydb.core.segment.{Segment, SegmentReadIO, SegmentSerialiser}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -46,7 +46,7 @@ private[core] object AppendixMapEntryReader {
                                          bufferCleaner: ByteBufferSweeperActor,
                                          blockCacheSweeper: Option[MemorySweeper.Block],
                                          forceSaveApplier: ForceSaveApplier,
-                                         segmentIO: SegmentIO): AppendixMapEntryReader =
+                                         segmentIO: SegmentReadIO): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       mmapSegment = mmapSegment,
       removeDeletes = removeDeletes,
@@ -64,7 +64,7 @@ private[core] class AppendixMapEntryReader(mmapSegment: MMAP.Segment,
                                                                        bufferCleaner: ByteBufferSweeperActor,
                                                                        blockCacheSweeper: Option[MemorySweeper.Block],
                                                                        forceSaveApplier: ForceSaveApplier,
-                                                                       segmentIO: SegmentIO) {
+                                                                       segmentIO: SegmentReadIO) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: ReaderBase[Byte]): MapEntry.Put[Slice[Byte], Segment] = {
