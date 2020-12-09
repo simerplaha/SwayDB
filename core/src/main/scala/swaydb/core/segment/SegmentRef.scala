@@ -1298,38 +1298,40 @@ private[core] case object SegmentRef extends LazyLogging {
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.Persistent] = {
-    val footer = ref.getFooter()
+    //    val footer = ref.getFooter()
     val iterator = ref.iterator()
     //if it's created in the same level the required spaces for sortedIndex and values
     //will be the same as existing or less than the current sizes so there is no need to create a
     //MergeState builder.
-    if (footer.createdInLevel == createdInLevel)
-      Segment.refreshForSameLevel(
-        sortedIndexBlock = ref.segmentBlockCache.getSortedIndex(),
-        valuesBlock = ref.segmentBlockCache.getValues(),
-        iterator = iterator,
-        keyValuesCount = footer.keyValueCount,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-    else
-      Segment.refreshForNewLevel(
-        keyValues = iterator,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
+
+    //NOTE - IGNORE created in same Level as configurations can change on boot-up.
+    //    if (footer.createdInLevel == createdInLevel)
+    //      Segment.refreshForSameLevel(
+    //        sortedIndexBlock = ref.segmentBlockCache.getSortedIndex(),
+    //        valuesBlock = ref.segmentBlockCache.getValues(),
+    //        iterator = iterator,
+    //        keyValuesCount = footer.keyValueCount,
+    //        removeDeletes = removeDeletes,
+    //        createdInLevel = createdInLevel,
+    //        valuesConfig = valuesConfig,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig,
+    //        segmentConfig = segmentConfig
+    //      )
+    //    else
+    Segment.refreshForNewLevel(
+      keyValues = iterator,
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig
+    )
   }
 }
 
