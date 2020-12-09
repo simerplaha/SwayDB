@@ -728,7 +728,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]] =
+                                              executionContext: ExecutionContext): SegmentMergeResult[Slice[TransientSegment]] =
     if (removeDeletes) {
       //duplicate so that SegmentRefs are not read twice.
       val (countIterator, keyValuesIterator) = getAllSegmentRefs().duplicate
@@ -753,7 +753,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           segmentConfig = segmentConfig
         )
 
-      SegmentPutResult(result = newSegments, replaced = true)
+      SegmentMergeResult(result = newSegments, replaced = true)
     } else {
       SegmentRef.fastAssignPut(
         headGap = headGap,

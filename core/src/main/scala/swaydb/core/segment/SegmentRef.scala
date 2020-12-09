@@ -126,6 +126,14 @@ private[core] case object SegmentRef extends LazyLogging {
     )
   }
 
+  /** ********************************************************
+   * *********************************************************
+   * *********************************************************
+   * ************************ READS **************************
+   * *********************************************************
+   * *********************************************************
+   * ********************************************************* */
+
   def bestStartForGetOrHigherSearch(key: Slice[Byte],
                                     segmentState: SegmentReadStateOption,
                                     floorFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -627,6 +635,40 @@ private[core] case object SegmentRef extends LazyLogging {
           }
       }
 
+
+  @inline def contains(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+    keyOrder.gteq(key, ref.minKey) && {
+      if (ref.maxKey.inclusive)
+        keyOrder.lteq(key, ref.maxKey.maxKey)
+      else
+        keyOrder.lt(key, ref.maxKey.maxKey)
+    }
+
+  @inline def containsLower(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+    keyOrder.gt(key, ref.minKey) && {
+      if (ref.maxKey.inclusive)
+        keyOrder.lteq(key, ref.maxKey.maxKey)
+      else
+        keyOrder.lt(key, ref.maxKey.maxKey)
+    }
+
+  @inline def containsHigher(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+    keyOrder.gteq(key, ref.minKey) && {
+      if (ref.maxKey.inclusive)
+        keyOrder.lteq(key, ref.maxKey.maxKey)
+      else
+        keyOrder.lt(key, ref.maxKey.maxKey)
+    }
+
+
+  /** ********************************************************
+   * *********************************************************
+   * *********************************************************
+   * *********************** WRITES **************************
+   * *********************************************************
+   * *********************************************************
+   * ********************************************************* */
+
   @inline def mergeWrite(ref: SegmentRef,
                          headGap: Iterable[Assignable],
                          tailGap: Iterable[Assignable],
@@ -899,7 +941,7 @@ private[core] case object SegmentRef extends LazyLogging {
               segmentConfig: SegmentBlock.Config)(implicit executionContext: ExecutionContext,
                                                   keyOrder: KeyOrder[Slice[Byte]],
                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                  functionStore: FunctionStore): SegmentPutResult[Slice[TransientSegment.Persistent]] = {
+                                                  functionStore: FunctionStore): SegmentMergeResult[Slice[TransientSegment.Persistent]] = {
 
     def putGap(gap: Iterable[Assignable]): Slice[TransientSegment.Persistent] =
       fastPut(
@@ -953,13 +995,13 @@ private[core] case object SegmentRef extends LazyLogging {
       newSegments addAll midSegments
       newSegments addAll tailSegments
 
-      SegmentPutResult(result = newSegments, replaced = true)
+      SegmentMergeResult(result = newSegments, replaced = true)
     } else {
       val (headSegments, tailSegments) = Await.result(future, segmentParallelism.timeout)
 
       val newSegments = headSegments ++ tailSegments
 
-      SegmentPutResult(result = newSegments, replaced = false)
+      SegmentMergeResult(result = newSegments, replaced = false)
     }
   }
 
@@ -1041,7 +1083,7 @@ private[core] case object SegmentRef extends LazyLogging {
                    segmentConfig: SegmentBlock.Config)(implicit executionContext: ExecutionContext,
                                                        keyOrder: KeyOrder[Slice[Byte]],
                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                       functionStore: FunctionStore): SegmentPutResult[ListBuffer[TransientSegment.One]] = {
+                                                       functionStore: FunctionStore): SegmentMergeResult[ListBuffer[TransientSegment.One]] = {
 
     def writeGap(gap: Iterable[Assignable]): ListBuffer[TransientSegment.One] =
       fastWriteOne(
@@ -1088,11 +1130,11 @@ private[core] case object SegmentRef extends LazyLogging {
 
       val (headSegments, tailSegments) = Await.result(future, segmentParallelism.timeout)
       val newSegments = headSegments ++ midSegments ++ tailSegments
-      SegmentPutResult(result = newSegments, replaced = true)
+      SegmentMergeResult(result = newSegments, replaced = true)
     } else {
       val (headSegments, tailSegments) = Await.result(future, segmentParallelism.timeout)
       val newSegments = headSegments ++ tailSegments
-      SegmentPutResult(result = newSegments, replaced = false)
+      SegmentMergeResult(result = newSegments, replaced = false)
     }
   }
 
@@ -1113,7 +1155,7 @@ private[core] case object SegmentRef extends LazyLogging {
                                                         executionContext: ExecutionContext,
                                                         keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore): SegmentPutResult[Slice[TransientSegment.Persistent]] = {
+                                                        functionStore: FunctionStore): SegmentMergeResult[Slice[TransientSegment.Persistent]] = {
     if (assignableCount == 0) {
       //if there are no assignments write gaps and return.
       val gapInsert =
@@ -1131,11 +1173,11 @@ private[core] case object SegmentRef extends LazyLogging {
         ).get
 
       if (gapInsert.isEmpty) {
-        SegmentPutResult(result = Slice.empty, replaced = false)
+        SegmentMergeResult(result = Slice.empty, replaced = false)
       } else {
         val gapSlice = Slice.of[TransientSegment.Persistent](gapInsert.foldLeft(0)(_ + _.size))
         gapInsert foreach gapSlice.addAll
-        SegmentPutResult(result = gapSlice, replaced = false)
+        SegmentMergeResult(result = gapSlice, replaced = false)
       }
     } else {
       val (assignmentSegments, untouchedSegments) = segmentRefs.duplicate
@@ -1242,7 +1284,7 @@ private[core] case object SegmentRef extends LazyLogging {
             segmentConfig = segmentConfig
           )
 
-        SegmentPutResult(result = newMany, replaced = true)
+        SegmentMergeResult(result = newMany, replaced = true)
       }
     }
   }
@@ -1289,30 +1331,6 @@ private[core] case object SegmentRef extends LazyLogging {
         segmentConfig = segmentConfig
       )
   }
-
-  @inline def contains(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
-    keyOrder.gteq(key, ref.minKey) && {
-      if (ref.maxKey.inclusive)
-        keyOrder.lteq(key, ref.maxKey.maxKey)
-      else
-        keyOrder.lt(key, ref.maxKey.maxKey)
-    }
-
-  @inline def containsLower(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
-    keyOrder.gt(key, ref.minKey) && {
-      if (ref.maxKey.inclusive)
-        keyOrder.lteq(key, ref.maxKey.maxKey)
-      else
-        keyOrder.lt(key, ref.maxKey.maxKey)
-    }
-
-  @inline def containsHigher(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
-    keyOrder.gteq(key, ref.minKey) && {
-      if (ref.maxKey.inclusive)
-        keyOrder.lteq(key, ref.maxKey.maxKey)
-      else
-        keyOrder.lt(key, ref.maxKey.maxKey)
-    }
 }
 
 private[core] class SegmentRef(val path: Path,

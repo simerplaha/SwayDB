@@ -416,7 +416,7 @@ private[core] case object Segment extends LazyLogging {
                                                    bufferCleaner: ByteBufferSweeperActor,
                                                    blockCacheSweeper: Option[MemorySweeper.Block],
                                                    segmentIO: SegmentReadIO,
-                                                   forceSaveApplier: ForceSaveApplier): SegmentPutResult[Slice[PersistentSegment]] = {
+                                                   forceSaveApplier: ForceSaveApplier): SegmentMergeResult[Slice[PersistentSegment]] = {
     val transient: Slice[TransientSegment.Persistent] =
       SegmentRef.mergeWrite(
         oldKeyValuesCount = oldKeyValuesCount,
@@ -444,7 +444,7 @@ private[core] case object Segment extends LazyLogging {
         transient = transient
       ).get
 
-    SegmentPutResult(result = newSegments, replaced = true)
+    SegmentMergeResult(result = newSegments, replaced = true)
   }
 
   /**
@@ -1316,7 +1316,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]]
+                                              executionContext: ExecutionContext): SegmentMergeResult[Slice[TransientSegment]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

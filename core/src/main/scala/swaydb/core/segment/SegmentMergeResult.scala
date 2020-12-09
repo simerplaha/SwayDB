@@ -24,17 +24,17 @@
 
 package swaydb.core.segment
 
-object SegmentPutResult {
+object SegmentMergeResult {
 
-  @inline def apply[A](result: A, replaced: Boolean): SegmentPutResult[A] =
-    new SegmentPutResult(result, replaced)
+  @inline def apply[A](result: A, replaced: Boolean): SegmentMergeResult[A] =
+    new SegmentMergeResult(result, replaced)
 
 }
 
-class SegmentPutResult[+A](val result: A,
-                           val replaced: Boolean) {
-  def map[B](f: A => B): SegmentPutResult[B] =
-    new SegmentPutResult[B](
+class SegmentMergeResult[+A](val result: A,
+                             val replaced: Boolean) {
+  def map[B](f: A => B): SegmentMergeResult[B] =
+    new SegmentMergeResult[B](
       result = f(result),
       replaced = replaced
     )

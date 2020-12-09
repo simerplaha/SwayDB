@@ -85,7 +85,7 @@ protected case class MemorySegment(path: Path,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                                       executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment.Memory]] =
+                                                       executionContext: ExecutionContext): SegmentMergeResult[Slice[TransientSegment.Memory]] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -123,7 +123,7 @@ protected case class MemorySegment(path: Path,
             stats = stats.close
           ).map(TransientSegment.Memory)
 
-      SegmentPutResult[Slice[TransientSegment.Memory]](result = newSegments, replaced = true)
+      SegmentMergeResult[Slice[TransientSegment.Memory]](result = newSegments, replaced = true)
     }
 
   override def refresh(removeDeletes: Boolean,

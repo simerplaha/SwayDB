@@ -299,7 +299,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): SegmentPutResult[Slice[TransientSegment]] =
+                                              executionContext: ExecutionContext): SegmentMergeResult[Slice[TransientSegment]] =
     if (removeDeletes) {
       val newSegments =
         SegmentRef.mergeWrite(
@@ -318,7 +318,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           segmentConfig = segmentConfig
         )
 
-      SegmentPutResult(result = newSegments, replaced = true)
+      SegmentMergeResult(result = newSegments, replaced = true)
     } else {
       SegmentRef.fastPut(
         ref = ref,

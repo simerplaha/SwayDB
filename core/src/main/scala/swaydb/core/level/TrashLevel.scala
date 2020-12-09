@@ -29,7 +29,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.{Segment, SegmentOption, SegmentPutResult, ThreadReadState}
+import swaydb.core.segment.{Segment, SegmentOption, SegmentMergeResult, ThreadReadState}
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.{Slice, SliceOption}
@@ -165,15 +165,15 @@ private[core] object TrashLevel extends NextLevel {
    * Return empty Set here because it's Trash level and does not require compaction.
    */
   override def put(segment: Segment,
-                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]] =
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[LevelMergeResult]] =
     IO.Right(Iterable.empty)
 
   override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]] =
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[LevelMergeResult]] =
     IO.Right(Iterable.empty)
 
   override def put(segments: Iterable[Segment],
-                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]] =
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[LevelMergeResult]] =
     IO.Right(Iterable.empty)
 
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
