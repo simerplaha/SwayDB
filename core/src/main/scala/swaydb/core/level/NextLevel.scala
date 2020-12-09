@@ -24,11 +24,12 @@
 
 package swaydb.core.level
 
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
-import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment
+import swaydb.core.segment.{Segment, SegmentPutResult}
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.Slice
@@ -66,10 +67,6 @@ trait NextLevel extends LevelRef {
 
   def throttle: LevelMeter => Throttle
 
-  def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
-
-  def isUnreserved(segment: Segment): Boolean
-
   def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
 
   def isCopyable(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean
@@ -78,27 +75,22 @@ trait NextLevel extends LevelRef {
 
   def pushForwardStrategy: PushForwardStrategy
 
-  def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
+  def partitionCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
   def put(segment: Segment,
-          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
+          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]]
 
   def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
+          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]]
 
   def put(segments: Iterable[Segment],
-          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]]
+          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]]
 
   def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Int]
 
   def meter: LevelMeter
-
-  def refresh(segment: Segment): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]]
-
-  def collapse(segments: Iterable[Segment],
-               parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]]
 
   def reverseNextLevels: ListBuffer[NextLevel] = {
     val levels = ListBuffer.empty[NextLevel]

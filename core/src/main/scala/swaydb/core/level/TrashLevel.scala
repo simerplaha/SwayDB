@@ -28,7 +28,8 @@ import java.nio.file.{Path, Paths}
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZeroMapCache
-import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment
+import swaydb.core.segment.{Segment, SegmentOption, SegmentPutResult, ThreadReadState}
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.{Slice, SliceOption}
@@ -157,23 +158,23 @@ private[core] object TrashLevel extends NextLevel {
   override def isCopyable(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean =
     true
 
-  override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
+  override def partitionCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
   /**
    * Return empty Set here because it's Trash level and does not require compaction.
    */
   override def put(segment: Segment,
-                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Set[Int]]] =
-    IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]] =
+    IO.Right(Iterable.empty)
 
   override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
-    IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]] =
+    IO.Right(Iterable.empty)
 
   override def put(segments: Iterable[Segment],
-                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
-    IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[(Segment, SegmentPutResult[Slice[TransientSegment]])]] =
+    IO.Right(Iterable.empty)
 
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
     IO.Right(segments.size)
@@ -187,13 +188,6 @@ private[core] object TrashLevel extends NextLevel {
       override def nextLevelMeter: Option[LevelMeter] = None
       override def pushForwardStrategy: PushForwardStrategy = TrashLevel.pushForwardStrategy
     }
-
-  override def refresh(segment: Segment): IO[Nothing, IO.Right[Nothing, Unit]] =
-    IO.unitUnit
-
-  override def collapse(segments: Iterable[Segment],
-                        parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Nothing, IO[Error.Segment, Int]] =
-    IO.Right[Nothing, IO[Error.Segment, Int]](IO.Right(segments.size))(IO.ExceptionHandler.Nothing)
 
   override def isZero: Boolean =
     false
@@ -216,12 +210,6 @@ private[core] object TrashLevel extends NextLevel {
 
   override def stateId: Long =
     0
-
-  override def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
-    true
-
-  override def isUnreserved(segment: Segment): Boolean =
-    true
 
   override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true

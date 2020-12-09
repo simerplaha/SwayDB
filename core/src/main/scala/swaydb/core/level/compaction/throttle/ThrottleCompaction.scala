@@ -216,65 +216,66 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                     stateId: Long,
                                     map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache],
                                     parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
-    nextLevel.put(
-      map = map,
-      parallelMerge = parallelMerge
-    ) match {
-      case IO.Right(IO.Right(_)) =>
-        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
-        // If there is a failure removing the last map, maps will add the same map back into the queue and print
-        // error message to be handled by the User.
-        // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
-        // Maps are ALWAYS required to be processed sequentially in the order of write.
-        // Random order merging of maps should NOT be allowed.
-        zero.maps.removeLast(map) onLeftSideEffect {
-          error =>
-            val mapPath: String =
-              zero
-                .maps
-                .nextJob()
-                .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
-
-            logger.error(
-              s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
-                "No more maps will be pushed to Level1 until this error is fixed " +
-                "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
-                "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
-              error.exception
-            )
-        }
-
-        ThrottleLevelState.Sleeping(
-          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
-          stateId = stateId
-        )
-
-      case IO.Right(IO.Left(error)) =>
-        error match {
-          case _ if zero.coreState.isNotRunning =>
-            logger.debug(s"Level(${zero.levelNumber}): Failed to push due to shutdown.", error.exception)
-
-          //do not log the stack if the IO.Left to merge was ContainsOverlappingBusySegments.
-          case swaydb.Error.OverlappingPushSegment =>
-            logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
-
-          case _ =>
-            logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
-        }
-
-        ThrottleLevelState.Sleeping(
-          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
-          stateId = stateId
-        )
-
-      case IO.Left(promise) =>
-        logger.debug(s"Level(${zero.levelNumber}): Awaiting pull. stateId: $stateId.")
-        ThrottleLevelState.AwaitingPull(
-          promise = promise,
-          timeout = awaitPullTimeout.fromNow,
-          stateId = stateId
-        )
-    }
+  //    nextLevel.put(
+  //      map = map,
+  //      parallelMerge = parallelMerge
+  //    ) match {
+  //      case IO.Right(IO.Right(_)) =>
+  //        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
+  //        // If there is a failure removing the last map, maps will add the same map back into the queue and print
+  //        // error message to be handled by the User.
+  //        // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
+  //        // Maps are ALWAYS required to be processed sequentially in the order of write.
+  //        // Random order merging of maps should NOT be allowed.
+  //        zero.maps.removeLast(map) onLeftSideEffect {
+  //          error =>
+  //            val mapPath: String =
+  //              zero
+  //                .maps
+  //                .nextJob()
+  //                .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
+  //
+  //            logger.error(
+  //              s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
+  //                "No more maps will be pushed to Level1 until this error is fixed " +
+  //                "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
+  //                "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
+  //              error.exception
+  //            )
+  //        }
+  //
+  //        ThrottleLevelState.Sleeping(
+  //          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
+  //          stateId = stateId
+  //        )
+  //
+  //      case IO.Right(IO.Left(error)) =>
+  //        error match {
+  //          case _ if zero.coreState.isNotRunning =>
+  //            logger.debug(s"Level(${zero.levelNumber}): Failed to push due to shutdown.", error.exception)
+  //
+  //          //do not log the stack if the IO.Left to merge was ContainsOverlappingBusySegments.
+  //          case swaydb.Error.OverlappingPushSegment =>
+  //            logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
+  //
+  //          case _ =>
+  //            logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
+  //        }
+  //
+  //        ThrottleLevelState.Sleeping(
+  //          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
+  //          stateId = stateId
+  //        )
+  //
+  //      case IO.Left(promise) =>
+  //        logger.debug(s"Level(${zero.levelNumber}): Awaiting pull. stateId: $stateId.")
+  //        ThrottleLevelState.AwaitingPull(
+  //          promise = promise,
+  //          timeout = awaitPullTimeout.fromNow,
+  //          stateId = stateId
+  //        )
+  //    }
+    ???
 
   private[throttle] def pushForward(level: NextLevel,
                                     stateId: Long,
@@ -354,98 +355,99 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         )(IO.ExceptionHandler.PromiseUnit)
     }
 
-  @tailrec
+  //  @tailrec
   def runLastLevelCompaction(level: NextLevel,
                              checkExpired: Boolean,
                              remainingCompactions: Int,
                              segmentsCompacted: Int,
                              parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Int] = {
-    logger.debug(s"Level(${level.levelNumber}): Last level compaction. checkExpired = $checkExpired. remainingCompactions = $remainingCompactions. segmentsCompacted = $segmentsCompacted.")
-    if (level.hasNextLevel || remainingCompactions <= 0) {
-      IO.Right[swaydb.Error.Level, Int](segmentsCompacted)
-    } else if (checkExpired) {
-      logger.debug(s"Level(${level.levelNumber}): checking expired.")
-      Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
-        case segment: Segment if segment.nearestPutDeadline.exists(!_.hasTimeLeft()) =>
-          level.refresh(segment) match {
-            case IO.Right(IO.Right(_)) =>
-              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
-              runLastLevelCompaction(
-                level = level,
-                checkExpired = checkExpired,
-                remainingCompactions = remainingCompactions - 1,
-                segmentsCompacted = segmentsCompacted + 1,
-                parallelMerge = parallelMerge
-              )
-
-            case IO.Left(_) =>
-              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
-              runLastLevelCompaction(
-                level = level,
-                checkExpired = false,
-                remainingCompactions = remainingCompactions,
-                segmentsCompacted = segmentsCompacted,
-                parallelMerge = parallelMerge
-              )
-
-            case IO.Right(IO.Left(_)) =>
-              logger.debug(s"Level(${level.levelNumber}): Later on refresh 2.")
-              runLastLevelCompaction(
-                level = level,
-                checkExpired = false,
-                remainingCompactions = remainingCompactions,
-                segmentsCompacted = segmentsCompacted,
-                parallelMerge = parallelMerge
-              )
-          }
-
-        case Segment.Null | _: Segment =>
-          logger.debug(s"Level(${level.levelNumber}): Check expired complete.")
-          runLastLevelCompaction(
-            level = level,
-            checkExpired = false,
-            remainingCompactions = remainingCompactions,
-            segmentsCompacted = segmentsCompacted,
-            parallelMerge = parallelMerge
-          )
-      }
-    } else {
-      logger.debug(s"Level(${level.levelNumber}): Collapse run.")
-      level.collapse(
-        segments = level.optimalSegmentsToCollapse(remainingCompactions max 2),
-        parallelMerge = parallelMerge
-      ) match { //need at least 2 for collapse.
-        case IO.Right(IO.Right(count)) =>
-          logger.debug(s"Level(${level.levelNumber}): Collapsed $count small segments.")
-          runLastLevelCompaction(
-            level = level,
-            checkExpired = checkExpired,
-            remainingCompactions = if (count == 0) 0 else remainingCompactions - count,
-            segmentsCompacted = segmentsCompacted + count,
-            parallelMerge = parallelMerge
-          )
-
-        case IO.Left(_) =>
-          logger.debug(s"Level(${level.levelNumber}): Later on collapse.")
-          runLastLevelCompaction(
-            level = level,
-            checkExpired = checkExpired,
-            remainingCompactions = 0,
-            segmentsCompacted = segmentsCompacted,
-            parallelMerge = parallelMerge
-          )
-
-        case IO.Right(IO.Left(_)) =>
-          logger.debug(s"Level(${level.levelNumber}): Later on collapse 2.")
-          runLastLevelCompaction(
-            level = level,
-            checkExpired = checkExpired,
-            remainingCompactions = 0,
-            segmentsCompacted = segmentsCompacted,
-            parallelMerge = parallelMerge
-          )
-      }
-    }
+    //    logger.debug(s"Level(${level.levelNumber}): Last level compaction. checkExpired = $checkExpired. remainingCompactions = $remainingCompactions. segmentsCompacted = $segmentsCompacted.")
+    //    if (level.hasNextLevel || remainingCompactions <= 0) {
+    //      IO.Right[swaydb.Error.Level, Int](segmentsCompacted)
+    //    } else if (checkExpired) {
+    //      logger.debug(s"Level(${level.levelNumber}): checking expired.")
+    //      Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
+    //        case segment: Segment if segment.nearestPutDeadline.exists(!_.hasTimeLeft()) =>
+    //          level.refresh(segment) match {
+    //            case IO.Right(IO.Right(_)) =>
+    //              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
+    //              runLastLevelCompaction(
+    //                level = level,
+    //                checkExpired = checkExpired,
+    //                remainingCompactions = remainingCompactions - 1,
+    //                segmentsCompacted = segmentsCompacted + 1,
+    //                parallelMerge = parallelMerge
+    //              )
+    //
+    //            case IO.Left(_) =>
+    //              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
+    //              runLastLevelCompaction(
+    //                level = level,
+    //                checkExpired = false,
+    //                remainingCompactions = remainingCompactions,
+    //                segmentsCompacted = segmentsCompacted,
+    //                parallelMerge = parallelMerge
+    //              )
+    //
+    //            case IO.Right(IO.Left(_)) =>
+    //              logger.debug(s"Level(${level.levelNumber}): Later on refresh 2.")
+    //              runLastLevelCompaction(
+    //                level = level,
+    //                checkExpired = false,
+    //                remainingCompactions = remainingCompactions,
+    //                segmentsCompacted = segmentsCompacted,
+    //                parallelMerge = parallelMerge
+    //              )
+    //          }
+    //
+    //        case Segment.Null | _: Segment =>
+    //          logger.debug(s"Level(${level.levelNumber}): Check expired complete.")
+    //          runLastLevelCompaction(
+    //            level = level,
+    //            checkExpired = false,
+    //            remainingCompactions = remainingCompactions,
+    //            segmentsCompacted = segmentsCompacted,
+    //            parallelMerge = parallelMerge
+    //          )
+    //      }
+    //    } else {
+    //      logger.debug(s"Level(${level.levelNumber}): Collapse run.")
+    //      level.collapse(
+    //        segments = level.optimalSegmentsToCollapse(remainingCompactions max 2),
+    //        parallelMerge = parallelMerge
+    //      ) match { //need at least 2 for collapse.
+    //        case IO.Right(IO.Right(count)) =>
+    //          logger.debug(s"Level(${level.levelNumber}): Collapsed $count small segments.")
+    //          runLastLevelCompaction(
+    //            level = level,
+    //            checkExpired = checkExpired,
+    //            remainingCompactions = if (count == 0) 0 else remainingCompactions - count,
+    //            segmentsCompacted = segmentsCompacted + count,
+    //            parallelMerge = parallelMerge
+    //          )
+    //
+    //        case IO.Left(_) =>
+    //          logger.debug(s"Level(${level.levelNumber}): Later on collapse.")
+    //          runLastLevelCompaction(
+    //            level = level,
+    //            checkExpired = checkExpired,
+    //            remainingCompactions = 0,
+    //            segmentsCompacted = segmentsCompacted,
+    //            parallelMerge = parallelMerge
+    //          )
+    //
+    //        case IO.Right(IO.Left(_)) =>
+    //          logger.debug(s"Level(${level.levelNumber}): Later on collapse 2.")
+    //          runLastLevelCompaction(
+    //            level = level,
+    //            checkExpired = checkExpired,
+    //            remainingCompactions = 0,
+    //            segmentsCompacted = segmentsCompacted,
+    //            parallelMerge = parallelMerge
+    //          )
+    //      }
+    //    }
+    ???
   }
 
   /**
@@ -473,7 +475,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     level.nextLevel match {
       case Some(nextLevel) =>
         val segmentsInLevel = level.segmentsInLevel()
-        val (copyable, nonCopyable) = nextLevel.partitionUnreservedCopyable(segmentsInLevel)
+        val (copyable, nonCopyable) = nextLevel.partitionCopyable(segmentsInLevel)
         logger.debug(s"Level(${level.levelNumber}): Total segments: ${segmentsInLevel.size}, Can copy: ${copyable.size} segments. Remaining: ${nonCopyable.size} segments.")
         putForward(
           segments = copyable,
@@ -503,21 +505,22 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                    thisLevel: NextLevel,
                                    nextLevel: NextLevel,
                                    parallelMerge: ParallelMerge)(implicit executionContext: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
-    if (segments.isEmpty)
-      IO.zeroZero
-    else
-      nextLevel.put(segments = segments, parallelMerge = parallelMerge) map {
-        case IO.Right(_) =>
-          thisLevel
-            .removeSegments(segments)
-            //transform because remove might be eventual depending on the level's config.
-            .transform(_ => segments.size)
-            .recover {
-              case _ =>
-                segments.size
-            }
-
-        case IO.Left(error) =>
-          IO.Left(error)
-      }
+  //    if (segments.isEmpty)
+  //      IO.zeroZero
+  //    else
+  //      nextLevel.put(segments = segments, parallelMerge = parallelMerge) map {
+  //        case IO.Right(_) =>
+  //          thisLevel
+  //            .removeSegments(segments)
+  //            //transform because remove might be eventual depending on the level's config.
+  //            .transform(_ => segments.size)
+  //            .recover {
+  //              case _ =>
+  //                segments.size
+  //            }
+  //
+  //        case IO.Left(error) =>
+  //          IO.Left(error)
+  //      }
+    ???
 }

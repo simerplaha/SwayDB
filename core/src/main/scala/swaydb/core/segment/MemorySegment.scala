@@ -102,6 +102,15 @@ protected case class MemorySegment(path: Path,
         isLastLevel = removeDeletes
       )
 
+      //      Segment.copyToMemory(
+      //        segment = segment,
+      //        createdInLevel = levelNumber,
+      //        pathsDistributor = pathDistributor,
+      //        removeDeletes = removeDeletedRecords,
+      //        minSegmentSize = segmentConfig.minSize,
+      //        maxKeyValueCountPerSegment = segmentConfig.maxCount
+      //      )
+
       val newSegments =
         if (stats.isEmpty)
           Slice.empty
