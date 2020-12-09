@@ -51,7 +51,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{PersistentSegment, Segment, SegmentReadIO, SegmentWriteIO, ThreadReadState}
+import swaydb.core.segment._
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
@@ -59,7 +59,7 @@ import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
+import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, MaxKey, OptimiseWrites}
@@ -287,9 +287,10 @@ object TestData {
           levelStorage =
             LevelStorage.Persistent(
               dir = level.pathDistributor.headPath,
-              otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
+              otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1)),
+              appendixMMAP = MMAP.randomForMap(),
+              appendixFlushCheckpointSize = 4.mb
             ),
-          appendixStorage = AppendixStorage.Persistent(mmap = MMAP.randomForMap(), 4.mb),
           nextLevel = nextLevel,
           throttle = throttle
         ).map(_.sweep())

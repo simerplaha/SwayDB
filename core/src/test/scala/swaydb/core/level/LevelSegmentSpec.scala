@@ -197,7 +197,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                       Dir(dir.resolve(3.toString), 3),
                       Dir(dir.resolve(4.toString), 4),
                       Dir(dir.resolve(5.toString), 5)
-                    )
+                    ),
+                  appendixMMAP = MMAP.randomForMap(),
+                  appendixFlushCheckpointSize = 4.mb
                 )
 
               val keyValues = randomPutKeyValues(100)

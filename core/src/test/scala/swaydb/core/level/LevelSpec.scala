@@ -92,7 +92,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
             val storage =
               LevelStorage.Persistent(
                 dir = randomDir,
-                otherDirs = otherDirs
+                otherDirs = otherDirs,
+                appendixMMAP = MMAP.randomForMap(),
+                appendixFlushCheckpointSize = 4.mb
               )
 
             val lock = Level.acquireLock(storage).runRandomIO.right.value

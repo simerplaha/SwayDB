@@ -452,7 +452,17 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
         else
           TestCaseSweeper {
             implicit sweeper =>
-              val persistentLevel = TestLevel(LevelStorage.Persistent(nextLevelPath, eitherOne(Seq.empty, Seq(Dir(randomDir, 1), Dir(randomDir, 1)))))
+
+              val persistentLevel =
+                TestLevel(
+                  LevelStorage.Persistent(
+                    dir = nextLevelPath,
+                    otherDirs = eitherOne(Seq.empty, Seq(Dir(randomDir, 1), Dir(randomDir, 1))),
+                    appendixMMAP = MMAP.randomForMap(),
+                    appendixFlushCheckpointSize = 4.mb
+                  )
+                )
+
               val zero = TestLevelZero(Some(persistentLevel))
 
               //zero is in-memory but next level is persistent

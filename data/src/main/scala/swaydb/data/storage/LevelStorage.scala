@@ -25,8 +25,7 @@
 package swaydb.data.storage
 
 import java.nio.file.Path
-
-import swaydb.data.config.Dir
+import swaydb.data.config.{Dir, MMAP}
 
 sealed trait LevelStorage {
   val dir: Path
@@ -46,7 +45,10 @@ object LevelStorage {
   }
 
   case class Persistent(dir: Path,
-                        otherDirs: Seq[Dir]) extends LevelStorage {
+                        otherDirs: Seq[Dir],
+                        appendixMMAP: MMAP.Map,
+                        appendixFlushCheckpointSize: Long) extends LevelStorage {
+
     override val memory: Boolean = false
 
     override def dirs: Seq[Dir] =

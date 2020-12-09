@@ -47,23 +47,23 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, Segment, SegmentReadIO, SegmentRef}
-import swaydb.core.util.{HashedMap, IDGenerator}
+import swaydb.core.segment.{PersistentSegment, Segment, SegmentReadIO, SegmentRef}
 import swaydb.core.util.queue.VolatileQueue
+import swaydb.core.util.{HashedMap, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, MMAP, PushForwardStrategy, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
+import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
 import swaydb.{ActorWire, Glass}
 
 import java.nio.file._
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -117,7 +117,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
           (0 until levelFoldersCount) map {
             _ =>
               Dir(testClassDir.resolve(nextLevelId.toString), 1)
-          }
+          },
+        appendixMMAP = appendixStorageMMAP,
+        appendixFlushCheckpointSize = 4.mb
       )
 
   def level0Storage: Level0Storage =
@@ -125,12 +127,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       Level0Storage.Memory
     else
       Level0Storage.Persistent(mmap = level0MMAP, randomIntDirectory, RecoveryMode.ReportFailure)
-
-  def appendixStorage: AppendixStorage =
-    if (inMemoryStorage)
-      AppendixStorage.Memory
-    else
-      AppendixStorage.Persistent(mmap = appendixStorageMMAP, 4.mb)
 
   def getMaps[K, V, C <: MapCache[K, V]](maps: Maps[K, V, C]): VolatileQueue[Map[K, V, C]] = {
     import org.scalatest.PrivateMethodTester._
@@ -401,7 +397,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       Some(input)
 
     def apply(levelStorage: LevelStorage = levelStorage,
-              appendixStorage: AppendixStorage = appendixStorage,
               nextLevel: Option[NextLevel] = None,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
@@ -418,7 +413,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       val level =
         Level(
           levelStorage = levelStorage,
-          appendixStorage = appendixStorage,
           nextLevel = nextLevel,
           throttle = throttle,
           valuesConfig = valuesConfig,

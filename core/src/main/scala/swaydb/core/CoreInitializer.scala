@@ -47,7 +47,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.Slice
-import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
+import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
 import swaydb.{ActorWire, Bag, Error, Glass, IO}
@@ -221,7 +221,6 @@ private[core] object CoreInitializer extends LazyLogging {
                         compressions = _ => Seq.empty
                       ),
                     levelStorage = LevelStorage.Memory(dir = memoryLevelPath.resolve(id.toString)),
-                    appendixStorage = AppendixStorage.Memory,
                     nextLevel = nextLevel,
                     throttle = config.throttle
                   )
@@ -253,9 +252,10 @@ private[core] object CoreInitializer extends LazyLogging {
                     levelStorage =
                       LevelStorage.Persistent(
                         dir = config.dir.resolve(id.toString),
-                        otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
+                        otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString))),
+                        appendixMMAP = config.mmapAppendix,
+                        appendixFlushCheckpointSize = config.appendixFlushCheckpointSize
                       ),
-                    appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
                     nextLevel = nextLevel,
                     throttle = config.throttle
                   )

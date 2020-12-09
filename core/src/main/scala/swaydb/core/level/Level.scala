@@ -24,8 +24,6 @@
 
 package swaydb.core.level
 
-import java.nio.channels.FileChannel
-import java.nio.file.{Path, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
@@ -47,7 +45,6 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment.PersistentTransientSegment
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Collections._
@@ -58,11 +55,12 @@ import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.{Dir, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.storage.{AppendixStorage, LevelStorage}
+import swaydb.data.storage.LevelStorage
 import swaydb.data.util.FiniteDurations
 import swaydb.{Bag, Error, IO}
 
-import scala.collection.compat._
+import java.nio.channels.FileChannel
+import java.nio.file.{Path, StandardOpenOption}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Promise}
@@ -102,7 +100,6 @@ private[core] object Level extends LazyLogging {
             valuesConfig: ValuesBlock.Config,
             segmentConfig: SegmentBlock.Config,
             levelStorage: LevelStorage,
-            appendixStorage: AppendixStorage,
             nextLevel: Option[NextLevel],
             throttle: LevelMeter => Throttle)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
@@ -143,8 +140,8 @@ private[core] object Level extends LazyLogging {
 
         //initialise appendix
         val appendix: IO[swaydb.Error.Level, Map[Slice[Byte], Segment, AppendixMapCache]] =
-          appendixStorage match {
-            case AppendixStorage.Persistent(mmap, appendixFlushCheckpointSize) =>
+          levelStorage match {
+            case LevelStorage.Persistent(_, _, mmap, appendixFlushCheckpointSize) =>
               logger.info("{}: Initialising appendix.", levelStorage.dir)
               val appendixFolder = levelStorage.dir.resolve("appendix")
               //check if appendix folder/file was deleted.
@@ -164,7 +161,7 @@ private[core] object Level extends LazyLogging {
                 }
               }
 
-            case AppendixStorage.Memory =>
+            case LevelStorage.Memory(_) =>
               logger.info("{}: Initialising appendix for in-memory Level", levelStorage.dir)
               IO(Map.memory[Slice[Byte], Segment, AppendixMapCache]())
           }
@@ -191,7 +188,7 @@ private[core] object Level extends LazyLogging {
                 val paths: PathsDistributor = PathsDistributor(levelStorage.dirs, () => allSegments)
 
                 val deletedUnCommittedSegments =
-                  if (appendixStorage.persistent)
+                  if (levelStorage.persistent)
                     deleteUncommittedSegments(levelStorage.dirs, appendix.cache.values())
                   else
                     IO.unit
