@@ -30,7 +30,8 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
-import swaydb.core.segment.{Segment, SegmentReadIO, SegmentSerialiser}
+import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}

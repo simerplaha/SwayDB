@@ -52,6 +52,7 @@ import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.segment._
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache

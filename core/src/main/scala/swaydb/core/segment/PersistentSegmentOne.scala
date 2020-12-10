@@ -46,6 +46,7 @@ import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef}
 import swaydb.core.util._
 import swaydb.data.MaxKey

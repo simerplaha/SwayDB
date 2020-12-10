@@ -47,6 +47,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentMergeResult
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._

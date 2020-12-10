@@ -46,9 +46,10 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.core.segment.{PersistentSegment, Segment, SegmentReadIO}
+import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.core.util.{HashedMap, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}

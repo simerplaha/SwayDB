@@ -30,7 +30,8 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
-import swaydb.core.segment.{Segment, SegmentReadIO, SegmentOption}
+import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.config.MMAP

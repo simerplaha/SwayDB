@@ -26,7 +26,8 @@ package swaydb.core.segment.assigner
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.{Segment, SegmentReadIO}
+import swaydb.core.segment.Segment
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._

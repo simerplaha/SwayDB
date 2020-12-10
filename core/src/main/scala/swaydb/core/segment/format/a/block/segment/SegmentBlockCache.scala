@@ -29,7 +29,6 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
-import swaydb.core.segment.SegmentReadIO
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -38,6 +37,7 @@ import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.block.{Block, BlockCache, BlockOffset, BlockOps}
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.data.Reserve
 import swaydb.data.cache.{Cache, Lazy}
 import swaydb.data.config.{IOAction, IOStrategy}

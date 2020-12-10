@@ -30,7 +30,8 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.core.segment.{Segment, SegmentReadIO, SegmentOption}
+import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.data.config.MMAP

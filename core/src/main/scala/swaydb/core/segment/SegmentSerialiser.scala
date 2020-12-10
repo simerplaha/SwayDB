@@ -29,6 +29,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map.serializer.ValueSerializer.MinMaxSerialiser
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.{Bytes, Extension}
 import swaydb.data.MaxKey
 import swaydb.data.config.MMAP

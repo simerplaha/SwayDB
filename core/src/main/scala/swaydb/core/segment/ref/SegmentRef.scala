@@ -36,7 +36,8 @@ import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.{SegmentReadIO, SegmentSearcher, ThreadReadState}
+import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.{SegmentSearcher, ThreadReadState}
 import swaydb.core.util.MinMax
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
 import swaydb.data.MaxKey
