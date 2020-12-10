@@ -42,7 +42,7 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.merge._
-import swaydb.core.segment.KeyMatcher.Result
+import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment._
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -56,6 +56,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
+import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.RunThis._
 import swaydb.data.config.{IOStrategy, PushForwardStrategy}

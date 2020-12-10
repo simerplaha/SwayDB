@@ -27,13 +27,13 @@ package swaydb.core.segment.format.a.block.sortedindex
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data._
-import swaydb.core.segment.KeyMatcher
-import swaydb.core.segment.KeyMatcher.Result
+import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.merge.MergeStats
+import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}

@@ -22,10 +22,10 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.ref.search
 
 import swaydb.core.data.Persistent
-import swaydb.core.segment.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
+import swaydb.core.segment.ref.search.KeyMatcher.Result._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 

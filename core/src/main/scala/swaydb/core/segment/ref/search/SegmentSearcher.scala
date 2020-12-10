@@ -21,7 +21,7 @@
  * it with separate works, the licensors of this Program grant you additional
  * permission to convey the resulting work.
  */
-package swaydb.core.segment
+package swaydb.core.segment.ref.search
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, PersistentOption}

@@ -22,20 +22,19 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.ref.search
 
-import java.nio.file.Path
-
-import swaydb.core
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.data.slice.Slice
 import swaydb.data.util.{SomeOrNone, TupleOrNone}
 
-protected sealed trait SegmentReadStateOption extends SomeOrNone[SegmentReadStateOption, SegmentReadState] {
+import java.nio.file.Path
+
+private[ref] sealed trait SegmentReadStateOption extends SomeOrNone[SegmentReadStateOption, SegmentReadState] {
   override def noneS: SegmentReadStateOption = SegmentReadState.Null
 }
 
-protected object SegmentReadState {
+private[ref] object SegmentReadState {
 
   final case object Null extends SegmentReadStateOption {
     override def isNoneS: Boolean = true
@@ -133,7 +132,7 @@ protected object SegmentReadState {
       foundKeyValue.unsliceKeys
 
       val segmentState =
-        new core.segment.SegmentReadState(
+        new SegmentReadState(
           keyValue = (forKey.unslice(), foundKeyValue),
           lower = TupleOrNone.None,
           isSequential = start.isSomeS && foundKeyValue.indexOffset == start.getS.nextIndexOffset
@@ -169,9 +168,9 @@ protected object SegmentReadState {
  * the end key-value for faster lower search and should not mutate
  * get's set [[keyValue]].
  */
-protected class SegmentReadState(var keyValue: (Slice[Byte], Persistent),
-                                 var lower: TupleOrNone[Slice[Byte], Persistent],
-                                 var isSequential: Boolean) extends SegmentReadStateOption {
+private[ref] class SegmentReadState(var keyValue: (Slice[Byte], Persistent),
+                                    var lower: TupleOrNone[Slice[Byte], Persistent],
+                                    var isSequential: Boolean) extends SegmentReadStateOption {
   override def isNoneS: Boolean = false
   override def getS: SegmentReadState = this
 }

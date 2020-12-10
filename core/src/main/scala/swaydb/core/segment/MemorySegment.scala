@@ -40,6 +40,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.segment.ref.SegmentMergeResult
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey

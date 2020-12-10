@@ -25,7 +25,6 @@
 package swaydb.core
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
@@ -38,7 +37,6 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
-import swaydb.core.segment.ThreadReadState
 import swaydb.data.NonEmptyList
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
@@ -47,6 +45,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
 import swaydb._
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.sequencer.Sequencer
 
 import scala.concurrent.duration._

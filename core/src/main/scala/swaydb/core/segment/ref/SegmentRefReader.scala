@@ -25,7 +25,7 @@
 package swaydb.core.segment.ref
 
 import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
-import swaydb.core.segment.{SegmentReadState, SegmentReadStateOption, SegmentSearcher, ThreadReadState}
+import swaydb.core.segment.ref.search.{SegmentReadState, SegmentReadStateOption, SegmentSearcher, ThreadReadState}
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder

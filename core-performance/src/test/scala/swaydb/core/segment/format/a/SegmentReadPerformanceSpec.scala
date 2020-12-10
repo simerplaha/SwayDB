@@ -37,7 +37,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment, ThreadReadState}
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestSweeper, TestTimer}
 import swaydb.data.config.{Dir, IOAction, IOStrategy, MMAP, PushForwardStrategy}
@@ -48,6 +48,7 @@ import TestCaseSweeper._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.merge.MergeStats
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._

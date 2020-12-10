@@ -30,7 +30,7 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.ThreadReadState
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP

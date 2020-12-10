@@ -25,10 +25,9 @@
 package swaydb
 
 import java.nio.file.Path
-
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
-import swaydb.core.segment.ThreadReadState
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.{Slice, SliceOption}

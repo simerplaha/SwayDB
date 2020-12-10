@@ -46,6 +46,7 @@ import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, Transi
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefOption, SegmentRefReader}
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap

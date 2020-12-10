@@ -26,7 +26,6 @@ package swaydb.core.level.zero
 
 import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
@@ -45,7 +44,8 @@ import swaydb.core.map.serializer.AppliedFunctionsMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
-import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
+import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.skiplist.SkipList
 import swaydb.core.util.{DropIterator, MinMax}
 import swaydb.core.{CoreState, MemoryPathGenerator, map}

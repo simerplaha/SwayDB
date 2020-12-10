@@ -34,7 +34,7 @@ import swaydb.core.data.Memory
 import swaydb.core.io.file.Effect
 import swaydb.core.map.applied.AppliedFunctionsMap
 import swaydb.core.map.timer.Timer
-import swaydb.core.segment.ThreadReadState
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle

@@ -49,6 +49,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentMergeResult
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.ParallelCollection._

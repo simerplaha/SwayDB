@@ -17,14 +17,12 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program or any covered work, only by linking or combining
+ * it with separate works, the licensors of this Program grant you additional
+ * permission to convey the resulting work.
  */
 
-package swaydb.core.segment
-
-import java.nio.file.Paths
+package swaydb.core.segment.ref.search
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -36,6 +34,8 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.TupleOrNone
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import java.nio.file.Paths
 
 class SegmentReadStateSpec extends AnyWordSpec with Matchers {
 

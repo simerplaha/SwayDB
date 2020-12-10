@@ -25,7 +25,6 @@
 package swaydb.core.segment.format.a
 
 import java.nio.file.NoSuchFileException
-
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.Error.Segment.ExceptionHandler
@@ -38,6 +37,7 @@ import swaydb.core.io.file.Effect
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.Segment
 import swaydb.core._
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.data.MaxKey
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP

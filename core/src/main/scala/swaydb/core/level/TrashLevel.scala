@@ -29,7 +29,8 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
+import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.{Slice, SliceOption}

@@ -25,7 +25,7 @@
 package swaydb.core.level.seek
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.ThreadReadState
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.slice.Slice
 
 trait NextWalker extends NextGetter {

@@ -30,7 +30,8 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.SegmentSearcher
+import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.ref.search.SegmentSearcher
 import swaydb.core.util.Benchmark
 import swaydb.core.{SegmentBlocks, TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._

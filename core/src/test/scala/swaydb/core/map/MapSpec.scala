@@ -38,6 +38,7 @@ import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.MapTestUtil._
 import swaydb.core.map.serializer._
 import swaydb.core.segment.Segment
+import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.Extension
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.RunThis._

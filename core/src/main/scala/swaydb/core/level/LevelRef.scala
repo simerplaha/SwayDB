@@ -25,10 +25,10 @@
 package swaydb.core.level
 
 import java.nio.file.Path
-
 import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
+import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.slice.{Slice, SliceOption}

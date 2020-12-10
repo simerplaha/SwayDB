@@ -29,7 +29,7 @@ import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.LevelSeek
 import swaydb.core.merge._
-import swaydb.core.segment.ThreadReadState
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

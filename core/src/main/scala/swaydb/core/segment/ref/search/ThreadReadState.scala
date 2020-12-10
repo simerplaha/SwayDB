@@ -22,12 +22,11 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment
-
-import java.nio.file.Path
+package swaydb.core.segment.ref.search
 
 import swaydb.core.util.LimitHashMap
 
+import java.nio.file.Path
 import scala.util.Random
 
 private[swaydb] sealed trait ThreadReadState {

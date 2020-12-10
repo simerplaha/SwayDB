@@ -33,7 +33,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{SwayFunctionOutput, Value}
 import swaydb.core.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
-import swaydb.core.segment.ThreadReadState
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.order.{KeyOrder, TimeOrder}
