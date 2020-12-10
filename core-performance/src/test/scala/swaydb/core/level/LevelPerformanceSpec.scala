@@ -25,9 +25,9 @@
 //import swaydb.core.TestData._
 //import swaydb.core.actor.MemorySweeper
 //import swaydb.core.segment.ReadState
-//import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
-//import swaydb.core.segment.format.a.block.{BloomFilterBlock, SegmentBlock, SortedIndexBlock, ValuesBlock}
-//import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
+//import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
+//import swaydb.core.segment.block.{BloomFilterBlock, SegmentBlock, SortedIndexBlock, ValuesBlock}
+//import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 //import swaydb.core.util.Benchmark
 //import swaydb.data.config.{IOAction, IOStrategy}
 //import swaydb.data.order.KeyOrder

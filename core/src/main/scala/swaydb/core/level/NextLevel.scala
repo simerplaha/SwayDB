@@ -28,7 +28,7 @@ import swaydb.{Error, IO}
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment
+import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.PushForwardStrategy

@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.segment.format.a
+package swaydb.core.segment
 
 import java.nio.file.NoSuchFileException
 import org.scalatest.OptionValues._
@@ -34,7 +34,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.Segment
 import swaydb.core._
 import swaydb.core.segment.io.SegmentReadIO

@@ -25,11 +25,11 @@ package swaydb.core.segment.ref.search
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, PersistentOption}
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.reader.UnblockedReader
+import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 

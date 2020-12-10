@@ -24,12 +24,12 @@
 
 package swaydb.core.segment.io
 
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.data.config.{IOAction, IOStrategy}
 
 private[core] object SegmentReadIO {

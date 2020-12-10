@@ -33,8 +33,8 @@ import swaydb.core.TestData._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.actor.FileSweeper
-import swaydb.core.segment.format.a.block.BlockCache
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.block.BlockCache
+import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.util.{Benchmark, Bytes}
 import swaydb.core.{TestBase, TestCaseSweeper, TestSweeper}
 import swaydb.data.config.{ForceSave, IOStrategy}

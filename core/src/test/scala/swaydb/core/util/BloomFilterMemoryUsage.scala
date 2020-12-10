@@ -24,7 +24,7 @@
 
 package swaydb.core.util
 
-import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default.LongSerializer
 

@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.segment.format.a
+package swaydb.core.segment
 
 import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester

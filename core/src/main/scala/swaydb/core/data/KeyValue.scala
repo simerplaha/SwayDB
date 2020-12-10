@@ -28,8 +28,8 @@ import swaydb.IO
 import swaydb.core.map.serializer.RangeValueSerializer.OptionRangeValueSerializer
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.block.reader.UnblockedReader
+import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey

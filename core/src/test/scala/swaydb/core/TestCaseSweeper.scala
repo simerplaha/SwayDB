@@ -34,7 +34,7 @@ import swaydb.core.level.LevelRef
 import swaydb.core.map.Maps
 import swaydb.core.map.counter.CounterMap
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.block.BlockCache
+import swaydb.core.segment.block.BlockCache
 import swaydb.data.RunThis._
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.{ActorRef, ActorWire, Bag, Glass, Scheduler}

@@ -22,14 +22,14 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.segment.format.a
+package swaydb.core.segment
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext}
 import swaydb.data.RunThis._

@@ -44,16 +44,16 @@ import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.merge._
 import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment._
-import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.SegmentBlock.SegmentBlockOps
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
-import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.block._
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.block.segment.SegmentBlock.SegmentBlockOps
+import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
+import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}

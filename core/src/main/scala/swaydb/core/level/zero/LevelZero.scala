@@ -43,7 +43,7 @@ import swaydb.core.map.applied.{AppliedFunctionsMap, AppliedFunctionsMapCache}
 import swaydb.core.map.serializer.AppliedFunctionsMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps}
-import swaydb.core.segment.format.a.entry.reader.PersistentReader
+import swaydb.core.segment.entry.reader.PersistentReader
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.skiplist.SkipList

@@ -21,15 +21,15 @@
  * combining it with separate works, the licensors of this Program grant
  * you additional permission to convey the resulting work.
  */
-package swaydb.core.segment.format.a
+package swaydb.core.segment
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOption}
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.SegmentSearcher
 import swaydb.core.util.Benchmark

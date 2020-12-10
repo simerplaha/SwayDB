@@ -34,13 +34,13 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.segment.ref.search.ThreadReadState

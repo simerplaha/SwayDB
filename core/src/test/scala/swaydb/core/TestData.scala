@@ -39,17 +39,17 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, PathsDistributor}
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
-import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
-import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.segment.format.a.entry.writer.EntryWriter
+import swaydb.core.segment.block._
+import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
+import swaydb.core.segment.block.reader.{BlockedReader, UnblockedReader}
+import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.entry.id.BaseEntryIdFormatA
+import swaydb.core.segment.entry.writer.EntryWriter
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.segment._
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}

@@ -22,14 +22,14 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.segment.format.a
+package swaydb.core.segment
 
 import swaydb.core.TestBase
 import swaydb.core.data.Persistent._
 import swaydb.core.data.Value.FromValueOption
 import swaydb.core.data.{Persistent, Time, Value}
 import swaydb.core.segment.ref.search.KeyMatcher.Result._
-import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.data.cache.Cache
 import swaydb.data.order.KeyOrder

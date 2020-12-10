@@ -32,8 +32,8 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.format.a.block.segment.data.TransientSegment.Persistent
+import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.segment.data.TransientSegment.Persistent
 import swaydb.core.segment._
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.{ForceSave, MMAP}

@@ -26,7 +26,7 @@ package swaydb.core.segment.merge
 
 import swaydb.Aggregator
 import swaydb.core.data
-import swaydb.core.segment.format.a.entry.id.KeyValueId
+import swaydb.core.segment.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.util.ByteSizeOf
 

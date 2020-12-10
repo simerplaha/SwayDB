@@ -28,7 +28,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP

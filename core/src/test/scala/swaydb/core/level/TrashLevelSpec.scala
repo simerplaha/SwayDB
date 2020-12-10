@@ -29,7 +29,7 @@
 //import swaydb.IOValues._
 //import swaydb.core.TestCaseSweeper._
 //import swaydb.core.TestData._
-//import swaydb.core.segment.format.a.block.segment.SegmentBlock
+//import swaydb.core.segment.block.segment.SegmentBlock
 //import swaydb.core.segment.{Segment, ThreadReadState}
 //import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 //import swaydb.data.RunThis._

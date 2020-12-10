@@ -22,7 +22,7 @@
 //import swaydb.core.CommonAssertions._
 //import swaydb.data.RunThis._
 //import swaydb.core.TestData._
-//import swaydb.core.segment.format.a.block.SortedIndexBlock
+//import swaydb.core.segment.block.SortedIndexBlock
 //import swaydb.core.{TestBase, TestTimer}
 //import swaydb.data.slice.Slice
 //import swaydb.serializers.Default._

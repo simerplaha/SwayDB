@@ -1,0 +1,77 @@
+/*
+ * Copyright (c) 2020 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Additional permission under the GNU Affero GPL version 3 section 7:
+ * If you modify this Program or any covered work, only by linking or combining
+ * it with separate works, the licensors of this Program grant you additional
+ * permission to convey the resulting work.
+ */
+
+package swaydb.core.segment.entry.reader.base
+
+import swaydb.core.segment.entry.reader.BaseEntryApplier
+import swaydb.core.util.NullOps
+
+private[core] trait BaseEntryReader {
+
+  def minID: Int
+
+  def maxID: Int
+
+  def read[T](baseId: Int,
+              reader: BaseEntryApplier[T]): T
+}
+
+object BaseEntryReader {
+
+  val readers: Array[BaseEntryReader] =
+    Array(
+      BaseEntryReader1,
+      BaseEntryReader2,
+      BaseEntryReader3,
+      BaseEntryReader4
+    ) sortBy (_.minID)
+
+  def findReaderOrNull(baseId: Int,
+                       mightBeCompressed: Boolean,
+                       keyCompressionOnly: Boolean): BaseEntryReader =
+    if (mightBeCompressed && !keyCompressionOnly)
+      NullOps.find[BaseEntryReader](readers, _.maxID >= baseId)
+    else
+      BaseEntryReaderUncompressed
+
+  def search[T](baseId: Int,
+                mightBeCompressed: Boolean,
+                keyCompressionOnly: Boolean,
+                parser: BaseEntryApplier[T]): T = {
+    val baseEntryReaderOrNull: BaseEntryReader =
+      findReaderOrNull(
+        baseId = baseId,
+        mightBeCompressed = mightBeCompressed,
+        keyCompressionOnly = keyCompressionOnly
+      )
+
+    if (baseEntryReaderOrNull == null)
+      throw swaydb.Exception.InvalidBaseId(baseId)
+    else
+      baseEntryReaderOrNull.read(
+        baseId = baseId,
+        reader = parser
+      )
+  }
+}

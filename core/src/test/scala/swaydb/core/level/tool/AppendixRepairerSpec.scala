@@ -32,7 +32,7 @@ import swaydb.core.TestData._
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.RunThis._
 import swaydb.data.compaction.Throttle

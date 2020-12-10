@@ -22,7 +22,7 @@
 // * you additional permission to convey the resulting work.
 // */
 //
-//package swaydb.core.segment.format.a
+//package swaydb.core.segment
 //
 //import org.scalatest.OptionValues.convertOptionToValuable
 //import swaydb.Error.Segment.ExceptionHandler
@@ -40,13 +40,13 @@
 //import swaydb.core.level.PathsDistributor
 //import swaydb.core.segment._
 //import swaydb.core.segment.assigner.Assignable
-//import swaydb.core.segment.format.a.block.BlockCache
-//import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-//import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
-//import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-//import swaydb.core.segment.format.a.block.segment.SegmentBlock
-//import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
-//import swaydb.core.segment.format.a.block.values.ValuesBlock
+//import swaydb.core.segment.block.BlockCache
+//import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+//import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+//import swaydb.core.segment.block.hashindex.HashIndexBlock
+//import swaydb.core.segment.block.segment.SegmentBlock
+//import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+//import swaydb.core.segment.block.values.ValuesBlock
 //import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 //import swaydb.core.util._
 //import swaydb.data.MaxKey
