@@ -45,7 +45,7 @@ import swaydb.data.util.ByteSizeOf
 
 object TransientSegmentSerialiser {
 
-  def toKeyValue(singleton: TransientSegment.Singleton,
+  def toKeyValue(singleton: TransientSegment.OneOrRemoteRef,
                  offset: Int,
                  size: Int): Slice[Memory] =
     singleton.maxKey match {

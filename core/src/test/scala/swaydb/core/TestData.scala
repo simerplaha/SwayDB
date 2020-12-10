@@ -1965,7 +1965,7 @@ object TestData {
       val slice = Slice.of[Byte](size)
 
       segment match {
-        case segment: TransientSegment.Singleton =>
+        case segment: TransientSegment.OneOrRemoteRef =>
           segment match {
             case segment: TransientSegment.RemoteRef =>
               slice addAll segment.ref.readAllBytes()

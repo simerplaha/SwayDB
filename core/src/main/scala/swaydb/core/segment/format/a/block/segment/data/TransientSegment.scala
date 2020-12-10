@@ -52,8 +52,17 @@ object TransientSegment {
 
   sealed trait Persistent extends TransientSegment
 
-  sealed trait Singleton extends Persistent {
-    def copyWithFileHeader(headerBytes: Slice[Byte]): Singleton
+  sealed trait SingletonOrMany extends Persistent
+
+  /**
+   * Points to a remote Segment this could be a [[SegmentRef]] or [[Segment]].
+   */
+  sealed trait Singleton extends SingletonOrMany
+
+  sealed trait OneOrMany extends SingletonOrMany
+
+  sealed trait OneOrRemoteRef extends OneOrMany with Singleton {
+    def copyWithFileHeader(headerBytes: Slice[Byte]): OneOrRemoteRef
 
     def hasEmptyByteSliceIgnoreHeader: Boolean
     def segmentSizeIgnoreHeader: Int
@@ -74,7 +83,7 @@ object TransientSegment {
   }
 
   case class RemoteRef(fileHeader: Slice[Byte],
-                       ref: SegmentRef) extends Singleton {
+                       ref: SegmentRef) extends OneOrRemoteRef {
     override def minKey: Slice[Byte] =
       ref.minKey
 
@@ -133,7 +142,7 @@ object TransientSegment {
                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                            hashIndexConfig: HashIndexBlock.Config,
                            bloomFilterConfig: BloomFilterBlock.Config,
-                           segmentConfig: SegmentBlock.Config) extends Persistent {
+                           segmentConfig: SegmentBlock.Config) extends Singleton {
     override def minKey: Slice[Byte] =
       segment.minKey
 
@@ -167,7 +176,7 @@ object TransientSegment {
                  hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                  binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                  bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                 footerUnblocked: Option[SegmentFooterBlock]) extends Singleton {
+                 footerUnblocked: Option[SegmentFooterBlock]) extends OneOrRemoteRef {
 
     def hasEmptyByteSlice: Boolean =
       fileHeader.isEmpty || hasEmptyByteSliceIgnoreHeader
@@ -194,7 +203,7 @@ object TransientSegment {
                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                   nearestPutDeadline: Option[Deadline],
                   listSegment: TransientSegment.One,
-                  segments: Slice[TransientSegment.Singleton]) extends Persistent {
+                  segments: Slice[TransientSegment.OneOrRemoteRef]) extends OneOrMany {
 
     def hasEmptyByteSlice: Boolean =
       fileHeader.isEmpty || listSegment.hasEmptyByteSliceIgnoreHeader || segments.exists(_.hasEmptyByteSliceIgnoreHeader)

@@ -62,15 +62,15 @@ protected object PersistentSegmentOne {
 
   def apply(file: DBFile,
             createdInLevel: Int,
-            segment: TransientSegment.Singleton)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore,
-                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                 blockCacheSweeper: Option[MemorySweeper.Block],
-                                                 fileSweeper: FileSweeper,
-                                                 bufferCleaner: ByteBufferSweeperActor,
-                                                 forceSaveApplier: ForceSaveApplier,
-                                                 segmentIO: SegmentReadIO): PersistentSegmentOne =
+            segment: TransientSegment.OneOrRemoteRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                      functionStore: FunctionStore,
+                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                      blockCacheSweeper: Option[MemorySweeper.Block],
+                                                      fileSweeper: FileSweeper,
+                                                      bufferCleaner: ByteBufferSweeperActor,
+                                                      forceSaveApplier: ForceSaveApplier,
+                                                      segmentIO: SegmentReadIO): PersistentSegmentOne =
     PersistentSegmentOne(
       file = file,
       createdInLevel = createdInLevel,
@@ -303,7 +303,8 @@ protected case class PersistentSegmentOne(file: DBFile,
     if (removeDeletes) {
       val newSegments =
         SegmentRef.mergeWrite(
-          ref = ref,
+          oldKeyValuesCount = ref.getKeyValueCount(),
+          oldKeyValues = ref.iterator(),
           headGap = headGap,
           tailGap = tailGap,
           mergeableCount = mergeableCount,

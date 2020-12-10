@@ -186,7 +186,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.Persistent] =
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrMany] =
     if (mergeStats.isEmpty) {
       Slice.empty
     } else {
@@ -214,23 +214,23 @@ private[core] case object SegmentBlock extends LazyLogging {
     }
 
   def writeOneOrMany(createdInLevel: Int,
-                     ones: Slice[TransientSegment.Singleton],
+                     ones: Slice[TransientSegment.OneOrRemoteRef],
                      sortedIndexConfig: SortedIndexBlock.Config,
                      hashIndexConfig: HashIndexBlock.Config,
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.Persistent] =
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrMany] =
     if (ones.isEmpty) {
       Slice.empty
     } else {
-      val groups: Slice[Slice[TransientSegment.Singleton]] =
-        Collections.groupedBySize[TransientSegment.Singleton](
+      val groups: Slice[Slice[TransientSegment.OneOrRemoteRef]] =
+        Collections.groupedBySize[TransientSegment.OneOrRemoteRef](
           minGroupSize = segmentConfig.minSize,
           itemSize = _.segmentSize,
           items = ones
         )
 
-      val many = Slice.of[TransientSegment.Persistent](groups.size)
+      val many = Slice.of[TransientSegment.OneOrMany](groups.size)
 
       var index = 0
 

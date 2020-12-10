@@ -257,7 +257,7 @@ case object SegmentWriteIO extends LazyLogging {
     /**
      * Write segments to target file and also attempts to batch transfer bytes.
      */
-    private def writeOrTransfer(segments: Slice[TransientSegment.Singleton],
+    private def writeOrTransfer(segments: Slice[TransientSegment.OneOrRemoteRef],
                                 target: DBFile,
                                 createdInLevel: Int): Int = {
       var createdInLevelMin = createdInLevel
