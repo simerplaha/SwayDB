@@ -17,7 +17,7 @@
 // * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
 // */
 //
-//package swaydb.core.segment.merge
+//package swaydb.core.merge
 //
 //import swaydb.core.TestBase
 //import swaydb.core.TestData._

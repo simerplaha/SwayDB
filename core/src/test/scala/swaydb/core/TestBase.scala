@@ -47,7 +47,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.merge.MergeStats
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.queue.VolatileQueue

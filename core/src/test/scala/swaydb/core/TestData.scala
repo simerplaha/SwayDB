@@ -50,7 +50,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
+import swaydb.core.merge.{MergeStats, KeyValueMerger}
 import swaydb.core.segment._
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -1950,7 +1950,7 @@ object TestData {
                                   timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
     val builder = MergeStats.random()
 
-    SegmentMerger.merge(
+    KeyValueMerger.merge(
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
       stats = builder,

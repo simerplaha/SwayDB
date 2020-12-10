@@ -28,7 +28,7 @@ import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
+import swaydb.core.merge.{MergeStats, KeyValueMerger}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -128,7 +128,7 @@ private[core] object LevelZeroMapCache {
 
             val builder = MergeStats.buffer[Memory, ListBuffer](Aggregator.listBuffer)
 
-            SegmentMerger.merge(
+            KeyValueMerger.merge(
               newKeyValue = insert,
               oldKeyValue = floorRange,
               builder = builder,
@@ -186,7 +186,7 @@ private[core] object LevelZeroMapCache {
 
       val builder = MergeStats.buffer[Memory, ListBuffer](Aggregator.fromBuilder(ListBuffer.newBuilder))
 
-      SegmentMerger.merge(
+      KeyValueMerger.merge(
         newKeyValues = Slice(insert),
         oldKeyValues = oldKeyValues,
         stats = builder,

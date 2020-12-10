@@ -42,7 +42,7 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
-import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
+import swaydb.core.merge.{MergeStats, KeyValueGrouper}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefWriter}
 import swaydb.core.util.Collections._
@@ -327,7 +327,7 @@ private[core] case object Segment extends LazyLogging {
                                                         forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
     val builder =
       if (removeDeletes)
-        MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(SegmentGrouper.addLastLevel)
+        MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel)
       else
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
@@ -1217,7 +1217,7 @@ private[core] case object Segment extends LazyLogging {
           val nextKeyValue = fullIterator.next()
           val nextKeyValueOrNull =
             if (removeDeletes)
-              SegmentGrouper.addLastLevel(nextKeyValue)
+              KeyValueGrouper.addLastLevel(nextKeyValue)
             else
               nextKeyValue.toMemory()
 

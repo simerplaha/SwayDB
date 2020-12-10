@@ -55,7 +55,7 @@ import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
+import swaydb.core.merge.{MergeStats, KeyValueMerger}
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.RunThis._
@@ -320,7 +320,7 @@ object CommonAssertions {
                                         timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
     val builder = MergeStats.random()
 
-    SegmentMerger.merge(
+    KeyValueMerger.merge(
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
       stats = builder,

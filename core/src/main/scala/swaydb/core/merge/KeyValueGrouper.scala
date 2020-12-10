@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment.merge
+package swaydb.core.merge
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Memory, Persistent, Value, _}
@@ -31,7 +31,7 @@ import swaydb.core.data.{Memory, Persistent, Value, _}
  * SegmentGroups will always group key-values with Groups at the head of key-value List. Groups cannot be randomly
  * added in the middle.
  */
-private[core] object SegmentGrouper extends LazyLogging {
+private[core] object KeyValueGrouper extends LazyLogging {
 
   def add[T[_]](keyValue: KeyValue,
                 builder: MergeStats[Memory, T],

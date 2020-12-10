@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment.merge
+package swaydb.core.merge
 
 import swaydb.Aggregator
 import swaydb.core.data

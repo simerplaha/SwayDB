@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.segment.merge
+package swaydb.core.merge
 
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
@@ -39,7 +39,7 @@ import swaydb.serializers._
 import scala.concurrent.duration._
 import scala.util.Random
 
-class SegmentMerger_Fixed_Into_Range extends AnyWordSpec {
+class KeyValueMerger_Fixed_Into_Range extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

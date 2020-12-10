@@ -34,7 +34,7 @@ import swaydb.core.segment.block.Block
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.merge.MergeStats
+import swaydb.core.merge.MergeStats
 import swaydb.core.util.Benchmark
 import swaydb.data.RunThis._
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}

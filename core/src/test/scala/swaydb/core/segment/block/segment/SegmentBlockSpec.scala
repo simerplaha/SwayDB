@@ -35,7 +35,7 @@ import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.merge.MergeStats
+import swaydb.core.merge.MergeStats
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder

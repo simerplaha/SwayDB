@@ -36,8 +36,8 @@ import swaydb.core.segment.block.segment.data.{ClosedBlocks, ClosedBlocksWithFoo
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.merge.MergeStats
-import swaydb.core.segment.merge.MergeStats.Persistent
+import swaydb.core.merge.MergeStats
+import swaydb.core.merge.MergeStats.Persistent
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections, MinMax}
 import swaydb.data.config._

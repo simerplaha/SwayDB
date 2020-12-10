@@ -31,7 +31,7 @@ import swaydb.core.TestTimer
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
-import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
+import swaydb.core.merge.{MergeStats, KeyValueMerger}
 import swaydb.core.util.skiplist.{SkipListConcurrent, SkipListSeries}
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.order.TimeOrder
@@ -165,7 +165,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
             val builder = MergeStats.random()
 
-            SegmentMerger.merge(
+            KeyValueMerger.merge(
               newKeyValue = range,
               oldKeyValue = put,
               builder = builder,

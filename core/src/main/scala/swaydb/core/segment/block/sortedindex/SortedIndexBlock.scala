@@ -32,7 +32,7 @@ import swaydb.core.segment.block._
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.writer._
-import swaydb.core.segment.merge.MergeStats
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment.ref.search.KeyMatcher
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey

@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment.merge
+package swaydb.core.merge
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Value}
@@ -36,7 +36,7 @@ import swaydb.data.slice.Slice
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
-private[core] object SegmentMerger extends LazyLogging {
+private[core] object KeyValueMerger extends LazyLogging {
 
   def merge(newKeyValue: Memory,
             oldKeyValue: Memory,
@@ -166,7 +166,7 @@ private[core] object SegmentMerger extends LazyLogging {
     import keyOrder._
 
     @inline def add(nextKeyValue: KeyValue): Unit =
-      SegmentGrouper.add(
+      KeyValueGrouper.add(
         keyValue = nextKeyValue,
         builder = builder,
         isLastLevel = isLastLevel

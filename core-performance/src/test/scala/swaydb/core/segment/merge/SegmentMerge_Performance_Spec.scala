@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.segment.merge
+package swaydb.core.merge
 
 import swaydb.Aggregator
 import swaydb.core.TestData._
@@ -64,7 +64,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
     //run multiple times because first is warmup
     runThis(4.times, log = true) {
       Benchmark(s"SegmentMerger performance") {
-        SegmentMerger.merge(
+        KeyValueMerger.merge(
           newKeyValues = keyValues,
           oldKeyValues = keyValues,
           stats = MergeStats.persistent(Aggregator.listBuffer),

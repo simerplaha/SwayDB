@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.segment.merge
+package swaydb.core.merge
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -32,7 +32,7 @@ import swaydb.data.RunThis._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SegmentGrouperSpec extends TestBase {
+class KeyValueGrouperSpec extends TestBase {
 
   implicit def testTimer: TestTimer = TestTimer.Empty
 
@@ -42,11 +42,11 @@ class SegmentGrouperSpec extends TestBase {
         var builder = MergeStats.random()
 
         val keyValue = randomFixedKeyValue(1, randomStringOption, Some(expiredDeadline()))
-        SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
+        KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
         builder = MergeStats.random()
-        SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
+        KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         builder.keyValues should have size 0
       }
     }
@@ -56,11 +56,11 @@ class SegmentGrouperSpec extends TestBase {
         var builder = MergeStats.random()
 
         val keyValue = randomFixedKeyValue(1, randomStringOption, deadline = None)
-        SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
+        KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
         builder = MergeStats.random()
-        SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
+        KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         if (keyValue.isPut)
           builder.keyValues should contain only keyValue
         else
@@ -76,11 +76,11 @@ class SegmentGrouperSpec extends TestBase {
 
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(fromKeyValue, Value.FromValue.Null))
-        SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
+        KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
         builder = MergeStats.random()
-        SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
+        KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         builder.keyValues should have size 0
       }
     }
@@ -91,11 +91,11 @@ class SegmentGrouperSpec extends TestBase {
 
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(fromKeyValue, Value.FromValue.Null))
-        SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
+        KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
         builder = MergeStats.random()
-        SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
+        KeyValueGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         if (keyValue.isPut)
           builder.keyValues should contain only keyValue
         else

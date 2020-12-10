@@ -47,7 +47,7 @@ import swaydb.data.util.OperatingSystem
 import TestCaseSweeper._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.merge.MergeStats
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.util.StorageUnits._
 
