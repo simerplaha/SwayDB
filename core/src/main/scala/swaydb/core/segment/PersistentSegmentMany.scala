@@ -26,7 +26,7 @@ package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{IO, core}
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
@@ -34,6 +34,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
+import swaydb.core.segment
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.BlockCache
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -44,6 +45,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefOption, SegmentRefReader}
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
@@ -56,7 +58,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.jdk.CollectionConverters._
 
@@ -105,7 +107,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
             val pathNameOffset = actualOffset - firstSegmentOffset
 
             val ref =
-              SegmentRef(
+              core.segment.ref.SegmentRef(
                 path = file.path.resolve(s"ref.$pathNameOffset"),
                 minKey = singleton.minKey,
                 maxKey = singleton.maxKey,
@@ -143,7 +145,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     val listSegment =
       if (cacheBlocksOnCreate)
         Some(
-          SegmentRef(
+          ref.SegmentRef(
             path = file.path,
             minKey = segment.listSegment.minKey,
             maxKey = segment.listSegment.maxKey,
@@ -222,7 +224,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
             val oldRefOffset = oldRef.offset()
 
             val ref =
-              SegmentRef(
+              segment.ref.SegmentRef(
                 path = file.path.resolve(s"ref.$offset"),
                 minKey = oldRef.minKey,
                 maxKey = oldRef.maxKey,
@@ -256,7 +258,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
               val copiedFromOffset = copiedFromListRef.offset()
 
               val ref =
-                SegmentRef(
+                segment.ref.SegmentRef(
                   path = file.path,
                   minKey = copiedFromListRef.minKey,
                   maxKey = copiedFromListRef.maxKey,
@@ -454,7 +456,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     val listSegmentRef = BlockRefReader[SegmentBlock.Offset](listSegment)
 
     val segmentRef =
-      SegmentRef(
+      ref.SegmentRef(
         path = file.path,
         minKey = minKey,
         maxKey = maxKey,
@@ -554,7 +556,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
         blockCache = listSegmentBlockCache orElse BlockCache.forSearch(maxCacheSizeOrZero = listSegmentSize, blockSweeper = blockCacheMemorySweeper)
       )
 
-    SegmentRef(
+    ref.SegmentRef(
       path = file.path,
       minKey = minKey,
       maxKey = maxKey,
@@ -728,50 +730,51 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): SegmentMergeResult[Slice[TransientSegment]] =
-    if (removeDeletes) {
-      //duplicate so that SegmentRefs are not read twice.
-      val (countIterator, keyValuesIterator) = getAllSegmentRefs().duplicate
-      val oldKeyValuesCount = countIterator.foldLeft(0)(_ + _.getKeyValueCount())
-      val oldKeyValues = keyValuesIterator.flatMap(_.iterator())
-
-      val newSegments =
-        SegmentRef.mergeWrite(
-          oldKeyValuesCount = oldKeyValuesCount,
-          oldKeyValues = oldKeyValues,
-          headGap = headGap,
-          tailGap = tailGap,
-          mergeableCount = mergeableCount,
-          mergeable = mergeable,
-          removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig
-        )
-
-      SegmentMergeResult(result = newSegments, replaced = true)
-    } else {
-      SegmentRef.fastAssignPut(
-        headGap = headGap,
-        tailGap = tailGap,
-        segmentRefs = getAllSegmentRefs(),
-        assignableCount = mergeableCount,
-        assignables = mergeable,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        segmentParallelism = segmentParallelism,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-    }
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
+  //    if (removeDeletes) {
+  //      //duplicate so that SegmentRefs are not read twice.
+  //      val (countIterator, keyValuesIterator) = getAllSegmentRefs().duplicate
+  //      val oldKeyValuesCount = countIterator.foldLeft(0)(_ + _.getKeyValueCount())
+  //      val oldKeyValues = keyValuesIterator.flatMap(_.iterator())
+  //
+  //      val newSegments =
+  //        SegmentRef.merge(
+  //          oldKeyValuesCount = oldKeyValuesCount,
+  //          oldKeyValues = oldKeyValues,
+  //          headGap = headGap,
+  //          tailGap = tailGap,
+  //          mergeableCount = mergeableCount,
+  //          mergeable = mergeable,
+  //          removeDeletes = removeDeletes,
+  //          createdInLevel = createdInLevel,
+  //          valuesConfig = valuesConfig,
+  //          sortedIndexConfig = sortedIndexConfig,
+  //          binarySearchIndexConfig = binarySearchIndexConfig,
+  //          hashIndexConfig = hashIndexConfig,
+  //          bloomFilterConfig = bloomFilterConfig,
+  //          segmentConfig = segmentConfig
+  //        )
+  //
+  //      SegmentMergeResult(result = newSegments, replaced = true)
+  //    } else {
+  //      SegmentRef.fastAssignAndMerge(
+  //        headGap = headGap,
+  //        tailGap = tailGap,
+  //        segmentRefs = getAllSegmentRefs(),
+  //        assignableCount = mergeableCount,
+  //        assignables = mergeable,
+  //        removeDeletes = removeDeletes,
+  //        createdInLevel = createdInLevel,
+  //        segmentParallelism = segmentParallelism,
+  //        valuesConfig = valuesConfig,
+  //        sortedIndexConfig = sortedIndexConfig,
+  //        binarySearchIndexConfig = binarySearchIndexConfig,
+  //        hashIndexConfig = hashIndexConfig,
+  //        bloomFilterConfig = bloomFilterConfig,
+  //        segmentConfig = segmentConfig
+  //      )
+  //    }
+    ???
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -780,18 +783,19 @@ protected case class PersistentSegmentMany(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment] =
-    Segment.refreshForNewLevel(
-      keyValues = iterator(),
-      removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentConfig = segmentConfig
-    )
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
+  //    Segment.refreshForNewLevel(
+  //      keyValues = iterator(),
+  //      removeDeletes = removeDeletes,
+  //      createdInLevel = createdInLevel,
+  //      valuesConfig = valuesConfig,
+  //      sortedIndexConfig = sortedIndexConfig,
+  //      binarySearchIndexConfig = binarySearchIndexConfig,
+  //      hashIndexConfig = hashIndexConfig,
+  //      bloomFilterConfig = bloomFilterConfig,
+  //      segmentConfig = segmentConfig
+  //    )
+    ???
 
   def getFromCache(key: Slice[Byte]): PersistentOption = {
     segmentsCache.forEach {
@@ -834,7 +838,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
     val floorOrNull = segmentsCache.floorEntry(key)
 
-    if (floorOrNull != null && SegmentRef.contains(key, floorOrNull.getValue)) {
+    if (floorOrNull != null && SegmentRefReader.contains(key, floorOrNull.getValue)) {
       floorOrNull.getValue.get(key, threadState)
     } else {
       val listSegment = listSegmentCache.value(())
@@ -852,7 +856,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption = {
     val lowerOrNull = segmentsCache.lowerEntry(key)
 
-    if (lowerOrNull != null && SegmentRef.containsLower(key, lowerOrNull.getValue)) {
+    if (lowerOrNull != null && SegmentRefReader.containsLower(key, lowerOrNull.getValue)) {
       lowerOrNull.getValue.lower(key, threadState)
     } else {
       val listSegment = listSegmentCache.value(())

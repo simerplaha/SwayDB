@@ -34,6 +34,7 @@ import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
+import swaydb.core.segment
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.format.a.block.BlockCache
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -45,6 +46,7 @@ import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
@@ -52,7 +54,7 @@ import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 protected object PersistentSegmentOne {
@@ -129,7 +131,7 @@ protected object PersistentSegmentOne {
       )
 
     val ref =
-      SegmentRef(
+      segment.ref.SegmentRef(
         path = file.path,
         minKey = minKey,
         maxKey = maxKey,
@@ -299,45 +301,46 @@ protected case class PersistentSegmentOne(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): SegmentMergeResult[Slice[TransientSegment]] =
-    if (removeDeletes) {
-      val newSegments =
-        SegmentRef.mergeWrite(
-          oldKeyValuesCount = ref.getKeyValueCount(),
-          oldKeyValues = ref.iterator(),
-          headGap = headGap,
-          tailGap = tailGap,
-          mergeableCount = mergeableCount,
-          mergeable = mergeable,
-          removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig
-        )
-
-      SegmentMergeResult(result = newSegments, replaced = true)
-    } else {
-      SegmentRef.fastPut(
-        ref = ref,
-        headGap = headGap,
-        tailGap = tailGap,
-        mergeableCount = mergeableCount,
-        mergeable = mergeable,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        segmentParallelism = segmentParallelism,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-    }
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
+  //    if (removeDeletes) {
+  //      val newSegments =
+  //        SegmentRef.merge(
+  //          oldKeyValuesCount = ref.getKeyValueCount(),
+  //          oldKeyValues = ref.iterator(),
+  //          headGap = headGap,
+  //          tailGap = tailGap,
+  //          mergeableCount = mergeableCount,
+  //          mergeable = mergeable,
+  //          removeDeletes = removeDeletes,
+  //          createdInLevel = createdInLevel,
+  //          valuesConfig = valuesConfig,
+  //          sortedIndexConfig = sortedIndexConfig,
+  //          binarySearchIndexConfig = binarySearchIndexConfig,
+  //          hashIndexConfig = hashIndexConfig,
+  //          bloomFilterConfig = bloomFilterConfig,
+  //          segmentConfig = segmentConfig
+  //        )
+  //
+  //      SegmentMergeResult(result = newSegments, replaced = true)
+  //    } else {
+  //      SegmentRef.fastMerge(
+  //        ref = ref,
+  //        headGap = headGap,
+  //        tailGap = tailGap,
+  //        mergeableCount = mergeableCount,
+  //        mergeable = mergeable,
+  //        removeDeletes = removeDeletes,
+  //        createdInLevel = createdInLevel,
+  //        segmentParallelism = segmentParallelism,
+  //        valuesConfig = valuesConfig,
+  //        sortedIndexConfig = sortedIndexConfig,
+  //        binarySearchIndexConfig = binarySearchIndexConfig,
+  //        hashIndexConfig = hashIndexConfig,
+  //        bloomFilterConfig = bloomFilterConfig,
+  //        segmentConfig = segmentConfig
+  //      )
+  //    }
+    ???
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -346,18 +349,19 @@ protected case class PersistentSegmentOne(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment] =
-    SegmentRef.refresh(
-      ref = ref,
-      removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentConfig = segmentConfig
-    )
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
+  //    SegmentRef.refresh(
+  //      ref = ref,
+  //      removeDeletes = removeDeletes,
+  //      createdInLevel = createdInLevel,
+  //      valuesConfig = valuesConfig,
+  //      sortedIndexConfig = sortedIndexConfig,
+  //      binarySearchIndexConfig = binarySearchIndexConfig,
+  //      hashIndexConfig = hashIndexConfig,
+  //      bloomFilterConfig = bloomFilterConfig,
+  //      segmentConfig = segmentConfig
+  //    )
+    ???
 
   def getFromCache(key: Slice[Byte]): PersistentOption =
     ref getFromCache key

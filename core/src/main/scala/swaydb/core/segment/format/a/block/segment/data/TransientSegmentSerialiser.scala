@@ -37,7 +37,8 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReade
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.{SegmentReadIO, SegmentRef}
+import swaydb.core.segment.{SegmentReadIO, ref}
+import swaydb.core.segment.ref.SegmentRef
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -196,7 +197,7 @@ object TransientSegmentSerialiser {
           val segmentSize = valueReader.readUnsignedInt()
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
 
-          SegmentRef(
+          ref.SegmentRef(
             path = file.path.resolve(s"ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Fixed(range.toKey.unslice()),
@@ -223,7 +224,7 @@ object TransientSegmentSerialiser {
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
           val maxKeyMinKey = valueReader.readRemaining()
 
-          SegmentRef(
+          ref.SegmentRef(
             path = file.path.resolve(s"ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Range(maxKeyMinKey.unslice(), range.toKey.unslice()),
@@ -272,7 +273,7 @@ object TransientSegmentSerialiser {
       val segmentSize = valueReader.readUnsignedInt()
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
 
-      SegmentRef(
+      ref.SegmentRef(
         path = file.path.resolve(s"ref.$segmentOffset"),
         minKey = minKey.unslice(),
         maxKey = MaxKey.Fixed(put.key.unslice()),
@@ -299,7 +300,7 @@ object TransientSegmentSerialiser {
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
       val maxKeyMinKey = valueReader.readRemaining()
 
-      SegmentRef(
+      ref.SegmentRef(
         path = file.path.resolve(s"ref.$segmentOffset"),
         minKey = put.key.unslice(),
         maxKey = MaxKey.Range(maxKeyMinKey.unslice(), put.key.unslice()),

@@ -29,13 +29,13 @@ import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.{Segment, SegmentMergeResult}
+import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object NextLevel {
 
@@ -80,13 +80,13 @@ trait NextLevel extends LevelRef {
   def mightContainFunction(key: Slice[Byte]): Boolean
 
   def put(segment: Segment,
-          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Error.Level, Iterable[LevelMergeResult]]
+          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]]
 
   def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Error.Level, Iterable[LevelMergeResult]]
+          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]]
 
   def put(segments: Iterable[Segment],
-          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Error.Level, Iterable[LevelMergeResult]]
+          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]]
 
   def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Int]
 

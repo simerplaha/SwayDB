@@ -42,6 +42,7 @@ import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
+import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefWriter}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
@@ -418,7 +419,7 @@ private[core] case object Segment extends LazyLogging {
                                                    segmentIO: SegmentReadIO,
                                                    forceSaveApplier: ForceSaveApplier): SegmentMergeResult[Slice[PersistentSegment]] = {
     val transient: Slice[TransientSegment.Persistent] =
-      SegmentRef.mergeWrite(
+      SegmentRefWriter.merge(
         oldKeyValuesCount = oldKeyValuesCount,
         oldKeyValues = oldKeyValues,
         headGap = headGap,
@@ -1316,7 +1317,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): SegmentMergeResult[Slice[TransientSegment]]
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment]]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -1325,7 +1326,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment]
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment]]]
 
   def getFromCache(key: Slice[Byte]): KeyValueOption
 

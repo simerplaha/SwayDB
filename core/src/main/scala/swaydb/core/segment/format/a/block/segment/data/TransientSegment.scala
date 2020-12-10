@@ -32,7 +32,8 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.{MemorySegment, Segment, SegmentRef}
+import swaydb.core.segment.ref.SegmentRef
+import swaydb.core.segment.{MemorySegment, Segment}
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice

@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.ref
 
 object SegmentMergeResult {
 

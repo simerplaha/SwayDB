@@ -39,6 +39,7 @@ import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
+import swaydb.core.segment.ref.SegmentMergeResult
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
@@ -48,7 +49,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 protected case class MemorySegment(path: Path,
@@ -85,46 +86,47 @@ protected case class MemorySegment(path: Path,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                                       executionContext: ExecutionContext): SegmentMergeResult[Slice[TransientSegment.Memory]] =
-    if (deleted) {
-      throw swaydb.Exception.NoSuchFile(path)
-    } else {
-      val stats = MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
-
-      SegmentMerger.merge(
-        headGap = headGap,
-        tailGap = tailGap,
-        mergeableCount = mergeableCount,
-        mergeable = mergeable,
-        oldKeyValuesCount = getKeyValueCount(),
-        oldKeyValues = iterator(),
-        stats = stats,
-        isLastLevel = removeDeletes
-      )
-
-      //      Segment.copyToMemory(
-      //        segment = segment,
-      //        createdInLevel = levelNumber,
-      //        pathsDistributor = pathDistributor,
-      //        removeDeletes = removeDeletedRecords,
-      //        minSegmentSize = segmentConfig.minSize,
-      //        maxKeyValueCountPerSegment = segmentConfig.maxCount
-      //      )
-
-      val newSegments =
-        if (stats.isEmpty)
-          Slice.empty
-        else
-          Segment.memory(
-            minSegmentSize = segmentConfig.minSize,
-            maxKeyValueCountPerSegment = segmentConfig.maxCount,
-            pathsDistributor = pathsDistributor,
-            createdInLevel = createdInLevel,
-            stats = stats.close
-          ).map(TransientSegment.Memory)
-
-      SegmentMergeResult[Slice[TransientSegment.Memory]](result = newSegments, replaced = true)
-    }
+                                                       executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Memory]]] =
+  //    if (deleted) {
+  //      throw swaydb.Exception.NoSuchFile(path)
+  //    } else {
+  //      val stats = MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
+  //
+  //      SegmentMerger.merge(
+  //        headGap = headGap,
+  //        tailGap = tailGap,
+  //        mergeableCount = mergeableCount,
+  //        mergeable = mergeable,
+  //        oldKeyValuesCount = getKeyValueCount(),
+  //        oldKeyValues = iterator(),
+  //        stats = stats,
+  //        isLastLevel = removeDeletes
+  //      )
+  //
+  //      //      Segment.copyToMemory(
+  //      //        segment = segment,
+  //      //        createdInLevel = levelNumber,
+  //      //        pathsDistributor = pathDistributor,
+  //      //        removeDeletes = removeDeletedRecords,
+  //      //        minSegmentSize = segmentConfig.minSize,
+  //      //        maxKeyValueCountPerSegment = segmentConfig.maxCount
+  //      //      )
+  //
+  //      val newSegments =
+  //        if (stats.isEmpty)
+  //          Slice.empty
+  //        else
+  //          Segment.memory(
+  //            minSegmentSize = segmentConfig.minSize,
+  //            maxKeyValueCountPerSegment = segmentConfig.maxCount,
+  //            pathsDistributor = pathsDistributor,
+  //            createdInLevel = createdInLevel,
+  //            stats = stats.close
+  //          ).map(TransientSegment.Memory)
+  //
+  //      SegmentMergeResult[Slice[TransientSegment.Memory]](result = newSegments, replaced = true)
+  //    }
+    ???
 
   override def refresh(removeDeletes: Boolean,
                        createdInLevel: Int,
@@ -133,29 +135,30 @@ protected case class MemorySegment(path: Path,
                        binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                        hashIndexConfig: HashIndexBlock.Config,
                        bloomFilterConfig: BloomFilterBlock.Config,
-                       segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.Memory] =
-    if (deleted) {
-      throw swaydb.Exception.NoSuchFile(path)
-    } else {
-      val keyValues =
-        Segment
-          .toMemoryIterator(iterator(), removeDeletes)
-          .to(Iterable)
-
-      val mergeStats =
-        new MergeStats.Memory.Closed[Iterable](
-          isEmpty = false,
-          keyValues = keyValues
-        )
-
-      Segment.memory(
-        minSegmentSize = segmentConfig.minSize,
-        maxKeyValueCountPerSegment = segmentConfig.maxCount,
-        pathsDistributor = pathsDistributor,
-        createdInLevel = createdInLevel,
-        stats = mergeStats
-      ).map(TransientSegment.Memory)
-    }
+                       segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment.Memory]]] =
+  //    if (deleted) {
+  //      throw swaydb.Exception.NoSuchFile(path)
+  //    } else {
+  //      val keyValues =
+  //        Segment
+  //          .toMemoryIterator(iterator(), removeDeletes)
+  //          .to(Iterable)
+  //
+  //      val mergeStats =
+  //        new MergeStats.Memory.Closed[Iterable](
+  //          isEmpty = false,
+  //          keyValues = keyValues
+  //        )
+  //
+  //      Segment.memory(
+  //        minSegmentSize = segmentConfig.minSize,
+  //        maxKeyValueCountPerSegment = segmentConfig.maxCount,
+  //        pathsDistributor = pathsDistributor,
+  //        createdInLevel = createdInLevel,
+  //        stats = mergeStats
+  //      ).map(TransientSegment.Memory)
+  //    }
+    ???
 
   override def getFromCache(key: Slice[Byte]): MemoryOption =
     skipList.get(key)
