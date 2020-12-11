@@ -72,7 +72,10 @@ object Assignable {
     def getKeyValueCount(): Int
   }
 
-  trait Point extends Assignable
+  trait Point extends Assignable {
+    def key: Slice[Byte]
+    def toMemory(): Memory
+  }
 
   object Collection {
     def fromMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Assignable.Collection =

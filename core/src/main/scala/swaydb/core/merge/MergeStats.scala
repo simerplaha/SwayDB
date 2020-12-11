@@ -45,7 +45,7 @@ private[core] sealed trait MergeStats[FROM, +T[_]] extends Aggregator[FROM, T[da
     keyValues
 }
 
-private[core] object MergeStats {
+private[core] case object MergeStats {
 
   private[core] sealed trait Result[FROM, +T[_]] {
     def keyValues: T[data.Memory]

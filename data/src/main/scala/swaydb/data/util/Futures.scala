@@ -35,11 +35,23 @@ private[swaydb] object Futures {
   val `true` = Future.successful(true)
   val `false` = Future.successful(false)
 
-  implicit class FutureImplicits[T](future1: Future[T]) {
-    @inline def and(future2: => Future[T])(implicit executionContext: ExecutionContext): Future[T] =
+  implicit class FutureImplicits[A](future1: Future[A]) {
+    @inline def and[B](future2: => Future[B])(implicit executionContext: ExecutionContext): Future[B] =
       future1.flatMap(_ => future2)
 
-    @inline def andIO[L, R](io: => IO[L, T])(implicit executionContext: ExecutionContext): Future[T] =
+    @inline def flatMapCarry(future2: => Future[Unit])(implicit executionContext: ExecutionContext): Future[A] =
+      future1 flatMap {
+        onesResult =>
+          future2.map(_ => onesResult)
+      }
+
+    @inline def andIO[L, R](io: => IO[L, A])(implicit executionContext: ExecutionContext): Future[A] =
       future1.flatMap(_ => io.toFuture)
+  }
+
+  implicit class FutureUnitImplicits(future1: Future[Unit]) {
+    @inline def flatMapUnit[A](future2: => Future[A])(implicit executionContext: ExecutionContext): Future[A] =
+      future1.flatMap(_ => future2)
+
   }
 }

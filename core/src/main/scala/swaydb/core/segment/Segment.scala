@@ -420,34 +420,35 @@ private[core] case object Segment extends LazyLogging {
                                                    blockCacheSweeper: Option[MemorySweeper.Block],
                                                    segmentIO: SegmentReadIO,
                                                    forceSaveApplier: ForceSaveApplier): SegmentMergeResult[Slice[PersistentSegment]] = {
-    val transient: Slice[TransientSegment.Persistent] =
-      SegmentRefWriter.merge(
-        oldKeyValuesCount = oldKeyValuesCount,
-        oldKeyValues = oldKeyValues,
-        headGap = headGap,
-        tailGap = tailGap,
-        mergeableCount = mergeableCount,
-        mergeable = mergeable,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-
-    val newSegments =
-      SegmentWriteIO.PersistentIO.persist(
-        pathsDistributor = pathsDistributor,
-        mmap = segmentConfig.mmap,
-        segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
-        createdInLevel = createdInLevel,
-        transient = transient
-      ).get
-
-    SegmentMergeResult(result = newSegments, replaced = true)
+    //    val transient: Slice[TransientSegment.Persistent] =
+    //      SegmentRefWriter.merge(
+    //        oldKeyValuesCount = oldKeyValuesCount,
+    //        oldKeyValues = oldKeyValues,
+    //        headGap = headGap,
+    //        tailGap = tailGap,
+    //        mergeableCount = mergeableCount,
+    //        mergeable = mergeable,
+    //        removeDeletes = removeDeletes,
+    //        createdInLevel = createdInLevel,
+    //        valuesConfig = valuesConfig,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig,
+    //        segmentConfig = segmentConfig
+    //      )
+    //
+    //    val newSegments =
+    //      SegmentWriteIO.PersistentIO.persist(
+    //        pathsDistributor = pathsDistributor,
+    //        mmap = segmentConfig.mmap,
+    //        segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+    //        createdInLevel = createdInLevel,
+    //        transient = transient
+    //      ).get
+    //
+    //    SegmentMergeResult(result = newSegments, replaced = true)
+    ???
   }
 
   /**

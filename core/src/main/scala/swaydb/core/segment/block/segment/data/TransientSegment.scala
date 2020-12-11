@@ -60,6 +60,8 @@ object TransientSegment {
    */
   sealed trait Singleton extends SingletonOrMany
 
+  sealed trait Remote extends Singleton
+
   sealed trait OneOrRemoteRefOrMany extends SingletonOrMany
 
   sealed trait OneOrRemoteRef extends OneOrRemoteRefOrMany with Singleton {
@@ -143,7 +145,7 @@ object TransientSegment {
                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                            hashIndexConfig: HashIndexBlock.Config,
                            bloomFilterConfig: BloomFilterBlock.Config,
-                           segmentConfig: SegmentBlock.Config) extends Singleton {
+                           segmentConfig: SegmentBlock.Config) extends Remote {
     override def minKey: Slice[Byte] =
       segment.minKey
 
