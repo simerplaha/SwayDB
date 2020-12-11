@@ -186,7 +186,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrMany] =
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrRemoteRefOrMany] =
     if (mergeStats.isEmpty) {
       Slice.empty
     } else {
@@ -219,7 +219,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                      hashIndexConfig: HashIndexBlock.Config,
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrMany] =
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrRemoteRefOrMany] =
     if (ones.isEmpty) {
       Slice.empty
     } else {
@@ -230,7 +230,7 @@ private[core] case object SegmentBlock extends LazyLogging {
           items = ones
         )
 
-      val many = Slice.of[TransientSegment.OneOrMany](groups.size)
+      val many = Slice.of[TransientSegment.OneOrRemoteRefOrMany](groups.size)
 
       var index = 0
 

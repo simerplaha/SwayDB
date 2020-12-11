@@ -53,7 +53,7 @@ private[core] sealed trait KeyValueOption {
     }
 }
 
-private[core] sealed trait KeyValue extends Assignable {
+private[core] sealed trait KeyValue extends Assignable.Point {
   def key: Slice[Byte]
 
   def indexEntryDeadline: Option[Deadline]

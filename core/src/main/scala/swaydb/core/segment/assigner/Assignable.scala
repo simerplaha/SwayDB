@@ -41,7 +41,7 @@ import scala.collection.mutable.ListBuffer
  * - [[Map[Slice[Byte], Memory, LevelZeroMapCache]]
  * - [[swaydb.core.data.KeyValue]]
  */
-trait Assignable {
+sealed trait Assignable {
   def key: Slice[Byte]
 }
 
@@ -71,6 +71,8 @@ object Assignable {
     def iterator(): Iterator[KeyValue]
     def getKeyValueCount(): Int
   }
+
+  trait Point extends Assignable
 
   object Collection {
     def fromMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Assignable.Collection =

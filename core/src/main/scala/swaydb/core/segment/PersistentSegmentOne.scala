@@ -133,7 +133,7 @@ protected object PersistentSegmentOne {
       )
 
     val ref =
-      segment.ref.SegmentRef(
+      SegmentRef(
         path = file.path,
         minKey = minKey,
         maxKey = maxKey,

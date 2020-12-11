@@ -63,7 +63,7 @@ object SegmentRefWriter extends LazyLogging {
             bloomFilterConfig: BloomFilterBlock.Config,
             segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): Slice[TransientSegment.OneOrMany] = {
+                                                functionStore: FunctionStore): Slice[TransientSegment.OneOrRemoteRefOrMany] = {
 
     val builder = MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
@@ -144,7 +144,7 @@ object SegmentRefWriter extends LazyLogging {
     )
   }
 
-  def mergeRemoteSegmentAware(assignable: Iterable[Assignable],
+  def writeRemoteSegmentAware(assignable: Iterable[Assignable],
                               removeDeletes: Boolean,
                               createdInLevel: Int,
                               valuesConfig: ValuesBlock.Config,
@@ -229,7 +229,7 @@ object SegmentRefWriter extends LazyLogging {
                                                     functionStore: FunctionStore): SegmentMergeResult[Slice[TransientSegment.SingletonOrMany]] = {
 
     def putGap(gap: Iterable[Assignable]): Slice[TransientSegment.SingletonOrMany] =
-      mergeRemoteSegmentAware(
+      writeRemoteSegmentAware(
         assignable = gap,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
@@ -254,7 +254,7 @@ object SegmentRefWriter extends LazyLogging {
         segmentParallelism = segmentParallelism
       )(thunk = putGap)
 
-    def putMid(): Slice[TransientSegment.OneOrMany] =
+    def putMid(): Slice[TransientSegment.OneOrRemoteRefOrMany] =
       SegmentRefWriter.merge(
         oldKeyValuesCount = ref.getKeyValueCount(),
         oldKeyValues = ref.iterator(),
@@ -597,7 +597,7 @@ object SegmentRefWriter extends LazyLogging {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrMany] = {
+              segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrRemoteRefOrMany] = {
     //    val footer = ref.getFooter()
     val iterator = ref.iterator()
     //if it's created in the same level the required spaces for sortedIndex and values

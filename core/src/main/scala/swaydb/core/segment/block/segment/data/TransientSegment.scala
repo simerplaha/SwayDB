@@ -60,9 +60,9 @@ object TransientSegment {
    */
   sealed trait Singleton extends SingletonOrMany
 
-  sealed trait OneOrMany extends SingletonOrMany
+  sealed trait OneOrRemoteRefOrMany extends SingletonOrMany
 
-  sealed trait OneOrRemoteRef extends OneOrMany with Singleton {
+  sealed trait OneOrRemoteRef extends OneOrRemoteRefOrMany with Singleton {
     def copyWithFileHeader(headerBytes: Slice[Byte]): OneOrRemoteRef
 
     def hasEmptyByteSliceIgnoreHeader: Boolean
@@ -177,7 +177,7 @@ object TransientSegment {
                  hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                  binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                  bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                 footerUnblocked: Option[SegmentFooterBlock]) extends OneOrRemoteRef {
+                 footerUnblocked: Option[SegmentFooterBlock]) extends OneOrRemoteRef with OneOrRemoteRefOrMany {
 
     def hasEmptyByteSlice: Boolean =
       fileHeader.isEmpty || hasEmptyByteSliceIgnoreHeader
@@ -204,7 +204,7 @@ object TransientSegment {
                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                   nearestPutDeadline: Option[Deadline],
                   listSegment: TransientSegment.One,
-                  segments: Slice[TransientSegment.OneOrRemoteRef]) extends OneOrMany {
+                  segments: Slice[TransientSegment.OneOrRemoteRef]) extends OneOrRemoteRefOrMany {
 
     def hasEmptyByteSlice: Boolean =
       fileHeader.isEmpty || listSegment.hasEmptyByteSliceIgnoreHeader || segments.exists(_.hasEmptyByteSliceIgnoreHeader)

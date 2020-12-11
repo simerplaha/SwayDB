@@ -109,7 +109,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
             val pathNameOffset = actualOffset - firstSegmentOffset
 
             val ref =
-              core.segment.ref.SegmentRef(
+              SegmentRef(
                 path = file.path.resolve(s"ref.$pathNameOffset"),
                 minKey = singleton.minKey,
                 maxKey = singleton.maxKey,
@@ -226,7 +226,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
             val oldRefOffset = oldRef.offset()
 
             val ref =
-              segment.ref.SegmentRef(
+              SegmentRef(
                 path = file.path.resolve(s"ref.$offset"),
                 minKey = oldRef.minKey,
                 maxKey = oldRef.maxKey,
@@ -260,7 +260,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
               val copiedFromOffset = copiedFromListRef.offset()
 
               val ref =
-                segment.ref.SegmentRef(
+                SegmentRef(
                   path = file.path,
                   minKey = copiedFromListRef.minKey,
                   maxKey = copiedFromListRef.maxKey,
