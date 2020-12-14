@@ -240,8 +240,8 @@ private[core] object SegmentAssigner {
                   nextSegmentMayBe match {
                     case nextSegment: SEG if spreadToNextSegment(assignable, nextSegment) => //if Segment spreads onto next Segment
                       assignable match {
-                        case many: PersistentSegmentMany if thisSegmentMinKeyCompare < 0 =>
-                          val segmentRefs = many.getAllSegmentRefsMutable()
+                        case many: PersistentSegmentMany if !noGaps => //always expand to cover cases when last SegmentRef is a gap Segment.
+                          val segmentRefs = many.segmentRefsMutable()
                           val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
 
                           val newRemaining = segmentIterator append remaining.dropHead()
@@ -259,12 +259,24 @@ private[core] object SegmentAssigner {
                       }
 
                     case _ =>
-                      if (noGaps || thisSegmentMinKeyCompare == 0 || keyBelongsToThisSegmentNoSpread()) //if this Segment should be added to thisSegment
-                        assignToSegment(assignable = assignable, assignTo = thisSegment)
-                      else //gap Segment
-                        assignToGap(assignable = assignable, assignTo = thisSegment)
+                      if (noGaps || thisSegmentMinKeyCompare == 0 || keyBelongsToThisSegmentNoSpread()) { //if this Segment should be added to thisSegment
+                        assignable match {
+                          case many: PersistentSegmentMany if !noGaps => //always expand to cover cases when last SegmentRef is a gap Segment.
+                            val segmentRefs = many.segmentRefsMutable()
+                            val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
 
-                      assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                            val newRemaining = segmentIterator append remaining.dropHead()
+
+                            assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
+
+                          case _ =>
+                            assignToSegment(assignable = assignable, assignTo = thisSegment)
+                            assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                        }
+                      } else { //gap Segment
+                        assignToGap(assignable = assignable, assignTo = thisSegment)
+                        assign(remaining.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                      }
                   }
 
                 case keyValue: KeyValue.Fixed =>
@@ -326,8 +338,8 @@ private[core] object SegmentAssigner {
                             assign(remaining, nextSegmentMayBe, getNextSegmentMayBe())
                           else
                             assignable match {
-                              case many: PersistentSegmentMany =>
-                                val segmentRefs = many.getAllSegmentRefsMutable()
+                              case many: PersistentSegmentMany if !noGaps => //always expand to cover cases when last SegmentRef is a gap Segment.
+                                val segmentRefs = many.segmentRefsMutable()
                                 val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
 
                                 val newRemaining = segmentIterator append remaining.dropHead()

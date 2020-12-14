@@ -631,7 +631,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               val refs =
                 segment match {
                   case segment: PersistentSegmentMany =>
-                    segment.getAllSegmentRefs().toList
+                    segment.segmentRefsIterator().toList
 
                   case segment: PersistentSegmentOne =>
                     List(segment.ref)

@@ -642,10 +642,11 @@ protected case class PersistentSegmentMany(file: DBFile,
     }
   }
 
-  @inline def getAllSegmentRefsMutable(): ListBuffer[SegmentRef] = {
+
+  @inline def segmentRefsMutable(): ListBuffer[SegmentRef] = {
     val buffer = ListBuffer.empty[SegmentRef]
 
-    getAllSegmentRefs() foreach {
+    segmentRefsIterator() foreach {
       ref =>
         buffer += ref
     }
@@ -653,8 +654,10 @@ protected case class PersistentSegmentMany(file: DBFile,
     buffer
   }
 
+  @inline def headSegmentRef(): SegmentRef =
+    segmentRefsIterator().next()
 
-  @inline def getAllSegmentRefs(): Iterator[SegmentRef] =
+  @inline def segmentRefsIterator(): Iterator[SegmentRef] =
     new Iterator[SegmentRef] {
       //TODO - do not read sortedIndexBlock if the SegmentRef is already cached in-memory.
       var nextRef: SegmentRef = null
@@ -914,16 +917,16 @@ protected case class PersistentSegmentMany(file: DBFile,
   }
 
   override def iterator(): Iterator[Persistent] =
-    getAllSegmentRefs().flatMap(_.iterator())
+    segmentRefsIterator().flatMap(_.iterator())
 
   override def hasRange: Boolean =
-    getAllSegmentRefs().exists(_.hasRange)
+    segmentRefsIterator().exists(_.hasRange)
 
   override def hasPut: Boolean =
-    getAllSegmentRefs().exists(_.hasPut)
+    segmentRefsIterator().exists(_.hasPut)
 
   def getKeyValueCount(): Int =
-    getAllSegmentRefs().foldLeft(0)(_ + _.getKeyValueCount())
+    segmentRefsIterator().foldLeft(0)(_ + _.getKeyValueCount())
 
   override def isFooterDefined: Boolean =
     segmentsCache.asScala.values.exists(_.isFooterDefined)
@@ -941,7 +944,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     !file.existsOnDisk
 
   def hasBloomFilter: Boolean =
-    getAllSegmentRefs().exists(_.hasBloomFilter)
+    segmentRefsIterator().exists(_.hasBloomFilter)
 
   def clearCachedKeyValues(): Unit =
     segmentsCache

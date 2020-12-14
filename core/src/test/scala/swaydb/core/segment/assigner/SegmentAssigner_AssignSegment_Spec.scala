@@ -26,6 +26,7 @@ package swaydb.core.segment.assigner
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
+import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.PipeOps._
@@ -77,7 +78,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
-            val segment = TestSegment()
+            val segment = TestSegment.one()
 
             //assign the Segment's key-values to itself.
             /**
@@ -136,15 +137,15 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
       }
     }
 
-    "there two Segments and all have same key-values" in {
+    "there are two Segments and all have same key-values" in {
       runThis(10.times, log = true) {
         TestCaseSweeper {
           implicit sweeper =>
             val keyValues = randomKeyValues(count = 1000, startId = Some(1)).groupedSlice(2)
             keyValues should have size 2
 
-            val segment1 = TestSegment(keyValues.head)
-            val segment2 = TestSegment(keyValues.last)
+            val segment1 = TestSegment.one(keyValues.head)
+            val segment2 = TestSegment.one(keyValues.last)
 
             //assign the Segment's key-values to itself.
             /**
@@ -209,10 +210,10 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             val keyValuesGrouped = keyValues.groupedSlice(2)
             keyValuesGrouped should have size 2
 
-            val inputSegment = TestSegment(keyValues)
+            val inputSegment = TestSegment.one(keyValues)
 
-            val segment1 = TestSegment(keyValuesGrouped.head)
-            val segment2 = TestSegment(keyValuesGrouped.last)
+            val segment1 = TestSegment.one(keyValuesGrouped.head)
+            val segment2 = TestSegment.one(keyValuesGrouped.last)
 
             //assign the Segment's key-values to itself.
             /**
@@ -268,10 +269,10 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             val keyValues = randomKeyValues(count = 1000, startId = Some(1)).groupedSlice(2)
             keyValues should have size 2
 
-            val inputSegment = TestSegment(keyValues.last)
+            val inputSegment = TestSegment.one(keyValues.last)
 
-            val segment1 = TestSegment(keyValues.head)
-            val segment2 = TestSegment(keyValues.last)
+            val segment1 = TestSegment.one(keyValues.head)
+            val segment2 = TestSegment.one(keyValues.last)
 
             //assign the Segment's key-values to itself.
             /**
@@ -330,11 +331,11 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             val segments =
               expectedAssignments map {
                 case (_, midKeyValues, _) =>
-                  TestSegment(midKeyValues)
+                  TestSegment.one(midKeyValues)
               }
 
             val inputSegments =
-              keyValues map (TestSegment(_))
+              keyValues map (TestSegment.one(_))
 
             //Expect full Segments to get assigned without expanding or assigning gaps.
 
@@ -397,7 +398,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             val gapedSegment: Slice[(Segment, Segment, Segment)] =
               expectedAssignments map {
                 case (headGap, midKeyValues, tailGap) =>
-                  (TestSegment(headGap), TestSegment(midKeyValues), TestSegment(tailGap))
+                  (TestSegment.one(headGap), TestSegment.one(midKeyValues), TestSegment.one(tailGap))
               }
 
             //input all Segments and gap Segments flattened
@@ -411,7 +412,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             val existingSegments =
               expectedAssignments map {
                 case (_, midKeyValues, _) =>
-                  TestSegment(midKeyValues)
+                  TestSegment.one(midKeyValues)
               }
 
             /**
@@ -456,6 +457,300 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 }
             }
         }
+      }
+    }
+
+    /**
+     * Tests handling [[PersistentSegmentMany]] and assigning of [[swaydb.core.segment.ref.SegmentRef]]s.
+     */
+
+    "PersistentSegmentMany" when {
+      "head Segments do not overlap" in {
+        if (persistent)
+          runThis(10.times, log = true) {
+            TestCaseSweeper {
+              implicit sweeper =>
+                implicit val pathsDistributor = createPathDistributor
+
+                val keyValues = randomPutKeyValues(1000, startId = Some(0))
+                val keyValuesGrouped = keyValues.groupedSlice(10)
+
+                //[SEG-1, SEG-2, SEG-3, SEG-4, SEG-5]
+                val inputSegment =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.take(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[........., SEG-6, SEG-7, SEG-8, SEG-9, SEG-10]
+                val existingSegment =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.drop(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                inputSegment should have size 1
+                existingSegment should have size 1
+
+                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                gaps should have size 1
+
+                gaps.head.headGap.result should have size 1
+                gaps.head.headGap.result.toSlice shouldBe inputSegment
+                gaps.head.midOverlap shouldBe empty
+                gaps.head.tailGap.result shouldBe empty
+            }
+          }
+      }
+
+      "tail Segments do not overlap" in {
+        if (persistent)
+          runThis(10.times, log = true) {
+            TestCaseSweeper {
+              implicit sweeper =>
+                implicit val pathsDistributor = createPathDistributor
+
+                val keyValues = randomPutKeyValues(1000, startId = Some(0))
+                val keyValuesGrouped = keyValues.groupedSlice(10)
+
+                //[........., SEG-6, SEG-7, SEG-8, SEG-9, SEG-10]
+                val inputSegment =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.drop(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[SEG-1, SEG-2, SEG-3, SEG-4, SEG-5]
+                val existingSegment =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.take(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                inputSegment should have size 1
+                existingSegment should have size 1
+
+                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                gaps should have size 1
+
+                gaps.head.headGap.result shouldBe empty
+                gaps.head.midOverlap shouldBe empty
+                gaps.head.tailGap.result should have size 1
+                gaps.head.tailGap.result.toSlice shouldBe inputSegment
+            }
+          }
+      }
+
+      "head SegmentRef is a gap Segment" in {
+        if (persistent)
+          runThis(10.times, log = true) {
+            TestCaseSweeper {
+              implicit sweeper =>
+                implicit val pathsDistributor = createPathDistributor
+
+                val keyValues = randomPutKeyValues(1000, startId = Some(0))
+                val keyValuesGrouped = keyValues.groupedSlice(10)
+
+                //[SEG-1, SEG-2, SEG-3 ... SEG-10]
+                val inputSegment =
+                  TestSegment
+                    .many(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[_____, SEG-2, SEG-3 ... SEG-10]
+                val existingSegment =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.dropHead().flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                inputSegment should have size 1
+                existingSegment should have size 1
+
+                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                gaps should have size 1
+
+                gaps.head.headGap.result.expectSegmentRefs() should have size 1
+                gaps.head.headGap.result.expectSegmentRefs() should contain only inputSegment.head.segmentRefsIterator().toList.head
+                gaps.head.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(1)
+                gaps.head.tailGap.result shouldBe empty
+            }
+          }
+      }
+
+      "last SegmentRef is a gap Segment" in {
+        if (persistent)
+          runThis(10.times, log = true) {
+            TestCaseSweeper {
+              implicit sweeper =>
+                implicit val pathsDistributor = createPathDistributor
+
+                val keyValues = randomPutKeyValues(1000, startId = Some(0))
+                val keyValuesGrouped = keyValues.groupedSlice(10)
+
+                //[SEG-1, SEG-2, SEG-3 ... SEG-10]
+                val inputSegment =
+                  TestSegment
+                    .many(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[SEG-1, SEG-2, SEG-3 ... ______]
+                val existingSegment =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.dropRight(1).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                inputSegment should have size 1
+                existingSegment should have size 1
+
+                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                gaps should have size 1
+
+                gaps.head.headGap.result shouldBe empty
+                gaps.head.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.dropRight(1)
+                gaps.head.tailGap.result.expectSegmentRefs() should have size 1
+                gaps.head.tailGap.result.expectSegmentRefs() should contain only inputSegment.head.segmentRefsIterator().toList.last
+            }
+          }
+      }
+
+      "mid SegmentRefs are gap Segment and there is only one Segment" in {
+        if (persistent)
+          runThis(10.times, log = true) {
+            TestCaseSweeper {
+              implicit sweeper =>
+                implicit val pathsDistributor = createPathDistributor
+
+                val keyValues = randomPutKeyValues(1000, startId = Some(0))
+                val keyValuesGrouped = keyValues.groupedSlice(10)
+
+                //[SEG-1, SEG-2, GAP-3, GAP-4 ... SEG-10]
+                val inputSegment =
+                  TestSegment
+                    .many(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[SEG-1, SEG-2, _____, _____ ... SEG-10]
+                val existingKeyValues = (keyValuesGrouped.take(2) ++ keyValuesGrouped.drop(4)).flatten
+                val existingSegment =
+                  TestSegment
+                    .many(keyValues = existingKeyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                inputSegment should have size 1
+                existingSegment should have size 1
+
+                //all SegmentsRefs get assigned
+                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment)
+                gaps should have size 1
+
+                gaps.head.headGap.result shouldBe empty
+                gaps.head.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList
+                gaps.head.tailGap.result shouldBe empty
+            }
+          }
+      }
+
+      "mid SegmentRefs are gap Segment between two Segments" in {
+        if (persistent)
+          runThis(10.times, log = true) {
+            TestCaseSweeper {
+              implicit sweeper =>
+                implicit val pathsDistributor = createPathDistributor
+
+                val keyValues = randomPutKeyValues(1000, startId = Some(0))
+                val keyValuesGrouped = keyValues.groupedSlice(10)
+
+                //[SEG-1, SEG-2, GAP-3, GAP-4 ... SEG-10]
+                val inputSegment =
+                  TestSegment
+                    .many(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[SEG-1, SEG-2]
+                val existingSegment1 =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.take(2).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[..................., SEG-5, SEG-6 .... SEG-10]
+                val existingSegment2 =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.drop(4).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                inputSegment should have size 1
+                existingSegment1 should have size 1
+                existingSegment2 should have size 1
+
+                //all SegmentsRefs get assigned
+                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputSegment, existingSegment1 ++ existingSegment2)
+                gaps should have size 2
+
+                gaps.head.headGap.result shouldBe empty
+                gaps.head.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.take(2)
+                gaps.head.tailGap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(2).take(2)
+
+                gaps.last.headGap.result shouldBe empty
+                gaps.last.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(4)
+                gaps.last.tailGap.result shouldBe empty
+            }
+          }
+      }
+
+      "mid PersistentSegmentMany spreads onto next Segment" in {
+        if (persistent)
+          runThis(10.times, log = true) {
+            TestCaseSweeper {
+              implicit sweeper =>
+                implicit val pathsDistributor = createPathDistributor
+
+                val keyValues = randomPutKeyValues(100, startId = Some(0))
+                val keyValuesGrouped = keyValues.groupedSlice(10)
+
+                //also assign a key-value for existingSegment1 so that inputSegment2 gets expanded
+                val inputKeyValues = keyValues.take(1)
+
+                //[............, SEG-3, SEG-4, SEG-5, SEG-6, SEG-7] - gets
+                val inputSegment1 =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.drop(2).take(5).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[................................................, SEG-8, SEG-9, SEG-10]
+                val inputSegment2 =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.drop(7).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[SEG-1, SEG-2, _____, _____]
+                val existingSegment1 =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.take(2).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                //[.........................., SEG-5, SEG-6, .....]
+                val existingSegment2 =
+                  TestSegment
+                    .many(keyValues = keyValuesGrouped.drop(4).take(2).flatten, segmentConfig = SegmentBlock.Config.random.copy(mmap = mmapSegments, minSize = Int.MaxValue, maxCount = keyValues.size / keyValuesGrouped.size))
+                    .asInstanceOf[Slice[PersistentSegmentMany]]
+
+                inputSegment1 should have size 1
+                inputSegment2 should have size 1
+                existingSegment1 should have size 1
+                existingSegment2 should have size 1
+
+                //all SegmentsRefs get assigned
+                val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](inputKeyValues ++ inputSegment1 ++ inputSegment2, existingSegment1 ++ existingSegment2)
+                gaps should have size 2
+
+
+                gaps.head.headGap.result shouldBe empty
+                gaps.head.midOverlap.expectKeyValues() shouldBe inputKeyValues
+                gaps.head.tailGap.result.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefsIterator().take(2).toList
+
+                gaps.last.headGap.result shouldBe empty
+                gaps.last.midOverlap.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefsIterator().drop(2).take(2).toList
+                gaps.last.tailGap.result should have size 2 //one SegmentRef from inputSegment1 gets assigned and the entire PersistentSegmentMany (inputSegment2)
+                gaps.last.tailGap.result.head shouldBe inputSegment1.head.segmentRefsIterator().toList.last
+                gaps.last.tailGap.result.last shouldBe inputSegment2.head
+            }
+          }
       }
     }
   }
