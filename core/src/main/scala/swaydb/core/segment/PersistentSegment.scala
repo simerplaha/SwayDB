@@ -24,10 +24,26 @@
 
 package swaydb.core.segment
 
-import java.nio.file.Path
+import swaydb.core.data.Memory
 
+import java.nio.file.Path
 import swaydb.core.io.file.DBFile
+import swaydb.core.merge.MergeStats
+import swaydb.core.segment.assigner.Assignable
+import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.block.hashindex.HashIndexBlock
+import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.ref.SegmentMergeResult
+import swaydb.core.util.IDGenerator
+import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.slice.Slice
+
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.{ExecutionContext, Future}
 
 trait PersistentSegment extends Segment {
   def file: DBFile
@@ -36,6 +52,30 @@ trait PersistentSegment extends Segment {
 
   def isMMAP =
     file.isMemoryMapped
+
+  def put(headGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
+          tailGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
+          mergeableCount: Int,
+          mergeable: Iterator[Assignable],
+          removeDeletes: Boolean,
+          createdInLevel: Int,
+          segmentParallelism: SegmentParallelism,
+          valuesConfig: ValuesBlock.Config,
+          sortedIndexConfig: SortedIndexBlock.Config,
+          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+          hashIndexConfig: HashIndexBlock.Config,
+          bloomFilterConfig: BloomFilterBlock.Config,
+          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[ListBuffer[TransientSegment.SingletonOrMany]]]
+
+  def refresh(removeDeletes: Boolean,
+              createdInLevel: Int,
+              valuesConfig: ValuesBlock.Config,
+              sortedIndexConfig: SortedIndexBlock.Config,
+              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+              hashIndexConfig: HashIndexBlock.Config,
+              bloomFilterConfig: BloomFilterBlock.Config,
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.OneOrRemoteRefOrMany]
 }
 
 object PersistentSegment {

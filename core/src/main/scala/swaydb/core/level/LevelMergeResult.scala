@@ -31,4 +31,4 @@ import swaydb.data.slice.Slice
 
 case class LevelMergeResult(level: Level,
                             old: Segment,
-                            news: SegmentMergeResult[Slice[TransientSegment]])
+                            news: SegmentMergeResult[Iterable[TransientSegment]])

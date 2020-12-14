@@ -123,7 +123,7 @@ private[core] object SegmentAssigner {
                                              segmentsIterator: Iterator[SEG],
                                              noGaps: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               gapCreator: Aggregator.Creator[Assignable, GAP],
-                                                              segmentType: AssignmentTarget[SEG]): ListBuffer[Assignment[GAP, SEG]] = {
+                                                              assignmentTarget: AssignmentTarget[SEG]): ListBuffer[Assignment[GAP, SEG]] = {
     import keyOrder._
 
     val assignments = ListBuffer.empty[Assignment[GAP, SEG]]

@@ -30,10 +30,11 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
+import swaydb.core.data.{KeyValue, Memory, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
@@ -48,7 +49,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef}
+import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefWriter}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
@@ -56,6 +57,7 @@ import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
@@ -290,8 +292,8 @@ protected case class PersistentSegmentOne(file: DBFile,
   /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
-  def put(headGap: Iterable[Assignable],
-          tailGap: Iterable[Assignable],
+  def put(headGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
+          tailGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
           mergeableCount: Int,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
@@ -303,46 +305,22 @@ protected case class PersistentSegmentOne(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
-  //    if (removeDeletes) {
-  //      val newSegments =
-  //        SegmentRef.merge(
-  //          oldKeyValuesCount = ref.getKeyValueCount(),
-  //          oldKeyValues = ref.iterator(),
-  //          headGap = headGap,
-  //          tailGap = tailGap,
-  //          mergeableCount = mergeableCount,
-  //          mergeable = mergeable,
-  //          removeDeletes = removeDeletes,
-  //          createdInLevel = createdInLevel,
-  //          valuesConfig = valuesConfig,
-  //          sortedIndexConfig = sortedIndexConfig,
-  //          binarySearchIndexConfig = binarySearchIndexConfig,
-  //          hashIndexConfig = hashIndexConfig,
-  //          bloomFilterConfig = bloomFilterConfig,
-  //          segmentConfig = segmentConfig
-  //        )
-  //
-  //      SegmentMergeResult(result = newSegments, replaced = true)
-  //    } else {
-  //      SegmentRef.fastMerge(
-  //        ref = ref,
-  //        headGap = headGap,
-  //        tailGap = tailGap,
-  //        mergeableCount = mergeableCount,
-  //        mergeable = mergeable,
-  //        removeDeletes = removeDeletes,
-  //        createdInLevel = createdInLevel,
-  //        segmentParallelism = segmentParallelism,
-  //        valuesConfig = valuesConfig,
-  //        sortedIndexConfig = sortedIndexConfig,
-  //        binarySearchIndexConfig = binarySearchIndexConfig,
-  //        hashIndexConfig = hashIndexConfig,
-  //        bloomFilterConfig = bloomFilterConfig,
-  //        segmentConfig = segmentConfig
-  //      )
-  //    }
-    ???
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[ListBuffer[TransientSegment.SingletonOrMany]]] =
+    SegmentRefWriter.mergeRef(
+      ref = ref,
+      headGap = headGap,
+      tailGap = tailGap,
+      mergeableCount = mergeableCount,
+      mergeable = mergeable,
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig
+    ).map(_.map(_.flatten))
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -351,19 +329,18 @@ protected case class PersistentSegmentOne(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
-  //    SegmentRef.refresh(
-  //      ref = ref,
-  //      removeDeletes = removeDeletes,
-  //      createdInLevel = createdInLevel,
-  //      valuesConfig = valuesConfig,
-  //      sortedIndexConfig = sortedIndexConfig,
-  //      binarySearchIndexConfig = binarySearchIndexConfig,
-  //      hashIndexConfig = hashIndexConfig,
-  //      bloomFilterConfig = bloomFilterConfig,
-  //      segmentConfig = segmentConfig
-  //    )
-    ???
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.OneOrRemoteRefOrMany] =
+    SegmentRefWriter.refresh(
+      ref = ref,
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig
+    )
 
   def getFromCache(key: Slice[Byte]): PersistentOption =
     ref getFromCache key

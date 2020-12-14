@@ -38,13 +38,14 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment._
+import swaydb.core.segment.assigner.GapAggregator._
 import swaydb.core.segment.assigner.{Assignable, Assignment, SegmentAssigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
@@ -52,7 +53,6 @@ import swaydb.core.segment.ref.SegmentMergeResult
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
-import swaydb.core.util.ParallelCollection._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
 import swaydb.data.config.{Dir, PushForwardStrategy}
@@ -66,7 +66,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object Level extends LazyLogging {
 
@@ -513,25 +513,22 @@ private[core] case class Level(dirs: Seq[Dir],
   def put(segments: Iterable[Segment],
           parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
-    //    assignAndPut(
-    //      assignablesCount = segments.size,
-    //      assignables = segments,
-    //      targetSegments = appendix.cache.values(),
-    //      parallelMerge = parallelMerge
-    //    )
-    ???
+    assignAndPut(
+      assignablesCount = segments.size,
+      assignables = segments,
+      targetSegments = appendix.cache.values(),
+      parallelMerge = parallelMerge
+    )
   }
 
   def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
           parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
-
-    //    assignAndPut(
-    //      map = map,
-    //      targetSegments = appendix.cache.values(),
-    //      parallelMerge = parallelMerge
-    //    )
-    ???
+    assignAndPut(
+      map = map,
+      targetSegments = appendix.cache.values(),
+      parallelMerge = parallelMerge
+    )
   }
 
   override def isNonEmpty(): Boolean =
@@ -584,13 +581,12 @@ private[core] case class Level(dirs: Seq[Dir],
                                          targetSegments: Iterable[Segment],
                                          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] =
 
-  //    assignAndPut(
-  //      assignablesCount = 1,
-  //      assignables = Seq(Assignable.Collection.fromMap(map)),
-  //      targetSegments = targetSegments,
-  //      parallelMerge = parallelMerge
-  //    )
-    ???
+    assignAndPut(
+      assignablesCount = 1,
+      assignables = Seq(Assignable.Collection.fromMap(map)),
+      targetSegments = targetSegments,
+      parallelMerge = parallelMerge
+    )
 
   /**
    * @return Newly created Segments.
@@ -599,35 +595,87 @@ private[core] case class Level(dirs: Seq[Dir],
                                  assignables: Iterable[Assignable],
                                  targetSegments: Iterable[Segment],
                                  parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] = {
-//    logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
-//    IO(SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](assignablesCount, assignables, targetSegments)) flatMap {
-//      assignments: ListBuffer[Assignment[ListBuffer[Assignable], Segment]] =>
-//        logger.trace(s"{}: Assigned segments {} for {} KeyValues.", pathDistributor.head, assignments.map(_.segment.path.toString), assignables.size)
-//        if (assignments.isEmpty) {
-//          logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
-//          IO.Left[swaydb.Error.Level, Iterable[LevelMergeResult]](swaydb.Error.MergeInvokedWithoutTargetSegment(assignables.size))
-//        } else {
-//          logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", pathDistributor.head, assignments.map(_.segment.path.toString), assignables.size)
-//          if (parallelMerge.levelParallelism <= 0)
-//            putAssigned(
-//              assignments = assignments,
-//              parallelMerge = parallelMerge
-//            )
-//          else
-//            assignments
-//              .grouped(parallelMerge.levelParallelism)
-//              .to(Iterable)
-//              .flatMapRecoverIO[LevelMergeResult](
-//                ioBlock =
-//                  assignments =>
-//                    putAssigned(
-//                      assignments = assignments,
-//                      parallelMerge = parallelMerge
-//                    )
-//              )
-//        }
-//    }
-    ???
+    logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
+    if (inMemory)
+      Future {
+        SegmentAssigner.assignUnsafeGaps[ListBuffer[Either[MergeStats.Memory.Builder[Memory, ListBuffer], Assignable.Collection]]](
+          assignablesCount = assignablesCount,
+          assignables = assignables,
+          segments = targetSegments
+        )
+      } flatMap {
+        assignments =>
+          if (assignments.isEmpty) {
+            logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
+            Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
+          } else {
+            Future.traverse(assignments) {
+              assignment =>
+                assignment.segment.asInstanceOf[MemorySegment].put(
+                  headGap = assignment.headGap.result,
+                  tailGap = assignment.tailGap.result,
+                  mergeableCount = assignment.midOverlap.size,
+                  mergeable = assignment.midOverlap.iterator,
+                  removeDeletes = removeDeletedRecords,
+                  createdInLevel = levelNumber,
+                  segmentParallelism = parallelMerge.segment,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig
+                ) map {
+                  newSegments =>
+                    LevelMergeResult(
+                      level = self,
+                      old = assignment.segment,
+                      news = newSegments
+                    )
+                }
+            }
+          }
+      }
+    else
+      Future {
+        SegmentAssigner.assignUnsafeGaps[ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]]](
+          assignablesCount = assignablesCount,
+          assignables = assignables,
+          segments = targetSegments
+        )
+      } flatMap {
+        assignments =>
+          if (assignments.isEmpty) {
+            logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
+            Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
+          } else {
+            Future.traverse(assignments) {
+              assignment =>
+                assignment.segment.asInstanceOf[PersistentSegment].put(
+                  headGap = assignment.headGap.result,
+                  tailGap = assignment.tailGap.result,
+                  mergeableCount = assignment.midOverlap.size,
+                  mergeable = assignment.midOverlap.iterator,
+                  removeDeletes = removeDeletedRecords,
+                  createdInLevel = levelNumber,
+                  segmentParallelism = parallelMerge.segment,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig
+                ) map {
+                  newSegments =>
+                    LevelMergeResult(
+                      level = self,
+                      old = assignment.segment,
+                      news = newSegments
+                    )
+                }
+            }
+          }
+      }
   }
 
   def commit(putResult: Iterable[(Segment, SegmentMergeResult[Slice[Segment]])],
@@ -689,37 +737,6 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
   }
-
-  private def putAssigned(assignments: Iterable[Assignment[ListBuffer[Assignable], Segment]],
-                          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] =
-  //    assignments.mapParallel[LevelMergeResult](parallelism = parallelMerge.levelParallelism, timeout = parallelMerge.levelParallelismTimeout)(
-  //      assignment =>
-  //        IO {
-  //          val newSegments =
-  //            assignment.segment.put(
-  //              headGap = assignment.headGap.result,
-  //              tailGap = assignment.tailGap.result,
-  //              mergeableCount = assignment.midOverlap.size,
-  //              mergeable = assignment.midOverlap.iterator,
-  //              removeDeletes = removeDeletedRecords,
-  //              createdInLevel = levelNumber,
-  //              segmentParallelism = parallelMerge.segment,
-  //              valuesConfig = valuesConfig,
-  //              sortedIndexConfig = sortedIndexConfig,
-  //              binarySearchIndexConfig = binarySearchIndexConfig,
-  //              hashIndexConfig = hashIndexConfig,
-  //              bloomFilterConfig = bloomFilterConfig,
-  //              segmentConfig = segmentConfig
-  //            )
-  //
-  //          LevelMergeResult(
-  //            level = self,
-  //            old = assignment.segment,
-  //            news = newSegments
-  //          )
-  //        }
-  //    )
-    ???
 
   private def buildNewMapEntry(newSegments: Iterable[Segment],
                                originalSegmentMayBe: SegmentOption = Segment.Null,

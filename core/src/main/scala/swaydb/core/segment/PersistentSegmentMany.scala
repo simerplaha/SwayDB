@@ -34,6 +34,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
@@ -47,7 +48,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefOption, SegmentRefReader}
+import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefOption, SegmentRefReader, SegmentRefWriter}
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
@@ -735,8 +736,8 @@ protected case class PersistentSegmentMany(file: DBFile,
   /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
-  def put(headGap: Iterable[Assignable],
-          tailGap: Iterable[Assignable],
+  def put(headGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
+          tailGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
           mergeableCount: Int,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
@@ -748,51 +749,22 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
-  //    if (removeDeletes) {
-  //      //duplicate so that SegmentRefs are not read twice.
-  //      val (countIterator, keyValuesIterator) = getAllSegmentRefs().duplicate
-  //      val oldKeyValuesCount = countIterator.foldLeft(0)(_ + _.getKeyValueCount())
-  //      val oldKeyValues = keyValuesIterator.flatMap(_.iterator())
-  //
-  //      val newSegments =
-  //        SegmentRef.merge(
-  //          oldKeyValuesCount = oldKeyValuesCount,
-  //          oldKeyValues = oldKeyValues,
-  //          headGap = headGap,
-  //          tailGap = tailGap,
-  //          mergeableCount = mergeableCount,
-  //          mergeable = mergeable,
-  //          removeDeletes = removeDeletes,
-  //          createdInLevel = createdInLevel,
-  //          valuesConfig = valuesConfig,
-  //          sortedIndexConfig = sortedIndexConfig,
-  //          binarySearchIndexConfig = binarySearchIndexConfig,
-  //          hashIndexConfig = hashIndexConfig,
-  //          bloomFilterConfig = bloomFilterConfig,
-  //          segmentConfig = segmentConfig
-  //        )
-  //
-  //      SegmentMergeResult(result = newSegments, replaced = true)
-  //    } else {
-  //      SegmentRef.fastAssignAndMerge(
-  //        headGap = headGap,
-  //        tailGap = tailGap,
-  //        segmentRefs = getAllSegmentRefs(),
-  //        assignableCount = mergeableCount,
-  //        assignables = mergeable,
-  //        removeDeletes = removeDeletes,
-  //        createdInLevel = createdInLevel,
-  //        segmentParallelism = segmentParallelism,
-  //        valuesConfig = valuesConfig,
-  //        sortedIndexConfig = sortedIndexConfig,
-  //        binarySearchIndexConfig = binarySearchIndexConfig,
-  //        hashIndexConfig = hashIndexConfig,
-  //        bloomFilterConfig = bloomFilterConfig,
-  //        segmentConfig = segmentConfig
-  //      )
-  //    }
-    ???
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[ListBuffer[TransientSegment.SingletonOrMany]]] =
+    SegmentRefWriter.mergeMultiRef(
+      headGap = headGap,
+      tailGap = tailGap,
+      segmentRefs = segmentRefsIterator(),
+      assignableCount = mergeableCount,
+      assignables = mergeable,
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig
+    ).map(_.map(_.flatten))
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -801,19 +773,18 @@ protected case class PersistentSegmentMany(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
-  //    Segment.refreshForNewLevel(
-  //      keyValues = iterator(),
-  //      removeDeletes = removeDeletes,
-  //      createdInLevel = createdInLevel,
-  //      valuesConfig = valuesConfig,
-  //      sortedIndexConfig = sortedIndexConfig,
-  //      binarySearchIndexConfig = binarySearchIndexConfig,
-  //      hashIndexConfig = hashIndexConfig,
-  //      bloomFilterConfig = bloomFilterConfig,
-  //      segmentConfig = segmentConfig
-  //    )
-    ???
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.OneOrRemoteRefOrMany] =
+    Segment.refreshForNewLevel(
+      keyValues = iterator(),
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig
+    )
 
   def getFromCache(key: Slice[Byte]): PersistentOption = {
     segmentsCache.forEach {

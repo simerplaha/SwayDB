@@ -24,6 +24,7 @@
 
 package swaydb.core.segment.block.segment.data
 
+import swaydb.core.data.KeyValue
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -60,7 +61,9 @@ object TransientSegment {
    */
   sealed trait Singleton extends SingletonOrMany
 
-  sealed trait Remote extends Singleton
+  sealed trait Remote extends Singleton {
+    def iterator(): Iterator[KeyValue]
+  }
 
   sealed trait OneOrRemoteRefOrMany extends SingletonOrMany
 
@@ -86,7 +89,7 @@ object TransientSegment {
   }
 
   case class RemoteRef(fileHeader: Slice[Byte],
-                       ref: SegmentRef) extends OneOrRemoteRef {
+                       ref: SegmentRef) extends OneOrRemoteRef with Remote {
     override def minKey: Slice[Byte] =
       ref.minKey
 
@@ -129,6 +132,9 @@ object TransientSegment {
     override def footerUnblocked: Option[SegmentFooterBlock] =
       ref.segmentBlockCache.cachedFooter()
 
+    override def iterator(): Iterator[KeyValue] =
+      ref.iterator()
+
     override def toString: String =
       s"TransientSegment.${this.productPrefix}. Size: ${ref.segmentSize}.bytes"
 
@@ -163,6 +169,9 @@ object TransientSegment {
 
     override def segmentSize: Int =
       segment.segmentSize
+
+    override def iterator(): Iterator[KeyValue] =
+      segment.iterator()
 
     override def toString: String =
       s"TransientSegment.${this.productPrefix}. Size: ${segment.segmentSize}.bytes"

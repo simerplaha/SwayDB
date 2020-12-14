@@ -53,20 +53,20 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-protected case class MemorySegment(path: Path,
-                                   minKey: Slice[Byte],
-                                   maxKey: MaxKey[Slice[Byte]],
-                                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                                   segmentSize: Int,
-                                   hasRange: Boolean,
-                                   hasPut: Boolean,
-                                   createdInLevel: Int,
-                                   private[segment] val skipList: SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                                   nearestPutDeadline: Option[Deadline],
-                                   pathsDistributor: PathsDistributor)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                       functionStore: FunctionStore,
-                                                                       fileSweeper: FileSweeper) extends Segment with LazyLogging {
+private[core] case class MemorySegment(path: Path,
+                                       minKey: Slice[Byte],
+                                       maxKey: MaxKey[Slice[Byte]],
+                                       minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                                       segmentSize: Int,
+                                       hasRange: Boolean,
+                                       hasPut: Boolean,
+                                       createdInLevel: Int,
+                                       private[segment] val skipList: SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                                       nearestPutDeadline: Option[Deadline],
+                                       pathsDistributor: PathsDistributor)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                                           functionStore: FunctionStore,
+                                                                           fileSweeper: FileSweeper) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -74,20 +74,20 @@ protected case class MemorySegment(path: Path,
 
   override def formatId: Byte = 0
 
-  override def put(headGap: Iterable[Assignable],
-                   tailGap: Iterable[Assignable],
-                   mergeableCount: Int,
-                   mergeable: Iterator[Assignable],
-                   removeDeletes: Boolean,
-                   createdInLevel: Int,
-                   segmentParallelism: SegmentParallelism,
-                   valuesConfig: ValuesBlock.Config,
-                   sortedIndexConfig: SortedIndexBlock.Config,
-                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                   hashIndexConfig: HashIndexBlock.Config,
-                   bloomFilterConfig: BloomFilterBlock.Config,
-                   segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                                       executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Memory]]] =
+  def put(headGap: ListBuffer[Either[MergeStats.Memory.Builder[Memory, ListBuffer], Assignable.Collection]],
+          tailGap: ListBuffer[Either[MergeStats.Memory.Builder[Memory, ListBuffer], Assignable.Collection]],
+          mergeableCount: Int,
+          mergeable: Iterator[Assignable],
+          removeDeletes: Boolean,
+          createdInLevel: Int,
+          segmentParallelism: SegmentParallelism,
+          valuesConfig: ValuesBlock.Config,
+          sortedIndexConfig: SortedIndexBlock.Config,
+          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+          hashIndexConfig: HashIndexBlock.Config,
+          bloomFilterConfig: BloomFilterBlock.Config,
+          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Memory]]] =
   //    if (deleted) {
   //      throw swaydb.Exception.NoSuchFile(path)
   //    } else {
@@ -129,14 +129,14 @@ protected case class MemorySegment(path: Path,
   //    }
     ???
 
-  override def refresh(removeDeletes: Boolean,
-                       createdInLevel: Int,
-                       valuesConfig: ValuesBlock.Config,
-                       sortedIndexConfig: SortedIndexBlock.Config,
-                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                       hashIndexConfig: HashIndexBlock.Config,
-                       bloomFilterConfig: BloomFilterBlock.Config,
-                       segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment.Memory]]] =
+  def refresh(removeDeletes: Boolean,
+              createdInLevel: Int,
+              valuesConfig: ValuesBlock.Config,
+              sortedIndexConfig: SortedIndexBlock.Config,
+              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+              hashIndexConfig: HashIndexBlock.Config,
+              bloomFilterConfig: BloomFilterBlock.Config,
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment.Memory]]] =
   //    if (deleted) {
   //      throw swaydb.Exception.NoSuchFile(path)
   //    } else {

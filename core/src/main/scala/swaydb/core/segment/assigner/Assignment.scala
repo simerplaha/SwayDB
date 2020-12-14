@@ -40,7 +40,7 @@ import scala.collection.mutable.ListBuffer
  * @tparam SEG Target Segment to which key-values should be assigned to.
  *             This can be a [[swaydb.core.segment.Segment]] or [[SegmentRef]]
  */
-case class Assignment[GAP, SEG](segment: SEG,
-                                headGap: Aggregator[Assignable, GAP],
-                                midOverlap: ListBuffer[Assignable],
-                                tailGap: Aggregator[Assignable, GAP])
+case class Assignment[+GAP, SEG](segment: SEG,
+                                  headGap: Aggregator[Assignable, GAP],
+                                  midOverlap: ListBuffer[Assignable],
+                                  tailGap: Aggregator[Assignable, GAP])
