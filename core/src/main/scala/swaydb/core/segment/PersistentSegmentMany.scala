@@ -749,7 +749,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[ListBuffer[TransientSegment.SingletonOrMany]]] =
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[ListBuffer[TransientSegment.Persistent]]] =
     SegmentRefWriter.mergeMultiRef(
       headGap = headGap,
       tailGap = tailGap,

@@ -54,18 +54,16 @@ object TransientSegment {
 
   sealed trait Persistent extends TransientSegment
 
-  sealed trait SingletonOrMany extends Persistent
-
   /**
    * Points to a remote Segment this could be a [[SegmentRef]] or [[Segment]].
    */
-  sealed trait Singleton extends SingletonOrMany
+  sealed trait Singleton extends Persistent
 
   sealed trait Remote extends Singleton {
     def iterator(): Iterator[KeyValue]
   }
 
-  sealed trait OneOrRemoteRefOrMany extends SingletonOrMany
+  sealed trait OneOrRemoteRefOrMany extends Persistent
 
   sealed trait OneOrRemoteRef extends OneOrRemoteRefOrMany with Singleton {
     def copyWithFileHeader(headerBytes: Slice[Byte]): OneOrRemoteRef

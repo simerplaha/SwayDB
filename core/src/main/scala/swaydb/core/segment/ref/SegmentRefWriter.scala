@@ -65,7 +65,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
                segmentConfig: SegmentBlock.Config)(implicit executionContext: ExecutionContext,
                                                    keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   functionStore: FunctionStore): Future[SegmentMergeResult[ListBuffer[Slice[TransientSegment.SingletonOrMany]]]] = {
+                                                   functionStore: FunctionStore): Future[SegmentMergeResult[ListBuffer[Slice[TransientSegment.Persistent]]]] = {
 
     val segments = ListBuffer.empty[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], TransientSegment.Remote]]
 
@@ -149,7 +149,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
                                                         executionContext: ExecutionContext,
                                                         keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore): Future[SegmentMergeResult[ListBuffer[Slice[TransientSegment.SingletonOrMany]]]] = {
+                                                        functionStore: FunctionStore): Future[SegmentMergeResult[ListBuffer[Slice[TransientSegment.Persistent]]]] = {
     if (assignableCount == 0) {
       mergeNoMid(
         headGap = headGap,
@@ -199,7 +199,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
 
           def nextOldOrNull() = if (untouchedRefs.hasNext) untouchedRefs.next() else null
 
-          val singles = ListBuffer.empty[TransientSegment.SingletonOrMany]
+          val singles = ListBuffer.empty[TransientSegment.Persistent]
 
           val assignmentsResult: Future[ListBuffer[Any]] =
             Future.traverse(assignments) {
@@ -572,7 +572,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
                                   hashIndexConfig: HashIndexBlock.Config,
                                   bloomFilterConfig: BloomFilterBlock.Config,
                                   segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                      ec: ExecutionContext): Future[ListBuffer[Slice[TransientSegment.SingletonOrMany]]] =
+                                                                      ec: ExecutionContext): Future[ListBuffer[Slice[TransientSegment.Persistent]]] =
     Future.traverse(segments) {
       case Left(stats) =>
         Future {
@@ -612,7 +612,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
                                                                   executionContext: ExecutionContext,
                                                                   keyOrder: KeyOrder[Slice[Byte]],
                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                  functionStore: FunctionStore): Future[SegmentMergeResult[ListBuffer[Slice[TransientSegment.SingletonOrMany]]]] = {
+                                                                  functionStore: FunctionStore): Future[SegmentMergeResult[ListBuffer[Slice[TransientSegment.Persistent]]]] = {
     val segments = ListBuffer.empty[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], TransientSegment.Remote]]
 
     defragGaps(

@@ -66,7 +66,7 @@ trait PersistentSegment extends Segment {
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[ListBuffer[TransientSegment.SingletonOrMany]]]
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[ListBuffer[TransientSegment.Persistent]]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
