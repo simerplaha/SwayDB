@@ -327,51 +327,52 @@ protected object SegmentRefWriter extends LazyLogging {
     if (gap.isEmpty)
       Futures.unit
     else
-      Future {
-        val lastStatsOrNull =
-          segments
-            .reverse
-            .collectFirst { case Left(stats) => stats }
-            .orNull
-
-        @inline def getOrCreateStats(existingStats: MergeStats.Persistent.Builder[Memory, ListBuffer]) =
-          if (existingStats == null) {
-            val newStats = MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(_.toMemory())
-            segments += Left(newStats)
-            newStats
-          } else {
-            existingStats
-          }
-
-        gap.foldLeft(lastStatsOrNull) {
-          case (statsOrNull, segment: Segment) =>
-            if (statsOrNull == null) {
-              //does matter if this Segment is small. Add it because there are currently no known opened stats.
-              segments += Right(segment)
-              null
-            } else if (segment.segmentSize < segmentConfig.minSize || isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig)) {
-              segment.iterator() foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
-              statsOrNull
-            } else {
-              segments += Right(segment)
-              statsOrNull
-            }
-
-          case (statsOrNull, collection: Assignable.Collection) =>
-            val stats = getOrCreateStats(statsOrNull)
-
-            collection.iterator() foreach (keyValue => stats.add(keyValue.toMemory()))
-
-            stats
-
-          case (statsOrNull, point: Assignable.Point) =>
-            val stats = getOrCreateStats(statsOrNull)
-
-            stats add point.toMemory()
-
-            stats
-        }
-      }
+    //      Future {
+    //        val lastStatsOrNull =
+    //          segments
+    //            .reverse
+    //            .collectFirst { case Left(stats) => stats }
+    //            .orNull
+    //
+    //        @inline def getOrCreateStats(existingStats: MergeStats.Persistent.Builder[Memory, ListBuffer]) =
+    //          if (existingStats == null) {
+    //            val newStats = MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(_.toMemory())
+    //            segments += Left(newStats)
+    //            newStats
+    //          } else {
+    //            existingStats
+    //          }
+    //
+    //        gap.foldLeft(lastStatsOrNull) {
+    //          case (statsOrNull, segment: Segment) =>
+    //            if (statsOrNull == null) {
+    //              //does matter if this Segment is small. Add it because there are currently no known opened stats.
+    //              segments += Right(segment)
+    //              null
+    //            } else if (segment.segmentSize < segmentConfig.minSize || isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig)) {
+    //              segment.iterator() foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
+    //              statsOrNull
+    //            } else {
+    //              segments += Right(segment)
+    //              statsOrNull
+    //            }
+    //
+    //          case (statsOrNull, collection: Assignable.Collection) =>
+    //            val stats = getOrCreateStats(statsOrNull)
+    //
+    //            collection.iterator() foreach (keyValue => stats.add(keyValue.toMemory()))
+    //
+    //            stats
+    //
+    //          case (statsOrNull, point: Assignable.Point) =>
+    //            val stats = getOrCreateStats(statsOrNull)
+    //
+    //            stats add point.toMemory()
+    //
+    //            stats
+    //        }
+    //      }
+      ???
 
   private[ref] def buildMidStats(ref: SegmentRef,
                                  mergeableCount: Int,
@@ -537,42 +538,43 @@ protected object SegmentRefWriter extends LazyLogging {
                                                                   functionStore: FunctionStore): Future[SegmentMergeResult[ListBuffer[Slice[TransientSegment.SingletonOrMany]]]] = {
     val segments = ListBuffer.empty[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], TransientSegment.Remote]]
 
-    buildGapStats(
-      gap = headGap,
-      sortedIndexConfig = sortedIndexConfig,
-      segmentConfig = segmentConfig,
-      segments = segments
-    ) flatMapUnit {
-      buildGapStats(
-        gap = tailGap,
-        sortedIndexConfig = sortedIndexConfig,
-        segmentConfig = segmentConfig,
-        segments = segments
-      )
-    } flatMapUnit {
-      collapseSmallLast(
-        sortedIndexConfig = sortedIndexConfig,
-        segmentConfig = segmentConfig,
-        segments = segments
-      )
-    } and {
-      writeTransient(
-        segments = segments,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-    } map {
-      transientSegments =>
-        SegmentMergeResult(
-          result = transientSegments,
-          replaced = false
-        )
-    }
+    //    buildGapStats(
+    //      gap = headGap,
+    //      sortedIndexConfig = sortedIndexConfig,
+    //      segmentConfig = segmentConfig,
+    //      segments = segments
+    //    ) flatMapUnit {
+    //      buildGapStats(
+    //        gap = tailGap,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        segmentConfig = segmentConfig,
+    //        segments = segments
+    //      )
+    //    } flatMapUnit {
+    //      collapseSmallLast(
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        segmentConfig = segmentConfig,
+    //        segments = segments
+    //      )
+    //    } and {
+    //      writeTransient(
+    //        segments = segments,
+    //        removeDeletes = removeDeletes,
+    //        createdInLevel = createdInLevel,
+    //        valuesConfig = valuesConfig,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig,
+    //        segmentConfig = segmentConfig
+    //      )
+    //    } map {
+    //      transientSegments =>
+    //        SegmentMergeResult(
+    //          result = transientSegments,
+    //          replaced = false
+    //        )
+    //    }
+    ???
   }
 }

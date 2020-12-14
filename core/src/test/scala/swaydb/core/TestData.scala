@@ -50,9 +50,10 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.core.merge.{MergeStats, KeyValueMerger}
+import swaydb.core.merge.{KeyValueMerger, MergeStats}
 import swaydb.core.segment._
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
+import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.Accelerator
@@ -1922,6 +1923,21 @@ object TestData {
 
         case keyValue: KeyValue =>
           fail(s"Expected ${Segment.productPrefix} found ${keyValue.getClass}.")
+      }
+
+    def expectSegmentRefs(): Iterable[SegmentRef] =
+      assignables collect {
+        case collection: Assignable.Collection =>
+          collection match {
+            case segment: SegmentRef =>
+              segment
+
+            case other =>
+              fail(s"Expected ${SegmentRef.productPrefix} found ${other.getClass}.")
+          }
+
+        case keyValue: KeyValue =>
+          fail(s"Expected ${SegmentRef.productPrefix} found ${keyValue.getClass}.")
       }
   }
 

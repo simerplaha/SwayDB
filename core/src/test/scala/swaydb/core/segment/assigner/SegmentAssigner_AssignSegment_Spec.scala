@@ -26,7 +26,7 @@ package swaydb.core.segment.assigner
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, Segment}
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
@@ -83,26 +83,55 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             /**
              * Test with no gaps
              */
-            val noGaps = SegmentAssigner.assignUnsafeNoGaps(Slice(segment), Slice(segment))
-            noGaps should have size 1
-            var assignedSegments = noGaps.head.midOverlap.expectSegments()
-            assignedSegments should have size 1
-            assignedSegments.head shouldBe segment
-            //just to reduce GC workload. Do not create gap instances when it's noGap is true.
-            //even without null the output is still Nothing which is useless.
-            noGaps.head.headGap shouldBe null
-            noGaps.head.tailGap shouldBe null
+            {
+              val noGaps = SegmentAssigner.assignUnsafeNoGaps(Slice(segment), Slice(segment))
+              noGaps should have size 1
+              val assignedSegments = noGaps.head.midOverlap.expectSegments()
+              assignedSegments should have size 1
+              assignedSegments.head shouldBe segment
+              //just to reduce GC workload. Do not create gap instances when it's noGap is true.
+              //even without null the output is still Nothing which is useless.
+              noGaps.head.headGap shouldBe null
+              noGaps.head.tailGap shouldBe null
+            }
 
             /**
              * Test with gaps
              */
-            val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment))
-            gaps should have size 1
-            assignedSegments = noGaps.head.midOverlap.expectSegments()
-            assignedSegments.head shouldBe segment
+            {
+              val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment))
+              gaps should have size 1
+              val assignedSegments = gaps.head.midOverlap.expectSegments()
+              assignedSegments.head shouldBe segment
 
-            gaps.head.headGap.result shouldBe empty
-            gaps.head.tailGap.result shouldBe empty
+              gaps.head.headGap.result shouldBe empty
+              gaps.head.tailGap.result shouldBe empty
+            }
+
+            if (persistent) {
+              val segment = TestSegment.one().asInstanceOf[PersistentSegment]
+
+              val segmentRef =
+                segment match {
+                  case one: PersistentSegmentOne =>
+                    one.ref
+
+                  case got =>
+                    fail(s"Expected ${PersistentSegmentOne.productPrefix} got ${got.getClass.getSimpleName}")
+                }
+
+              /**
+               * Test with REFs
+               */
+              val noGaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segmentRef), Slice(segment))
+              noGaps should have size 1
+              val assignedSegments = noGaps.head.midOverlap.expectSegmentRefs()
+              assignedSegments.head.path shouldBe segmentRef.path
+              assignedSegments.head.hashCode() shouldBe segmentRef.hashCode()
+
+              noGaps.head.headGap.result shouldBe empty
+              noGaps.head.tailGap.result shouldBe empty
+            }
         }
       }
     }

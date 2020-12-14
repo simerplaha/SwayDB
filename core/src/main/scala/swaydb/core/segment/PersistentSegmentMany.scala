@@ -60,6 +60,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import scala.annotation.tailrec
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.jdk.CollectionConverters._
@@ -640,6 +641,18 @@ protected case class PersistentSegmentMany(file: DBFile,
       segment
     }
   }
+
+  @inline def getAllSegmentRefsMutable(): ListBuffer[SegmentRef] = {
+    val buffer = ListBuffer.empty[SegmentRef]
+
+    getAllSegmentRefs() foreach {
+      ref =>
+        buffer += ref
+    }
+
+    buffer
+  }
+
 
   @inline def getAllSegmentRefs(): Iterator[SegmentRef] =
     new Iterator[SegmentRef] {

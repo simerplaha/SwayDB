@@ -27,6 +27,7 @@ package swaydb.core.segment.ref
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -126,12 +127,15 @@ private[core] class SegmentRef(val path: Path,
                                val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
                                val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                         keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with LazyLogging {
+                                                                         keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with Assignable.Collection with LazyLogging {
 
   implicit val self: SegmentRef = this
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
   implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
   implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
+
+  override def key: Slice[Byte] =
+    minKey
 
   override def isNoneC: Boolean =
     false

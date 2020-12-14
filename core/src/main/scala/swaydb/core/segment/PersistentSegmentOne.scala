@@ -59,7 +59,7 @@ import swaydb.data.slice.Slice
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
-protected object PersistentSegmentOne {
+protected case object PersistentSegmentOne {
 
   val formatId = 126.toByte
   val formatIdSlice: Slice[Byte] = Slice(formatId)

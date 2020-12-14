@@ -26,7 +26,7 @@ package swaydb.core.segment.assigner
 
 import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory, MemoryOption, Value}
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{PersistentSegmentMany, Segment}
 import swaydb.core.segment.assigner.AssignmentTarget._
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.DropIterator
@@ -128,7 +128,20 @@ private[core] object SegmentAssigner {
 
     val assignments = ListBuffer.empty[Assignment[GAP, SEG]]
 
-    def getNextSegmentMayBe(): SEG = if (segmentsIterator.hasNext) segmentsIterator.next() else null
+    @inline def getNextSegmentMayBe(): SEG = if (segmentsIterator.hasNext) segmentsIterator.next() else null
+
+    /**
+     * Checks if this Segment has non-gap key-values assigned.
+     */
+    @inline def segmentHasNonGapedKeyValuesAssigned(segment: SEG): Boolean =
+      assignments.lastOption match {
+        case Some(assignment) =>
+          assignment.segment == segment &&
+            assignment.midOverlap.lastOption.exists(_.isInstanceOf[KeyValue])
+
+        case None =>
+          false
+      }
 
     def assignToSegment(assignable: Assignable,
                         assignTo: SEG): Unit =
@@ -148,19 +161,6 @@ private[core] object SegmentAssigner {
             )
       }
 
-    /**
-     * Checks if this Segment has non-gap key-values assigned.
-     */
-    def segmentHasNonGapedKeyValuesAssigned(segment: SEG): Boolean =
-      assignments.lastOption match {
-        case Some(assignment) =>
-          assignment.segment == segment && {
-            assignment.midOverlap.lastOption.exists(_.isInstanceOf[KeyValue])
-          }
-
-        case None =>
-          false
-      }
 
     def assignToGap(assignable: Assignable,
                     assignTo: SEG): Unit =
@@ -239,13 +239,24 @@ private[core] object SegmentAssigner {
                 case assignable: Assignable.Collection =>
                   nextSegmentMayBe match {
                     case nextSegment: SEG if spreadToNextSegment(assignable, nextSegment) => //if Segment spreads onto next Segment
-                      val keyValueCount = assignable.getKeyValueCount()
-                      val keyValues = assignable.iterator()
-                      val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
+                      assignable match {
+                        case many: PersistentSegmentMany if thisSegmentMinKeyCompare < 0 =>
+                          val segmentRefs = many.getAllSegmentRefsMutable()
+                          val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
 
-                      val newRemaining = segmentIterator append remaining.dropHead()
+                          val newRemaining = segmentIterator append remaining.dropHead()
 
-                      assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
+                          assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
+
+                        case _ =>
+                          val keyValueCount = assignable.getKeyValueCount()
+                          val keyValues = assignable.iterator()
+                          val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
+
+                          val newRemaining = segmentIterator append remaining.dropHead()
+
+                          assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
+                      }
 
                     case _ =>
                       if (noGaps || thisSegmentMinKeyCompare == 0 || keyBelongsToThisSegmentNoSpread()) //if this Segment should be added to thisSegment
@@ -311,18 +322,28 @@ private[core] object SegmentAssigner {
                         if (spreadToNextSegment(assignable, nextSegment)) {
                           //No need to expand the Segment if thisSegment does not have key-values assigned.
                           //Simply jump to the next Segment for a higher chance of the Segment getting assigned without expanding.
-                          if (!segmentHasNonGapedKeyValuesAssigned(thisSegment)) {
+                          if (!segmentHasNonGapedKeyValuesAssigned(thisSegment))
                             assign(remaining, nextSegmentMayBe, getNextSegmentMayBe())
-                          } else {
-                            //if this Segment spreads onto next Segment read all key-values and assign.
-                            val keyValueCount = assignable.getKeyValueCount()
-                            val keyValues = assignable.iterator()
-                            val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
+                          else
+                            assignable match {
+                              case many: PersistentSegmentMany =>
+                                val segmentRefs = many.getAllSegmentRefsMutable()
+                                val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
 
-                            val newRemaining = segmentIterator append remaining.dropHead()
+                                val newRemaining = segmentIterator append remaining.dropHead()
 
-                            assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
-                          }
+                                assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
+
+                              case _ =>
+                                //if this Segment spreads onto next Segment read all key-values and assign.
+                                val keyValueCount = assignable.getKeyValueCount()
+                                val keyValues = assignable.iterator()
+                                val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
+
+                                val newRemaining = segmentIterator append remaining.dropHead()
+
+                                assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
+                            }
                         } else {
                           //does not spread onto next Segment.
                           if (noGaps) {
