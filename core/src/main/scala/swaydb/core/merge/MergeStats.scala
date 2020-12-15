@@ -85,7 +85,7 @@ private[core] case object MergeStats {
       totalDeadlineKeyValues = 0,
       totalRangeCount = 0,
       hasRange = false,
-      hasRemoveRange = false,
+      mightContainRemoveRange = false,
       hasPut = false,
       aggregator = aggregator
     )
@@ -108,19 +108,19 @@ private[core] case object MergeStats {
 
   object Persistent {
     class Builder[-FROM, +T[_]](var maxMergedKeySize: Int,
-                               var totalMergedKeysSize: Int,
-                               var maxTimeSize: Int,
-                               var totalTimesSize: Int,
-                               var maxValueSize: Int,
-                               var totalKeyValueCount: Int,
-                               var totalValuesSize: Int,
-                               var totalValuesCount: Int,
-                               var totalDeadlineKeyValues: Int,
-                               var totalRangeCount: Int,
-                               var hasRange: Boolean,
-                               var hasRemoveRange: Boolean,
-                               var hasPut: Boolean,
-                               aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends Persistent[FROM, T] with MergeStats[FROM, T] {
+                                var totalMergedKeysSize: Int,
+                                var maxTimeSize: Int,
+                                var totalTimesSize: Int,
+                                var maxValueSize: Int,
+                                var totalKeyValueCount: Int,
+                                var totalValuesSize: Int,
+                                var totalValuesCount: Int,
+                                var totalDeadlineKeyValues: Int,
+                                var totalRangeCount: Int,
+                                var hasRange: Boolean,
+                                var mightContainRemoveRange: Boolean,
+                                var hasPut: Boolean,
+                                aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends Persistent[FROM, T] with MergeStats[FROM, T] {
 
       def close(hasAccessPositionIndex: Boolean, optimiseForReverseIteration: Boolean): MergeStats.Persistent.Closed[T] =
         new MergeStats.Persistent.Closed[T](
@@ -186,8 +186,8 @@ private[core] case object MergeStats {
 
         if (keyValue.isRange) {
           this.hasRange = true
-          if (keyValue.isRemoveRangeMayBe)
-            this.hasRemoveRange = true
+          if (keyValue.mightContainRemoveRange)
+            this.mightContainRemoveRange = true
           this.totalRangeCount = this.totalRangeCount + 1
         } else if (keyValue.isPut) {
           this.hasPut = true

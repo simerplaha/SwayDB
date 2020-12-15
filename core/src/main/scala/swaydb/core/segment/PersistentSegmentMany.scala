@@ -729,11 +729,6 @@ protected case class PersistentSegmentMany(file: DBFile,
     file copyTo toPath
 
   /**
-   * TODO - is parallelism actually fast? Does background Actors slow down creation of futures?
-   *      - are there any failure and retries happening while compaction is in progress?
-   */
-
-  /**
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
   def put(headGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],

@@ -41,7 +41,7 @@ import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.merge.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.GapAggregator._
-import swaydb.core.segment.assigner.{Assignable, Assignment, SegmentAssigner}
+import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -513,7 +513,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def put(segments: Iterable[Segment],
           parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
-    assignAndPut(
+    assignMerge(
       assignablesCount = segments.size,
       assignables = segments,
       targetSegments = appendix.cache.values(),
@@ -524,7 +524,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
           parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
-    assignAndPut(
+    assignMerge(
       map = map,
       targetSegments = appendix.cache.values(),
       parallelMerge = parallelMerge
@@ -577,11 +577,11 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  @inline private[core] def assignAndPut(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-                                         targetSegments: Iterable[Segment],
-                                         parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] =
+  @inline private[core] def assignMerge(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
+                                        targetSegments: Iterable[Segment],
+                                        parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] =
 
-    assignAndPut(
+    assignMerge(
       assignablesCount = 1,
       assignables = Seq(Assignable.Collection.fromMap(map)),
       targetSegments = targetSegments,
@@ -591,10 +591,10 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return Newly created Segments.
    */
-  private[core] def assignAndPut(assignablesCount: Int,
-                                 assignables: Iterable[Assignable],
-                                 targetSegments: Iterable[Segment],
-                                 parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] = {
+  private[core] def assignMerge(assignablesCount: Int,
+                                assignables: Iterable[Assignable],
+                                targetSegments: Iterable[Segment],
+                                parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
     if (inMemory)
       Future {

@@ -30,7 +30,7 @@ import swaydb.data.util.SomeOrNone
 import scala.concurrent.duration.Deadline
 
 private[swaydb] sealed trait Value {
-  def hasRemoveMayBe: Boolean
+  def mightContainRemove: Boolean
   def unslice(): Value
   def isUnsliced: Boolean
   def time: Time
@@ -100,7 +100,7 @@ private[swaydb] object Value {
 
     def isPut: Boolean = false
 
-    override val hasRemoveMayBe: Boolean = true
+    override val mightContainRemove: Boolean = true
 
     def unslice(): Value.Remove =
       Remove(deadline = deadline, time = time.unslice())
@@ -129,7 +129,7 @@ private[swaydb] object Value {
 
     def isPut: Boolean = true
 
-    override val hasRemoveMayBe: Boolean = false
+    override val mightContainRemove: Boolean = false
 
     def unslice(): Value.Put =
       Put(value = value.unsliceOption(), deadline, time.unslice())
@@ -159,7 +159,7 @@ private[swaydb] object Value {
 
     def isPut: Boolean = false
 
-    override val hasRemoveMayBe: Boolean = false
+    override val mightContainRemove: Boolean = false
 
     def unslice(): Value.Update =
       Update(value = value.unsliceOption(), deadline, time.unslice())
@@ -188,7 +188,7 @@ private[swaydb] object Value {
 
     def isPut: Boolean = false
 
-    override val hasRemoveMayBe: Boolean = true
+    override val mightContainRemove: Boolean = true
 
     def unslice(): Function =
       Function(function.unslice(), time.unslice())
@@ -213,7 +213,7 @@ private[swaydb] object Value {
   case class PendingApply(applies: Slice[Value.Apply]) extends RangeValue {
     def isPut: Boolean = false
 
-    override def hasRemoveMayBe: Boolean = applies.exists(_.hasRemoveMayBe)
+    override def mightContainRemove: Boolean = applies.exists(_.mightContainRemove)
 
     override def time = Time.fromApplies(applies)
 

@@ -70,6 +70,10 @@ object Assignable {
     def maxKey: MaxKey[Slice[Byte]]
     def iterator(): Iterator[KeyValue]
     def getKeyValueCount(): Int
+
+    //TODO
+    def hasNonPut: Boolean =
+      false
   }
 
   trait Point extends Assignable {

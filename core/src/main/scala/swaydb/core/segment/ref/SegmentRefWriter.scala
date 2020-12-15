@@ -367,7 +367,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
       Futures.unit
     else
       Future {
-        def appendSegment(segment: Segment): Unit = {
+        @inline def appendSegment(segment: Segment): Unit = {
           val remote =
             TransientSegment.RemoteSegment(
               segment = segment,
@@ -384,7 +384,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
           segments += Right(remote)
         }
 
-        def appendSegmentRef(segment: SegmentRef): Unit = {
+        @inline def appendSegmentRef(segment: SegmentRef): Unit = {
           val remote =
             TransientSegment.RemoteRef(
               fileHeader = PersistentSegmentOne.formatIdSlice,
@@ -394,7 +394,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
           segments += Right(remote)
         }
 
-        def lastStatsOrNull(): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+        @inline def lastStatsOrNull(): MergeStats.Persistent.Builder[Memory, ListBuffer] =
           segments.lastOption match {
             case Some(Left(stats)) =>
               stats
@@ -422,7 +422,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
               //does matter if this Segment is small. Add it because there are currently no known opened stats.
               appendSegmentRef(segmentRef)
               null
-            } else if (segmentRef.segmentSize < segmentConfig.minSize || isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig)) {
+            } else if (segmentRef.getKeyValueCount() < segmentConfig.maxCount || isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig)) {
               segmentRef.iterator() foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
               statsOrNull
             } else {
@@ -504,7 +504,6 @@ private[segment] object SegmentRefWriter extends LazyLogging {
     else
       Futures.`false`
   }
-
 
   private[ref] def defragLast(sortedIndexConfig: SortedIndexBlock.Config,
                               segmentConfig: SegmentBlock.Config,

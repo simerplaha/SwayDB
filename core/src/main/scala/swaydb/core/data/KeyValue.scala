@@ -277,7 +277,7 @@ private[swaydb] sealed trait MemoryOption extends SomeOrNone[MemoryOption, Memor
 private[swaydb] sealed trait Memory extends KeyValue with MemoryOption {
   def id: Byte
   def isRange: Boolean
-  def isRemoveRangeMayBe: Boolean
+  def mightContainRemoveRange: Boolean
   def isPut: Boolean
   def persistentTime: Time
   def mergedKey: Slice[Byte]
@@ -396,7 +396,7 @@ private[swaydb] object Memory {
 
     override def mergedKey = key
 
-    override def isRemoveRangeMayBe = false
+    override def mightContainRemoveRange = false
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
@@ -459,7 +459,7 @@ private[swaydb] object Memory {
 
     override def persistentTime: Time = time
 
-    override def isRemoveRangeMayBe = false
+    override def mightContainRemoveRange = false
 
     override def mergedKey = key
 
@@ -540,7 +540,7 @@ private[swaydb] object Memory {
 
     override def mergedKey = key
 
-    override def isRemoveRangeMayBe = false
+    override def mightContainRemoveRange = false
 
     override def indexEntryDeadline: Option[Deadline] = None
 
@@ -589,7 +589,7 @@ private[swaydb] object Memory {
 
     override def mergedKey = key
 
-    override def isRemoveRangeMayBe = false
+    override def mightContainRemoveRange = false
 
     override lazy val value: SliceOption[Byte] = ValueSerializer.writeBytes(applies)
 
@@ -638,7 +638,7 @@ private[swaydb] object Memory {
 
     override def mergedKey = key
 
-    override def isRemoveRangeMayBe = false
+    override def mightContainRemoveRange = false
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
@@ -700,7 +700,7 @@ private[swaydb] object Memory {
 
     override def persistentTime: Time = Time.empty
 
-    override def isRemoveRangeMayBe: Boolean = rangeValue.hasRemoveMayBe
+    override def mightContainRemoveRange: Boolean = rangeValue.mightContainRemove
 
     override def id: Byte = Range.id
 

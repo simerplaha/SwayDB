@@ -594,7 +594,7 @@ private[core] case object SegmentBlock extends LazyLogging {
     val valuesState = values map ValuesBlock.close
 
     val bloomFilter =
-      if (sortedIndexState.hasRemoveRange || bloomFilterIndexableKeys.size < bloomFilterConfig.minimumNumberOfKeys)
+      if (sortedIndexState.mightContainRemoveRange || bloomFilterIndexableKeys.size < bloomFilterConfig.minimumNumberOfKeys)
         None
       else
         BloomFilterBlock.init(

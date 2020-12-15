@@ -233,14 +233,14 @@ class SegmentBlockSpec extends TestBase {
       }
     }
 
-    "set hasRange to true and hasRemoveRange to false when Segment does not contain Remove range or function or pendingApply with function or remove but has other ranges" in {
+    "set hasRange to true and mightContainRemoveRange to false when Segment does not contain Remove range or function or pendingApply with function or remove but has other ranges" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
           def doAssert(keyValues: Slice[Memory]) = {
-            val expectedHasRemoveRange = keyValues.exists(_.isRemoveRangeMayBe)
+            val expectedHasRemoveRange = keyValues.exists(_.mightContainRemoveRange)
 
-            MergeStats.persistentBuilder(keyValues).hasRemoveRange shouldBe expectedHasRemoveRange
+            MergeStats.persistentBuilder(keyValues).mightContainRemoveRange shouldBe expectedHasRemoveRange
 
             val blocks = getBlocksSingle(keyValues).get
 
@@ -257,12 +257,12 @@ class SegmentBlockSpec extends TestBase {
       }
     }
 
-    "set hasRange & hasRemoveRange to true and not create bloomFilter when Segment contains Remove range key-value" in {
+    "set hasRange & mightContainRemoveRange to true and not create bloomFilter when Segment contains Remove range key-value" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
           def doAssert(keyValues: Slice[Memory]) = {
-            keyValues.exists(_.isRemoveRangeMayBe) shouldBe true
+            keyValues.exists(_.mightContainRemoveRange) shouldBe true
 
             val blocks =
               getBlocksSingle(
@@ -308,7 +308,7 @@ class SegmentBlockSpec extends TestBase {
         implicit sweeper =>
           import sweeper._
           def doAssert(keyValues: Slice[Memory]) = {
-            keyValues.exists(_.isRemoveRangeMayBe) shouldBe false
+            keyValues.exists(_.mightContainRemoveRange) shouldBe false
 
             val blocks =
               getBlocksSingle(
@@ -336,12 +336,12 @@ class SegmentBlockSpec extends TestBase {
       }
     }
 
-    "set hasRemoveRange to true, hasGroup to true & not create bloomFilter when only the group contains remove range" in {
+    "set mightContainRemoveRange to true, hasGroup to true & not create bloomFilter when only the group contains remove range" in {
       TestCaseSweeper {
         implicit sweeper =>
           import sweeper._
           def doAssert(keyValues: Slice[Memory]) = {
-            keyValues.exists(_.isRemoveRangeMayBe) shouldBe true
+            keyValues.exists(_.mightContainRemoveRange) shouldBe true
 
             val blocks =
               getBlocksSingle(

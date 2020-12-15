@@ -412,7 +412,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
               val allKeyValues = range ++ keyValues
 
-              allKeyValues.exists(_.isRemoveRangeMayBe) shouldBe true
+              allKeyValues.exists(_.mightContainRemoveRange) shouldBe true
 
               val blocks =
                 getBlocksSingle(
