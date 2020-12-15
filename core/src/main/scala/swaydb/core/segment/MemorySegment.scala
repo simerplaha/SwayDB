@@ -53,20 +53,26 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-private[core] case class MemorySegment(path: Path,
-                                       minKey: Slice[Byte],
-                                       maxKey: MaxKey[Slice[Byte]],
-                                       minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                                       segmentSize: Int,
-                                       hasRange: Boolean,
-                                       hasPut: Boolean,
-                                       createdInLevel: Int,
-                                       private[segment] val skipList: SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-                                       nearestPutDeadline: Option[Deadline],
-                                       pathsDistributor: PathsDistributor)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                                           functionStore: FunctionStore,
-                                                                           fileSweeper: FileSweeper) extends Segment with LazyLogging {
+sealed trait MemorySegmentOption
+
+object MemorySegment {
+  final case object Null extends MemorySegmentOption
+}
+
+private[core] final case class MemorySegment(path: Path,
+                                             minKey: Slice[Byte],
+                                             maxKey: MaxKey[Slice[Byte]],
+                                             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                                             segmentSize: Int,
+                                             hasRange: Boolean,
+                                             hasPut: Boolean,
+                                             createdInLevel: Int,
+                                             private[segment] val skipList: SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                                             nearestPutDeadline: Option[Deadline],
+                                             pathsDistributor: PathsDistributor)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                                                 functionStore: FunctionStore,
+                                                                                 fileSweeper: FileSweeper) extends Segment with MemorySegmentOption with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -87,7 +93,7 @@ private[core] case class MemorySegment(path: Path,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Memory]]] =
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[MemorySegmentOption, Slice[TransientSegment.Memory]]] =
   //    if (deleted) {
   //      throw swaydb.Exception.NoSuchFile(path)
   //    } else {
@@ -136,7 +142,7 @@ private[core] case class MemorySegment(path: Path,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment.Memory]]] =
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[Slice[TransientSegment.Memory]] =
   //    if (deleted) {
   //      throw swaydb.Exception.NoSuchFile(path)
   //    } else {

@@ -45,7 +45,9 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
-trait PersistentSegment extends Segment {
+sealed trait PersistentSegmentOption
+
+trait PersistentSegment extends Segment with PersistentSegmentOption {
   def file: DBFile
 
   def copyTo(toPath: Path): Path
@@ -66,7 +68,7 @@ trait PersistentSegment extends Segment {
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]]
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -82,4 +84,6 @@ object PersistentSegment {
   val emptySlice: Slice[PersistentSegment] = Slice.empty[PersistentSegment]
 
   val emptyFutureSlice = Slice.empty[scala.concurrent.Future[PersistentSegment]]
+
+  case object Null extends PersistentSegmentOption
 }

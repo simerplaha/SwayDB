@@ -277,7 +277,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
           Memory.Range(15, 50, Value.remove(None), Value.update(10))
         )
 
-        def assertResult(assignments: Iterable[Assignment[Nothing, Segment]]) = {
+        def assertResult(assignments: Iterable[SegmentAssignment[Nothing, Segment]]) = {
           assignments.size shouldBe 3
           assignments.find(_.segment == segment2).value.midOverlap.expectKeyValues() should contain only Memory.Range(15, 21, Value.remove(None), Value.update(10))
           assignments.find(_.segment == segment3).value.midOverlap.expectKeyValues() should contain only Memory.Range(21, 40, Value.FromValue.Null, Value.update(10))

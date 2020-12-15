@@ -28,6 +28,7 @@ import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
+import swaydb.core.merge.MergeStats
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
@@ -56,6 +57,10 @@ object Assignable {
   implicit def listBufferAssignableCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable]] =
     Aggregator.Creator.listBuffer()
 
+  sealed trait AssignResult
+
+  case class Stats(stats: MergeStats.Persistent.Builder[Memory, ListBuffer]) extends AssignResult
+
   /**
    * A [[Collection]] is a collection of key-values like [[swaydb.core.segment.Segment]]
    * and [[Map[Slice[Byte], Memory, LevelZeroMapCache]].
@@ -66,7 +71,7 @@ object Assignable {
    * [[swaydb.core.segment.Segment]] without need to assign each key-value saving
    * CPU times and IO for cases where key-values are persistent - [[swaydb.core.segment.PersistentSegment]].
    */
-  trait Collection extends Assignable {
+  trait Collection extends Assignable with AssignResult {
     def maxKey: MaxKey[Slice[Byte]]
     def iterator(): Iterator[KeyValue]
     def getKeyValueCount(): Int

@@ -744,8 +744,8 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
-    SegmentRefWriter.mergeMultiRef(
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] =
+    SegmentRefWriter.run(
       headGap = headGap,
       tailGap = tailGap,
       segmentRefs = segmentRefsIterator(),
@@ -759,7 +759,16 @@ protected case class PersistentSegmentMany(file: DBFile,
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig,
       segmentConfig = segmentConfig
-    )
+    ) map {
+      result =>
+        result.source match {
+          case SegmentRef.Null =>
+            result.updateSource(PersistentSegment.Null)
+
+          case _: SegmentRef =>
+            result.updateSource(this)
+        }
+    }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

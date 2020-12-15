@@ -22,9 +22,10 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment.assigner
+package swaydb.core.segment
 
-import swaydb.core.segment.Segment
+import swaydb.core.data.KeyValue
+import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
@@ -32,41 +33,81 @@ import swaydb.data.slice.Slice
 import scala.annotation.implicitNotFound
 
 /**
- * [[AssignmentTarget]] implements functions that [[SegmentAssigner]]
+ * [[SegmentSource]] implements functions that [[SegmentAssigner]]
  * uses to assign [[Assignable]] to target [[A]] types.
  *
  * Currently the following type classes allow [[SegmentAssigner]] to assign
  * [[Assignable]] to [[Segment]] and [[SegmentRef]].
  */
 @implicitNotFound("Type class implementation not found for SegmentType of type ${A}")
-sealed trait AssignmentTarget[A] {
+sealed trait SegmentSource[A] {
   def minKey(segment: A): Slice[Byte]
   def maxKey(segment: A): MaxKey[Slice[Byte]]
+  def segmentSize(segment: A): Int
+  def hasNonPut(segment: A): Boolean
+  def getKeyValueCount(segment: A): Int
+  def iterator(segment: A): Iterator[KeyValue]
 }
 
-object AssignmentTarget {
+object SegmentSource {
 
   implicit class SegmentTypeImplicits[A](target: A) {
-    @inline def minKey(implicit targetType: AssignmentTarget[A]) =
+    @inline def minKey(implicit targetType: SegmentSource[A]) =
       targetType.minKey(target)
 
-    @inline def maxKey(implicit targetType: AssignmentTarget[A]) =
+    @inline def maxKey(implicit targetType: SegmentSource[A]) =
       targetType.maxKey(target)
+
+    @inline def segmentSize(implicit targetType: SegmentSource[A]) =
+      targetType.segmentSize(target)
+
+    @inline def hasNonPut(implicit targetType: SegmentSource[A]) =
+      targetType.hasNonPut(target)
+
+    @inline def getKeyValueCount()(implicit targetType: SegmentSource[A]) =
+      targetType.getKeyValueCount(target)
+
+    @inline def iterator()(implicit targetType: SegmentSource[A]) =
+      targetType.iterator(target)
   }
 
-  implicit object SegmentTarget extends AssignmentTarget[Segment] {
+  implicit object SegmentTarget extends SegmentSource[Segment] {
     override def minKey(segment: Segment): Slice[Byte] =
       segment.minKey
 
     override def maxKey(segment: Segment): MaxKey[Slice[Byte]] =
       segment.maxKey
+
+    override def segmentSize(segment: Segment): Int =
+      segment.segmentSize
+
+    override def hasNonPut(segment: Segment): Boolean =
+      segment.hasNonPut
+
+    override def getKeyValueCount(segment: Segment): Int =
+      segment.getKeyValueCount()
+
+    override def iterator(segment: Segment): Iterator[KeyValue] =
+      segment.iterator()
   }
 
-  implicit object SegmentRefTarget extends AssignmentTarget[SegmentRef] {
+  implicit object SegmentRefTarget extends SegmentSource[SegmentRef] {
     override def minKey(ref: SegmentRef): Slice[Byte] =
       ref.minKey
 
     override def maxKey(ref: SegmentRef): MaxKey[Slice[Byte]] =
       ref.maxKey
+
+    override def segmentSize(ref: SegmentRef): Int =
+      ref.segmentSize
+
+    override def hasNonPut(ref: SegmentRef): Boolean =
+      ref.hasNonPut
+
+    override def getKeyValueCount(ref: SegmentRef): Int =
+      ref.getKeyValueCount()
+
+    override def iterator(ref: SegmentRef): Iterator[KeyValue] =
+      ref.iterator()
   }
 }

@@ -35,12 +35,12 @@ import scala.annotation.tailrec
 
 private[core] object Get {
 
-  def seek(key: Slice[Byte],
-           readState: ThreadReadState,
-           currentGetter: CurrentGetter,
-           nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                   timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): KeyValue.PutOption =
+  @inline def seek(key: Slice[Byte],
+                   readState: ThreadReadState,
+                   currentGetter: CurrentGetter,
+                   nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                           timeOrder: TimeOrder[Slice[Byte]],
+                                           functionStore: FunctionStore): KeyValue.PutOption =
     Get(key = key, readState = readState)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -49,12 +49,12 @@ private[core] object Get {
       functionStore = functionStore
     )
 
-  def apply(key: Slice[Byte],
-            readState: ThreadReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        currentGetter: CurrentGetter,
-                                        nextGetter: NextGetter,
-                                        functionStore: FunctionStore): KeyValue.PutOption =
+  @inline def apply(key: Slice[Byte],
+                    readState: ThreadReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                currentGetter: CurrentGetter,
+                                                nextGetter: NextGetter,
+                                                functionStore: FunctionStore): KeyValue.PutOption =
     currentGetter.get(key, readState) match {
       case current: KeyValue =>
         resolve(
@@ -71,13 +71,13 @@ private[core] object Get {
     }
 
   @tailrec
-  @inline private def resolve(current: KeyValue,
-                              key: Slice[Byte],
-                              readState: ThreadReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                          currentGetter: CurrentGetter,
-                                                          nextGetter: NextGetter,
-                                                          functionStore: FunctionStore): KeyValue.PutOption =
+  private def resolve(current: KeyValue,
+                      key: Slice[Byte],
+                      readState: ThreadReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                  currentGetter: CurrentGetter,
+                                                  nextGetter: NextGetter,
+                                                  functionStore: FunctionStore): KeyValue.PutOption =
     current match {
       case current: KeyValue.Put =>
         if (current.hasTimeLeft())

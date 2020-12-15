@@ -24,7 +24,8 @@
 
 package swaydb.core.segment.block.segment.data
 
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -39,6 +40,7 @@ import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
 sealed trait TransientSegment {
@@ -59,9 +61,27 @@ object TransientSegment {
    */
   sealed trait Singleton extends Persistent
 
-  sealed trait Remote extends Singleton {
+  /**
+   * [[Fragment]] type is used by [[swaydb.core.segment.defrag.Defrag]] to
+   * create a barrier between two groups of Segments.
+   *
+   * For example: if a Segment gets assigned to head and tail gaps but no mergeable
+   * mid key-values then head and tail gaps cannot be joined.
+   */
+  sealed trait Fragment
+
+  sealed trait Remote extends Singleton with Fragment {
     def iterator(): Iterator[KeyValue]
   }
+
+  /**
+   * This type does not extend any [[TransientSegment.Persistent]] types because it is only
+   * used to creates a barrier between groups of key-values/Segments or SegmentRefs when
+   * running [[swaydb.core.segment.defrag.Defrag]].
+   */
+  case object Fence extends Fragment
+
+  case class Stats(stats: MergeStats.Persistent.Builder[swaydb.core.data.Memory, ListBuffer]) extends Fragment
 
   sealed trait OneOrRemoteRefOrMany extends Persistent
 
@@ -133,9 +153,6 @@ object TransientSegment {
     override def iterator(): Iterator[KeyValue] =
       ref.iterator()
 
-    override def toString: String =
-      s"TransientSegment.${this.productPrefix}. Size: ${ref.segmentSize}.bytes"
-
     override def copyWithFileHeader(fileHeader: Slice[Byte]): RemoteRef =
       copy(fileHeader = fileHeader)
 
@@ -170,9 +187,6 @@ object TransientSegment {
 
     override def iterator(): Iterator[KeyValue] =
       segment.iterator()
-
-    override def toString: String =
-      s"TransientSegment.${this.productPrefix}. Size: ${segment.segmentSize}.bytes"
   }
 
   case class One(minKey: Slice[Byte],
@@ -202,9 +216,6 @@ object TransientSegment {
 
     override def copyWithFileHeader(fileHeader: Slice[Byte]): One =
       copy(fileHeader = fileHeader)
-
-    override def toString: String =
-      s"TransientSegment.${this.productPrefix}. Size: $segmentSize.bytes"
   }
 
   case class Many(minKey: Slice[Byte],
@@ -220,9 +231,6 @@ object TransientSegment {
 
     def segmentSize =
       fileHeader.size + listSegment.segmentSizeIgnoreHeader + segments.foldLeft(0)(_ + _.segmentSizeIgnoreHeader)
-
-    override def toString: String =
-      s"TransientSegment.${this.productPrefix}. Size: $segmentSize.bytes"
   }
 
 
@@ -244,8 +252,5 @@ object TransientSegment {
 
     override def segmentSize: Int =
       segment.segmentSize
-
-    override def toString: String =
-      s"TransientSegment.${this.productPrefix}. Size: ${segment.segmentSize}.bytes"
   }
 }

@@ -419,7 +419,7 @@ private[core] case object Segment extends LazyLogging {
                                                    bufferCleaner: ByteBufferSweeperActor,
                                                    blockCacheSweeper: Option[MemorySweeper.Block],
                                                    segmentIO: SegmentReadIO,
-                                                   forceSaveApplier: ForceSaveApplier): SegmentMergeResult[Slice[PersistentSegment]] = {
+                                                   forceSaveApplier: ForceSaveApplier): SegmentMergeResult[PersistentSegmentOption, Slice[PersistentSegment]] = {
     //    val transient: Slice[TransientSegment.Persistent] =
     //      SegmentRefWriter.merge(
     //        oldKeyValuesCount = oldKeyValuesCount,
@@ -1322,14 +1322,14 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
   //          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
   //                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment]]]
   //
-//  def refresh(removeDeletes: Boolean,
-//              createdInLevel: Int,
-//              valuesConfig: ValuesBlock.Config,
-//              sortedIndexConfig: SortedIndexBlock.Config,
-//              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-//              hashIndexConfig: HashIndexBlock.Config,
-//              bloomFilterConfig: BloomFilterBlock.Config,
-//              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment]]]
+  //  def refresh(removeDeletes: Boolean,
+  //              createdInLevel: Int,
+  //              valuesConfig: ValuesBlock.Config,
+  //              sortedIndexConfig: SortedIndexBlock.Config,
+  //              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+  //              hashIndexConfig: HashIndexBlock.Config,
+  //              bloomFilterConfig: BloomFilterBlock.Config,
+  //              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment]]]
 
   def getFromCache(key: Slice[Byte]): KeyValueOption
 

@@ -610,31 +610,31 @@ private[core] case class Level(dirs: Seq[Dir],
             logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
             Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
           } else {
-            Future.traverse(assignments) {
-              assignment =>
-                assignment.segment.asInstanceOf[MemorySegment].put(
-                  headGap = assignment.headGap.result,
-                  tailGap = assignment.tailGap.result,
-                  mergeableCount = assignment.midOverlap.size,
-                  mergeable = assignment.midOverlap.iterator,
-                  removeDeletes = removeDeletedRecords,
-                  createdInLevel = levelNumber,
-                  segmentParallelism = parallelMerge.segment,
-                  valuesConfig = valuesConfig,
-                  sortedIndexConfig = sortedIndexConfig,
-                  binarySearchIndexConfig = binarySearchIndexConfig,
-                  hashIndexConfig = hashIndexConfig,
-                  bloomFilterConfig = bloomFilterConfig,
-                  segmentConfig = segmentConfig
-                ) map {
-                  newSegments =>
-                    LevelMergeResult(
-                      level = self,
-                      old = assignment.segment,
-                      news = newSegments
-                    )
-                }
-            }
+            //            Future.traverse(assignments) {
+            //              assignment =>
+            //                assignment.segment.asInstanceOf[MemorySegment].put(
+            //                  headGap = assignment.headGap.result,
+            //                  tailGap = assignment.tailGap.result,
+            //                  mergeableCount = assignment.midOverlap.size,
+            //                  mergeable = assignment.midOverlap.iterator,
+            //                  removeDeletes = removeDeletedRecords,
+            //                  createdInLevel = levelNumber,
+            //                  segmentParallelism = parallelMerge.segment,
+            //                  valuesConfig = valuesConfig,
+            //                  sortedIndexConfig = sortedIndexConfig,
+            //                  binarySearchIndexConfig = binarySearchIndexConfig,
+            //                  hashIndexConfig = hashIndexConfig,
+            //                  bloomFilterConfig = bloomFilterConfig,
+            //                  segmentConfig = segmentConfig
+            //                ) map {
+            //                  newSegments =>
+            //                    LevelMergeResult(
+            //                      level = self,
+            //                      segments = newSegments
+            //                    )
+            //                }
+            //            }
+            ???
           }
       }
     else
@@ -648,97 +648,98 @@ private[core] case class Level(dirs: Seq[Dir],
         )
       } flatMap {
         assignments =>
-          if (assignments.isEmpty) {
-            logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
-            Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
-          } else {
-            Future.traverse(assignments) {
-              assignment =>
-                assignment.segment.asInstanceOf[PersistentSegment].put(
-                  headGap = assignment.headGap.result,
-                  tailGap = assignment.tailGap.result,
-                  mergeableCount = assignment.midOverlap.size,
-                  mergeable = assignment.midOverlap.iterator,
-                  removeDeletes = removeDeletedRecords,
-                  createdInLevel = levelNumber,
-                  segmentParallelism = parallelMerge.segment,
-                  valuesConfig = valuesConfig,
-                  sortedIndexConfig = sortedIndexConfig,
-                  binarySearchIndexConfig = binarySearchIndexConfig,
-                  hashIndexConfig = hashIndexConfig,
-                  bloomFilterConfig = bloomFilterConfig,
-                  segmentConfig = segmentConfig
-                ) map {
-                  newSegments =>
-                    LevelMergeResult(
-                      level = self,
-                      old = assignment.segment,
-                      news = newSegments
-                    )
-                }
-            }
-          }
+          //          if (assignments.isEmpty) {
+          //            logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
+          //            Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
+          //          } else {
+          //            Future.traverse(assignments) {
+          //              assignment =>
+          //                assignment.segment.asInstanceOf[PersistentSegment].put(
+          //                  headGap = assignment.headGap.result,
+          //                  tailGap = assignment.tailGap.result,
+          //                  mergeableCount = assignment.midOverlap.size,
+          //                  mergeable = assignment.midOverlap.iterator,
+          //                  removeDeletes = removeDeletedRecords,
+          //                  createdInLevel = levelNumber,
+          //                  segmentParallelism = parallelMerge.segment,
+          //                  valuesConfig = valuesConfig,
+          //                  sortedIndexConfig = sortedIndexConfig,
+          //                  binarySearchIndexConfig = binarySearchIndexConfig,
+          //                  hashIndexConfig = hashIndexConfig,
+          //                  bloomFilterConfig = bloomFilterConfig,
+          //                  segmentConfig = segmentConfig
+          //                ) map {
+          //                  newSegments =>
+          //                    LevelMergeResult(
+          //                      level = self,
+          //                      segments = newSegments
+          //                    )
+          //                }
+          //            }
+          //          }
+          ???
       }
   }
 
-  def commit(putResult: Iterable[(Segment, SegmentMergeResult[Slice[Segment]])],
+  def commit(putResult: Iterable[(Segment, SegmentMergeResult[SegmentOption, Slice[Segment]])],
              appendEntry: Option[MapEntry[Slice[Byte], Segment]])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] = {
     logger.trace(s"${pathDistributor.head}: Committing Segments. ${putResult.map { case (old, newSegments) => s"""${old.path.toString} -> ${newSegments.result.map(_.path.toString).mkString(", ")}""" }.mkString("\n")}.")
 
-    putResult.foldLeftRecoverIO(MapEntry.noneSegment) {
-      case (mapEntry, (originalSegment, newSegments)) =>
-        buildNewMapEntry(
-          newSegments = newSegments.result,
-          originalSegmentMayBe = if (newSegments.replaced) originalSegment else Segment.Null,
-          initialMapEntry = mapEntry
-        ).toOptionValue
-
-    } flatMap {
-      case Some(mapEntry) =>
-        //also write appendEntry to this mapEntry before committing entries to appendix.
-        //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
-        //which will remove oldEntries with duplicates with newer keys.
-        val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
-
-        appendix.writeSafe(mapEntryToWrite) transform {
-          _ =>
-            logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, putResult.map(_._1.path.toString))
-            //delete assigned segments as they are replaced with new segments.
-            if (segmentConfig.isDeleteEventually)
-              putResult foreach {
-                case (originalSegment, newSegments) =>
-                  if (newSegments.replaced)
-                    originalSegment.delete(segmentConfig.deleteDelay)
-              }
-            else
-              putResult foreach {
-                case (originalSegment, newSegments) =>
-                  if (newSegments.replaced)
-                    IO(originalSegment.delete) onLeftSideEffect {
-                      exception =>
-                        logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, originalSegment.path, exception)
-                    }
-              }
-        }
-
-      case None =>
-        IO.failed(s"${pathDistributor.head}: Failed to create map entry")
-
-    } onLeftSideEffect {
-      failure =>
-        logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", failure)
-
-        putResult foreach {
-          case (_, newSegments) =>
-            newSegments.result foreach {
-              segment =>
-                IO(segment.delete) onLeftSideEffect {
-                  exception =>
-                    logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segment.path, exception)
-                }
-            }
-        }
-    }
+    //    putResult.foldLeftRecoverIO(MapEntry.noneSegment) {
+    //      case (mapEntry, (originalSegment, newSegments)) =>
+    //        buildNewMapEntry(
+    //          newSegments = newSegments.result,
+    //          originalSegmentMayBe = if (newSegments.replaced) originalSegment else Segment.Null,
+    //          initialMapEntry = mapEntry
+    //        ).toOptionValue
+    //
+    //    } flatMap {
+    //      case Some(mapEntry) =>
+    //        //also write appendEntry to this mapEntry before committing entries to appendix.
+    //        //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
+    //        //which will remove oldEntries with duplicates with newer keys.
+    //        val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
+    //
+    //        appendix.writeSafe(mapEntryToWrite) transform {
+    //          _ =>
+    //            logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, putResult.map(_._1.path.toString))
+    //            //delete assigned segments as they are replaced with new segments.
+    //            if (segmentConfig.isDeleteEventually)
+    //              putResult foreach {
+    //                case (originalSegment, newSegments) =>
+    //                  if (newSegments.replaced)
+    //                    originalSegment.delete(segmentConfig.deleteDelay)
+    //              }
+    //            else
+    //              putResult foreach {
+    //                case (originalSegment, newSegments) =>
+    //                  if (newSegments.replaced)
+    //                    IO(originalSegment.delete) onLeftSideEffect {
+    //                      exception =>
+    //                        logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, originalSegment.path, exception)
+    //                    }
+    //              }
+    //        }
+    //
+    //      case None =>
+    //        IO.failed(s"${pathDistributor.head}: Failed to create map entry")
+    //
+    //    } onLeftSideEffect {
+    //      failure =>
+    //        logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", failure)
+    //
+    //        putResult foreach {
+    //          case (_, newSegments) =>
+    //            newSegments.result foreach {
+    //              segment =>
+    //                IO(segment.delete) onLeftSideEffect {
+    //                  exception =>
+    //                    logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segment.path, exception)
+    //                }
+    //            }
+    //        }
+    //    }
+    ???
   }
 
   private def buildNewMapEntry(newSegments: Iterable[Segment],
