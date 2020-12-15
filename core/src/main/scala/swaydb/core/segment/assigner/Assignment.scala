@@ -41,6 +41,6 @@ import scala.collection.mutable.ListBuffer
  *             This can be a [[swaydb.core.segment.Segment]] or [[SegmentRef]]
  */
 case class Assignment[+GAP, SEG](segment: SEG,
-                                  headGap: Aggregator[Assignable, GAP],
-                                  midOverlap: ListBuffer[Assignable],
-                                  tailGap: Aggregator[Assignable, GAP])
+                                 headGap: Aggregator[Assignable, GAP],
+                                 midOverlap: ListBuffer[Assignable],
+                                 tailGap: Aggregator[Assignable, GAP])

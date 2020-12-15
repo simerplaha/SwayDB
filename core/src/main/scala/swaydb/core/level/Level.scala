@@ -40,8 +40,7 @@ import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.merge.MergeStats
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.GapAggregator._
-import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
+import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -598,6 +597,8 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
     if (inMemory)
       Future {
+        implicit val gapCreator = GapAggregator.memoryCreator(removeDeletes = removeDeletedRecords)
+
         SegmentAssigner.assignUnsafeGaps[ListBuffer[Either[MergeStats.Memory.Builder[Memory, ListBuffer], Assignable.Collection]]](
           assignablesCount = assignablesCount,
           assignables = assignables,
@@ -638,6 +639,8 @@ private[core] case class Level(dirs: Seq[Dir],
       }
     else
       Future {
+        implicit val gapCreator = GapAggregator.persistentCreator(removeDeletes = removeDeletedRecords)
+
         SegmentAssigner.assignUnsafeGaps[ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]]](
           assignablesCount = assignablesCount,
           assignables = assignables,

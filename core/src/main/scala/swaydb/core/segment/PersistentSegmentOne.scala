@@ -305,7 +305,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[ListBuffer[TransientSegment.Persistent]]] =
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment.Persistent]]] =
     SegmentRefWriter.mergeRef(
       ref = ref,
       headGap = headGap,
@@ -320,7 +320,7 @@ protected case class PersistentSegmentOne(file: DBFile,
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig,
       segmentConfig = segmentConfig
-    ).map(_.map(_.flatten))
+    )
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
