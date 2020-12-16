@@ -22,11 +22,12 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.merge
+package swaydb.core.segment.merge
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
+import swaydb.core.merge.{KeyValueGrouper, MergeStats}
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.serializers.Default._

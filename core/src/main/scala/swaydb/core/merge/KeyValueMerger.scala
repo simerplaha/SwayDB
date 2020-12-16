@@ -195,7 +195,7 @@ private[core] object KeyValueMerger extends LazyLogging {
          */
 
         case collection: Assignable.Collection =>
-          val expanded = DropIterator[Memory.Range, Assignable](collection.getKeyValueCount(), collection.iterator())
+          val expanded = DropIterator[Memory.Range, Assignable](collection.keyValueCount, collection.iterator())
           val newIterator = expanded append newKeyValues.dropHead()
 
           doMerge(newIterator, oldKeyValues)

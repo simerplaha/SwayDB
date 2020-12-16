@@ -44,8 +44,8 @@ sealed trait SegmentSource[A] {
   def minKey(segment: A): Slice[Byte]
   def maxKey(segment: A): MaxKey[Slice[Byte]]
   def segmentSize(segment: A): Int
-  def hasNonPut(segment: A): Boolean
-  def getKeyValueCount(segment: A): Int
+  def keyValueCount(segment: A): Int
+  def hasUpdateOrRange(segment: A): Boolean
   def iterator(segment: A): Iterator[KeyValue]
 }
 
@@ -61,11 +61,11 @@ object SegmentSource {
     @inline def segmentSize(implicit targetType: SegmentSource[A]) =
       targetType.segmentSize(target)
 
-    @inline def hasNonPut(implicit targetType: SegmentSource[A]) =
-      targetType.hasNonPut(target)
+    @inline def keyValueCount(implicit targetType: SegmentSource[A]) =
+      targetType.keyValueCount(target)
 
-    @inline def getKeyValueCount()(implicit targetType: SegmentSource[A]) =
-      targetType.getKeyValueCount(target)
+    @inline def hasUpdateOrRange(implicit targetType: SegmentSource[A]) =
+      targetType.hasUpdateOrRange(target)
 
     @inline def iterator()(implicit targetType: SegmentSource[A]) =
       targetType.iterator(target)
@@ -81,14 +81,14 @@ object SegmentSource {
     override def segmentSize(segment: Segment): Int =
       segment.segmentSize
 
-    override def hasNonPut(segment: Segment): Boolean =
-      segment.hasNonPut
-
-    override def getKeyValueCount(segment: Segment): Int =
-      segment.getKeyValueCount()
+    override def keyValueCount(segment: Segment): Int =
+      segment.keyValueCount
 
     override def iterator(segment: Segment): Iterator[KeyValue] =
       segment.iterator()
+
+    override def hasUpdateOrRange(segment: Segment): Boolean =
+      segment.hasUpdateOrRange
   }
 
   implicit object SegmentRefTarget extends SegmentSource[SegmentRef] {
@@ -101,13 +101,13 @@ object SegmentSource {
     override def segmentSize(ref: SegmentRef): Int =
       ref.segmentSize
 
-    override def hasNonPut(ref: SegmentRef): Boolean =
-      ref.hasNonPut
-
-    override def getKeyValueCount(ref: SegmentRef): Int =
-      ref.getKeyValueCount()
+    override def keyValueCount(ref: SegmentRef): Int =
+      ref.keyValueCount
 
     override def iterator(ref: SegmentRef): Iterator[KeyValue] =
       ref.iterator()
+
+    override def hasUpdateOrRange(ref: SegmentRef): Boolean =
+      ref.hasUpdateOrRange
   }
 }

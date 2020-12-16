@@ -22,7 +22,7 @@
 // * you additional permission to convey the resulting work.
 // */
 //
-//package swaydb.core.segment
+//package swaydb.core.segment.format.a
 //
 //import org.scalatest.OptionValues.convertOptionToValuable
 //import swaydb.Error.Segment.ExceptionHandler

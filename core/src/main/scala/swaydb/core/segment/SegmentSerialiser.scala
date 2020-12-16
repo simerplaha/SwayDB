@@ -86,9 +86,11 @@ private[core] object SegmentSerialiser {
       bytes
         .add(this.formatId)
         .add(segment.formatId)
-        .addBoolean(segment.hasPut)
-        .addBoolean(segment.hasNonPut)
-        .addBoolean(segment.hasRange)
+        .addUnsignedInt(segment.updateCount)
+        .addUnsignedInt(segment.rangeCount)
+        .addUnsignedInt(segment.putCount)
+        .addUnsignedInt(segment.putDeadlineCount)
+        .addUnsignedInt(segment.keyValueCount)
         .addUnsignedInt(segmentPath.size)
         .addAll(segmentPath)
         .addUnsignedInt(segment.createdInLevel)
@@ -123,9 +125,13 @@ private[core] object SegmentSerialiser {
         throw new Exception(s"Invalid serialised Segment formatId: $formatId")
 
       val segmentFormatId = reader.get()
-      val hasPut = reader.readBoolean()
-      val hasNonPut = reader.readBoolean()
-      val hasRange = reader.readBoolean()
+
+      val updateCount = reader.readUnsignedInt()
+      val rangeCount = reader.readUnsignedInt()
+      val putCount = reader.readUnsignedInt()
+      val putDeadlineCount = reader.readUnsignedInt()
+      val keyValueCount = reader.readUnsignedInt()
+
       val segmentPathLength = reader.readUnsignedInt()
       val segmentPathBytes = reader.read(segmentPathLength).unslice()
       val segmentPath = Paths.get(new String(segmentPathBytes.toArray[Byte], StandardCharsets.UTF_8))
@@ -170,9 +176,11 @@ private[core] object SegmentSerialiser {
         maxKey = maxKey,
         segmentSize = segmentSize,
         minMaxFunctionId = minMaxFunctionId,
-        hasNonPut = hasNonPut,
-        hasPut = hasPut,
-        hasRange = hasRange,
+        updateCount = updateCount,
+        rangeCount = rangeCount,
+        putCount = putCount,
+        putDeadlineCount = putDeadlineCount,
+        keyValueCount = keyValueCount,
         nearestExpiryDeadline = nearestExpiryDeadline,
         copiedFrom = None,
         checkExists = checkExists
@@ -195,9 +203,11 @@ private[core] object SegmentSerialiser {
 
       ByteSizeOf.byte + //formatId
         ByteSizeOf.byte + //segmentFormatId
-        ByteSizeOf.boolean + //hasPut
-        ByteSizeOf.boolean + //hasRange
-        ByteSizeOf.boolean + //hasNonPut
+        ByteSizeOf.varInt + //updateCount
+        ByteSizeOf.varInt + //rangeCount
+        ByteSizeOf.varInt + //putCount
+        ByteSizeOf.varInt + //putDeadlineCount
+        ByteSizeOf.varInt + //keyValueCount
         Bytes.sizeOfUnsignedInt(segmentPath.length) +
         segmentPath.length +
         Bytes.sizeOfUnsignedInt(segment.createdInLevel) +

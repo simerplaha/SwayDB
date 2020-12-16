@@ -506,8 +506,9 @@ private[core] case object SegmentBlock extends LazyLogging {
       SegmentFooterBlock.init(
         keyValuesCount = closedBlocks.sortedIndex.entriesCount,
         rangesCount = closedBlocks.sortedIndex.rangeCount,
-        hasPut = closedBlocks.sortedIndex.hasPut,
-        hasNonPut = closedBlocks.sortedIndex.hasNonPut,
+        updateCount = closedBlocks.sortedIndex.updateCount,
+        putCount = closedBlocks.sortedIndex.putCount,
+        putDeadlineCount = closedBlocks.sortedIndex.putDeadlineCount,
         createdInLevel = createdInLevel
       )
 
@@ -525,9 +526,11 @@ private[core] case object SegmentBlock extends LazyLogging {
         functionMinMax = closedBlocks.minMaxFunction,
 
         nearestDeadline = closedBlocks.nearestDeadline,
-        hasPut = closedBlocks.sortedIndex.hasPut,
-        hasNonPut = closedBlocks.sortedIndex.hasNonPut,
-        hasRange = closedBlocks.sortedIndex.rangeCount > 0,
+        updateCount = closedBlocks.sortedIndex.updateCount,
+        putCount = closedBlocks.sortedIndex.putCount,
+        putDeadlineCount = closedBlocks.sortedIndex.putDeadlineCount,
+        rangeCount = closedBlocks.sortedIndex.rangeCount,
+        keyValueCount = closedBlocks.sortedIndex.entriesCount,
 
         valuesBlockHeader = closedBlocks.values.map(_.header.close()),
 

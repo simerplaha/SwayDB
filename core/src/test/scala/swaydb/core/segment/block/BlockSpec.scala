@@ -80,9 +80,11 @@ class BlockSpec extends TestBase {
               functionMinMax = None,
               nearestDeadline = randomDeadlineOption(),
 
-              hasPut = randomBoolean(),
-              hasNonPut = randomBoolean(),
-              hasRange = randomBoolean(),
+              updateCount = randomIntMax(),
+              rangeCount = randomIntMax(),
+              putCount = randomIntMax(),
+              putDeadlineCount = randomIntMax(),
+              keyValueCount = randomIntMax(),
 
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
@@ -177,9 +179,11 @@ class BlockSpec extends TestBase {
               functionMinMax = None,
               nearestDeadline = randomDeadlineOption(),
 
-              hasPut = randomBoolean(),
-              hasNonPut = randomBoolean(),
-              hasRange = randomBoolean(),
+              updateCount = randomIntMax(),
+              rangeCount = randomIntMax(),
+              putCount = randomIntMax(),
+              putDeadlineCount = randomIntMax(),
+              keyValueCount = randomIntMax(),
 
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 

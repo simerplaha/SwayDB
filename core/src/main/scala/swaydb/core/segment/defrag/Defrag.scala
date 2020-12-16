@@ -85,13 +85,13 @@ object Defrag {
       .flatMap {
         fragments =>
           segment match {
-            case Some(source) =>
+            case Some(segment) =>
               //forceExpand if there are cleanable key-values or if segment size is too small.
               val forceExpand =
-                (removeDeletes && source.hasNonPut) || ((headGap.nonEmpty || tailGap.nonEmpty) && source.segmentSize < segmentConfig.minSize && source.getKeyValueCount() < segmentConfig.maxCount)
+                (removeDeletes && segment.hasUpdateOrRange) || ((headGap.nonEmpty || tailGap.nonEmpty) && segment.segmentSize < segmentConfig.minSize && segment.keyValueCount < segmentConfig.maxCount)
 
               DefragMerge.run(
-                segment = source,
+                segment = segment,
                 nullSegment = nullSegment,
                 mergeableCount = mergeableCount,
                 mergeable = mergeable,

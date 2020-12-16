@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.format.a
 
 import swaydb.core.TestBase
 import swaydb.core.data.Persistent._

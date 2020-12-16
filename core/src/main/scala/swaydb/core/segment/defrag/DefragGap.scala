@@ -26,7 +26,6 @@ package swaydb.core.segment.defrag
 
 import swaydb.core.data.Memory
 import swaydb.core.merge.MergeStats
-import swaydb.core.merge.MergeStats.Persistent
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -128,7 +127,7 @@ private[segment] object DefragGap {
                                             hashIndexConfig: HashIndexBlock.Config,
                                             bloomFilterConfig: BloomFilterBlock.Config,
                                             segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
-    if (removeDeletes && segment.hasNonPut) {
+    if (removeDeletes && segment.hasUpdateOrRange) {
       segment match {
         case segment: PersistentSegmentMany =>
           segment.segmentRefsIterator().foldLeft(lastMergeStatsOrNull) {
@@ -174,7 +173,7 @@ private[segment] object DefragGap {
                           fragments: ListBuffer[TransientSegment.Fragment],
                           lastMergeStatsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
                           removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
-    if (removeDeletes && ref.hasNonPut) {
+    if (removeDeletes && ref.hasUpdateOrRange) {
       if (lastMergeStatsOrNull != null) {
         ref.iterator() foreach (keyValue => lastMergeStatsOrNull.add(keyValue.toMemory()))
         lastMergeStatsOrNull
@@ -255,7 +254,7 @@ private[segment] object DefragGap {
         lastMergeStatsOrNull = statsOrNull,
         removeDeletes = removeDeletes
       )
-    } else if (DefragCommon.isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig) || segmentRef.getKeyValueCount() < segmentConfig.maxCount) {
+    } else if (segmentRef.keyValueCount < segmentConfig.maxCount || DefragCommon.isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig)) {
       segmentRef.iterator() foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
       statsOrNull
     } else {

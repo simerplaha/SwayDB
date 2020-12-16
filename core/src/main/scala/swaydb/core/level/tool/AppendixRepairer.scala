@@ -108,9 +108,9 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         IO(overlappingSegment.delete)
 
       case ReportFailure =>
-        IO(segment.getKeyValueCount()) flatMap {
+        IO(segment.keyValueCount) flatMap {
           segmentKeyValueCount =>
-            IO(overlappingSegment.getKeyValueCount()) flatMap {
+            IO(overlappingSegment.keyValueCount) flatMap {
               overlappingSegmentKeyValueCount =>
                 IO.Left(
                   swaydb.Error.Fatal(

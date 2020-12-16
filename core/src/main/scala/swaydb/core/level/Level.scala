@@ -981,7 +981,7 @@ private[core] case class Level(dirs: Seq[Dir],
     val countFromThisLevel =
       appendix.cache.foldLeft(0) {
         case (currentTotal, (_, segment)) =>
-          currentTotal + segment.getKeyValueCount()
+          currentTotal + segment.keyValueCount
       }
 
     val countFromNextLevel =

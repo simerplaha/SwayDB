@@ -53,7 +53,7 @@ object TransientSegmentSerialiser {
       case MaxKey.Fixed(maxKey) =>
         val minMaxFunctionBytesSize = MinMaxSerialiser.bytesRequired(singleton.minMaxFunctionId)
 
-        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 3) + singleton.minKey.size + minMaxFunctionBytesSize)
+        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 8) + singleton.minKey.size + minMaxFunctionBytesSize)
         value add 0 //fixed maxKey id
         value addUnsignedInt singleton.minKey.size
         value addAll singleton.minKey
@@ -61,9 +61,11 @@ object TransientSegmentSerialiser {
         value addUnsignedInt offset
         value addUnsignedInt size
 
-        value addBoolean singleton.hasPut
-        value addBoolean singleton.hasNonPut
-        value addBoolean singleton.hasRange
+        value addUnsignedInt singleton.updateCount
+        value addUnsignedInt singleton.rangeCount
+        value addUnsignedInt singleton.putCount
+        value addUnsignedInt singleton.putDeadlineCount
+        value addUnsignedInt singleton.keyValueCount
 
         MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
 
@@ -83,14 +85,16 @@ object TransientSegmentSerialiser {
       case MaxKey.Range(fromKey, maxKey) =>
         val minMaxFunctionBytesSize = MinMaxSerialiser.bytesRequired(singleton.minMaxFunctionId)
 
-        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2) + minMaxFunctionBytesSize + fromKey.size)
+        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 7) + minMaxFunctionBytesSize + fromKey.size)
         value add 1 //range maxKey id
         value addUnsignedInt offset
         value addUnsignedInt size
 
-        value addBoolean singleton.hasPut
-        value addBoolean singleton.hasNonPut
-        value addBoolean singleton.hasRange
+        value addUnsignedInt singleton.updateCount
+        value addUnsignedInt singleton.rangeCount
+        value addUnsignedInt singleton.putCount
+        value addUnsignedInt singleton.putDeadlineCount
+        value addUnsignedInt singleton.keyValueCount
 
         MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
 
@@ -203,9 +207,13 @@ object TransientSegmentSerialiser {
           val minKey = valueReader.skip(valueReader.readUnsignedInt()) //skipMinKey
           val segmentOffset = valueReader.readUnsignedInt()
           val segmentSize = valueReader.readUnsignedInt()
-          val hasPut = valueReader.readBoolean()
-          val hasNonPut = valueReader.readBoolean()
-          val hasRange = valueReader.readBoolean()
+
+          val updateCount = valueReader.readUnsignedInt()
+          val rangeCount = valueReader.readUnsignedInt()
+          val putCount = valueReader.readUnsignedInt()
+          val putDeadlineCount = valueReader.readUnsignedInt()
+          val keyValueCount = valueReader.readUnsignedInt()
+
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
 
           SegmentRef(
@@ -222,9 +230,11 @@ object TransientSegmentSerialiser {
                 blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
-            hasNonPut = hasNonPut,
-            hasRange = hasRange,
-            hasPut = hasPut,
+            updateCount = updateCount,
+            rangeCount = rangeCount,
+            putCount = putCount,
+            putDeadlineCount = putDeadlineCount,
+            keyValueCount = keyValueCount,
             valuesReaderCacheable = valuesReaderCacheable,
             sortedIndexReaderCacheable = sortedIndexReaderCacheable,
             hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -235,9 +245,13 @@ object TransientSegmentSerialiser {
         } else if (maxKeyId == 1) {
           val segmentOffset = valueReader.readUnsignedInt()
           val segmentSize = valueReader.readUnsignedInt()
-          val hasPut = valueReader.readBoolean()
-          val hasNonPut = valueReader.readBoolean()
-          val hasRange = valueReader.readBoolean()
+
+          val updateCount = valueReader.readUnsignedInt()
+          val rangeCount = valueReader.readUnsignedInt()
+          val putCount = valueReader.readUnsignedInt()
+          val putDeadlineCount = valueReader.readUnsignedInt()
+          val keyValueCount = valueReader.readUnsignedInt()
+
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
           val maxKeyMinKey = valueReader.readRemaining()
 
@@ -255,9 +269,11 @@ object TransientSegmentSerialiser {
                 blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
-            hasNonPut = hasNonPut,
-            hasRange = hasRange,
-            hasPut = hasPut,
+            updateCount = updateCount,
+            rangeCount = rangeCount,
+            putCount = putCount,
+            putDeadlineCount = putDeadlineCount,
+            keyValueCount = keyValueCount,
             valuesReaderCacheable = valuesReaderCacheable,
             sortedIndexReaderCacheable = sortedIndexReaderCacheable,
             hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -291,9 +307,13 @@ object TransientSegmentSerialiser {
       val minKey = valueReader.read(valueReader.readUnsignedInt())
       val segmentOffset = valueReader.readUnsignedInt()
       val segmentSize = valueReader.readUnsignedInt()
-      val hasPut = valueReader.readBoolean()
-      val hasNonPut = valueReader.readBoolean()
-      val hasRange = valueReader.readBoolean()
+
+      val updateCount = valueReader.readUnsignedInt()
+      val rangeCount = valueReader.readUnsignedInt()
+      val putCount = valueReader.readUnsignedInt()
+      val putDeadlineCount = valueReader.readUnsignedInt()
+      val keyValueCount = valueReader.readUnsignedInt()
+
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
 
       SegmentRef(
@@ -310,9 +330,11 @@ object TransientSegmentSerialiser {
             blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
-        hasNonPut = hasNonPut,
-        hasRange = hasRange,
-        hasPut = hasPut,
+        updateCount = updateCount,
+        rangeCount = rangeCount,
+        putCount = putCount,
+        putDeadlineCount = putDeadlineCount,
+        keyValueCount = keyValueCount,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,
         hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -323,9 +345,13 @@ object TransientSegmentSerialiser {
     } else if (maxKeyId == 1) {
       val segmentOffset = valueReader.readUnsignedInt()
       val segmentSize = valueReader.readUnsignedInt()
-      val hasPut = valueReader.readBoolean()
-      val hasNonPut = valueReader.readBoolean()
-      val hasRange = valueReader.readBoolean()
+
+      val updateCount = valueReader.readUnsignedInt()
+      val rangeCount = valueReader.readUnsignedInt()
+      val putCount = valueReader.readUnsignedInt()
+      val putDeadlineCount = valueReader.readUnsignedInt()
+      val keyValueCount = valueReader.readUnsignedInt()
+
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
       val maxKeyMinKey = valueReader.readRemaining()
 
@@ -343,9 +369,11 @@ object TransientSegmentSerialiser {
             blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
-        hasNonPut = hasNonPut,
-        hasRange = hasRange,
-        hasPut = hasPut,
+        updateCount = updateCount,
+        rangeCount = rangeCount,
+        putCount = putCount,
+        putDeadlineCount = putDeadlineCount,
+        keyValueCount = keyValueCount,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,
         hashIndexReaderCacheable = hashIndexReaderCacheable,

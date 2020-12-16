@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.format.a
 
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
@@ -79,7 +79,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
               assert =
                 (keyValues, segment) => {
                   keyValues should have size 1
-                  segment.getKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
+                  segment.keyValueCount.runRandomIO.right.value shouldBe keyValues.size
                 }
             )
         }
@@ -95,7 +95,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
               assert =
                 (keyValues, segment) => {
-                  segment.getKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
+                  segment.keyValueCount.runRandomIO.right.value shouldBe keyValues.size
                 }
             )
         }

@@ -183,8 +183,9 @@ private[core] case object SortedIndexBlock extends LazyLogging {
               val shouldPrefixCompress: Int => Boolean,
               var nearestDeadline: Option[Deadline],
               var rangeCount: Int,
-              var hasPut: Boolean,
-              var hasNonPut: Boolean,
+              var updateCount: Int,
+              var putCount: Int,
+              var putDeadlineCount: Int,
               var mightContainRemoveRange: Boolean,
               var minMaxFunctionId: Option[MinMax[Slice[Byte]]],
               val enableAccessPositionIndex: Boolean,
@@ -284,8 +285,9 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       shouldPrefixCompress = sortedIndexConfig.shouldPrefixCompress,
       nearestDeadline = None,
       rangeCount = 0,
-      hasPut = false,
-      hasNonPut = false,
+      updateCount = 0,
+      putCount = 0,
+      putDeadlineCount = 0,
       mightContainRemoveRange = false,
       minMaxFunctionId = None,
       enableAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
@@ -312,7 +314,8 @@ private[core] case object SortedIndexBlock extends LazyLogging {
 
     keyValue match {
       case keyValue: Memory.Put =>
-        state.hasPut = true
+        state.putCount += 1
+        if (keyValue.deadline.isDefined) state.putDeadlineCount += 1
         state.nearestDeadline = FiniteDurations.getNearestDeadline(state.nearestDeadline, keyValue.deadline)
 
         EntryWriter.write(
@@ -321,14 +324,14 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         )
 
       case keyValue: Memory.Update =>
-        state.hasNonPut = true
+        state.updateCount += 1
         EntryWriter.write(
           current = keyValue,
           builder = state.builder
         )
 
       case keyValue: Memory.Function =>
-        state.hasNonPut = true
+        state.updateCount += 1
         state.minMaxFunctionId = Some(MinMax.minMaxFunction(keyValue, state.minMaxFunctionId))
         EntryWriter.write(
           current = keyValue,
@@ -336,7 +339,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         )
 
       case keyValue: Memory.PendingApply =>
-        state.hasNonPut = true
+        state.updateCount += 1
         state.minMaxFunctionId = MinMax.minMaxFunction(keyValue.applies, state.minMaxFunctionId)
         EntryWriter.write(
           current = keyValue,
@@ -344,24 +347,29 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         )
 
       case keyValue: Memory.Remove =>
-        state.hasNonPut = true
+        state.updateCount += 1
         EntryWriter.write(
           current = keyValue,
           builder = state.builder
         )
 
       case keyValue: Memory.Range =>
-        state.hasNonPut = true
+        state.rangeCount += 1
+
         keyValue.fromValue foreachS {
           case put: Value.Put =>
+            state.putCount += 1
+            if (put.deadline.isDefined) state.putDeadlineCount += 1
+
             state.nearestDeadline = FiniteDurations.getNearestDeadline(state.nearestDeadline, put.deadline)
+
           case _: Value.RangeValue =>
           //no need to do anything here. Just put deadline required.
         }
+
         state.minMaxFunctionId = MinMax.minMaxFunction(keyValue, state.minMaxFunctionId)
-        state.hasPut = state.hasPut || keyValue.fromValue.existsS(_.isPut)
+
         state.mightContainRemoveRange = state.mightContainRemoveRange || keyValue.rangeValue.mightContainRemove
-        state.rangeCount += 1
         //ranges have a special config "compressDuplicateRangeValues" for duplicate value compression.
         //the following set and resets the compressDuplicateValues the builder accordingly.
         val compressDuplicateValues = state.builder.compressDuplicateValues

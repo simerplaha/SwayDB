@@ -95,9 +95,10 @@ private[core] case object Segment extends LazyLogging {
       var skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       var minMaxFunctionId: Option[MinMax[Slice[Byte]]] = None
       var nearestDeadline: Option[Deadline] = None
-      var hasRange: Boolean = false
-      var hasNonPut: Boolean = false
-      var hasPut: Boolean = false
+      var updateCount = 0
+      var rangeCount = 0
+      var putCount = 0
+      var putDeadlineCount = 0
       var currentSegmentSize = 0
       var currentSegmentKeyValuesCount = 0
       var minKey: Slice[Byte] = null
@@ -107,8 +108,10 @@ private[core] case object Segment extends LazyLogging {
         skipList = SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         minMaxFunctionId = None
         nearestDeadline = None
-        hasRange = false
-        hasPut = false
+        updateCount = 0
+        rangeCount = 0
+        putCount = 0
+        putDeadlineCount = 0
         currentSegmentSize = 0
         currentSegmentKeyValuesCount = 0
         minKey = null
@@ -118,39 +121,42 @@ private[core] case object Segment extends LazyLogging {
       def put(keyValue: Memory): Unit =
         keyValue.unslice() match {
           case keyValue: Memory.Put =>
-            hasPut = true
+            putCount += 1
+            if (keyValue.deadline.isDefined) putDeadlineCount += 1
             nearestDeadline = FiniteDurations.getNearestDeadline(nearestDeadline, keyValue.deadline)
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.Update =>
-            hasNonPut = true
+            updateCount += 1
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.Function =>
-            hasNonPut = true
+            updateCount += 1
             minMaxFunctionId = Some(MinMax.minMaxFunction(keyValue, minMaxFunctionId))
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.PendingApply =>
-            hasNonPut = true
+            updateCount += 1
             minMaxFunctionId = MinMax.minMaxFunction(keyValue.applies, minMaxFunctionId)
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.Remove =>
-            hasNonPut = true
+            updateCount += 1
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.Range =>
-            hasNonPut = true
-            hasRange = true
+            rangeCount += 1
+
             keyValue.fromValue foreachS {
               case put: Value.Put =>
+                putCount += 1
+                if (put.deadline.isDefined) putDeadlineCount += 1
                 nearestDeadline = FiniteDurations.getNearestDeadline(nearestDeadline, put.deadline)
+
               case _: Value.RangeValue =>
               //no need to do anything here. Just put deadline required.
             }
             minMaxFunctionId = MinMax.minMaxFunction(keyValue, minMaxFunctionId)
-            hasPut = hasPut || keyValue.fromValue.existsS(_.isPut)
             skipList.put(keyValue.key, keyValue)
         }
 
@@ -174,9 +180,10 @@ private[core] case object Segment extends LazyLogging {
               },
             minMaxFunctionId = minMaxFunctionId,
             segmentSize = currentSegmentSize,
-            hasRange = hasRange,
-            hasPut = hasPut,
-            hasNonPut = hasNonPut,
+            updateCount = updateCount,
+            rangeCount = rangeCount,
+            putCount = putCount,
+            putDeadlineCount = putDeadlineCount,
             createdInLevel = createdInLevel.toInt,
             skipList = skipList,
             nearestPutDeadline = nearestDeadline,
@@ -276,15 +283,17 @@ private[core] case object Segment extends LazyLogging {
               path = nextPath,
               formatId = segment.formatId,
               createdInLevel = segment.createdInLevel,
-              hasPut = segment.hasPut,
-              hasNonPut = segment.hasNonPut,
-              hasRange = segment.hasRange,
               segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
               mmap = segmentConfig.mmap,
               minKey = segment.minKey,
               maxKey = segment.maxKey,
               segmentSize = segment.segmentSize,
               minMaxFunctionId = segment.minMaxFunctionId,
+              updateCount = segment.updateCount,
+              rangeCount = segment.rangeCount,
+              putCount = segment.putCount,
+              putDeadlineCount = segment.putDeadlineCount,
+              keyValueCount = segment.keyValueCount,
               nearestExpiryDeadline = segment.nearestPutDeadline,
               copiedFrom = Some(segment)
             )
@@ -612,9 +621,11 @@ private[core] case object Segment extends LazyLogging {
             maxKey: MaxKey[Slice[Byte]],
             segmentSize: Int,
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-            hasNonPut: Boolean,
-            hasPut: Boolean,
-            hasRange: Boolean,
+            updateCount: Int,
+            rangeCount: Int,
+            putCount: Int,
+            putDeadlineCount: Int,
+            keyValueCount: Int,
             nearestExpiryDeadline: Option[Deadline],
             copiedFrom: Option[PersistentSegment],
             checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -658,9 +669,11 @@ private[core] case object Segment extends LazyLogging {
             minMaxFunctionId = minMaxFunctionId,
             segmentSize = segmentSize,
             nearestExpiryDeadline = nearestExpiryDeadline,
-            hasNonPut = one.hasNonPut,
-            hasRange = one.hasRange,
-            hasPut = one.hasPut,
+            updateCount = updateCount,
+            rangeCount = rangeCount,
+            putCount = putCount,
+            putDeadlineCount = putDeadlineCount,
+            keyValueCount = keyValueCount,
             valuesReaderCacheable = one.ref.segmentBlockCache.cachedValuesSliceReader(),
             sortedIndexReaderCacheable = one.ref.segmentBlockCache.cachedSortedIndexSliceReader(),
             hashIndexReaderCacheable = one.ref.segmentBlockCache.cachedHashIndexSliceReader(),
@@ -682,9 +695,11 @@ private[core] case object Segment extends LazyLogging {
             minMaxFunctionId = minMaxFunctionId,
             segmentSize = segmentSize,
             nearestExpiryDeadline = nearestExpiryDeadline,
-            hasNonPut = hasNonPut,
-            hasRange = hasRange,
-            hasPut = hasPut,
+            updateCount = updateCount,
+            rangeCount = rangeCount,
+            putCount = putCount,
+            putDeadlineCount = putDeadlineCount,
+            keyValueCount = keyValueCount,
             valuesReaderCacheable = None,
             sortedIndexReaderCacheable = None,
             hashIndexReaderCacheable = None,
@@ -709,9 +724,11 @@ private[core] case object Segment extends LazyLogging {
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
             nearestExpiryDeadline = nearestExpiryDeadline,
-            hasNonPut = segment.hasNonPut,
-            hasRange = segment.hasRange,
-            hasPut = segment.hasPut,
+            updateCount = segment.updateCount,
+            rangeCount = segment.rangeCount,
+            putCount = segment.putCount,
+            putDeadlineCount = segment.putDeadlineCount,
+            keyValueCount = segment.keyValueCount,
             copiedFrom = Some(segment)
           )
 
@@ -725,9 +742,11 @@ private[core] case object Segment extends LazyLogging {
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
             nearestExpiryDeadline = nearestExpiryDeadline,
-            hasNonPut = hasNonPut,
-            hasRange = hasRange,
-            hasPut = hasPut,
+            updateCount = updateCount,
+            rangeCount = rangeCount,
+            putCount = putCount,
+            putDeadlineCount = putDeadlineCount,
+            keyValueCount = keyValueCount,
             copiedFrom = None
           )
       }
@@ -1376,7 +1395,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def close: Unit
 
-  def getKeyValueCount(): Int
+  def keyValueCount: Int
 
   def clearCachedKeyValues(): Unit
 
@@ -1390,11 +1409,19 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def cachedKeyValueSize: Int
 
-  def hasRange: Boolean
+  def hasRange: Boolean =
+    rangeCount > 0
 
-  def hasPut: Boolean
+  def updateCount: Int
 
-  def hasNonPut: Boolean
+  def rangeCount: Int
+
+  def putCount: Int
+
+  def putDeadlineCount: Int
+
+  def hasUpdateOrRange: Boolean =
+    updateCount > 0 || rangeCount > 0
 
   def isFooterDefined: Boolean
 

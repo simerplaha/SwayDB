@@ -122,9 +122,11 @@ object TestData {
           maxKey = segment.maxKey,
           segmentSize = segment.segmentSize,
           minMaxFunctionId = segment.minMaxFunctionId,
-          hasNonPut = segment.hasNonPut,
-          hasPut = segment.hasPut,
-          hasRange = segment.hasRange,
+          updateCount = segment.updateCount,
+          rangeCount = segment.rangeCount,
+          putCount = segment.putCount,
+          putDeadlineCount = segment.putDeadlineCount,
+          keyValueCount = segment.keyValueCount,
           nearestExpiryDeadline = segment.nearestPutDeadline,
           copiedFrom = orNone(Some(segment))
         ).sweep()
@@ -1906,7 +1908,7 @@ object TestData {
     def expectKeyValues(): Iterable[KeyValue] =
       assignables collect {
         case collection: Assignable.Collection =>
-          fail(s"Expected KeyValue found ${collection.getClass} with ${collection.getKeyValueCount()} key-values.")
+          fail(s"Expected KeyValue found ${collection.getClass} with ${collection.keyValueCount} key-values.")
 
         case keyValue: KeyValue =>
           keyValue

@@ -49,9 +49,11 @@ sealed trait TransientSegment {
   def hasEmptyByteSlice: Boolean
   def nearestPutDeadline: Option[Deadline]
   def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
-  def hasNonPut: Boolean
-  def hasRange: Boolean
-  def hasPut: Boolean
+  def updateCount: Int
+  def rangeCount: Int
+  def putCount: Int
+  def keyValueCount: Int
+  def putDeadlineCount: Int
   def segmentSize: Int
 }
 
@@ -159,14 +161,20 @@ object TransientSegment {
     override def copyWithFileHeader(fileHeader: Slice[Byte]): RemoteRef =
       copy(fileHeader = fileHeader)
 
-    override def hasNonPut: Boolean =
-      ref.hasNonPut
+    override def updateCount: Int =
+      ref.updateCount
 
-    override def hasRange: Boolean =
-      ref.hasRange
+    override def rangeCount: Int =
+      ref.rangeCount
 
-    override def hasPut: Boolean =
-      ref.hasPut
+    override def putCount: Int =
+      ref.putCount
+
+    override def putDeadlineCount: Int =
+      ref.putDeadlineCount
+
+    override def keyValueCount: Int =
+      ref.keyValueCount
   }
 
   case class RemoteSegment(segment: Segment,
@@ -199,14 +207,20 @@ object TransientSegment {
     override def iterator(): Iterator[KeyValue] =
       segment.iterator()
 
-    override def hasNonPut: Boolean =
-      segment.hasNonPut
+    override def updateCount: Int =
+      segment.updateCount
 
-    override def hasRange: Boolean =
-      segment.hasRange
+    override def rangeCount: Int =
+      segment.rangeCount
 
-    override def hasPut: Boolean =
-      segment.hasPut
+    override def putCount: Int =
+      segment.putCount
+
+    override def putDeadlineCount: Int =
+      segment.putDeadlineCount
+
+    override def keyValueCount: Int =
+      segment.keyValueCount
   }
 
   case class One(minKey: Slice[Byte],
@@ -215,9 +229,11 @@ object TransientSegment {
                  bodyBytes: Slice[Slice[Byte]],
                  minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                  nearestPutDeadline: Option[Deadline],
-                 hasNonPut: Boolean,
-                 hasRange: Boolean,
-                 hasPut: Boolean,
+                 updateCount: Int,
+                 rangeCount: Int,
+                 putCount: Int,
+                 putDeadlineCount: Int,
+                 keyValueCount: Int,
                  valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                  sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
                  hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -239,6 +255,7 @@ object TransientSegment {
 
     override def copyWithFileHeader(fileHeader: Slice[Byte]): One =
       copy(fileHeader = fileHeader)
+
   }
 
   case class Many(minKey: Slice[Byte],
@@ -255,14 +272,20 @@ object TransientSegment {
     def segmentSize =
       fileHeader.size + listSegment.segmentSizeIgnoreHeader + segments.foldLeft(0)(_ + _.segmentSizeIgnoreHeader)
 
-    override def hasNonPut: Boolean =
-      segments.exists(_.hasNonPut)
+    override def updateCount: Int =
+      segments.foldLeft(0)(_ + _.updateCount)
 
-    override def hasRange: Boolean =
-      segments.exists(_.hasRange)
+    override def rangeCount: Int =
+      segments.foldLeft(0)(_ + _.rangeCount)
 
-    override def hasPut: Boolean =
-      segments.exists(_.hasPut)
+    override def putCount: Int =
+      segments.foldLeft(0)(_ + _.putCount)
+
+    override def putDeadlineCount: Int =
+      segments.foldLeft(0)(_ + _.putDeadlineCount)
+
+    override def keyValueCount: Int =
+      segments.foldLeft(0)(_ + _.keyValueCount)
   }
 
 
@@ -285,13 +308,19 @@ object TransientSegment {
     override def segmentSize: Int =
       segment.segmentSize
 
-    override def hasNonPut: Boolean =
-      segment.hasNonPut
+    override def updateCount: Int =
+      segment.updateCount
 
-    override def hasRange: Boolean =
-      segment.hasRange
+    override def rangeCount: Int =
+      segment.rangeCount
 
-    override def hasPut: Boolean =
-      segment.hasPut
+    override def putCount: Int =
+      segment.putCount
+
+    override def putDeadlineCount: Int =
+      segment.putDeadlineCount
+
+    override def keyValueCount: Int =
+      segment.keyValueCount
   }
 }

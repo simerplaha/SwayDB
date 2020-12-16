@@ -64,9 +64,10 @@ private[core] final case class MemorySegment(path: Path,
                                              maxKey: MaxKey[Slice[Byte]],
                                              minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                              segmentSize: Int,
-                                             hasRange: Boolean,
-                                             hasPut: Boolean,
-                                             hasNonPut: Boolean,
+                                             updateCount: Int,
+                                             rangeCount: Int,
+                                             putCount: Int,
+                                             putDeadlineCount: Int,
                                              createdInLevel: Int,
                                              private[segment] val skipList: SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                                              nearestPutDeadline: Option[Deadline],
@@ -268,7 +269,7 @@ private[core] final case class MemorySegment(path: Path,
   override val close: Unit =
     ()
 
-  override def getKeyValueCount(): Int =
+  override def keyValueCount: Int =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else

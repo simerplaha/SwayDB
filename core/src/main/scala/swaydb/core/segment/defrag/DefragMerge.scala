@@ -67,7 +67,7 @@ private[segment] object DefragMerge {
               tailGap = Assignable.emptyIterable,
               mergeableCount = mergeableCount,
               mergeable = mergeable,
-              oldKeyValuesCount = segment.getKeyValueCount(),
+              oldKeyValuesCount = segment.keyValueCount,
               oldKeyValues = segment.iterator(),
               stats = stats,
               isLastLevel = removeDeletes
@@ -83,7 +83,7 @@ private[segment] object DefragMerge {
               tailGap = Assignable.emptyIterable,
               mergeableCount = mergeableCount,
               mergeable = mergeable,
-              oldKeyValuesCount = segment.getKeyValueCount(),
+              oldKeyValuesCount = segment.keyValueCount,
               oldKeyValues = segment.iterator(),
               stats = newStats,
               isLastLevel = removeDeletes
@@ -108,7 +108,7 @@ private[segment] object DefragMerge {
               tailGap = Assignable.emptyIterable,
               mergeableCount = mergeableCount,
               mergeable = mergeable,
-              oldKeyValuesCount = segment.getKeyValueCount(),
+              oldKeyValuesCount = segment.keyValueCount,
               oldKeyValues = segment.iterator(),
               stats = newStats,
               isLastLevel = removeDeletes

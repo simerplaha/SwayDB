@@ -434,7 +434,7 @@ class MapEntrySpec extends TestBase {
           segments.zipWithIndex foreach {
             case (segment, index) =>
               segment.minKey.readInt() shouldBe index
-              segment.getKeyValueCount() shouldBe 1
+              segment.keyValueCount shouldBe 1
           }
 
           val initialEntry: MapEntry[Slice[Byte], Segment] = MapEntry.Put[Slice[Byte], Segment](0, segments.head)

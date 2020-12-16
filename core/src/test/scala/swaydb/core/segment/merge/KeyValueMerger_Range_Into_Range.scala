@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.merge
+package swaydb.core.segment.merge
 
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._

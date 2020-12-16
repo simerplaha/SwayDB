@@ -83,9 +83,11 @@ protected case object PersistentSegmentOne {
       minMaxFunctionId = segment.minMaxFunctionId,
       segmentSize = segment.segmentSize,
       nearestExpiryDeadline = segment.nearestPutDeadline,
-      hasNonPut = segment.hasNonPut,
-      hasRange = segment.hasRange,
-      hasPut = segment.hasPut,
+      updateCount = segment.updateCount,
+      rangeCount = segment.rangeCount,
+      putCount = segment.putCount,
+      putDeadlineCount = segment.putDeadlineCount,
+      keyValueCount = segment.keyValueCount,
       valuesReaderCacheable = segment.valuesUnblockedReader,
       sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
       hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
@@ -109,9 +111,11 @@ protected case object PersistentSegmentOne {
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             segmentSize: Int,
             nearestExpiryDeadline: Option[Deadline],
-            hasNonPut: Boolean,
-            hasRange: Boolean,
-            hasPut: Boolean,
+            updateCount: Int,
+            rangeCount: Int,
+            putCount: Int,
+            putDeadlineCount: Int,
+            keyValueCount: Int,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -147,9 +151,11 @@ protected case object PersistentSegmentOne {
         minMaxFunctionId = minMaxFunctionId,
         blockRef = segmentBlockRef,
         segmentIO = segmentIO,
-        hasNonPut = hasNonPut,
-        hasRange = hasRange,
-        hasPut = hasPut,
+        updateCount = updateCount,
+        rangeCount = rangeCount,
+        putCount = putCount,
+        putDeadlineCount = putDeadlineCount,
+        keyValueCount = keyValueCount,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,
         hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -231,9 +237,11 @@ protected case object PersistentSegmentOne {
       minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
       segmentSize = fileSize,
       nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline,
-      hasNonPut = footer.hasNonPut,
-      hasRange = footer.hasRange,
-      hasPut = footer.hasPut,
+      updateCount = footer.updateCount,
+      rangeCount = footer.numberOfRanges,
+      putCount = footer.putCount,
+      putDeadlineCount = footer.putDeadlineCount,
+      keyValueCount = footer.keyValueCount,
       valuesReaderCacheable = segmentBlockCache.cachedValuesSliceReader(),
       sortedIndexReaderCacheable = segmentBlockCache.cachedSortedIndexSliceReader(),
       hashIndexReaderCacheable = segmentBlockCache.cachedHashIndexSliceReader(),
@@ -415,14 +423,8 @@ protected case class PersistentSegmentOne(file: DBFile,
   def iterator(): Iterator[Persistent] =
     ref.iterator()
 
-  override def hasRange: Boolean =
-    ref.hasRange
-
-  override def hasPut: Boolean =
-    ref.hasPut
-
-  def getKeyValueCount(): Int =
-    ref.getKeyValueCount()
+  def keyValueCount: Int =
+    ref.keyValueCount
 
   override def isFooterDefined: Boolean =
     ref.isFooterDefined
@@ -462,6 +464,15 @@ protected case class PersistentSegmentOne(file: DBFile,
   def cachedKeyValueSize: Int =
     ref.cachedKeyValueSize
 
-  override def hasNonPut: Boolean =
-    ref.hasNonPut
+  override def updateCount: Int =
+    ref.updateCount
+
+  override def rangeCount: Int =
+    ref.rangeCount
+
+  override def putCount: Int =
+    ref.putCount
+
+  override def putDeadlineCount: Int =
+    ref.putDeadlineCount
 }

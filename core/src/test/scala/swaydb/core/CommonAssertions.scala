@@ -588,18 +588,22 @@ object CommonAssertions {
       actual.minKey shouldBe expected.minKey
       actual.maxKey shouldBe expected.maxKey
       actual.hasRange shouldBe expected.hasRange
-      actual.hasPut shouldBe expected.hasPut
-      actual.hasNonPut shouldBe expected.hasNonPut
+
+      actual.updateCount shouldBe expected.updateCount
+      actual.putDeadlineCount shouldBe expected.putDeadlineCount
+      actual.putCount shouldBe expected.putCount
+      actual.rangeCount shouldBe expected.rangeCount
+      actual.keyValueCount shouldBe expected.keyValueCount
+
       actual.hasBloomFilter shouldBe expected.hasBloomFilter
       actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
       actual.nearestPutDeadline shouldBe expected.nearestPutDeadline
-      actual.getKeyValueCount().runRandomIO.right.value shouldBe expected.getKeyValueCount().runRandomIO.right.value
       actual.persistent shouldBe actual.persistent
       actual.existsOnDisk shouldBe expected.existsOnDisk
       actual.segmentNumber shouldBe expected.segmentNumber
       actual.getClass shouldBe expected.getClass
       if (!ignoreReads)
-        assertReads(Slice.from(expected.iterator(), expected.getKeyValueCount()).runRandomIO.right.value, actual)
+        assertReads(Slice.from(expected.iterator(), expected.keyValueCount).runRandomIO.right.value, actual)
     }
 
     def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
@@ -909,7 +913,7 @@ object CommonAssertions {
       segments map {
         segment =>
           val stringInfos: Slice[String] =
-            Slice.from(segment.iterator(), segment.getKeyValueCount()) map {
+            Slice.from(segment.iterator(), segment.keyValueCount) map {
               keyValue =>
                 keyValue.toMemory() match {
                   case response: Memory =>

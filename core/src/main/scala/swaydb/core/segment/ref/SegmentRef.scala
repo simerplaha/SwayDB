@@ -68,9 +68,11 @@ private[core] case object SegmentRef extends LazyLogging {
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentReadIO,
-            hasNonPut: Boolean,
-            hasRange: Boolean,
-            hasPut: Boolean,
+            updateCount: Int,
+            rangeCount: Int,
+            putCount: Int,
+            putDeadlineCount: Int,
+            keyValueCount: Int,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -115,9 +117,11 @@ private[core] case object SegmentRef extends LazyLogging {
       path = path,
       maxKey = maxKey,
       minKey = minKey,
-      hasNonPut = hasNonPut,
-      hasRange = hasRange,
-      hasPut = hasPut,
+      updateCount = updateCount,
+      rangeCount = rangeCount,
+      putCount = putCount,
+      putDeadlineCount = putDeadlineCount,
+      keyValueCount = keyValueCount,
       nearestPutDeadline = nearestPutDeadline,
       minMaxFunctionId = minMaxFunctionId,
       skipList = skipList,
@@ -129,9 +133,11 @@ private[core] case object SegmentRef extends LazyLogging {
 private[core] class SegmentRef(val path: Path,
                                val maxKey: MaxKey[Slice[Byte]],
                                val minKey: Slice[Byte],
-                               val hasNonPut: Boolean,
-                               val hasRange: Boolean,
-                               val hasPut: Boolean,
+                               val updateCount: Int,
+                               val rangeCount: Int,
+                               val putCount: Int,
+                               val putDeadlineCount: Int,
+                               val keyValueCount: Int,
                                val nearestPutDeadline: Option[Deadline],
                                val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
@@ -196,9 +202,6 @@ private[core] class SegmentRef(val path: Path,
   def iterator(): Iterator[Persistent] =
     segmentBlockCache.iterator()
 
-  def getKeyValueCount(): Int =
-    segmentBlockCache.getFooter().keyValueCount
-
   def getFooter(): SegmentFooterBlock =
     segmentBlockCache.getFooter()
 
@@ -237,6 +240,9 @@ private[core] class SegmentRef(val path: Path,
 
   def segmentSize: Int =
     segmentBlockCache.segmentSize
+
+  def hasUpdateOrRange: Boolean =
+    updateCount > 0 || rangeCount > 0
 
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     SegmentRefReader.get(key, threadState)

@@ -261,9 +261,7 @@ private[core] object SegmentAssigner {
                           assign(newRemaining, thisSegmentMayBe, nextSegmentMayBe)
 
                         case _ =>
-                          val keyValueCount = assignable.getKeyValueCount()
-                          val keyValues = assignable.iterator()
-                          val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
+                          val segmentIterator = DropIterator[Memory.Range, Assignable](assignable.keyValueCount, assignable.iterator())
 
                           val newRemaining = segmentIterator append remaining.dropHead()
 
@@ -360,9 +358,7 @@ private[core] object SegmentAssigner {
 
                               case _ =>
                                 //if this Segment spreads onto next Segment read all key-values and assign.
-                                val keyValueCount = assignable.getKeyValueCount()
-                                val keyValues = assignable.iterator()
-                                val segmentIterator = DropIterator[Memory.Range, Assignable](keyValueCount, keyValues)
+                                val segmentIterator = DropIterator[Memory.Range, Assignable](assignable.keyValueCount, assignable.iterator())
 
                                 val newRemaining = segmentIterator append remaining.dropHead()
 

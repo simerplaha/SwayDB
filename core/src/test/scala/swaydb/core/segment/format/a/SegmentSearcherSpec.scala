@@ -21,7 +21,7 @@
  * combining it with separate works, the licensors of this Program grant
  * you additional permission to convey the resulting work.
  */
-package swaydb.core.segment
+package swaydb.core.segment.format.a
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._

@@ -62,8 +62,9 @@ private[core] case object SegmentFooterBlock {
       ByteSizeOf.byte + //1 byte for format
       ByteSizeOf.varInt + //created in level
       ByteSizeOf.varInt + //numberOfRanges
-      ByteSizeOf.boolean + //hasPut
-      ByteSizeOf.boolean + //hasNonPut
+      ByteSizeOf.varInt + //updateCount
+      ByteSizeOf.varInt + //putCount
+      ByteSizeOf.varInt + //putDeadlineCount
       ByteSizeOf.varInt + //key-values count
       ByteSizeOf.long + //CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
       ByteSizeOf.varInt + //sorted index offset.
@@ -81,13 +82,15 @@ private[core] case object SegmentFooterBlock {
                    var bytes: Slice[Byte],
                    keyValuesCount: Int,
                    numberOfRanges: Int,
-                   hasPut: Boolean,
-                   hasNonPut: Boolean)
+                   updateCount: Int,
+                   putCount: Int,
+                   putDeadlineCount: Int)
 
   def init(keyValuesCount: Int,
            rangesCount: Int,
-           hasPut: Boolean,
-           hasNonPut: Boolean,
+           updateCount: Int,
+           putCount: Int,
+           putDeadlineCount: Int,
            createdInLevel: Int): SegmentFooterBlock.State =
     SegmentFooterBlock.State(
       footerSize = Block.minimumHeaderSize(false),
@@ -95,8 +98,9 @@ private[core] case object SegmentFooterBlock {
       bytes = Slice.of[Byte](optimalBytesRequired),
       keyValuesCount = keyValuesCount,
       numberOfRanges = rangesCount,
-      hasPut = hasPut,
-      hasNonPut = hasNonPut
+      updateCount = updateCount,
+      putCount = putCount,
+      putDeadlineCount = putDeadlineCount
     )
 
   def writeAndClose(state: State, closedBlocks: ClosedBlocks): State = {
@@ -114,8 +118,9 @@ private[core] case object SegmentFooterBlock {
     footerBytes addUnsignedInt SegmentBlock.formatId
     footerBytes addUnsignedInt state.createdInLevel
     footerBytes addUnsignedInt state.numberOfRanges
-    footerBytes addBoolean state.hasPut
-    footerBytes addBoolean state.hasNonPut
+    footerBytes addUnsignedInt state.updateCount
+    footerBytes addUnsignedInt state.putCount
+    footerBytes addUnsignedInt state.putDeadlineCount
     //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
     //are read when the Group key-value is read.
     footerBytes addUnsignedInt state.keyValuesCount
@@ -219,8 +224,9 @@ private[core] case object SegmentFooterBlock {
     } else {
       val createdInLevel = footerReader.readUnsignedInt()
       val numberOfRanges = footerReader.readUnsignedInt()
-      val hasPut = footerReader.readBoolean()
-      val hasNonPut = footerReader.readBoolean()
+      val updateCount = footerReader.readUnsignedInt()
+      val putCount = footerReader.readUnsignedInt()
+      val putDeadlineCount = footerReader.readUnsignedInt()
       val keyValueCount = footerReader.readUnsignedInt()
 
       val sortedIndexOffset =
@@ -283,8 +289,9 @@ private[core] case object SegmentFooterBlock {
         keyValueCount = keyValueCount,
         createdInLevel = createdInLevel,
         numberOfRanges = numberOfRanges,
-        hasPut = hasPut,
-        hasNonPut = hasNonPut
+        updateCount = updateCount,
+        putCount = putCount,
+        putDeadlineCount = putDeadlineCount
       )
     }
   }
@@ -312,8 +319,9 @@ case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               keyValueCount: Int,
                               createdInLevel: Int,
                               numberOfRanges: Int,
-                              hasPut: Boolean,
-                              hasNonPut: Boolean) extends Block[SegmentFooterBlock.Offset] {
+                              updateCount: Int,
+                              putCount: Int,
+                              putDeadlineCount: Int) extends Block[SegmentFooterBlock.Offset] {
   def hasRange =
     numberOfRanges > 0
 }
