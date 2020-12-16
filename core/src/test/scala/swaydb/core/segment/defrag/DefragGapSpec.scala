@@ -61,7 +61,7 @@ class DefragGapSpec extends TestBase with MockFactory with EitherValues {
 
           val resultBuffer =
             DefragGap.run(
-              gap = segments.map(Right(_)),
+              gap = segments,
               fragments = ListBuffer.empty,
               removeDeletes = false,
               createdInLevel = 1,
@@ -112,7 +112,7 @@ class DefragGapSpec extends TestBase with MockFactory with EitherValues {
 
           val resultBuffer =
             DefragGap.run(
-              gap = segments.map(Right(_)),
+              gap = segments,
               fragments = existingBuffer,
               removeDeletes = false,
               createdInLevel = 1,

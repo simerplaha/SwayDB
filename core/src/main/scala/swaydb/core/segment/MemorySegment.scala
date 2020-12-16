@@ -80,8 +80,8 @@ private[core] final case class MemorySegment(path: Path,
 
   override def formatId: Byte = 0
 
-  def put(headGap: ListBuffer[Either[MergeStats.Memory.Builder[Memory, ListBuffer], Assignable.Collection]],
-          tailGap: ListBuffer[Either[MergeStats.Memory.Builder[Memory, ListBuffer], Assignable.Collection]],
+  def put(headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+          tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
           mergeableCount: Int,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,

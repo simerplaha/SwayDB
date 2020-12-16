@@ -599,7 +599,7 @@ private[core] case class Level(dirs: Seq[Dir],
       Future {
         implicit val gapCreator = GapAggregator.memoryCreator(removeDeletes = removeDeletedRecords)
 
-        SegmentAssigner.assignUnsafeGaps[ListBuffer[Either[MergeStats.Memory.Builder[Memory, ListBuffer], Assignable.Collection]]](
+        SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]](
           assignablesCount = assignablesCount,
           assignables = assignables,
           segments = targetSegments
@@ -641,7 +641,7 @@ private[core] case class Level(dirs: Seq[Dir],
       Future {
         implicit val gapCreator = GapAggregator.persistentCreator(removeDeletes = removeDeletedRecords)
 
-        SegmentAssigner.assignUnsafeGaps[ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]]](
+        SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
           assignablesCount = assignablesCount,
           assignables = assignables,
           segments = targetSegments

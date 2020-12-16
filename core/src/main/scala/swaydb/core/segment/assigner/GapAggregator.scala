@@ -36,25 +36,25 @@ import scala.collection.mutable.ListBuffer
  */
 object GapAggregator {
 
-  def persistentCreator(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]]] =
+  def persistentCreator(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
     if (removeDeletes)
       creator(MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel))
     else
       creator(MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(_.toMemory()))
 
-  def memoryCreator(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Either[MergeStats.Memory.Builder[Memory, ListBuffer], Assignable.Collection]]] =
+  def memoryCreator(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]] =
     if (removeDeletes)
       creator(MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel))
     else
       creator(MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)(_.toMemory()))
 
-  @inline private def creator[B >: Null <: MergeStats[Memory, ListBuffer]](createNewGap: => B): Aggregator.Creator[Assignable, ListBuffer[Either[B, Assignable.Collection]]] =
+  @inline private def creator[B >: Null <: MergeStats[Memory, ListBuffer]](createNewGap: => B): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[B]]] =
     () =>
       GapAggregator.aggregator(createNewGap)
 
-  private def aggregator[B >: Null <: MergeStats[Memory, ListBuffer]](createNewGap: => B): Aggregator[Assignable, ListBuffer[Either[B, Assignable.Collection]]] =
-    new Aggregator[Assignable, ListBuffer[Either[B, Assignable.Collection]]] {
-      val buffer = ListBuffer.empty[Either[B, Assignable.Collection]]
+  private def aggregator[B >: Null <: MergeStats[Memory, ListBuffer]](createNewGap: => B): Aggregator[Assignable, ListBuffer[Assignable.Gap[B]]] =
+    new Aggregator[Assignable, ListBuffer[Assignable.Gap[B]]] {
+      val buffer = ListBuffer.empty[Assignable.Gap[B]]
 
       var lastStatsOrNull: B = _
 
@@ -62,18 +62,18 @@ object GapAggregator {
         item match {
           case collection: Assignable.Collection =>
             lastStatsOrNull = null
-            buffer += Right(collection)
+            buffer += collection
 
           case point: Assignable.Point =>
             if (lastStatsOrNull == null) {
               lastStatsOrNull = createNewGap
-              buffer += Left(lastStatsOrNull)
+              buffer += Assignable.Stats(lastStatsOrNull)
             }
 
             lastStatsOrNull add point.toMemory()
         }
 
-      override def result: ListBuffer[Either[B, Assignable.Collection]] =
+      override def result: ListBuffer[Assignable.Gap[B]] =
         buffer
     }
 }

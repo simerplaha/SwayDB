@@ -55,8 +55,8 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
   def isMMAP =
     file.isMemoryMapped
 
-  def put(headGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
-          tailGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
+  def put(headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+          tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           mergeableCount: Int,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,

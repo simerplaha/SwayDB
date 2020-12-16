@@ -52,7 +52,7 @@ import scala.concurrent.ExecutionContext
 
 private[segment] object DefragGap {
 
-  def run(gap: Iterable[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
+  def run(gap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           fragments: ListBuffer[TransientSegment.Fragment],
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -62,8 +62,8 @@ private[segment] object DefragGap {
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit ec: ExecutionContext): ListBuffer[TransientSegment.Fragment] = {
-    gap.foldLeft(lastMergeStatsOrNull(fragments)) {
-      case (statsOrNull, Right(segment: Segment)) =>
+    gap.foldLeft(lastStatsOrNull(fragments)) {
+      case (statsOrNull, segment: Segment) =>
         processSegment(
           statsOrNull = statsOrNull,
           fragments = fragments,
@@ -78,7 +78,7 @@ private[segment] object DefragGap {
           segmentConfig = segmentConfig
         )
 
-      case (statsOrNull, Right(segmentRef: SegmentRef)) =>
+      case (statsOrNull, segmentRef: SegmentRef) =>
         processSegmentRef(
           statsOrNull = statsOrNull,
           fragments = fragments,
@@ -88,7 +88,7 @@ private[segment] object DefragGap {
           segmentConfig = segmentConfig
         )
 
-      case (statsOrNull, Right(collection: Assignable.Collection)) =>
+      case (statsOrNull, collection: Assignable.Collection) =>
         val stats =
           if (statsOrNull == null) {
             val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
@@ -102,7 +102,7 @@ private[segment] object DefragGap {
 
         stats
 
-      case (statsOrNull, Left(stats: MergeStats.Persistent.Builder[Memory, ListBuffer])) =>
+      case (statsOrNull, Assignable.Stats(stats)) =>
         if (statsOrNull == null) {
           fragments += TransientSegment.Stats(stats)
           stats
@@ -115,7 +115,7 @@ private[segment] object DefragGap {
     fragments
   }
 
-  @inline def lastMergeStatsOrNull(fragments: ListBuffer[TransientSegment.Fragment]): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+  @inline def lastStatsOrNull(fragments: ListBuffer[TransientSegment.Fragment]): MergeStats.Persistent.Builder[Memory, ListBuffer] =
     fragments.lastOption match {
       case Some(stats: TransientSegment.Stats) =>
         stats.stats

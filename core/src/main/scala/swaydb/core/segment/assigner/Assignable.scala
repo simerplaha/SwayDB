@@ -29,6 +29,7 @@ import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
 import swaydb.core.merge.MergeStats
+import swaydb.core.segment.entry.id.BaseEntryId.Format.A
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
@@ -57,9 +58,14 @@ object Assignable {
   implicit def listBufferAssignableCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable]] =
     Aggregator.Creator.listBuffer()
 
-  sealed trait AssignResult
+  /**
+   * A Gap can either be a [[Collection]] of a series of key-values i.e. [[Stats]].
+   *
+   * This type is used by assignment to collects stats which performing assignments.
+   */
+  sealed trait Gap[+A]
 
-  case class Stats(stats: MergeStats.Persistent.Builder[Memory, ListBuffer]) extends AssignResult
+  case class Stats[A <: MergeStats[Memory, ListBuffer]](stats: A) extends Gap[A]
 
   /**
    * A [[Collection]] is a collection of key-values like [[swaydb.core.segment.Segment]]
@@ -71,7 +77,7 @@ object Assignable {
    * [[swaydb.core.segment.Segment]] without need to assign each key-value saving
    * CPU times and IO for cases where key-values are persistent - [[swaydb.core.segment.PersistentSegment]].
    */
-  trait Collection extends Assignable with AssignResult {
+  trait Collection extends Assignable with Gap[Nothing] {
     def maxKey: MaxKey[Slice[Byte]]
     def iterator(): Iterator[KeyValue]
     def getKeyValueCount(): Int

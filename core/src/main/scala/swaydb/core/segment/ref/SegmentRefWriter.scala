@@ -50,8 +50,8 @@ import scala.concurrent.{ExecutionContext, Future}
 private[segment] object SegmentRefWriter extends LazyLogging {
 
   def run(ref: SegmentRef,
-          headGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
-          tailGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
+          headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+          tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           mergeableCount: Int,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
@@ -103,8 +103,8 @@ private[segment] object SegmentRefWriter extends LazyLogging {
         ???
     }
 
-  def run(headGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
-          tailGap: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]],
+  def run(headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+          tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           segmentRefs: => Iterator[SegmentRef],
           assignableCount: Int,
           assignables: Iterator[Assignable],
@@ -188,7 +188,7 @@ private[segment] object SegmentRefWriter extends LazyLogging {
     //
     //              //assign key-values to Segment and then perform merge.
     //              val assignments =
-    //                SegmentAssigner.assignUnsafeGapsSegmentRef[ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], Assignable.Collection]]](
+    //                SegmentAssigner.assignUnsafeGapsSegmentRef[ListBuffer[Assignable.Assignment[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
     //                  assignablesCount = assignableCount,
     //                  assignables = assignables,
     //                  segments = assignmentRefs
