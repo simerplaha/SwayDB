@@ -47,17 +47,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 private[segment] object DefragMerge {
 
-  def run[A, B >: A](source: A,
-                     nullSource: B,
-                     mergeableCount: Int,
-                     mergeable: Iterator[Assignable],
-                     removeDeletes: Boolean,
-                     forceExpand: Boolean,
-                     fragments: ListBuffer[TransientSegment.Fragment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                       functionStore: FunctionStore,
-                                                                       segmentSource: SegmentSource[A],
-                                                                       ec: ExecutionContext): Future[B] =
+  def run[SEG, NULL_SEG >: SEG](segment: SEG,
+                                nullSegment: NULL_SEG,
+                                mergeableCount: Int,
+                                mergeable: Iterator[Assignable],
+                                removeDeletes: Boolean,
+                                forceExpand: Boolean,
+                                fragments: ListBuffer[TransientSegment.Fragment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                                                  functionStore: FunctionStore,
+                                                                                  segmentSource: SegmentSource[SEG],
+                                                                                  ec: ExecutionContext): Future[NULL_SEG] =
     if (mergeableCount > 0)
       Future {
         fragments.lastOption match {
@@ -67,13 +67,13 @@ private[segment] object DefragMerge {
               tailGap = Assignable.emptyIterable,
               mergeableCount = mergeableCount,
               mergeable = mergeable,
-              oldKeyValuesCount = source.getKeyValueCount(),
-              oldKeyValues = source.iterator(),
+              oldKeyValuesCount = segment.getKeyValueCount(),
+              oldKeyValues = segment.iterator(),
               stats = stats,
               isLastLevel = removeDeletes
             )
 
-            source
+            segment
 
           case Some(_) | None =>
             val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
@@ -83,22 +83,22 @@ private[segment] object DefragMerge {
               tailGap = Assignable.emptyIterable,
               mergeableCount = mergeableCount,
               mergeable = mergeable,
-              oldKeyValuesCount = source.getKeyValueCount(),
-              oldKeyValues = source.iterator(),
+              oldKeyValuesCount = segment.getKeyValueCount(),
+              oldKeyValues = segment.iterator(),
               stats = newStats,
               isLastLevel = removeDeletes
             )
 
             fragments += TransientSegment.Stats(newStats)
-            source
+            segment
         }
       }
     else if (forceExpand)
       Future {
         fragments.lastOption match {
           case Some(TransientSegment.Stats(lastStats)) =>
-            source.iterator() foreach (keyValue => lastStats.add(keyValue.toMemory()))
-            source
+            segment.iterator() foreach (keyValue => lastStats.add(keyValue.toMemory()))
+            segment
 
           case Some(_) | None =>
             val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
@@ -108,18 +108,18 @@ private[segment] object DefragMerge {
               tailGap = Assignable.emptyIterable,
               mergeableCount = mergeableCount,
               mergeable = mergeable,
-              oldKeyValuesCount = source.getKeyValueCount(),
-              oldKeyValues = source.iterator(),
+              oldKeyValuesCount = segment.getKeyValueCount(),
+              oldKeyValues = segment.iterator(),
               stats = newStats,
               isLastLevel = removeDeletes
             )
 
             fragments += TransientSegment.Stats(newStats)
-            source
+            segment
         }
       }
     else
-      Future.successful(nullSource)
+      Future.successful(nullSegment)
 
 
 }

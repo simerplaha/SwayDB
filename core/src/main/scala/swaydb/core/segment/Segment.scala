@@ -33,6 +33,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
+import swaydb.core.merge.{KeyValueGrouper, MergeStats}
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -42,9 +43,8 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
-import swaydb.core.merge.{MergeStats, KeyValueGrouper}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefWriter}
+import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}

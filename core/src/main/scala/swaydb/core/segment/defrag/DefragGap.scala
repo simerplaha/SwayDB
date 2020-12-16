@@ -45,7 +45,7 @@ import scala.concurrent.ExecutionContext
  * Defrag gap key-values or [[Assignable.Collection]] by avoiding expanding collections as much as possible
  * so that we can defer transfer bytes to OS skipping JVM heap allocation.
  *
- * But always expand if
+ * Always expand if
  *  - the collection has removable/cleanable key-values.
  *  - the collection is small or head key-values are too small.
  */
@@ -55,13 +55,13 @@ private[segment] object DefragGap {
   def run(gap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           fragments: ListBuffer[TransientSegment.Fragment],
           removeDeletes: Boolean,
-          createdInLevel: Int,
-          valuesConfig: ValuesBlock.Config,
-          sortedIndexConfig: SortedIndexBlock.Config,
-          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-          hashIndexConfig: HashIndexBlock.Config,
-          bloomFilterConfig: BloomFilterBlock.Config,
-          segmentConfig: SegmentBlock.Config)(implicit ec: ExecutionContext): ListBuffer[TransientSegment.Fragment] = {
+          createdInLevel: Int)(implicit ec: ExecutionContext,
+                               valuesConfig: ValuesBlock.Config,
+                               sortedIndexConfig: SortedIndexBlock.Config,
+                               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                               hashIndexConfig: HashIndexBlock.Config,
+                               bloomFilterConfig: BloomFilterBlock.Config,
+                               segmentConfig: SegmentBlock.Config): ListBuffer[TransientSegment.Fragment] = {
     gap.foldLeft(lastStatsOrNull(fragments)) {
       case (statsOrNull, segment: Segment) =>
         processSegment(
@@ -69,13 +69,7 @@ private[segment] object DefragGap {
           fragments = fragments,
           segment = segment,
           removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig
+          createdInLevel = createdInLevel
         )
 
       case (statsOrNull, segmentRef: SegmentRef) =>
@@ -128,13 +122,12 @@ private[segment] object DefragGap {
                        lastMergeStatsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
                        fragments: ListBuffer[TransientSegment.Fragment],
                        removeDeletes: Boolean,
-                       createdInLevel: Int,
-                       valuesConfig: ValuesBlock.Config,
-                       sortedIndexConfig: SortedIndexBlock.Config,
-                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                       hashIndexConfig: HashIndexBlock.Config,
-                       bloomFilterConfig: BloomFilterBlock.Config,
-                       segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+                       createdInLevel: Int)(implicit valuesConfig: ValuesBlock.Config,
+                                            sortedIndexConfig: SortedIndexBlock.Config,
+                                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                            hashIndexConfig: HashIndexBlock.Config,
+                                            bloomFilterConfig: BloomFilterBlock.Config,
+                                            segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
     if (removeDeletes && segment.hasNonPut) {
       segment match {
         case segment: PersistentSegmentMany =>
@@ -206,26 +199,19 @@ private[segment] object DefragGap {
                      fragments: ListBuffer[TransientSegment.Fragment],
                      segment: Segment,
                      removeDeletes: Boolean,
-                     createdInLevel: Int,
-                     valuesConfig: ValuesBlock.Config,
-                     sortedIndexConfig: SortedIndexBlock.Config,
-                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                     hashIndexConfig: HashIndexBlock.Config,
-                     bloomFilterConfig: BloomFilterBlock.Config,
-                     segmentConfig: SegmentBlock.Config) =
+                     createdInLevel: Int)(implicit valuesConfig: ValuesBlock.Config,
+                                          sortedIndexConfig: SortedIndexBlock.Config,
+                                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                          hashIndexConfig: HashIndexBlock.Config,
+                                          bloomFilterConfig: BloomFilterBlock.Config,
+                                          segmentConfig: SegmentBlock.Config) =
     if (statsOrNull == null) //does matter if this Segment is small. Add it because there are currently no known opened stats.
       addRemoteSegment(
         segment = segment,
         lastMergeStatsOrNull = statsOrNull,
         fragments = fragments,
         removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
+        createdInLevel = createdInLevel
       )
     else if (segment.segmentSize < segmentConfig.minSize || DefragCommon.isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig))
       segment match {
@@ -252,13 +238,7 @@ private[segment] object DefragGap {
         lastMergeStatsOrNull = statsOrNull,
         fragments = fragments,
         removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
+        createdInLevel = createdInLevel
       )
 
   def processSegmentRef(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
@@ -275,7 +255,7 @@ private[segment] object DefragGap {
         lastMergeStatsOrNull = statsOrNull,
         removeDeletes = removeDeletes
       )
-    } else if (segmentRef.getKeyValueCount() < segmentConfig.maxCount || DefragCommon.isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig)) {
+    } else if (DefragCommon.isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig) || segmentRef.getKeyValueCount() < segmentConfig.maxCount) {
       segmentRef.iterator() foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
       statsOrNull
     } else {

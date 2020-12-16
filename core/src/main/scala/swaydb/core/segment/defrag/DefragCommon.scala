@@ -37,22 +37,24 @@ private[defrag] object DefragCommon {
 
   def isStatsSmall(stats: MergeStats.Persistent.Builder[Memory, ListBuffer],
                    sortedIndexConfig: SortedIndexBlock.Config,
-                   segmentConfig: SegmentBlock.Config): Boolean = {
-    val mergeStats =
-      stats.close(
-        hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-        optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
-      )
+                   segmentConfig: SegmentBlock.Config): Boolean =
+    if (stats.isEmpty) {
+      false
+    } else {
+      val mergeStats =
+        stats.close(
+          hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+          optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+        )
 
-    mergeStats.keyValuesCount < segmentConfig.maxCount && mergeStats.maxSortedIndexSize + stats.totalValuesSize < segmentConfig.minSize / 2
-  }
+      mergeStats.keyValuesCount < segmentConfig.maxCount && mergeStats.maxSortedIndexSize + stats.totalValuesSize < segmentConfig.minSize / 2
+    }
 
   @inline def createMergeStats(removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
     if (removeDeletes)
       MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel)
     else
       MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
-
 
   def segmentSize(buffer: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], TransientSegment.Remote]],
                   sortedIndexConfig: SortedIndexBlock.Config): Int =

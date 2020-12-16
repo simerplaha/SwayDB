@@ -24,7 +24,6 @@
 
 package swaydb.core.segment
 
-import java.nio.file.{Path, Paths}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
@@ -33,9 +32,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Memory, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
-import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.MergeStats
-import swaydb.core.segment
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -47,19 +44,20 @@ import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.defrag.DefragMaterialiser
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefWriter}
+import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
-import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
+import java.nio.file.{Path, Paths}
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 protected case object PersistentSegmentOne {
 
@@ -305,21 +303,23 @@ protected case class PersistentSegmentOne(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] =
-    SegmentRefWriter.run(
-      ref = ref,
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
+    implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
+    implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
+    implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlock.Config = binarySearchIndexConfig
+    implicit val hashIndexConfigImplicit: HashIndexBlock.Config = hashIndexConfig
+    implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
+    implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
+
+    DefragMaterialiser.materialise(
+      segment = Some(ref),
+      nullSegment = SegmentRef.Null,
       headGap = headGap,
       tailGap = tailGap,
       mergeableCount = mergeableCount,
       mergeable = mergeable,
       removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentConfig = segmentConfig
+      createdInLevel = createdInLevel
     ) map {
       result =>
         result.source match {
@@ -330,6 +330,7 @@ protected case class PersistentSegmentOne(file: DBFile,
             result.updateSource(this)
         }
     }
+  }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
@@ -338,9 +339,32 @@ protected case class PersistentSegmentOne(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.OneOrRemoteRefOrMany] =
-    SegmentRefWriter.refresh(
-      ref = ref,
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.OneOrRemoteRefOrMany] = {
+    //    val footer = ref.getFooter()
+    val iterator = ref.iterator()
+    //if it's created in the same level the required spaces for sortedIndex and values
+    //will be the same as existing or less than the current sizes so there is no need to create a
+    //MergeState builder.
+
+    //NOTE - IGNORE created in same Level as configurations can change on boot-up.
+    //    if (footer.createdInLevel == createdInLevel)
+    //      Segment.refreshForSameLevel(
+    //        sortedIndexBlock = ref.segmentBlockCache.getSortedIndex(),
+    //        valuesBlock = ref.segmentBlockCache.getValues(),
+    //        iterator = iterator,
+    //        keyValuesCount = footer.keyValueCount,
+    //        removeDeletes = removeDeletes,
+    //        createdInLevel = createdInLevel,
+    //        valuesConfig = valuesConfig,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig,
+    //        segmentConfig = segmentConfig
+    //      )
+    //    else
+    Segment.refreshForNewLevel(
+      keyValues = iterator,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
       valuesConfig = valuesConfig,
@@ -350,6 +374,7 @@ protected case class PersistentSegmentOne(file: DBFile,
       bloomFilterConfig = bloomFilterConfig,
       segmentConfig = segmentConfig
     )
+  }
 
   def getFromCache(key: Slice[Byte]): PersistentOption =
     ref getFromCache key

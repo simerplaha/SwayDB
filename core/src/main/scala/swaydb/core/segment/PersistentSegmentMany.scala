@@ -26,16 +26,14 @@ package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{IO, core}
+import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.io.reader.Reader
-import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.MergeStats
-import swaydb.core.segment
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -46,15 +44,15 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.defrag.DefragMaterialiser
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefOption, SegmentRefReader, SegmentRefWriter}
+import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefOption, SegmentRefReader}
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
-import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -62,8 +60,8 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
 protected case object PersistentSegmentMany extends LazyLogging {
@@ -744,21 +742,23 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] =
-    SegmentRefWriter.run(
+                                              executionContext: ExecutionContext): Future[SegmentMergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
+    implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
+    implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
+    implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlock.Config = binarySearchIndexConfig
+    implicit val hashIndexConfigImplicit: HashIndexBlock.Config = hashIndexConfig
+    implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
+    implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
+
+    DefragMaterialiser.assignMaterialise(
       headGap = headGap,
       tailGap = tailGap,
-      segmentRefs = segmentRefsIterator(),
+      nullSegment = SegmentRef.Null,
+      segments = segmentRefsIterator(),
       assignableCount = mergeableCount,
       assignables = mergeable,
       removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentConfig = segmentConfig
+      createdInLevel = createdInLevel
     ) map {
       result =>
         result.source match {
@@ -769,6 +769,7 @@ protected case class PersistentSegmentMany(file: DBFile,
             result.updateSource(this)
         }
     }
+  }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

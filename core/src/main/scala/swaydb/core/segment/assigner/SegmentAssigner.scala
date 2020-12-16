@@ -114,6 +114,18 @@ private[core] object SegmentAssigner {
       noGaps = false
     )
 
+  def assignUnsafeGaps[GAP, SEG >: Null](assignablesCount: Int,
+                                         assignables: Iterator[Assignable],
+                                         segments: Iterator[SEG])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                  gapCreator: Aggregator.Creator[Assignable, GAP],
+                                                                  segmentSource: SegmentSource[SEG]): ListBuffer[SegmentAssignment[GAP, SEG]] =
+    assignUnsafe[GAP, SEG](
+      assignablesCount = assignablesCount,
+      assignables = assignables,
+      segmentsIterator = segments,
+      noGaps = false
+    )
+
   /**
    * @param assignablesCount keyValuesCount is needed here because keyValues could be a [[ConcurrentSkipList]]
    *                         where calculating size is not constant time.

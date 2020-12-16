@@ -46,16 +46,16 @@ class DefragGapSpec extends TestBase with MockFactory with EitherValues {
   implicit val ec = TestExecutionContext.executionContext
 
   "add Segments without opening" when {
-    "there is no head MergeStats" in {
+    "there is no head MergeStats and removeDeletes is false" in {
       TestCaseSweeper {
         implicit sweeper =>
 
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
-          val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-          val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
-          val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+          implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+          implicit val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+          implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+          implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
 
           val segments = ListBuffer(1, 5).map(_ => TestSegment())
 
@@ -64,13 +64,7 @@ class DefragGapSpec extends TestBase with MockFactory with EitherValues {
               gap = segments,
               fragments = ListBuffer.empty,
               removeDeletes = false,
-              createdInLevel = 1,
-              valuesConfig = valuesConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig
+              createdInLevel = 1
             )
 
           val expected =
@@ -89,7 +83,7 @@ class DefragGapSpec extends TestBase with MockFactory with EitherValues {
                 )
             }
 
-          resultBuffer shouldBe expected.map(Right(_))
+          resultBuffer shouldBe expected
       }
     }
 
@@ -97,13 +91,13 @@ class DefragGapSpec extends TestBase with MockFactory with EitherValues {
       TestCaseSweeper {
         implicit sweeper =>
 
-          val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
-          val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
-          val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
-          val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
-          val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+          implicit val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+          implicit val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+          implicit val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+          implicit val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+          implicit val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
           //small minSize so that the size of head key-values is always considered large.
-          val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = 1.byte)
+          implicit val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random.copy(minSize = 1.byte)
 
           val headKeyValues = TransientSegment.Stats(MergeStats.persistentBuilder[Memory](randomKeyValues()))
           val existingBuffer = ListBuffer[TransientSegment.Fragment](headKeyValues)
@@ -115,13 +109,7 @@ class DefragGapSpec extends TestBase with MockFactory with EitherValues {
               gap = segments,
               fragments = existingBuffer,
               removeDeletes = false,
-              createdInLevel = 1,
-              valuesConfig = valuesConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig
+              createdInLevel = 1
             )
 
           val expected =
@@ -146,7 +134,7 @@ class DefragGapSpec extends TestBase with MockFactory with EitherValues {
           //contains head key-values
           resultBuffer.head shouldBe headKeyValues
           //contain all the Segments
-          resultBuffer.drop(1) shouldBe expected.map(Right(_))
+          resultBuffer.drop(1) shouldBe expected
       }
     }
   }

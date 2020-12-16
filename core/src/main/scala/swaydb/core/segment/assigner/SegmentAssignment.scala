@@ -30,7 +30,7 @@ import swaydb.core.segment.ref.SegmentRef
 import scala.collection.mutable.ListBuffer
 
 /**
- * Stores assignment information of key-values.
+ * Stores assign gap and mergeable (overlapping) key-value of a Segment.
  *
  * @param segment    Segment this assignment belong sto
  * @param headGap    Head key-values that can be added directly to the Segment without merge
