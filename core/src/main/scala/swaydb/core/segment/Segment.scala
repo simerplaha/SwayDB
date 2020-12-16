@@ -96,6 +96,7 @@ private[core] case object Segment extends LazyLogging {
       var minMaxFunctionId: Option[MinMax[Slice[Byte]]] = None
       var nearestDeadline: Option[Deadline] = None
       var hasRange: Boolean = false
+      var hasNonPut: Boolean = false
       var hasPut: Boolean = false
       var currentSegmentSize = 0
       var currentSegmentKeyValuesCount = 0
@@ -122,20 +123,25 @@ private[core] case object Segment extends LazyLogging {
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.Update =>
+            hasNonPut = true
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.Function =>
+            hasNonPut = true
             minMaxFunctionId = Some(MinMax.minMaxFunction(keyValue, minMaxFunctionId))
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.PendingApply =>
+            hasNonPut = true
             minMaxFunctionId = MinMax.minMaxFunction(keyValue.applies, minMaxFunctionId)
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.Remove =>
+            hasNonPut = true
             skipList.put(keyValue.key, keyValue)
 
           case keyValue: Memory.Range =>
+            hasNonPut = true
             hasRange = true
             keyValue.fromValue foreachS {
               case put: Value.Put =>
@@ -170,6 +176,7 @@ private[core] case object Segment extends LazyLogging {
             segmentSize = currentSegmentSize,
             hasRange = hasRange,
             hasPut = hasPut,
+            hasNonPut = hasNonPut,
             createdInLevel = createdInLevel.toInt,
             skipList = skipList,
             nearestPutDeadline = nearestDeadline,
@@ -269,6 +276,9 @@ private[core] case object Segment extends LazyLogging {
               path = nextPath,
               formatId = segment.formatId,
               createdInLevel = segment.createdInLevel,
+              hasPut = segment.hasPut,
+              hasNonPut = segment.hasNonPut,
+              hasRange = segment.hasRange,
               segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
               mmap = segmentConfig.mmap,
               minKey = segment.minKey,
@@ -602,6 +612,9 @@ private[core] case object Segment extends LazyLogging {
             maxKey: MaxKey[Slice[Byte]],
             segmentSize: Int,
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+            hasNonPut: Boolean,
+            hasPut: Boolean,
+            hasRange: Boolean,
             nearestExpiryDeadline: Option[Deadline],
             copiedFrom: Option[PersistentSegment],
             checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -645,6 +658,9 @@ private[core] case object Segment extends LazyLogging {
             minMaxFunctionId = minMaxFunctionId,
             segmentSize = segmentSize,
             nearestExpiryDeadline = nearestExpiryDeadline,
+            hasNonPut = one.hasNonPut,
+            hasRange = one.hasRange,
+            hasPut = one.hasPut,
             valuesReaderCacheable = one.ref.segmentBlockCache.cachedValuesSliceReader(),
             sortedIndexReaderCacheable = one.ref.segmentBlockCache.cachedSortedIndexSliceReader(),
             hashIndexReaderCacheable = one.ref.segmentBlockCache.cachedHashIndexSliceReader(),
@@ -666,6 +682,9 @@ private[core] case object Segment extends LazyLogging {
             minMaxFunctionId = minMaxFunctionId,
             segmentSize = segmentSize,
             nearestExpiryDeadline = nearestExpiryDeadline,
+            hasNonPut = hasNonPut,
+            hasRange = hasRange,
+            hasPut = hasPut,
             valuesReaderCacheable = None,
             sortedIndexReaderCacheable = None,
             hashIndexReaderCacheable = None,
@@ -690,6 +709,9 @@ private[core] case object Segment extends LazyLogging {
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
             nearestExpiryDeadline = nearestExpiryDeadline,
+            hasNonPut = segment.hasNonPut,
+            hasRange = segment.hasRange,
+            hasPut = segment.hasPut,
             copiedFrom = Some(segment)
           )
 
@@ -703,6 +725,9 @@ private[core] case object Segment extends LazyLogging {
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
             nearestExpiryDeadline = nearestExpiryDeadline,
+            hasNonPut = hasNonPut,
+            hasRange = hasRange,
+            hasPut = hasPut,
             copiedFrom = None
           )
       }
@@ -1368,6 +1393,8 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
   def hasRange: Boolean
 
   def hasPut: Boolean
+
+  def hasNonPut: Boolean
 
   def isFooterDefined: Boolean
 

@@ -184,6 +184,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
               var nearestDeadline: Option[Deadline],
               var rangeCount: Int,
               var hasPut: Boolean,
+              var hasNonPut: Boolean,
               var mightContainRemoveRange: Boolean,
               var minMaxFunctionId: Option[MinMax[Slice[Byte]]],
               val enableAccessPositionIndex: Boolean,
@@ -284,6 +285,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
       nearestDeadline = None,
       rangeCount = 0,
       hasPut = false,
+      hasNonPut = false,
       mightContainRemoveRange = false,
       minMaxFunctionId = None,
       enableAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
@@ -319,12 +321,14 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         )
 
       case keyValue: Memory.Update =>
+        state.hasNonPut = true
         EntryWriter.write(
           current = keyValue,
           builder = state.builder
         )
 
       case keyValue: Memory.Function =>
+        state.hasNonPut = true
         state.minMaxFunctionId = Some(MinMax.minMaxFunction(keyValue, state.minMaxFunctionId))
         EntryWriter.write(
           current = keyValue,
@@ -332,6 +336,7 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         )
 
       case keyValue: Memory.PendingApply =>
+        state.hasNonPut = true
         state.minMaxFunctionId = MinMax.minMaxFunction(keyValue.applies, state.minMaxFunctionId)
         EntryWriter.write(
           current = keyValue,
@@ -339,12 +344,14 @@ private[core] case object SortedIndexBlock extends LazyLogging {
         )
 
       case keyValue: Memory.Remove =>
+        state.hasNonPut = true
         EntryWriter.write(
           current = keyValue,
           builder = state.builder
         )
 
       case keyValue: Memory.Range =>
+        state.hasNonPut = true
         keyValue.fromValue foreachS {
           case put: Value.Put =>
             state.nearestDeadline = FiniteDurations.getNearestDeadline(state.nearestDeadline, put.deadline)

@@ -86,6 +86,9 @@ private[core] object SegmentSerialiser {
       bytes
         .add(this.formatId)
         .add(segment.formatId)
+        .addBoolean(segment.hasPut)
+        .addBoolean(segment.hasNonPut)
+        .addBoolean(segment.hasRange)
         .addUnsignedInt(segmentPath.size)
         .addAll(segmentPath)
         .addUnsignedInt(segment.createdInLevel)
@@ -120,6 +123,9 @@ private[core] object SegmentSerialiser {
         throw new Exception(s"Invalid serialised Segment formatId: $formatId")
 
       val segmentFormatId = reader.get()
+      val hasPut = reader.readBoolean()
+      val hasNonPut = reader.readBoolean()
+      val hasRange = reader.readBoolean()
       val segmentPathLength = reader.readUnsignedInt()
       val segmentPathBytes = reader.read(segmentPathLength).unslice()
       val segmentPath = Paths.get(new String(segmentPathBytes.toArray[Byte], StandardCharsets.UTF_8))
@@ -158,12 +164,15 @@ private[core] object SegmentSerialiser {
         path = segmentPath,
         formatId = segmentFormatId,
         createdInLevel = createdInLevel,
+        segmentRefCacheWeight = segmentRefCacheWeight,
         mmap = mmapSegment,
         minKey = minKey,
         maxKey = maxKey,
-        segmentRefCacheWeight = segmentRefCacheWeight,
         segmentSize = segmentSize,
         minMaxFunctionId = minMaxFunctionId,
+        hasNonPut = hasNonPut,
+        hasPut = hasPut,
+        hasRange = hasRange,
         nearestExpiryDeadline = nearestExpiryDeadline,
         copiedFrom = None,
         checkExists = checkExists
@@ -186,6 +195,9 @@ private[core] object SegmentSerialiser {
 
       ByteSizeOf.byte + //formatId
         ByteSizeOf.byte + //segmentFormatId
+        ByteSizeOf.boolean + //hasPut
+        ByteSizeOf.boolean + //hasRange
+        ByteSizeOf.boolean + //hasNonPut
         Bytes.sizeOfUnsignedInt(segmentPath.length) +
         segmentPath.length +
         Bytes.sizeOfUnsignedInt(segment.createdInLevel) +

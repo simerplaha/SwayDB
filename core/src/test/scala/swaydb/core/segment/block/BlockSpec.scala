@@ -79,13 +79,18 @@ class BlockSpec extends TestBase {
 
               functionMinMax = None,
               nearestDeadline = randomDeadlineOption(),
+
+              hasPut = randomBoolean(),
+              hasNonPut = randomBoolean(),
+              hasRange = randomBoolean(),
+
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
               valuesBlock = randomBytesSliceOption(2),
               valuesUnblockedReader = None,
-              sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
-
               sortedIndexClosedState = null,
+
+              sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
               sortedIndexBlock = randomBytesSlice(2),
               sortedIndexUnblockedReader = None,
               hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
@@ -171,6 +176,11 @@ class BlockSpec extends TestBase {
 
               functionMinMax = None,
               nearestDeadline = randomDeadlineOption(),
+
+              hasPut = randomBoolean(),
+              hasNonPut = randomBoolean(),
+              hasRange = randomBoolean(),
+
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
               valuesBlock = randomBytesSliceOption(randomIntMax(100) + 1),

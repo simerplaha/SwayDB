@@ -589,6 +589,7 @@ object CommonAssertions {
       actual.maxKey shouldBe expected.maxKey
       actual.hasRange shouldBe expected.hasRange
       actual.hasPut shouldBe expected.hasPut
+      actual.hasNonPut shouldBe expected.hasNonPut
       actual.hasBloomFilter shouldBe expected.hasBloomFilter
       actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
       actual.nearestPutDeadline shouldBe expected.nearestPutDeadline

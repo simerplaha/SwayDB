@@ -63,6 +63,7 @@ private[core] case object SegmentFooterBlock {
       ByteSizeOf.varInt + //created in level
       ByteSizeOf.varInt + //numberOfRanges
       ByteSizeOf.boolean + //hasPut
+      ByteSizeOf.boolean + //hasNonPut
       ByteSizeOf.varInt + //key-values count
       ByteSizeOf.long + //CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
       ByteSizeOf.varInt + //sorted index offset.
@@ -80,19 +81,22 @@ private[core] case object SegmentFooterBlock {
                    var bytes: Slice[Byte],
                    keyValuesCount: Int,
                    numberOfRanges: Int,
-                   hasPut: Boolean)
+                   hasPut: Boolean,
+                   hasNonPut: Boolean)
 
   def init(keyValuesCount: Int,
            rangesCount: Int,
            hasPut: Boolean,
+           hasNonPut: Boolean,
            createdInLevel: Int): SegmentFooterBlock.State =
     SegmentFooterBlock.State(
       footerSize = Block.minimumHeaderSize(false),
       createdInLevel = createdInLevel,
-      keyValuesCount = keyValuesCount,
       bytes = Slice.of[Byte](optimalBytesRequired),
+      keyValuesCount = keyValuesCount,
       numberOfRanges = rangesCount,
-      hasPut = hasPut
+      hasPut = hasPut,
+      hasNonPut = hasNonPut
     )
 
   def writeAndClose(state: State, closedBlocks: ClosedBlocks): State = {
@@ -111,6 +115,7 @@ private[core] case object SegmentFooterBlock {
     footerBytes addUnsignedInt state.createdInLevel
     footerBytes addUnsignedInt state.numberOfRanges
     footerBytes addBoolean state.hasPut
+    footerBytes addBoolean state.hasNonPut
     //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
     //are read when the Group key-value is read.
     footerBytes addUnsignedInt state.keyValuesCount
@@ -215,6 +220,7 @@ private[core] case object SegmentFooterBlock {
       val createdInLevel = footerReader.readUnsignedInt()
       val numberOfRanges = footerReader.readUnsignedInt()
       val hasPut = footerReader.readBoolean()
+      val hasNonPut = footerReader.readBoolean()
       val keyValueCount = footerReader.readUnsignedInt()
 
       val sortedIndexOffset =
@@ -277,7 +283,8 @@ private[core] case object SegmentFooterBlock {
         keyValueCount = keyValueCount,
         createdInLevel = createdInLevel,
         numberOfRanges = numberOfRanges,
-        hasPut = hasPut
+        hasPut = hasPut,
+        hasNonPut = hasNonPut
       )
     }
   }
@@ -305,7 +312,8 @@ case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               keyValueCount: Int,
                               createdInLevel: Int,
                               numberOfRanges: Int,
-                              hasPut: Boolean) extends Block[SegmentFooterBlock.Offset] {
+                              hasPut: Boolean,
+                              hasNonPut: Boolean) extends Block[SegmentFooterBlock.Offset] {
   def hasRange =
     numberOfRanges > 0
 }

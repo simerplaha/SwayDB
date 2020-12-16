@@ -83,6 +83,9 @@ protected case object PersistentSegmentOne {
       minMaxFunctionId = segment.minMaxFunctionId,
       segmentSize = segment.segmentSize,
       nearestExpiryDeadline = segment.nearestPutDeadline,
+      hasNonPut = segment.hasNonPut,
+      hasRange = segment.hasRange,
+      hasPut = segment.hasPut,
       valuesReaderCacheable = segment.valuesUnblockedReader,
       sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
       hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
@@ -106,6 +109,9 @@ protected case object PersistentSegmentOne {
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             segmentSize: Int,
             nearestExpiryDeadline: Option[Deadline],
+            hasNonPut: Boolean,
+            hasRange: Boolean,
+            hasPut: Boolean,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -141,6 +147,9 @@ protected case object PersistentSegmentOne {
         minMaxFunctionId = minMaxFunctionId,
         blockRef = segmentBlockRef,
         segmentIO = segmentIO,
+        hasNonPut = hasNonPut,
+        hasRange = hasRange,
+        hasPut = hasPut,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,
         hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -222,6 +231,9 @@ protected case object PersistentSegmentOne {
       minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
       segmentSize = fileSize,
       nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline,
+      hasNonPut = footer.hasNonPut,
+      hasRange = footer.hasRange,
+      hasPut = footer.hasPut,
       valuesReaderCacheable = segmentBlockCache.cachedValuesSliceReader(),
       sortedIndexReaderCacheable = segmentBlockCache.cachedSortedIndexSliceReader(),
       hashIndexReaderCacheable = segmentBlockCache.cachedHashIndexSliceReader(),
@@ -449,4 +461,7 @@ protected case class PersistentSegmentOne(file: DBFile,
 
   def cachedKeyValueSize: Int =
     ref.cachedKeyValueSize
+
+  override def hasNonPut: Boolean =
+    ref.hasNonPut
 }

@@ -116,12 +116,15 @@ object TestData {
           path = path,
           formatId = segment.formatId,
           createdInLevel = segment.createdInLevel,
+          segmentRefCacheWeight = randomIntMax(Byte.MaxValue),
           mmap = MMAP.randomForSegment(),
           minKey = segment.minKey,
           maxKey = segment.maxKey,
-          segmentRefCacheWeight = randomIntMax(Byte.MaxValue),
           segmentSize = segment.segmentSize,
           minMaxFunctionId = segment.minMaxFunctionId,
+          hasNonPut = segment.hasNonPut,
+          hasPut = segment.hasPut,
+          hasRange = segment.hasRange,
           nearestExpiryDeadline = segment.nearestPutDeadline,
           copiedFrom = orNone(Some(segment))
         ).sweep()
@@ -181,73 +184,73 @@ object TestData {
       implicit val forceSaveApplier = level.forceSaveApplier
       implicit val ec = TestExecutionContext.executionContext
 
-//      if (keyValues.isEmpty)
-//        IO.unit
-//      else if (!level.isEmpty)
-//        level.assignAndPut(
-//          assignablesCount = keyValues.size,
-//          assignables = keyValues,
-//          targetSegments = level.segmentsInLevel(),
-//          appendEntry = None,
-//          parallelMerge = randomParallelMerge()
-//        )
-//      else if (level.inMemory)
-//        IO {
-//          Segment.copyToMemory(
-//            keyValues = keyValues.iterator,
-//            //            fetchNextPath = fetchNextPath,
-//            pathsDistributor = level.pathDistributor,
-//            removeDeletes = false,
-//            minSegmentSize = Int.MaxValue,
-//            maxKeyValueCountPerSegment = Int.MaxValue,
-//            createdInLevel = level.levelNumber
-//          )
-//        } flatMap {
-//          segments =>
-//            segments should have size 1
-//            segments mapRecoverIO {
-//              segment =>
-//                level.assignAndPut(
-//                  assignablesCount = keyValues.size,
-//                  assignables = keyValues,
-//                  targetSegments = Seq(segment),
-//                  appendEntry = None,
-//                  parallelMerge = randomParallelMerge()
-//                )
-//            } transform {
-//              _ => ()
-//            }
-//        }
-//      else
-//        IO {
-//          Segment.copyToPersist(
-//            keyValues = keyValues,
-//            createdInLevel = level.levelNumber,
-//            pathsDistributor = level.pathDistributor,
-//            removeDeletes = false,
-//            valuesConfig = level.valuesConfig,
-//            sortedIndexConfig = level.sortedIndexConfig,
-//            binarySearchIndexConfig = level.binarySearchIndexConfig,
-//            hashIndexConfig = level.hashIndexConfig,
-//            bloomFilterConfig = level.bloomFilterConfig,
-//            segmentConfig = level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-//          ).map(_.sweep())
-//        } flatMap {
-//          segments =>
-//            segments should have size 1
-//            segments mapRecoverIO {
-//              segment =>
-//                level.assignAndPut(
-//                  assignablesCount = keyValues.size,
-//                  assignables = keyValues,
-//                  targetSegments = Seq(segment),
-//                  appendEntry = None,
-//                  parallelMerge = randomParallelMerge()
-//                )
-//            } transform {
-//              _ => ()
-//            }
-//        }
+      //      if (keyValues.isEmpty)
+      //        IO.unit
+      //      else if (!level.isEmpty)
+      //        level.assignAndPut(
+      //          assignablesCount = keyValues.size,
+      //          assignables = keyValues,
+      //          targetSegments = level.segmentsInLevel(),
+      //          appendEntry = None,
+      //          parallelMerge = randomParallelMerge()
+      //        )
+      //      else if (level.inMemory)
+      //        IO {
+      //          Segment.copyToMemory(
+      //            keyValues = keyValues.iterator,
+      //            //            fetchNextPath = fetchNextPath,
+      //            pathsDistributor = level.pathDistributor,
+      //            removeDeletes = false,
+      //            minSegmentSize = Int.MaxValue,
+      //            maxKeyValueCountPerSegment = Int.MaxValue,
+      //            createdInLevel = level.levelNumber
+      //          )
+      //        } flatMap {
+      //          segments =>
+      //            segments should have size 1
+      //            segments mapRecoverIO {
+      //              segment =>
+      //                level.assignAndPut(
+      //                  assignablesCount = keyValues.size,
+      //                  assignables = keyValues,
+      //                  targetSegments = Seq(segment),
+      //                  appendEntry = None,
+      //                  parallelMerge = randomParallelMerge()
+      //                )
+      //            } transform {
+      //              _ => ()
+      //            }
+      //        }
+      //      else
+      //        IO {
+      //          Segment.copyToPersist(
+      //            keyValues = keyValues,
+      //            createdInLevel = level.levelNumber,
+      //            pathsDistributor = level.pathDistributor,
+      //            removeDeletes = false,
+      //            valuesConfig = level.valuesConfig,
+      //            sortedIndexConfig = level.sortedIndexConfig,
+      //            binarySearchIndexConfig = level.binarySearchIndexConfig,
+      //            hashIndexConfig = level.hashIndexConfig,
+      //            bloomFilterConfig = level.bloomFilterConfig,
+      //            segmentConfig = level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+      //          ).map(_.sweep())
+      //        } flatMap {
+      //          segments =>
+      //            segments should have size 1
+      //            segments mapRecoverIO {
+      //              segment =>
+      //                level.assignAndPut(
+      //                  assignablesCount = keyValues.size,
+      //                  assignables = keyValues,
+      //                  targetSegments = Seq(segment),
+      //                  appendEntry = None,
+      //                  parallelMerge = randomParallelMerge()
+      //                )
+      //            } transform {
+      //              _ => ()
+      //            }
+      //        }
       ???
     }
 

@@ -117,6 +117,9 @@ protected case object PersistentSegmentMany extends LazyLogging {
                 minMaxFunctionId = singleton.minMaxFunctionId,
                 blockRef = blockRef,
                 segmentIO = segmentIO,
+                hasNonPut = singleton.hasNonPut,
+                hasRange = singleton.hasRange,
+                hasPut = singleton.hasPut,
                 valuesReaderCacheable = singleton.valuesUnblockedReader,
                 sortedIndexReaderCacheable = singleton.sortedIndexUnblockedReader,
                 hashIndexReaderCacheable = singleton.hashIndexUnblockedReader,
@@ -147,7 +150,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     val listSegment =
       if (cacheBlocksOnCreate)
         Some(
-          ref.SegmentRef(
+          SegmentRef(
             path = file.path,
             minKey = segment.listSegment.minKey,
             maxKey = segment.listSegment.maxKey,
@@ -161,6 +164,9 @@ protected case object PersistentSegmentMany extends LazyLogging {
                 blockCache = listSegmentBlockCache
               ),
             segmentIO = segmentIO,
+            hasNonPut = segment.listSegment.hasNonPut,
+            hasRange = segment.listSegment.hasRange,
+            hasPut = segment.listSegment.hasPut,
             valuesReaderCacheable = segment.listSegment.valuesUnblockedReader,
             sortedIndexReaderCacheable = segment.listSegment.sortedIndexUnblockedReader,
             hashIndexReaderCacheable = segment.listSegment.hashIndexUnblockedReader,
@@ -192,6 +198,9 @@ protected case object PersistentSegmentMany extends LazyLogging {
       minMaxFunctionId = segment.minMaxFunctionId,
       segmentSize = segment.segmentSize,
       nearestPutDeadline = segment.nearestPutDeadline,
+      hasNonPut = segment.hasNonPut,
+      hasRange = segment.hasRange,
+      hasPut = segment.hasPut,
       listSegmentCache = listSegmentCache,
       segmentRefCacheWeight = segmentRefCacheWeight,
       segmentsCache = segmentsCache
@@ -206,6 +215,9 @@ protected case object PersistentSegmentMany extends LazyLogging {
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             nearestExpiryDeadline: Option[Deadline],
+            hasNonPut: Boolean,
+            hasRange: Boolean,
+            hasPut: Boolean,
             copiedFrom: Option[PersistentSegmentMany])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                        functionStore: FunctionStore,
@@ -240,6 +252,9 @@ protected case object PersistentSegmentMany extends LazyLogging {
                     blockCache = oldRef.blockCache() orElse BlockCache.forSearch(oldRefOffset.size, blockCacheSweeper)
                   ),
                 segmentIO = segmentIO,
+                hasNonPut = oldRef.hasNonPut,
+                hasRange = oldRef.hasRange,
+                hasPut = oldRef.hasPut,
                 valuesReaderCacheable = oldRef.segmentBlockCache.cachedValuesSliceReader(),
                 sortedIndexReaderCacheable = oldRef.segmentBlockCache.cachedSortedIndexSliceReader(),
                 hashIndexReaderCacheable = oldRef.segmentBlockCache.cachedHashIndexSliceReader(),
@@ -274,6 +289,9 @@ protected case object PersistentSegmentMany extends LazyLogging {
                       blockCache = copiedFromListRef.blockCache() orElse BlockCache.forSearch(copiedFromOffset.size, blockCacheSweeper)
                     ),
                   segmentIO = segmentIO,
+                  hasNonPut = copiedFromListRef.hasNonPut,
+                  hasRange = copiedFromListRef.hasRange,
+                  hasPut = copiedFromListRef.hasPut,
                   valuesReaderCacheable = copiedFromListRef.segmentBlockCache.cachedValuesSliceReader(),
                   sortedIndexReaderCacheable = copiedFromListRef.segmentBlockCache.cachedSortedIndexSliceReader(),
                   hashIndexReaderCacheable = copiedFromListRef.segmentBlockCache.cachedHashIndexSliceReader(),
@@ -328,6 +346,9 @@ protected case object PersistentSegmentMany extends LazyLogging {
       minMaxFunctionId = minMaxFunctionId,
       segmentSize = segmentSize,
       nearestPutDeadline = nearestExpiryDeadline,
+      hasNonPut = hasNonPut,
+      hasRange = hasRange,
+      hasPut = hasPut,
       listSegmentCache = listSegmentCache,
       segmentRefCacheWeight = segmentRefCacheWeight,
       segmentsCache = segmentsCache
@@ -428,6 +449,10 @@ protected case object PersistentSegmentMany extends LazyLogging {
           )
       }
 
+    val hasNonPut = segmentRefs.values().exists(_.hasNonPut)
+    val hasRange = segmentRefs.values().exists(_.hasRange)
+    val hasPut = segmentRefs.values().exists(_.hasPut)
+
     PersistentSegmentMany(
       file = file,
       createdInLevel = footer.createdInLevel,
@@ -436,6 +461,9 @@ protected case object PersistentSegmentMany extends LazyLogging {
       minMaxFunctionId = deadlineFunctionId.minMaxFunctionId.map(_.unslice()),
       segmentSize = file.fileSize.toInt,
       nearestPutDeadline = deadlineFunctionId.nearestDeadline,
+      hasNonPut = hasNonPut,
+      hasRange = hasRange,
+      hasPut = hasPut,
       listSegmentCache = listSegmentCache,
       segmentRefCacheWeight = segmentRefCacheWeight,
       //above parsed segmentRefs cannot be used here because
@@ -457,8 +485,8 @@ protected case object PersistentSegmentMany extends LazyLogging {
     val listSegment = blockedReader.read(listSegmentSize)
     val listSegmentRef = BlockRefReader[SegmentBlock.Offset](listSegment)
 
-    val segmentRef =
-      ref.SegmentRef(
+    val temporarySegmentRef =
+      SegmentRef(
         path = file.path,
         minKey = minKey,
         maxKey = maxKey,
@@ -466,6 +494,9 @@ protected case object PersistentSegmentMany extends LazyLogging {
         minMaxFunctionId = None,
         blockRef = listSegmentRef,
         segmentIO = segmentIO,
+        hasNonPut = true,
+        hasRange = true,
+        hasPut = true,
         valuesReaderCacheable = None,
         sortedIndexReaderCacheable = None,
         hashIndexReaderCacheable = None,
@@ -487,7 +518,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
     var previousPath: Path = null
     var previousSegmentRef: SegmentRef = null
 
-    segmentRef.iterator() foreach {
+    temporarySegmentRef.iterator() foreach {
       keyValue =>
 
         val nextSegmentRef =
@@ -558,15 +589,18 @@ protected case object PersistentSegmentMany extends LazyLogging {
         blockCache = listSegmentBlockCache orElse BlockCache.forSearch(maxCacheSizeOrZero = listSegmentSize, blockSweeper = blockCacheMemorySweeper)
       )
 
-    ref.SegmentRef(
+    SegmentRef(
       path = file.path,
       minKey = minKey,
       maxKey = maxKey,
       //ListSegment does not store deadline. This is stored at the higher Level.
-      minMaxFunctionId = None,
       nearestPutDeadline = None,
+      minMaxFunctionId = None,
       blockRef = listSegmentRef,
       segmentIO = segmentIO,
+      hasNonPut = true,
+      hasRange = true,
+      hasPut = true,
       valuesReaderCacheable = None,
       sortedIndexReaderCacheable = None,
       hashIndexReaderCacheable = None,
@@ -585,6 +619,9 @@ protected case class PersistentSegmentMany(file: DBFile,
                                            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                            segmentSize: Int,
                                            nearestPutDeadline: Option[Deadline],
+                                           hasNonPut: Boolean,
+                                           hasRange: Boolean,
+                                           hasPut: Boolean,
                                            listSegmentCache: CacheNoIO[Unit, SegmentRef],
                                            segmentRefCacheWeight: Int,
                                            private val segmentsCache: ConcurrentSkipListMap[Slice[Byte], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -894,12 +931,6 @@ protected case class PersistentSegmentMany(file: DBFile,
 
   override def iterator(): Iterator[Persistent] =
     segmentRefsIterator().flatMap(_.iterator())
-
-  override def hasRange: Boolean =
-    segmentRefsIterator().exists(_.hasRange)
-
-  override def hasPut: Boolean =
-    segmentRefsIterator().exists(_.hasPut)
 
   def getKeyValueCount(): Int =
     segmentRefsIterator().foldLeft(0)(_ + _.getKeyValueCount())

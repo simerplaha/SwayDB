@@ -68,6 +68,9 @@ private[core] case object SegmentRef extends LazyLogging {
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentReadIO,
+            hasNonPut: Boolean,
+            hasRange: Boolean,
+            hasPut: Boolean,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -112,6 +115,9 @@ private[core] case object SegmentRef extends LazyLogging {
       path = path,
       maxKey = maxKey,
       minKey = minKey,
+      hasNonPut = hasNonPut,
+      hasRange = hasRange,
+      hasPut = hasPut,
       nearestPutDeadline = nearestPutDeadline,
       minMaxFunctionId = minMaxFunctionId,
       skipList = skipList,
@@ -123,6 +129,9 @@ private[core] case object SegmentRef extends LazyLogging {
 private[core] class SegmentRef(val path: Path,
                                val maxKey: MaxKey[Slice[Byte]],
                                val minKey: Slice[Byte],
+                               val hasNonPut: Boolean,
+                               val hasRange: Boolean,
+                               val hasPut: Boolean,
                                val nearestPutDeadline: Option[Deadline],
                                val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
@@ -192,12 +201,6 @@ private[core] class SegmentRef(val path: Path,
 
   def getFooter(): SegmentFooterBlock =
     segmentBlockCache.getFooter()
-
-  def hasRange: Boolean =
-    segmentBlockCache.getFooter().hasRange
-
-  def hasPut: Boolean =
-    segmentBlockCache.getFooter().hasPut
 
   def isKeyValueCacheEmpty =
     skipList.forall(_.isEmpty)

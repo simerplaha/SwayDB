@@ -279,6 +279,7 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOption {
   def isRange: Boolean
   def mightContainRemoveRange: Boolean
   def isPut: Boolean
+  def isRemoveWithoutExpiry: Boolean
   def persistentTime: Time
   def mergedKey: Slice[Byte]
   def value: SliceOption[Byte]
@@ -390,6 +391,8 @@ private[swaydb] object Memory {
 
     override def isPut: Boolean = true
 
+    override def isRemoveWithoutExpiry: Boolean = false
+
     override def persistentTime: Time = time
 
     override def getPut: KeyValue.Put = this
@@ -456,6 +459,8 @@ private[swaydb] object Memory {
     override def id: Byte = Update.id
 
     override def isPut: Boolean = false
+
+    override def isRemoveWithoutExpiry: Boolean = false
 
     override def persistentTime: Time = time
 
@@ -536,6 +541,8 @@ private[swaydb] object Memory {
 
     override def isPut: Boolean = false
 
+    override def isRemoveWithoutExpiry: Boolean = false
+
     override def persistentTime: Time = time
 
     override def mergedKey = key
@@ -587,6 +594,8 @@ private[swaydb] object Memory {
 
     override def isPut: Boolean = false
 
+    override def isRemoveWithoutExpiry: Boolean = false
+
     override def mergedKey = key
 
     override def mightContainRemoveRange = false
@@ -633,6 +642,8 @@ private[swaydb] object Memory {
     override def id: Byte = Remove.id
 
     override def isPut: Boolean = false
+
+    override def isRemoveWithoutExpiry: Boolean = deadline.isEmpty
 
     override def persistentTime: Time = time
 
@@ -705,6 +716,8 @@ private[swaydb] object Memory {
     override def id: Byte = Range.id
 
     override def isPut: Boolean = false
+
+    override def isRemoveWithoutExpiry: Boolean = false
 
     def isRange: Boolean = true
 

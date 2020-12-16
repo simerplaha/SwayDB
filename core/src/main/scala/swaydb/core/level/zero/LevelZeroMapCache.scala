@@ -28,14 +28,14 @@ import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.merge.{MergeStats, KeyValueMerger}
+import swaydb.core.merge.{KeyValueMerger, MergeStats}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.{Aggregator, Bag}
 
-import scala.beans.BeanProperty
+import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.collection.mutable.ListBuffer
 
 private[core] object LevelZeroMapCache {
@@ -52,14 +52,40 @@ private[core] object LevelZeroMapCache {
                         optimiseWrites: OptimiseWrites): State =
       new State(
         skipList = newSkipList(),
+        hasNonPut = false,
         hasRange = false,
-        mutable = true
+        canInsertWithoutMerge = true
       )
   }
 
   class State(val skipList: SkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
-              @BeanProperty @volatile var hasRange: Boolean,
-              @BeanProperty @volatile var mutable: Boolean)
+              @volatile private var hasNonPut: Boolean, //if it has key-values other than put
+              @volatile private var hasRange: Boolean, //if it has range key-values
+              @volatile private var canInsertWithoutMerge: Boolean) { //if it has key-values other than Put or Remove without no expiration.
+
+    @inline def setHasRangeToTrue() =
+      if (!hasRange) {
+        hasRange = true
+        setHasNonPutToTrue()
+      }
+
+    @inline def setHasNonPutToTrue() =
+      if (!hasNonPut)
+        hasNonPut = true
+
+    @inline def setCanInsertWithoutMergeToFalse() =
+      if (canInsertWithoutMerge)
+        canInsertWithoutMerge = false
+
+    @inline def getCanInsertWithoutMerge =
+      canInsertWithoutMerge
+
+    @inline def getHasRange(): Boolean =
+      hasRange
+
+    @inline def getHasNonPut(): Boolean =
+      hasNonPut
+  }
 
   @inline def apply()(implicit keyOrder: KeyOrder[Slice[Byte]],
                       timeOrder: TimeOrder[Slice[Byte]],
@@ -89,25 +115,37 @@ private[core] object LevelZeroMapCache {
                      state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
                                    functionStore: FunctionStore): Unit =
+    if (state.getCanInsertWithoutMerge && (insert.isPut || insert.isRemoveWithoutExpiry)) {
+      if (!insert.isPut) state.setHasNonPutToTrue()
+      state.skipList.put(insert.key, insert)
+    } else {
+      state.setCanInsertWithoutMergeToFalse()
+      mergeInsert(insert = insert, state = state)
+    }
+
+  @inline def mergeInsert(insert: Memory,
+                          state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore): Unit =
     insert match {
       //if insert value is fixed, check the floor entry
-      case insertValue: Memory.Fixed =>
-        LevelZeroMapCache.insert(insert = insertValue, state = state)
+      case insert: Memory.Fixed =>
+        LevelZeroMapCache.insertFixed(insert = insert, state = state)
 
       //slice the skip list to keep on the range's key-values.
       //if the insert is a Range stash the edge non-overlapping key-values and keep only the ranges in the skipList
       //that fall within the inserted range before submitting fixed values to the range for further splits.
-      case insertRange: Memory.Range =>
-        LevelZeroMapCache.insert(insert = insertRange, state = state)
+      case insert: Memory.Range =>
+        LevelZeroMapCache.insertRange(insert = insert, state = state)
     }
 
   /**
    * Inserts a [[Memory.Fixed]] key-value into skipList.
    */
-  def insert(insert: Memory.Fixed,
-             state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                           timeOrder: TimeOrder[Slice[Byte]],
-                           functionStore: FunctionStore): Unit =
+  private def insertFixed(insert: Memory.Fixed,
+                          state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore): Unit =
     state.skipList.floor(insert.key) match {
       case floorEntry: Memory =>
         import keyOrder._
@@ -121,6 +159,7 @@ private[core] object LevelZeroMapCache {
                 oldKeyValue = floor
               ).asInstanceOf[Memory.Fixed]
 
+            if (!mergedKeyValue.isPut) state.setHasNonPutToTrue()
             state.skipList.put(insert.key, mergedKeyValue)
 
           //if the floor entry is a range try to do a merge.
@@ -139,16 +178,19 @@ private[core] object LevelZeroMapCache {
 
             mergedKeyValues foreach {
               merged: Memory =>
-                if (merged.isRange) state.setHasRange(true)
+                if (merged.isRange) state.setHasRangeToTrue()
+                if (!merged.isPut) state.setHasNonPutToTrue()
                 state.skipList.put(merged.key, merged)
             }
 
           case _ =>
+            if (!insert.isPut) state.setHasNonPutToTrue()
             state.skipList.put(insert.key, insert)
         }
 
       //if there is no floor, simply put.
       case Memory.Null =>
+        if (!insert.isPut) state.setHasNonPutToTrue()
         state.skipList.put(insert.key, insert)
     }
 
@@ -156,10 +198,10 @@ private[core] object LevelZeroMapCache {
    * Inserts the input [[Memory.Range]] key-value into skipList and always maintaining the previous state of
    * the skipList before applying the new state so that all read queries read the latest write.
    */
-  def insert(insert: Memory.Range,
-             state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                           timeOrder: TimeOrder[Slice[Byte]],
-                           functionStore: FunctionStore) = {
+  private def insertRange(insert: Memory.Range,
+                          state: State)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore) = {
     import keyOrder._
 
     //value the start position of this range to fetch the range's start and end key-values for the skipList.
@@ -174,7 +216,7 @@ private[core] object LevelZeroMapCache {
 
     val conflictingKeyValues = state.skipList.subMap(startKey, true, insert.toKey, false)
     if (conflictingKeyValues.isEmpty) {
-      state.setHasRange(true) //set this before put so reads know to floor this skipList.
+      state.setHasRangeToTrue() //set this before put so reads know to floor this skipList.
       state.skipList.put(insert.key, insert)
     } else {
       val oldKeyValues = Slice.of[Memory](conflictingKeyValues.size)
@@ -195,7 +237,7 @@ private[core] object LevelZeroMapCache {
 
       val mergedKeyValues = builder.keyValues
 
-      state.setHasRange(true) //set this before put so reads know to floor this skipList.
+      state.setHasRangeToTrue() //set this before put so reads know to floor this skipList.
 
       oldKeyValues foreach {
         oldKeyValue =>
@@ -244,7 +286,7 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
   @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit = {
     val entries = entry.entries
 
-    if (entry.entriesCount > 1 || state.hasRange || entry.hasRange || entry.hasUpdate || entry.hasRemoveDeadline)
+    if (entry.entriesCount > 1 || state.getHasRange() || entry.hasRange || entry.hasUpdate || entry.hasRemoveDeadline)
       if (atomic) {
         val sorted = entries.sortBy(_.key)(keyOrder)
 
@@ -292,7 +334,10 @@ private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(im
     state.skipList.size
 
   @inline def hasRange =
-    state.getHasRange
+    state.getHasRange()
+
+  @inline def hasNonPut =
+    state.getHasNonPut()
 
   override def iterator: Iterator[(Slice[Byte], Memory)] =
     state.skipList.iterator

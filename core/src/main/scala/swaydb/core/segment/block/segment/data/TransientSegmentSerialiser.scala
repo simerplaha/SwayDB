@@ -38,7 +38,6 @@ import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.ref
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
@@ -62,6 +61,10 @@ object TransientSegmentSerialiser {
         value addUnsignedInt offset
         value addUnsignedInt size
 
+        value addBoolean singleton.hasPut
+        value addBoolean singleton.hasNonPut
+        value addBoolean singleton.hasRange
+
         MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
 
         /**
@@ -84,6 +87,10 @@ object TransientSegmentSerialiser {
         value add 1 //range maxKey id
         value addUnsignedInt offset
         value addUnsignedInt size
+
+        value addBoolean singleton.hasPut
+        value addBoolean singleton.hasNonPut
+        value addBoolean singleton.hasRange
 
         MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
 
@@ -196,9 +203,12 @@ object TransientSegmentSerialiser {
           val minKey = valueReader.skip(valueReader.readUnsignedInt()) //skipMinKey
           val segmentOffset = valueReader.readUnsignedInt()
           val segmentSize = valueReader.readUnsignedInt()
+          val hasPut = valueReader.readBoolean()
+          val hasNonPut = valueReader.readBoolean()
+          val hasRange = valueReader.readBoolean()
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
 
-          ref.SegmentRef(
+          SegmentRef(
             path = file.path.resolve(s"ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Fixed(range.toKey.unslice()),
@@ -212,6 +222,9 @@ object TransientSegmentSerialiser {
                 blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
+            hasNonPut = hasNonPut,
+            hasRange = hasRange,
+            hasPut = hasPut,
             valuesReaderCacheable = valuesReaderCacheable,
             sortedIndexReaderCacheable = sortedIndexReaderCacheable,
             hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -222,10 +235,13 @@ object TransientSegmentSerialiser {
         } else if (maxKeyId == 1) {
           val segmentOffset = valueReader.readUnsignedInt()
           val segmentSize = valueReader.readUnsignedInt()
+          val hasPut = valueReader.readBoolean()
+          val hasNonPut = valueReader.readBoolean()
+          val hasRange = valueReader.readBoolean()
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
           val maxKeyMinKey = valueReader.readRemaining()
 
-          ref.SegmentRef(
+          SegmentRef(
             path = file.path.resolve(s"ref.$segmentOffset"),
             minKey = range.fromKey.unslice(),
             maxKey = MaxKey.Range(maxKeyMinKey.unslice(), range.toKey.unslice()),
@@ -239,6 +255,9 @@ object TransientSegmentSerialiser {
                 blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
               ),
             segmentIO = segmentIO,
+            hasNonPut = hasNonPut,
+            hasRange = hasRange,
+            hasPut = hasPut,
             valuesReaderCacheable = valuesReaderCacheable,
             sortedIndexReaderCacheable = sortedIndexReaderCacheable,
             hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -272,9 +291,12 @@ object TransientSegmentSerialiser {
       val minKey = valueReader.read(valueReader.readUnsignedInt())
       val segmentOffset = valueReader.readUnsignedInt()
       val segmentSize = valueReader.readUnsignedInt()
+      val hasPut = valueReader.readBoolean()
+      val hasNonPut = valueReader.readBoolean()
+      val hasRange = valueReader.readBoolean()
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
 
-      ref.SegmentRef(
+      SegmentRef(
         path = file.path.resolve(s"ref.$segmentOffset"),
         minKey = minKey.unslice(),
         maxKey = MaxKey.Fixed(put.key.unslice()),
@@ -288,6 +310,9 @@ object TransientSegmentSerialiser {
             blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
+        hasNonPut = hasNonPut,
+        hasRange = hasRange,
+        hasPut = hasPut,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,
         hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -298,10 +323,13 @@ object TransientSegmentSerialiser {
     } else if (maxKeyId == 1) {
       val segmentOffset = valueReader.readUnsignedInt()
       val segmentSize = valueReader.readUnsignedInt()
+      val hasPut = valueReader.readBoolean()
+      val hasNonPut = valueReader.readBoolean()
+      val hasRange = valueReader.readBoolean()
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
       val maxKeyMinKey = valueReader.readRemaining()
 
-      ref.SegmentRef(
+      SegmentRef(
         path = file.path.resolve(s"ref.$segmentOffset"),
         minKey = put.key.unslice(),
         maxKey = MaxKey.Range(maxKeyMinKey.unslice(), put.key.unslice()),
@@ -315,6 +343,9 @@ object TransientSegmentSerialiser {
             blockCache = BlockCache.forSearch(segmentSize, blockCacheMemorySweeper)
           ),
         segmentIO = segmentIO,
+        hasNonPut = hasNonPut,
+        hasRange = hasRange,
+        hasPut = hasPut,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,
         hashIndexReaderCacheable = hashIndexReaderCacheable,

@@ -49,6 +49,9 @@ sealed trait TransientSegment {
   def hasEmptyByteSlice: Boolean
   def nearestPutDeadline: Option[Deadline]
   def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
+  def hasNonPut: Boolean
+  def hasRange: Boolean
+  def hasPut: Boolean
   def segmentSize: Int
 }
 
@@ -156,6 +159,14 @@ object TransientSegment {
     override def copyWithFileHeader(fileHeader: Slice[Byte]): RemoteRef =
       copy(fileHeader = fileHeader)
 
+    override def hasNonPut: Boolean =
+      ref.hasNonPut
+
+    override def hasRange: Boolean =
+      ref.hasRange
+
+    override def hasPut: Boolean =
+      ref.hasPut
   }
 
   case class RemoteSegment(segment: Segment,
@@ -187,6 +198,15 @@ object TransientSegment {
 
     override def iterator(): Iterator[KeyValue] =
       segment.iterator()
+
+    override def hasNonPut: Boolean =
+      segment.hasNonPut
+
+    override def hasRange: Boolean =
+      segment.hasRange
+
+    override def hasPut: Boolean =
+      segment.hasPut
   }
 
   case class One(minKey: Slice[Byte],
@@ -195,6 +215,9 @@ object TransientSegment {
                  bodyBytes: Slice[Slice[Byte]],
                  minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                  nearestPutDeadline: Option[Deadline],
+                 hasNonPut: Boolean,
+                 hasRange: Boolean,
+                 hasPut: Boolean,
                  valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                  sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
                  hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -231,6 +254,15 @@ object TransientSegment {
 
     def segmentSize =
       fileHeader.size + listSegment.segmentSizeIgnoreHeader + segments.foldLeft(0)(_ + _.segmentSizeIgnoreHeader)
+
+    override def hasNonPut: Boolean =
+      segments.exists(_.hasNonPut)
+
+    override def hasRange: Boolean =
+      segments.exists(_.hasRange)
+
+    override def hasPut: Boolean =
+      segments.exists(_.hasPut)
   }
 
 
@@ -252,5 +284,14 @@ object TransientSegment {
 
     override def segmentSize: Int =
       segment.segmentSize
+
+    override def hasNonPut: Boolean =
+      segment.hasNonPut
+
+    override def hasRange: Boolean =
+      segment.hasRange
+
+    override def hasPut: Boolean =
+      segment.hasPut
   }
 }
