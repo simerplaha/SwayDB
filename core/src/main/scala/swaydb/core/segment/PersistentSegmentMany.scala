@@ -44,10 +44,10 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.defrag.DefragMaterialiser
+import swaydb.core.segment.defrag.DefragSegment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef, SegmentRefOption, SegmentRefReader}
+import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption, SegmentRefReader}
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
@@ -797,7 +797,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
+                                              executionContext: ExecutionContext): Future[MergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlock.Config = binarySearchIndexConfig
@@ -805,7 +805,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
-    DefragMaterialiser.assignMaterialise(
+    DefragSegment.run(
       headGap = headGap,
       tailGap = tailGap,
       nullSegment = SegmentRef.Null,
@@ -816,13 +816,10 @@ protected case class PersistentSegmentMany(file: DBFile,
       createdInLevel = createdInLevel
     ) map {
       result =>
-        result.source match {
-          case SegmentRef.Null =>
-            result.updateSource(PersistentSegment.Null)
-
-          case _: SegmentRef =>
-            result.updateSource(this)
-        }
+        if (result.source)
+          result.updateSource(this)
+        else
+          result.updateSource(PersistentSegment.Null)
     }
   }
 

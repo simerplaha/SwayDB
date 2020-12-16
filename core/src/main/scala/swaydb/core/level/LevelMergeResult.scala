@@ -24,9 +24,9 @@
 
 package swaydb.core.level
 
+import swaydb.core.data.MergeResult
 import swaydb.core.segment.SegmentOption
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.ref.SegmentMergeResult
 
 final case class LevelMergeResult(level: Level,
-                                  segments: SegmentMergeResult[SegmentOption, Iterable[TransientSegment]])
+                                  segments: MergeResult[SegmentOption, Iterable[TransientSegment]])

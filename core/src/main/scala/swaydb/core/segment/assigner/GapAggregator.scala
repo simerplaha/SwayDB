@@ -36,13 +36,13 @@ import scala.collection.mutable.ListBuffer
  */
 object GapAggregator {
 
-  def persistentCreator(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
+  def persistent(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
     if (removeDeletes)
       creator(MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel))
     else
       creator(MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(_.toMemory()))
 
-  def memoryCreator(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]] =
+  def memory(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]] =
     if (removeDeletes)
       creator(MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel))
     else

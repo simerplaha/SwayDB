@@ -30,7 +30,7 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{KeyValue, _}
+import swaydb.core.data.{KeyValue, MergeResult, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
@@ -48,7 +48,6 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.ref.SegmentMergeResult
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
@@ -597,7 +596,7 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
     if (inMemory)
       Future {
-        implicit val gapCreator = GapAggregator.memoryCreator(removeDeletes = removeDeletedRecords)
+        implicit val gapCreator = GapAggregator.memory(removeDeletes = removeDeletedRecords)
 
         SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]](
           assignablesCount = assignablesCount,
@@ -639,7 +638,7 @@ private[core] case class Level(dirs: Seq[Dir],
       }
     else
       Future {
-        implicit val gapCreator = GapAggregator.persistentCreator(removeDeletes = removeDeletedRecords)
+        implicit val gapCreator = GapAggregator.persistent(removeDeletes = removeDeletedRecords)
 
         SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
           assignablesCount = assignablesCount,
@@ -681,7 +680,7 @@ private[core] case class Level(dirs: Seq[Dir],
       }
   }
 
-  def commit(putResult: Iterable[(Segment, SegmentMergeResult[SegmentOption, Slice[Segment]])],
+  def commit(putResult: Iterable[(Segment, MergeResult[SegmentOption, Slice[Segment]])],
              appendEntry: Option[MapEntry[Slice[Byte], Segment]])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] = {
     logger.trace(s"${pathDistributor.head}: Committing Segments. ${putResult.map { case (old, newSegments) => s"""${old.path.toString} -> ${newSegments.result.map(_.path.toString).mkString(", ")}""" }.mkString("\n")}.")
 

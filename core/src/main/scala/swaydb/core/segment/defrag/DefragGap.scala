@@ -38,7 +38,6 @@ import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext
 
 /**
  * Defrag gap key-values or [[Assignable.Collection]] by avoiding expanding collections as much as possible
@@ -54,8 +53,7 @@ private[segment] object DefragGap {
   def run(gap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           fragments: ListBuffer[TransientSegment.Fragment],
           removeDeletes: Boolean,
-          createdInLevel: Int)(implicit ec: ExecutionContext,
-                               valuesConfig: ValuesBlock.Config,
+          createdInLevel: Int)(implicit valuesConfig: ValuesBlock.Config,
                                sortedIndexConfig: SortedIndexBlock.Config,
                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                hashIndexConfig: HashIndexBlock.Config,

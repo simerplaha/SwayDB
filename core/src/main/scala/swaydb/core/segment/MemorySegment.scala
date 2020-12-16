@@ -27,7 +27,7 @@ package swaydb.core.segment
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
-import swaydb.core.data.{Memory, _}
+import swaydb.core.data.{Memory, MergeResult, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.assigner.Assignable
@@ -38,8 +38,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.merge.{MergeStats, KeyValueMerger}
-import swaydb.core.segment.ref.SegmentMergeResult
+import swaydb.core.merge.{KeyValueMerger, MergeStats}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
@@ -95,7 +94,7 @@ private[core] final case class MemorySegment(path: Path,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[MemorySegmentOption, Slice[TransientSegment.Memory]]] =
+                                              executionContext: ExecutionContext): Future[MergeResult[MemorySegmentOption, Slice[TransientSegment.Memory]]] =
   //    if (deleted) {
   //      throw swaydb.Exception.NoSuchFile(path)
   //    } else {

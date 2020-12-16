@@ -53,5 +53,8 @@ private[swaydb] object Futures {
     @inline def flatMapUnit[A](future2: => Future[A])(implicit executionContext: ExecutionContext): Future[A] =
       future1.flatMap(_ => future2)
 
+    @inline def mapUnit[A](future2: => A)(implicit executionContext: ExecutionContext): Future[A] =
+      future1.map(_ => future2)
+
   }
 }

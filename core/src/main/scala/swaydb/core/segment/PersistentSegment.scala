@@ -24,7 +24,7 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.Memory
+import swaydb.core.data.{Memory, MergeResult}
 
 import java.nio.file.Path
 import swaydb.core.io.file.DBFile
@@ -37,7 +37,6 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.ref.SegmentMergeResult
 import swaydb.core.util.IDGenerator
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.slice.Slice
@@ -68,7 +67,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]]
+                                              executionContext: ExecutionContext): Future[MergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

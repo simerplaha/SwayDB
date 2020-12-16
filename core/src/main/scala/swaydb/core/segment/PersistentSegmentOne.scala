@@ -29,7 +29,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{KeyValue, Memory, Persistent, PersistentOption}
+import swaydb.core.data.{KeyValue, Memory, MergeResult, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.merge.MergeStats
@@ -44,10 +44,10 @@ import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.defrag.DefragMaterialiser
+import swaydb.core.segment.defrag.DefragSegment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef}
+import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.compaction.ParallelMerge.SegmentParallelism
@@ -323,7 +323,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[SegmentMergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
+                                              executionContext: ExecutionContext): Future[MergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]] = {
     implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
     implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
     implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlock.Config = binarySearchIndexConfig
@@ -331,7 +331,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
-    DefragMaterialiser.materialise(
+    DefragSegment.run(
       segment = Some(ref),
       nullSegment = SegmentRef.Null,
       headGap = headGap,

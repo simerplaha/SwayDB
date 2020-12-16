@@ -22,26 +22,35 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment.ref
+package swaydb.core.data
 
-object SegmentMergeResult {
+object MergeResult {
 
   @inline def apply[S, A](source: S,
-                          result: A): SegmentMergeResult[S, A] =
-    new SegmentMergeResult(source, result)
+                          result: A): MergeResult[S, A] =
+    new MergeResult[S, A](
+      source = source,
+      result = result
+    )
 
 }
 
-class SegmentMergeResult[+S, +A](val source: S,
-                                 val result: A) {
-  @inline def map[B](f: A => B): SegmentMergeResult[S, B] =
-    new SegmentMergeResult[S, B](
+class MergeResult[+S, +A](val source: S,
+                          val result: A) {
+  @inline def map[B](f: A => B): MergeResult[S, B] =
+    new MergeResult[S, B](
       source = source,
       result = f(result)
     )
 
-  @inline def updateSource[S2](source: S2): SegmentMergeResult[S2, A] =
-    new SegmentMergeResult[S2, A](
+  @inline def updateSource[S2](source: S2): MergeResult[S2, A] =
+    new MergeResult[S2, A](
+      source = source,
+      result = result
+    )
+
+  @inline def updateResult[B](result: B): MergeResult[S, B] =
+    new MergeResult[S, B](
       source = source,
       result = result
     )

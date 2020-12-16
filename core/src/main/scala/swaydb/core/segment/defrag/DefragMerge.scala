@@ -34,7 +34,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Defrag gap key-values or [[Assignable.Collection]] by avoiding expanding collections as much as possible
@@ -56,70 +55,65 @@ private[segment] object DefragMerge {
                                 fragments: ListBuffer[TransientSegment.Fragment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                                   functionStore: FunctionStore,
-                                                                                  segmentSource: SegmentSource[SEG],
-                                                                                  ec: ExecutionContext): Future[NULL_SEG] =
+                                                                                  segmentSource: SegmentSource[SEG]): NULL_SEG =
     if (mergeableCount > 0)
-      Future {
-        fragments.lastOption match {
-          case Some(TransientSegment.Stats(stats)) =>
-            KeyValueMerger.merge(
-              headGap = Assignable.emptyIterable,
-              tailGap = Assignable.emptyIterable,
-              mergeableCount = mergeableCount,
-              mergeable = mergeable,
-              oldKeyValuesCount = segment.keyValueCount,
-              oldKeyValues = segment.iterator(),
-              stats = stats,
-              isLastLevel = removeDeletes
-            )
+      fragments.lastOption match {
+        case Some(TransientSegment.Stats(stats)) =>
+          KeyValueMerger.merge(
+            headGap = Assignable.emptyIterable,
+            tailGap = Assignable.emptyIterable,
+            mergeableCount = mergeableCount,
+            mergeable = mergeable,
+            oldKeyValuesCount = segment.keyValueCount,
+            oldKeyValues = segment.iterator(),
+            stats = stats,
+            isLastLevel = removeDeletes
+          )
 
-            segment
+          segment
 
-          case Some(_) | None =>
-            val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
+        case Some(_) | None =>
+          val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
 
-            KeyValueMerger.merge(
-              headGap = Assignable.emptyIterable,
-              tailGap = Assignable.emptyIterable,
-              mergeableCount = mergeableCount,
-              mergeable = mergeable,
-              oldKeyValuesCount = segment.keyValueCount,
-              oldKeyValues = segment.iterator(),
-              stats = newStats,
-              isLastLevel = removeDeletes
-            )
+          KeyValueMerger.merge(
+            headGap = Assignable.emptyIterable,
+            tailGap = Assignable.emptyIterable,
+            mergeableCount = mergeableCount,
+            mergeable = mergeable,
+            oldKeyValuesCount = segment.keyValueCount,
+            oldKeyValues = segment.iterator(),
+            stats = newStats,
+            isLastLevel = removeDeletes
+          )
 
-            fragments += TransientSegment.Stats(newStats)
-            segment
-        }
+          fragments += TransientSegment.Stats(newStats)
+          segment
       }
     else if (forceExpand)
-      Future {
-        fragments.lastOption match {
-          case Some(TransientSegment.Stats(lastStats)) =>
-            segment.iterator() foreach (keyValue => lastStats.add(keyValue.toMemory()))
-            segment
+      fragments.lastOption match {
+        case Some(TransientSegment.Stats(lastStats)) =>
+          segment.iterator() foreach (keyValue => lastStats.add(keyValue.toMemory()))
+          segment
 
-          case Some(_) | None =>
-            val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
+        case Some(_) | None =>
+          val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
 
-            KeyValueMerger.merge(
-              headGap = Assignable.emptyIterable,
-              tailGap = Assignable.emptyIterable,
-              mergeableCount = mergeableCount,
-              mergeable = mergeable,
-              oldKeyValuesCount = segment.keyValueCount,
-              oldKeyValues = segment.iterator(),
-              stats = newStats,
-              isLastLevel = removeDeletes
-            )
+          KeyValueMerger.merge(
+            headGap = Assignable.emptyIterable,
+            tailGap = Assignable.emptyIterable,
+            mergeableCount = mergeableCount,
+            mergeable = mergeable,
+            oldKeyValuesCount = segment.keyValueCount,
+            oldKeyValues = segment.iterator(),
+            stats = newStats,
+            isLastLevel = removeDeletes
+          )
 
-            fragments += TransientSegment.Stats(newStats)
-            segment
-        }
+          fragments += TransientSegment.Stats(newStats)
+          segment
       }
     else
-      Future.successful(nullSegment)
+      nullSegment
 
 
 }

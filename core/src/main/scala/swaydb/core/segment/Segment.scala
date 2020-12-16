@@ -44,7 +44,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.segment.ref.{SegmentMergeResult, SegmentRef}
+import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
@@ -438,7 +438,7 @@ private[core] case object Segment extends LazyLogging {
                                                    bufferCleaner: ByteBufferSweeperActor,
                                                    blockCacheSweeper: Option[MemorySweeper.Block],
                                                    segmentIO: SegmentReadIO,
-                                                   forceSaveApplier: ForceSaveApplier): SegmentMergeResult[PersistentSegmentOption, Slice[PersistentSegment]] = {
+                                                   forceSaveApplier: ForceSaveApplier): MergeResult[PersistentSegmentOption, Slice[PersistentSegment]] = {
     //    val transient: Slice[TransientSegment.Persistent] =
     //      SegmentRefWriter.merge(
     //        oldKeyValuesCount = oldKeyValuesCount,

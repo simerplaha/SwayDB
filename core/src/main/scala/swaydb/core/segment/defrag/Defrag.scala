@@ -24,7 +24,7 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.core.data.Memory
+import swaydb.core.data.{Memory, MergeResult}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.MergeStats
 import swaydb.core.segment.SegmentSource
@@ -37,14 +37,10 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.ref.SegmentMergeResult
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.Futures
-import swaydb.data.util.Futures._
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
 
 object Defrag {
 
@@ -56,8 +52,7 @@ object Defrag {
                                 mergeableCount: Int,
                                 mergeable: Iterator[Assignable],
                                 removeDeletes: Boolean,
-                                createdInLevel: Int)(implicit executionContext: ExecutionContext,
-                                                     keyOrder: KeyOrder[Slice[Byte]],
+                                createdInLevel: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
                                                      segmentSource: SegmentSource[SEG],
@@ -66,122 +61,64 @@ object Defrag {
                                                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                                      hashIndexConfig: HashIndexBlock.Config,
                                                      bloomFilterConfig: BloomFilterBlock.Config,
-                                                     segmentConfig: SegmentBlock.Config): Future[SegmentMergeResult[NULL_SEG, ListBuffer[TransientSegment.Fragment]]] =
-    Futures
-      .unit
-      .flatMapUnit {
-        if (headGap.isEmpty)
-          Future.successful(fragments)
-        else
-          Future {
-            DefragGap.run(
-              gap = headGap,
-              fragments = fragments,
+                                                     segmentConfig: SegmentBlock.Config): MergeResult[NULL_SEG, ListBuffer[TransientSegment.Fragment]] = {
+
+    val newFragments =
+      if (headGap.isEmpty)
+        fragments
+      else
+        DefragGap.run(
+          gap = headGap,
+          fragments = fragments,
+          removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel
+        )
+
+    val mergeResult =
+      segment match {
+        case Some(segment) =>
+          //forceExpand if there are cleanable key-values or if segment size is too small.
+          val forceExpand =
+            (removeDeletes && segment.hasUpdateOrRange) || ((headGap.nonEmpty || tailGap.nonEmpty) && segment.segmentSize < segmentConfig.minSize && segment.keyValueCount < segmentConfig.maxCount)
+
+          val source =
+            DefragMerge.run(
+              segment = segment,
+              nullSegment = nullSegment,
+              mergeableCount = mergeableCount,
+              mergeable = mergeable,
               removeDeletes = removeDeletes,
-              createdInLevel = createdInLevel
-            )
-          }
-      }
-      .flatMap {
-        fragments =>
-          segment match {
-            case Some(segment) =>
-              //forceExpand if there are cleanable key-values or if segment size is too small.
-              val forceExpand =
-                (removeDeletes && segment.hasUpdateOrRange) || ((headGap.nonEmpty || tailGap.nonEmpty) && segment.segmentSize < segmentConfig.minSize && segment.keyValueCount < segmentConfig.maxCount)
-
-              DefragMerge.run(
-                segment = segment,
-                nullSegment = nullSegment,
-                mergeableCount = mergeableCount,
-                mergeable = mergeable,
-                removeDeletes = removeDeletes,
-                forceExpand = forceExpand,
-                fragments = fragments
-              ) map {
-                source =>
-                  //if there was no segment replacement then create a fence so head and tail gaps do not get collapsed.
-                  if (source == nullSegment)
-                    fragments += TransientSegment.Fence
-
-                  SegmentMergeResult(
-                    source = source,
-                    result = fragments
-                  )
-              }
-
-            case None =>
-              //create a fence so tail does not get collapsed into head.
-              fragments += TransientSegment.Fence
-
-              val result =
-                SegmentMergeResult(
-                  source = nullSegment,
-                  result = fragments
-                )
-
-              Future.successful(result)
-          }
-
-      }
-      .flatMap {
-        mergeResult =>
-          if (tailGap.isEmpty)
-            Future.successful(mergeResult)
-          else
-            Future {
-              DefragGap.run(
-                gap = tailGap,
-                fragments = mergeResult.result,
-                removeDeletes = removeDeletes,
-                createdInLevel = createdInLevel
-              )
-
-              mergeResult
-            }
-      }
-
-  def materialise[SEG](fragments: SegmentMergeResult[SEG, ListBuffer[TransientSegment.Fragment]],
-                       createdInLevel: Int)(implicit executionContext: ExecutionContext,
-                                            keyOrder: KeyOrder[Slice[Byte]],
-                                            timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore,
-                                            valuesConfig: ValuesBlock.Config,
-                                            sortedIndexConfig: SortedIndexBlock.Config,
-                                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                            hashIndexConfig: HashIndexBlock.Config,
-                                            bloomFilterConfig: BloomFilterBlock.Config,
-                                            segmentConfig: SegmentBlock.Config): Future[SegmentMergeResult[SEG, Slice[TransientSegment.Persistent]]] =
-    Future.traverse(fragments.result) {
-      case TransientSegment.Stats(stats) =>
-        Future {
-          val mergeStats =
-            stats.close(
-              hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-              optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+              forceExpand = forceExpand,
+              fragments = newFragments
             )
 
-          SegmentBlock.writeOneOrMany(
-            mergeStats = mergeStats,
-            createdInLevel = createdInLevel,
-            bloomFilterConfig = bloomFilterConfig,
-            hashIndexConfig = hashIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            valuesConfig = valuesConfig,
-            segmentConfig = segmentConfig
+          //if there was no segment replacement then create a fence so head and tail gaps do not get collapsed.
+          if (source == nullSegment)
+            newFragments += TransientSegment.Fence
+
+          MergeResult(
+            source = source,
+            result = newFragments
           )
-        }
 
-      case segment: TransientSegment.Remote =>
-        Future.successful(Slice(segment))
-    } map {
-      buffer =>
-        //TODO - group SegmentRefs and write them as PersistentSegmentMany if needed.
-        //        val slice = Slice.of[TransientSegment.Persistent](buffer.foldLeft(0)(_ + _.size))
-        //        buffer foreach slice.addAll
-        //        slice
-        ???
-    }
+        case None =>
+          //create a fence so tail does not get collapsed into head.
+          newFragments += TransientSegment.Fence
 
+          MergeResult(
+            source = nullSegment,
+            result = newFragments
+          )
+      }
+
+    if (tailGap.nonEmpty)
+      DefragGap.run(
+        gap = tailGap,
+        fragments = mergeResult.result,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel
+      )
+
+    mergeResult
+  }
 }
