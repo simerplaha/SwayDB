@@ -696,7 +696,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   @inline def segmentRefsIterator(): Iterator[SegmentRef] =
     new Iterator[SegmentRef] {
       //TODO - do not read sortedIndexBlock if the SegmentRef is already cached in-memory.
-      var nextRef: SegmentRef = null
+      var nextRef: SegmentRef = _
       val listSegment = listSegmentCache.value(())
       val iter = listSegment.iterator()
 

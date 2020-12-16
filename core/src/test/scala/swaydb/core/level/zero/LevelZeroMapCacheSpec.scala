@@ -50,7 +50,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
   def doInsert(memory: Memory,
                expectSkipList: Iterable[(Slice[Byte], Memory)])(implicit state: LevelZeroMapCache.State): Unit = {
 
-    LevelZeroMapCache.insert(
+    LevelZeroMerger.mergeInsert(
       insert = memory,
       state = state
     )
@@ -207,6 +207,7 @@ class LevelZeroMapCacheSpec extends AnyWordSpec with Matchers {
 
   "writeAtomic" should {
     implicit def optimiseWrites = OptimiseWrites.random
+
     implicit def atomic = Atomic.random
 
     "insert a Fixed value to an empty skipList" in {
