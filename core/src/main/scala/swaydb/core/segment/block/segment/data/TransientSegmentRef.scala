@@ -37,39 +37,39 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
-class ClosedBlocksWithFooter(val minKey: Slice[Byte],
-                             val maxKey: MaxKey[Slice[Byte]],
-                             val functionMinMax: Option[MinMax[Slice[Byte]]],
-                             val nearestDeadline: Option[Deadline],
-                             //counts
-                             val updateCount: Int,
-                             val rangeCount: Int,
-                             val putCount: Int,
-                             val putDeadlineCount: Int,
-                             val keyValueCount: Int,
-                             //values
-                             val valuesBlockHeader: Option[Slice[Byte]],
-                             val valuesBlock: Option[Slice[Byte]],
-                             val valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                             //sortedIndex
-                             val sortedIndexClosedState: SortedIndexBlock.State,
-                             val sortedIndexBlockHeader: Slice[Byte],
-                             val sortedIndexBlock: Slice[Byte],
-                             val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-                             //hashIndex
-                             val hashIndexBlockHeader: Option[Slice[Byte]],
-                             val hashIndexBlock: Option[Slice[Byte]],
-                             val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-                             //binarySearch
-                             val binarySearchIndexBlockHeader: Option[Slice[Byte]],
-                             val binarySearchIndexBlock: Option[Slice[Byte]],
-                             val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
-                             //bloomFilter
-                             val bloomFilterBlockHeader: Option[Slice[Byte]],
-                             val bloomFilterBlock: Option[Slice[Byte]],
-                             val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                             //footer
-                             val footerBlock: Slice[Byte]) {
+class TransientSegmentRef(val minKey: Slice[Byte],
+                          val maxKey: MaxKey[Slice[Byte]],
+                          val functionMinMax: Option[MinMax[Slice[Byte]]],
+                          val nearestDeadline: Option[Deadline],
+                          //counts
+                          val updateCount: Int,
+                          val rangeCount: Int,
+                          val putCount: Int,
+                          val putDeadlineCount: Int,
+                          val keyValueCount: Int,
+                          //values
+                          val valuesBlockHeader: Option[Slice[Byte]],
+                          val valuesBlock: Option[Slice[Byte]],
+                          val valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                          //sortedIndex
+                          val sortedIndexClosedState: SortedIndexBlock.State,
+                          val sortedIndexBlockHeader: Slice[Byte],
+                          val sortedIndexBlock: Slice[Byte],
+                          val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                          //hashIndex
+                          val hashIndexBlockHeader: Option[Slice[Byte]],
+                          val hashIndexBlock: Option[Slice[Byte]],
+                          val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+                          //binarySearch
+                          val binarySearchIndexBlockHeader: Option[Slice[Byte]],
+                          val binarySearchIndexBlock: Option[Slice[Byte]],
+                          val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                          //bloomFilter
+                          val bloomFilterBlockHeader: Option[Slice[Byte]],
+                          val bloomFilterBlock: Option[Slice[Byte]],
+                          val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+                          //footer
+                          val footerBlock: Slice[Byte]) {
 
   val segmentHeader: Slice[Byte] = Slice.of[Byte](Byte.MaxValue)
 

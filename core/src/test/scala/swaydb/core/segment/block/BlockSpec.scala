@@ -7,7 +7,7 @@ import swaydb.core.TestData._
 import swaydb.core.segment.block.Block.CompressionInfo
 import swaydb.core.segment.block.reader.BlockRefReader
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.core.segment.block.segment.data.ClosedBlocksWithFooter
+import swaydb.core.segment.block.segment.data.TransientSegmentRef
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.data.RunThis._
 import swaydb.data.config.IOAction
@@ -73,7 +73,7 @@ class BlockSpec extends TestBase {
         runThis(100.times) {
           val headerSize = Block.minimumHeaderSize(false)
           val segment =
-            new ClosedBlocksWithFooter(
+            new TransientSegmentRef(
               minKey = null,
               maxKey = null,
 
@@ -172,7 +172,7 @@ class BlockSpec extends TestBase {
         runThis(100.times) {
           val headerSize = Block.minimumHeaderSize(true) //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
           val uncompressedSegment =
-            new ClosedBlocksWithFooter(
+            new TransientSegmentRef(
               minKey = null,
               maxKey = null,
 

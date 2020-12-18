@@ -29,7 +29,7 @@ import swaydb.IO
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
-import swaydb.core.segment.block.segment.data.{ClosedBlocksWithFooter, TransientSegment}
+import swaydb.core.segment.block.segment.data.{TransientSegmentRef, TransientSegment}
 import swaydb.core.util.Collections._
 import swaydb.data.config.IOAction
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -152,7 +152,7 @@ private[core] object Block extends LazyLogging {
         )
     }
 
-  def block(blocks: ClosedBlocksWithFooter,
+  def block(blocks: TransientSegmentRef,
             compressions: Iterable[CompressionInternal],
             blockName: String): TransientSegment.One =
     if (compressions.isEmpty) {

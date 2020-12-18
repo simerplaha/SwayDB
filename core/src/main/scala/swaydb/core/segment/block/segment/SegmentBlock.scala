@@ -32,7 +32,7 @@ import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
-import swaydb.core.segment.block.segment.data.{ClosedBlocks, ClosedBlocksWithFooter, TransientSegment}
+import swaydb.core.segment.block.segment.data.{ClosedBlocks, TransientSegmentRef, TransientSegment}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
@@ -319,7 +319,7 @@ private[core] case object SegmentBlock extends LazyLogging {
     if (mergeStats.isEmpty)
       Slice.empty
     else
-      writeClosed(
+      writeSegmentRefs(
         keyValues = mergeStats,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,
@@ -337,14 +337,14 @@ private[core] case object SegmentBlock extends LazyLogging {
           )
       }
 
-  def writeClosed(keyValues: MergeStats.Persistent.Closed[Iterable],
-                  createdInLevel: Int,
-                  bloomFilterConfig: BloomFilterBlock.Config,
-                  hashIndexConfig: HashIndexBlock.Config,
-                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                  sortedIndexConfig: SortedIndexBlock.Config,
-                  valuesConfig: ValuesBlock.Config,
-                  segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[ClosedBlocksWithFooter] =
+  def writeSegmentRefs(keyValues: MergeStats.Persistent.Closed[Iterable],
+                       createdInLevel: Int,
+                       bloomFilterConfig: BloomFilterBlock.Config,
+                       hashIndexConfig: HashIndexBlock.Config,
+                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                       sortedIndexConfig: SortedIndexBlock.Config,
+                       valuesConfig: ValuesBlock.Config,
+                       segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegmentRef] =
     if (keyValues.isEmpty) {
       Slice.empty
     } else {
@@ -372,7 +372,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       val maxSegmentCountBasedOnSize = totalAllocatedSize / segmentConfig.minSize
       val maxSegmentCountBasedOnCount = keyValuesCount / segmentConfig.maxCount
       val maxSegmentsCount = (maxSegmentCountBasedOnSize max maxSegmentCountBasedOnCount) + 2
-      val segments = Slice.of[ClosedBlocksWithFooter](maxSegmentsCount)
+      val segments = Slice.of[TransientSegmentRef](maxSegmentsCount)
 
       def unwrittenTailSegmentBytes() =
         sortedIndex.compressibleBytes.unwrittenTailSize() + {
@@ -420,7 +420,7 @@ private[core] case object SegmentBlock extends LazyLogging {
             logger.debug(s"Creating segment of size: $currentSegmentSize.bytes. segmentCountLimitReached: $segmentCountLimitReached. segmentSizeLimitReached: $segmentSizeLimitReached")
 
             val (closedSegment, nextSortedIndex, nextValues) =
-              writeSegmentBlock(
+              writeSegmentRef(
                 createdInLevel = createdInLevel,
                 hasMoreKeyValues = totalProcessedCount < keyValuesCount,
                 bloomFilterIndexableKeys = bloomFilterIndexableKeys,
@@ -454,8 +454,8 @@ private[core] case object SegmentBlock extends LazyLogging {
       if (closed) {
         segments
       } else {
-        val (closedSegment, nextSortedIndex, nextValuesBlock) =
-          writeSegmentBlock(
+        val (segmentRef, nextSortedIndex, nextValuesBlock) =
+          writeSegmentRef(
             createdInLevel = createdInLevel,
             hasMoreKeyValues = false,
             bloomFilterIndexableKeys = bloomFilterIndexableKeys,
@@ -472,21 +472,21 @@ private[core] case object SegmentBlock extends LazyLogging {
         //temporary check.
         assert(nextSortedIndex.isEmpty && nextValuesBlock.isEmpty, s"${nextSortedIndex.isEmpty} && ${nextValuesBlock.isEmpty} is not empty.")
 
-        segments add closedSegment
+        segments add segmentRef
       }
     }
 
-  private def writeSegmentBlock(createdInLevel: Int,
-                                hasMoreKeyValues: Boolean,
-                                bloomFilterIndexableKeys: ListBuffer[Slice[Byte]],
-                                sortedIndex: SortedIndexBlock.State,
-                                values: Option[ValuesBlock.State],
-                                bloomFilterConfig: BloomFilterBlock.Config,
-                                hashIndexConfig: HashIndexBlock.Config,
-                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                sortedIndexConfig: SortedIndexBlock.Config,
-                                valuesConfig: ValuesBlock.Config,
-                                prepareForCachingSegmentBlocksOnCreate: Boolean): (ClosedBlocksWithFooter, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
+  private def writeSegmentRef(createdInLevel: Int,
+                              hasMoreKeyValues: Boolean,
+                              bloomFilterIndexableKeys: ListBuffer[Slice[Byte]],
+                              sortedIndex: SortedIndexBlock.State,
+                              values: Option[ValuesBlock.State],
+                              bloomFilterConfig: BloomFilterBlock.Config,
+                              hashIndexConfig: HashIndexBlock.Config,
+                              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                              sortedIndexConfig: SortedIndexBlock.Config,
+                              valuesConfig: ValuesBlock.Config,
+                              prepareForCachingSegmentBlocksOnCreate: Boolean): (TransientSegmentRef, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
     //tail bytes before closing and compression is applied.
     val unwrittenTailSortedIndexBytes = sortedIndex.compressibleBytes.unwrittenTail()
     val unwrittenTailValueBytes = values.map(_.compressibleBytes.unwrittenTail())
@@ -519,7 +519,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       )
 
     val ref =
-      new ClosedBlocksWithFooter(
+      new TransientSegmentRef(
         minKey = closedBlocks.sortedIndex.minKey,
         maxKey = closedBlocks.sortedIndex.maxKey,
 
