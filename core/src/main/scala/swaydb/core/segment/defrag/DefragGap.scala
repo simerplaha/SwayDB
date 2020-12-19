@@ -24,7 +24,7 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.core.data.Memory
+import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.merge.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -36,6 +36,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment}
+import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
 
@@ -53,34 +54,39 @@ private[segment] object DefragGap {
   def run(gap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           fragments: ListBuffer[TransientSegment.Fragment],
           removeDeletes: Boolean,
-          createdInLevel: Int)(implicit valuesConfig: ValuesBlock.Config,
-                               sortedIndexConfig: SortedIndexBlock.Config,
-                               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                               hashIndexConfig: HashIndexBlock.Config,
-                               bloomFilterConfig: BloomFilterBlock.Config,
-                               segmentConfig: SegmentBlock.Config): ListBuffer[TransientSegment.Fragment] = {
-    gap.foldLeft(lastStatsOrNull(fragments)) {
+          createdInLevel: Int,
+          hasNext: Boolean)(implicit valuesConfig: ValuesBlock.Config,
+                            sortedIndexConfig: SortedIndexBlock.Config,
+                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                            hashIndexConfig: HashIndexBlock.Config,
+                            bloomFilterConfig: BloomFilterBlock.Config,
+                            segmentConfig: SegmentBlock.Config): ListBuffer[TransientSegment.Fragment] = {
+    val iterator = gap.iterator
+
+    iterator.foldLeft(DefragCommon.lastStatsOrNull(fragments)) {
       case (statsOrNull, segment: Segment) =>
         processSegment(
           statsOrNull = statsOrNull,
           fragments = fragments,
           segment = segment,
           removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel
+          createdInLevel = createdInLevel,
+          //either this iterator hasNext or whatever calling this function hasNext.
+          hasNext = iterator.hasNext || hasNext
         )
 
       case (statsOrNull, segmentRef: SegmentRef) =>
         processSegmentRef(
           statsOrNull = statsOrNull,
           fragments = fragments,
-          segmentRef = segmentRef,
+          ref = segmentRef,
           removeDeletes = removeDeletes,
-          sortedIndexConfig = sortedIndexConfig,
-          segmentConfig = segmentConfig
+          //either this iterator hasNext or whatever calling this function hasNext.
+          hasNext = iterator.hasNext || hasNext
         )
 
       case (statsOrNull, collection: Assignable.Collection) =>
-        val stats =
+        val newOrOldStats =
           if (statsOrNull == null) {
             val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
             fragments += TransientSegment.Stats(newStats)
@@ -89,9 +95,9 @@ private[segment] object DefragGap {
             statsOrNull
           }
 
-        collection.iterator() foreach (keyValue => stats.add(keyValue.toMemory()))
+        collection.iterator() foreach (keyValue => newOrOldStats.add(keyValue.toMemory()))
 
-        stats
+        newOrOldStats
 
       case (statsOrNull, Assignable.Stats(stats)) =>
         if (statsOrNull == null) {
@@ -103,32 +109,109 @@ private[segment] object DefragGap {
         }
     }
 
-    fragments
+    //clear out any empty stats
+    fragments filter {
+      case TransientSegment.Stats(stats) =>
+        !stats.isEmpty
+
+      case _ =>
+        true
+    }
   }
 
-  @inline def lastStatsOrNull(fragments: ListBuffer[TransientSegment.Fragment]): MergeStats.Persistent.Builder[Memory, ListBuffer] =
-    fragments.lastOption match {
-      case Some(stats: TransientSegment.Stats) =>
-        stats.stats
-
-      case Some(_) | None =>
-        null
+  @inline private def addToStats(keyValues: Iterator[KeyValue],
+                                 statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
+                                 fragments: ListBuffer[TransientSegment.Fragment],
+                                 removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+    if (statsOrNull != null) {
+      keyValues foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
+      statsOrNull
+    } else {
+      val stats = DefragCommon.createMergeStats(removeDeletes)
+      keyValues foreach (keyValue => stats.add(keyValue.toMemory()))
+      fragments += TransientSegment.Stats(stats)
+      stats
     }
 
-  def addRemoteSegment(segment: Segment,
-                       lastMergeStatsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                       fragments: ListBuffer[TransientSegment.Fragment],
-                       removeDeletes: Boolean,
-                       createdInLevel: Int)(implicit valuesConfig: ValuesBlock.Config,
-                                            sortedIndexConfig: SortedIndexBlock.Config,
-                                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                            hashIndexConfig: HashIndexBlock.Config,
-                                            bloomFilterConfig: BloomFilterBlock.Config,
-                                            segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+  private def processSegment(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
+                             fragments: ListBuffer[TransientSegment.Fragment],
+                             segment: Segment,
+                             removeDeletes: Boolean,
+                             createdInLevel: Int,
+                             hasNext: Boolean)(implicit valuesConfig: ValuesBlock.Config,
+                                               sortedIndexConfig: SortedIndexBlock.Config,
+                                               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                               hashIndexConfig: HashIndexBlock.Config,
+                                               bloomFilterConfig: BloomFilterBlock.Config,
+                                               segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+    if ((hasNext && DefragCommon.isSegmentSmall(segment)) || DefragCommon.isStatsOrNullSmall(statsOrNull))
+      segment match {
+        case many: PersistentSegmentMany =>
+          val refIterator = many.segmentRefsIterator()
+
+          refIterator.foldLeft(statsOrNull) {
+            case (statsOrNull, segmentRef) =>
+              processSegmentRef(
+                statsOrNull = statsOrNull,
+                fragments = fragments,
+                ref = segmentRef,
+                removeDeletes = removeDeletes,
+                hasNext = refIterator.hasNext || hasNext
+              )
+          }
+
+        case _ =>
+          addToStats(
+            keyValues = segment.iterator(),
+            statsOrNull = statsOrNull,
+            fragments = fragments,
+            removeDeletes = removeDeletes
+          )
+      }
+    else
+      addRemoteSegment(
+        segment = segment,
+        statsOrNull = statsOrNull,
+        fragments = fragments,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel
+      )
+
+  private def processSegmentRef(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
+                                fragments: ListBuffer[TransientSegment.Fragment],
+                                ref: SegmentRef,
+                                removeDeletes: Boolean,
+                                hasNext: Boolean)(implicit sortedIndexConfig: SortedIndexBlock.Config,
+                                                  segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+    if ((hasNext && DefragCommon.isSegmentRefSmall(ref)) || DefragCommon.isStatsOrNullSmall(statsOrNull))
+      addToStats(
+        keyValues = ref.iterator(),
+        statsOrNull = statsOrNull,
+        fragments = fragments,
+        removeDeletes = removeDeletes
+      )
+    else
+      addRemoteSegmentRef(
+        ref = ref,
+        fragments = fragments,
+        lastMergeStatsOrNull = statsOrNull,
+        removeDeletes = removeDeletes
+      )
+
+  private def addRemoteSegment(segment: Segment,
+                               statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
+                               fragments: ListBuffer[TransientSegment.Fragment],
+                               removeDeletes: Boolean,
+                               createdInLevel: Int)(implicit valuesConfig: ValuesBlock.Config,
+                                                    sortedIndexConfig: SortedIndexBlock.Config,
+                                                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                    hashIndexConfig: HashIndexBlock.Config,
+                                                    bloomFilterConfig: BloomFilterBlock.Config,
+                                                    segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
     if (removeDeletes && segment.hasUpdateOrRange) {
       segment match {
         case segment: PersistentSegmentMany =>
-          segment.segmentRefsIterator().foldLeft(lastMergeStatsOrNull) {
+          segment.segmentRefsIterator().foldLeft(statsOrNull) {
             case (lastMergeStatsOrNull, ref) =>
               addRemoteSegmentRef(
                 ref = ref,
@@ -139,15 +222,12 @@ private[segment] object DefragGap {
           }
 
         case _ =>
-          if (lastMergeStatsOrNull != null) {
-            segment.iterator() foreach (keyValue => lastMergeStatsOrNull.add(keyValue.toMemory()))
-            lastMergeStatsOrNull
-          } else {
-            val stats = DefragCommon.createMergeStats(removeDeletes)
-            segment.iterator() foreach (keyValue => stats.add(keyValue.toMemory()))
-            fragments += TransientSegment.Stats(stats)
-            stats
-          }
+          addToStats(
+            keyValues = segment.iterator(),
+            statsOrNull = statsOrNull,
+            fragments = fragments,
+            removeDeletes = removeDeletes
+          )
       }
     } else {
       val remote =
@@ -167,100 +247,19 @@ private[segment] object DefragGap {
       null
     }
 
-  def addRemoteSegmentRef(ref: SegmentRef,
-                          fragments: ListBuffer[TransientSegment.Fragment],
-                          lastMergeStatsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                          removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+  private def addRemoteSegmentRef(ref: SegmentRef,
+                                  fragments: ListBuffer[TransientSegment.Fragment],
+                                  lastMergeStatsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
+                                  removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
     if (removeDeletes && ref.hasUpdateOrRange) {
-      if (lastMergeStatsOrNull != null) {
-        ref.iterator() foreach (keyValue => lastMergeStatsOrNull.add(keyValue.toMemory()))
-        lastMergeStatsOrNull
-      } else {
-        val stats = DefragCommon.createMergeStats(removeDeletes)
-        ref.iterator() foreach (keyValue => stats.add(keyValue.toMemory()))
-        fragments += TransientSegment.Stats(stats)
-        stats
-      }
+      addToStats(
+        keyValues = ref.iterator(),
+        statsOrNull = lastMergeStatsOrNull,
+        fragments = fragments,
+        removeDeletes = removeDeletes
+      )
     } else {
-      val remote =
-        TransientSegment.RemoteRef(
-          fileHeader = PersistentSegmentOne.formatIdSlice,
-          ref = ref
-        )
-
-      fragments += remote
+      fragments += TransientSegment.RemoteRef(ref)
       null
-    }
-
-  def processSegment(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                     fragments: ListBuffer[TransientSegment.Fragment],
-                     segment: Segment,
-                     removeDeletes: Boolean,
-                     createdInLevel: Int)(implicit valuesConfig: ValuesBlock.Config,
-                                          sortedIndexConfig: SortedIndexBlock.Config,
-                                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                          hashIndexConfig: HashIndexBlock.Config,
-                                          bloomFilterConfig: BloomFilterBlock.Config,
-                                          segmentConfig: SegmentBlock.Config) =
-    if (statsOrNull == null) //does matter if this Segment is small. Add it because there are currently no known opened stats.
-      addRemoteSegment(
-        segment = segment,
-        lastMergeStatsOrNull = statsOrNull,
-        fragments = fragments,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel
-      )
-    else if (segment.segmentSize < segmentConfig.minSize || DefragCommon.isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig))
-      segment match {
-        case many: PersistentSegmentMany =>
-          many.segmentRefsIterator().foldLeft(statsOrNull) {
-            case (statsOrNull, segmentRef) =>
-              processSegmentRef(
-                statsOrNull = statsOrNull,
-                fragments = fragments,
-                segmentRef = segmentRef,
-                removeDeletes = removeDeletes,
-                sortedIndexConfig = sortedIndexConfig,
-                segmentConfig = segmentConfig
-              )
-          }
-
-        case _ =>
-          segment.iterator() foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
-          statsOrNull
-      }
-    else
-      addRemoteSegment(
-        segment = segment,
-        lastMergeStatsOrNull = statsOrNull,
-        fragments = fragments,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel
-      )
-
-  def processSegmentRef(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                        fragments: ListBuffer[TransientSegment.Fragment],
-                        segmentRef: SegmentRef,
-                        removeDeletes: Boolean,
-                        sortedIndexConfig: SortedIndexBlock.Config,
-                        segmentConfig: SegmentBlock.Config) =
-    if (statsOrNull == null) {
-      //does matter if this Segment is small. Add it because there are currently no known opened stats.
-      addRemoteSegmentRef(
-        ref = segmentRef,
-        fragments = fragments,
-        lastMergeStatsOrNull = statsOrNull,
-        removeDeletes = removeDeletes
-      )
-    } else if (segmentRef.keyValueCount < segmentConfig.maxCount || DefragCommon.isStatsSmall(statsOrNull, sortedIndexConfig, segmentConfig)) {
-      segmentRef.iterator() foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
-      statsOrNull
-    } else {
-      addRemoteSegmentRef(
-        ref = segmentRef,
-        fragments = fragments,
-        lastMergeStatsOrNull = statsOrNull,
-        removeDeletes = removeDeletes
-      )
     }
 }

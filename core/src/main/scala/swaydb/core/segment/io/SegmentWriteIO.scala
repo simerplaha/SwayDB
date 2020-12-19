@@ -272,7 +272,7 @@ case object SegmentWriteIO extends LazyLogging {
           if (sameFileRemotes.size == 1) {
             val remote = sameFileRemotes.head
             createdInLevelMin = createdInLevelMin min remote.ref.createdInLevel
-            remote.ref.segmentBlockCache.transfer(0, remote.segmentSize, target)
+            remote.ref.segmentBlockCache.transfer(0, remote.segmentSizeIgnoreHeader, target)
             sameFileRemotes.clear()
           } else {
             sameFileRemotes foreach {
@@ -315,11 +315,10 @@ case object SegmentWriteIO extends LazyLogging {
       createdInLevelMin
     }
 
-
     private def segmentFile(path: Path,
                             mmap: MMAP.Segment,
                             segmentSize: Int,
-                            applier: DBFile => Unit)(implicit SegmentIO: SegmentReadIO,
+                            applier: DBFile => Unit)(implicit segmentReadIO: SegmentReadIO,
                                                      fileSweeper: FileSweeper,
                                                      bufferCleaner: ByteBufferSweeperActor,
                                                      forceSaveApplier: ForceSaveApplier): DBFile =
@@ -327,7 +326,7 @@ case object SegmentWriteIO extends LazyLogging {
         case MMAP.On(deleteAfterClean, forceSave) => //if both read and writes are mmaped. Keep the file open.
           DBFile.mmapWriteAndReadApplier(
             path = path,
-            fileOpenIOStrategy = SegmentIO.fileOpenIO,
+            fileOpenIOStrategy = segmentReadIO.fileOpenIO,
             autoClose = true,
             deleteAfterClean = deleteAfterClean,
             forceSave = forceSave,
@@ -339,7 +338,7 @@ case object SegmentWriteIO extends LazyLogging {
           val channelWrite =
             DBFile.channelWrite(
               path = path,
-              fileOpenIOStrategy = SegmentIO.fileOpenIO,
+              fileOpenIOStrategy = segmentReadIO.fileOpenIO,
               autoClose = true,
               forceSave = ForceSave.Off
             )
@@ -357,7 +356,7 @@ case object SegmentWriteIO extends LazyLogging {
 
           DBFile.mmapRead(
             path = channelWrite.path,
-            fileOpenIOStrategy = SegmentIO.fileOpenIO,
+            fileOpenIOStrategy = segmentReadIO.fileOpenIO,
             autoClose = true,
             deleteAfterClean = deleteAfterClean
           )
@@ -366,7 +365,7 @@ case object SegmentWriteIO extends LazyLogging {
           val channelWrite =
             DBFile.channelWrite(
               path = path,
-              fileOpenIOStrategy = SegmentIO.fileOpenIO,
+              fileOpenIOStrategy = segmentReadIO.fileOpenIO,
               autoClose = true,
               forceSave = ForceSave.Off
             )
@@ -384,7 +383,7 @@ case object SegmentWriteIO extends LazyLogging {
 
           DBFile.channelRead(
             path = channelWrite.path,
-            fileOpenIOStrategy = SegmentIO.fileOpenIO,
+            fileOpenIOStrategy = segmentReadIO.fileOpenIO,
             autoClose = true
           )
 

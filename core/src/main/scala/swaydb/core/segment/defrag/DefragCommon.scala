@@ -27,28 +27,36 @@ package swaydb.core.segment.defrag
 import swaydb.Aggregator
 import swaydb.core.data.Memory
 import swaydb.core.merge.{KeyValueGrouper, MergeStats}
+import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.ref.SegmentRef
 
 import scala.collection.mutable.ListBuffer
 
 private[defrag] object DefragCommon {
 
-  def isStatsSmall(stats: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                   sortedIndexConfig: SortedIndexBlock.Config,
-                   segmentConfig: SegmentBlock.Config): Boolean =
-    if (stats.isEmpty) {
+  def isStatsOrNullSmall(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer])(implicit sortedIndexConfig: SortedIndexBlock.Config,
+                                                                                         segmentConfig: SegmentBlock.Config): Boolean =
+    if (statsOrNull == null || statsOrNull.isEmpty) {
       false
     } else {
       val mergeStats =
-        stats.close(
+        statsOrNull.close(
           hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
           optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
         )
 
-      mergeStats.keyValuesCount < segmentConfig.maxCount && mergeStats.maxSortedIndexSize + stats.totalValuesSize < segmentConfig.minSize / 2
+      mergeStats.keyValuesCount < segmentConfig.maxCount && mergeStats.maxSortedIndexSize + statsOrNull.totalValuesSize < segmentConfig.minSize / 2
     }
+
+
+  @inline def isSegmentSmall(segment: Segment)(implicit segmentConfig: SegmentBlock.Config): Boolean =
+    segment.segmentSize < segmentConfig.minSize
+
+  @inline def isSegmentRefSmall(ref: SegmentRef)(implicit segmentConfig: SegmentBlock.Config): Boolean =
+    ref.keyValueCount < segmentConfig.maxCount
 
   @inline def createMergeStats(removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
     if (removeDeletes)
@@ -56,19 +64,13 @@ private[defrag] object DefragCommon {
     else
       MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
 
-  def segmentSize(buffer: ListBuffer[Either[MergeStats.Persistent.Builder[Memory, ListBuffer], TransientSegment.Remote]],
-                  sortedIndexConfig: SortedIndexBlock.Config): Int =
-    buffer.foldLeft(0) {
-      case (size, Left(stats)) =>
-        val closedStats =
-          stats.close(
-            hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-            optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
-          )
+  @inline def lastStatsOrNull(fragments: ListBuffer[TransientSegment.Fragment]): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+    fragments.lastOption match {
+      case Some(stats: TransientSegment.Stats) =>
+        stats.stats
 
-        size + closedStats.maxSortedIndexSize + closedStats.totalValuesSize
-
-      case (size, Right(remote: TransientSegment.Remote)) =>
-        size + remote.segmentSize
+      case Some(_) | None =>
+        null
     }
+
 }

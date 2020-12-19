@@ -625,7 +625,6 @@ protected case object PersistentSegmentMany extends LazyLogging {
       footerCacheable = None
     )
   }
-
 }
 
 protected case class PersistentSegmentMany(file: DBFile,
@@ -717,29 +716,37 @@ protected case class PersistentSegmentMany(file: DBFile,
       var nextRef: SegmentRef = _
       val listSegment = listSegmentCache.value(())
       val iter = listSegment.iterator()
+      var nextInvoked = false
 
       @tailrec
       final override def hasNext: Boolean =
         if (iter.hasNext)
           if (nextRef == null) {
             nextRef = fetchSegmentRef(iter.next(), listSegment)
+            nextInvoked = false
             true
-          } else {
+          } else if (nextInvoked) {
             val nextNextRef = fetchSegmentRef(iter.next(), listSegment)
-            if (nextRef == nextNextRef)
+            if (nextRef == nextNextRef) {
               hasNext
-            else {
+            } else {
               nextRef = nextNextRef
+              nextInvoked = false
               true
             }
+          } else {
+            true
           }
+        else if (!nextInvoked && nextRef != null) //if it's the last Segment.
+          true
         else
           false
 
-      override def next(): SegmentRef =
+      override def next(): SegmentRef = {
+        nextInvoked = true
         nextRef
+      }
     }
-
 
   def path = file.path
 
@@ -805,7 +812,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
-    DefragSegment.run(
+    DefragSegment.runMany(
       headGap = headGap,
       tailGap = tailGap,
       nullSegment = SegmentRef.Null,

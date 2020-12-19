@@ -86,7 +86,9 @@ private[segment] object DefragMerge {
             isLastLevel = removeDeletes
           )
 
-          fragments += TransientSegment.Stats(newStats)
+          if (!newStats.isEmpty)
+            fragments += TransientSegment.Stats(newStats)
+
           segment
       }
     else if (forceExpand)
@@ -109,11 +111,11 @@ private[segment] object DefragMerge {
             isLastLevel = removeDeletes
           )
 
-          fragments += TransientSegment.Stats(newStats)
+          if (!newStats.isEmpty)
+            fragments += TransientSegment.Stats(newStats)
+
           segment
       }
     else
       nullSegment
-
-
 }

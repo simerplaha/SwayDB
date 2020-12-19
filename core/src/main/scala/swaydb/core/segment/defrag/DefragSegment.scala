@@ -30,7 +30,7 @@ import swaydb.core.data.{Memory, MergeResult}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.MergeStats
 import swaydb.core.merge.MergeStats.Persistent
-import swaydb.core.segment.SegmentSource
+import swaydb.core.segment.{MemorySegment, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, SegmentSource}
 import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner, SegmentAssignment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -51,75 +51,78 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object DefragSegment {
 
-  def run[SEG, NULL_SEG >: SEG](segment: Option[SEG],
-                                nullSegment: NULL_SEG,
-                                headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                mergeableCount: Int,
-                                mergeable: Iterator[Assignable],
-                                removeDeletes: Boolean,
-                                createdInLevel: Int)(implicit executionContext: ExecutionContext,
-                                                     keyOrder: KeyOrder[Slice[Byte]],
-                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                     functionStore: FunctionStore,
-                                                     segmentSource: SegmentSource[SEG],
-                                                     valuesConfig: ValuesBlock.Config,
-                                                     sortedIndexConfig: SortedIndexBlock.Config,
-                                                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                                     hashIndexConfig: HashIndexBlock.Config,
-                                                     bloomFilterConfig: BloomFilterBlock.Config,
-                                                     segmentConfig: SegmentBlock.Config): Future[MergeResult[NULL_SEG, Slice[TransientSegment.Persistent]]] =
-    Futures
-      .unit
-      .mapUnit {
-        Defrag.run(
-          segment = segment,
-          nullSegment = nullSegment,
-          fragments = ListBuffer.empty,
-          headGap = headGap,
-          tailGap = tailGap,
-          mergeableCount = mergeableCount,
-          mergeable = mergeable,
-          removeDeletes = removeDeletes,
+  /**
+   * Builds a [[Future]] that executes defragmentation and merge on a single Segment.
+   */
+  def runOne[SEG, NULL_SEG >: SEG](segment: Option[SEG],
+                                   nullSegment: NULL_SEG,
+                                   headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                                   tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                                   mergeableCount: Int,
+                                   mergeable: Iterator[Assignable],
+                                   removeDeletes: Boolean,
+                                   createdInLevel: Int)(implicit executionContext: ExecutionContext,
+                                                        keyOrder: KeyOrder[Slice[Byte]],
+                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                        functionStore: FunctionStore,
+                                                        segmentSource: SegmentSource[SEG],
+                                                        valuesConfig: ValuesBlock.Config,
+                                                        sortedIndexConfig: SortedIndexBlock.Config,
+                                                        binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                        hashIndexConfig: HashIndexBlock.Config,
+                                                        bloomFilterConfig: BloomFilterBlock.Config,
+                                                        segmentConfig: SegmentBlock.Config): Future[MergeResult[NULL_SEG, Slice[TransientSegment.Persistent]]] =
+    Future {
+      Defrag.run(
+        segment = segment,
+        nullSegment = nullSegment,
+        fragments = ListBuffer.empty,
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel
+      )
+    } flatMap {
+      mergeResult =>
+        commitFragments(
+          fragments = mergeResult.result,
           createdInLevel = createdInLevel
-        )
-      }
-      .flatMap {
-        mergeResult =>
-          commitFragments(
-            fragments = mergeResult.result,
-            createdInLevel = createdInLevel
-          ) map {
-            persistentSegments =>
-              mergeResult.updateResult(persistentSegments)
-          }
-      }
+        ) map {
+          persistentSegments =>
+            mergeResult.updateResult(persistentSegments)
+        }
+    }
 
   /**
+   * Builds a [[Future]] pipeline that executes assignment, defragmentation and merge on multiple Segments. This is
+   * used by [[PersistentSegmentMany]].
+   *
    * @return [[MergeResult.source]] is true if this Segment was replaced or else it will be false.
    *         [[swaydb.core.segment.ref.SegmentRef]] is not being used here because the input is an [[Iterator]] of [[SEG]].
    */
-  def run[SEG >: Null, NULL_SEG >: SEG](headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                        tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                        nullSegment: NULL_SEG,
-                                        segments: => Iterator[SEG],
-                                        assignableCount: Int,
-                                        assignables: Iterator[Assignable],
-                                        removeDeletes: Boolean,
-                                        createdInLevel: Int)(implicit idGenerator: IDGenerator,
-                                                             executionContext: ExecutionContext,
-                                                             keyOrder: KeyOrder[Slice[Byte]],
-                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                             functionStore: FunctionStore,
-                                                             segmentSource: SegmentSource[SEG],
-                                                             valuesConfig: ValuesBlock.Config,
-                                                             sortedIndexConfig: SortedIndexBlock.Config,
-                                                             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                                             hashIndexConfig: HashIndexBlock.Config,
-                                                             bloomFilterConfig: BloomFilterBlock.Config,
-                                                             segmentConfig: SegmentBlock.Config): Future[MergeResult[Boolean, Slice[TransientSegment.Persistent]]] =
+  def runMany[SEG >: Null, NULL_SEG >: SEG](headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                                            tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
+                                            nullSegment: NULL_SEG,
+                                            segments: => Iterator[SEG],
+                                            assignableCount: Int,
+                                            assignables: Iterator[Assignable],
+                                            removeDeletes: Boolean,
+                                            createdInLevel: Int)(implicit idGenerator: IDGenerator,
+                                                                 executionContext: ExecutionContext,
+                                                                 keyOrder: KeyOrder[Slice[Byte]],
+                                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                                 functionStore: FunctionStore,
+                                                                 segmentSource: SegmentSource[SEG],
+                                                                 valuesConfig: ValuesBlock.Config,
+                                                                 sortedIndexConfig: SortedIndexBlock.Config,
+                                                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                                 hashIndexConfig: HashIndexBlock.Config,
+                                                                 bloomFilterConfig: BloomFilterBlock.Config,
+                                                                 segmentConfig: SegmentBlock.Config): Future[MergeResult[Boolean, Slice[TransientSegment.Persistent]]] =
     if (assignableCount == 0)
-      DefragSegment.run[SEG, NULL_SEG](
+      DefragSegment.runOne[SEG, NULL_SEG](
         segment = Option.empty[SEG],
         nullSegment = nullSegment,
         headGap = headGap,
@@ -146,7 +149,8 @@ object DefragSegment {
                   gap = headGap,
                   fragments = ListBuffer.empty,
                   removeDeletes = removeDeletes,
-                  createdInLevel = createdInLevel
+                  createdInLevel = createdInLevel,
+                  hasNext = false
                 )
               }
 
@@ -164,7 +168,6 @@ object DefragSegment {
             headFragments <- headFragmentsFuture
             assignments <- assignmentsFuture
           } yield (headFragments, assignments)
-
         }
         .flatMap {
           case (headFragments, assignments) =>
@@ -197,7 +200,8 @@ object DefragSegment {
                 gap = tailGap,
                 fragments = fragments,
                 removeDeletes = removeDeletes,
-                createdInLevel = createdInLevel
+                createdInLevel = createdInLevel,
+                hasNext = false
               )
         }
         .flatMap {
@@ -214,52 +218,9 @@ object DefragSegment {
             }
         }
 
-  def commitFragments(fragments: ListBuffer[TransientSegment.Fragment],
-                      createdInLevel: Int)(implicit executionContext: ExecutionContext,
-                                           keyOrder: KeyOrder[Slice[Byte]],
-                                           timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore,
-                                           valuesConfig: ValuesBlock.Config,
-                                           sortedIndexConfig: SortedIndexBlock.Config,
-                                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                           hashIndexConfig: HashIndexBlock.Config,
-                                           bloomFilterConfig: BloomFilterBlock.Config,
-                                           segmentConfig: SegmentBlock.Config): Future[Slice[TransientSegment.Persistent]] =
-    Future.traverse(fragments) {
-      case TransientSegment.Stats(stats) =>
-        Future {
-          val mergeStats =
-            stats.close(
-              hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-              optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
-            )
-
-          SegmentBlock.writeOneOrMany(
-            mergeStats = mergeStats,
-            createdInLevel = createdInLevel,
-            bloomFilterConfig = bloomFilterConfig,
-            hashIndexConfig = hashIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            valuesConfig = valuesConfig,
-            segmentConfig = segmentConfig
-          )
-        }
-
-      case segment: TransientSegment.Remote =>
-        Future.successful(Slice(segment))
-
-      case TransientSegment.Fence =>
-        Future.successful(Slice.empty)
-
-    } map {
-      buffer =>
-        //TODO - group SegmentRefs and write them as PersistentSegmentMany if needed.
-        val slice = Slice.of[TransientSegment.Persistent](buffer.foldLeft(0)(_ + _.size))
-        buffer foreach slice.addAll
-        slice
-    }
-
+  /**
+   * Assigns key-values [[Assignable]]s to segments [[SEG]].
+   */
   def assignAllSegments[SEG >: Null](segments: Iterator[SEG],
                                      assignableCount: Int,
                                      assignables: Iterator[Assignable],
@@ -303,4 +264,164 @@ object DefragSegment {
     else
       assignments
   }
+
+  /**
+   * Converts [[MergeStats]] to [[TransientSegment.One]] instances for grouping.
+   */
+  def commitFragments(fragments: ListBuffer[TransientSegment.Fragment],
+                      createdInLevel: Int)(implicit executionContext: ExecutionContext,
+                                           keyOrder: KeyOrder[Slice[Byte]],
+                                           timeOrder: TimeOrder[Slice[Byte]],
+                                           functionStore: FunctionStore,
+                                           valuesConfig: ValuesBlock.Config,
+                                           sortedIndexConfig: SortedIndexBlock.Config,
+                                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                           hashIndexConfig: HashIndexBlock.Config,
+                                           bloomFilterConfig: BloomFilterBlock.Config,
+                                           segmentConfig: SegmentBlock.Config): Future[Slice[TransientSegment.Persistent]] =
+    Future.traverse(fragments) {
+      case TransientSegment.Stats(stats) =>
+        Future {
+          val mergeStats =
+            stats.close(
+              hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+              optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+            )
+
+          SegmentBlock.writeOnes(
+            mergeStats = mergeStats,
+            createdInLevel = createdInLevel,
+            bloomFilterConfig = bloomFilterConfig,
+            hashIndexConfig = hashIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            valuesConfig = valuesConfig,
+            segmentConfig = segmentConfig
+          )
+        }
+
+      case segment: TransientSegment.Remote =>
+        Future.successful(Slice(segment))
+
+      case TransientSegment.Fence =>
+        TransientSegment.Fence.futureSuccessful
+
+    } flatMap {
+      singletonOrFence =>
+        commitFencedSingletons(
+          singletonOrFence = singletonOrFence,
+          createdInLevel = createdInLevel
+        )
+    }
+
+  /**
+   * Groups [[TransientSegment.Singleton]] for persistence and does a final check and expand small Segments.
+   */
+  def commitFencedSingletons(singletonOrFence: ListBuffer[Slice[TransientSegment.SingletonOrFence]],
+                             createdInLevel: Int)(implicit executionContext: ExecutionContext,
+                                                  keyOrder: KeyOrder[Slice[Byte]],
+                                                  valuesConfig: ValuesBlock.Config,
+                                                  sortedIndexConfig: SortedIndexBlock.Config,
+                                                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                  hashIndexConfig: HashIndexBlock.Config,
+                                                  segmentConfig: SegmentBlock.Config): Future[Slice[TransientSegment.Persistent]] = {
+    val singletonOrFences = Slice.of[TransientSegment.SingletonOrFence](singletonOrFence.foldLeft(0)(_ + _.size))
+    singletonOrFence foreach singletonOrFences.addAll
+
+    val groups = ListBuffer(ListBuffer.empty[TransientSegment.OneOrRemoteRef])
+
+    val remoteSegments = ListBuffer.empty[TransientSegment.RemoteSegment]
+
+    @inline def startNewGroup(): Unit =
+      if (groups.last.nonEmpty)
+        groups += ListBuffer.empty
+
+    //do another check and expand small Segments.
+    singletonOrFences foreach {
+      case ref: TransientSegment.RemoteRef =>
+        groups.last += ref
+
+      case remoteSegment: TransientSegment.RemoteSegment =>
+        if (remoteSegment.segment.segmentSize < segmentConfig.minSize) {
+          remoteSegment.segment match {
+            case _: MemorySegment =>
+              startNewGroup()
+              remoteSegments += remoteSegment
+
+            case segment: PersistentSegment =>
+              segment match {
+                case many: PersistentSegmentMany =>
+                  many.segmentRefsIterator() foreach (ref => groups.last += TransientSegment.RemoteRef(ref))
+
+                case one: PersistentSegmentOne =>
+                  groups.last += TransientSegment.RemoteRef(one.ref)
+              }
+          }
+        } else {
+          startNewGroup()
+          remoteSegments += remoteSegment
+        }
+
+      case one: TransientSegment.One =>
+        groups.last += one
+
+      case TransientSegment.Fence =>
+        startNewGroup()
+    }
+
+    commitGroups(
+      groups = groups,
+      remoteSegments = remoteSegments,
+      createdInLevel = createdInLevel
+    )
+  }
+
+  /**
+   * Commits Groups.
+   */
+  private def commitGroups(groups: Iterable[Iterable[TransientSegment.OneOrRemoteRef]],
+                           remoteSegments: Iterable[TransientSegment.RemoteSegment],
+                           createdInLevel: Int)(implicit executionContext: ExecutionContext,
+                                                keyOrder: KeyOrder[Slice[Byte]],
+                                                valuesConfig: ValuesBlock.Config,
+                                                sortedIndexConfig: SortedIndexBlock.Config,
+                                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                hashIndexConfig: HashIndexBlock.Config,
+                                                segmentConfig: SegmentBlock.Config): Future[Slice[TransientSegment.Persistent]] =
+    Future.traverse(Slice.from(groups, groups.size)) {
+      ones =>
+        Future {
+          SegmentBlock.writeOneOrMany(
+            createdInLevel = createdInLevel,
+            ones = Slice.from(ones, ones.size),
+            sortedIndexConfig = sortedIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            valuesConfig = valuesConfig,
+            segmentConfig = segmentConfig
+          )
+        }
+    } map {
+      slices =>
+        val slice = Slice.of[TransientSegment.Persistent](slices.foldLeft(remoteSegments.size)(_ + _.size))
+
+        @inline def addAll(segments: Iterable[TransientSegment.Persistent]): Unit =
+          segments foreach {
+            case ref: TransientSegment.RemoteRef =>
+              //if a single SegmentRef is being written as an independent Segment then set the header.
+              slice add ref.copyWithFileHeader(PersistentSegmentOne.formatIdSlice)
+
+            case transient =>
+              slice add transient
+          }
+
+        slices foreach addAll
+
+        if (remoteSegments.nonEmpty) {
+          addAll(remoteSegments)
+          slice.sortBy(_.minKey)(keyOrder)
+        } else {
+          slice
+        }
+    }
 }

@@ -1351,30 +1351,6 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
   def segmentNumber: Long =
     Effect.numberFileId(path)._1
 
-  //  def put(headGap: ListBuffer[Either[MergeStatsType, Assignable.Collection]],
-  //          tailGap: ListBuffer[Either[MergeStatsType, Assignable.Collection]],
-  //          mergeableCount: Int,
-  //          mergeable: Iterator[Assignable],
-  //          removeDeletes: Boolean,
-  //          createdInLevel: Int,
-  //          segmentParallelism: SegmentParallelism,
-  //          valuesConfig: ValuesBlock.Config,
-  //          sortedIndexConfig: SortedIndexBlock.Config,
-  //          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-  //          hashIndexConfig: HashIndexBlock.Config,
-  //          bloomFilterConfig: BloomFilterBlock.Config,
-  //          segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-  //                                              executionContext: ExecutionContext): Future[SegmentMergeResult[Slice[TransientSegment]]]
-  //
-  //  def refresh(removeDeletes: Boolean,
-  //              createdInLevel: Int,
-  //              valuesConfig: ValuesBlock.Config,
-  //              sortedIndexConfig: SortedIndexBlock.Config,
-  //              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-  //              hashIndexConfig: HashIndexBlock.Config,
-  //              bloomFilterConfig: BloomFilterBlock.Config,
-  //              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[SegmentMergeResult[Slice[TransientSegment]]]
-
   def getFromCache(key: Slice[Byte]): KeyValueOption
 
   def mightContainKey(key: Slice[Byte], threadState: ThreadReadState): Boolean

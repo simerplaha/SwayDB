@@ -41,6 +41,7 @@ import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 import scala.concurrent.duration.Deadline
 
 sealed trait TransientSegment {
@@ -61,10 +62,12 @@ object TransientSegment {
 
   sealed trait Persistent extends TransientSegment
 
+  sealed trait SingletonOrFence
+
   /**
    * Points to a remote Segment this could be a [[SegmentRef]] or [[Segment]].
    */
-  sealed trait Singleton extends Persistent
+  sealed trait Singleton extends Persistent with SingletonOrFence
 
   /**
    * [[Fragment]] type is used by [[swaydb.core.segment.defrag.Defrag]] to
@@ -84,7 +87,10 @@ object TransientSegment {
    * used to creates a barrier between groups of key-values/Segments or SegmentRefs when
    * running [[swaydb.core.segment.defrag.Defrag]].
    */
-  case object Fence extends Fragment
+  case object Fence extends Fragment with SingletonOrFence {
+    val slice = Slice(TransientSegment.Fence)
+    val futureSuccessful = Future.successful(slice)
+  }
 
   case class Stats(stats: MergeStats.Persistent.Builder[swaydb.core.data.Memory, ListBuffer]) extends Fragment
 
@@ -111,8 +117,25 @@ object TransientSegment {
       )
   }
 
-  case class RemoteRef(fileHeader: Slice[Byte],
-                       ref: SegmentRef) extends OneOrRemoteRef with Remote {
+  case object RemoteRef {
+    @inline def apply(ref: SegmentRef): TransientSegment.RemoteRef =
+      new RemoteRef(
+        fileHeader = Slice.emptyBytes,
+        ref = ref
+      )
+  }
+
+  /**
+   * Should not allow setting [[fileHeader]] at the time of creation because [[SegmentRef]]s are
+   * mostly written when embedded within another [[Segment]].
+   *
+   * But it is a possibility that compaction can submit a large a [[SegmentRef]] to be written
+   * as an independent [[Segment]] only then the [[fileHeader]] should be updated
+   * via [[copyWithFileHeader]].
+   */
+  class RemoteRef private(val fileHeader: Slice[Byte],
+                          val ref: SegmentRef) extends OneOrRemoteRef with Remote {
+
     override def minKey: Slice[Byte] =
       ref.minKey
 
@@ -159,7 +182,7 @@ object TransientSegment {
       ref.iterator()
 
     override def copyWithFileHeader(fileHeader: Slice[Byte]): RemoteRef =
-      copy(fileHeader = fileHeader)
+      new RemoteRef(fileHeader = fileHeader, ref = ref)
 
     override def updateCount: Int =
       ref.updateCount

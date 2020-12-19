@@ -40,6 +40,7 @@ import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.map.{Map, MapCache, MapEntry, Maps}
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -47,10 +48,8 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.merge.MergeStats
-import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment}
+import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.core.util.{HashedMap, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -914,5 +913,4 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     segment.close
   }
-
 }

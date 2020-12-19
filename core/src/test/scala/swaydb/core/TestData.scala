@@ -2012,6 +2012,22 @@ object TestData {
       (flattenSegmentBytes, segment.nearestPutDeadline)
   }
 
+  implicit class TransientSegmentPersistentImplicits(segment: TransientSegment.Persistent) {
+
+    def persist(pathDistributor: PathsDistributor,
+                segmentRefCacheWeight: Int = randomIntMax(Byte.MaxValue),
+                mmap: MMAP.Segment = MMAP.randomForSegment())(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                              idGenerator: IDGenerator,
+                                                              segmentReadIO: SegmentReadIO,
+                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                              testCaseSweeper: TestCaseSweeper): IO[Error.Segment, Slice[PersistentSegment]] =
+      Slice(segment).persist(
+        pathDistributor = pathDistributor,
+        segmentRefCacheWeight = segmentRefCacheWeight,
+        mmap = mmap
+      )
+  }
+
   implicit class TransientSegmentsImplicits(segments: Slice[TransientSegment.Persistent]) {
 
     def persist(pathDistributor: PathsDistributor,
@@ -2023,13 +2039,18 @@ object TestData {
                                                               testCaseSweeper: TestCaseSweeper): IO[Error.Segment, Slice[PersistentSegment]] = {
       import testCaseSweeper._
 
-      SegmentWriteIO.PersistentIO.persist(
-        pathsDistributor = pathDistributor,
-        createdInLevel = 1,
-        segmentRefCacheWeight = segmentRefCacheWeight,
-        mmap = mmap,
-        transient = segments
-      ).sweep(_.foreach(_.foreach(_.sweep())))
+      val persistedSegments =
+        SegmentWriteIO.PersistentIO.persist(
+          pathsDistributor = pathDistributor,
+          createdInLevel = 1,
+          segmentRefCacheWeight = segmentRefCacheWeight,
+          mmap = mmap,
+          transient = segments
+        )
+
+      persistedSegments.foreach(_.foreach(_.sweep()))
+
+      persistedSegments
     }
   }
 

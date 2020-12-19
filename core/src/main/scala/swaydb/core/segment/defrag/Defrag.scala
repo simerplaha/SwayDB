@@ -63,23 +63,24 @@ object Defrag {
                                                      bloomFilterConfig: BloomFilterBlock.Config,
                                                      segmentConfig: SegmentBlock.Config): MergeResult[NULL_SEG, ListBuffer[TransientSegment.Fragment]] = {
 
-    val newFragments =
-      if (headGap.isEmpty)
-        fragments
-      else
-        DefragGap.run(
-          gap = headGap,
-          fragments = fragments,
-          removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel
-        )
-
     val mergeResult =
       segment match {
         case Some(segment) =>
           //forceExpand if there are cleanable key-values or if segment size is too small.
           val forceExpand =
             (removeDeletes && segment.hasUpdateOrRange) || ((headGap.nonEmpty || tailGap.nonEmpty) && segment.segmentSize < segmentConfig.minSize && segment.keyValueCount < segmentConfig.maxCount)
+
+          val newFragments =
+            if (headGap.isEmpty)
+              fragments
+            else
+              DefragGap.run(
+                gap = headGap,
+                fragments = fragments,
+                removeDeletes = removeDeletes,
+                createdInLevel = createdInLevel,
+                hasNext = mergeableCount > 0 || forceExpand
+              )
 
           val source =
             DefragMerge.run(
@@ -102,6 +103,18 @@ object Defrag {
           )
 
         case None =>
+          val newFragments =
+            if (headGap.isEmpty)
+              fragments
+            else
+              DefragGap.run(
+                gap = headGap,
+                fragments = fragments,
+                removeDeletes = removeDeletes,
+                createdInLevel = createdInLevel,
+                hasNext = false
+              )
+
           //create a fence so tail does not get collapsed into head.
           newFragments += TransientSegment.Fence
 
@@ -116,7 +129,8 @@ object Defrag {
         gap = tailGap,
         fragments = mergeResult.result,
         removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel
+        createdInLevel = createdInLevel,
+        hasNext = false
       )
 
     mergeResult

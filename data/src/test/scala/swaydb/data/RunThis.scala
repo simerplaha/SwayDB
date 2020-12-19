@@ -63,6 +63,9 @@ object RunThis extends Eventually {
 
     def await: T =
       Await.result(f, 1.second)
+
+    def awaitInf: T =
+      Await.result(f, Duration.Inf)
   }
 
   implicit class FutureAwait2[T](f: => T)(implicit ec: ExecutionContext) {
