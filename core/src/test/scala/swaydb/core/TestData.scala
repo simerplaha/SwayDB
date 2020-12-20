@@ -38,6 +38,7 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, PathsDistributor}
+import swaydb.core.merge.{KeyValueMerger, MergeStats}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
@@ -50,7 +51,6 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.core.merge.{KeyValueMerger, MergeStats}
 import swaydb.core.segment._
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.SegmentRef

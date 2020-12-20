@@ -29,8 +29,6 @@ import swaydb.Aggregator.nothingAggregator
 import swaydb.core.data.{Memory, MergeResult}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.MergeStats
-import swaydb.core.merge.MergeStats.Persistent
-import swaydb.core.segment.{MemorySegment, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne, SegmentSource}
 import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner, SegmentAssignment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -40,6 +38,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment._
 import swaydb.core.util.IDGenerator
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -225,8 +224,8 @@ object DefragSegment {
                                      assignableCount: Int,
                                      assignables: Iterator[Assignable],
                                      removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             segmentSource: SegmentSource[SEG]): ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]], SEG]] = {
-    implicit val creator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]]] =
+                                                             segmentSource: SegmentSource[SEG]): ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], SEG]] = {
+    implicit val creator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
       GapAggregator.persistent(removeDeletes)
 
     val (segmentsIterator, segmentsIteratorDuplicate) = segments.duplicate

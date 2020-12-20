@@ -35,8 +35,7 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne, Segment}
-import swaydb.data.slice.Slice
+import swaydb.core.segment.{PersistentSegmentMany, Segment}
 
 import scala.collection.mutable.ListBuffer
 

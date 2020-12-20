@@ -25,11 +25,11 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MergeResult, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -38,7 +38,6 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.merge.{KeyValueMerger, MergeStats}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
@@ -49,8 +48,8 @@ import swaydb.data.slice.{Slice, SliceOption}
 
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait MemorySegmentOption
 

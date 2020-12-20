@@ -27,7 +27,6 @@ package swaydb.core.merge
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
-import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.util.DropIterator
 import swaydb.data.order.{KeyOrder, TimeOrder}

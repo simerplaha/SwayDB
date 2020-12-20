@@ -28,16 +28,15 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
-import swaydb.core.segment.block.segment.data.{ClosedBlocks, TransientSegmentRef, TransientSegment}
+import swaydb.core.segment.block.segment.data.{ClosedBlocks, TransientSegment, TransientSegmentRef}
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.merge.MergeStats
-import swaydb.core.merge.MergeStats.Persistent
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections, MinMax}
 import swaydb.data.config._
@@ -241,7 +240,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         if (segments.size == 1) {
           many add segments.head.copyWithFileHeader(headerBytes = PersistentSegmentOne.formatIdSlice)
         } else {
-          val listKeyValue: Persistent.Builder[Memory, Slice] =
+          val listKeyValue: MergeStats.Persistent.Builder[Memory, Slice] =
             MergeStats.persistent(Slice.newAggregator(segments.size * 2))
 
           var minMaxFunctionId = Option.empty[MinMax[Slice[Byte]]]
