@@ -17,11 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program or any covered work, only by linking or combining
+ * it with separate works, the licensors of this Program grant you additional
+ * permission to convey the resulting work.
  */
-package swaydb.core.segment.format.a
+package swaydb.core.segment
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
@@ -43,6 +43,7 @@ import swaydb.serializers._
 import scala.util.Try
 
 class SegmentSearcherSpec extends TestBase with MockFactory {
+
   implicit val order = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(order))
   implicit def segmentIO = SegmentReadIO.random

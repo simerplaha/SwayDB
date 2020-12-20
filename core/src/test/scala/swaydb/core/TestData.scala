@@ -24,6 +24,7 @@
 
 package swaydb.core
 
+import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
@@ -38,7 +39,8 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, PathsDistributor}
-import swaydb.core.merge.{KeyValueMerger, MergeStats}
+import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger, MergeStats}
+import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
@@ -51,7 +53,6 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.core.segment._
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -164,7 +165,6 @@ object TestData {
                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long) {
 
     import swaydb.Error.Level.ExceptionHandler
-    import swaydb.IO._
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
@@ -1655,14 +1655,36 @@ object TestData {
     slice
   }
 
-  def getPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.Put] = {
-    val slice = Slice.of[KeyValue.Put](keyValues.size)
-    keyValues foreach {
-      keyValue =>
-        keyValue.asPut foreach slice.add
+  def getPuts(keyValues: Iterable[KeyValue]): Iterable[KeyValue.Put] =
+    keyValues collect {
+      case put: KeyValue.Put =>
+        put
+
+      case range: KeyValue.Range if range.fetchFromValueUnsafe.isSomeS && range.fetchFromValueUnsafe.getS.isPut =>
+        range.fetchFromValueUnsafe.getS.toPutMayBe(range.key).value
     }
-    slice
-  }
+
+  def getPutsWithDeadline(keyValues: Iterable[KeyValue]): Iterable[KeyValue.Put] =
+    keyValues collect {
+      case put: KeyValue.Put if put.deadline.isDefined =>
+        put
+
+      case range: KeyValue.Range if range.fetchFromValueUnsafe.isSomeS && range.fetchFromValueUnsafe.getS.isPut && range.fetchFromValueUnsafe.getS.deadline.isDefined =>
+        range.fetchFromValueUnsafe.getS.toPutMayBe(range.key).value
+    }
+
+  def getRanges(keyValues: Iterable[KeyValue]): Iterable[KeyValue.Range] =
+    keyValues collect {
+      case range: KeyValue.Range => range
+    }
+
+  def getUpdates(keyValues: Iterable[KeyValue]): Iterable[KeyValue.Fixed] =
+    keyValues collect {
+      case keyValue: KeyValue.Update => keyValue
+      case keyValue: KeyValue.Remove => keyValue
+      case keyValue: KeyValue.PendingApply => keyValue
+      case keyValue: KeyValue.Function => keyValue
+    }
 
   /**
    * Randomly updates all key-values using one of the many update methods.
@@ -2062,6 +2084,150 @@ object TestData {
 
         override def readFromSource(position: Int, size: Int): Slice[Byte] =
           file.read(position = position, size = size)
+      }
+  }
+
+  implicit class TestSegmentImplicits(segment: Segment) {
+
+    import swaydb.data.RunThis._
+
+    def put(headGap: Iterable[KeyValue],
+            tailGap: Iterable[KeyValue],
+            mergeableCount: Int,
+            mergeable: Iterator[Assignable],
+            removeDeletes: Boolean,
+            createdInLevel: Int,
+            valuesConfig: ValuesBlock.Config,
+            sortedIndexConfig: SortedIndexBlock.Config,
+            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+            hashIndexConfig: HashIndexBlock.Config,
+            bloomFilterConfig: BloomFilterBlock.Config,
+            segmentConfig: SegmentBlock.Config,
+            pathDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                               executionContext: ExecutionContext,
+                                               keyOrder: KeyOrder[Slice[Byte]],
+                                               segmentReadIO: SegmentReadIO,
+                                               timeOrder: TimeOrder[Slice[Byte]],
+                                               testCaseSweeper: TestCaseSweeper): MergeResult[SegmentOption, Slice[Segment]] = {
+      def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.addLastLevel(keyValue) else keyValue.toMemory()
+
+      segment match {
+        case segment: MemorySegment =>
+
+          val putResult =
+            segment.put(
+              headGap = ListBuffer(Assignable.Stats(MergeStats.memoryBuilder(headGap)(toMemory))),
+              tailGap = ListBuffer(Assignable.Stats(MergeStats.memoryBuilder(tailGap)(toMemory))),
+              mergeableCount = mergeableCount,
+              mergeable = mergeable,
+              removeDeletes = removeDeletes,
+              createdInLevel = createdInLevel,
+              segmentParallelism = randomParallelMerge().segment,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              segmentConfig = segmentConfig
+            ).awaitInf
+
+          val segments = putResult.result.map(_.segment)
+
+          putResult.source match {
+            case MemorySegment.Null =>
+              MergeResult(
+                source = Segment.Null,
+                result = segments
+              )
+
+            case segment: MemorySegment =>
+              MergeResult(
+                source = segment,
+                result = segments
+              )
+          }
+
+        case segment: PersistentSegment =>
+          val putResult =
+            segment.put(
+              headGap = ListBuffer(Assignable.Stats(MergeStats.persistentBuilder(headGap)(toMemory))),
+              tailGap = ListBuffer(Assignable.Stats(MergeStats.persistentBuilder(tailGap)(toMemory))),
+              mergeableCount = mergeableCount,
+              mergeable = mergeable,
+              removeDeletes = removeDeletes,
+              createdInLevel = createdInLevel,
+              segmentParallelism = randomParallelMerge().segment,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              segmentConfig = segmentConfig
+            ).awaitInf
+
+          val segments = putResult.result.persist(pathDistributor).value
+
+          putResult.source match {
+            case PersistentSegment.Null =>
+              MergeResult(
+                source = Segment.Null,
+                result = segments
+              )
+
+            case segment: PersistentSegment =>
+              MergeResult(
+                source = segment,
+                result = segments
+              )
+          }
+
+      }
+    }
+
+    def refresh(removeDeletes: Boolean,
+                createdInLevel: Int,
+                valuesConfig: ValuesBlock.Config,
+                sortedIndexConfig: SortedIndexBlock.Config,
+                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                hashIndexConfig: HashIndexBlock.Config,
+                bloomFilterConfig: BloomFilterBlock.Config,
+                segmentConfig: SegmentBlock.Config,
+                pathDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                                   executionContext: ExecutionContext,
+                                                   keyOrder: KeyOrder[Slice[Byte]],
+                                                   segmentReadIO: SegmentReadIO,
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   testCaseSweeper: TestCaseSweeper): Slice[Segment] =
+      segment match {
+        case segment: MemorySegment =>
+          val putResult =
+            segment.refresh(
+              removeDeletes = removeDeletes,
+              createdInLevel = createdInLevel,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              segmentConfig = segmentConfig
+            ).await
+
+          putResult.map(_.segment)
+
+        case segment: PersistentSegment =>
+          val putResult =
+            segment.refresh(
+              removeDeletes = removeDeletes,
+              createdInLevel = createdInLevel,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              segmentConfig = segmentConfig
+            )
+
+          putResult.persist(pathDistributor).value
       }
   }
 }

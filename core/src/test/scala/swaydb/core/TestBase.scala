@@ -177,8 +177,8 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
   def createNextLevelPath: Path =
     Effect.createDirectoriesIfAbsent(nextLevelPath)
 
-  def createPathDistributor =
-    PathsDistributor(Seq(Dir(createNextLevelPath, 1)), () => Seq.empty)
+  def createPathDistributor(implicit sweeper: TestCaseSweeper) =
+    PathsDistributor(Seq(Dir(createNextLevelPath.sweep(), 1)), () => Seq.empty)
 
   def nextLevelPath: Path =
     testClassDir.resolve(nextLevelId.toString)

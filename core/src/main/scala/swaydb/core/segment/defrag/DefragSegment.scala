@@ -238,8 +238,6 @@ object DefragSegment {
         segments = segmentsIterator
       )
 
-    val nothingAssignableGap = nothingAggregator[Assignable]()
-
     val hasMissing =
       segmentsIteratorDuplicate.foldLeft(false) {
         case (missing, segment) =>
@@ -247,9 +245,9 @@ object DefragSegment {
             assignments +=
               SegmentAssignment(
                 segment = segment,
-                headGap = nothingAssignableGap,
+                headGap = creator.createNew(),
                 midOverlap = ListBuffer.empty,
-                tailGap = nothingAssignableGap
+                tailGap = creator.createNew()
               )
 
             true
