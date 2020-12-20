@@ -29,6 +29,7 @@ import swaydb.Aggregator.nothingAggregator
 import swaydb.core.data.{Memory, MergeResult}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.MergeStats
+import swaydb.core.merge.MergeStats.Persistent
 import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner, SegmentAssignment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -39,12 +40,14 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment._
+import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.IDGenerator
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.Futures
 import swaydb.data.util.Futures._
 
+import scala.collection.StrictOptimizedIterableOps
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -139,59 +142,27 @@ object DefragSegment {
       Futures
         .unit
         .flatMapUnit {
-          val headFragmentsFuture =
-            if (headGap.isEmpty)
-              Future.successful(ListBuffer.empty[TransientSegment.Fragment])
-            else
-              Future {
-                DefragGap.run(
-                  gap = headGap,
-                  fragments = ListBuffer.empty,
-                  removeDeletes = removeDeletes,
-                  createdInLevel = createdInLevel,
-                  hasNext = false
-                )
-              }
-
-          val assignmentsFuture =
-            Future {
-              assignAllSegments(
-                segments = segments,
-                assignableCount = assignableCount,
-                assignables = assignables,
-                removeDeletes = removeDeletes
-              )
-            }
-
-          for {
-            headFragments <- headFragmentsFuture
-            assignments <- assignmentsFuture
-          } yield (headFragments, assignments)
+          runHeadDefragAndAssignments(
+            headGap = headGap,
+            segments = segments,
+            assignableCount = assignableCount,
+            assignables = assignables,
+            removeDeletes = removeDeletes,
+            createdInLevel = createdInLevel
+          )
         }
         .flatMap {
-          case (headFragments, assignments) =>
-            Future.traverse(assignments) {
-              assignment =>
-                Future {
-                  Defrag.run(
-                    segment = Some(assignment.segment),
-                    nullSegment = nullSegment,
-                    fragments = ListBuffer.empty,
-                    headGap = assignment.headGap.result,
-                    tailGap = assignment.tailGap.result,
-                    mergeableCount = assignment.midOverlap.size,
-                    mergeable = assignment.midOverlap.iterator,
-                    removeDeletes = removeDeletes,
-                    createdInLevel = createdInLevel
-                  )
-                }
-            } map {
-              buffer =>
-                headFragments ++= buffer.flatMap(_.result)
-            }
+          headDefragAndAssignments =>
+            defragAssignedAndMergeHead(
+              nullSegment = nullSegment,
+              removeDeletes = removeDeletes,
+              createdInLevel = createdInLevel,
+              headAndAssignments = headDefragAndAssignments
+            )
         }
         .map {
           fragments: ListBuffer[TransientSegment.Fragment] =>
+            //run tail fragments
             if (tailGap.isEmpty)
               fragments
             else
@@ -217,8 +188,122 @@ object DefragSegment {
             }
         }
 
+  case class HeadDefragAndAssignments[SEG >: Null](headFragments: ListBuffer[TransientSegment.Fragment],
+                                                   midAssignments: ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]], SEG]])
+
+  private def runHeadDefragAndAssignments[NULL_SEG >: SEG, SEG >: Null](headGap: ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]],
+                                                                        segments: => Iterator[SEG],
+                                                                        assignableCount: Int,
+                                                                        assignables: Iterator[Assignable],
+                                                                        removeDeletes: Boolean,
+                                                                        createdInLevel: Int)(implicit executionContext: ExecutionContext,
+                                                                                             keyOrder: KeyOrder[Slice[Byte]],
+                                                                                             segmentSource: SegmentSource[SEG],
+                                                                                             valuesConfig: ValuesBlock.Config,
+                                                                                             sortedIndexConfig: SortedIndexBlock.Config,
+                                                                                             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                                                             hashIndexConfig: HashIndexBlock.Config,
+                                                                                             bloomFilterConfig: BloomFilterBlock.Config,
+                                                                                             segmentConfig: SegmentBlock.Config): Future[HeadDefragAndAssignments[SEG]] = {
+    val headFragmentsFuture =
+      if (headGap.isEmpty)
+        Future.successful(ListBuffer.empty[TransientSegment.Fragment])
+      else
+        Future {
+          DefragGap.run(
+            gap = headGap,
+            fragments = ListBuffer.empty,
+            removeDeletes = removeDeletes,
+            createdInLevel = createdInLevel,
+            hasNext = false
+          )
+        }
+
+    val assignmentsFuture =
+      Future {
+        assignAllSegments(
+          segments = segments,
+          assignableCount = assignableCount,
+          assignables = assignables,
+          removeDeletes = removeDeletes
+        )
+      }
+
+    for {
+      headFragments <- headFragmentsFuture
+      assignments <- assignmentsFuture
+    } yield HeadDefragAndAssignments(headFragments, assignments)
+  }
+
+  private def defragAssignedAndMergeHead[NULL_SEG >: SEG, SEG >: Null](nullSegment: NULL_SEG,
+                                                                       removeDeletes: Boolean,
+                                                                       createdInLevel: Int,
+                                                                       headAndAssignments: HeadDefragAndAssignments[SEG])(implicit segmentSource: SegmentSource[SEG],
+                                                                                                                          keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                          functionStore: FunctionStore,
+                                                                                                                          executionContext: ExecutionContext,
+                                                                                                                          valuesConfig: ValuesBlock.Config,
+                                                                                                                          sortedIndexConfig: SortedIndexBlock.Config,
+                                                                                                                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                                                                                          hashIndexConfig: HashIndexBlock.Config,
+                                                                                                                          bloomFilterConfig: BloomFilterBlock.Config,
+                                                                                                                          segmentConfig: SegmentBlock.Config): Future[ListBuffer[TransientSegment.Fragment]] =
+    Future.traverse(headAndAssignments.midAssignments) {
+      assignment =>
+        //Segments that did not get assign a key-value should be converted to Fragment straight away.
+        if (assignment.headGap.result.isEmpty && assignment.tailGap.result.isEmpty && assignment.midOverlap.isEmpty)
+          segmentSource match {
+            case SegmentSource.SegmentTarget =>
+              val remoteSegment =
+                TransientSegment.RemoteSegment(
+                  segment = assignment.segment.asInstanceOf[Segment],
+                  removeDeletes = removeDeletes,
+                  createdInLevel = createdInLevel,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentConfig = segmentConfig
+                )
+
+              Future.successful(ListBuffer(remoteSegment: TransientSegment.Fragment))
+
+            case SegmentSource.SegmentRefTarget =>
+              val remoteRef = TransientSegment.RemoteRef(assignment.segment.asInstanceOf[SegmentRef])
+              Future.successful(ListBuffer(remoteRef: TransientSegment.Fragment))
+          }
+        else
+          Future {
+            Defrag.run(
+              segment = Some(assignment.segment),
+              nullSegment = nullSegment,
+              fragments = ListBuffer.empty,
+              headGap = assignment.headGap.result,
+              tailGap = assignment.tailGap.result,
+              mergeableCount = assignment.midOverlap.size,
+              mergeable = assignment.midOverlap.iterator,
+              removeDeletes = removeDeletes,
+              createdInLevel = createdInLevel
+            ).result
+          }
+    } map {
+      buffer: ListBuffer[ListBuffer[TransientSegment.Fragment]] =>
+        if (headAndAssignments.headFragments.isEmpty)
+          buffer.flatten
+        else
+          headAndAssignments.headFragments ++= buffer.flatten
+    }
+
   /**
    * Assigns key-values [[Assignable]]s to segments [[SEG]].
+   *
+   * This also re-assigns Segments ([[SEG]]) that were not to assigned to any of the assignables
+   * so all Segments are merge.
+   *
+   * This function is primary used by [[PersistentSegmentMany]] and assigning [[SegmentRef]] and
+   * is NOT used by [[swaydb.core.level.Level]].
    */
   def assignAllSegments[SEG >: Null](segments: Iterator[SEG],
                                      assignableCount: Int,

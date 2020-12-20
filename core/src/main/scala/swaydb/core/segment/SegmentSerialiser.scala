@@ -203,11 +203,11 @@ private[core] object SegmentSerialiser {
 
       ByteSizeOf.byte + //formatId
         ByteSizeOf.byte + //segmentFormatId
-        ByteSizeOf.varInt + //updateCount
-        ByteSizeOf.varInt + //rangeCount
-        ByteSizeOf.varInt + //putCount
-        ByteSizeOf.varInt + //putDeadlineCount
-        ByteSizeOf.varInt + //keyValueCount
+        Bytes.sizeOfUnsignedInt(segment.updateCount) + //updateCount
+        Bytes.sizeOfUnsignedInt(segment.rangeCount) + //rangeCount
+        Bytes.sizeOfUnsignedInt(segment.putCount) + //putCount
+        Bytes.sizeOfUnsignedInt(segment.putDeadlineCount) + //putDeadlineCount
+        Bytes.sizeOfUnsignedInt(segment.keyValueCount) + //keyValueCount
         Bytes.sizeOfUnsignedInt(segmentPath.length) +
         segmentPath.length +
         Bytes.sizeOfUnsignedInt(segment.createdInLevel) +

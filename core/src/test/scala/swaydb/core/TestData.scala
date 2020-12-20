@@ -2122,28 +2122,20 @@ object TestData {
               mergeable = mergeable,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
-              segmentParallelism = randomParallelMerge().segment,
-              valuesConfig = valuesConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig
             ).awaitInf
-
-          val segments = putResult.result.map(_.segment)
 
           putResult.source match {
             case MemorySegment.Null =>
               MergeResult(
                 source = Segment.Null,
-                result = segments
+                result = putResult.result
               )
 
             case segment: MemorySegment =>
               MergeResult(
                 source = segment,
-                result = segments
+                result = putResult.result
               )
           }
 
@@ -2200,19 +2192,11 @@ object TestData {
                                                    testCaseSweeper: TestCaseSweeper): Slice[Segment] =
       segment match {
         case segment: MemorySegment =>
-          val putResult =
-            segment.refresh(
-              removeDeletes = removeDeletes,
-              createdInLevel = createdInLevel,
-              valuesConfig = valuesConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig
-            ).await
-
-          putResult.map(_.segment)
+          segment.refresh(
+            removeDeletes = removeDeletes,
+            createdInLevel = createdInLevel,
+            segmentConfig = segmentConfig
+          )
 
         case segment: PersistentSegment =>
           val putResult =

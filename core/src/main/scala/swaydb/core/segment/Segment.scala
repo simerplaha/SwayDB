@@ -415,61 +415,6 @@ private[core] case object Segment extends LazyLogging {
     )
   }
 
-  def mergePut(headGap: Iterable[Assignable],
-               tailGap: Iterable[Assignable],
-               mergeableCount: Int,
-               mergeable: Iterator[Assignable],
-               oldKeyValuesCount: Int,
-               oldKeyValues: Iterator[Persistent],
-               removeDeletes: Boolean,
-               createdInLevel: Int,
-               valuesConfig: ValuesBlock.Config,
-               sortedIndexConfig: SortedIndexBlock.Config,
-               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-               hashIndexConfig: HashIndexBlock.Config,
-               bloomFilterConfig: BloomFilterBlock.Config,
-               segmentConfig: SegmentBlock.Config,
-               pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                   keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   functionStore: FunctionStore,
-                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                   fileSweeper: FileSweeper,
-                                                   bufferCleaner: ByteBufferSweeperActor,
-                                                   blockCacheSweeper: Option[MemorySweeper.Block],
-                                                   segmentIO: SegmentReadIO,
-                                                   forceSaveApplier: ForceSaveApplier): MergeResult[PersistentSegmentOption, Slice[PersistentSegment]] = {
-    //    val transient: Slice[TransientSegment.Persistent] =
-    //      SegmentRefWriter.merge(
-    //        oldKeyValuesCount = oldKeyValuesCount,
-    //        oldKeyValues = oldKeyValues,
-    //        headGap = headGap,
-    //        tailGap = tailGap,
-    //        mergeableCount = mergeableCount,
-    //        mergeable = mergeable,
-    //        removeDeletes = removeDeletes,
-    //        createdInLevel = createdInLevel,
-    //        valuesConfig = valuesConfig,
-    //        sortedIndexConfig = sortedIndexConfig,
-    //        binarySearchIndexConfig = binarySearchIndexConfig,
-    //        hashIndexConfig = hashIndexConfig,
-    //        bloomFilterConfig = bloomFilterConfig,
-    //        segmentConfig = segmentConfig
-    //      )
-    //
-    //    val newSegments =
-    //      SegmentWriteIO.PersistentIO.persist(
-    //        pathsDistributor = pathsDistributor,
-    //        mmap = segmentConfig.mmap,
-    //        segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
-    //        createdInLevel = createdInLevel,
-    //        transient = transient
-    //      ).get
-    //
-    //    SegmentMergeResult(result = newSegments, replaced = true)
-    ???
-  }
-
   /**
    * This refresh does not compute new sortedIndex size and uses existing. Saves an iteration
    * and performs refresh instantly.
@@ -568,48 +513,6 @@ private[core] case object Segment extends LazyLogging {
       valuesConfig = valuesConfig,
       segmentConfig = segmentConfig
     )
-  }
-
-  def refreshForNewLevelPut(removeDeletes: Boolean,
-                            createdInLevel: Int,
-                            keyValues: Iterator[Persistent],
-                            valuesConfig: ValuesBlock.Config,
-                            sortedIndexConfig: SortedIndexBlock.Config,
-                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                            hashIndexConfig: HashIndexBlock.Config,
-                            bloomFilterConfig: BloomFilterBlock.Config,
-                            segmentConfig: SegmentBlock.Config,
-                            pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                                keyOrder: KeyOrder[Slice[Byte]],
-                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                functionStore: FunctionStore,
-                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                fileSweeper: FileSweeper,
-                                                                bufferCleaner: ByteBufferSweeperActor,
-                                                                blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                segmentIO: SegmentReadIO,
-                                                                forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
-
-    val transient: Slice[TransientSegment.Persistent] =
-      Segment.refreshForNewLevel(
-        keyValues = keyValues,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-
-    SegmentWriteIO.PersistentIO.persist(
-      pathsDistributor = pathsDistributor,
-      createdInLevel = createdInLevel,
-      segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
-      mmap = segmentConfig.mmap,
-      transient = transient
-    ).get
   }
 
   def apply(path: Path,

@@ -44,6 +44,19 @@ import swaydb.{Error, IO}
 import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
 
+/**
+ * Type class that provides implementation on how [[TransientSegment]]
+ * should be persisted.
+ *
+ * [[SegmentWriteIO.PersistentIO]] persists [[TransientSegment]] to disk.
+ *
+ * [[SegmentWriteIO.MemoryIO]] is used to write [[MemorySegment]] in-memory.
+ *
+ * [[SegmentWriteIO.Transient]] simply returns the [[TransientSegment]]. This is
+ * used by [[swaydb.core.level.compaction.Compaction]] to delay persisting
+ * [[TransientSegment]] on dedicated IO ExecutionContext.
+ *
+ */
 sealed trait SegmentWriteIO[T <: TransientSegment, A] {
 
   def minKey(segment: A): Slice[Byte]

@@ -25,24 +25,18 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MergeResult, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
-import swaydb.core.merge.MergeStats
+import swaydb.core.merge.{KeyValueMerger, MergeStats}
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
-import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -86,86 +80,85 @@ private[core] final case class MemorySegment(path: Path,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
-          segmentParallelism: SegmentParallelism,
-          valuesConfig: ValuesBlock.Config,
-          sortedIndexConfig: SortedIndexBlock.Config,
-          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-          hashIndexConfig: HashIndexBlock.Config,
-          bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[MergeResult[MemorySegmentOption, Slice[TransientSegment.Memory]]] =
-  //    if (deleted) {
-  //      throw swaydb.Exception.NoSuchFile(path)
-  //    } else {
-  //      val stats = MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
-  //
-  //      SegmentMerger.merge(
-  //        headGap = headGap,
-  //        tailGap = tailGap,
-  //        mergeableCount = mergeableCount,
-  //        mergeable = mergeable,
-  //        oldKeyValuesCount = getKeyValueCount(),
-  //        oldKeyValues = iterator(),
-  //        stats = stats,
-  //        isLastLevel = removeDeletes
-  //      )
-  //
-  //      //      Segment.copyToMemory(
-  //      //        segment = segment,
-  //      //        createdInLevel = levelNumber,
-  //      //        pathsDistributor = pathDistributor,
-  //      //        removeDeletes = removeDeletedRecords,
-  //      //        minSegmentSize = segmentConfig.minSize,
-  //      //        maxKeyValueCountPerSegment = segmentConfig.maxCount
-  //      //      )
-  //
-  //      val newSegments =
-  //        if (stats.isEmpty)
-  //          Slice.empty
-  //        else
-  //          Segment.memory(
-  //            minSegmentSize = segmentConfig.minSize,
-  //            maxKeyValueCountPerSegment = segmentConfig.maxCount,
-  //            pathsDistributor = pathsDistributor,
-  //            createdInLevel = createdInLevel,
-  //            stats = stats.close
-  //          ).map(TransientSegment.Memory)
-  //
-  //      SegmentMergeResult[Slice[TransientSegment.Memory]](result = newSegments, replaced = true)
-  //    }
-    ???
+                                              executionContext: ExecutionContext): Future[MergeResult[MemorySegmentOption, Slice[MemorySegment]]] =
+    if (deleted)
+      Future.failed(swaydb.Exception.NoSuchFile(path))
+    else
+      Future {
+        //TODO - Need a faster approach to Defrag memory segments similar to PersistentSegments.
+
+        val stats = MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
+
+        val head =
+          headGap flatMap {
+            case Assignable.Stats(stats) =>
+              stats.keyValues
+
+            case collection: Assignable.Collection =>
+              collection.iterator()
+          }
+
+        val tail =
+          tailGap flatMap {
+            case Assignable.Stats(stats) =>
+              stats.keyValues
+
+            case collection: Assignable.Collection =>
+              collection.iterator()
+          }
+
+        KeyValueMerger.merge(
+          headGap = head,
+          tailGap = tail,
+          mergeableCount = mergeableCount,
+          mergeable = mergeable,
+          oldKeyValuesCount = keyValueCount,
+          oldKeyValues = iterator(),
+          stats = stats,
+          isLastLevel = removeDeletes
+        )
+
+        val newSegments =
+          if (stats.isEmpty)
+            Slice.empty
+          else
+            Segment.memory(
+              minSegmentSize = segmentConfig.minSize,
+              maxKeyValueCountPerSegment = segmentConfig.maxCount,
+              pathsDistributor = pathsDistributor,
+              createdInLevel = createdInLevel,
+              stats = stats.close
+            )
+
+        MergeResult(source = this, result = newSegments)
+      }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
-              valuesConfig: ValuesBlock.Config,
-              sortedIndexConfig: SortedIndexBlock.Config,
-              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-              hashIndexConfig: HashIndexBlock.Config,
-              bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Future[Slice[TransientSegment.Memory]] =
-  //    if (deleted) {
-  //      throw swaydb.Exception.NoSuchFile(path)
-  //    } else {
-  //      val keyValues =
-  //        Segment
-  //          .toMemoryIterator(iterator(), removeDeletes)
-  //          .to(Iterable)
-  //
-  //      val mergeStats =
-  //        new MergeStats.Memory.Closed[Iterable](
-  //          isEmpty = false,
-  //          keyValues = keyValues
-  //        )
-  //
-  //      Segment.memory(
-  //        minSegmentSize = segmentConfig.minSize,
-  //        maxKeyValueCountPerSegment = segmentConfig.maxCount,
-  //        pathsDistributor = pathsDistributor,
-  //        createdInLevel = createdInLevel,
-  //        stats = mergeStats
-  //      ).map(TransientSegment.Memory)
-  //    }
-    ???
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[MemorySegment] =
+    if (deleted) {
+      throw swaydb.Exception.NoSuchFile(path)
+    } else {
+      val keyValues =
+        Segment
+          .toMemoryIterator(iterator(), removeDeletes)
+          .to(Iterable)
+
+      val mergeStats =
+        new MergeStats.Memory.Closed[Iterable](
+          isEmpty = false,
+          keyValues = keyValues
+        )
+
+      Segment.memory(
+        minSegmentSize = segmentConfig.minSize,
+        maxKeyValueCountPerSegment = segmentConfig.maxCount,
+        pathsDistributor = pathsDistributor,
+        createdInLevel = createdInLevel,
+        stats = mergeStats
+      )
+    }
 
   override def getFromCache(key: Slice[Byte]): MemoryOption =
     skipList.get(key)
