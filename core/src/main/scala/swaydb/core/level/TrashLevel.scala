@@ -86,6 +86,12 @@ private[core] object TrashLevel extends NextLevel {
   override val levelSize: Long =
     0
 
+  override def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
+    true
+
+  override def isUnreserved(segment: Segment): Boolean =
+    true
+
   override def head(readState: ThreadReadState) =
     KeyValue.Put.Null
 
@@ -159,23 +165,23 @@ private[core] object TrashLevel extends NextLevel {
   override def isCopyable(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean =
     true
 
-  override def partitionCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
+  override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
   /**
    * Return empty Set here because it's Trash level and does not require compaction.
    */
   override def put(segment: Segment,
-                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] =
-    Future.successful(Iterable.empty)
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], Future[Iterable[LevelMergeResult]]] =
+    IO.Right(Future.successful(Iterable.empty))(IO.ExceptionHandler.Nothing)
 
   override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] =
-    Future.successful(Iterable.empty)
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], Future[Iterable[LevelMergeResult]]] =
+    IO.Right(Future.successful(Iterable.empty))(IO.ExceptionHandler.Nothing)
 
   override def put(segments: Iterable[Segment],
-                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): Future[Iterable[LevelMergeResult]] =
-    Future.successful(Iterable.empty)
+                   parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], Future[Iterable[LevelMergeResult]]] =
+    IO.Right(Future.successful(Iterable.empty))(IO.ExceptionHandler.Nothing)
 
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
     IO.Right(segments.size)
@@ -240,4 +246,6 @@ private[core] object TrashLevel extends NextLevel {
 
   override def cachedKeyValuesSize(): Option[Long] =
     None
+
+
 }
