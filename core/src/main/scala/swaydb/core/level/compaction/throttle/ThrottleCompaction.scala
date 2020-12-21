@@ -25,18 +25,21 @@
 package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
 import swaydb.core.data.Memory
+import swaydb.core.level._
 import swaydb.core.level.compaction.Compaction
+import swaydb.core.level.compaction.committer.CompactionCommitter
+import swaydb.core.level.compaction.picker.{SegmentCollapsePicker, SegmentCompactionPicker}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
-import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.ParallelMerge
 import swaydb.data.slice.Slice
+import swaydb.data.util.Futures
+import swaydb.data.util.Futures._
+import swaydb.{ActorWire, IO}
 
-import scala.annotation.tailrec
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 /**
  * [[ThrottleCompaction]] does not implement any concurrency which should be handled by an Actor (see [[ThrottleCompactor.createActors]]).
@@ -51,26 +54,20 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   val awaitPullTimeout = 6.seconds
 
   override def run(state: ThrottleState,
-                   forwardCopyOnAllLevels: Boolean): Unit =
-    if (state.terminate)
+                   forwardCopyOnAllLevels: Boolean): Future[Unit] =
+    if (state.terminate) {
       logger.debug(s"${state.name}: Ignoring wakeUp call. Compaction is terminated!")
-    else
+      Future.unit
+    } else {
       runNow(
         state = state,
         forwardCopyOnAllLevels = forwardCopyOnAllLevels
       )
+    }
 
   private[throttle] def runNow(state: ThrottleState,
-                               forwardCopyOnAllLevels: Boolean): Unit = {
+                               forwardCopyOnAllLevels: Boolean): Future[Unit] = {
     logger.debug(s"\n\n\n\n\n\n${state.name}: Running compaction now! forwardCopyOnAllLevels = $forwardCopyOnAllLevels!")
-    if (forwardCopyOnAllLevels) {
-      val totalCopies =
-        copyForwardForEach(
-          levels = state.levelsReversed,
-          parallelMerge = state.parallelMerge
-        )(state.executionContext)
-      logger.debug(s"${state.name}: Copies $totalCopies compacted. Continuing compaction.")
-    }
 
     val levels = state.levels.sorted(state.ordering)
 
@@ -78,11 +75,12 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     //this is because processing all levels would take some time and during that time
     //level0 might fill up with level1 and level2 being empty and level0 maps not being
     //able to merged instantly.
+
     val jobs =
-    if (state.resetCompactionPriorityAtInterval < state.levels.size)
-      levels.take(state.resetCompactionPriorityAtInterval)
-    else
-      levels
+      if (state.resetCompactionPriorityAtInterval < state.levels.size)
+        levels.take(state.resetCompactionPriorityAtInterval)
+      else
+        levels
 
     //run compaction jobs
     runJobs(
@@ -102,11 +100,11 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         sleepDeadline.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
     }
 
-  @tailrec
   private[throttle] def runJobs(state: ThrottleState,
-                                currentJobs: Slice[LevelRef]): Unit =
+                                currentJobs: Slice[LevelRef]): Future[Unit] =
     if (state.terminate) {
       logger.warn(s"${state.name}: Cannot run jobs. Compaction is terminated.")
+      Future.unit
     } else {
       logger.debug(s"${state.name}: Compaction order: ${currentJobs.map(_.levelNumber).mkString(", ")}")
 
@@ -114,21 +112,35 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
       if (level == null) {
         logger.debug(s"${state.name}: Compaction round complete.") //all jobs complete.
+        Future.unit
       } else {
         logger.debug(s"Level(${level.levelNumber}): ${state.name}: Running compaction.")
         val currentState = state.compactionStates.get(level)
 
         //Level's stateId should only be accessed here before compaction starts for the level.
         val stateId = level.stateId
+
         if ((currentState.isEmpty && level.nextCompactionDelay.fromNow.isOverdue()) || currentState.exists(state => shouldRun(level, stateId, state))) {
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: ${if (currentState.isEmpty) "Initial run" else "shouldRun = true"}.")
-          val nextState = runJob(level = level, stateId = stateId, parallelMerge = state.parallelMerge)(state.executionContext)
-          logger.debug(s"Level(${level.levelNumber}): ${state.name}: next state $nextState.")
-          state.compactionStates.put(
-            key = level,
-            value = nextState
-          )
-          runJobs(state, currentJobs.dropHead())
+
+          implicit val executionContext: ExecutionContext = state.executionContext
+          implicit val compactionIO: ActorWire[CompactionCommitter, Unit] = state.compactionIO
+
+          runJob(
+            level = level,
+            stateId = stateId,
+            parallelMerge = state.parallelMerge
+          ) flatMap {
+            nextState =>
+              logger.debug(s"Level(${level.levelNumber}): ${state.name}: next state $nextState.")
+              state.compactionStates.put(
+                key = level,
+                value = nextState
+              )
+
+              runJobs(state, currentJobs.dropHead())
+          }
+
         } else {
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: shouldRun = false.")
           runJobs(state, currentJobs.dropHead())
@@ -137,13 +149,12 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     }
 
   /**
-   *
-   *
    * It should be be re-fetched for the same compaction.
    */
   private[throttle] def runJob(level: LevelRef,
                                stateId: Long,
-                               parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
+                               parallelMerge: ParallelMerge)(implicit ec: ExecutionContext,
+                                                             compactionIO: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
     level match {
       case zero: LevelZero =>
         pushForward(
@@ -165,12 +176,13 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         ThrottleLevelState.Sleeping(
           sleepDeadline = ThrottleLevelState.longSleep,
           stateId = stateId
-        )
+        ).toFuture
     }
 
   private[throttle] def pushForward(zero: LevelZero,
                                     stateId: Long,
-                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
+                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext,
+                                                                  compactionIO: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
     zero.nextLevel match {
       case Some(nextLevel) =>
         pushForward(
@@ -185,16 +197,18 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         ThrottleLevelState.Sleeping(
           sleepDeadline = ThrottleLevelState.longSleep,
           stateId = stateId
-        )
+        ).toFuture
     }
 
   private[throttle] def pushForward(zero: LevelZero,
                                     nextLevel: NextLevel,
                                     stateId: Long,
-                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
+                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext,
+                                                                  compactionIO: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
     zero.maps.nextJob() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
+
         pushForward(
           zero = zero,
           nextLevel = nextLevel,
@@ -205,323 +219,301 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
       case None =>
         logger.debug(s"Level(${zero.levelNumber}): NO LAST MAP. No more maps to merge.")
+
         ThrottleLevelState.Sleeping(
           sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
           stateId = stateId
-        )
+        ).toFuture
     }
 
   private[throttle] def pushForward(zero: LevelZero,
                                     nextLevel: NextLevel,
                                     stateId: Long,
                                     map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
-//    nextLevel.put(
-//      map = map,
-//      parallelMerge = parallelMerge
-//    ) match {
-//      case IO.Right(IO.Right(_)) =>
-//        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
-//        // If there is a failure removing the last map, maps will add the same map back into the queue and print
-//        // error message to be handled by the User.
-//        // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
-//        // Maps are ALWAYS required to be processed sequentially in the order of write.
-//        // Random order merging of maps should NOT be allowed.
-//        zero.maps.removeLast(map) onLeftSideEffect {
-//          error =>
-//            val mapPath: String =
-//              zero
-//                .maps
-//                .nextJob()
-//                .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
-//
-//            logger.error(
-//              s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
-//                "No more maps will be pushed to Level1 until this error is fixed " +
-//                "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
-//                "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
-//              error.exception
-//            )
-//        }
-//
-//        ThrottleLevelState.Sleeping(
-//          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
-//          stateId = stateId
-//        )
-//
-//      case IO.Right(IO.Left(error)) =>
-//        error match {
-//          case _ if zero.coreState.isNotRunning =>
-//            logger.debug(s"Level(${zero.levelNumber}): Failed to push due to shutdown.", error.exception)
-//
-//          //do not log the stack if the IO.Left to merge was ContainsOverlappingBusySegments.
-//          case swaydb.Error.OverlappingPushSegment =>
-//            logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
-//
-//          case _ =>
-//            logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
-//        }
-//
-//        ThrottleLevelState.Sleeping(
-//          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
-//          stateId = stateId
-//        )
-//
-//      case IO.Left(promise) =>
-//        logger.debug(s"Level(${zero.levelNumber}): Awaiting pull. stateId: $stateId.")
-//        ThrottleLevelState.AwaitingPull(
-//          promise = promise,
-//          timeout = awaitPullTimeout.fromNow,
-//          stateId = stateId
-//        )
-//    }
-  ???
+                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext,
+                                                                  compactionIO: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
+    nextLevel.put(map = map) match {
+      case Right(reserved @ LevelReserveResult.Reserved(mergeResultFuture, _)) =>
+        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
+        mergeResultFuture
+          .flatMap {
+            mergeResult =>
+              compactionIO
+                .ask
+                .flatMap {
+                  (impl, _) =>
+                    impl.commit(
+                      fromLevel = zero,
+                      toLevel = nextLevel,
+                      mergeResult = mergeResult
+                    )
+                }
+                .mapUnit {
+                  // If there is a failure removing the last map, maps will add the same map back into the queue and print
+                  // error message to be handled by the User.
+                  // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
+                  // Maps are ALWAYS required to be processed sequentially in the order of write.
+                  // Random order merging of maps should NOT be allowed.
+                  zero.maps.removeLast(map) onLeftSideEffect {
+                    error =>
+                      val mapPath: String =
+                        zero
+                          .maps
+                          .nextJob()
+                          .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
 
-  private[throttle] def pushForward(level: NextLevel,
-                                    stateId: Long,
-                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): ThrottleLevelState =
-    pushForward(
-      level = level,
-      segmentsToPush = level.nextThrottlePushCount max 1,
-      parallelMerge = parallelMerge
-    ) match {
-      case IO.Right(IO.Right(pushed)) =>
-        logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
+                      logger.error(
+                        s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
+                          "No more maps will be pushed to Level1 until this error is fixed " +
+                          "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
+                          "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
+                        error.exception
+                      )
+                  }
+
+                  ThrottleLevelState.Sleeping(
+                    sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
+                    stateId = stateId
+                  )
+                }
+          }
+          .withCallback(reserved.free())
+
+      case Right(failed: LevelReserveResult.Failed) =>
+        failed.error match {
+          case _ if zero.coreState.isNotRunning =>
+            logger.debug(s"Level(${zero.levelNumber}): Failed to push due to shutdown.", failed.error.exception)
+
+          //do not log the stack if the IO.Left to merge was ContainsOverlappingBusySegments.
+          case swaydb.Error.OverlappingPushSegment =>
+            logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
+
+          case _ =>
+            logger.error(s"Level(${zero.levelNumber}): Failed to push", failed.error.exception)
+        }
+
         ThrottleLevelState.Sleeping(
-          sleepDeadline = if (level.isEmpty) ThrottleLevelState.longSleep else level.nextCompactionDelay.fromNow,
+          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
           stateId = stateId
-        )
+        ).toFuture
 
-      case IO.Right(IO.Left(_)) =>
-        ThrottleLevelState.Sleeping(
-          sleepDeadline = if (level.isEmpty) ThrottleLevelState.longSleep else (ThrottleLevelState.failureSleepDuration min level.nextCompactionDelay).fromNow,
-          stateId = stateId
-        )
+      case Left(promise) =>
+        logger.debug(s"Level(${zero.levelNumber}): Awaiting pull. stateId: $stateId.")
 
-      case IO.Left(promise) =>
         ThrottleLevelState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout.fromNow,
           stateId = stateId
-        )
+        ).toFuture
+    }
+
+  private[throttle] def pushForward(level: NextLevel,
+                                    stateId: Long,
+                                    parallelMerge: ParallelMerge)(implicit ec: ExecutionContext,
+                                                                  compactionIO: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
+    pushForward(
+      level = level,
+      stateId = stateId,
+      segmentsToPush = level.nextThrottlePushCount max 1,
+      parallelMerge = parallelMerge
+    ) flatMap {
+      case Right(future) =>
+        future mapUnit {
+          logger.debug(s"Level(${level.levelNumber}): pushed Segments.")
+          ThrottleLevelState.Sleeping(
+            sleepDeadline = if (level.isEmpty) ThrottleLevelState.longSleep else level.nextCompactionDelay.fromNow,
+            stateId = stateId
+          )
+        } recover {
+          _ =>
+            ThrottleLevelState.Sleeping(
+              sleepDeadline = if (level.isEmpty) ThrottleLevelState.longSleep else (ThrottleLevelState.failureSleepDuration min level.nextCompactionDelay).fromNow,
+              stateId = stateId
+            )
+        }
+
+      case Left(promise) =>
+        ThrottleLevelState.AwaitingPull(
+          promise = promise,
+          timeout = awaitPullTimeout.fromNow,
+          stateId = stateId
+        ).toFuture
     }
 
   private def pushForward(level: NextLevel,
+                          stateId: Long,
                           segmentsToPush: Int,
-                          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
+                          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext,
+                                                        compactionIO: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] =
     level.nextLevel match {
       case Some(nextLevel) =>
-        val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
-        logger.debug(s"Level(${level.levelNumber}): copyable: ${copyable.size}, mergeable: ${mergeable.size} ")
+        val segmentsToMerge = SegmentCompactionPicker.pick(level, nextLevel, segmentsToPush)
+        logger.debug(s"Level(${level.levelNumber}): mergeable: ${segmentsToMerge.size} ")
 
-        implicit val promise = IO.ExceptionHandler.PromiseUnit
-
-        val segmentsToCopy =
-          if (level.pushForwardStrategy.always) //copy all only if allowed by pushForwardStrategy
-            copyable
-          else
-            copyable.take(segmentsToPush) //else copy enough to satisfy this compaction jobs requirements.
-
-        putForward(
-          segments = segmentsToCopy,
-          thisLevel = level,
-          nextLevel = nextLevel,
-          parallelMerge = parallelMerge
-        ) flatMap {
-          case IO.Right(copied) =>
-            if (copied >= segmentsToPush)
-              IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](IO.Right[swaydb.Error.Level, Int](copied))
-            else
-              putForward(
-                segments = mergeable take segmentsToPush,
-                thisLevel = level,
-                nextLevel = nextLevel,
-                parallelMerge = parallelMerge,
-              ).transform(_.transform(_ + copied))
-
-          case IO.Left(error) =>
-            IO.Right(IO.Left(error))
+        Future {
+          putForward(
+            segments = segmentsToMerge,
+            thisLevel = level,
+            nextLevel = nextLevel
+          )
         }
 
       case None =>
-        IO.Right(
-          runLastLevelCompaction(
-            level = level,
-            checkExpired = true,
-            remainingCompactions = segmentsToPush,
-            segmentsCompacted = 0,
-            parallelMerge = parallelMerge
-          )
-        )(IO.ExceptionHandler.PromiseUnit)
+        runLastLevelCompaction(
+          level = level,
+          remainingCompactions = segmentsToPush,
+          parallelMerge = parallelMerge
+        )
     }
 
-//  @tailrec
   def runLastLevelCompaction(level: NextLevel,
-                             checkExpired: Boolean,
                              remainingCompactions: Int,
-                             segmentsCompacted: Int,
-                             parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Int] = {
-    logger.debug(s"Level(${level.levelNumber}): Last level compaction. checkExpired = $checkExpired. remainingCompactions = $remainingCompactions. segmentsCompacted = $segmentsCompacted.")
-//    if (level.hasNextLevel || remainingCompactions <= 0) {
-//      IO.Right[swaydb.Error.Level, Int](segmentsCompacted)
-//    } else if (checkExpired) {
-//      logger.debug(s"Level(${level.levelNumber}): checking expired.")
-//      Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
-//        case segment: Segment if segment.nearestPutDeadline.exists(!_.hasTimeLeft()) =>
-//          level.refresh(segment) match {
-//            case IO.Right(IO.Right(_)) =>
-//              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
-//              runLastLevelCompaction(
-//                level = level,
-//                checkExpired = checkExpired,
-//                remainingCompactions = remainingCompactions - 1,
-//                segmentsCompacted = segmentsCompacted + 1,
-//                parallelMerge = parallelMerge
-//              )
-//
-//            case IO.Left(_) =>
-//              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
-//              runLastLevelCompaction(
-//                level = level,
-//                checkExpired = false,
-//                remainingCompactions = remainingCompactions,
-//                segmentsCompacted = segmentsCompacted,
-//                parallelMerge = parallelMerge
-//              )
-//
-//            case IO.Right(IO.Left(_)) =>
-//              logger.debug(s"Level(${level.levelNumber}): Later on refresh 2.")
-//              runLastLevelCompaction(
-//                level = level,
-//                checkExpired = false,
-//                remainingCompactions = remainingCompactions,
-//                segmentsCompacted = segmentsCompacted,
-//                parallelMerge = parallelMerge
-//              )
-//          }
-//
-//        case Segment.Null | _: Segment =>
-//          logger.debug(s"Level(${level.levelNumber}): Check expired complete.")
-//          runLastLevelCompaction(
-//            level = level,
-//            checkExpired = false,
-//            remainingCompactions = remainingCompactions,
-//            segmentsCompacted = segmentsCompacted,
-//            parallelMerge = parallelMerge
-//          )
-//      }
-//    } else {
-//      logger.debug(s"Level(${level.levelNumber}): Collapse run.")
-//      level.collapse(
-//        segments = level.optimalSegmentsToCollapse(remainingCompactions max 2),
-//        parallelMerge = parallelMerge
-//      ) match { //need at least 2 for collapse.
-//        case IO.Right(IO.Right(count)) =>
-//          logger.debug(s"Level(${level.levelNumber}): Collapsed $count small segments.")
-//          runLastLevelCompaction(
-//            level = level,
-//            checkExpired = checkExpired,
-//            remainingCompactions = if (count == 0) 0 else remainingCompactions - count,
-//            segmentsCompacted = segmentsCompacted + count,
-//            parallelMerge = parallelMerge
-//          )
-//
-//        case IO.Left(_) =>
-//          logger.debug(s"Level(${level.levelNumber}): Later on collapse.")
-//          runLastLevelCompaction(
-//            level = level,
-//            checkExpired = checkExpired,
-//            remainingCompactions = 0,
-//            segmentsCompacted = segmentsCompacted,
-//            parallelMerge = parallelMerge
-//          )
-//
-//        case IO.Right(IO.Left(_)) =>
-//          logger.debug(s"Level(${level.levelNumber}): Later on collapse 2.")
-//          runLastLevelCompaction(
-//            level = level,
-//            checkExpired = checkExpired,
-//            remainingCompactions = 0,
-//            segmentsCompacted = segmentsCompacted,
-//            parallelMerge = parallelMerge
-//          )
-//      }
-//    }
-    ???
+                             parallelMerge: ParallelMerge)(implicit ec: ExecutionContext,
+                                                           compactionIO: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] = {
+    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
+    if (level.hasNextLevel || remainingCompactions <= 0) {
+      Futures.rightUnitFuture
+    } else {
+      runLastLevelExpirationCheck(
+        level = level,
+        remainingCompactions = remainingCompactions
+      ) flatMap {
+        case Right(future) =>
+          future
+            .flatMapUnit {
+              runLastLevelCollapseCheck(
+                level = level,
+                remainingCompactions = remainingCompactions
+              )
+            }
+
+        case Left(promise) =>
+          Future.successful(Left(promise))
+      }
+    }
   }
 
-  /**
-   * Runs lazy error checks. Ignores all errors and continues copying
-   * each Level starting from the lowest level first.
-   */
-  private[throttle] def copyForwardForEach(levels: Slice[LevelRef],
-                                           parallelMerge: ParallelMerge)(implicit executionContext: ExecutionContext): Int =
-    levels.foldLeft(0) {
-      case (totalCopies, level: NextLevel) =>
-        if (level.pushForwardStrategy.always) {
-          val copied = copyForward(level = level, parallelMerge = parallelMerge)
-          logger.debug(s"Level(${level.levelNumber}): Compaction copied $copied.")
-          totalCopies + copied
-        } else {
-          totalCopies
-        }
+  def runLastLevelExpirationCheck(level: NextLevel,
+                                  remainingCompactions: Int)(implicit ec: ExecutionContext,
+                                                             compactionIO: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] = {
+    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
+    if (level.hasNextLevel || remainingCompactions <= 0)
+      Futures.rightUnitFuture
+    else
+      Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
+        case segment: Segment if segment.nearestPutDeadline.exists(!_.hasTimeLeft()) =>
+          level.refresh(segment) match {
+            case scala.Right(reserved @ LevelReserveResult.Reserved(result, key)) =>
+              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
 
-      case (copies, TrashLevel | _: LevelZero) =>
-        copies
+              result match {
+                case IO.Right(newSegments) =>
+                  compactionIO
+                    .ask
+                    .flatMap {
+                      (impl, _) =>
+                        impl.replace(
+                          level = level,
+                          old = segment,
+                          neu = newSegments
+                        ).withCallback(reserved.free())
+                    }
+                    .flatMapUnit(
+                      runLastLevelExpirationCheck(
+                        level = level,
+                        remainingCompactions = remainingCompactions - 1
+                      )
+                    )
+
+                case IO.Left(error) =>
+                  logger.debug(s"Level(${level.levelNumber}): Failed to refresh", error.exception)
+                  Futures.rightUnitFuture
+              }
+
+            case scala.Right(failed: LevelReserveResult.Failed) =>
+              logger.debug(s"Level(${level.levelNumber}): Refresh failed.", failed.error.exception)
+              Future.successful(Right(Future.failed(failed.error.exception)))
+
+            case scala.Left(promise) =>
+              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
+              Future.successful(scala.Left(promise))
+          }
+
+        case Segment.Null | _: Segment =>
+          logger.debug(s"Level(${level.levelNumber}): Check expired complete.")
+          Futures.rightUnitFuture
+      }
+  }
+
+
+  def runLastLevelCollapseCheck(level: NextLevel,
+                                remainingCompactions: Int)(implicit ec: ExecutionContext,
+                                                           compactionIO: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] = {
+    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
+    if (level.hasNextLevel || remainingCompactions <= 0) {
+      Futures.rightUnitFuture
+    } else {
+      logger.debug(s"Level(${level.levelNumber}): Collapse run.")
+      level.collapse(segments = SegmentCollapsePicker.pick(level, remainingCompactions max 2)) match { //need at least 2 for collapse.
+        case scala.Right(reserved @ LevelReserveResult.Reserved(result, key)) =>
+          result flatMap {
+            case LevelCollapseResult.Empty =>
+              Futures.rightUnitFuture
+
+            case LevelCollapseResult.Collapsed(sourceSegments, mergeResult) =>
+              logger.debug(s"Level(${level.levelNumber}): Collapsed ${sourceSegments.size} small segments.")
+              compactionIO.ask
+                .flatMap {
+                  (impl, _) =>
+                    impl.replace(
+                      level = level,
+                      old = sourceSegments,
+                      neu = mergeResult
+                    ).withCallback(reserved.free())
+                }
+                .flatMapUnit {
+                  runLastLevelCollapseCheck(
+                    level = level,
+                    remainingCompactions = remainingCompactions - 1
+                  )
+                }
+          }
+
+        case scala.Right(failed: LevelReserveResult.Failed) =>
+          logger.debug(s"Level(${level.levelNumber}): Collpase failed.", failed.error.exception)
+          Future.successful(Right(Future.failed(failed.error.exception)))
+
+        case scala.Left(promise) =>
+          logger.debug(s"Level(${level.levelNumber}): Later on collpase.")
+          Future.successful(scala.Left(promise))
+      }
     }
-
-  private def copyForward(level: NextLevel,
-                          parallelMerge: ParallelMerge)(implicit executionContext: ExecutionContext): Int =
-//    level.nextLevel match {
-//      case Some(nextLevel) =>
-//        val segmentsInLevel = level.segmentsInLevel()
-//        val (copyable, nonCopyable) = nextLevel.partitionUnreservedCopyable(segmentsInLevel)
-//        logger.debug(s"Level(${level.levelNumber}): Total segments: ${segmentsInLevel.size}, Can copy: ${copyable.size} segments. Remaining: ${nonCopyable.size} segments.")
-//        putForward(
-//          segments = copyable,
-//          thisLevel = level,
-//          nextLevel = nextLevel,
-//          parallelMerge = parallelMerge
-//        ) match {
-//          case IO.Right(IO.Right(copied)) =>
-//            logger.debug(s"Level(${level.levelNumber}): Forward copied $copied Segments.")
-//            copied
-//
-//          case IO.Right(IO.Left(error)) =>
-//            logger.error(s"Level(${level.levelNumber}): Failed copy Segments forward.", error.exception)
-//            0
-//
-//          case IO.Left(_) =>
-//            //this should never really occur when no other concurrent compactions are occurring.
-//            logger.warn(s"Level(${level.levelNumber}): Received later compaction.")
-//            0
-//        }
-//
-//      case None =>
-//        0
-//    }
-  ???
+  }
 
   private[throttle] def putForward(segments: Iterable[Segment],
                                    thisLevel: NextLevel,
-                                   nextLevel: NextLevel,
-                                   parallelMerge: ParallelMerge)(implicit executionContext: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
-//    if (segments.isEmpty)
-//      IO.zeroZero
-//    else
-//      nextLevel.put(segments = segments, parallelMerge = parallelMerge) map {
-//        case IO.Right(_) =>
-//          thisLevel
-//            .removeSegments(segments)
-//            //transform because remove might be eventual depending on the level's config.
-//            .transform(_ => segments.size)
-//            .recover {
-//              case _ =>
-//                segments.size
-//            }
-//
-//        case IO.Left(error) =>
-//          IO.Left(error)
-//      }
-  ???
+                                   nextLevel: NextLevel)(implicit executionContext: ExecutionContext,
+                                                         compactionIO: ActorWire[CompactionCommitter, Unit]): Either[Promise[Unit], Future[Unit]] =
+    if (segments.isEmpty)
+      Right(Future.unit)
+    else
+      nextLevel.put(segments = segments) map {
+        case reserved @ LevelReserveResult.Reserved(mergeResultFuture, _) =>
+          mergeResultFuture
+            .flatMap {
+              mergeResult =>
+                compactionIO.ask flatMap {
+                  (impl, _) =>
+                    impl.commit(
+                      fromLevel = thisLevel,
+                      toLevel = nextLevel,
+                      mergeResult = mergeResult
+                    )
+                }
+            }
+            .withCallback(reserved.free())
+
+        case failed: LevelReserveResult.Failed =>
+          Future.failed(failed.error.exception)
+      }
 }

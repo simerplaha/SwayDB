@@ -22,11 +22,19 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level
 
-import scala.concurrent.Future
+import swaydb.core.data.MergeResult
+import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.segment.block.segment.data.TransientSegment
 
-protected trait Compaction[S] {
-  def run(state: S,
-          forwardCopyOnAllLevels: Boolean): Future[Unit]
+sealed trait LevelCollapseResult
+
+case object LevelCollapseResult {
+
+  final case object Empty extends LevelCollapseResult
+
+  final case class Collapsed(sourceSegments: Iterable[Segment],
+                             mergeResult: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]) extends LevelCollapseResult
+
 }

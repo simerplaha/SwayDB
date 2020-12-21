@@ -44,7 +44,9 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
-sealed trait PersistentSegmentOption
+sealed trait PersistentSegmentOption {
+  def asSegmentOption: SegmentOption
+}
 
 trait PersistentSegment extends Segment with PersistentSegmentOption {
   def file: DBFile
@@ -54,13 +56,15 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
   def isMMAP =
     file.isMemoryMapped
 
+  override def asSegmentOption: SegmentOption =
+    this
+
   def put(headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           mergeableCount: Int,
           mergeable: Iterator[Assignable],
           removeDeletes: Boolean,
           createdInLevel: Int,
-          segmentParallelism: SegmentParallelism,
           valuesConfig: ValuesBlock.Config,
           sortedIndexConfig: SortedIndexBlock.Config,
           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -77,6 +81,8 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.OneOrRemoteRefOrMany]
+
+
 }
 
 object PersistentSegment {
@@ -84,5 +90,7 @@ object PersistentSegment {
 
   val emptyFutureSlice = Slice.empty[scala.concurrent.Future[PersistentSegment]]
 
-  case object Null extends PersistentSegmentOption
+  case object Null extends PersistentSegmentOption {
+    override val asSegmentOption: SegmentOption = Segment.Null
+  }
 }

@@ -2148,7 +2148,6 @@ object TestData {
               mergeable = mergeable,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
-              segmentParallelism = randomParallelMerge().segment,
               valuesConfig = valuesConfig,
               sortedIndexConfig = sortedIndexConfig,
               binarySearchIndexConfig = binarySearchIndexConfig,

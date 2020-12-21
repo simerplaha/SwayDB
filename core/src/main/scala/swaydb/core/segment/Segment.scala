@@ -43,8 +43,8 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
-import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.ref.SegmentRef
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
@@ -58,6 +58,7 @@ import swaydb.{Aggregator, IO}
 
 import java.nio.file.Path
 import scala.annotation.tailrec
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}

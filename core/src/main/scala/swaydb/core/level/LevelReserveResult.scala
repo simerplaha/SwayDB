@@ -24,9 +24,35 @@
 
 package swaydb.core.level
 
-import swaydb.core.data.MergeResult
-import swaydb.core.segment.SegmentOption
-import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.util.ReserveRange
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 
-final case class LevelMergeResult(level: Level,
-                                  segments: MergeResult[SegmentOption, Iterable[TransientSegment]])
+sealed trait LevelReserveResult[+A] {
+  @inline def map[B](f: A => B): LevelReserveResult[B]
+}
+case object LevelReserveResult {
+
+  case class Reserved[A](result: A,
+                         key: Slice[Byte])(implicit reserve: ReserveRange.State[Unit],
+                                           keyOrder: KeyOrder[Slice[Byte]]) extends LevelReserveResult[A] {
+    def free(): Unit =
+      ReserveRange.free(key)(reserve, keyOrder)
+
+    @inline def map[B](f: A => B): LevelReserveResult.Reserved[B] =
+      new Reserved[B](
+        result = f(result),
+        key = key
+      )
+  }
+
+  object Failed {
+    @inline def apply(error: swaydb.Error.Level): LevelReserveResult.Failed =
+      new Failed(error)
+  }
+
+  class Failed(val error: swaydb.Error.Level) extends LevelReserveResult[Nothing] {
+    @inline override def map[B](f: Nothing => B): LevelReserveResult[B] =
+      this
+  }
+}

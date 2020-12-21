@@ -348,6 +348,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
   def close(): BAG[Unit] =
     closeWithBag()(this.bag)
 
+  //TODO - terminate compactionIO
   def closeWithBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     if (coreState.isNotRunning)
       bag.unit

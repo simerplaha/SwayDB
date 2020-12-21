@@ -32,24 +32,28 @@ import scala.concurrent.ExecutionContext
 sealed trait CompactionExecutionContext
 object CompactionExecutionContext {
 
-  def create(service: ExecutorService,
+  def create(compactionService: ExecutorService,
+             compactionIOExecutionService: ExecutorService,
              parallelMerge: ParallelMerge,
              resetCompactionPriorityAtInterval: Int): Create =
     Create(
-      executionContext = ExecutionContext.fromExecutorService(service),
+      compactionExecutionContext = ExecutionContext.fromExecutorService(compactionService),
+      compactionIOExecutionContext = ExecutionContext.fromExecutorService(compactionIOExecutionService),
       parallelMerge = parallelMerge,
       resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval
     )
 
   object Create {
-    def apply(executionContext: ExecutionContext,
+    def apply(compactionExecutionContext: ExecutionContext,
+              compactionIOExecutionContext: ExecutionContext,
               parallelMerge: ParallelMerge,
               resetCompactionPriorityAtInterval: Int): Create =
       if (resetCompactionPriorityAtInterval <= 0)
         throw new Exception(s"Invalid resetCompactionPriorityAtInterval $resetCompactionPriorityAtInterval. Should be greater than zero.")
       else
         new Create(
-          executionContext = executionContext,
+          compactionExecutionContext = compactionExecutionContext,
+          compactionIOExecutionContext = compactionIOExecutionContext,
           parallelMerge = parallelMerge,
           resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval
         )
@@ -60,13 +64,14 @@ object CompactionExecutionContext {
    * (see DefaultPersistentConfig for example) will start a new compaction group. If all the subsequent
    * Level's configs are [[Shared]] then they will join this group's compaction thread.
    *
-   * @param executionContext                  used to execute compaction jobs
+   * @param compactionExecutionContext        used to execute compaction jobs
    * @param parallelMerge                     see [[ParallelMerge]]
    * @param resetCompactionPriorityAtInterval Example: if there are 7 Levels then setting this to 2 will
    *                                          run compaction on a maximum of two levels consecutively before
    *                                          re-ordering/re-prioritising/re-computing compaction priority.
    */
-  case class Create private(executionContext: ExecutionContext,
+  case class Create private(compactionExecutionContext: ExecutionContext,
+                            compactionIOExecutionContext: ExecutionContext,
                             parallelMerge: ParallelMerge,
                             resetCompactionPriorityAtInterval: Int) extends CompactionExecutionContext
 

@@ -25,10 +25,10 @@
 package swaydb.core.level.compaction.throttle
 
 import java.util.TimerTask
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.Compactor
+import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.data.compaction.ParallelMerge
 import swaydb.data.slice.Slice
 import swaydb.data.util.FiniteDurations
@@ -46,10 +46,14 @@ private[core] case class ThrottleState(levels: Slice[LevelRef],
                                        resetCompactionPriorityAtInterval: Int,
                                        child: Option[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                        executionContext: ExecutionContext,
-                                       compactionStates: mutable.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {
+                                       compactionStates: mutable.Map[LevelRef, ThrottleLevelState],
+                                       compactionIO: ActorWire[CompactionCommitter, Unit]) extends LazyLogging {
   @volatile private[compaction] var terminate: Boolean = false
+
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
+
   val hasLevelZero: Boolean = levels.exists(_.isZero)
+
   val levelsReversed = Slice(levels.reverse.toArray)
 
   val ordering: Ordering[LevelRef] =

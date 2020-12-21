@@ -24,13 +24,16 @@
 
 package swaydb.core.level
 
-import swaydb.IO
-import swaydb.core.data.Memory
+import swaydb.{Error, IO}
+import swaydb.core.data.{Memory, MergeResult}
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
-import swaydb.core.segment.Segment
-import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.util.ReserveRange
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.PushForwardStrategy
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
@@ -82,14 +85,15 @@ trait NextLevel extends LevelRef {
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def put(segment: Segment,
-          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], Future[Iterable[LevelMergeResult]]]
+  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]]]]
 
-  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], Future[Iterable[LevelMergeResult]]]
+  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]]]]
 
-  def put(segments: Iterable[Segment],
-          parallelMerge: ParallelMerge)(implicit ec: ExecutionContext): IO[Promise[Unit], Future[Iterable[LevelMergeResult]]]
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]]]]
+
+  def refresh(segment: Segment): Either[Promise[Unit], LevelReserveResult[IO[Error.Level, Slice[TransientSegment]]]]
+
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[LevelCollapseResult]]]
 
   def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Int]
 
@@ -120,10 +124,6 @@ trait NextLevel extends LevelRef {
   def takeSmallSegments(size: Int): Iterable[Segment]
 
   def takeLargeSegments(size: Int): Iterable[Segment]
-
-  def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment])
-
-  def optimalSegmentsToCollapse(take: Int): Iterable[Segment]
 
   def takeSegments(size: Int,
                    condition: Segment => Boolean): Iterable[Segment]

@@ -28,6 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.level.LevelRef
+import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.NonEmptyList
@@ -68,14 +69,14 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     else
       levels
         .zip(executionContexts)
-        .foldLeftRecoverIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext, ParallelMerge, Int)]) {
-          case (jobs, (level, CompactionExecutionContext.Create(executionContext, parallelMerge, resetCompactionPriorityAtInterval))) => //new thread pool.
-            jobs += ((ListBuffer(level), executionContext, parallelMerge, resetCompactionPriorityAtInterval))
+        .foldLeftRecoverIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext, ExecutionContext, ParallelMerge, Int)]) {
+          case (jobs, (level, CompactionExecutionContext.Create(compactionEC, compactionIOEC, parallelMerge, resetCompactionPriorityAtInterval))) => //new thread pool.
+            jobs += ((ListBuffer(level), compactionEC, compactionIOEC, parallelMerge, resetCompactionPriorityAtInterval))
             IO.Right(jobs)
 
           case (jobs, (level, CompactionExecutionContext.Shared)) => //share with previous thread pool.
             jobs.lastOption match {
-              case Some((lastGroup, _, _, _)) =>
+              case Some((lastGroup, _, _, _, _)) =>
                 lastGroup += level
                 IO.Right(jobs)
 
@@ -91,7 +92,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
               jobs
                 .zipWithIndex
                 .foldRight(List.empty[ActorWire[Compactor[ThrottleState], ThrottleState]]) {
-                  case (((jobs, executionContext, parallelMerge, resetCompactionPriorityAtInterval), index), children) =>
+                  case (((jobs, executionContext, compactionIOEC, parallelMerge, resetCompactionPriorityAtInterval), index), children) =>
                     val statesMap = mutable.Map.empty[LevelRef, ThrottleLevelState]
 
                     val state =
@@ -101,6 +102,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                         resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
                         child = children.headOption,
                         executionContext = executionContext,
+                        compactionIO = CompactionCommitter.createActor(compactionIOEC),
                         compactionStates = statesMap
                       )
 
@@ -283,16 +285,16 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
   def doWakeUp(state: ThrottleState,
                forwardCopyOnAllLevels: Boolean,
                self: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
-    try
-      compaction.run(
-        state = state,
-        forwardCopyOnAllLevels = forwardCopyOnAllLevels
-      )
-    finally
-      postCompaction(
-        state = state,
-        self = self
-      )
+    compaction.run(
+      state = state,
+      forwardCopyOnAllLevels = forwardCopyOnAllLevels
+    ).onComplete {
+      _ =>
+        postCompaction(
+          state = state,
+          self = self
+        )
+    }(state.executionContext)
 
   def createAndListen(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =

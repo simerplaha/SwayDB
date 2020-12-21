@@ -51,7 +51,8 @@ case object CommonConfigs {
     val executionContext = DefaultExecutionContext.compactionEC(parallelMerge = parallelMerge)
     //create compaction config
     CompactionExecutionContext.Create(
-      executionContext = executionContext,
+      compactionExecutionContext = executionContext,
+      compactionIOExecutionContext = DefaultExecutionContext.compactionIOEC,
       parallelMerge = parallelMerge,
       resetCompactionPriorityAtInterval = 3
     )

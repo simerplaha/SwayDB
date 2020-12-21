@@ -26,11 +26,13 @@ package swaydb.core.level.compaction.throttle
 
 import swaydb.data.util.FiniteDurations._
 
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.{Deadline, _}
 
 private[level] sealed trait ThrottleLevelState {
   def stateId: Long
+
+  def toFuture: Future[ThrottleLevelState]
 }
 
 private[level] object ThrottleLevelState {
@@ -52,6 +54,9 @@ private[level] object ThrottleLevelState {
         s"stateId: $stateId, " +
         s"listenerInvoked: $listenerInvoked, " +
         s"listenerInitialised: $listenerInitialised"
+
+    override def toFuture: Future[AwaitingPull] =
+      Future.successful(this)
   }
 
   case class Sleeping(sleepDeadline: Deadline,
@@ -60,5 +65,8 @@ private[level] object ThrottleLevelState {
       this.productPrefix +
         s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +
         s"stateId: $stateId "
+
+    override def toFuture: Future[Sleeping] =
+      Future.successful(this)
   }
 }

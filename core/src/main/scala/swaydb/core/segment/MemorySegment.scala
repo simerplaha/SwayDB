@@ -41,14 +41,20 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
 import java.nio.file.Path
+import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 
-sealed trait MemorySegmentOption
+sealed trait MemorySegmentOption {
+  def asSegmentOption: SegmentOption
+}
 
 object MemorySegment {
-  final case object Null extends MemorySegmentOption
+  final case object Null extends MemorySegmentOption {
+    override val asSegmentOption: SegmentOption =
+      Segment.Null
+  }
 }
 
 private[core] final case class MemorySegment(path: Path,
@@ -73,6 +79,9 @@ private[core] final case class MemorySegment(path: Path,
   import keyOrder._
 
   override def formatId: Byte = 0
+
+  override def asSegmentOption: SegmentOption =
+    this
 
   def put(headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
           tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],

@@ -25,12 +25,12 @@
 package swaydb.core.segment.defrag
 
 import swaydb.Aggregator
-import swaydb.Aggregator.nothingAggregator
 import swaydb.core.data.{Memory, MergeResult}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.MergeStats
 import swaydb.core.merge.MergeStats.Persistent
 import swaydb.core.segment.SegmentSource._
+import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner, SegmentAssignment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -39,7 +39,6 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment._
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.IDGenerator
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -47,7 +46,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.Futures
 import swaydb.data.util.Futures._
 
-import scala.collection.StrictOptimizedIterableOps
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -268,7 +266,7 @@ object DefragSegment {
                   segmentConfig = segmentConfig
                 )
 
-              Future.successful(ListBuffer(remoteSegment: TransientSegment.Fragment))
+              Future.successful(ListBuffer(remoteSegment))
 
             case SegmentSource.SegmentRefTarget =>
               val remoteRef = TransientSegment.RemoteRef(assignment.segment.asInstanceOf[SegmentRef])
@@ -289,7 +287,7 @@ object DefragSegment {
             ).result
           }
     } map {
-      buffer: ListBuffer[ListBuffer[TransientSegment.Fragment]] =>
+      buffer =>
         if (headAndAssignments.headFragments.isEmpty)
           buffer.flatten
         else
@@ -326,6 +324,7 @@ object DefragSegment {
     val hasMissing =
       segmentsIteratorDuplicate.foldLeft(false) {
         case (missing, segment) =>
+          //TODO - assignments dont need to check for added missing assignments.
           if (!assignments.exists(_.segment == segment)) {
             assignments +=
               SegmentAssignment(
@@ -499,11 +498,11 @@ object DefragSegment {
 
         slices foreach addAll
 
-        if (remoteSegments.nonEmpty) {
+        if (remoteSegments.isEmpty) {
+          slice
+        } else {
           addAll(remoteSegments)
           slice.sortBy(_.minKey)(keyOrder)
-        } else {
-          slice
         }
     }
 }

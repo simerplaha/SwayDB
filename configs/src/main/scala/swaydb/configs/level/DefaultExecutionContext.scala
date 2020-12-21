@@ -49,6 +49,9 @@ object DefaultExecutionContext extends LazyLogging {
     ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2 + maxThreads, DefaultThreadFactory.create()))
   }
 
+  lazy val compactionIOEC: ExecutionContext =
+    ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(DefaultThreadFactory.create()))
+
   /**
    * ExecutionContext used for [[swaydb.data.config.FileCache]] and [[swaydb.data.config.MemoryCache]].
    *
