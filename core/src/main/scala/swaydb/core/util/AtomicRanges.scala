@@ -26,6 +26,7 @@ package swaydb.core.util
 
 import swaydb.Bag
 import swaydb.Bag.Implicits._
+import swaydb.IO.ExceptionHandler.Promise
 import swaydb.core.util.AtomicRanges.{Action, Value}
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
@@ -33,6 +34,7 @@ import swaydb.data.slice.Slice
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong
 import scala.annotation.tailrec
+import scala.concurrent.Promise
 
 /**
  * [[AtomicRanges]] behaves similar to [[java.util.concurrent.locks.ReentrantReadWriteLock]]
@@ -140,6 +142,31 @@ private[core] case object AtomicRanges {
             f = f
           )(async, ranges)
       }
+  }
+
+  @inline def writeOrPromise[K, T](fromKey: K, toKey: K, toKeyInclusive: Boolean, f: => T)(implicit transaction: AtomicRanges[K]): Either[Promise[Unit], T] =
+    writeOrPromise(
+      key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, Action.Write),
+      value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: WRITE busy")),
+      f = f
+    )
+
+  private def writeOrPromise[K, T](key: Key[K], value: Value[Reserve[Unit]], f: => T)(implicit ranges: AtomicRanges[K]): Either[Promise[Unit], T] = {
+    val putResult = ranges.transactions.putIfAbsent(key, value)
+
+    if (putResult == null) {
+      try
+        Right(f)
+      finally {
+        val removed = ranges.transactions.remove(key)
+        //        assert(removed.value.hashCode() == value.value.hashCode())
+        Reserve.setFree(removed.value)
+      }
+    } else {
+      val promise = Promise[Unit]()
+      putResult.value.savePromise(promise)
+      Left(promise)
+    }
   }
 
   private def writeAsync[K, T, BAG[_]](key: Key[K],
