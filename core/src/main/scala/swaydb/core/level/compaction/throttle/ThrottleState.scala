@@ -24,16 +24,14 @@
 
 package swaydb.core.level.compaction.throttle
 
-import java.util.TimerTask
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.Compactor
-import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.data.compaction.ParallelMerge
 import swaydb.data.slice.Slice
 import swaydb.data.util.FiniteDurations
 import swaydb.{ActorWire, IO}
 
+import java.util.TimerTask
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
@@ -42,12 +40,10 @@ import scala.concurrent.duration.Deadline
  * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
  */
 private[core] case class ThrottleState(levels: Slice[LevelRef],
-                                       parallelMerge: ParallelMerge,
                                        resetCompactionPriorityAtInterval: Int,
                                        child: Option[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                        executionContext: ExecutionContext,
-                                       compactionStates: mutable.Map[LevelRef, ThrottleLevelState],
-                                       compactionIO: ActorWire[CompactionCommitter, Unit]) extends LazyLogging {
+                                       compactionStates: mutable.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {
   @volatile private[compaction] var terminate: Boolean = false
 
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None

@@ -33,28 +33,20 @@ sealed trait CompactionExecutionContext
 object CompactionExecutionContext {
 
   def create(compactionService: ExecutorService,
-             compactionIOExecutionService: ExecutorService,
-             parallelMerge: ParallelMerge,
              resetCompactionPriorityAtInterval: Int): Create =
     Create(
       compactionExecutionContext = ExecutionContext.fromExecutorService(compactionService),
-      compactionIOExecutionContext = ExecutionContext.fromExecutorService(compactionIOExecutionService),
-      parallelMerge = parallelMerge,
       resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval
     )
 
   object Create {
     def apply(compactionExecutionContext: ExecutionContext,
-              compactionIOExecutionContext: ExecutionContext,
-              parallelMerge: ParallelMerge,
               resetCompactionPriorityAtInterval: Int): Create =
       if (resetCompactionPriorityAtInterval <= 0)
         throw new Exception(s"Invalid resetCompactionPriorityAtInterval $resetCompactionPriorityAtInterval. Should be greater than zero.")
       else
         new Create(
           compactionExecutionContext = compactionExecutionContext,
-          compactionIOExecutionContext = compactionIOExecutionContext,
-          parallelMerge = parallelMerge,
           resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval
         )
   }
@@ -65,14 +57,11 @@ object CompactionExecutionContext {
    * Level's configs are [[Shared]] then they will join this group's compaction thread.
    *
    * @param compactionExecutionContext        used to execute compaction jobs
-   * @param parallelMerge                     see [[ParallelMerge]]
    * @param resetCompactionPriorityAtInterval Example: if there are 7 Levels then setting this to 2 will
    *                                          run compaction on a maximum of two levels consecutively before
    *                                          re-ordering/re-prioritising/re-computing compaction priority.
    */
   case class Create private(compactionExecutionContext: ExecutionContext,
-                            compactionIOExecutionContext: ExecutionContext,
-                            parallelMerge: ParallelMerge,
                             resetCompactionPriorityAtInterval: Int) extends CompactionExecutionContext
 
   def shared(): CompactionExecutionContext.Shared =

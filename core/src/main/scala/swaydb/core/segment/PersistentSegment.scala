@@ -25,8 +25,6 @@
 package swaydb.core.segment
 
 import swaydb.core.data.{Memory, MergeResult}
-
-import java.nio.file.Path
 import swaydb.core.io.file.DBFile
 import swaydb.core.merge.MergeStats
 import swaydb.core.segment.assigner.Assignable
@@ -38,9 +36,9 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.util.IDGenerator
-import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.slice.Slice
 
+import java.nio.file.Path
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 

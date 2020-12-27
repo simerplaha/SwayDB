@@ -24,30 +24,31 @@
 
 package swaydb.core
 
-import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
+import swaydb._
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.build.BuildValidator
 import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.compaction.Compactor
+import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.throttle.ThrottleState
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.data.NonEmptyList
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.sequencer.Sequencer
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
-import swaydb._
-import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.data.sequencer.Sequencer
 
+import java.nio.file.Path
 import scala.concurrent.duration._
 
 /**
@@ -158,6 +159,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
                                    private val sequencer: Sequencer[BAG],
                                    val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
                                                                                  compactors: NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]],
+                                                                                 committer: ActorWire[CompactionCommitter, Unit],
                                                                                  private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
 
   def zeroPath: Path =
@@ -268,8 +270,8 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
   def blockCacheSize(): Option[Long] =
     zero.blockCacheSize()
 
-   def cachedKeyValuesSize(): Option[Long] =
-     zero.cachedKeyValuesSize()
+  def cachedKeyValuesSize(): Option[Long] =
+    zero.cachedKeyValuesSize()
 
   def openedFiles(): Option[Long] =
     zero.openedFiles()
@@ -348,7 +350,6 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
   def close(): BAG[Unit] =
     closeWithBag()(this.bag)
 
-  //TODO - terminate compactionIO
   def closeWithBag[BAG[_]]()(implicit bag: Bag[BAG]): BAG[Unit] =
     if (coreState.isNotRunning)
       bag.unit
@@ -364,6 +365,9 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
             case (result, compactor) =>
               result and compactor.terminateAndClear()
           }
+        }
+        .andThen {
+          committer.terminateAndClear()
         }
         .andTransform {
           logger.info("Compaction terminated!")
@@ -390,6 +394,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
       readStates = readStates,
     )(bag = bag2,
       compactors = compactors,
+      committer = committer,
       bufferSweeper = bufferSweeper)
 
   def toBag[BAG2[_]](serialOrNull: Sequencer[BAG2])(implicit bag2: Bag[BAG2]): Core[BAG2] =
@@ -401,5 +406,6 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
       readStates = readStates,
     )(bag = bag2,
       compactors = compactors,
+      committer = committer,
       bufferSweeper = bufferSweeper)
 }

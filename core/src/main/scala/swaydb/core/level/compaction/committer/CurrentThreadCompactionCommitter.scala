@@ -24,44 +24,50 @@
 
 package swaydb.core.level.compaction.committer
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.MergeResult
 import swaydb.core.level.NextLevel
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.data.slice.Slice
-import swaydb.{Actor, ActorWire}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait CompactionCommitter {
+protected case object CurrentThreadCompactionCommitter extends CompactionCommitter with LazyLogging {
 
-  def name: String
+  private implicit val ec: ExecutionContext =
+    new ExecutionContext {
+      override def execute(runnable: Runnable): Unit =
+        runnable.run()
+
+      override def reportFailure(cause: Throwable): Unit = {
+        logger.error("Failed execution", cause)
+        throw cause
+      }
+    }
+
+  override def name: String =
+    CurrentThreadCompactionCommitter.productPrefix
 
   def commit(fromLevel: NextLevel,
              toLevel: NextLevel,
-             mergeResult: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
+             mergeResult: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
+    ???
 
-  def commit(fromLevel: LevelZero,
-             toLevel: NextLevel,
-             mergeResult: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
+  override def commit(fromLevel: LevelZero,
+                      toLevel: NextLevel,
+                      mergeResult: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
+    ???
 
-  def replace(level: NextLevel,
-              old: Segment,
-              neu: Slice[TransientSegment]): Future[Unit]
+  override def replace(level: NextLevel,
+                       old: Segment,
+                       neu: Slice[TransientSegment]): Future[Unit] =
+    ???
 
-  def replace(level: NextLevel,
-              old: Iterable[Segment],
-              neu: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
-}
-
-case object CompactionCommitter {
-
-  def createActor(ec: ExecutionContext): ActorWire[CompactionCommitter, Unit] =
-    Actor.wire[CompactionCommitter, Unit](
-      name = CurrentThreadCompactionCommitter.name,
-      impl = CurrentThreadCompactionCommitter,
-      state = ()
-    )(ec)
+  override def replace(level: NextLevel,
+                       old: Iterable[Segment],
+                       neu: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
+    ???
 
 }

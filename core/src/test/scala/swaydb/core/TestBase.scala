@@ -36,6 +36,7 @@ import swaydb.core.data.{Memory, Time}
 import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
+import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
@@ -107,7 +108,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
   def nextTime(implicit testTimer: TestTimer): Time =
     testTimer.next
-
 
   def levelStorage: LevelStorage =
     if (inMemoryStorage)
@@ -642,17 +642,20 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
+    val compaction: Option[(NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]], ActorWire[CompactionCommitter, Unit])] =
       if (throttleOn) {
+        implicit val committer: ActorWire[CompactionCommitter, Unit] =
+          CompactionCommitter.createActor(TestExecutionContext.executionContext)
+
         val compactors =
           CoreInitializer.initialiseCompaction(
             zero = level0,
-            executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext, TestExecutionContext.executionContext, randomParallelMerge(), randomIntMax(10).max(1)) +: List.fill(4)(CompactionExecutionContext.Shared)
+            executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext, randomIntMax(10).max(1)) +: List.fill(4)(CompactionExecutionContext.Shared)
           ).value
 
         compactors should have size 1
 
-        Some(compactors)
+        Some((compactors, committer))
       } else {
         None
       }
@@ -765,7 +768,12 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
     runAsserts(asserts)
 
-    compaction.foreach(_.foreach(_.terminateAndClear[Glass]()))
+    compaction.foreach {
+      case (compaction, committer) =>
+        compaction.foreach(_.terminateAndClear[Glass]())
+        committer.terminateAndClear[Glass]()
+    }
+
     level0.delete[Glass]()
 
     if (!throttleOn)

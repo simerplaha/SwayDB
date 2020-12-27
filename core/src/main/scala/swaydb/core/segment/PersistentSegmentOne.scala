@@ -29,7 +29,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{KeyValue, Memory, MergeResult, Persistent, PersistentOption}
+import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, ForceSaveApplier}
 import swaydb.core.merge.MergeStats
@@ -46,11 +46,10 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.defrag.DefragSegment
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.ref.SegmentRef
+import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util._
 import swaydb.data.MaxKey
-import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

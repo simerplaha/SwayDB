@@ -24,11 +24,9 @@
 
 package swaydb.configs.level
 
-import java.util.concurrent.Executors
-
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.compaction.ParallelMerge
 
+import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext
 
 object DefaultExecutionContext extends LazyLogging {
@@ -42,14 +40,10 @@ object DefaultExecutionContext extends LazyLogging {
    * single threaded compaction and another thread optionally for scheduling. For majority
    * of the cases only 1 thread will be active.
    */
-  def compactionEC(parallelMerge: ParallelMerge): ExecutionContext = {
-    //also allocate enough threads for parallel merge to occur. This should be >= 0. 0 disable
-    val maxThreads = (parallelMerge.levelParallelism + parallelMerge.segmentParallelism) max 0
+  def compactionEC(maxThreads: Int): ExecutionContext =
+    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(maxThreads max 1, DefaultThreadFactory.create()))
 
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2 + maxThreads, DefaultThreadFactory.create()))
-  }
-
-  lazy val compactionIOEC: ExecutionContext =
+  lazy val compactionCommitterEC: ExecutionContext =
     ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor(DefaultThreadFactory.create()))
 
   /**
@@ -68,6 +62,7 @@ object DefaultExecutionContext extends LazyLogging {
    * when [[swaydb.Bag.Sync]] bag is used for termination (during shutdown). But for majority of the cases only 1
    * thread will be active. If [[swaydb.Bag.Async]] bag is used then only 2 threads are needed per instance.
    */
-  lazy val sweeperEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool(DefaultThreadFactory.create()))
+  lazy val sweeperEC: ExecutionContext =
+    ExecutionContext.fromExecutor(Executors.newCachedThreadPool(DefaultThreadFactory.create()))
 
 }

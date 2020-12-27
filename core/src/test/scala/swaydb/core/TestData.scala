@@ -59,7 +59,7 @@ import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
-import swaydb.data.compaction.{LevelMeter, ParallelMerge, Throttle}
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -1212,17 +1212,6 @@ object TestData {
 
   def randomIntMax(max: Int = Int.MaxValue) =
     Math.abs(Random.nextInt(max))
-
-  def randomParallelMerge(): ParallelMerge =
-    if (randomBoolean())
-      ParallelMerge.On(
-        levelParallelism = randomIntMax(Runtime.getRuntime.availableProcessors()),
-        levelParallelismTimeout = 5.minutes,
-        segmentParallelism = randomIntMax(Runtime.getRuntime.availableProcessors()),
-        segmentParallelismTimeout = 5.minutes
-      )
-    else
-      ParallelMerge.Off
 
   def randomIntMin(min: Int) =
     Math.abs(randomIntMax()) max min

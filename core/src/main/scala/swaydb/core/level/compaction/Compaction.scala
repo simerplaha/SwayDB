@@ -24,9 +24,14 @@
 
 package swaydb.core.level.compaction
 
+import swaydb.ActorWire
+import swaydb.core.level.compaction.committer.CompactionCommitter
+
 import scala.concurrent.Future
 
 protected trait Compaction[S] {
+
   def run(state: S,
-          forwardCopyOnAllLevels: Boolean): Future[Unit]
+          forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter, Unit]): Future[Unit]
+
 }

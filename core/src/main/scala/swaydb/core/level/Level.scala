@@ -51,7 +51,6 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}

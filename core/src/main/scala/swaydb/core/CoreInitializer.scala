@@ -26,6 +26,7 @@ package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
+import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.build.{Build, BuildValidator}
@@ -33,6 +34,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.compaction._
+import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelCloser, NextLevel, TrashLevel}
@@ -84,13 +86,14 @@ private[core] object CoreInitializer extends LazyLogging {
    * Boots up compaction Actor and start listening to changes in levels.
    */
   def initialiseCompaction(zero: LevelZero,
-                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
+                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState],
+                                                                                committer: ActorWire[CompactionCommitter, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
       executionContexts = executionContexts
     )
 
-  def sendInitialWakeUp(compactor: ActorWire[Compactor[ThrottleState], ThrottleState]): Unit =
+  def sendInitialWakeUp(compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter, Unit]): Unit =
     compactor send {
       (impl, state, self) =>
         impl.wakeUp(
@@ -180,6 +183,10 @@ private[core] object CoreInitializer extends LazyLogging {
 
           implicit val compactionStrategy: Compactor[ThrottleState] =
             ThrottleCompactor
+
+          //TODO make configurable and terminate
+          implicit val committer: ActorWire[CompactionCommitter, Unit] =
+            CompactionCommitter.createActor(DefaultExecutionContext.compactionCommitterEC)
 
           implicit val bufferSweeper: ByteBufferSweeperActor =
             ByteBufferSweeper()(fileSweeper.executionContext)
@@ -295,6 +302,7 @@ private[core] object CoreInitializer extends LazyLogging {
                       throttle = config.level0.throttle
                     ) flatMap {
                       zero: LevelZero =>
+
                         initialiseCompaction(
                           zero = zero,
                           executionContexts = contexts
@@ -366,7 +374,10 @@ private[core] object CoreInitializer extends LazyLogging {
               IO[swaydb.Error.Boot, Core[Glass]](core)
 
             case IO.Left(createError) =>
-              IO(LevelCloser.close[Glass]()) match {
+              IO {
+                committer.terminateAndClear[Glass]()
+                LevelCloser.close[Glass]()
+              } match {
                 case IO.Right(_) =>
                   IO.failed[swaydb.Error.Boot, Core[Glass]](createError.exception)
 

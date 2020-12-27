@@ -49,7 +49,6 @@ import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.core.util.skiplist.{SkipList, SkipListTreeMap}
 import swaydb.data.MaxKey
-import swaydb.data.compaction.ParallelMerge.SegmentParallelism
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -1191,42 +1190,6 @@ private[core] case object Segment extends LazyLogging {
       !iterator.hasNext //no next segment.
     }
   }
-
-  def runOnGapsParallel[A](headGap: Iterable[Assignable],
-                           tailGap: Iterable[Assignable],
-                           empty: A,
-                           minGapSize: Int,
-                           segmentParallelism: SegmentParallelism)(thunk: Iterable[Assignable] => A)(implicit ec: ExecutionContext): (Iterable[Assignable], Iterable[Assignable], Future[(A, A)]) =
-    if (headGap.isEmpty && tailGap.isEmpty) {
-      (headGap, tailGap, Future.successful((empty, empty)))
-    } else {
-      var availableThreads = segmentParallelism.parallelism
-
-      def runConcurrentMayBe(gap: Iterable[Assignable]) =
-        if (gap.size < minGapSize) {
-          (gap, Future.successful(empty))
-        } else if (availableThreads <= 0) {
-          (Assignable.emptyIterable, Future.fromTry(Try(thunk(gap))))
-        } else {
-          availableThreads -= 1
-          (Assignable.emptyIterable, Future(thunk(gap)))
-        }
-
-      val (head, headFuture: Future[A]) = runConcurrentMayBe(headGap)
-
-      val (tail, tailFuture: Future[A]) = runConcurrentMayBe(tailGap)
-
-      val future =
-        headFuture flatMap {
-          head =>
-            tailFuture map {
-              tail =>
-                (head, tail)
-            }
-        }
-
-      (head, tail, future)
-    }
 }
 
 private[core] trait Segment extends FileSweeperItem with SegmentOption with Assignable.Collection { self =>

@@ -24,6 +24,7 @@
 
 package swaydb.core.level.compaction
 
+import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.NonEmptyList
 import swaydb.data.compaction.CompactionExecutionContext
@@ -32,10 +33,10 @@ import swaydb.{ActorWire, IO}
 private[core] trait Compactor[S] {
 
   def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, NonEmptyList[ActorWire[Compactor[S], S]]]
+                      executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter, Unit]): IO[swaydb.Error.Level, NonEmptyList[ActorWire[Compactor[S], S]]]
 
   def wakeUp(state: S,
              forwardCopyOnAllLevels: Boolean,
-             self: ActorWire[Compactor[S], S]): Unit
+             self: ActorWire[Compactor[S], S])(implicit committer: ActorWire[CompactionCommitter, Unit]): Unit
 
 }
