@@ -34,6 +34,7 @@ import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
+import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.serializer._
@@ -49,7 +50,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
@@ -556,7 +557,7 @@ private[core] case class Level(dirs: Seq[Dir],
    *
    * @returns A Set of persisted Segment ID's
    */
-  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]]]] =
+  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
     put(Seq(segment))
 
   /**
@@ -564,7 +565,7 @@ private[core] case class Level(dirs: Seq[Dir],
    *
    * @returns A Set of persisted [[Segment]] ID's
    */
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
     reserveAndRun(segments) {
       assignMerge(
@@ -575,7 +576,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
+  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
     reserveAndRun(map) {
       assignMerge(
@@ -655,7 +656,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Int] = {
+  def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Unit] = {
     //create this list which is a copy of segments. Segments can be iterable only once if it's a Java iterable.
     //this copy is for second read to delete the segments after the MapEntry is successfully created.
     logger.trace(s"{}: Removing Segments {}", pathDistributor.head, segments.map(_.path.toString))
@@ -683,23 +684,25 @@ private[core] case class Level(dirs: Seq[Dir],
             // Segments on reboot.
             if (segmentConfig.isDeleteEventually) {
               segmentsToRemove foreach (_.delete(segmentConfig.deleteDelay))
-              IO.zero
+              IO.unit
             } else {
-              IO(Segment.deleteSegments(segmentsToRemove)) recoverWith {
-                case exception =>
-                  logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
-                  IO.zero
-              }
+              IO(Segment.deleteSegments(segmentsToRemove))
+                .map(_ => ())
+                .recoverWith {
+                  case exception =>
+                    logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
+                    IO.unit
+                }
             }
         }
 
       case None =>
-        IO.Left[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved)
+        IO.Left[swaydb.Error.Level, Unit](swaydb.Error.NoSegmentsRemoved)
     }
   }
 
   @inline private[core] def assignMerge(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-                                        targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]] =
+                                        targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
 
     assignMerge(
       assignablesCount = 1,
@@ -712,7 +715,7 @@ private[core] case class Level(dirs: Seq[Dir],
    */
   private[core] def assignMerge(assignablesCount: Int,
                                 assignables: Iterable[Assignable],
-                                targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]] = {
+                                targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
     if (inMemory)
       Future {
@@ -745,7 +748,7 @@ private[core] case class Level(dirs: Seq[Dir],
               mergeResults =>
                 mergeResults map {
                   result =>
-                    MergeResult(
+                    CompactResult(
                       source = result.source.asSegmentOption,
                       result = result.result.map(TransientSegment.Memory)
                     )
@@ -796,11 +799,145 @@ private[core] case class Level(dirs: Seq[Dir],
       }
   }
 
-  def commit(mergeResult: Iterable[MergeResult[SegmentOption, Slice[Segment]]],
-             appendEntry: Option[MapEntry[Slice[Byte], Segment]])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] = {
-    logger.trace(s"${pathDistributor.head}: Committing Segments. ${mergeResult.map { result => s"""${result.source.toOptionS.map(_.path)} -> ${result.result.map(_.path.toString).mkString(", ")}""" }.mkString("\n")}.")
+  override def commitMerged(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
+    persistAndCommit(
+      mergeResult = mergeResult,
+      appendEntry = None
+    )
 
-    mergeResult.foldLeftRecoverIO(MapEntry.noneSegment) {
+  override def commitReplaced(old: Iterable[Segment],
+                              merged: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] = {
+    val appendEntry =
+      old.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+        case (mapEntry, smallSegment) =>
+          val entry = MapEntry.Remove(smallSegment.minKey)
+          mapEntry.map(_ ++ entry) orElse Some(entry)
+      }
+
+    persistAndCommit(
+      mergeResult = merged,
+      appendEntry = appendEntry
+    ) transform {
+      _ =>
+        //delete the segments merged with self.
+        if (segmentConfig.isDeleteEventually)
+          old foreach (_.delete(segmentConfig.deleteDelay))
+        else
+          old foreach {
+            segment =>
+              IO(segment.delete) onLeftSideEffect {
+                exception =>
+                  logger.warn(s"{}: Failed to delete Segment {} after successful collapse", pathDistributor.head, segment.path, exception)
+              }
+          }
+    }
+  }
+
+  override def commitReplaced(old: Segment,
+                              neu: Slice[TransientSegment]): IO[Error.Level, Unit] =
+    SegmentWriteIO.persistTransient(
+      pathsDistributor = pathDistributor,
+      segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+      mmap = segmentConfig.mmap,
+      transient = neu
+    ) flatMap {
+      newSegments =>
+        logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", pathDistributor.head, old.path, newSegments.map(_.path).mkString(", "))
+        buildNewMapEntry(newSegments, old, None) flatMap {
+          entry =>
+            appendix.writeSafe(entry).transform(_ => ()) onRightSideEffect {
+              _ =>
+                if (segmentConfig.isDeleteEventually)
+                  old.delete(segmentConfig.deleteDelay)
+                else
+                  IO(old.delete) onLeftSideEffect {
+                    failure =>
+                      logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", old.path, failure)
+                  }
+            }
+        } onLeftSideEffect {
+          _ =>
+            newSegments foreach {
+              segment =>
+                IO(segment.delete) onLeftSideEffect {
+                  failure =>
+                    logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segment.path, failure)
+                }
+            }
+        }
+    }
+
+  private def persistAndCommit(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]],
+                               appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, Unit] =
+    persist(mergeResult)
+      .flatMap {
+        result =>
+          prepareCommit(
+            result = result,
+            appendEntry = appendEntry
+          ) flatMap {
+            entry =>
+              appendix
+                .writeSafe(entry)
+                .flatMap {
+                  success =>
+                    if (!success)
+                      IO.failed("Failed to write mapEntry.")
+                    else
+                      IO.unit
+                }
+          } andThen {
+            logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, result.map(_.source.mapS(_.path)))
+            //delete assigned segments as they are replaced with new segments.
+            if (segmentConfig.isDeleteEventually)
+              result foreach {
+                mergeResult =>
+                  if (mergeResult.source.isSomeS)
+                    IO(mergeResult.source.getS.delete(segmentConfig.deleteDelay)) onLeftSideEffect {
+                      exception =>
+                        logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, mergeResult.source.getS.path, exception)
+                    }
+              }
+            else
+              result foreach {
+                mergeResult =>
+                  if (mergeResult.source.isSomeS)
+                    IO(mergeResult.source.getS.delete) onLeftSideEffect {
+                      exception =>
+                        logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, mergeResult.source.getS.path, exception)
+                    }
+              }
+          } onLeftSideEffect {
+            error =>
+              logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", error)
+
+              result foreach {
+                result =>
+                  result.result foreach {
+                    segment =>
+                      IO(segment.delete) onLeftSideEffect {
+                        exception =>
+                          logger.error(s"${pathDistributor.head}: Failed to delete Segment ${segment.path}", exception)
+                      }
+                  }
+              }
+          }
+      }
+
+
+  def persist(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[Segment]]]] =
+    SegmentWriteIO.persistMerged(
+      pathsDistributor = pathDistributor,
+      segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+      mmap = segmentConfig.mmap,
+      mergeResult = mergeResult
+    )
+
+  def prepareCommit(result: Iterable[CompactResult[SegmentOption, Iterable[Segment]]],
+                    appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, MapEntry[Slice[Byte], Segment]] = {
+    logger.trace(s"${pathDistributor.head}: Committing Segments. ${result.map { result => s"""${result.source.toOptionS.map(_.path)} -> ${result.result.map(_.path.toString).mkString(", ")}""" }.mkString("\n")}.")
+
+    result.foldLeftRecoverIO(MapEntry.noneSegment) {
       case (mapEntry, result) =>
         buildNewMapEntry(
           newSegments = result.result,
@@ -813,26 +950,12 @@ private[core] case class Level(dirs: Seq[Dir],
         //also write appendEntry to this mapEntry before committing entries to appendix.
         //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
         //which will remove oldEntries with duplicates with newer keys.
-        val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
+        appendEntry match {
+          case Some(appendEntry) =>
+            IO(MapEntry.distinct(mapEntry, appendEntry))
 
-        appendix.writeSafe(mapEntryToWrite) transform {
-          _ =>
-            logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, mergeResult.map(_.source.toOptionS.map(_.path.toString)))
-            //delete assigned segments as they are replaced with new segments.
-            if (segmentConfig.isDeleteEventually)
-              mergeResult foreach {
-                result =>
-                  result.source.foreachS(_.delete(segmentConfig.deleteDelay))
-              }
-            else
-              mergeResult foreach {
-                result =>
-                  if (result.source.isSomeS)
-                    IO(result.source.getS.delete) onLeftSideEffect {
-                      exception =>
-                        logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, result.source.getS.path, exception)
-                    }
-              }
+          case None =>
+            IO(mapEntry)
         }
 
       case None =>
@@ -841,17 +964,6 @@ private[core] case class Level(dirs: Seq[Dir],
     } onLeftSideEffect {
       failure =>
         logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", failure)
-
-      //        putResult foreach {
-      //          result =>
-      //            result.result foreach {
-      //              segment =>
-      //                IO(segment.delete) onLeftSideEffect {
-      //                  exception =>
-      //                    logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, segment.path, exception)
-      //                }
-      //            }
-      //        }
     }
   }
 

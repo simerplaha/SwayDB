@@ -24,8 +24,9 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.core.data.{Memory, MergeResult}
+import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
+import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.MergeStats
 import swaydb.core.segment.SegmentSource
 import swaydb.core.segment.SegmentSource._
@@ -61,7 +62,7 @@ object Defrag {
                                                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                                      hashIndexConfig: HashIndexBlock.Config,
                                                      bloomFilterConfig: BloomFilterBlock.Config,
-                                                     segmentConfig: SegmentBlock.Config): MergeResult[NULL_SEG, ListBuffer[TransientSegment.Fragment]] = {
+                                                     segmentConfig: SegmentBlock.Config): CompactResult[NULL_SEG, ListBuffer[TransientSegment.Fragment]] = {
 
     val mergeResult =
       segment match {
@@ -97,7 +98,7 @@ object Defrag {
           if (source == nullSegment)
             newFragments += TransientSegment.Fence
 
-          MergeResult(
+          CompactResult(
             source = source,
             result = newFragments
           )
@@ -118,7 +119,7 @@ object Defrag {
           //create a fence so tail does not get collapsed into head.
           newFragments += TransientSegment.Fence
 
-          MergeResult(
+          CompactResult(
             source = nullSegment,
             result = newFragments
           )

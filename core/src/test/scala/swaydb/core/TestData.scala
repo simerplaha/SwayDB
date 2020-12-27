@@ -36,6 +36,7 @@ import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.DBFile
+import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, PathsDistributor}
@@ -53,7 +54,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
+import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.IDGenerator
@@ -2051,7 +2052,7 @@ object TestData {
       import testCaseSweeper._
 
       val persistedSegments =
-        SegmentWriteIO.PersistentIO.persist(
+        SegmentWritePersistentIO.persistTransient(
           pathsDistributor = pathDistributor,
           segmentRefCacheWeight = segmentRefCacheWeight,
           mmap = mmap,
@@ -2060,7 +2061,10 @@ object TestData {
 
       persistedSegments.foreach(_.foreach(_.sweep()))
 
-      persistedSegments
+      persistedSegments map {
+        persistedSegments =>
+          Slice.from(persistedSegments, persistedSegments.size)
+      }
     }
   }
 
@@ -2096,7 +2100,7 @@ object TestData {
                                                keyOrder: KeyOrder[Slice[Byte]],
                                                segmentReadIO: SegmentReadIO,
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               testCaseSweeper: TestCaseSweeper): MergeResult[SegmentOption, Slice[Segment]] = {
+                                               testCaseSweeper: TestCaseSweeper): CompactResult[SegmentOption, Slice[Segment]] = {
       def toMemory(keyValue: KeyValue) = if (removeDeletes) KeyValueGrouper.addLastLevel(keyValue) else keyValue.toMemory()
 
       segment match {
@@ -2115,13 +2119,13 @@ object TestData {
 
           putResult.source match {
             case MemorySegment.Null =>
-              MergeResult(
+              CompactResult(
                 source = Segment.Null,
                 result = putResult.result
               )
 
             case segment: MemorySegment =>
-              MergeResult(
+              CompactResult(
                 source = segment,
                 result = putResult.result
               )
@@ -2148,13 +2152,13 @@ object TestData {
 
           putResult.source match {
             case PersistentSegment.Null =>
-              MergeResult(
+              CompactResult(
                 source = Segment.Null,
                 result = segments
               )
 
             case segment: PersistentSegment =>
-              MergeResult(
+              CompactResult(
                 source = segment,
                 result = segments
               )

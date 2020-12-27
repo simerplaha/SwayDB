@@ -24,8 +24,8 @@
 
 package swaydb.core.level.compaction.committer
 
-import swaydb.core.data.MergeResult
 import swaydb.core.level.NextLevel
+import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
@@ -39,12 +39,13 @@ trait CompactionCommitter {
   def name: String
 
   def commit(fromLevel: NextLevel,
+             segments: Iterable[Segment],
              toLevel: NextLevel,
-             mergeResult: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
+             mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
 
   def commit(fromLevel: LevelZero,
              toLevel: NextLevel,
-             mergeResult: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
+             mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
 
   def replace(level: NextLevel,
               old: Segment,
@@ -52,7 +53,7 @@ trait CompactionCommitter {
 
   def replace(level: NextLevel,
               old: Iterable[Segment],
-              neu: Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
+              neu: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
 }
 
 case object CompactionCommitter {

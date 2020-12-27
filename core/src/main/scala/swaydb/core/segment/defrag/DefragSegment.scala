@@ -25,8 +25,9 @@
 package swaydb.core.segment.defrag
 
 import swaydb.Aggregator
-import swaydb.core.data.{Memory, MergeResult}
+import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
+import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.MergeStats
 import swaydb.core.merge.MergeStats.Persistent
 import swaydb.core.segment.SegmentSource._
@@ -71,7 +72,7 @@ object DefragSegment {
                                                         binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                                         hashIndexConfig: HashIndexBlock.Config,
                                                         bloomFilterConfig: BloomFilterBlock.Config,
-                                                        segmentConfig: SegmentBlock.Config): Future[MergeResult[NULL_SEG, Slice[TransientSegment.Persistent]]] =
+                                                        segmentConfig: SegmentBlock.Config): Future[CompactResult[NULL_SEG, Slice[TransientSegment.Persistent]]] =
     Future {
       Defrag.run(
         segment = segment,
@@ -99,7 +100,7 @@ object DefragSegment {
    * Builds a [[Future]] pipeline that executes assignment, defragmentation and merge on multiple Segments. This is
    * used by [[PersistentSegmentMany]].
    *
-   * @return [[MergeResult.source]] is true if this Segment was replaced or else it will be false.
+   * @return [[CompactResult.source]] is true if this Segment was replaced or else it will be false.
    *         [[swaydb.core.segment.ref.SegmentRef]] is not being used here because the input is an [[Iterator]] of [[SEG]].
    */
   def runMany[SEG >: Null, NULL_SEG >: SEG](headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
@@ -120,7 +121,7 @@ object DefragSegment {
                                                                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                                                  hashIndexConfig: HashIndexBlock.Config,
                                                                  bloomFilterConfig: BloomFilterBlock.Config,
-                                                                 segmentConfig: SegmentBlock.Config): Future[MergeResult[Boolean, Slice[TransientSegment.Persistent]]] =
+                                                                 segmentConfig: SegmentBlock.Config): Future[CompactResult[Boolean, Slice[TransientSegment.Persistent]]] =
     if (assignableCount == 0)
       DefragSegment.runOne[SEG, NULL_SEG](
         segment = Option.empty[SEG],
@@ -179,7 +180,7 @@ object DefragSegment {
               createdInLevel = createdInLevel
             ) map {
               transientSegments =>
-                MergeResult(
+                CompactResult(
                   source = true, //replaced
                   result = transientSegments
                 )

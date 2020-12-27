@@ -38,6 +38,7 @@ import swaydb.data.util.FiniteDurations
 import swaydb.data.util.FiniteDurations._
 import swaydb.{Actor, ActorWire, Error, IO}
 
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
@@ -101,7 +102,9 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                         resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
                         child = children.headOption,
                         executionContext = executionContext,
-                        compactionStates = statesMap
+                        compactionStates = statesMap,
+                        wakeUp = new AtomicBoolean(),
+                        running = new AtomicBoolean()
                       )
 
                     val actor =

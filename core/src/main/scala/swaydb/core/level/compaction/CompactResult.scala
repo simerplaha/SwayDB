@@ -22,35 +22,35 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.data
+package swaydb.core.level.compaction
 
-object MergeResult {
+object CompactResult {
 
   @inline def apply[S, A](source: S,
-                          result: A): MergeResult[S, A] =
-    new MergeResult[S, A](
+                          result: A): CompactResult[S, A] =
+    new CompactResult[S, A](
       source = source,
       result = result
     )
 
 }
 
-class MergeResult[+S, +A](val source: S,
-                          val result: A) {
-  @inline def map[B](f: A => B): MergeResult[S, B] =
-    new MergeResult[S, B](
+class CompactResult[+S, +A](val source: S,
+                            val result: A) {
+  @inline def map[B](f: A => B): CompactResult[S, B] =
+    new CompactResult[S, B](
       source = source,
       result = f(result)
     )
 
-  @inline def updateSource[S2](source: S2): MergeResult[S2, A] =
-    new MergeResult[S2, A](
+  @inline def updateSource[S2](source: S2): CompactResult[S2, A] =
+    new CompactResult[S2, A](
       source = source,
       result = result
     )
 
-  @inline def updateResult[B](result: B): MergeResult[S, B] =
-    new MergeResult[S, B](
+  @inline def updateResult[B](result: B): CompactResult[S, B] =
+    new CompactResult[S, B](
       source = source,
       result = result
     )

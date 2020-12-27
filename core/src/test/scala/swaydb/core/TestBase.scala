@@ -379,7 +379,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
       segment.foreach(_.sweep())
 
-      segment
+      Slice.from(segment, segment.size)
     }
   }
 

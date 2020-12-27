@@ -54,8 +54,6 @@ private[swaydb] object Futures {
 
     @inline def andIO[L, R](io: => IO[L, A])(implicit executionContext: ExecutionContext): Future[A] =
       future1.flatMap(_ => io.toFuture)
-
-
   }
 
   implicit class FutureUnitImplicits(future1: Future[Unit]) {

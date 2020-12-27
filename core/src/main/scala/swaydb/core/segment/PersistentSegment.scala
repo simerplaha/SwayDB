@@ -24,8 +24,9 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.{Memory, MergeResult}
+import swaydb.core.data.Memory
 import swaydb.core.io.file.DBFile
+import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -69,7 +70,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[MergeResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]]
+                                              executionContext: ExecutionContext): Future[CompactResult[PersistentSegmentOption, Slice[TransientSegment.Persistent]]]
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

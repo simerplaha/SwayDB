@@ -57,15 +57,35 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     if (state.terminate) {
       logger.debug(s"${state.name}: Ignoring wakeUp call. Compaction is terminated!")
       Future.unit
+    } else if (state.running.compareAndSet(false, true)) {
+      implicit val executionContext: ExecutionContext = state.executionContext
+
+      Future
+        .unit
+        .flatMapUnit {
+          state.wakeUp.set(false)
+
+          runNow(
+            state = state,
+            forwardCopyOnAllLevels = forwardCopyOnAllLevels
+          ) withCallback {
+            state.running.set(false)
+
+            if (state.wakeUp.get())
+              run(
+                state = state,
+                forwardCopyOnAllLevels = forwardCopyOnAllLevels
+              )
+          }
+        }
     } else {
-      runNow(
-        state = state,
-        forwardCopyOnAllLevels = forwardCopyOnAllLevels
-      )
+      state.wakeUp.set(true)
+      Future.unit
     }
 
   private[throttle] def runNow(state: ThrottleState,
-                               forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] = {
+                               forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter, Unit],
+                                                                executionContext: ExecutionContext): Future[Unit] = {
     logger.debug(s"\n\n\n\n\n\n${state.name}: Running compaction now! forwardCopyOnAllLevels = $forwardCopyOnAllLevels!")
 
     val levels = state.levels.sorted(state.ordering)
@@ -100,7 +120,8 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     }
 
   private[throttle] def runJobs(state: ThrottleState,
-                                currentJobs: Slice[LevelRef])(implicit committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+                                currentJobs: Slice[LevelRef])(implicit committer: ActorWire[CompactionCommitter, Unit],
+                                                              executionContext: ExecutionContext): Future[Unit] =
     if (state.terminate) {
       logger.warn(s"${state.name}: Cannot run jobs. Compaction is terminated.")
       Future.unit
@@ -121,8 +142,6 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
         if ((currentState.isEmpty && level.nextCompactionDelay.fromNow.isOverdue()) || currentState.exists(state => shouldRun(level, stateId, state))) {
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: ${if (currentState.isEmpty) "Initial run" else "shouldRun = true"}.")
-
-          implicit val executionContext: ExecutionContext = state.executionContext
 
           runJob(
             level = level,
@@ -490,6 +509,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                   (impl, _) =>
                     impl.commit(
                       fromLevel = thisLevel,
+                      segments = segments,
                       toLevel = nextLevel,
                       mergeResult = mergeResult
                     )

@@ -35,7 +35,7 @@ import swaydb.core.segment.ref.SegmentRef
 
 import scala.collection.mutable.ListBuffer
 
-private[defrag] object DefragCommon {
+private[core] object DefragCommon {
 
   def isStatsOrNullSmall(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer])(implicit sortedIndexConfig: SortedIndexBlock.Config,
                                                                                          segmentConfig: SegmentBlock.Config): Boolean =

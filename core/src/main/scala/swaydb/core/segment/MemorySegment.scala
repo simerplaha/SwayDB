@@ -27,9 +27,10 @@ package swaydb.core.segment
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
-import swaydb.core.data.{Memory, MergeResult, _}
+import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
+import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.{KeyValueMerger, MergeStats}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -90,7 +91,7 @@ private[core] final case class MemorySegment(path: Path,
           removeDeletes: Boolean,
           createdInLevel: Int,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[MergeResult[MemorySegmentOption, Slice[MemorySegment]]] =
+                                              executionContext: ExecutionContext): Future[CompactResult[MemorySegmentOption, Slice[MemorySegment]]] =
     if (deleted)
       Future.failed(swaydb.Exception.NoSuchFile(path))
     else
@@ -140,7 +141,7 @@ private[core] final case class MemorySegment(path: Path,
               stats = stats.close
             )
 
-        MergeResult(source = this, result = newSegments)
+        CompactResult(source = this, result = newSegments)
       }
 
   def refresh(removeDeletes: Boolean,

@@ -24,7 +24,7 @@
 
 package swaydb.core.level.compaction.picker
 
-import swaydb.core.level.NextLevel
+import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Collections._
 import swaydb.data.order.KeyOrder
@@ -36,10 +36,24 @@ case object SegmentCompactionPicker {
 
   def pick(level: NextLevel,
            nextLevel: NextLevel,
-           take: Int): Iterable[Segment] = {
-    val segmentsToMerge = ListBuffer.empty[(Int, Segment)]
+           take: Int): Iterable[Segment] =
+    level match {
+      case value: Level =>
+        pick(
+          level = value,
+          nextLevel = nextLevel,
+          take = take
+        )
 
-    implicit val keyOrder: KeyOrder[Slice[Byte]] = ???
+      case TrashLevel =>
+        throw new Exception(s"Invalid Level hierarchy. Parent Level cannot be a ${TrashLevel.productPrefix}")
+    }
+
+  @inline def pick(level: Level,
+                   nextLevel: NextLevel,
+                   take: Int): Iterable[Segment] = {
+    val segmentsToMerge = ListBuffer.empty[(Int, Segment)]
+    implicit val keyOrder: KeyOrder[Slice[Byte]] = level.keyOrder
 
     level
       .segmentsInLevel()

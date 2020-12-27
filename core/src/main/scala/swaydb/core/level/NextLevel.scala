@@ -24,17 +24,16 @@
 
 package swaydb.core.level
 
-import swaydb.{Error, IO}
-import swaydb.core.data.{Memory, MergeResult}
+import swaydb.core.data.Memory
+import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
-import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.util.ReserveRange
+import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.PushForwardStrategy
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.{Error, IO}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -85,17 +84,25 @@ trait NextLevel extends LevelRef {
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]]]]
+  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]]
 
-  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]]]]
+  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]]
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[MergeResult[SegmentOption, Iterable[TransientSegment]]]]]]
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]]
 
   def refresh(segment: Segment): Either[Promise[Unit], LevelReserveResult[IO[Error.Level, Slice[TransientSegment]]]]
 
   def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[LevelCollapseResult]]]
 
-  def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Int]
+  def commitMerged(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit]
+
+  def commitReplaced(old: Iterable[Segment],
+                     merged: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit]
+
+  def commitReplaced(old: Segment,
+                     neu: Slice[TransientSegment]): IO[Error.Level, Unit]
+
+  def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Unit]
 
   def meter: LevelMeter
 

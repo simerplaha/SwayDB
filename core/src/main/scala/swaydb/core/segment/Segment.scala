@@ -42,7 +42,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
+import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Collections._
@@ -214,43 +214,43 @@ private[core] case object Segment extends LazyLogging {
       Slice.from(segments, segments.size)
     }
 
-  def persistent(pathsDistributor: PathsDistributor,
-                 createdInLevel: Int,
-                 bloomFilterConfig: BloomFilterBlock.Config,
-                 hashIndexConfig: HashIndexBlock.Config,
-                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                 sortedIndexConfig: SortedIndexBlock.Config,
-                 valuesConfig: ValuesBlock.Config,
-                 segmentConfig: SegmentBlock.Config,
-                 mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                     functionStore: FunctionStore,
-                                                                     fileSweeper: FileSweeper,
-                                                                     bufferCleaner: ByteBufferSweeperActor,
-                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                     blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                     segmentIO: SegmentReadIO,
-                                                                     idGenerator: IDGenerator,
-                                                                     forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
-    val transient =
-      SegmentBlock.writeOneOrMany(
-        mergeStats = mergeStats,
-        createdInLevel = createdInLevel,
-        bloomFilterConfig = bloomFilterConfig,
-        hashIndexConfig = hashIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        valuesConfig = valuesConfig,
-        segmentConfig = segmentConfig
-      )
+    def persistent(pathsDistributor: PathsDistributor,
+                   createdInLevel: Int,
+                   bloomFilterConfig: BloomFilterBlock.Config,
+                   hashIndexConfig: HashIndexBlock.Config,
+                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                   sortedIndexConfig: SortedIndexBlock.Config,
+                   valuesConfig: ValuesBlock.Config,
+                   segmentConfig: SegmentBlock.Config,
+                   mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                                       functionStore: FunctionStore,
+                                                                       fileSweeper: FileSweeper,
+                                                                       bufferCleaner: ByteBufferSweeperActor,
+                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                       blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                       segmentIO: SegmentReadIO,
+                                                                       idGenerator: IDGenerator,
+                                                                       forceSaveApplier: ForceSaveApplier): Iterable[PersistentSegment] = {
+      val transient =
+        SegmentBlock.writeOneOrMany(
+          mergeStats = mergeStats,
+          createdInLevel = createdInLevel,
+          bloomFilterConfig = bloomFilterConfig,
+          hashIndexConfig = hashIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig
+        )
 
-    SegmentWriteIO.PersistentIO.persist(
-      pathsDistributor = pathsDistributor,
-      segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
-      mmap = segmentConfig.mmap,
-      transient = transient
-    ).get
-  }
+      SegmentWritePersistentIO.persistTransient(
+        pathsDistributor = pathsDistributor,
+        segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+        mmap = segmentConfig.mmap,
+        transient = transient
+      ).get
+    }
 
   def copyToPersist(segment: Segment,
                     createdInLevel: Int,
@@ -270,7 +270,7 @@ private[core] case object Segment extends LazyLogging {
                                                         blockCacheSweeper: Option[MemorySweeper.Block],
                                                         segmentIO: SegmentReadIO,
                                                         idGenerator: IDGenerator,
-                                                        forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] =
+                                                        forceSaveApplier: ForceSaveApplier): Iterable[PersistentSegment] =
     segment match {
       case segment: PersistentSegment =>
         val nextPath = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
@@ -342,7 +342,7 @@ private[core] case object Segment extends LazyLogging {
                                                         blockCacheSweeper: Option[MemorySweeper.Block],
                                                         segmentIO: SegmentReadIO,
                                                         idGenerator: IDGenerator,
-                                                        forceSaveApplier: ForceSaveApplier): Slice[PersistentSegment] = {
+                                                        forceSaveApplier: ForceSaveApplier): Iterable[PersistentSegment] = {
     val builder =
       if (removeDeletes)
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel)

@@ -32,6 +32,7 @@ import swaydb.data.util.FiniteDurations
 import swaydb.{ActorWire, IO}
 
 import java.util.TimerTask
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicLong}
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
@@ -43,7 +44,11 @@ private[core] case class ThrottleState(levels: Slice[LevelRef],
                                        resetCompactionPriorityAtInterval: Int,
                                        child: Option[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                        executionContext: ExecutionContext,
-                                       compactionStates: mutable.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {
+                                       compactionStates: mutable.Map[LevelRef, ThrottleLevelState],
+                                       //if a wakeUp ping was received while the compaction was in progress.
+                                       wakeUp: AtomicBoolean,
+                                       //true if compaction is running for this State
+                                       running: AtomicBoolean) extends LazyLogging {
   @volatile private[compaction] var terminate: Boolean = false
 
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
