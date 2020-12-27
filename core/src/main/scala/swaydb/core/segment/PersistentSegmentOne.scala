@@ -64,7 +64,6 @@ protected case object PersistentSegmentOne {
   val formatIdSlice: Slice[Byte] = Slice(formatId)
 
   def apply(file: DBFile,
-            createdInLevel: Int,
             segment: TransientSegment.OneOrRemoteRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
@@ -76,7 +75,6 @@ protected case object PersistentSegmentOne {
                                                       segmentIO: SegmentReadIO): PersistentSegmentOne =
     PersistentSegmentOne(
       file = file,
-      createdInLevel = createdInLevel,
       minKey = segment.minKey,
       maxKey = segment.maxKey,
       minMaxFunctionId = segment.minMaxFunctionId,
@@ -87,6 +85,7 @@ protected case object PersistentSegmentOne {
       putCount = segment.putCount,
       putDeadlineCount = segment.putDeadlineCount,
       keyValueCount = segment.keyValueCount,
+      createdInLevel = segment.createdInLevel,
       valuesReaderCacheable = segment.valuesUnblockedReader,
       sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
       hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
@@ -104,7 +103,6 @@ protected case object PersistentSegmentOne {
     )
 
   def apply(file: DBFile,
-            createdInLevel: Int,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -115,6 +113,7 @@ protected case object PersistentSegmentOne {
             putCount: Int,
             putDeadlineCount: Int,
             keyValueCount: Int,
+            createdInLevel: Int,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -153,6 +152,7 @@ protected case object PersistentSegmentOne {
         updateCount = updateCount,
         rangeCount = rangeCount,
         putCount = putCount,
+        createdInLevel = createdInLevel,
         putDeadlineCount = putDeadlineCount,
         keyValueCount = keyValueCount,
         valuesReaderCacheable = valuesReaderCacheable,
@@ -165,7 +165,6 @@ protected case object PersistentSegmentOne {
 
     new PersistentSegmentOne(
       file = file,
-      createdInLevel = createdInLevel,
       minKey = minKey,
       maxKey = maxKey,
       minMaxFunctionId = minMaxFunctionId,
@@ -237,7 +236,7 @@ protected case object PersistentSegmentOne {
       segmentSize = fileSize,
       nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline,
       updateCount = footer.updateCount,
-      rangeCount = footer.numberOfRanges,
+      rangeCount = footer.rangeCount,
       putCount = footer.putCount,
       putDeadlineCount = footer.putDeadlineCount,
       keyValueCount = footer.keyValueCount,
@@ -253,7 +252,6 @@ protected case object PersistentSegmentOne {
 }
 
 protected case class PersistentSegmentOne(file: DBFile,
-                                          createdInLevel: Int,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
                                           minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -272,6 +270,9 @@ protected case class PersistentSegmentOne(file: DBFile,
   override def formatId: Byte = PersistentSegmentOne.formatId
 
   def path = file.path
+
+  override def createdInLevel: Int =
+    ref.createdInLevel
 
   override def close: Unit = {
     file.close()

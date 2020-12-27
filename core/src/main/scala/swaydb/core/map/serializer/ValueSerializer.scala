@@ -375,15 +375,15 @@ private[core] object ValueSerializer {
     /**
      * Calculates the number of bytes required with minimal information about the RangeFilter.
      */
-    def optimalBytesRequired(numberOfRanges: Int,
+    def optimalBytesRequired(rangeCount: Int,
                              maxUncommonBytesToStore: Int,
                              rangeFilterCommonPrefixes: Iterable[Int]): Int =
       ByteSizeOf.byte + //formatId
         rangeFilterCommonPrefixes.foldLeft(0)(_ + Bytes.sizeOfUnsignedInt(_)) + //common prefix bytes sizes
         //Bytes.sizeOf(numberOfRanges) because there can only be a max of numberOfRanges per group so ByteSizeOf.int is not required.
-        (Bytes.sizeOfUnsignedInt(numberOfRanges) * rangeFilterCommonPrefixes.size) + //tuples count per common prefix count
-        (numberOfRanges * Bytes.sizeOfUnsignedInt(maxUncommonBytesToStore) * 2) +
-        (numberOfRanges * maxUncommonBytesToStore * 2) //store the bytes itself, * 2 because it's a tuple.
+        (Bytes.sizeOfUnsignedInt(rangeCount) * rangeFilterCommonPrefixes.size) + //tuples count per common prefix count
+        (rangeCount * Bytes.sizeOfUnsignedInt(maxUncommonBytesToStore) * 2) +
+        (rangeCount * maxUncommonBytesToStore * 2) //store the bytes itself, * 2 because it's a tuple.
 
     /**
      * This is not currently used by RangeFilter, [[optimalBytesRequired]] is used instead

@@ -49,14 +49,14 @@ private[core] object RangeFilter {
         )
       )
 
-  def optimalRangeFilterByteSize(numberOfRanges: Int,
+  def optimalRangeFilterByteSize(rangeCount: Int,
                                  uncommonBytesToStore: Int,
                                  preComputedRangeFilterCommonPrefixesCount: Iterable[Int]): Int =
     if (uncommonBytesToStore <= 0)
       1 //to store empty size.
     else
       IntMapListBufferSerializer.optimalBytesRequired(
-        numberOfRanges = numberOfRanges,
+        rangeCount = rangeCount,
         rangeFilterCommonPrefixes = preComputedRangeFilterCommonPrefixesCount,
         maxUncommonBytesToStore = uncommonBytesToStore
       )

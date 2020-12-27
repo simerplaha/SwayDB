@@ -73,6 +73,7 @@ private[core] case object SegmentRef extends LazyLogging {
             putCount: Int,
             putDeadlineCount: Int,
             keyValueCount: Int,
+            createdInLevel: Int,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
             hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -122,6 +123,7 @@ private[core] case object SegmentRef extends LazyLogging {
       putCount = putCount,
       putDeadlineCount = putDeadlineCount,
       keyValueCount = keyValueCount,
+      createdInLevel = createdInLevel,
       nearestPutDeadline = nearestPutDeadline,
       minMaxFunctionId = minMaxFunctionId,
       skipList = skipList,
@@ -138,6 +140,7 @@ private[core] class SegmentRef(val path: Path,
                                val putCount: Int,
                                val putDeadlineCount: Int,
                                val keyValueCount: Int,
+                               val createdInLevel: Int,
                                val nearestPutDeadline: Option[Deadline],
                                val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
@@ -216,9 +219,6 @@ private[core] class SegmentRef(val path: Path,
 
   def hasBloomFilter: Boolean =
     segmentBlockCache.getFooter().bloomFilterOffset.isDefined
-
-  def createdInLevel: Int =
-    segmentBlockCache.getFooter().createdInLevel
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
     skipList.exists(_.contains(key))

@@ -39,6 +39,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
+import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -53,7 +54,18 @@ object TransientSegmentSerialiser {
       case MaxKey.Fixed(maxKey) =>
         val minMaxFunctionBytesSize = MinMaxSerialiser.bytesRequired(singleton.minMaxFunctionId)
 
-        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 8) + singleton.minKey.size + minMaxFunctionBytesSize)
+        val byteSizeOfInts =
+          Bytes.sizeOfUnsignedInt(singleton.minKey.size) +
+            Bytes.sizeOfUnsignedInt(offset) +
+            Bytes.sizeOfUnsignedInt(size) +
+            Bytes.sizeOfUnsignedInt(singleton.updateCount) +
+            Bytes.sizeOfUnsignedInt(singleton.rangeCount) +
+            Bytes.sizeOfUnsignedInt(singleton.putCount) +
+            Bytes.sizeOfUnsignedInt(singleton.putDeadlineCount) +
+            Bytes.sizeOfUnsignedInt(singleton.keyValueCount) +
+            Bytes.sizeOfUnsignedInt(singleton.createdInLevel)
+
+        val value = Slice.of[Byte](ByteSizeOf.byte + byteSizeOfInts + singleton.minKey.size + minMaxFunctionBytesSize)
         value add 0 //fixed maxKey id
         value addUnsignedInt singleton.minKey.size
         value addAll singleton.minKey
@@ -66,6 +78,7 @@ object TransientSegmentSerialiser {
         value addUnsignedInt singleton.putCount
         value addUnsignedInt singleton.putDeadlineCount
         value addUnsignedInt singleton.keyValueCount
+        value addUnsignedInt singleton.createdInLevel
 
         MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
 
@@ -85,7 +98,17 @@ object TransientSegmentSerialiser {
       case MaxKey.Range(fromKey, maxKey) =>
         val minMaxFunctionBytesSize = MinMaxSerialiser.bytesRequired(singleton.minMaxFunctionId)
 
-        val value = Slice.of[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 7) + minMaxFunctionBytesSize + fromKey.size)
+        val byteSizeOfInts =
+          Bytes.sizeOfUnsignedInt(offset) +
+            Bytes.sizeOfUnsignedInt(size) +
+            Bytes.sizeOfUnsignedInt(singleton.updateCount) +
+            Bytes.sizeOfUnsignedInt(singleton.rangeCount) +
+            Bytes.sizeOfUnsignedInt(singleton.putCount) +
+            Bytes.sizeOfUnsignedInt(singleton.putDeadlineCount) +
+            Bytes.sizeOfUnsignedInt(singleton.keyValueCount) +
+            Bytes.sizeOfUnsignedInt(singleton.createdInLevel)
+
+        val value = Slice.of[Byte](ByteSizeOf.byte + byteSizeOfInts + minMaxFunctionBytesSize + fromKey.size)
         value add 1 //range maxKey id
         value addUnsignedInt offset
         value addUnsignedInt size
@@ -95,6 +118,7 @@ object TransientSegmentSerialiser {
         value addUnsignedInt singleton.putCount
         value addUnsignedInt singleton.putDeadlineCount
         value addUnsignedInt singleton.keyValueCount
+        value addUnsignedInt singleton.createdInLevel
 
         MinMaxSerialiser.write(singleton.minMaxFunctionId, value)
 
@@ -213,6 +237,7 @@ object TransientSegmentSerialiser {
           val putCount = valueReader.readUnsignedInt()
           val putDeadlineCount = valueReader.readUnsignedInt()
           val keyValueCount = valueReader.readUnsignedInt()
+          val createdInLevel = valueReader.readUnsignedInt()
 
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
 
@@ -235,6 +260,7 @@ object TransientSegmentSerialiser {
             putCount = putCount,
             putDeadlineCount = putDeadlineCount,
             keyValueCount = keyValueCount,
+            createdInLevel = createdInLevel,
             valuesReaderCacheable = valuesReaderCacheable,
             sortedIndexReaderCacheable = sortedIndexReaderCacheable,
             hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -251,6 +277,7 @@ object TransientSegmentSerialiser {
           val putCount = valueReader.readUnsignedInt()
           val putDeadlineCount = valueReader.readUnsignedInt()
           val keyValueCount = valueReader.readUnsignedInt()
+          val createdInLevel = valueReader.readUnsignedInt()
 
           val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
           val maxKeyMinKey = valueReader.readRemaining()
@@ -274,6 +301,7 @@ object TransientSegmentSerialiser {
             putCount = putCount,
             putDeadlineCount = putDeadlineCount,
             keyValueCount = keyValueCount,
+            createdInLevel = createdInLevel,
             valuesReaderCacheable = valuesReaderCacheable,
             sortedIndexReaderCacheable = sortedIndexReaderCacheable,
             hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -313,6 +341,7 @@ object TransientSegmentSerialiser {
       val putCount = valueReader.readUnsignedInt()
       val putDeadlineCount = valueReader.readUnsignedInt()
       val keyValueCount = valueReader.readUnsignedInt()
+      val createdInLevel = valueReader.readUnsignedInt()
 
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
 
@@ -335,6 +364,7 @@ object TransientSegmentSerialiser {
         putCount = putCount,
         putDeadlineCount = putDeadlineCount,
         keyValueCount = keyValueCount,
+        createdInLevel = createdInLevel,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,
         hashIndexReaderCacheable = hashIndexReaderCacheable,
@@ -351,6 +381,7 @@ object TransientSegmentSerialiser {
       val putCount = valueReader.readUnsignedInt()
       val putDeadlineCount = valueReader.readUnsignedInt()
       val keyValueCount = valueReader.readUnsignedInt()
+      val createdInLevel = valueReader.readUnsignedInt()
 
       val minMaxFunctionId = MinMaxSerialiser.read(valueReader)
       val maxKeyMinKey = valueReader.readRemaining()
@@ -374,6 +405,7 @@ object TransientSegmentSerialiser {
         putCount = putCount,
         putDeadlineCount = putDeadlineCount,
         keyValueCount = keyValueCount,
+        createdInLevel = createdInLevel,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,
         hashIndexReaderCacheable = hashIndexReaderCacheable,

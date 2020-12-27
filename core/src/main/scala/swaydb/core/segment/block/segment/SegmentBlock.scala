@@ -530,6 +530,7 @@ private[core] case object SegmentBlock extends LazyLogging {
         putDeadlineCount = closedBlocks.sortedIndex.putDeadlineCount,
         rangeCount = closedBlocks.sortedIndex.rangeCount,
         keyValueCount = closedBlocks.sortedIndex.entriesCount,
+        createdInLevel = createdInLevel,
 
         valuesBlockHeader = closedBlocks.values.map(_.header.close()),
 

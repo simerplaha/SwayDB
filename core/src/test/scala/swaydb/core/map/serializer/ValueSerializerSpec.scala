@@ -70,7 +70,7 @@ class ValueSerializerSpec extends AnyWordSpec with Matchers {
     val bytes = Slice.of[Byte](IntMapListBufferSerializer.bytesRequired(map))
     val optimalBytes =
       IntMapListBufferSerializer.optimalBytesRequired(
-        numberOfRanges = map.foldLeft(0)(_ + _._2.size),
+        rangeCount = map.foldLeft(0)(_ + _._2.size),
         maxUncommonBytesToStore = maxUncommonBytesToStore,
         rangeFilterCommonPrefixes = map.keys
       )

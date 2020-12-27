@@ -2053,7 +2053,6 @@ object TestData {
       val persistedSegments =
         SegmentWriteIO.PersistentIO.persist(
           pathsDistributor = pathDistributor,
-          createdInLevel = 1,
           segmentRefCacheWeight = segmentRefCacheWeight,
           mmap = mmap,
           transient = segments

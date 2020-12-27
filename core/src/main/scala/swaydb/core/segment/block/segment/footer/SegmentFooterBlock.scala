@@ -61,7 +61,7 @@ private[core] case object SegmentFooterBlock {
       Bytes.sizeOfUnsignedInt(Block.minimumHeaderSize(false)) +
       ByteSizeOf.byte + //1 byte for format
       ByteSizeOf.varInt + //created in level
-      ByteSizeOf.varInt + //numberOfRanges
+      ByteSizeOf.varInt + //rangeCount
       ByteSizeOf.varInt + //updateCount
       ByteSizeOf.varInt + //putCount
       ByteSizeOf.varInt + //putDeadlineCount
@@ -81,7 +81,7 @@ private[core] case object SegmentFooterBlock {
                    createdInLevel: Int,
                    var bytes: Slice[Byte],
                    keyValuesCount: Int,
-                   numberOfRanges: Int,
+                   rangeCount: Int,
                    updateCount: Int,
                    putCount: Int,
                    putDeadlineCount: Int)
@@ -97,7 +97,7 @@ private[core] case object SegmentFooterBlock {
       createdInLevel = createdInLevel,
       bytes = Slice.of[Byte](optimalBytesRequired),
       keyValuesCount = keyValuesCount,
-      numberOfRanges = rangesCount,
+      rangeCount = rangesCount,
       updateCount = updateCount,
       putCount = putCount,
       putDeadlineCount = putDeadlineCount
@@ -117,7 +117,7 @@ private[core] case object SegmentFooterBlock {
     //the following group of bytes are also used for CRC check.
     footerBytes addUnsignedInt SegmentBlock.formatId
     footerBytes addUnsignedInt state.createdInLevel
-    footerBytes addUnsignedInt state.numberOfRanges
+    footerBytes addUnsignedInt state.rangeCount
     footerBytes addUnsignedInt state.updateCount
     footerBytes addUnsignedInt state.putCount
     footerBytes addUnsignedInt state.putDeadlineCount
@@ -223,7 +223,7 @@ private[core] case object SegmentFooterBlock {
       throw IO.throwable(message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
     } else {
       val createdInLevel = footerReader.readUnsignedInt()
-      val numberOfRanges = footerReader.readUnsignedInt()
+      val rangeCount = footerReader.readUnsignedInt()
       val updateCount = footerReader.readUnsignedInt()
       val putCount = footerReader.readUnsignedInt()
       val putDeadlineCount = footerReader.readUnsignedInt()
@@ -288,7 +288,7 @@ private[core] case object SegmentFooterBlock {
         bloomFilterOffset = bloomFilterOffset,
         keyValueCount = keyValueCount,
         createdInLevel = createdInLevel,
-        numberOfRanges = numberOfRanges,
+        rangeCount = rangeCount,
         updateCount = updateCount,
         putCount = putCount,
         putDeadlineCount = putDeadlineCount
@@ -318,10 +318,10 @@ case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               bloomFilterOffset: Option[BloomFilterBlock.Offset],
                               keyValueCount: Int,
                               createdInLevel: Int,
-                              numberOfRanges: Int,
+                              rangeCount: Int,
                               updateCount: Int,
                               putCount: Int,
                               putDeadlineCount: Int) extends Block[SegmentFooterBlock.Offset] {
   def hasRange =
-    numberOfRanges > 0
+    rangeCount > 0
 }

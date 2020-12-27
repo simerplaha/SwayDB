@@ -69,7 +69,6 @@ protected case object PersistentSegmentMany extends LazyLogging {
   val formatIdSlice: Slice[Byte] = Slice(formatId)
 
   def apply(file: DBFile,
-            createdInLevel: Int,
             segmentRefCacheWeight: Int,
             segment: TransientSegment.Many)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             timeOrder: TimeOrder[Slice[Byte]],
@@ -121,6 +120,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
                 putCount = singleton.putCount,
                 putDeadlineCount = singleton.putDeadlineCount,
                 keyValueCount = singleton.keyValueCount,
+                createdInLevel = singleton.createdInLevel,
                 valuesReaderCacheable = singleton.valuesUnblockedReader,
                 sortedIndexReaderCacheable = singleton.sortedIndexUnblockedReader,
                 hashIndexReaderCacheable = singleton.hashIndexUnblockedReader,
@@ -170,6 +170,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
             putCount = segment.listSegment.putCount,
             putDeadlineCount = segment.listSegment.putDeadlineCount,
             keyValueCount = segment.listSegment.keyValueCount,
+            createdInLevel = segment.listSegment.createdInLevel,
             valuesReaderCacheable = segment.listSegment.valuesUnblockedReader,
             sortedIndexReaderCacheable = segment.listSegment.sortedIndexUnblockedReader,
             hashIndexReaderCacheable = segment.listSegment.hashIndexUnblockedReader,
@@ -189,13 +190,19 @@ protected case object PersistentSegmentMany extends LazyLogging {
             segmentSize = segment.segmentSize,
             minKey = segment.listSegment.minKey,
             maxKey = segment.listSegment.maxKey,
+            updateCount = segment.listSegment.updateCount,
+            rangeCount = segment.listSegment.rangeCount,
+            putCount = segment.listSegment.putCount,
+            putDeadlineCount = segment.listSegment.putDeadlineCount,
+            keyValueCount = segment.listSegment.keyValueCount,
+            createdInLevel = segment.listSegment.createdInLevel,
             listSegmentBlockCache = listSegmentBlockCache
           )
       }
 
     PersistentSegmentMany(
       file = file,
-      createdInLevel = createdInLevel,
+      createdInLevel = segment.createdInLevel,
       minKey = segment.minKey,
       maxKey = segment.maxKey,
       minMaxFunctionId = segment.minMaxFunctionId,
@@ -264,6 +271,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
                 putCount = oldRef.putCount,
                 putDeadlineCount = oldRef.putDeadlineCount,
                 keyValueCount = oldRef.keyValueCount,
+                createdInLevel = oldRef.createdInLevel,
                 valuesReaderCacheable = oldRef.segmentBlockCache.cachedValuesSliceReader(),
                 sortedIndexReaderCacheable = oldRef.segmentBlockCache.cachedSortedIndexSliceReader(),
                 hashIndexReaderCacheable = oldRef.segmentBlockCache.cachedHashIndexSliceReader(),
@@ -303,6 +311,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
                   putCount = copiedFrom.putCount,
                   putDeadlineCount = copiedFrom.putDeadlineCount,
                   keyValueCount = copiedFrom.keyValueCount,
+                  createdInLevel = copiedFrom.createdInLevel,
                   valuesReaderCacheable = copiedFromListRef.segmentBlockCache.cachedValuesSliceReader(),
                   sortedIndexReaderCacheable = copiedFromListRef.segmentBlockCache.cachedSortedIndexSliceReader(),
                   hashIndexReaderCacheable = copiedFromListRef.segmentBlockCache.cachedHashIndexSliceReader(),
@@ -340,11 +349,19 @@ protected case object PersistentSegmentMany extends LazyLogging {
     val listSegmentCache =
       Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = copiedFromListSegmentCache) {
         (_, _) =>
+          //NOTE - the counts are incorrect here. They are segment level counts instead of listSegment levels.
+          //       but listSegment's stats are not used. ListSegment is just for reference.
           initListSegment(
             file = file,
             segmentSize = segmentSize,
             minKey = minKey,
             maxKey = maxKey,
+            updateCount = 0,
+            rangeCount = 0,
+            putCount = 0,
+            putDeadlineCount = 0,
+            keyValueCount = 0,
+            createdInLevel = 0,
             listSegmentBlockCache = listSegmentBlockCache
           )
       }
@@ -397,10 +414,16 @@ protected case object PersistentSegmentMany extends LazyLogging {
         segmentSize = segmentSize,
         minKey = null,
         maxKey = null,
-        listSegmentBlockCache = None
+        updateCount = 0,
+        rangeCount = 0,
+        putCount = 0,
+        putDeadlineCount = 0,
+        keyValueCount = 0,
+        createdInLevel = 0,
+        listSegmentBlockCache = None,
       )
 
-    val footer = listSegment.getFooter()
+    val listSegmentFooter = listSegment.getFooter()
 
     val segmentRefKeyValues =
       listSegment
@@ -450,6 +473,13 @@ protected case object PersistentSegmentMany extends LazyLogging {
 
     val minKey = segmentRefKeyValues.head.key.unslice()
 
+    val listSegmentUpdateCount = listSegmentFooter.updateCount
+    val listSegmentRangeCount = listSegmentFooter.rangeCount
+    val listSegmentPutCount = listSegmentFooter.putCount
+    val listSegmentPutDeadlineCount = listSegmentFooter.putDeadlineCount
+    val listSegmentKeyValueCount = listSegmentFooter.keyValueCount
+    val listSegmentCreatedInLevel = listSegmentFooter.createdInLevel
+
     val listSegmentCache =
       Cache.noIO[Unit, SegmentRef](synchronised = true, stored = true, initial = None) {
         case (_, _) =>
@@ -458,13 +488,19 @@ protected case object PersistentSegmentMany extends LazyLogging {
             segmentSize = segmentSize,
             minKey = minKey,
             maxKey = maxKey,
+            updateCount = listSegmentUpdateCount,
+            rangeCount = listSegmentRangeCount,
+            putCount = listSegmentPutCount,
+            putDeadlineCount = listSegmentPutDeadlineCount,
+            keyValueCount = listSegmentKeyValueCount,
+            createdInLevel = listSegmentCreatedInLevel,
             listSegmentBlockCache = None
           )
       }
 
     PersistentSegmentMany(
       file = file,
-      createdInLevel = footer.createdInLevel,
+      createdInLevel = listSegmentFooter.createdInLevel,
       minKey = minKey,
       maxKey = maxKey,
       minMaxFunctionId = deadlineFunctionId.minMaxFunctionId.map(_.unslice()),
@@ -510,6 +546,7 @@ protected case object PersistentSegmentMany extends LazyLogging {
         putCount = 0,
         putDeadlineCount = 0,
         keyValueCount = 0,
+        createdInLevel = Int.MaxValue,
         valuesReaderCacheable = None,
         sortedIndexReaderCacheable = None,
         hashIndexReaderCacheable = None,
@@ -585,6 +622,12 @@ protected case object PersistentSegmentMany extends LazyLogging {
                               segmentSize: Int,
                               minKey: Slice[Byte],
                               maxKey: MaxKey[Slice[Byte]],
+                              updateCount: Int,
+                              rangeCount: Int,
+                              putCount: Int,
+                              putDeadlineCount: Int,
+                              keyValueCount: Int,
+                              createdInLevel: Int,
                               listSegmentBlockCache: Option[BlockCache.State])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                                functionStore: FunctionStore,
@@ -611,11 +654,12 @@ protected case object PersistentSegmentMany extends LazyLogging {
       minMaxFunctionId = None,
       blockRef = listSegmentRef,
       segmentIO = segmentIO,
-      updateCount = 0,
-      rangeCount = 0,
-      putCount = 0,
-      putDeadlineCount = 0,
-      keyValueCount = 0,
+      updateCount = updateCount,
+      rangeCount = rangeCount,
+      putCount = putCount,
+      putDeadlineCount = putDeadlineCount,
+      keyValueCount = keyValueCount,
+      createdInLevel = createdInLevel,
       valuesReaderCacheable = None,
       sortedIndexReaderCacheable = None,
       hashIndexReaderCacheable = None,

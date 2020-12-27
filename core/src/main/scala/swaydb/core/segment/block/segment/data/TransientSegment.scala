@@ -56,6 +56,7 @@ sealed trait TransientSegment {
   def keyValueCount: Int
   def putDeadlineCount: Int
   def segmentSize: Int
+  def createdInLevel: Int
 }
 
 object TransientSegment {
@@ -198,6 +199,9 @@ object TransientSegment {
 
     override def keyValueCount: Int =
       ref.keyValueCount
+
+    override def createdInLevel: Int =
+      ref.createdInLevel
   }
 
   case class RemoteSegment(segment: Segment,
@@ -257,6 +261,7 @@ object TransientSegment {
                  putCount: Int,
                  putDeadlineCount: Int,
                  keyValueCount: Int,
+                 createdInLevel: Int,
                  valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                  sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
                  hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -295,20 +300,23 @@ object TransientSegment {
     def segmentSize =
       fileHeader.size + listSegment.segmentSizeIgnoreHeader + segments.foldLeft(0)(_ + _.segmentSizeIgnoreHeader)
 
-    override def updateCount: Int =
+    override val updateCount: Int =
       segments.foldLeft(0)(_ + _.updateCount)
 
-    override def rangeCount: Int =
+    override val rangeCount: Int =
       segments.foldLeft(0)(_ + _.rangeCount)
 
-    override def putCount: Int =
+    override val putCount: Int =
       segments.foldLeft(0)(_ + _.putCount)
 
-    override def putDeadlineCount: Int =
+    override val putDeadlineCount: Int =
       segments.foldLeft(0)(_ + _.putDeadlineCount)
 
-    override def keyValueCount: Int =
+    override val keyValueCount: Int =
       segments.foldLeft(0)(_ + _.keyValueCount)
+
+    override val createdInLevel: Int =
+      segments.foldLeft(Int.MaxValue)(_ min _.createdInLevel)
   }
 
 
@@ -345,5 +353,8 @@ object TransientSegment {
 
     override def keyValueCount: Int =
       segment.keyValueCount
+
+    override def createdInLevel: Int =
+      segment.createdInLevel
   }
 }

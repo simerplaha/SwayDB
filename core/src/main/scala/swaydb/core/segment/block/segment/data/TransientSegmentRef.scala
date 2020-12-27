@@ -41,6 +41,7 @@ class TransientSegmentRef(val minKey: Slice[Byte],
                           val maxKey: MaxKey[Slice[Byte]],
                           val functionMinMax: Option[MinMax[Slice[Byte]]],
                           val nearestDeadline: Option[Deadline],
+                          val createdInLevel: Int,
                           //counts
                           val updateCount: Int,
                           val rangeCount: Int,

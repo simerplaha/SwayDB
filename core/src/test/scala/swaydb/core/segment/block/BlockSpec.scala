@@ -85,6 +85,7 @@ class BlockSpec extends TestBase {
               putCount = randomIntMax(),
               putDeadlineCount = randomIntMax(),
               keyValueCount = randomIntMax(),
+              createdInLevel = randomIntMax(),
 
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 
@@ -184,6 +185,7 @@ class BlockSpec extends TestBase {
               putCount = randomIntMax(),
               putDeadlineCount = randomIntMax(),
               keyValueCount = randomIntMax(),
+              createdInLevel = randomIntMax(),
 
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
 

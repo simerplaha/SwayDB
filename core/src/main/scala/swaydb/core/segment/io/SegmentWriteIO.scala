@@ -62,7 +62,6 @@ sealed trait SegmentWriteIO[T <: TransientSegment, A] {
   def minKey(segment: A): Slice[Byte]
 
   def persist(pathsDistributor: PathsDistributor,
-              createdInLevel: Int,
               segmentRefCacheWeight: Int,
               mmap: MMAP.Segment,
               transient: Slice[T])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -84,7 +83,6 @@ case object SegmentWriteIO extends LazyLogging {
       segment.minKey
 
     override def persist(pathsDistributor: PathsDistributor,
-                         createdInLevel: Int,
                          segmentRefCacheWeight: Int,
                          mmap: MMAP.Segment,
                          transient: Slice[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -105,7 +103,6 @@ case object SegmentWriteIO extends LazyLogging {
       segment.minKey
 
     override def persist(pathsDistributor: PathsDistributor,
-                         createdInLevel: Int,
                          segmentRefCacheWeight: Int,
                          mmap: MMAP.Segment,
                          transient: Slice[TransientSegment.Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -127,7 +124,6 @@ case object SegmentWriteIO extends LazyLogging {
       segment.minKey
 
     def persist(pathsDistributor: PathsDistributor,
-                createdInLevel: Int,
                 segmentRefCacheWeight: Int,
                 mmap: MMAP.Segment,
                 transient: Slice[TransientSegment.Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -153,7 +149,6 @@ case object SegmentWriteIO extends LazyLogging {
                 } else {
                   val path = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
 
-
                   segment match {
                     case segment: TransientSegment.One =>
                       val file: DBFile =
@@ -171,7 +166,6 @@ case object SegmentWriteIO extends LazyLogging {
                       Slice(
                         PersistentSegmentOne(
                           file = file,
-                          createdInLevel = createdInLevel,
                           segment = segment
                         )
                       )
@@ -194,7 +188,6 @@ case object SegmentWriteIO extends LazyLogging {
                       Slice(
                         PersistentSegmentOne(
                           file = file,
-                          createdInLevel = segment.ref.createdInLevel,
                           segment = segment
                         )
                       )
@@ -202,7 +195,7 @@ case object SegmentWriteIO extends LazyLogging {
                     case segment: TransientSegment.RemoteSegment =>
                       Segment.copyToPersist(
                         segment = segment.segment,
-                        createdInLevel = createdInLevel,
+                        createdInLevel = segment.createdInLevel,
                         pathsDistributor = pathsDistributor,
                         removeDeletes = segment.removeDeletes,
                         valuesConfig = segment.valuesConfig,
@@ -214,9 +207,6 @@ case object SegmentWriteIO extends LazyLogging {
                       )
 
                     case segment: TransientSegment.Many =>
-                      //many can contain remote segments so createdInLevel is the smallest remote.
-                      var createdInLevelMin = createdInLevel
-
                       val file: DBFile =
                         segmentFile(
                           path = path,
@@ -227,21 +217,16 @@ case object SegmentWriteIO extends LazyLogging {
                               file.append(segment.fileHeader)
                               file.append(segment.listSegment.bodyBytes)
 
-                              val batch =
-                                writeOrTransfer(
-                                  segments = segment.segments,
-                                  target = file,
-                                  createdInLevel = createdInLevelMin
-                                )
-
-                              createdInLevelMin = createdInLevelMin min batch
+                              writeOrTransfer(
+                                segments = segment.segments,
+                                target = file
+                              )
                             }
                         )
 
                       Slice(
                         PersistentSegmentMany(
                           file = file,
-                          createdInLevel = createdInLevelMin,
                           segmentRefCacheWeight = segmentRefCacheWeight,
                           segment = segment
                         )
@@ -272,9 +257,7 @@ case object SegmentWriteIO extends LazyLogging {
      * Write segments to target file and also attempts to batch transfer bytes.
      */
     private def writeOrTransfer(segments: Slice[TransientSegment.OneOrRemoteRef],
-                                target: DBFile,
-                                createdInLevel: Int): Int = {
-      var createdInLevelMin = createdInLevel
+                                target: DBFile): Unit = {
 
       /**
        * Batch transfer segments to remote file. This defers transfer to the operating
@@ -284,15 +267,9 @@ case object SegmentWriteIO extends LazyLogging {
         if (sameFileRemotes.nonEmpty)
           if (sameFileRemotes.size == 1) {
             val remote = sameFileRemotes.head
-            createdInLevelMin = createdInLevelMin min remote.ref.createdInLevel
             remote.ref.segmentBlockCache.transfer(0, remote.segmentSizeIgnoreHeader, target)
             sameFileRemotes.clear()
           } else {
-            sameFileRemotes foreach {
-              remote =>
-                createdInLevelMin = createdInLevelMin min remote.ref.createdInLevel
-            }
-
             val start = sameFileRemotes.head.ref.offset().start
             val end = sameFileRemotes.last.ref.offset().end
             sameFileRemotes.head.ref.segmentBlockCache.transferIgnoreOffset(start, end - start + 1, target)
@@ -324,8 +301,6 @@ case object SegmentWriteIO extends LazyLogging {
 
       //transfer any remaining remotes.
       batchTransfer(pendingRemotes)
-
-      createdInLevelMin
     }
 
     private def segmentFile(path: Path,

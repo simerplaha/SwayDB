@@ -246,7 +246,6 @@ private[core] case object Segment extends LazyLogging {
 
     SegmentWriteIO.PersistentIO.persist(
       pathsDistributor = pathsDistributor,
-      createdInLevel = createdInLevel,
       segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
       mmap = segmentConfig.mmap,
       transient = transient
@@ -566,7 +565,6 @@ private[core] case object Segment extends LazyLogging {
         case Some(one: PersistentSegmentOne) =>
           PersistentSegmentOne(
             file = file,
-            createdInLevel = createdInLevel,
             minKey = minKey,
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
@@ -577,6 +575,7 @@ private[core] case object Segment extends LazyLogging {
             putCount = putCount,
             putDeadlineCount = putDeadlineCount,
             keyValueCount = keyValueCount,
+            createdInLevel = one.createdInLevel,
             valuesReaderCacheable = one.ref.segmentBlockCache.cachedValuesSliceReader(),
             sortedIndexReaderCacheable = one.ref.segmentBlockCache.cachedSortedIndexSliceReader(),
             hashIndexReaderCacheable = one.ref.segmentBlockCache.cachedHashIndexSliceReader(),
@@ -592,7 +591,6 @@ private[core] case object Segment extends LazyLogging {
         case None =>
           PersistentSegmentOne(
             file = file,
-            createdInLevel = createdInLevel,
             minKey = minKey,
             maxKey = maxKey,
             minMaxFunctionId = minMaxFunctionId,
@@ -603,6 +601,7 @@ private[core] case object Segment extends LazyLogging {
             putCount = putCount,
             putDeadlineCount = putDeadlineCount,
             keyValueCount = keyValueCount,
+            createdInLevel = createdInLevel,
             valuesReaderCacheable = None,
             sortedIndexReaderCacheable = None,
             hashIndexReaderCacheable = None,
