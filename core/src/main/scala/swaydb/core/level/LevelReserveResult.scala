@@ -24,25 +24,25 @@
 
 package swaydb.core.level
 
-import swaydb.core.util.ReserveRange
+import swaydb.core.util.AtomicRanges
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
 
 sealed trait LevelReserveResult[+A] {
   @inline def map[B](f: A => B): LevelReserveResult[B]
 }
 case object LevelReserveResult {
 
-  case class Reserved[A](result: A,
-                         key: Slice[Byte])(implicit reserve: ReserveRange.State[Unit],
-                                           keyOrder: KeyOrder[Slice[Byte]]) extends LevelReserveResult[A] {
+  case class Reserved[A, K](result: A,
+                            keyOrNull: AtomicRanges.Key[K])(implicit reserve: AtomicRanges[K],
+                                                            keyOrder: KeyOrder[K]) extends LevelReserveResult[A] {
     def free(): Unit =
-      ReserveRange.free(key)(reserve, keyOrder)
+      if (keyOrNull != null)
+        reserve.remove(keyOrNull)
 
-    @inline def map[B](f: A => B): LevelReserveResult.Reserved[B] =
-      new Reserved[B](
+    @inline def map[B](f: A => B): LevelReserveResult.Reserved[B, K] =
+      new Reserved[B, K](
         result = f(result),
-        key = key
+        keyOrNull = keyOrNull
       )
   }
 

@@ -26,7 +26,6 @@ package swaydb.core.util
 
 import swaydb.Bag
 import swaydb.Bag.Implicits._
-import swaydb.IO.ExceptionHandler.Promise
 import swaydb.core.util.AtomicRanges.{Action, Value}
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
@@ -94,7 +93,7 @@ private[core] case object AtomicRanges {
       }
   }
 
-  private[util] class Key[K](val fromKey: K, val toKey: K, val toKeyInclusive: Boolean, val action: Action)
+  class Key[K](val fromKey: K, val toKey: K, val toKeyInclusive: Boolean, val action: Action)
   private[util] class Value[V](val value: V)
 
   def apply[K]()(implicit ordering: Ordering[K]): AtomicRanges[K] = {
@@ -144,22 +143,17 @@ private[core] case object AtomicRanges {
       }
   }
 
-  @inline def writeOrPromise[K, T](fromKey: K, toKey: K, toKeyInclusive: Boolean, f: => T)(implicit transaction: AtomicRanges[K]): Either[Promise[Unit], T] =
-    writeOrPromise(
-      key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, Action.Write),
-      value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: WRITE busy")),
-      f = f
-    )
+  @inline def writeOrPromise[K](fromKey: K, toKey: K, toKeyInclusive: Boolean)(implicit ranges: AtomicRanges[K]): Either[Promise[Unit], Key[K]] = {
+    val key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, Action.Write)
+    val value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: WRITE busy"))
 
-  private def writeOrPromise[K, T](key: Key[K], value: Value[Reserve[Unit]], f: => T)(implicit ranges: AtomicRanges[K]): Either[Promise[Unit], T] = {
     val putResult = ranges.transactions.putIfAbsent(key, value)
 
     if (putResult == null) {
       try
-        Right(f)
+        Right(key)
       finally {
         val removed = ranges.transactions.remove(key)
-        //        assert(removed.value.hashCode() == value.value.hashCode())
         Reserve.setFree(removed.value)
       }
     } else {
@@ -169,6 +163,19 @@ private[core] case object AtomicRanges {
     }
   }
 
+  @inline def isWritable[K](fromKey: K, toKey: K, toKeyInclusive: Boolean)(implicit transaction: AtomicRanges[K]): Boolean =
+    !transaction.transactions.containsKey(
+      new Key(
+        fromKey = fromKey,
+        toKey = toKey,
+        toKeyInclusive = toKeyInclusive,
+        action = Action.Write
+      )
+    )
+
+  @inline def remove[K](key: Key[K])(implicit transaction: AtomicRanges[K]): Unit =
+    transaction.transactions.remove(key)
+
   private def writeAsync[K, T, BAG[_]](key: Key[K],
                                        value: Value[Reserve[Unit]],
                                        busyReserve: Reserve[Unit],
@@ -177,7 +184,6 @@ private[core] case object AtomicRanges {
     bag
       .fromPromise(Reserve.promise(busyReserve))
       .and(write(key, value, f))
-
 
   @inline def read[K, NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
                                            nullOutput: NO,
@@ -281,6 +287,23 @@ private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipList
       toKeyInclusive = toKeyInclusive,
       f = f
     )(bag = bag, transaction = this)
+
+  @inline def writeOrPromise(fromKey: K, toKey: K, toKeyInclusive: Boolean): Either[Promise[Unit], AtomicRanges.Key[K]] =
+    AtomicRanges.writeOrPromise[K](
+      fromKey = fromKey,
+      toKey = toKey,
+      toKeyInclusive = toKeyInclusive
+    )(ranges = this)
+
+  @inline def isWritable(fromKey: K, toKey: K, toKeyInclusive: Boolean): Boolean =
+    AtomicRanges.isWritable[K](
+      fromKey = fromKey,
+      toKey = toKey,
+      toKeyInclusive = toKeyInclusive
+    )(transaction = this)
+
+  @inline def remove(key: AtomicRanges.Key[K]): Unit =
+    AtomicRanges.remove[K](key)(transaction = this)
 
   @inline def read[NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
                                         nullOutput: NO)(f: => NO)(implicit bag: Bag[BAG]): BAG[NO] =

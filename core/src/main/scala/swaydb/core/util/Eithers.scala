@@ -26,6 +26,8 @@ package swaydb.core.util
 
 object Eithers {
 
+  val unit: Right[Nothing, Unit] = Right(())
+
   def nullCheck[L, R](left: L, right: R, default: L): Either[L, R] =
     (left, right) match {
       case (null, null) =>
