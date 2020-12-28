@@ -92,10 +92,10 @@ private[core] object KeyValue {
   sealed trait PutOption {
     def getPut: KeyValue.Put
     def isNoneS: Boolean
-    def isSome: Boolean =
+    @inline def isSome: Boolean =
       !isNoneS
 
-    def toTuple: Option[(Slice[Byte], Option[Slice[Byte]])] =
+    @inline def toTuple: Option[(Slice[Byte], Option[Slice[Byte]])] =
       if (isNoneS) {
         None
       } else {
@@ -105,7 +105,7 @@ private[core] object KeyValue {
         Some((key, value.toOptionC))
       }
 
-    def toTupleOrNone: TupleOrNone[Slice[Byte], SliceOption[Byte]] =
+    @inline def toTupleOrNone: TupleOrNone[Slice[Byte], SliceOption[Byte]] =
       if (isNoneS) {
         TupleOrNone.None
       } else {
@@ -113,7 +113,7 @@ private[core] object KeyValue {
         TupleOrNone.Some(put.key, put.getOrFetchValue)
       }
 
-    def toDeadlineOrNone: TupleOrNone[Slice[Byte], Option[Deadline]] =
+    @inline def toDeadlineOrNone: TupleOrNone[Slice[Byte], Option[Deadline]] =
       if (isNoneS) {
         TupleOrNone.None
       } else {
@@ -121,7 +121,7 @@ private[core] object KeyValue {
         TupleOrNone.Some(put.key, put.deadline)
       }
 
-    def toKeyValueDeadlineOrNone: TupleOrNone[(Slice[Byte], SliceOption[Byte]), Option[Deadline]] =
+    @inline def toKeyValueDeadlineOrNone: TupleOrNone[(Slice[Byte], SliceOption[Byte]), Option[Deadline]] =
       if (isNoneS) {
         TupleOrNone.None
       } else {
@@ -129,55 +129,55 @@ private[core] object KeyValue {
         TupleOrNone.Some((put.key, put.getOrFetchValue), put.deadline)
       }
 
-    def getValue: Option[SliceOption[Byte]] =
+    @inline def getValue: Option[SliceOption[Byte]] =
       if (isNoneS)
         None
       else
         Some(this.getPut.getOrFetchValue)
 
-    def getKey: SliceOption[Byte] =
+    @inline def getKey: SliceOption[Byte] =
       if (isNoneS)
         Slice.Null
       else
         this.getPut.key
 
-    def toOptionPut: Option[KeyValue.Put] =
+    @inline def toOptionPut: Option[KeyValue.Put] =
       if (isNoneS)
         None
       else
         Some(getPut)
 
-    def flatMap(put: KeyValue.Put => PutOption): PutOption =
+    @inline def flatMap(put: KeyValue.Put => PutOption): PutOption =
       if (isNoneS)
         this
       else
         put(getPut)
 
-    def getOrElse(f: => PutOption): PutOption =
+    @inline def getOrElse(f: => PutOption): PutOption =
       if (isSome)
         this
       else
         f
 
-    def orElse(f: => PutOption): PutOption =
+    @inline def orElse(f: => PutOption): PutOption =
       if (isNoneS)
         f
       else
         this
 
-    def map[T](f: KeyValue.Put => T): Option[T] =
+    @inline def map[T](f: KeyValue.Put => T): Option[T] =
       if (isNoneS)
         None
       else
         Some(f(getPut))
 
-    def flatMapOption[T](f: KeyValue.Put => Option[T]): Option[T] =
+    @inline def flatMapOption[T](f: KeyValue.Put => Option[T]): Option[T] =
       if (isNoneS)
         None
       else
         f(getPut)
 
-    def mapSliceOptional(f: KeyValue.Put => SliceOption[Byte]): SliceOption[Byte] =
+    @inline def mapSliceOptional(f: KeyValue.Put => SliceOption[Byte]): SliceOption[Byte] =
       if (isNoneS)
         Slice.Null
       else

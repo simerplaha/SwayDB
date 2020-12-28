@@ -53,7 +53,7 @@ object AppendixMapCache {
  * for Appendix file batch is more efficient because millions of concurrent reads will require concurrent writes to the atomic SkipList
  * whereas batch only requires a single copy of the SkipList which is more efficient.
  */
-class AppendixMapCache(skipList: SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]) extends MapCache[Slice[Byte], Segment] {
+class AppendixMapCache(skipList: SkipListConcurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]) extends MapCache[Slice[Byte], Segment] {
 
   override def writeAtomic(entry: MapEntry[Slice[Byte], Segment]): Unit =
     entry applyBatch skipList

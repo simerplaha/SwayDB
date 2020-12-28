@@ -156,7 +156,6 @@ private[core] object BinarySearchEntryFormat {
         readPersistentValue
       }
 
-
       //create a temporary partially read key-value for matcher.
       if (keyType == Memory.Range.id)
         new Partial.Range {

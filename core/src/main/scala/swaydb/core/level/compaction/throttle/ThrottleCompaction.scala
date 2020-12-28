@@ -449,7 +449,6 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       }
   }
 
-
   def runLastLevelCollapseCheck(level: NextLevel,
                                 remainingCompactions: Int)(implicit ec: ExecutionContext,
                                                            committer: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] = {
