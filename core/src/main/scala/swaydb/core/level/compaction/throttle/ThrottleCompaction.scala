@@ -29,7 +29,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level._
 import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.picker.{SegmentCollapsePicker, SegmentCompactionPicker}
+import swaydb.core.level.compaction.selector.{CollapseSegmentSelector, CompactSegmentSelector}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
@@ -352,7 +352,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                                committer: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] =
     level.nextLevel match {
       case Some(nextLevel) =>
-        val segmentsToMerge = SegmentCompactionPicker.pick(level, nextLevel, segmentsToPush)
+        val segmentsToMerge = CompactSegmentSelector.select(level, nextLevel, segmentsToPush)
         logger.debug(s"Level(${level.levelNumber}): mergeable: ${segmentsToMerge.size} ")
 
         Future {
@@ -403,7 +403,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     if (level.hasNextLevel || remainingCompactions <= 0)
       Futures.rightUnitFuture
     else
-      Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
+      Segment.getNearestDeadlineSegment(level.segments()) match {
         case segment: Segment if segment.nearestPutDeadline.exists(!_.hasTimeLeft()) =>
           level.refresh(segment) match {
             case scala.Right(reserved @ LevelReserveResult.Reserved(result, key)) =>
@@ -457,7 +457,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       Futures.rightUnitFuture
     } else {
       logger.debug(s"Level(${level.levelNumber}): Collapse run.")
-      level.collapse(segments = SegmentCollapsePicker.pick(level, remainingCompactions max 2)) match { //need at least 2 for collapse.
+      level.collapse(segments = CollapseSegmentSelector.select(level, remainingCompactions max 2)) match { //need at least 2 for collapse.
         case scala.Right(reserved @ LevelReserveResult.Reserved(result, key)) =>
           result flatMap {
             case LevelCollapseResult.Empty =>

@@ -26,7 +26,6 @@ package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.build.{Build, BuildValidator}
@@ -186,7 +185,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
           //TODO make configurable and terminate
           implicit val committer: ActorWire[CompactionCommitter, Unit] =
-            CompactionCommitter.createActor(DefaultExecutionContext.compactionCommitterEC)
+            CompactionCommitter.createActor(???)
 
           implicit val bufferSweeper: ByteBufferSweeperActor =
             ByteBufferSweeper()(fileSweeper.executionContext)

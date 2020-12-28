@@ -173,7 +173,6 @@ private[core] object SegmentAssigner {
             )
       }
 
-
     def assignToGap(assignable: Assignable,
                     assignTo: SEG): Unit =
       assignments.lastOption match {

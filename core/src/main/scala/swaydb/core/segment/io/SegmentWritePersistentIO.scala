@@ -79,7 +79,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
             segmentToDelete =>
               segmentToDelete
                 .result
-                .foreachIO(segment => IO(segment.delete), failFast = false)
+                .foreachIO(segment => IO(segment.delete()), failFast = false)
                 .foreach {
                   error =>
                     logger.error(s"Failed to delete Segment in recovery", error.exception)
@@ -199,7 +199,7 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
       recover =
         (segments: Iterable[PersistentSegment], _: IO.Left[swaydb.Error.Segment, Slice[Segment]]) =>
           segments
-            .foreachIO(segment => IO(segment.delete), failFast = false)
+            .foreachIO(segment => IO(segment.delete()), failFast = false)
             .foreach {
               error =>
                 logger.error(s"Failed to delete Segment in recovery", error.exception)

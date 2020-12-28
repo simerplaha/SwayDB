@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.picker
+package swaydb.core.level.compaction.selector
 
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
@@ -32,14 +32,14 @@ import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
 
-case object SegmentCompactionPicker {
+case object CompactSegmentSelector {
 
-  def pick(level: NextLevel,
-           nextLevel: NextLevel,
-           take: Int): Iterable[Segment] =
+  def select(level: NextLevel,
+             nextLevel: NextLevel,
+             take: Int): Iterable[Segment] =
     level match {
       case value: Level =>
-        pick(
+        select(
           level = value,
           nextLevel = nextLevel,
           take = take
@@ -49,18 +49,18 @@ case object SegmentCompactionPicker {
         throw new Exception(s"Invalid Level hierarchy. Parent Level cannot be a ${TrashLevel.productPrefix}")
     }
 
-  @inline def pick(level: Level,
-                   nextLevel: NextLevel,
-                   take: Int): Iterable[Segment] = {
+  @inline def select(level: Level,
+                     nextLevel: NextLevel,
+                     take: Int): Iterable[Segment] = {
     val segmentsToMerge = ListBuffer.empty[(Int, Segment)]
     implicit val keyOrder: KeyOrder[Slice[Byte]] = level.keyOrder
 
     level
-      .segmentsInLevel()
+      .segments()
       .foreachBreak {
         segment =>
           if (level.isUnreserved(segment) && nextLevel.isUnreserved(segment)) {
-            val count = Segment.overlapsCount(segment, nextLevel.segmentsInLevel())
+            val count = Segment.overlapsCount(segment, nextLevel.segments())
 
             //only cache enough Segments to merge.
             if (count == 0)

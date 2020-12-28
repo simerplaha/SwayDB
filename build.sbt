@@ -7,7 +7,7 @@ import xerial.sbt.Sonatype._
 val lz4Version = "1.7.1"
 val snappyVersion = "1.1.8.1"
 val scalaJava8CompatVersion = "0.9.1"
-val scalaCollectionsCompat = "2.2.0"
+val scalaCollectionsCompat = "2.3.2"
 
 //TEST
 val logbackClassicVersion = "1.2.3"
@@ -15,7 +15,7 @@ val scalaLoggingVersion = "3.9.2"
 val scalaMockVersion = "5.1.0"
 val scalaTestVersion = "3.2.2"
 val junitJupiterVersion = "5.7.0"
-val scalaParallelCollectionsVersion = "0.2.0"
+val scalaParallelCollectionsVersion = "1.0.0"
 
 //LIBRARY SUPPORT/INTEROP
 val boopickleVersion = "1.3.3"
@@ -124,7 +124,7 @@ val commonJavaDependencies =
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompat % Test,
     "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion % Test,
-    "org.projectlombok" % "lombok" % "1.18.12" % Test
+    "org.projectlombok" % "lombok" % "1.18.16" % Test
   )
 
 def commonDependencies(scalaVersion: String) =

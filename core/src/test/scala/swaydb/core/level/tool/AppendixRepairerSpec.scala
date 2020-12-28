@@ -73,7 +73,7 @@ class AppendixRepairerSpec extends TestBase {
               level.close[Glass]()
 
             level.segmentsCount() should be > 2
-            val segmentsBeforeRepair = level.segmentsInLevel()
+            val segmentsBeforeRepair = level.segments()
 
             //repair appendix
             AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).value
@@ -81,7 +81,7 @@ class AppendixRepairerSpec extends TestBase {
 
             //reopen level and it should contain all the Segment
             val reopenedLevel = level.reopen
-            reopenedLevel.segmentsInLevel().map(_.path) shouldBe segmentsBeforeRepair.map(_.path)
+            reopenedLevel.segments().map(_.path) shouldBe segmentsBeforeRepair.map(_.path)
         }
       }
     }
@@ -139,9 +139,9 @@ class AppendixRepairerSpec extends TestBase {
               level.close[Glass]()
 
             level.segmentsCount() should be > 2
-            val segmentsBeforeRepair = level.segmentsInLevel()
+            val segmentsBeforeRepair = level.segments()
 
-            level.segmentsInLevel().foldLeft(segmentsBeforeRepair.last.path.fileId._1 + 1) {
+            level.segments().foldLeft(segmentsBeforeRepair.last.path.fileId._1 + 1) {
               case (segmentNumber, segment) =>
                 //create a duplicate Segment
                 val duplicateSegment = segment.path.getParent.resolve(segmentNumber.toSegmentFileId)
@@ -166,7 +166,7 @@ class AppendixRepairerSpec extends TestBase {
 
             //level still contains the same key-values
             val reopenedLevel = level.reopen
-            reopenedLevel.segmentsInLevel().flatMap(_.iterator()).runRandomIO.value shouldBe keyValues
+            reopenedLevel.segments().flatMap(_.iterator()).runRandomIO.value shouldBe keyValues
             reopenedLevel.closeNoSweep().value
         }
       }
@@ -188,14 +188,14 @@ class AppendixRepairerSpec extends TestBase {
           level.putKeyValuesTest(keyValues).value
 
           level.segmentsCount() should be > 2
-          val segmentsBeforeRepair = level.segmentsInLevel()
+          val segmentsBeforeRepair = level.segments()
 
           if (level.hasMMAP && OperatingSystem.isWindows) {
             level.close[Glass]()
             sweeper.receiveAll()
           }
 
-          level.segmentsInLevel().foldLeft(segmentsBeforeRepair.last.path.fileId._1 + 1) {
+          level.segments().foldLeft(segmentsBeforeRepair.last.path.fileId._1 + 1) {
             case (overlappingSegmentId, segment) =>
               val overlappingLevelSegmentPath = level.rootPath.resolve(overlappingSegmentId.toSegmentFileId)
 

@@ -53,7 +53,7 @@ private[core] case object TrashLevel extends NextLevel {
   override val nextLevel: Option[NextLevel] =
     None
 
-  override val segmentsInLevel: Iterable[Segment] =
+  override val segments: Iterable[Segment] =
     Iterable.empty
 
   override val hasNextLevel: Boolean =

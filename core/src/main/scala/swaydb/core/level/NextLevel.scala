@@ -135,7 +135,7 @@ trait NextLevel extends LevelRef {
   def takeSegments(size: Int,
                    condition: Segment => Boolean): Iterable[Segment]
 
-  def segmentsInLevel(): Iterable[Segment]
+  def segments(): Iterable[Segment]
 
   def nextThrottlePushCount: Int
 

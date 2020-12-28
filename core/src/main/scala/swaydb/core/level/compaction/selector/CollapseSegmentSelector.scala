@@ -22,12 +22,12 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.picker
+package swaydb.core.level.compaction.selector
 
 import swaydb.core.level.NextLevel
 import swaydb.core.segment.Segment
 
-case object SegmentCollapsePicker {
+case object CollapseSegmentSelector {
 
   //  /**
   //   * A Segment is considered small if it's size is less than 40% of the default [[Level.minSegmentSize]]
@@ -44,8 +44,8 @@ case object SegmentCollapsePicker {
   //        segment.createdInLevel != level.levelNumber
   //    }
 
-  def pick(level: NextLevel,
-           take: Int): Iterable[Segment] = {
+  def select(level: NextLevel,
+             take: Int): Iterable[Segment] = {
     //    implicit val reserve: ReserveRange.State[Unit] = ???
     //    implicit val keyOrder: KeyOrder[Slice[Byte]] = ???
     //

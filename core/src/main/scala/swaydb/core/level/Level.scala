@@ -482,7 +482,7 @@ private[core] case class Level(dirs: Seq[Dir],
         ) && {
           !Segment.overlaps(
             segment = segment,
-            segments2 = segmentsInLevel()
+            segments2 = self.segments()
           )
         }
     }
@@ -500,7 +500,7 @@ private[core] case class Level(dirs: Seq[Dir],
         minKey = minKey,
         maxKey = maxKey,
         maxKeyInclusive = maxKeyInclusive,
-        segments = segmentsInLevel()
+        segments = self.segments()
       )
     }
 
@@ -544,9 +544,9 @@ private[core] case class Level(dirs: Seq[Dir],
       reserveOutcome =>
         reserveOutcome map {
           atomicKey =>
-            //currently all block inputs provide safe execution but wrapping this with
-            //try catch for future safety to ensure that atomic range key is always freed
-            //on all failures.
+            //currently all block inputs provide safe execution so exceptions should never occur
+            //but still wrapping this with try catch for any future changes to ensure that atomic
+            //range key is always freed on all failures.
             try
               LevelReserveResult.Reserved(
                 result = block,
@@ -646,7 +646,7 @@ private[core] case class Level(dirs: Seq[Dir],
       scala.Right(reserved)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
-      val levelSegments = segmentsInLevel()
+      val levelSegments = self.segments()
       val targetAppendixSegments = levelSegments.filterNot(map => segments.exists(_.path == map.path))
 
       val (segmentsToMerge, targetSegments) =
@@ -1266,7 +1266,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
     appendix.cache.foreach(f)
 
-  def segmentsInLevel(): Iterable[Segment] =
+  def segments(): Iterable[Segment] =
     appendix.cache.values()
 
   def hasNextLevel: Boolean =
@@ -1321,7 +1321,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .exists(Level.isSmallSegment(_, minSegmentSize))
 
   def shouldSelfCompactOrExpire: Boolean =
-    segmentsInLevel()
+    segments()
       .exists {
         segment =>
           Level.shouldCollapse(self, segment) ||
@@ -1333,7 +1333,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def hasKeyValuesToExpire: Boolean =
     Segment
-      .getNearestDeadlineSegment(segmentsInLevel())
+      .getNearestDeadlineSegment(segments())
       .isSomeS
 
   override val isTrash: Boolean =
@@ -1394,7 +1394,7 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   def closeSegmentsInThisLevel(): IO[Error.Level, Unit] =
-    segmentsInLevel()
+    segments()
       .foreachIO(segment => IO(segment.close), failFast = false)
       .getOrElse(IO.unit)
       .onLeftSideEffect {

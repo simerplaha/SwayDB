@@ -805,7 +805,7 @@ object CommonAssertions {
   }
 
   def assertAllSegmentsCreatedInLevel(level: Level) =
-    level.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.right.value shouldBe level.levelNumber)
+    level.segments() foreach (_.createdInLevel.runRandomIO.right.value shouldBe level.levelNumber)
 
   def assertReads(keyValues: Iterable[KeyValue],
                   level: LevelRef) = {
@@ -956,7 +956,7 @@ object CommonAssertions {
       case Some(nextLevel) =>
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
-            dump(level.segmentsInLevel())
+            dump(level.segments())
         Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString[Byte](data.mkString("\n"))))
 
         dump(nextLevel)
@@ -964,7 +964,7 @@ object CommonAssertions {
       case None =>
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
-            dump(level.segmentsInLevel())
+            dump(level.segments())
         Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString[Byte](data.mkString("\n"))))
     }
 
