@@ -14,6 +14,8 @@
 
 Embeddable **persistent** and **in-memory** key-value storage engine for **high performance** & **resource efficiency**. 
 
+**Status**: Testing & performance optimisations. See [project status](#Project-status).
+
 _We aim to be efficient at **managing bytes** on-disk and in-memory by recognising reoccurring patterns 
 in serialised bytes without restricting the **core** implementation to any specific data model (SQL, NoSQL etc) 
 or storage type (Disk or RAM). The core provides many configurations that can be manually tuned for custom use-cases, 
