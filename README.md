@@ -84,8 +84,11 @@ See [comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/
 Your feedback and review is very important to get to production. Please get involved via
 chat, issues or email which is on my [profile](https://github.com/simerplaha). 
 
-See tasks labelled [Production release](https://github.com/simerplaha/SwayDB/labels/Production%20release) that are 
-required before becoming production ready. 
+Undergoing performance optimisations. Future releases might not be 
+backward compatible until we are production ready.  
+
+See tasks labelled [Production release](https://github.com/simerplaha/SwayDB/labels/Production%20release) 
+that are required before becoming production ready. 
 
 ## Related GitHub projects
 - [SwayDB.java.examples](https://github.com/simerplaha/SwayDB.java.examples) - Java examples demonstrating features and APIs.
