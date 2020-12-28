@@ -655,86 +655,105 @@ private[core] case class Level(dirs: Seq[Dir],
                                 targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
     if (inMemory)
-      Future {
-        implicit val gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]]] =
-          GapAggregator.memory(removeDeletes = removeDeletedRecords)
-
-        SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]](
-          assignablesCount = assignablesCount,
-          assignables = assignables,
-          segments = targetSegments
-        )
-      } flatMap {
-        assignments =>
-          if (assignments.isEmpty) {
-            logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
-            Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
-          } else {
-            Future.traverse(assignments) {
-              assignment =>
-                assignment.segment.asInstanceOf[MemorySegment].put(
-                  headGap = assignment.headGap.result,
-                  tailGap = assignment.tailGap.result,
-                  mergeableCount = assignment.midOverlap.size,
-                  mergeable = assignment.midOverlap.iterator,
-                  removeDeletes = removeDeletedRecords,
-                  createdInLevel = levelNumber,
-                  segmentConfig = segmentConfig
-                )
-            } map {
-              mergeResults =>
-                mergeResults map {
-                  result =>
-                    CompactResult(
-                      source = result.source.asSegmentOption,
-                      result = result.result.map(TransientSegment.Memory)
-                    )
-                }
-            }
-          }
-      }
+      assignMergeMemory(
+        assignablesCount = assignablesCount,
+        assignables = assignables,
+        targetSegments = targetSegments
+      )
     else
-      Future {
-        implicit val gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]]] =
-          GapAggregator.persistent(removeDeletes = removeDeletedRecords)
-
-        SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
-          assignablesCount = assignablesCount,
-          assignables = assignables,
-          segments = targetSegments
-        )
-      } flatMap {
-        assignments =>
-          if (assignments.isEmpty) {
-            logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
-            Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
-          } else {
-            Future.traverse(assignments) {
-              assignment =>
-                assignment.segment.asInstanceOf[PersistentSegment].put(
-                  headGap = assignment.headGap.result,
-                  tailGap = assignment.tailGap.result,
-                  mergeableCount = assignment.midOverlap.size,
-                  mergeable = assignment.midOverlap.iterator,
-                  removeDeletes = removeDeletedRecords,
-                  createdInLevel = levelNumber,
-                  valuesConfig = valuesConfig,
-                  sortedIndexConfig = sortedIndexConfig,
-                  binarySearchIndexConfig = binarySearchIndexConfig,
-                  hashIndexConfig = hashIndexConfig,
-                  bloomFilterConfig = bloomFilterConfig,
-                  segmentConfig = segmentConfig
-                )
-            } map {
-              mergeResults =>
-                mergeResults map {
-                  result =>
-                    result.updateSource(result.source.asSegmentOption)
-                }
-            }
-          }
-      }
+      assignMergePersistent(
+        assignablesCount = assignablesCount,
+        assignables = assignables,
+        targetSegments = targetSegments
+      )
   }
+
+  @inline private def assignMergeMemory(assignablesCount: Int,
+                                        assignables: Iterable[Assignable],
+                                        targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+    Future {
+      implicit val gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]]] =
+        GapAggregator.memory(removeDeletes = removeDeletedRecords)
+
+      SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]](
+        assignablesCount = assignablesCount,
+        assignables = assignables,
+        segments = targetSegments
+      )
+    } flatMap {
+      assignments =>
+        if (assignments.isEmpty) {
+          logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
+          Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
+        } else {
+          Future.traverse(assignments) {
+            assignment =>
+              assignment.segment.asInstanceOf[MemorySegment].put(
+                headGap = assignment.headGap.result,
+                tailGap = assignment.tailGap.result,
+                mergeableCount = assignment.midOverlap.size,
+                mergeable = assignment.midOverlap.iterator,
+                removeDeletes = removeDeletedRecords,
+                createdInLevel = levelNumber,
+                segmentConfig = segmentConfig
+              )
+          } map {
+            mergeResults =>
+              mergeResults map {
+                result =>
+                  CompactResult(
+                    source = result.source.asSegmentOption,
+                    result = result.result.map(TransientSegment.Memory)
+                  )
+              }
+          }
+        }
+    }
+
+  @inline private def assignMergePersistent(assignablesCount: Int,
+                                            assignables: Iterable[Assignable],
+                                            targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+    Future {
+      implicit val gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]]] =
+        GapAggregator.persistent(removeDeletes = removeDeletedRecords)
+
+      SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
+        assignablesCount = assignablesCount,
+        assignables = assignables,
+        segments = targetSegments
+      )
+    } flatMap {
+      assignments =>
+        if (assignments.isEmpty) {
+          logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
+          Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
+        } else {
+          Future.traverse(assignments) {
+            assignment =>
+              assignment.segment.asInstanceOf[PersistentSegment].put(
+                headGap = assignment.headGap.result,
+                tailGap = assignment.tailGap.result,
+                mergeableCount = assignment.midOverlap.size,
+                mergeable = assignment.midOverlap.iterator,
+                removeDeletes = removeDeletedRecords,
+                createdInLevel = levelNumber,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
+                segmentConfig = segmentConfig
+              )
+          } map {
+            mergeResults =>
+              mergeResults map {
+                result =>
+                  result.updateSource(result.source.asSegmentOption)
+              }
+          }
+        }
+    }
+
 
   override def commitMerged(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     persistAndCommit(
