@@ -26,6 +26,7 @@ package swaydb.core.level
 
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.compaction.CompactResult
+import swaydb.core.level.compaction.reception.LevelReservation
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -171,23 +172,23 @@ private[core] case object TrashLevel extends NextLevel {
   /**
    * Return empty Set here because it's Trash level and does not require compaction.
    */
-  override def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
+  override def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
   //    Right(Future.successful(Iterable.empty))
     ???
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
   //    Right(Future.successful(Iterable.empty))
     ???
 
-  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
+  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
   //    Right(Future.successful(Iterable.empty))
     ???
 
-  def refresh(segment: Segment): Either[Promise[Unit], LevelReserveResult[IO[Error.Level, Slice[TransientSegment]]]] =
+  def refresh(segment: Segment): Either[Promise[Unit], LevelReservation[IO[Error.Level, Slice[TransientSegment]]]] =
   //    Right(IO.Right(Slice.empty[TransientSegment]))
     ???
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[LevelCollapseResult]]] =
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[LevelCollapseResult]]] =
   //    Right(Future.successful(LevelCollapseResult.Empty))
     ???
 

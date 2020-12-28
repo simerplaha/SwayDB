@@ -27,16 +27,24 @@ package swaydb.data
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import swaydb.data.Base._
+import swaydb.data.slice.Slice
 import swaydb.data.util.Options
 
+import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentSkipListMap}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.util.Random
 
 class ReserveSpec extends AnyFlatSpec with Matchers {
 
+  def getPromises(reserve: Reserve[Unit]): ConcurrentLinkedQueue[Promise[Unit]] = {
+    import org.scalatest.PrivateMethodTester._
+    val function = PrivateMethod[ConcurrentLinkedQueue[Promise[Unit]]](Symbol("promises"))
+    reserve.invokePrivate(function())
+  }
+
   it should "complete futures if not already busy" in {
-    val busy = Reserve.free[Unit](name = "test")
+    val busy: Reserve[Unit] = Reserve.free[Unit](name = "test")
     busy.isBusy shouldBe false
     val futures =
       (1 to 100) map {
@@ -45,7 +53,7 @@ class ReserveSpec extends AnyFlatSpec with Matchers {
       }
 
     Future.sequence(futures).await should contain theSameElementsInOrderAs (1 to 100)
-    busy.promises shouldBe empty
+    getPromises(busy) shouldBe empty
   }
 
   it should "complete futures when freed" in {
@@ -67,6 +75,6 @@ class ReserveSpec extends AnyFlatSpec with Matchers {
     }
 
     Future.sequence(futures).await should contain theSameElementsInOrderAs (1 to 10000)
-    busy.promises shouldBe empty
+    getPromises(busy) shouldBe empty
   }
 }

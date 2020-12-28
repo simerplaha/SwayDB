@@ -35,6 +35,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.compaction.CompactResult
+import swaydb.core.level.compaction.reception.{LevelReception, LevelReservation}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.serializer._
@@ -68,7 +69,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-private[core] object Level extends LazyLogging {
+private[core] case object Level extends LazyLogging {
 
   val emptySegmentsToPush = (Iterable.empty[Segment], Iterable.empty[Segment])
 
@@ -305,7 +306,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               val blockCacheSweeper: Option[MemorySweeper.Block],
                                                               val segmentIDGenerator: IDGenerator,
                                                               val segmentIO: SegmentReadIO,
-                                                              val reserve: AtomicRanges[Slice[Byte]],
+                                                              reservations: AtomicRanges[Slice[Byte]],
                                                               val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
 
 
@@ -409,73 +410,12 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   /**
-   * Tries to reserve input [[Segment]]s for merge.
-   *
-   * @return Either a Promise indicating that there is an overlapping Segment in this Level currently being merged.
-   *         The Promise is used run compaction asynchronously. This can also return the ID indicating reserve successful.
-   */
-  private[level] implicit def tryReserve(segments: Iterable[Segment]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
-    IO {
-      SegmentAssigner.assignMinMaxOnlyUnsafeNoGaps(
-        inputSegments = segments,
-        targetSegments = appendix.cache.values()
-      )
-    } map {
-      assigned =>
-        Segment.minMaxKey(
-          left = assigned,
-          right = segments
-        ) match {
-          case Some((minKey, maxKey, toInclusive)) =>
-            reserve.writeOrPromise(
-              fromKey = minKey,
-              toKey = maxKey,
-              toKeyInclusive = toInclusive
-            )
-
-          case None =>
-            scala.Left(Promise.successful(()))
-        }
-    }
-
-  /**
-   * Tries to reserve input [[Map]]s for merge.
-   *
-   * @return Either a Promise indicating that there is an overlapping [[Map]] in this Level currently being merged or
-   *         The Promise is used run compaction asynchronously. This can also return the ID indicating reserve successful.
-   *
-   */
-  private[level] implicit def tryReserve(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
-    IO {
-      SegmentAssigner.assignMinMaxOnlyUnsafeNoGaps(
-        input = map.cache.skipList,
-        targetSegments = appendix.cache.values()
-      )
-    } map {
-      assigned =>
-        Segment.minMaxKey(
-          left = assigned,
-          right = map.cache.skipList
-        ) match {
-          case Some((minKey, maxKey, toInclusive)) =>
-            reserve.writeOrPromise(
-              fromKey = minKey,
-              toKey = maxKey,
-              toKeyInclusive = toInclusive
-            )
-
-          case None =>
-            scala.Left(Promise.successful(()))
-        }
-    }
-
-  /**
    * Partitions [[Segment]]s that can be copied into this Segment without requiring merge.
    */
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     segments partition {
       segment =>
-        reserve.isWritable(
+        reservations.isWritable(
           fromKey = segment.minKey,
           toKey = segment.maxKey.maxKey,
           toKeyInclusive = segment.maxKey.inclusive
@@ -491,7 +431,7 @@ private[core] case class Level(dirs: Seq[Dir],
    * Quick lookup to check if the keys are copyable.
    */
   def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
-    reserve.isWritable(
+    reservations.isWritable(
       fromKey = minKey,
       toKey = maxKey,
       toKeyInclusive = maxKeyInclusive
@@ -523,7 +463,7 @@ private[core] case class Level(dirs: Seq[Dir],
    * Are the keys available for compaction into this Level.
    */
   def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
-    reserve.isWritable(
+    reservations.isWritable(
       fromKey = minKey,
       toKey = maxKey,
       toKeyInclusive = maxKeyInclusive
@@ -539,41 +479,12 @@ private[core] case class Level(dirs: Seq[Dir],
       maxKeyInclusive = segment.maxKey.inclusive
     )
 
-  @inline def reserveAndRun[I, O](segments: I)(block: => O)(implicit attemptReserve: I => IO[swaydb.Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]]): Either[Promise[Unit], LevelReserveResult[O]] =
-    attemptReserve(segments) map {
-      reserveOutcome =>
-        reserveOutcome map {
-          atomicKey =>
-            //currently all block inputs provide safe execution so exceptions should never occur
-            //but still wrapping this with try catch for any future changes to ensure that atomic
-            //range key is always freed on all failures.
-            try
-              LevelReserveResult.Reserved(
-                result = block,
-                keyOrNull = atomicKey
-              )
-            catch {
-              case throwable: Throwable =>
-                //release the key if there was a failure.
-                reserve.remove(atomicKey)
-                val error = Error.Level.ExceptionHandler.toError(throwable)
-                LevelReserveResult.Failed(error)
-            }
-        }
-    } match {
-      case IO.Right(either) =>
-        either
-
-      case IO.Left(error) =>
-        scala.Right(LevelReserveResult.Failed(error))
-    }
-
   /**
    * Persists a [[Segment]] to this Level.
    *
    * @returns A Set of persisted Segment ID's
    */
-  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
+  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
     put(Seq(segment))
 
   /**
@@ -581,30 +492,34 @@ private[core] case class Level(dirs: Seq[Dir],
    *
    * @returns A Set of persisted [[Segment]] ID's
    */
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
-    reserveAndRun(segments) {
+    val targetSegments = self.segments()
+
+    LevelReception.reserve(segments, targetSegments) {
       assignMerge(
         assignablesCount = segments.size,
         assignables = segments,
-        targetSegments = appendix.cache.values()
+        targetSegments = targetSegments
       )
     }
   }
 
-  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
+  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
-    reserveAndRun(map) {
+    val targetSegments = self.segments()
+
+    LevelReception.reserve(map, targetSegments) {
       assignMerge(
         map = map,
-        targetSegments = appendix.cache.values()
+        targetSegments = targetSegments
       )
     }
   }
 
-  def refresh(segment: Segment): Either[Promise[Unit], LevelReserveResult[IO[Error.Level, Slice[TransientSegment]]]] = {
+  def refresh(segment: Segment): Either[Promise[Unit], LevelReservation[IO[Error.Level, Slice[TransientSegment]]]] = {
     logger.debug("{}: Running refresh.", pathDistributor.head)
-    reserveAndRun(Seq(segment)) {
+    LevelReception.reserve(Seq(segment), self.segments()) {
       IO {
         segment match {
           case segment: MemorySegment =>
@@ -634,11 +549,11 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[LevelCollapseResult]]] = {
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[LevelCollapseResult]]] = {
     logger.trace(s"{}: Collapsing '{}' segments", pathDistributor.head, segments.size)
     if (segments.isEmpty || appendix.cache.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       val reserved =
-        LevelReserveResult.Reserved(
+        LevelReservation.Reserved(
           result = Future.successful(LevelCollapseResult.Empty),
           keyOrNull = null
         )
@@ -662,7 +577,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
 
       //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
-      reserveAndRun(levelSegments) {
+      LevelReception.reserve(levelSegments, self.segments()) {
         assignMerge(
           assignablesCount = segmentsToMerge.size,
           assignables = segmentsToMerge,
@@ -865,7 +780,11 @@ private[core] case class Level(dirs: Seq[Dir],
     ) flatMap {
       newSegments =>
         logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", pathDistributor.head, old.path, newSegments.map(_.path).mkString(", "))
-        buildNewMapEntry(newSegments, old, None) flatMap {
+        buildNewMapEntry(
+          newSegments = newSegments,
+          originalSegmentMayBe = old,
+          initialMapEntry = None
+        ) flatMap {
           entry =>
             appendix.writeSafe(entry).transform(_ => ()) onRightSideEffect {
               _ =>
@@ -1051,9 +970,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .existsS(_.mightContainKey(key, threadReadState))
 
   private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): Boolean =
-    appendix
-      .cache
-      .values()
+    segments()
       .exists {
         segment =>
           segment
@@ -1294,41 +1211,29 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel.flatMap(_.meterFor(levelNumber))
 
   override def takeSegments(size: Int, condition: Segment => Boolean): Iterable[Segment] =
-    appendix
-      .cache
-      .values()
+    segments()
       .filter(condition)
       .take(size)
 
   override def takeLargeSegments(size: Int): Iterable[Segment] =
-    appendix
-      .cache
-      .values()
+    segments()
       .filter(_.segmentSize > minSegmentSize)
       .take(size)
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
-    appendix
-      .cache
-      .values()
+    segments()
       .filter(Level.isSmallSegment(_, minSegmentSize))
       .take(size)
 
   def hasSmallSegments: Boolean =
-    appendix
-      .cache
-      .values()
+    segments()
       .exists(Level.isSmallSegment(_, minSegmentSize))
 
   def shouldSelfCompactOrExpire: Boolean =
     segments()
       .exists {
         segment =>
-          Level.shouldCollapse(self, segment) ||
-            FiniteDurations.getNearestDeadline(
-              deadline = None,
-              next = segment.nearestPutDeadline
-            ).exists(_.isOverdue())
+          Level.shouldCollapse(self, segment) || segment.nearestPutDeadline.exists(_.isOverdue())
       }
 
   def hasKeyValuesToExpire: Boolean =

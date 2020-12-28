@@ -46,12 +46,12 @@ case object CompactSegmentSelector {
         )
 
       case TrashLevel =>
-        throw new Exception(s"Invalid Level hierarchy. Parent Level cannot be a ${TrashLevel.productPrefix}")
+        throw new Exception(s"Invalid ${Level.productPrefix} hierarchy. Parent ${Level.productPrefix} cannot be a ${TrashLevel.productPrefix}")
     }
 
-  @inline def select(level: Level,
-                     nextLevel: NextLevel,
-                     take: Int): Iterable[Segment] = {
+  @inline private def select(level: Level,
+                             nextLevel: NextLevel,
+                             take: Int): Iterable[Segment] = {
     val segmentsToMerge = ListBuffer.empty[(Int, Segment)]
     implicit val keyOrder: KeyOrder[Slice[Byte]] = level.keyOrder
 

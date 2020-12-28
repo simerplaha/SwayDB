@@ -30,10 +30,11 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.Promise
 import scala.concurrent.duration.Deadline
 
-class Reserve[T](val info: AtomicReference[Option[T]],
-                 private[data] val promises: ConcurrentLinkedQueue[Promise[Unit]],
+class Reserve[T](private val info: AtomicReference[Option[T]],
+                 private val promises: ConcurrentLinkedQueue[Promise[Unit]],
                  val name: String) {
-  def savePromise(promise: Promise[Unit]): Unit =
+
+  @inline private def savePromise(promise: Promise[Unit]): Unit =
     promises add promise
 
   def isBusy: Boolean =

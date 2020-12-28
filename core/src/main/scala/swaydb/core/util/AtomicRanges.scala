@@ -24,6 +24,7 @@
 
 package swaydb.core.util
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.Bag.Implicits._
 import swaydb.core.util.AtomicRanges.{Action, Value}
@@ -41,7 +42,7 @@ import scala.concurrent.Promise
  * - [[AtomicRanges]] is asynchronous/non-blocking for [[Bag.Async]] and is blocking for [[Bag.Sync]]
  * - Requires ranges and [[Action]]s for applying concurrency.
  */
-private[core] case object AtomicRanges {
+private[core] case object AtomicRanges extends LazyLogging {
 
   private val readCount = new AtomicLong(0)
 
@@ -144,23 +145,15 @@ private[core] case object AtomicRanges {
   }
 
   @inline def writeOrPromise[K](fromKey: K, toKey: K, toKeyInclusive: Boolean)(implicit ranges: AtomicRanges[K]): Either[Promise[Unit], Key[K]] = {
-    val key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, Action.Write)
+    val key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, action = Action.Write)
     val value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: WRITE busy"))
 
     val putResult = ranges.transactions.putIfAbsent(key, value)
 
-    if (putResult == null) {
-      try
-        Right(key)
-      finally {
-        val removed = ranges.transactions.remove(key)
-        Reserve.setFree(removed.value)
-      }
-    } else {
-      val promise = Promise[Unit]()
-      putResult.value.savePromise(promise)
-      Left(promise)
-    }
+    if (putResult == null)
+      Right(key)
+    else
+      Left(Reserve.promise(putResult.value))
   }
 
   @inline def isWritable[K](fromKey: K, toKey: K, toKeyInclusive: Boolean)(implicit transaction: AtomicRanges[K]): Boolean =
@@ -173,8 +166,16 @@ private[core] case object AtomicRanges {
       )
     )
 
-  @inline def remove[K](key: Key[K])(implicit transaction: AtomicRanges[K]): Unit =
-    transaction.transactions.remove(key)
+  @inline def remove[K](key: Key[K])(implicit transaction: AtomicRanges[K]): Unit = {
+    val removed = transaction.transactions.remove(key)
+    if (removed == null) {
+      val exception = new Exception(s"Remove invoked on key without transaction. $key")
+      logger.error(exception.getMessage, exception)
+      throw exception
+    } else {
+      Reserve.setFree(removed.value)
+    }
+  }
 
   private def writeAsync[K, T, BAG[_]](key: Key[K],
                                        value: Value[Reserve[Unit]],
@@ -274,42 +275,45 @@ private[core] case object AtomicRanges {
 
 private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val ordering: Ordering[K]) {
 
+  private implicit val self: AtomicRanges[K] =
+    this
+
   def isEmpty =
     transactions.isEmpty
 
   def size =
     transactions.size()
 
-  @inline def write[T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
+  def write[T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
     AtomicRanges.write[K, T, BAG](
       fromKey = fromKey,
       toKey = toKey,
       toKeyInclusive = toKeyInclusive,
       f = f
-    )(bag = bag, transaction = this)
+    )
 
-  @inline def writeOrPromise(fromKey: K, toKey: K, toKeyInclusive: Boolean): Either[Promise[Unit], AtomicRanges.Key[K]] =
+  def writeOrPromise(fromKey: K, toKey: K, toKeyInclusive: Boolean): Either[Promise[Unit], AtomicRanges.Key[K]] =
     AtomicRanges.writeOrPromise[K](
       fromKey = fromKey,
       toKey = toKey,
       toKeyInclusive = toKeyInclusive
-    )(ranges = this)
+    )
 
-  @inline def isWritable(fromKey: K, toKey: K, toKeyInclusive: Boolean): Boolean =
+  def isWritable(fromKey: K, toKey: K, toKeyInclusive: Boolean): Boolean =
     AtomicRanges.isWritable[K](
       fromKey = fromKey,
       toKey = toKey,
       toKeyInclusive = toKeyInclusive
-    )(transaction = this)
+    )
 
-  @inline def remove(key: AtomicRanges.Key[K]): Unit =
-    AtomicRanges.remove[K](key)(transaction = this)
+  def remove(key: AtomicRanges.Key[K]): Unit =
+    AtomicRanges.remove[K](key)
 
-  @inline def read[NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
-                                        nullOutput: NO)(f: => NO)(implicit bag: Bag[BAG]): BAG[NO] =
+  def read[NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
+                                nullOutput: NO)(f: => NO)(implicit bag: Bag[BAG]): BAG[NO] =
     AtomicRanges.read[K, NO, O, BAG](
       getKeys = getKeys,
       nullOutput = nullOutput,
       f = f
-    )(bag = bag, transaction = this)
+    )
 }

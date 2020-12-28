@@ -26,6 +26,7 @@ package swaydb.core.level
 
 import swaydb.core.data.Memory
 import swaydb.core.level.compaction.CompactResult
+import swaydb.core.level.compaction.reception.LevelReservation
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
 import swaydb.core.segment.block.segment.data.TransientSegment
@@ -84,15 +85,15 @@ trait NextLevel extends LevelRef {
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]]
+  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]]
 
-  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]]
+  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]]
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]]
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]]
 
-  def refresh(segment: Segment): Either[Promise[Unit], LevelReserveResult[IO[Error.Level, Slice[TransientSegment]]]]
+  def refresh(segment: Segment): Either[Promise[Unit], LevelReservation[IO[Error.Level, Slice[TransientSegment]]]]
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReserveResult[Future[LevelCollapseResult]]]
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[LevelCollapseResult]]]
 
   def commitMerged(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit]
 

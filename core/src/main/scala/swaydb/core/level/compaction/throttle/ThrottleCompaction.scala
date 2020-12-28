@@ -29,6 +29,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level._
 import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.compaction.committer.CompactionCommitter
+import swaydb.core.level.compaction.reception.LevelReservation
 import swaydb.core.level.compaction.selector.{CollapseSegmentSelector, CompactSegmentSelector}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.segment.Segment
@@ -241,7 +242,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                     map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext,
                                                                                                       committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
     nextLevel.put(map = map) match {
-      case Right(reserved @ LevelReserveResult.Reserved(mergeResultFuture, _)) =>
+      case Right(reserved @ LevelReservation.Reserved(mergeResultFuture, _)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
         mergeResultFuture
           .flatMap {
@@ -285,9 +286,9 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                   )
                 }
           }
-          .withCallback(reserved.free())
+          .withCallback(reserved.checkout())
 
-      case Right(failed: LevelReserveResult.Failed) =>
+      case Right(failed: LevelReservation.Failed) =>
         failed.error match {
           case _ if zero.coreState.isNotRunning =>
             logger.debug(s"Level(${zero.levelNumber}): Failed to push due to shutdown.", failed.error.exception)
@@ -331,7 +332,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
             stateId = stateId
           )
         } recover {
-          _ =>
+          case _ =>
             ThrottleLevelState.Sleeping(
               sleepDeadline = if (level.isEmpty) ThrottleLevelState.longSleep else (ThrottleLevelState.failureSleepDuration min level.nextCompactionDelay).fromNow,
               stateId = stateId
@@ -406,7 +407,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       Segment.getNearestDeadlineSegment(level.segments()) match {
         case segment: Segment if segment.nearestPutDeadline.exists(!_.hasTimeLeft()) =>
           level.refresh(segment) match {
-            case scala.Right(reserved @ LevelReserveResult.Reserved(result, key)) =>
+            case scala.Right(reserved @ LevelReservation.Reserved(result, key)) =>
               logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
 
               result match {
@@ -419,7 +420,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                           level = level,
                           old = segment,
                           neu = newSegments
-                        ).withCallback(reserved.free())
+                        ).withCallback(reserved.checkout())
                     }
                     .flatMapUnit(
                       runLastLevelExpirationCheck(
@@ -433,7 +434,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                   Futures.rightUnitFuture
               }
 
-            case scala.Right(failed: LevelReserveResult.Failed) =>
+            case scala.Right(failed: LevelReservation.Failed) =>
               logger.debug(s"Level(${level.levelNumber}): Refresh failed.", failed.error.exception)
               Future.successful(Right(Future.failed(failed.error.exception)))
 
@@ -458,7 +459,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     } else {
       logger.debug(s"Level(${level.levelNumber}): Collapse run.")
       level.collapse(segments = CollapseSegmentSelector.select(level, remainingCompactions max 2)) match { //need at least 2 for collapse.
-        case scala.Right(reserved @ LevelReserveResult.Reserved(result, key)) =>
+        case scala.Right(reserved @ LevelReservation.Reserved(result, key)) =>
           result flatMap {
             case LevelCollapseResult.Empty =>
               Futures.rightUnitFuture
@@ -472,7 +473,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                       level = level,
                       old = sourceSegments,
                       neu = mergeResult
-                    ).withCallback(reserved.free())
+                    ).withCallback(reserved.checkout())
                 }
                 .flatMapUnit {
                   runLastLevelCollapseCheck(
@@ -482,7 +483,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                 }
           }
 
-        case scala.Right(failed: LevelReserveResult.Failed) =>
+        case scala.Right(failed: LevelReservation.Failed) =>
           logger.debug(s"Level(${level.levelNumber}): Collpase failed.", failed.error.exception)
           Future.successful(Right(Future.failed(failed.error.exception)))
 
@@ -501,7 +502,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       Right(Future.unit)
     else
       nextLevel.put(segments = segments) map {
-        case reserved @ LevelReserveResult.Reserved(mergeResultFuture, _) =>
+        case reserved @ LevelReservation.Reserved(mergeResultFuture, _) =>
           mergeResultFuture
             .flatMap {
               mergeResult =>
@@ -515,9 +516,9 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                     )
                 }
             }
-            .withCallback(reserved.free())
+            .withCallback(reserved.checkout())
 
-        case failed: LevelReserveResult.Failed =>
+        case failed: LevelReservation.Failed =>
           Future.failed(failed.error.exception)
       }
 }

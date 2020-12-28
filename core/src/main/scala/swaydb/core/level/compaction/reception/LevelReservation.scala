@@ -22,24 +22,24 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level
+package swaydb.core.level.compaction.reception
 
 import swaydb.core.util.AtomicRanges
 import swaydb.data.order.KeyOrder
 
-sealed trait LevelReserveResult[+A] {
-  @inline def map[B](f: A => B): LevelReserveResult[B]
+sealed trait LevelReservation[+A] {
+  @inline def map[B](f: A => B): LevelReservation[B]
 }
-case object LevelReserveResult {
+
+case object LevelReservation {
 
   case class Reserved[A, K](result: A,
-                            keyOrNull: AtomicRanges.Key[K])(implicit reserve: AtomicRanges[K],
-                                                            keyOrder: KeyOrder[K]) extends LevelReserveResult[A] {
-    def free(): Unit =
+                            keyOrNull: AtomicRanges.Key[K])(implicit reserve: AtomicRanges[K]) extends LevelReservation[A] {
+    def checkout(): Unit =
       if (keyOrNull != null)
         reserve.remove(keyOrNull)
 
-    @inline def map[B](f: A => B): LevelReserveResult.Reserved[B, K] =
+    @inline def map[B](f: A => B): LevelReservation.Reserved[B, K] =
       new Reserved[B, K](
         result = f(result),
         keyOrNull = keyOrNull
@@ -47,12 +47,12 @@ case object LevelReserveResult {
   }
 
   object Failed {
-    @inline def apply(error: swaydb.Error.Level): LevelReserveResult.Failed =
+    @inline def apply(error: swaydb.Error.Level): LevelReservation.Failed =
       new Failed(error)
   }
 
-  class Failed(val error: swaydb.Error.Level) extends LevelReserveResult[Nothing] {
-    @inline override def map[B](f: Nothing => B): LevelReserveResult[B] =
+  class Failed(val error: swaydb.Error.Level) extends LevelReservation[Nothing] {
+    @inline override def map[B](f: Nothing => B): LevelReservation[B] =
       this
   }
 }
