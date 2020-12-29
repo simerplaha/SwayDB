@@ -44,9 +44,9 @@ import scala.concurrent.{ExecutionContext, Future}
 object DefragMemorySegment {
 
   /**
-   * Builds a [[Future]] that executes defragmentation and merge on a single Segment.
+   * Default [[MergeStats.Memory]] and build new [[MemorySegment]].
    */
-  def run[SEG, NULL_SEG >: SEG](segment: SEG,
+  def run[SEG, NULL_SEG >: SEG](segment: Option[SEG],
                                 nullSegment: NULL_SEG,
                                 headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
                                 tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
@@ -64,7 +64,7 @@ object DefragMemorySegment {
                                                                     idGenerator: IDGenerator): Future[CompactResult[NULL_SEG, Iterable[MemorySegment]]] =
     Future {
       Defrag.run(
-        segment = Some(segment),
+        segment = segment,
         nullSegment = nullSegment,
         fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
         headGap = headGap,
@@ -87,6 +87,15 @@ object DefragMemorySegment {
         }
     }
 
+  /**
+   * Converts all de-fragmented [[TransientSegment.Fragment]]s to [[MemorySegment]].
+   *
+   * Unlike [[DefragPersistentSegment]] which converts [[TransientSegment.Fragment]] to
+   * [[TransientSegment.Persistent]] which then get persisted via [[swaydb.core.segment.io.SegmentWritePersistentIO]]
+   * here [[TransientSegment.Fragment]]s are converted directly to [[MemorySegment]] instead of converting them within
+   * [[swaydb.core.segment.io.SegmentWriteMemoryIO]] because we can have more concurrency here as
+   * [[swaydb.core.segment.io.SegmentWriteIO]] instances are not concurrent.
+   */
   private def commitSegments[NULL_SEG >: SEG, SEG](mergeResult: CompactResult[NULL_SEG, ListBuffer[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]]],
                                                    removeDeletes: Boolean,
                                                    createdInLevel: Int,
@@ -96,7 +105,7 @@ object DefragMemorySegment {
                                                                                        functionStore: FunctionStore,
                                                                                        segmentConfig: SegmentBlock.Config,
                                                                                        fileSweeper: FileSweeper,
-                                                                                       idGenerator: IDGenerator) =
+                                                                                       idGenerator: IDGenerator): Future[ListBuffer[Slice[MemorySegment]]] =
     Future.traverse(mergeResult.result) {
       case remote: TransientSegment.Remote =>
         Future {
@@ -127,14 +136,17 @@ object DefragMemorySegment {
         Future.successful(Slice.empty)
 
       case TransientSegment.Stats(stats) =>
-        Future {
-          Segment.memory(
-            minSegmentSize = segmentConfig.minSize,
-            maxKeyValueCountPerSegment = segmentConfig.maxCount,
-            pathsDistributor = pathsDistributor,
-            createdInLevel = createdInLevel,
-            stats = stats.close
-          )
-        }
+        if (stats.isEmpty)
+          Future.successful(Slice.empty)
+        else
+          Future {
+            Segment.memory(
+              minSegmentSize = segmentConfig.minSize,
+              maxKeyValueCountPerSegment = segmentConfig.maxCount,
+              pathsDistributor = pathsDistributor,
+              createdInLevel = createdInLevel,
+              stats = stats.close
+            )
+          }
     }
 }

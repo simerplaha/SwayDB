@@ -48,17 +48,17 @@ import scala.collection.mutable.ListBuffer
 
 private[segment] object DefragMerge {
 
-  def run[SEG, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]](segment: SEG,
-                                                                                     nullSegment: NULL_SEG,
-                                                                                     mergeableCount: Int,
-                                                                                     mergeable: Iterator[Assignable],
-                                                                                     removeDeletes: Boolean,
-                                                                                     forceExpand: Boolean,
-                                                                                     fragments: ListBuffer[TransientSegment.Fragment[S]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                          functionStore: FunctionStore,
-                                                                                                                                          segmentSource: SegmentSource[SEG],
-                                                                                                                                          mergeStatsCreator: MergeStatsCreator[S]): NULL_SEG =
+  def run[SEG, NULL_SEG >: SEG, S <: MergeStats.Segment[Memory, ListBuffer]](segment: SEG,
+                                                                             nullSegment: NULL_SEG,
+                                                                             mergeableCount: Int,
+                                                                             mergeable: Iterator[Assignable],
+                                                                             removeDeletes: Boolean,
+                                                                             forceExpand: Boolean,
+                                                                             fragments: ListBuffer[TransientSegment.Fragment[S]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                                  functionStore: FunctionStore,
+                                                                                                                                  segmentSource: SegmentSource[SEG],
+                                                                                                                                  mergeStatsCreator: MergeStatsCreator[S]): NULL_SEG =
     if (mergeableCount > 0)
       fragments.lastOption match {
         case Some(TransientSegment.Stats(stats)) =>

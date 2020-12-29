@@ -95,11 +95,10 @@ private[core] final case class MemorySegment(path: Path,
     if (deleted)
       Future.failed(swaydb.Exception.NoSuchFile(path))
     else {
-      implicit val sortedIndex: SortedIndexBlock.Config = SortedIndexBlock.Config.disabled
       implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
       DefragMemorySegment.run(
-        segment = this,
+        segment = Some(this),
         nullSegment = MemorySegment.Null,
         headGap = headGap,
         tailGap = tailGap,

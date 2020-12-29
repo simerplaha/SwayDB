@@ -43,7 +43,7 @@ object MergeStatsCreator {
   /**
    * Create [[MergeStats]] instance for persistent [[swaydb.core.level.Level]]
    */
-  implicit case object PersistentCreator extends MergeStatsCreator[MergeStats.Persistent.Builder[Memory, ListBuffer]] {
+  implicit object PersistentCreator extends MergeStatsCreator[MergeStats.Persistent.Builder[Memory, ListBuffer]] {
 
     override def create(removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
       if (removeDeletes)
@@ -55,7 +55,7 @@ object MergeStatsCreator {
   /**
    * Create [[MergeStats]] instance for memory [[swaydb.core.level.Level]]
    */
-  implicit case object MemoryCreator extends MergeStatsCreator[MergeStats.Memory.Builder[Memory, ListBuffer]] {
+  implicit object MemoryCreator extends MergeStatsCreator[MergeStats.Memory.Builder[Memory, ListBuffer]] {
 
     override def create(removeDeletes: Boolean): MergeStats.Memory.Builder[Memory, ListBuffer] =
       if (removeDeletes)

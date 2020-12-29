@@ -70,7 +70,7 @@ object MergeStatsSizeCalculator {
   /**
    * Calculates the size of MemorySegment.
    */
-  implicit case object MemoryCreator extends MergeStatsSizeCalculator[MergeStats.Memory.Builder[Memory, ListBuffer]] {
+  implicit object MemoryCreator extends MergeStatsSizeCalculator[MergeStats.Memory.Builder[Memory, ListBuffer]] {
 
     override def isStatsOrNullSmall(statsOrNull: MergeStats.Memory.Builder[Memory, ListBuffer])(implicit segmentConfig: SegmentBlock.Config): Boolean =
       if (statsOrNull == null || statsOrNull.isEmpty)

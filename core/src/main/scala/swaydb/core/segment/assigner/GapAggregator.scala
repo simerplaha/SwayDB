@@ -31,8 +31,8 @@ import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator}
 import scala.collection.mutable.ListBuffer
 
 /**
- * An [[Aggregator]] that also builds [[MergeStats]] for gap key-values to help Segments pre-compute stats
- * which [[swaydb.core.segment.assigner.SegmentAssignment]] are happening.
+ * An [[Aggregator]] that also builds [[MergeStats]] for gap key-values to help Segments pre-compute merge statistics
+ * which [[swaydb.core.segment.assigner.SegmentAssignment]] uses.
  */
 object GapAggregator {
 
@@ -43,6 +43,11 @@ object GapAggregator {
     () =>
       GapAggregator.aggregator(createNewGap)
 
+  /**
+   * Aggregate assignments such that all [[Assignable.Collection]] are added without expanding
+   * and if a [[Assignable.Point]] is added then start a new [[MergeStats.Segment]] instance and
+   * add new key-values to that instance.
+   */
   private def aggregator[B >: Null <: MergeStats[Memory, ListBuffer]](createNewGap: => B): Aggregator[Assignable, ListBuffer[Assignable.Gap[B]]] =
     new Aggregator[Assignable, ListBuffer[Assignable.Gap[B]]] {
       val buffer = ListBuffer.empty[Assignable.Gap[B]]

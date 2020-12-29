@@ -40,8 +40,8 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
-import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.merge.stats.MergeStats
+import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -51,7 +51,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.defrag.DefragPersistentSegment
+import swaydb.core.segment.defrag.{DefragMemorySegment, DefragPersistentSegment}
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Exceptions._
@@ -308,9 +308,6 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               val segmentIO: SegmentReadIO,
                                                               reservations: AtomicRanges[Slice[Byte]],
                                                               val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
-
-
-  import keyOrder._
 
 
   override val levelNumber: Int =
@@ -683,7 +680,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   @inline private def assignMergeMemory(assignablesCount: Int,
                                         assignables: Iterable[Assignable],
-                                        targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+                                        targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Memory]]]] =
     Future {
       implicit val gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]]] =
         GapAggregator.create(removeDeletes = removeDeletedRecords)
@@ -696,9 +693,29 @@ private[core] case class Level(dirs: Seq[Dir],
     } flatMap {
       assignments =>
         if (assignments.isEmpty) {
-          logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
-          Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
+          //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
+          val gap = GapAggregator.create[MergeStats.Memory.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
+          assignables foreach gap.add
+
+          implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
+
+          DefragMemorySegment.run[Segment, SegmentOption](
+            segment = None,
+            nullSegment = Segment.Null,
+            headGap = gap.result,
+            tailGap = ListBuffer.empty,
+            mergeableCount = 0,
+            mergeable = Assignable.emptyIterator,
+            removeDeletes = removeDeletedRecords,
+            createdInLevel = self.levelNumber,
+            pathsDistributor = pathDistributor
+          ) map {
+            mergeResults =>
+              val updatedResult = mergeResults.updateResult(mergeResults.result.map(TransientSegment.Memory))
+              Seq(updatedResult)
+          }
         } else {
+          //Assignment successful. Defer merge to target Segments.
           Future.traverse(assignments) {
             assignment =>
               assignment.segment.asInstanceOf[MemorySegment].put(
@@ -725,7 +742,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   @inline private def assignMergePersist(assignablesCount: Int,
                                          assignables: Iterable[Assignable],
-                                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+                                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]]] =
     Future {
       implicit val gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]]] =
         GapAggregator.create[Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords)
@@ -738,6 +755,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } flatMap {
       assignments =>
         if (assignments.isEmpty) {
+          //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
           val gap = GapAggregator.create[Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
           assignables foreach gap.add
 
@@ -759,6 +777,7 @@ private[core] case class Level(dirs: Seq[Dir],
             createdInLevel = self.levelNumber
           ).map(Seq(_))
         } else {
+          //Assignment successful. Defer merge to target Segments.
           Future.traverse(assignments) {
             assignment =>
               assignment.segment.asInstanceOf[PersistentSegment].put(

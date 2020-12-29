@@ -83,7 +83,7 @@ object TransientSegment {
   }
 
   /**
-   * This type does not extend any [[TransientSegment.Persistent]] types because it is only
+   * [[Fence]] is not a subtype of [[TransientSegment.Persistent]] because it is only
    * used to creates a barrier between groups of key-values/Segments or SegmentRefs when
    * running [[swaydb.core.segment.defrag.Defrag]].
    */

@@ -58,7 +58,7 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
                                                                                               segmentReadIO: SegmentReadIO,
                                                                                               idGenerator: IDGenerator,
                                                                                               forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[MemorySegment]] =
-    IO.Right {
+    IO {
       transient.map(_.segment)
     }
 

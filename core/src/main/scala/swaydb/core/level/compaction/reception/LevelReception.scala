@@ -50,7 +50,7 @@ private[core] case object LevelReception {
   /**
    * Tries to reserve input [[Segment]]s for merge.
    *
-   * @return Either a Promise which is complete when this Segment becomes available or returns the key which
+   * @return Either a Promise which is completed when this Segment becomes available or returns the key which
    *         can be used to free the Segment.
    */
   implicit object SegmentReception extends LevelReception[Iterable[Assignable.Collection]] {
