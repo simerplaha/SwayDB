@@ -27,7 +27,7 @@ package swaydb.core.segment.defrag
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.merge.MergeStats
+import swaydb.core.merge.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment.SegmentSource
 import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment.assigner.Assignable
@@ -45,24 +45,21 @@ import scala.collection.mutable.ListBuffer
 
 object Defrag {
 
-  def run[SEG, NULL_SEG >: SEG](segment: Option[SEG],
-                                nullSegment: NULL_SEG,
-                                fragments: ListBuffer[TransientSegment.Fragment],
-                                headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                mergeableCount: Int,
-                                mergeable: Iterator[Assignable],
-                                removeDeletes: Boolean,
-                                createdInLevel: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                     functionStore: FunctionStore,
-                                                     segmentSource: SegmentSource[SEG],
-                                                     valuesConfig: ValuesBlock.Config,
-                                                     sortedIndexConfig: SortedIndexBlock.Config,
-                                                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                                     hashIndexConfig: HashIndexBlock.Config,
-                                                     bloomFilterConfig: BloomFilterBlock.Config,
-                                                     segmentConfig: SegmentBlock.Config): CompactResult[NULL_SEG, ListBuffer[TransientSegment.Fragment]] = {
+  def run[SEG, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]](segment: Option[SEG],
+                                                                                     nullSegment: NULL_SEG,
+                                                                                     fragments: ListBuffer[TransientSegment.Fragment[S]],
+                                                                                     headGap: ListBuffer[Assignable.Gap[S]],
+                                                                                     tailGap: ListBuffer[Assignable.Gap[S]],
+                                                                                     mergeableCount: Int,
+                                                                                     mergeable: Iterator[Assignable],
+                                                                                     removeDeletes: Boolean,
+                                                                                     createdInLevel: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                          functionStore: FunctionStore,
+                                                                                                          segmentSource: SegmentSource[SEG],
+                                                                                                          segmentConfig: SegmentBlock.Config,
+                                                                                                          mergeStatsCreator: MergeStatsCreator[S],
+                                                                                                          mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): CompactResult[NULL_SEG, ListBuffer[TransientSegment.Fragment[S]]] = {
 
     val mergeResult =
       segment match {

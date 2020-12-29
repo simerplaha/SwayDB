@@ -45,7 +45,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.defrag.DefragSegment
+import swaydb.core.segment.defrag.DefragPersistentSegment
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption, SegmentRefReader}
@@ -855,7 +855,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
-    DefragSegment.runMany(
+    DefragPersistentSegment.runMany(
       headGap = headGap,
       tailGap = tailGap,
       nullSegment = SegmentRef.Null,

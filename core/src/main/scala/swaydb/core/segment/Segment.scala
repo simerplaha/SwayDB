@@ -273,41 +273,14 @@ private[core] case object Segment extends LazyLogging {
                                                         forceSaveApplier: ForceSaveApplier): Iterable[PersistentSegment] =
     segment match {
       case segment: PersistentSegment =>
-        val nextPath = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
-
-        segment.copyTo(nextPath)
-        try
-          Slice(
-            Segment(
-              path = nextPath,
-              formatId = segment.formatId,
-              createdInLevel = segment.createdInLevel,
-              segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
-              mmap = segmentConfig.mmap,
-              minKey = segment.minKey,
-              maxKey = segment.maxKey,
-              segmentSize = segment.segmentSize,
-              minMaxFunctionId = segment.minMaxFunctionId,
-              updateCount = segment.updateCount,
-              rangeCount = segment.rangeCount,
-              putCount = segment.putCount,
-              putDeadlineCount = segment.putDeadlineCount,
-              keyValueCount = segment.keyValueCount,
-              nearestExpiryDeadline = segment.nearestPutDeadline,
-              copiedFrom = Some(segment)
-            )
+        Slice(
+          copyToPersist(
+            segment = segment,
+            pathsDistributor = pathsDistributor,
+            segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+            mmap = segmentConfig.mmap
           )
-        catch {
-          case exception: Exception =>
-            logger.error("Failed to copyToPersist Segment {}", segment.path, exception)
-            try
-              Effect.deleteIfExists(nextPath)
-            catch {
-              case exception: Exception =>
-                logger.error(s"Failed to delete copied persistent Segment ${segment.path}", exception)
-            }
-            throw exception
-        }
+        )
 
       case memory: MemorySegment =>
         copyToPersist(
@@ -323,6 +296,55 @@ private[core] case object Segment extends LazyLogging {
           segmentConfig = segmentConfig
         )
     }
+
+  def copyToPersist(segment: PersistentSegment,
+                    pathsDistributor: PathsDistributor,
+                    segmentRefCacheWeight: Int,
+                    mmap: MMAP.Segment)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore,
+                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                        fileSweeper: FileSweeper,
+                                        bufferCleaner: ByteBufferSweeperActor,
+                                        blockCacheSweeper: Option[MemorySweeper.Block],
+                                        segmentIO: SegmentReadIO,
+                                        idGenerator: IDGenerator,
+                                        forceSaveApplier: ForceSaveApplier): PersistentSegment = {
+    val nextPath = pathsDistributor.next.resolve(IDGenerator.segment(idGenerator.next))
+
+    segment.copyTo(nextPath)
+
+    try
+      Segment(
+        path = nextPath,
+        formatId = segment.formatId,
+        createdInLevel = segment.createdInLevel,
+        segmentRefCacheWeight = segmentRefCacheWeight,
+        mmap = mmap,
+        minKey = segment.minKey,
+        maxKey = segment.maxKey,
+        segmentSize = segment.segmentSize,
+        minMaxFunctionId = segment.minMaxFunctionId,
+        updateCount = segment.updateCount,
+        rangeCount = segment.rangeCount,
+        putCount = segment.putCount,
+        putDeadlineCount = segment.putDeadlineCount,
+        keyValueCount = segment.keyValueCount,
+        nearestExpiryDeadline = segment.nearestPutDeadline,
+        copiedFrom = Some(segment)
+      )
+    catch {
+      case exception: Exception =>
+        logger.error("Failed to copyToPersist Segment {}", segment.path, exception)
+        try
+          Effect.deleteIfExists(nextPath)
+        catch {
+          case exception: Exception =>
+            logger.error(s"Failed to delete copied persistent Segment ${segment.path}", exception)
+        }
+        throw exception
+    }
+  }
 
   def copyToPersist(keyValues: Iterable[Memory],
                     createdInLevel: Int,

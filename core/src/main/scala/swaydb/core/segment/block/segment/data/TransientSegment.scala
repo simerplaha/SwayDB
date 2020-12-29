@@ -24,44 +24,43 @@
 
 package swaydb.core.segment.block.segment.data
 
-import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.merge.MergeStats
+import swaydb.core.data.KeyValue
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.reader.UnblockedReader
-import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.core.segment.{MemorySegment, Segment}
+import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment}
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration.Deadline
 
-sealed trait TransientSegment {
-  def minKey: Slice[Byte]
-  def maxKey: MaxKey[Slice[Byte]]
-  def hasEmptyByteSlice: Boolean
-  def nearestPutDeadline: Option[Deadline]
-  def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
-  def updateCount: Int
-  def rangeCount: Int
-  def putCount: Int
-  def keyValueCount: Int
-  def putDeadlineCount: Int
-  def segmentSize: Int
-  def createdInLevel: Int
-}
+sealed trait TransientSegment
 
 object TransientSegment {
 
-  sealed trait Persistent extends TransientSegment
+  case class Memory(segment: MemorySegment) extends TransientSegment
+
+  sealed trait Persistent extends TransientSegment {
+    def minKey: Slice[Byte]
+    def maxKey: MaxKey[Slice[Byte]]
+    def hasEmptyByteSlice: Boolean
+    def nearestPutDeadline: Option[Deadline]
+    def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
+    def updateCount: Int
+    def rangeCount: Int
+    def putCount: Int
+    def keyValueCount: Int
+    def putDeadlineCount: Int
+    def segmentSize: Int
+    def createdInLevel: Int
+  }
 
   sealed trait SingletonOrFence
 
@@ -77,9 +76,9 @@ object TransientSegment {
    * For example: if a Segment gets assigned to head and tail gaps but no mergeable
    * mid key-values then head and tail gaps cannot be joined.
    */
-  sealed trait Fragment
+  sealed trait Fragment[+S]
 
-  sealed trait Remote extends Singleton with Fragment {
+  sealed trait Remote extends Singleton with Fragment[Nothing] {
     def iterator(): Iterator[KeyValue]
   }
 
@@ -88,12 +87,12 @@ object TransientSegment {
    * used to creates a barrier between groups of key-values/Segments or SegmentRefs when
    * running [[swaydb.core.segment.defrag.Defrag]].
    */
-  case object Fence extends Fragment with SingletonOrFence {
+  case object Fence extends Fragment[Nothing] with SingletonOrFence {
     val slice = Slice(TransientSegment.Fence)
     val futureSuccessful = Future.successful(slice)
   }
 
-  case class Stats(stats: MergeStats.Persistent.Builder[swaydb.core.data.Memory, ListBuffer]) extends Fragment
+  case class Stats[S](stats: S) extends Fragment[S]
 
   sealed trait OneOrRemoteRefOrMany extends Persistent
 
@@ -204,15 +203,11 @@ object TransientSegment {
       ref.createdInLevel
   }
 
-  case class RemoteSegment(segment: Segment,
-                           removeDeletes: Boolean,
-                           createdInLevel: Int,
-                           valuesConfig: ValuesBlock.Config,
-                           sortedIndexConfig: SortedIndexBlock.Config,
-                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                           hashIndexConfig: HashIndexBlock.Config,
-                           bloomFilterConfig: BloomFilterBlock.Config,
-                           segmentConfig: SegmentBlock.Config) extends Remote {
+  case class RemotePersistentSegment(segment: PersistentSegment) extends Remote {
+
+    override def createdInLevel: Int =
+      segment.createdInLevel
+
     override def minKey: Slice[Byte] =
       segment.minKey
 
@@ -317,44 +312,5 @@ object TransientSegment {
 
     override val createdInLevel: Int =
       segments.foldLeft(Int.MaxValue)(_ min _.createdInLevel)
-  }
-
-
-  case class Memory(segment: MemorySegment) extends TransientSegment {
-    override def minKey: Slice[Byte] =
-      segment.minKey
-
-    override def maxKey: MaxKey[Slice[Byte]] =
-      segment.maxKey
-
-    override def nearestPutDeadline: Option[Deadline] =
-      segment.nearestPutDeadline
-
-    override def minMaxFunctionId: Option[MinMax[Slice[Byte]]] =
-      segment.minMaxFunctionId
-
-    override def hasEmptyByteSlice: Boolean =
-      false
-
-    override def segmentSize: Int =
-      segment.segmentSize
-
-    override def updateCount: Int =
-      segment.updateCount
-
-    override def rangeCount: Int =
-      segment.rangeCount
-
-    override def putCount: Int =
-      segment.putCount
-
-    override def putDeadlineCount: Int =
-      segment.putDeadlineCount
-
-    override def keyValueCount: Int =
-      segment.keyValueCount
-
-    override def createdInLevel: Int =
-      segment.createdInLevel
   }
 }

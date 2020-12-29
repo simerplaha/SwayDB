@@ -154,18 +154,14 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                     )
                   )
 
-                case segment: TransientSegment.RemoteSegment =>
-                  Segment.copyToPersist(
-                    segment = segment.segment,
-                    createdInLevel = segment.createdInLevel,
-                    pathsDistributor = pathsDistributor,
-                    removeDeletes = segment.removeDeletes,
-                    valuesConfig = segment.valuesConfig,
-                    sortedIndexConfig = segment.sortedIndexConfig,
-                    binarySearchIndexConfig = segment.binarySearchIndexConfig,
-                    hashIndexConfig = segment.hashIndexConfig,
-                    bloomFilterConfig = segment.bloomFilterConfig,
-                    segmentConfig = segment.segmentConfig
+                case segment: TransientSegment.RemotePersistentSegment =>
+                  Slice(
+                    Segment.copyToPersist(
+                      segment = segment.segment,
+                      pathsDistributor = pathsDistributor,
+                      segmentRefCacheWeight = segmentRefCacheWeight,
+                      mmap = mmap
+                    )
                   )
 
                 case segment: TransientSegment.Many =>

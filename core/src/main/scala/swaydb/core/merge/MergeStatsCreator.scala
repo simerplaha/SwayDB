@@ -29,28 +29,37 @@ import swaydb.core.data.Memory
 
 import scala.collection.mutable.ListBuffer
 
-sealed trait MergeStatsCreator[STATS] {
-  def createMergeStats(removeDeletes: Boolean): STATS
+/**
+ * Allows creating [[MergeStats]] instance depending on if the current defragment process is for
+ * [[swaydb.core.segment.MemorySegment]] or [[swaydb.core.segment.PersistentSegment]].
+ */
+sealed trait MergeStatsCreator[S] {
+  def create(removeDeletes: Boolean): S
 }
 
 object MergeStatsCreator {
 
+  /**
+   * Create [[MergeStats]] instance for persistent [[swaydb.core.level.Level]]
+   */
   implicit case object PersistentCreator extends MergeStatsCreator[MergeStats.Persistent.Builder[Memory, ListBuffer]] {
 
-    override def createMergeStats(removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+    override def create(removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
       if (removeDeletes)
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel)
       else
         MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)
   }
 
+  /**
+   * Create [[MergeStats]] instance for memory [[swaydb.core.level.Level]]
+   */
   implicit case object MemoryCreator extends MergeStatsCreator[MergeStats.Memory.Builder[Memory, ListBuffer]] {
 
-    override def createMergeStats(removeDeletes: Boolean): MergeStats.Memory.Builder[Memory, ListBuffer] =
+    override def create(removeDeletes: Boolean): MergeStats.Memory.Builder[Memory, ListBuffer] =
       if (removeDeletes)
         MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel)
       else
         MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
   }
-
 }

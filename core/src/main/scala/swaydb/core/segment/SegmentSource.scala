@@ -40,7 +40,7 @@ import scala.annotation.implicitNotFound
  * [[Assignable]] to [[Segment]] and [[SegmentRef]].
  */
 @implicitNotFound("Type class implementation not found for SegmentType of type ${A}")
-sealed trait SegmentSource[A] {
+sealed trait SegmentSource[-A] {
   def minKey(segment: A): Slice[Byte]
   def maxKey(segment: A): MaxKey[Slice[Byte]]
   def segmentSize(segment: A): Int

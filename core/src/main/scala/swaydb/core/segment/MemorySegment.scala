@@ -25,15 +25,16 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.merge.{KeyValueMerger, MergeStats}
+import swaydb.core.merge.MergeStats
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.defrag.DefragMemorySegment
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
@@ -90,58 +91,25 @@ private[core] final case class MemorySegment(path: Path,
           removeDeletes: Boolean,
           createdInLevel: Int,
           segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator,
-                                              executionContext: ExecutionContext): Future[CompactResult[MemorySegmentOption, Slice[MemorySegment]]] =
+                                              executionContext: ExecutionContext): Future[CompactResult[MemorySegmentOption, Iterable[MemorySegment]]] =
     if (deleted)
       Future.failed(swaydb.Exception.NoSuchFile(path))
-    else
-      Future {
-        //TODO - Need a faster approach to Defrag memory segments similar to PersistentSegments.
+    else {
+      implicit val sortedIndex: SortedIndexBlock.Config = SortedIndexBlock.Config.disabled
+      implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
-        val stats = MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)
-
-        val head =
-          headGap flatMap {
-            case Assignable.Stats(stats) =>
-              stats.keyValues
-
-            case collection: Assignable.Collection =>
-              collection.iterator()
-          }
-
-        val tail =
-          tailGap flatMap {
-            case Assignable.Stats(stats) =>
-              stats.keyValues
-
-            case collection: Assignable.Collection =>
-              collection.iterator()
-          }
-
-        KeyValueMerger.merge(
-          headGap = head,
-          tailGap = tail,
-          mergeableCount = mergeableCount,
-          mergeable = mergeable,
-          oldKeyValuesCount = keyValueCount,
-          oldKeyValues = iterator(),
-          stats = stats,
-          isLastLevel = removeDeletes
-        )
-
-        val newSegments =
-          if (stats.isEmpty)
-            Slice.empty
-          else
-            Segment.memory(
-              minSegmentSize = segmentConfig.minSize,
-              maxKeyValueCountPerSegment = segmentConfig.maxCount,
-              pathsDistributor = pathsDistributor,
-              createdInLevel = createdInLevel,
-              stats = stats.close
-            )
-
-        CompactResult(source = this, result = newSegments)
-      }
+      DefragMemorySegment.run(
+        segment = this,
+        nullSegment = MemorySegment.Null,
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        pathsDistributor = pathsDistributor
+      )
+    }
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,

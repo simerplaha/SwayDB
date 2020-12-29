@@ -37,7 +37,7 @@ import scala.collection.mutable.ListBuffer
 object GapAggregator {
 
   def create[S >: Null <: MergeStats[Memory, ListBuffer]](removeDeletes: Boolean)(implicit mergeStatsCreator: MergeStatsCreator[S]): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[S]]] =
-    creator[S](mergeStatsCreator.createMergeStats(removeDeletes))
+    creator[S](mergeStatsCreator.create(removeDeletes))
 
   @inline private def creator[B >: Null <: MergeStats[Memory, ListBuffer]](createNewGap: => B): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[B]]] =
     () =>

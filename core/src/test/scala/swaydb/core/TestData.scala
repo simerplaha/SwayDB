@@ -1990,7 +1990,7 @@ object TestData {
     builder.keyValues
   }
 
-  implicit class TransientSegmentImplicits(segment: TransientSegment) {
+  implicit class TransientSegmentImplicits(segment: TransientSegment.Persistent) {
 
     def flattenSegmentBytes: Slice[Byte] = {
       val size = segment.segmentSize
@@ -2118,13 +2118,13 @@ object TestData {
             case MemorySegment.Null =>
               CompactResult(
                 source = Segment.Null,
-                result = putResult.result
+                result = putResult.result.toSlice
               )
 
             case segment: MemorySegment =>
               CompactResult(
                 source = segment,
-                result = putResult.result
+                result = putResult.result.toSlice
               )
           }
 

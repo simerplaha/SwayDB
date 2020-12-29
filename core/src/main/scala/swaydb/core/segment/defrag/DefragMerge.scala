@@ -24,8 +24,9 @@
 
 package swaydb.core.segment.defrag
 
+import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
-import swaydb.core.merge.KeyValueMerger
+import swaydb.core.merge.{KeyValueMerger, MergeStats, MergeStatsCreator}
 import swaydb.core.segment.SegmentSource
 import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment.assigner.Assignable
@@ -46,16 +47,17 @@ import scala.collection.mutable.ListBuffer
 
 private[segment] object DefragMerge {
 
-  def run[SEG, NULL_SEG >: SEG](segment: SEG,
-                                nullSegment: NULL_SEG,
-                                mergeableCount: Int,
-                                mergeable: Iterator[Assignable],
-                                removeDeletes: Boolean,
-                                forceExpand: Boolean,
-                                fragments: ListBuffer[TransientSegment.Fragment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                                                  functionStore: FunctionStore,
-                                                                                  segmentSource: SegmentSource[SEG]): NULL_SEG =
+  def run[SEG, NULL_SEG >: SEG, S >: Null <: MergeStats.Segment[Memory, ListBuffer]](segment: SEG,
+                                                                                     nullSegment: NULL_SEG,
+                                                                                     mergeableCount: Int,
+                                                                                     mergeable: Iterator[Assignable],
+                                                                                     removeDeletes: Boolean,
+                                                                                     forceExpand: Boolean,
+                                                                                     fragments: ListBuffer[TransientSegment.Fragment[S]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                                          functionStore: FunctionStore,
+                                                                                                                                          segmentSource: SegmentSource[SEG],
+                                                                                                                                          mergeStatsCreator: MergeStatsCreator[S]): NULL_SEG =
     if (mergeableCount > 0)
       fragments.lastOption match {
         case Some(TransientSegment.Stats(stats)) =>
@@ -73,7 +75,7 @@ private[segment] object DefragMerge {
           segment
 
         case Some(_) | None =>
-          val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
+          val newStats = mergeStatsCreator.create(removeDeletes = removeDeletes)
 
           KeyValueMerger.merge(
             headGap = Assignable.emptyIterable,
@@ -98,7 +100,7 @@ private[segment] object DefragMerge {
           segment
 
         case Some(_) | None =>
-          val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
+          val newStats = mergeStatsCreator.create(removeDeletes = removeDeletes)
 
           KeyValueMerger.merge(
             headGap = Assignable.emptyIterable,

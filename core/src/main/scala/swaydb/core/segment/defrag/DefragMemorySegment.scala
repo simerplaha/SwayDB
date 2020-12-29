@@ -1,0 +1,141 @@
+/*
+ * Copyright (c) 2020 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Additional permission under the GNU Affero GPL version 3 section 7:
+ * If you modify this Program or any covered work, only by linking or combining
+ * it with separate works, the licensors of this Program grant you additional
+ * permission to convey the resulting work.
+ */
+
+package swaydb.core.segment.defrag
+
+import swaydb.core.actor.FileSweeper
+import swaydb.core.data.Memory
+import swaydb.core.function.FunctionStore
+import swaydb.core.level.PathsDistributor
+import swaydb.core.level.compaction.CompactResult
+import swaydb.core.merge.MergeStats
+import swaydb.core.segment._
+import swaydb.core.segment.assigner.Assignable
+import swaydb.core.segment.block.segment.SegmentBlock
+import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.block.sortedindex.SortedIndexBlock
+import swaydb.core.util.IDGenerator
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
+
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.{ExecutionContext, Future}
+
+object DefragMemorySegment {
+
+  /**
+   * Builds a [[Future]] that executes defragmentation and merge on a single Segment.
+   */
+  def run[SEG, NULL_SEG >: SEG](segment: SEG,
+                                nullSegment: NULL_SEG,
+                                headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                mergeableCount: Int,
+                                mergeable: Iterator[Assignable],
+                                removeDeletes: Boolean,
+                                createdInLevel: Int,
+                                pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
+                                                                    keyOrder: KeyOrder[Slice[Byte]],
+                                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                                    functionStore: FunctionStore,
+                                                                    segmentSource: SegmentSource[SEG],
+                                                                    segmentConfig: SegmentBlock.Config,
+                                                                    fileSweeper: FileSweeper,
+                                                                    idGenerator: IDGenerator): Future[CompactResult[NULL_SEG, Iterable[MemorySegment]]] =
+    Future {
+      Defrag.run(
+        segment = Some(segment),
+        nullSegment = nullSegment,
+        fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+        headGap = headGap,
+        tailGap = tailGap,
+        mergeableCount = mergeableCount,
+        mergeable = mergeable,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel
+      )
+    } flatMap {
+      mergeResult =>
+        commitSegments(
+          mergeResult = mergeResult,
+          removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel,
+          pathsDistributor = pathsDistributor
+        ) map {
+          result =>
+            mergeResult.updateResult(result.flatten)
+        }
+    }
+
+  private def commitSegments[NULL_SEG >: SEG, SEG](mergeResult: CompactResult[NULL_SEG, ListBuffer[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]]],
+                                                   removeDeletes: Boolean,
+                                                   createdInLevel: Int,
+                                                   pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
+                                                                                       keyOrder: KeyOrder[Slice[Byte]],
+                                                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                                                       functionStore: FunctionStore,
+                                                                                       segmentConfig: SegmentBlock.Config,
+                                                                                       fileSweeper: FileSweeper,
+                                                                                       idGenerator: IDGenerator) =
+    Future.traverse(mergeResult.result) {
+      case remote: TransientSegment.Remote =>
+        Future {
+          remote match {
+            case ref: TransientSegment.RemoteRef =>
+              Segment.copyToMemory(
+                keyValues = ref.iterator(),
+                pathsDistributor = pathsDistributor,
+                removeDeletes = removeDeletes,
+                minSegmentSize = segmentConfig.minSize,
+                maxKeyValueCountPerSegment = segmentConfig.maxCount,
+                createdInLevel = createdInLevel
+              )
+
+            case TransientSegment.RemotePersistentSegment(segment) =>
+              Segment.copyToMemory(
+                segment = segment,
+                createdInLevel = createdInLevel,
+                pathsDistributor = pathsDistributor,
+                removeDeletes = removeDeletes,
+                minSegmentSize = segmentConfig.minSize,
+                maxKeyValueCountPerSegment = segmentConfig.maxCount
+              )
+          }
+        }
+
+      case TransientSegment.Fence =>
+        Future.successful(Slice.empty)
+
+      case TransientSegment.Stats(stats) =>
+        Future {
+          Segment.memory(
+            minSegmentSize = segmentConfig.minSize,
+            maxKeyValueCountPerSegment = segmentConfig.maxCount,
+            pathsDistributor = pathsDistributor,
+            createdInLevel = createdInLevel,
+            stats = stats.close
+          )
+        }
+    }
+}

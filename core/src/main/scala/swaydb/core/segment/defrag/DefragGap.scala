@@ -25,17 +25,13 @@
 package swaydb.core.segment.defrag
 
 import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.merge.MergeStats
+import swaydb.core.merge.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.SegmentRef
-import swaydb.core.segment.{PersistentSegmentMany, Segment}
+import swaydb.core.segment.{MemorySegment, PersistentSegment, PersistentSegmentMany, Segment}
 
 import scala.collection.mutable.ListBuffer
 
@@ -50,16 +46,13 @@ import scala.collection.mutable.ListBuffer
 
 private[segment] object DefragGap {
 
-  def run(gap: Iterable[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-          fragments: ListBuffer[TransientSegment.Fragment],
-          removeDeletes: Boolean,
-          createdInLevel: Int,
-          hasNext: Boolean)(implicit valuesConfig: ValuesBlock.Config,
-                            sortedIndexConfig: SortedIndexBlock.Config,
-                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                            hashIndexConfig: HashIndexBlock.Config,
-                            bloomFilterConfig: BloomFilterBlock.Config,
-                            segmentConfig: SegmentBlock.Config): ListBuffer[TransientSegment.Fragment] = {
+  def run[S >: Null <: MergeStats.Segment[Memory, ListBuffer]](gap: Iterable[Assignable.Gap[S]],
+                                                               fragments: ListBuffer[TransientSegment.Fragment[S]],
+                                                               removeDeletes: Boolean,
+                                                               createdInLevel: Int,
+                                                               hasNext: Boolean)(implicit segmentConfig: SegmentBlock.Config,
+                                                                                 mergeStatsCreator: MergeStatsCreator[S],
+                                                                                 mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): ListBuffer[TransientSegment.Fragment[S]] = {
     val iterator = gap.iterator
 
     iterator.foldLeft(DefragCommon.lastStatsOrNull(fragments)) {
@@ -87,7 +80,7 @@ private[segment] object DefragGap {
       case (statsOrNull, collection: Assignable.Collection) =>
         val newOrOldStats =
           if (statsOrNull == null) {
-            val newStats = DefragCommon.createMergeStats(removeDeletes = removeDeletes)
+            val newStats = mergeStatsCreator.create(removeDeletes = removeDeletes)
             fragments += TransientSegment.Stats(newStats)
             newStats
           } else {
@@ -118,32 +111,29 @@ private[segment] object DefragGap {
     }
   }
 
-  @inline private def addToStats(keyValues: Iterator[KeyValue],
-                                 statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                                 fragments: ListBuffer[TransientSegment.Fragment],
-                                 removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+  @inline private def addToStats[S >: Null <: MergeStats.Segment[Memory, ListBuffer]](keyValues: Iterator[KeyValue],
+                                                                                      statsOrNull: S,
+                                                                                      fragments: ListBuffer[TransientSegment.Fragment[S]],
+                                                                                      removeDeletes: Boolean)(implicit mergeStatsCreator: MergeStatsCreator[S]): S =
     if (statsOrNull != null) {
       keyValues foreach (keyValue => statsOrNull.add(keyValue.toMemory()))
       statsOrNull
     } else {
-      val stats = DefragCommon.createMergeStats(removeDeletes)
+      val stats = mergeStatsCreator.create(removeDeletes)
       keyValues foreach (keyValue => stats.add(keyValue.toMemory()))
       fragments += TransientSegment.Stats(stats)
       stats
     }
 
-  private def processSegment(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                             fragments: ListBuffer[TransientSegment.Fragment],
-                             segment: Segment,
-                             removeDeletes: Boolean,
-                             createdInLevel: Int,
-                             hasNext: Boolean)(implicit valuesConfig: ValuesBlock.Config,
-                                               sortedIndexConfig: SortedIndexBlock.Config,
-                                               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                               hashIndexConfig: HashIndexBlock.Config,
-                                               bloomFilterConfig: BloomFilterBlock.Config,
-                                               segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
-    if ((hasNext && DefragCommon.isSegmentSmall(segment)) || DefragCommon.isStatsOrNullSmall(statsOrNull))
+  private def processSegment[S >: Null <: MergeStats.Segment[Memory, ListBuffer]](statsOrNull: S,
+                                                                                  fragments: ListBuffer[TransientSegment.Fragment[S]],
+                                                                                  segment: Segment,
+                                                                                  removeDeletes: Boolean,
+                                                                                  createdInLevel: Int,
+                                                                                  hasNext: Boolean)(implicit segmentConfig: SegmentBlock.Config,
+                                                                                                    mergeStatsCreator: MergeStatsCreator[S],
+                                                                                                    mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): S =
+    if ((hasNext && DefragCommon.isSegmentSmall(segment)) || mergeStatsSizeCalculator.isStatsOrNullSmall(statsOrNull))
       segment match {
         case many: PersistentSegmentMany =>
           val refIterator = many.segmentRefsIterator()
@@ -176,13 +166,14 @@ private[segment] object DefragGap {
         createdInLevel = createdInLevel
       )
 
-  private def processSegmentRef(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                                fragments: ListBuffer[TransientSegment.Fragment],
-                                ref: SegmentRef,
-                                removeDeletes: Boolean,
-                                hasNext: Boolean)(implicit sortedIndexConfig: SortedIndexBlock.Config,
-                                                  segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
-    if ((hasNext && DefragCommon.isSegmentRefSmall(ref)) || DefragCommon.isStatsOrNullSmall(statsOrNull))
+  private def processSegmentRef[S >: Null <: MergeStats.Segment[Memory, ListBuffer]](statsOrNull: S,
+                                                                                     fragments: ListBuffer[TransientSegment.Fragment[S]],
+                                                                                     ref: SegmentRef,
+                                                                                     removeDeletes: Boolean,
+                                                                                     hasNext: Boolean)(implicit segmentConfig: SegmentBlock.Config,
+                                                                                                       mergeStatsCreator: MergeStatsCreator[S],
+                                                                                                       mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): S =
+    if ((hasNext && DefragCommon.isSegmentRefSmall(ref)) || mergeStatsSizeCalculator.isStatsOrNullSmall(statsOrNull))
       addToStats(
         keyValues = ref.iterator(),
         statsOrNull = statsOrNull,
@@ -197,17 +188,12 @@ private[segment] object DefragGap {
         removeDeletes = removeDeletes
       )
 
-  private def addRemoteSegment(segment: Segment,
-                               statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                               fragments: ListBuffer[TransientSegment.Fragment],
-                               removeDeletes: Boolean,
-                               createdInLevel: Int)(implicit valuesConfig: ValuesBlock.Config,
-                                                    sortedIndexConfig: SortedIndexBlock.Config,
-                                                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                                    hashIndexConfig: HashIndexBlock.Config,
-                                                    bloomFilterConfig: BloomFilterBlock.Config,
-                                                    segmentConfig: SegmentBlock.Config): MergeStats.Persistent.Builder[Memory, ListBuffer] =
-    if (removeDeletes && segment.hasUpdateOrRange) {
+  private def addRemoteSegment[S >: Null <: MergeStats.Segment[Memory, ListBuffer]](segment: Segment,
+                                                                                    statsOrNull: S,
+                                                                                    fragments: ListBuffer[TransientSegment.Fragment[S]],
+                                                                                    removeDeletes: Boolean,
+                                                                                    createdInLevel: Int)(implicit mergeStatsCreator: MergeStatsCreator[S]): S =
+    if (removeDeletes && segment.hasUpdateOrRange)
       segment match {
         case segment: PersistentSegmentMany =>
           segment.segmentRefsIterator().foldLeft(statsOrNull) {
@@ -228,28 +214,25 @@ private[segment] object DefragGap {
             removeDeletes = removeDeletes
           )
       }
-    } else {
-      val remote =
-        TransientSegment.RemoteSegment(
-          segment = segment,
-          removeDeletes = removeDeletes,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig
-        )
+    else
+      segment match {
+        case segment: MemorySegment =>
+          addToStats(
+            keyValues = segment.iterator(),
+            statsOrNull = statsOrNull,
+            fragments = fragments,
+            removeDeletes = removeDeletes
+          )
 
-      fragments += remote
-      null
-    }
+        case segment: PersistentSegment =>
+          fragments += TransientSegment.RemotePersistentSegment(segment = segment)
+          null
+      }
 
-  private def addRemoteSegmentRef(ref: SegmentRef,
-                                  fragments: ListBuffer[TransientSegment.Fragment],
-                                  lastMergeStatsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer],
-                                  removeDeletes: Boolean): MergeStats.Persistent.Builder[Memory, ListBuffer] =
+  private def addRemoteSegmentRef[S >: Null <: MergeStats.Segment[Memory, ListBuffer]](ref: SegmentRef,
+                                                                                       fragments: ListBuffer[TransientSegment.Fragment[S]],
+                                                                                       lastMergeStatsOrNull: S,
+                                                                                       removeDeletes: Boolean)(implicit mergeStatsCreator: MergeStatsCreator[S]): S =
     if (removeDeletes && ref.hasUpdateOrRange) {
       addToStats(
         keyValues = ref.iterator(),
