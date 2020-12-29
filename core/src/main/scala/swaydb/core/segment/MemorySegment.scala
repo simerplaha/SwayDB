@@ -42,7 +42,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
 import java.nio.file.Path
-import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
@@ -150,15 +149,10 @@ private[core] final case class MemorySegment(path: Path,
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-      val keyValues =
-        Segment
-          .toMemoryIterator(iterator(), removeDeletes)
-          .to(Iterable)
-
       val mergeStats =
-        new MergeStats.Memory.Closed[Iterable](
+        new MergeStats.Memory.ClosedIgnoreStats[Iterator](
           isEmpty = false,
-          keyValues = keyValues
+          keyValues = Segment.toMemoryIterator(iterator(), removeDeletes)
         )
 
       Segment.memory(

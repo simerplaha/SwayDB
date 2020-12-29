@@ -26,6 +26,7 @@ package swaydb.core.segment.defrag
 
 import swaydb.Aggregator
 import swaydb.core.data.Memory
+import swaydb.core.merge.MergeStats.{Memory, Persistent}
 import swaydb.core.merge.{KeyValueGrouper, MergeStats}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -37,20 +38,25 @@ import scala.collection.mutable.ListBuffer
 
 private[core] object DefragCommon {
 
-  def isStatsOrNullSmall(statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer])(implicit sortedIndexConfig: SortedIndexBlock.Config,
-                                                                                         segmentConfig: SegmentBlock.Config): Boolean =
+  def isStatsOrNullSmall(statsOrNull: MergeStats.Segment[Memory, ListBuffer])(implicit sortedIndexConfig: SortedIndexBlock.Config,
+                                                                              segmentConfig: SegmentBlock.Config): Boolean =
     if (statsOrNull == null || statsOrNull.isEmpty) {
       false
     } else {
-      val mergeStats =
-        statsOrNull.close(
-          hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
-          optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
-        )
+      statsOrNull match {
+        case statsOrNull: MergeStats.Persistent.Builder[Memory, ListBuffer] =>
+          val mergeStats =
+            statsOrNull.close(
+              hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
+              optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration
+            )
 
-      mergeStats.keyValuesCount < segmentConfig.maxCount && mergeStats.maxSortedIndexSize + statsOrNull.totalValuesSize < segmentConfig.minSize / 2
+          mergeStats.keyValuesCount < segmentConfig.maxCount && mergeStats.maxSortedIndexSize + statsOrNull.totalValuesSize < segmentConfig.minSize / 2
+
+        case statsOrNull: MergeStats.Memory.Builder[Memory, ListBuffer] =>
+          statsOrNull.keyValueCount < segmentConfig.maxCount && statsOrNull.segmentSize < segmentConfig.minSize
+      }
     }
-
 
   @inline def isSegmentSmall(segment: Segment)(implicit segmentConfig: SegmentBlock.Config): Boolean =
     segment.segmentSize < segmentConfig.minSize

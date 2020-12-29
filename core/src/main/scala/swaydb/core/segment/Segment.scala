@@ -82,11 +82,11 @@ private[core] case object Segment extends LazyLogging {
              maxKeyValueCountPerSegment: Int,
              pathsDistributor: PathsDistributor,
              createdInLevel: Long,
-             stats: MergeStats.Memory.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore,
-                                                        fileSweeper: FileSweeper,
-                                                        idGenerator: IDGenerator): Slice[MemorySegment] =
+             stats: MergeStats.Memory.ClosedIgnoreStats[IterableOnce])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                                       functionStore: FunctionStore,
+                                                                       fileSweeper: FileSweeper,
+                                                                       idGenerator: IDGenerator): Slice[MemorySegment] =
     if (stats.isEmpty) {
       throw IO.throwable("Empty key-values submitted to memory Segment.")
     } else {
@@ -400,9 +400,9 @@ private[core] case object Segment extends LazyLogging {
                                         fileSweeper: FileSweeper,
                                         idGenerator: IDGenerator): Slice[MemorySegment] = {
     val builder =
-      new MergeStats.Memory.Closed[Iterable](
+      new MergeStats.Memory.ClosedIgnoreStats[Iterator](
         isEmpty = false,
-        keyValues = Segment.toMemoryIterator(keyValues, removeDeletes).to(Iterable)
+        keyValues = Segment.toMemoryIterator(keyValues, removeDeletes)
       )
 
     Segment.memory(

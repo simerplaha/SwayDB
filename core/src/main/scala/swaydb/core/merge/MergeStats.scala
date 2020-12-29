@@ -47,7 +47,15 @@ private[core] sealed trait MergeStats[-FROM, +T[_]] extends Aggregator[FROM, T[d
 
 private[core] case object MergeStats {
 
-  private[core] sealed trait Result[-FROM, +T[_]] {
+  private[core] sealed trait Segment[-FROM, +T[_]] extends MergeStats[FROM, T] {
+
+    def isEmpty: Boolean
+
+  }
+
+  sealed trait ClosedStats[+T[_]] {
+    def isEmpty: Boolean
+    def keyValuesCount: Int
     def keyValues: T[data.Memory]
   }
 
@@ -98,14 +106,6 @@ private[core] case object MergeStats {
   def buffer[FROM, T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory): MergeStats.Buffer[FROM, T] =
     new Buffer(aggregator)
 
-  sealed trait Persistent[-FROM, +T[_]] {
-    def maxSortedIndexSize(hasAccessPositionIndex: Boolean, optimiseForReverseIteration: Boolean): Int
-    def size: Int
-    def isEmpty: Boolean
-    def keyValues: T[data.Memory]
-
-  }
-
   object Persistent {
     class Builder[-FROM, +T[_]](var maxMergedKeySize: Int,
                                 var totalMergedKeysSize: Int,
@@ -120,7 +120,7 @@ private[core] case object MergeStats {
                                 var hasRange: Boolean,
                                 var mightContainRemoveRange: Boolean,
                                 var hasPut: Boolean,
-                                aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends Persistent[FROM, T] with MergeStats[FROM, T] {
+                                aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats.Segment[FROM, T] {
 
       def close(hasAccessPositionIndex: Boolean, optimiseForReverseIteration: Boolean): MergeStats.Persistent.Closed[T] =
         new MergeStats.Persistent.Closed[T](
@@ -208,7 +208,7 @@ private[core] case object MergeStats {
                         val keyValuesCount: Int,
                         val keyValues: T[data.Memory],
                         val maxSortedIndexSize: Int,
-                        val totalValuesSize: Int)
+                        val totalValuesSize: Int) extends ClosedStats[T]
   }
 
   object Memory {
@@ -220,14 +220,19 @@ private[core] case object MergeStats {
           0
       }
 
-    class Builder[-FROM, +T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats[FROM, T] {
-      var isEmpty: Boolean = true
+    class Builder[-FROM, +T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats.Segment[FROM, T] {
 
-      def close: Memory.Closed[T] =
-        new Closed[T](
-          isEmpty = isEmpty,
-          keyValues = keyValues
-        )
+      private var _segmentSize = 0
+      private var _totalKeyValueCount: Int = 0
+
+      override def isEmpty =
+        _totalKeyValueCount == 0
+
+      def segmentSize: Int =
+        _segmentSize
+
+      def keyValueCount: Int =
+        _totalKeyValueCount
 
       override def keyValues: T[data.Memory] =
         aggregator.result
@@ -236,13 +241,30 @@ private[core] case object MergeStats {
         val keyValueOrNull = converterOrNull(from)
         if (keyValueOrNull != null) {
           aggregator add keyValueOrNull
-          isEmpty = false
+          _totalKeyValueCount += 1
+          _segmentSize += MergeStats.Memory calculateSize keyValueOrNull
         }
       }
+
+      def close: Memory.Closed[T] =
+        new Closed[T](
+          isEmpty = isEmpty,
+          keyValues = keyValues,
+          keyValuesCount = _totalKeyValueCount,
+          segmentSize = _segmentSize
+        )
     }
 
-    class Closed[+T[_]](val isEmpty: Boolean,
-                        val keyValues: T[data.Memory])
+    /**
+     * Similar to [[ClosedStats]] but does not require
+     */
+    class ClosedIgnoreStats[+T[_]](val isEmpty: Boolean,
+                                   val keyValues: T[data.Memory])
+
+    class Closed[+T[_]](override val isEmpty: Boolean,
+                        override val keyValues: T[data.Memory],
+                        val keyValuesCount: Int,
+                        val segmentSize: Int) extends ClosedIgnoreStats[T](isEmpty, keyValues) with ClosedStats[T]
   }
 
   class Buffer[-FROM, +T[_]](aggregator: Aggregator[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterOrNull: FROM => data.Memory) extends MergeStats[FROM, T] {
@@ -255,5 +277,6 @@ private[core] case object MergeStats {
 
     override def keyValues: T[data.Memory] =
       aggregator.result
+
   }
 }
