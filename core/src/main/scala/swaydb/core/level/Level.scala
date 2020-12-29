@@ -686,7 +686,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
     Future {
       implicit val gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]]] =
-        GapAggregator.memory(removeDeletes = removeDeletedRecords)
+        GapAggregator.create(removeDeletes = removeDeletedRecords)
 
       SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]](
         assignablesCount = assignablesCount,
@@ -728,7 +728,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                          targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
     Future {
       implicit val gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]]] =
-        GapAggregator.persistent(removeDeletes = removeDeletedRecords)
+        GapAggregator.create[Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords)
 
       SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]](
         assignablesCount = assignablesCount,
@@ -738,7 +738,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } flatMap {
       assignments =>
         if (assignments.isEmpty) {
-          val gap = GapAggregator.persistent(removeDeletes = removeDeletedRecords).createNew()
+          val gap = GapAggregator.create[Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
           assignables foreach gap.add
 
           implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig

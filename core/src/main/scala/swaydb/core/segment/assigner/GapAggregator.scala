@@ -26,7 +26,7 @@ package swaydb.core.segment.assigner
 
 import swaydb.Aggregator
 import swaydb.core.data.Memory
-import swaydb.core.merge.{KeyValueGrouper, MergeStats}
+import swaydb.core.merge.{MergeStats, MergeStatsCreator}
 
 import scala.collection.mutable.ListBuffer
 
@@ -36,17 +36,8 @@ import scala.collection.mutable.ListBuffer
  */
 object GapAggregator {
 
-  def persistent(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
-    if (removeDeletes)
-      creator(MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel))
-    else
-      creator(MergeStats.persistent[Memory, ListBuffer](Aggregator.listBuffer)(_.toMemory()))
-
-  def memory(removeDeletes: Boolean): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]]] =
-    if (removeDeletes)
-      creator(MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)(KeyValueGrouper.addLastLevel))
-    else
-      creator(MergeStats.memory[Memory, ListBuffer](Aggregator.listBuffer)(_.toMemory()))
+  def create[S >: Null <: MergeStats[Memory, ListBuffer]](removeDeletes: Boolean)(implicit mergeStatsCreator: MergeStatsCreator[S]): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[S]]] =
+    creator[S](mergeStatsCreator.createMergeStats(removeDeletes))
 
   @inline private def creator[B >: Null <: MergeStats[Memory, ListBuffer]](createNewGap: => B): Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[B]]] =
     () =>

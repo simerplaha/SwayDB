@@ -310,7 +310,7 @@ object DefragSegment {
                                      removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              segmentSource: SegmentSource[SEG]): ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], SEG]] = {
     implicit val creator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
-      GapAggregator.persistent(removeDeletes)
+      GapAggregator.create(removeDeletes)
 
     val (segmentsIterator, segmentsIteratorDuplicate) = segments.duplicate
 
