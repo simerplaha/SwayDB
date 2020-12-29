@@ -28,7 +28,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
-import swaydb.core.merge.MergeStats
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.segment.entry.writer.EntryWriter

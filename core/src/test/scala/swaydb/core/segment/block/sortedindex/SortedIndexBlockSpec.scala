@@ -30,11 +30,11 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Persistent
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.Block
 import swaydb.core.segment.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.merge.MergeStats
 import swaydb.core.util.Benchmark
 import swaydb.data.RunThis._
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}

@@ -22,15 +22,16 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.merge
+package swaydb.core.merge.stats
 
 import swaydb.Aggregator
 import swaydb.core.data.Memory
+import swaydb.core.merge.KeyValueGrouper
 
 import scala.collection.mutable.ListBuffer
 
 /**
- * Allows creating [[MergeStats]] instance depending on if the current defragment process is for
+ * Allows creating [[MergeStats]] instance depending if the current defragment process is for
  * [[swaydb.core.segment.MemorySegment]] or [[swaydb.core.segment.PersistentSegment]].
  */
 sealed trait MergeStatsCreator[S] {

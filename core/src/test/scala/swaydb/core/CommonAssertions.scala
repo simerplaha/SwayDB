@@ -42,6 +42,7 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.merge._
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment._
 import swaydb.core.segment.block._

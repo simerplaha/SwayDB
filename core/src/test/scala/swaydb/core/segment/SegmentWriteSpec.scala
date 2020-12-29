@@ -38,7 +38,8 @@ import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.PathsDistributor
-import swaydb.core.merge.{KeyValueMerger, MergeStats}
+import swaydb.core.merge.KeyValueMerger
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock

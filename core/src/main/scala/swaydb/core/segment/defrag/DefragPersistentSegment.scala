@@ -28,8 +28,7 @@ import swaydb.Aggregator
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.merge.MergeStats
-import swaydb.core.merge.MergeStats.Persistent
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner, SegmentAssignment}
@@ -188,9 +187,9 @@ object DefragPersistentSegment {
         }
 
   case class HeadDefragAndAssignments[SEG >: Null](headFragments: ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                                   midAssignments: ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]], SEG]])
+                                                   midAssignments: ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], SEG]])
 
-  private def runHeadDefragAndAssignments[NULL_SEG >: SEG, SEG >: Null](headGap: ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]],
+  private def runHeadDefragAndAssignments[NULL_SEG >: SEG, SEG >: Null](headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                                                         segments: => Iterator[SEG],
                                                                         assignableCount: Int,
                                                                         assignables: Iterator[Assignable],

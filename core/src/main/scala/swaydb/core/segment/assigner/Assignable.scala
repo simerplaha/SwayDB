@@ -28,8 +28,7 @@ import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
-import swaydb.core.merge.MergeStats
-import swaydb.core.segment.entry.id.BaseEntryId.Format.A
+import swaydb.core.merge.stats.MergeStats
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 

@@ -28,7 +28,8 @@ import swaydb.Aggregator
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZeroMapCache.State
-import swaydb.core.merge.{FixedMerger, KeyValueMerger, MergeStats}
+import swaydb.core.merge.stats.MergeStats
+import swaydb.core.merge.{FixedMerger, KeyValueMerger}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

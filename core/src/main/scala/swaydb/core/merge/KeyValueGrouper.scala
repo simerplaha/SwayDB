@@ -26,6 +26,7 @@ package swaydb.core.merge
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Memory, Persistent, Value, _}
+import swaydb.core.merge.stats.MergeStats
 
 /**
  * SegmentGroups will always group key-values with Groups at the head of key-value List. Groups cannot be randomly

@@ -29,13 +29,13 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
-import swaydb.core.merge.MergeStats
 import swaydb.core.{TestBase, TestCaseSweeper, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.order.KeyOrder

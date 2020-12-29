@@ -29,12 +29,11 @@ import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.merge.MergeStats
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.util.IDGenerator
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice

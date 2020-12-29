@@ -31,7 +31,8 @@ import swaydb.core.TestTimer
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
-import swaydb.core.merge.{KeyValueMerger, MergeStats}
+import swaydb.core.merge.KeyValueMerger
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.util.skiplist.{SkipListConcurrent, SkipListSeries}
 import swaydb.data.{Atomic, OptimiseWrites}
 import swaydb.data.order.TimeOrder

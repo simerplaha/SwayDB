@@ -41,7 +41,8 @@ import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, PathsDistributor}
-import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger, MergeStats}
+import swaydb.core.merge.stats.MergeStats
+import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block._

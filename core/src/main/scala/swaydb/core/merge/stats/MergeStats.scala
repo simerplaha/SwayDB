@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.merge
+package swaydb.core.merge.stats
 
 import swaydb.Aggregator
 import swaydb.core.data
@@ -32,6 +32,9 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.collection.mutable.ListBuffer
 
+/**
+ * Instance that accumulates merge statistics, maximum fileSize etc as merge progresses.
+ */
 private[core] sealed trait MergeStats[-FROM, +T[_]] extends Aggregator[FROM, T[data.Memory]] {
 
   def add(keyValue: FROM): Unit

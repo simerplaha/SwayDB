@@ -33,7 +33,8 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.merge.{KeyValueGrouper, MergeStats}
+import swaydb.core.merge.KeyValueGrouper
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -42,7 +43,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO, SegmentWritePersistentIO}
+import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Collections._
@@ -60,8 +61,6 @@ import scala.annotation.tailrec
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
   override def noneS: SegmentOption =

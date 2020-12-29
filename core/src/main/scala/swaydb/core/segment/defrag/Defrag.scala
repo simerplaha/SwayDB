@@ -27,17 +27,12 @@ package swaydb.core.segment.defrag
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.merge.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
+import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
 import swaydb.core.segment.SegmentSource
 import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment.assigner.Assignable
-import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.block.hashindex.HashIndexBlock
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
-import swaydb.core.segment.block.sortedindex.SortedIndexBlock
-import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

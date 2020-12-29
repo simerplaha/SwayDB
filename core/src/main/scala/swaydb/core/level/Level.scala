@@ -40,8 +40,8 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
-import swaydb.core.merge.MergeStats
-import swaydb.core.merge.MergeStats.{Memory, Persistent}
+import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock

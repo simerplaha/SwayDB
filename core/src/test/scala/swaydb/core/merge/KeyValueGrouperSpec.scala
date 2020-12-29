@@ -27,6 +27,7 @@ package swaydb.core.merge
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
+import swaydb.core.merge.stats.MergeStats
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.serializers.Default._
