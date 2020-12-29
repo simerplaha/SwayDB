@@ -138,7 +138,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
           //in-memory key-values are slice of the whole Segment.
           if (persistent) {
             //put the same key-value to Level1 and expect the key-values to be sliced
-            level.putKeyValuesTest(Slice(Memory.put(one, one))).runRandomIO
+            level.put(Slice(Memory.put(one, one))).runRandomIO
             val gotFromLevelOne = level.get(one, ThreadReadState.random).getPut
             gotFromLevelOne.getOrFetchValue shouldBe one
             //ensure that key-values are not unsliced in LevelOne.

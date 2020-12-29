@@ -64,6 +64,9 @@ class AppendixMapCache(skipList: SkipListConcurrent[SliceOption[Byte], SegmentOp
   def values(): Iterable[Segment] =
     skipList.values()
 
+  def subMapValues(from: Slice[Byte], fromInclusive: Boolean, to: Slice[Byte], toInclusive: Boolean): Iterable[Segment] =
+    skipList.subMapValues(from, fromInclusive, to, toInclusive)
+
   def floor(key: Slice[Byte]): SegmentOption =
     skipList.floor(key)
 

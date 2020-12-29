@@ -25,14 +25,15 @@
 package swaydb.core.util
 
 import java.util.concurrent.ConcurrentSkipListMap
-
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import swaydb.EitherValues.EitherTestUtils
 import swaydb.Glass
 import swaydb.IO.ApiIO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestExecutionContext
+import swaydb.core.util.AtomicRanges.Action
 import swaydb.data.RunThis._
 import swaydb.{Bag, IO}
 
@@ -277,14 +278,14 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
     }
   }
 
-  "execute" when {
+  "writeAndRelease" when {
     "no overlaps" in {
       implicit val atomic = AtomicRanges[Int]()
 
       @volatile var executed = false
 
       atomic
-        .write(fromKey = 1, toKey = 10, toKeyInclusive = randomBoolean()) {
+        .writeAndRelease(fromKey = 1, toKey = 10, toKeyInclusive = randomBoolean()) {
           executed = true
         }
         .await
@@ -306,7 +307,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
           val future =
             Future {
               ranges
-                .write(fromKey = 10, toKey = 20, toKeyInclusive = true) {
+                .writeAndRelease(fromKey = 10, toKey = 20, toKeyInclusive = true) {
                   sleep(1.second)
                   firstExecuted = System.nanoTime()
                   println("First executed")
@@ -317,13 +318,13 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
           Future {
             def doWrite() =
-              ranges.write(fromKey = 20, toKey = 30, toKeyInclusive = false) {
+              ranges.writeAndRelease(fromKey = 20, toKey = 30, toKeyInclusive = false) {
                 secondExecuted = System.nanoTime()
                 println("Second executed")
               }.await
 
             def doRead() =
-              ranges.read[Int, Int, BAG](key => (key, key, randomBoolean()), Int.MinValue) {
+              ranges.readAndRelease[Int, Int, BAG](key => (key, key, randomBoolean()), Int.MinValue) {
                 secondExecuted = System.nanoTime()
                 println("Second executed")
                 Random.shuffle(List.range(10, 20)).head
@@ -342,7 +343,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
         }
       }
 
-      "exist is non-exclusive" in {
+      "existing is non-exclusive" in {
         runThis(10.times, log = true) {
           Seq(true, false) foreach {
             secondToInclusive =>
@@ -357,7 +358,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
               val first =
                 Future {
                   ranges
-                    .write(fromKey = 10, toKey = 20, toKeyInclusive = false) {
+                    .writeAndRelease(fromKey = 10, toKey = 20, toKeyInclusive = false) {
                       sleep(3.second)
                       firstExecuted = System.nanoTime()
                       println("First executed")
@@ -370,13 +371,13 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
               Future {
                 //execute second - [20 - 30] //20 is exclusive in first execution
                 def doWrite() =
-                  ranges.write(fromKey = 20, toKey = 30, toKeyInclusive = secondToInclusive) {
+                  ranges.writeAndRelease(fromKey = 20, toKey = 30, toKeyInclusive = secondToInclusive) {
                     secondExecuted = System.nanoTime()
                     println("Second executed")
                   }.await
 
                 def doRead() =
-                  ranges.read[Int, Int, BAG](key => (key, key, randomBoolean()), Int.MinValue) {
+                  ranges.readAndRelease[Int, Int, BAG](key => (key, key, randomBoolean()), Int.MinValue) {
                     secondExecuted = System.nanoTime()
                     println("Second executed")
                     eitherOne(20, 21)
@@ -428,14 +429,14 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
             Future {
 
               def doWrite() =
-                ranges.write(fromKey = rangeToReserve._1, toKey = rangeToReserve._2, toKeyInclusive = true) {
+                ranges.writeAndRelease(fromKey = rangeToReserve._1, toKey = rangeToReserve._2, toKeyInclusive = true) {
                   sleep(50.milliseconds)
                   firstExecuted = System.nanoTime()
                   println(s"First executed. Write. from = ${rangeToReserve._1}, to = ${rangeToReserve._2}")
                 }.await
 
               def doRead() =
-                ranges.read[Int, Int, BAG](key => (key, key, randomBoolean()), Int.MinValue) {
+                ranges.readAndRelease[Int, Int, BAG](key => (key, key, randomBoolean()), Int.MinValue) {
                   firstExecuted = System.nanoTime()
                   val readInteger = eitherOne(from, to)
                   println(s"First executed. Read. int = $readInteger")
@@ -449,7 +450,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
           val future2 =
             Future {
-              ranges.write(fromKey = from, toKey = to, toKeyInclusive = true) {
+              ranges.writeAndRelease(fromKey = from, toKey = to, toKeyInclusive = true) {
                 secondExecuted = System.nanoTime()
                 println("Second executed")
               }.await
@@ -473,14 +474,14 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
 
         def doWrite(from: Int, to: Int) =
           ranges
-            .write(fromKey = from, toKey = to, toKeyInclusive = true) {
+            .writeAndRelease(fromKey = from, toKey = to, toKeyInclusive = true) {
               eitherOne(sleep(randomIntMax(5).milliseconds), ()) //sleep optionally
               throw new Exception("Failed one")
             }.await
 
         def doRead() =
           ranges
-            .read[Int, Int, BAG](int => (int, int, randomBoolean()), Int.MinValue) {
+            .readAndRelease[Int, Int, BAG](int => (int, int, randomBoolean()), Int.MinValue) {
               eitherOne(sleep(randomIntMax(5).milliseconds), ()) //sleep optionally
               throw new Exception("Failed one")
             }.await should not be Int.MinValue
@@ -504,6 +505,120 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
         eventual(ranges.isEmpty shouldBe true)
         sleep(1.second)
         eventual(ranges.isEmpty shouldBe true)
+      }
+    }
+  }
+
+  "contains" should {
+    "return false" when {
+      "empty" in {
+        runThis(10.times, log = true) {
+          val ranges = AtomicRanges[Int]()
+
+          val key =
+            AtomicRanges.Key(
+              fromKey = 1,
+              toKey = 2,
+              toKeyInclusive = randomBoolean(),
+              action = randomAtomicRangesAction()
+            )
+
+          ranges.contains(key) shouldBe false
+        }
+      }
+
+      "non-empty but contains overlapping key" in {
+        runThis(50.times, log = true) {
+          val ranges = AtomicRanges[Int]()
+
+          Seq(
+            () => ranges.writeOrPromise(1, 5, toKeyInclusive = true).rightValue,
+            () => ranges.writeOrPromise(1, 6, toKeyInclusive = randomBoolean()).rightValue,
+            () => ranges.writeOrPromise(6, 8, toKeyInclusive = randomBoolean()).rightValue,
+            () => ranges.writeOrPromise(8, 10, toKeyInclusive = randomBoolean()).rightValue,
+            () => ranges.writeOrPromise(10, 20, toKeyInclusive = randomBoolean()).rightValue
+          ) foreach {
+            existingKeyFunction =>
+              val existingKey = existingKeyFunction()
+
+              //5 - 10
+              val key =
+                AtomicRanges.Key(
+                  fromKey = 5,
+                  toKey = 11,
+                  toKeyInclusive = randomBoolean(),
+                  action = randomAtomicRangesAction()
+                )
+
+              //does not contain
+              ranges.contains(key) shouldBe false
+
+              //but cannot write because there exists an overlapping key
+              ranges.isWritable(5, 11, randomBoolean()) shouldBe false
+
+              //we get a promise on write.
+              val promise = ranges.writeOrPromise(5, 11, randomBoolean()).leftValue
+              promise.isCompleted shouldBe false
+
+              //release the key and promise is complete.
+              ranges.remove(existingKey)
+              promise.isCompleted shouldBe true
+          }
+        }
+      }
+    }
+
+    "return true" when {
+      "key exists" in {
+        runThis(10.times, log = true) {
+          val ranges = AtomicRanges[Int]()
+
+          val key =
+            AtomicRanges.Key(
+              fromKey = 1,
+              toKey = 2,
+              toKeyInclusive = true,
+              action = Action.Write
+            )
+
+          val writtenKey = ranges.writeOrPromise(fromKey = 1, toKey = 2, toKeyInclusive = true).rightValue
+          writtenKey shouldBe key
+
+          ranges.contains(key) shouldBe true
+        }
+      }
+
+      "existing key is inclusive" in {
+        runThis(50.times, log = true) {
+          val ranges = AtomicRanges[Int]()
+
+          //       5 - 10
+          ranges.writeOrPromise(5, 10, toKeyInclusive = true).rightValue
+
+          //1 - 4
+          ranges.contains(AtomicRanges.Key.write(1, 4, randomBoolean())) shouldBe false
+          //1 -   5
+          ranges.contains(AtomicRanges.Key.write(1, 5, toKeyInclusive = false)) shouldBe false
+          //               11 -   20
+          ranges.contains(AtomicRanges.Key.write(11, 20, toKeyInclusive = randomBoolean())) shouldBe false
+
+        }
+      }
+
+      "existing key is exclusive" in {
+        runThis(50.times, log = true) {
+          val ranges = AtomicRanges[Int]()
+
+          //       5 - 10
+          ranges.writeOrPromise(5, 10, toKeyInclusive = false).rightValue
+
+          //1 - 4
+          ranges.contains(AtomicRanges.Key.write(1, 4, randomBoolean())) shouldBe false
+          //1 -   5
+          ranges.contains(AtomicRanges.Key.write(1, 5, toKeyInclusive = false)) shouldBe false
+          //               11 -   20
+          ranges.contains(AtomicRanges.Key.write(10, 20, toKeyInclusive = randomBoolean())) shouldBe false
+        }
       }
     }
   }

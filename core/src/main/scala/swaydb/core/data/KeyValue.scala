@@ -284,6 +284,8 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOption {
   def mergedKey: Slice[Byte]
   def value: SliceOption[Byte]
   def deadline: Option[Deadline]
+  def toKey: Slice[Byte]
+  def maxKey: MaxKey[Slice[Byte]]
 
   def unslice(): Memory
 
@@ -321,8 +323,14 @@ private[swaydb] object Memory {
   }
 
   sealed trait Fixed extends Memory with KeyValue.Fixed {
-    def isRange: Boolean = false
     def unslice(): Memory.Fixed
+
+    override def isRange: Boolean = false
+
+    override def toKey: Slice[Byte] = key
+
+    override def maxKey: MaxKey.Fixed[Slice[Byte]] =
+      MaxKey.Fixed(maxKey = key)
   }
 
   object Put {
@@ -714,6 +722,12 @@ private[swaydb] object Memory {
     override def mightContainRemoveRange: Boolean = rangeValue.mightContainRemove
 
     override def id: Byte = Range.id
+
+    def maxKey: MaxKey.Range[Slice[Byte]] =
+      MaxKey.Range(
+        fromKey = fromKey,
+        maxKey = toKey
+      )
 
     override def isPut: Boolean = false
 

@@ -28,7 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.Bag.Implicits._
 import swaydb.core.util.AtomicRanges.{Action, Value}
-import swaydb.data.Reserve
+import swaydb.data.{MaxKey, Reserve}
 import swaydb.data.slice.Slice
 
 import java.util.concurrent.ConcurrentSkipListMap
@@ -57,6 +57,22 @@ private[core] case object AtomicRanges extends LazyLogging {
   }
 
   object Key {
+    def write[K](fromKey: K, toKey: MaxKey[K]): AtomicRanges.Key[K] =
+      new AtomicRanges.Key[K](
+        fromKey = fromKey,
+        toKey = toKey.maxKey,
+        toKeyInclusive = toKey.inclusive,
+        action = Action.Write
+      )
+
+    def write[K](fromKey: K, toKey: K, toKeyInclusive: Boolean): AtomicRanges.Key[K] =
+      new AtomicRanges.Key[K](
+        fromKey = fromKey,
+        toKey = toKey,
+        toKeyInclusive = toKeyInclusive,
+        action = Action.Write
+      )
+
     def order[K](implicit ordering: Ordering[K]): Ordering[Key[K]] =
       new Ordering[Key[K]] {
         override def compare(left: Key[K], right: Key[K]): Int = {
@@ -94,7 +110,8 @@ private[core] case object AtomicRanges extends LazyLogging {
       }
   }
 
-  class Key[K](val fromKey: K, val toKey: K, val toKeyInclusive: Boolean, val action: Action)
+
+  case class Key[K](val fromKey: K, val toKey: K, val toKeyInclusive: Boolean, val action: Action)
   private[util] class Value[V](val value: V)
 
   def apply[K]()(implicit ordering: Ordering[K]): AtomicRanges[K] = {
@@ -103,17 +120,17 @@ private[core] case object AtomicRanges extends LazyLogging {
     new AtomicRanges[K](transactions)
   }
 
-  @inline def write[K, T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean, f: => T)(implicit bag: Bag[BAG],
-                                                                                          transaction: AtomicRanges[K]): BAG[T] =
-    write(
+  @inline def writeAndRelease[K, T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean, f: => T)(implicit bag: Bag[BAG],
+                                                                                                    transaction: AtomicRanges[K]): BAG[T] =
+    writeAndRelease(
       key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, Action.Write),
       value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: WRITE busy")),
       f = f
     )
 
   @tailrec
-  private def write[K, T, BAG[_]](key: Key[K], value: Value[Reserve[Unit]], f: => T)(implicit bag: Bag[BAG],
-                                                                                     ranges: AtomicRanges[K]): BAG[T] = {
+  private def writeAndRelease[K, T, BAG[_]](key: Key[K], value: Value[Reserve[Unit]], f: => T)(implicit bag: Bag[BAG],
+                                                                                               ranges: AtomicRanges[K]): BAG[T] = {
     val putResult = ranges.transactions.putIfAbsent(key, value)
 
     if (putResult == null)
@@ -132,10 +149,10 @@ private[core] case object AtomicRanges extends LazyLogging {
       bag match {
         case _: Bag.Sync[BAG] =>
           Reserve.blockUntilFree(putResult.value)
-          write(key, value, f)
+          writeAndRelease(key, value, f)
 
         case async: Bag.Async[BAG] =>
-          writeAsync(
+          writeAndReleaseAsync(
             key = key,
             value = value,
             busyReserve = putResult.value,
@@ -144,53 +161,20 @@ private[core] case object AtomicRanges extends LazyLogging {
       }
   }
 
-  @inline def writeOrPromise[K](fromKey: K, toKey: K, toKeyInclusive: Boolean)(implicit ranges: AtomicRanges[K]): Either[Promise[Unit], Key[K]] = {
-    val key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, action = Action.Write)
-    val value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: WRITE busy"))
-
-    val putResult = ranges.transactions.putIfAbsent(key, value)
-
-    if (putResult == null)
-      Right(key)
-    else
-      Left(Reserve.promise(putResult.value))
-  }
-
-  @inline def isWritable[K](fromKey: K, toKey: K, toKeyInclusive: Boolean)(implicit transaction: AtomicRanges[K]): Boolean =
-    !transaction.transactions.containsKey(
-      new Key(
-        fromKey = fromKey,
-        toKey = toKey,
-        toKeyInclusive = toKeyInclusive,
-        action = Action.Write
-      )
-    )
-
-  @inline def remove[K](key: Key[K])(implicit transaction: AtomicRanges[K]): Unit = {
-    val removed = transaction.transactions.remove(key)
-    if (removed == null) {
-      val exception = new Exception(s"Remove invoked on key without transaction. $key")
-      logger.error(exception.getMessage, exception)
-      throw exception
-    } else {
-      Reserve.setFree(removed.value)
-    }
-  }
-
-  private def writeAsync[K, T, BAG[_]](key: Key[K],
-                                       value: Value[Reserve[Unit]],
-                                       busyReserve: Reserve[Unit],
-                                       f: => T)(implicit bag: Bag.Async[BAG],
-                                                skipList: AtomicRanges[K]): BAG[T] =
+  private def writeAndReleaseAsync[K, T, BAG[_]](key: Key[K],
+                                                 value: Value[Reserve[Unit]],
+                                                 busyReserve: Reserve[Unit],
+                                                 f: => T)(implicit bag: Bag.Async[BAG],
+                                                          skipList: AtomicRanges[K]): BAG[T] =
     bag
       .fromPromise(Reserve.promise(busyReserve))
-      .and(write(key, value, f))
+      .and(writeAndRelease(key, value, f))
 
-  @inline def read[K, NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
-                                           nullOutput: NO,
-                                           f: => NO)(implicit bag: Bag[BAG],
-                                                     transaction: AtomicRanges[K]): BAG[NO] =
-    read(
+  @inline def readAndRelease[K, NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
+                                                     nullOutput: NO,
+                                                     f: => NO)(implicit bag: Bag[BAG],
+                                                               transaction: AtomicRanges[K]): BAG[NO] =
+    readAndRelease(
       getKeys = getKeys,
       nullOutput = nullOutput,
       value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: READ busy")),
@@ -199,12 +183,12 @@ private[core] case object AtomicRanges extends LazyLogging {
     )
 
   @tailrec
-  private def read[K, NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
-                                           value: Value[Reserve[Unit]],
-                                           action: Action.Read,
-                                           nullOutput: NO,
-                                           f: => NO)(implicit bag: Bag[BAG],
-                                                     ranges: AtomicRanges[K]): BAG[NO] = {
+  private def readAndRelease[K, NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
+                                                     value: Value[Reserve[Unit]],
+                                                     action: Action.Read,
+                                                     nullOutput: NO,
+                                                     f: => NO)(implicit bag: Bag[BAG],
+                                                               ranges: AtomicRanges[K]): BAG[NO] = {
     val outputOptional =
       try
         f
@@ -231,7 +215,7 @@ private[core] case object AtomicRanges extends LazyLogging {
         bag match {
           case _: Bag.Sync[BAG] =>
             Reserve.blockUntilFree(putResult.value)
-            read(
+            readAndRelease(
               getKeys = getKeys,
               value = value,
               action = action,
@@ -240,7 +224,7 @@ private[core] case object AtomicRanges extends LazyLogging {
             )
 
           case async: Bag.Async[BAG] =>
-            readAsync(
+            readAndReleaseAsync(
               getKeys = getKeys,
               value = value,
               busyReserve = putResult.value,
@@ -253,17 +237,17 @@ private[core] case object AtomicRanges extends LazyLogging {
     }
   }
 
-  private def readAsync[R, K, NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
-                                                   value: Value[Reserve[Unit]],
-                                                   busyReserve: Reserve[Unit],
-                                                   action: Action.Read,
-                                                   nullOutput: NO,
-                                                   f: => NO)(implicit bag: Bag.Async[BAG],
-                                                             skipList: AtomicRanges[K]): BAG[NO] =
+  private def readAndReleaseAsync[R, K, NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
+                                                             value: Value[Reserve[Unit]],
+                                                             busyReserve: Reserve[Unit],
+                                                             action: Action.Read,
+                                                             nullOutput: NO,
+                                                             f: => NO)(implicit bag: Bag.Async[BAG],
+                                                                       skipList: AtomicRanges[K]): BAG[NO] =
     bag
       .fromPromise(Reserve.promise(busyReserve))
       .and(
-        read(
+        readAndRelease(
           getKeys = getKeys,
           value = value,
           action = action,
@@ -271,6 +255,29 @@ private[core] case object AtomicRanges extends LazyLogging {
           f = f
         )
       )
+
+  @inline def writeOrPromise[K](fromKey: K, toKey: K, toKeyInclusive: Boolean)(implicit ranges: AtomicRanges[K]): Either[Promise[Unit], Key[K]] = {
+    val key = new Key(fromKey = fromKey, toKey = toKey, toKeyInclusive = toKeyInclusive, action = Action.Write)
+    val value = new Value(Reserve.busy((), s"${AtomicRanges.productPrefix}: WRITE busy"))
+
+    val putResult = ranges.transactions.putIfAbsent(key, value)
+
+    if (putResult == null)
+      Right(key)
+    else
+      Left(Reserve.promise(putResult.value))
+  }
+
+  @inline def removeOrFail[K](key: Key[K])(implicit transaction: AtomicRanges[K]): Unit = {
+    val removed = transaction.transactions.remove(key)
+    if (removed == null) {
+      val exception = new Exception(s"Remove invoked on key without transaction. $key")
+      logger.error(exception.getMessage, exception)
+      throw exception
+    } else {
+      Reserve.setFree(removed.value)
+    }
+  }
 }
 
 private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val ordering: Ordering[K]) {
@@ -284,13 +291,31 @@ private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipList
   def size =
     transactions.size()
 
-  def write[T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
-    AtomicRanges.write[K, T, BAG](
+  def writeAndRelease[T, BAG[_]](fromKey: K, toKey: K, toKeyInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
+    AtomicRanges.writeAndRelease[K, T, BAG](
       fromKey = fromKey,
       toKey = toKey,
       toKeyInclusive = toKeyInclusive,
       f = f
     )
+
+  def readAndRelease[NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
+                                          nullOutput: NO)(f: => NO)(implicit bag: Bag[BAG]): BAG[NO] =
+    AtomicRanges.readAndRelease[K, NO, O, BAG](
+      getKeys = getKeys,
+      nullOutput = nullOutput,
+      f = f
+    )
+
+  /**
+   * Checks if the key exists. Cannot use [[transactions.containsKey]] here
+   * because it might return true for overlapping ranges.
+   *
+   * Eg: if 10 - 20 exists for Action.Write. Searching 11 would return true
+   * but here we want to check if the action [[AtomicRanges.Key]] exists.
+   */
+  def contains(key: AtomicRanges.Key[K]): Boolean =
+    transactions.floorKey(key) == key
 
   def writeOrPromise(fromKey: K, toKey: K, toKeyInclusive: Boolean): Either[Promise[Unit], AtomicRanges.Key[K]] =
     AtomicRanges.writeOrPromise[K](
@@ -300,20 +325,16 @@ private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipList
     )
 
   def isWritable(fromKey: K, toKey: K, toKeyInclusive: Boolean): Boolean =
-    AtomicRanges.isWritable[K](
-      fromKey = fromKey,
-      toKey = toKey,
-      toKeyInclusive = toKeyInclusive
+    !transactions.containsKey(
+      new AtomicRanges.Key(
+        fromKey = fromKey,
+        toKey = toKey,
+        toKeyInclusive = toKeyInclusive,
+        action = Action.Write
+      )
     )
 
   def remove(key: AtomicRanges.Key[K]): Unit =
-    AtomicRanges.remove[K](key)
+    AtomicRanges.removeOrFail[K](key)
 
-  def read[NO, O <: NO, BAG[_]](getKeys: O => (K, K, Boolean),
-                                nullOutput: NO)(f: => NO)(implicit bag: Bag[BAG]): BAG[NO] =
-    AtomicRanges.read[K, NO, O, BAG](
-      getKeys = getKeys,
-      nullOutput = nullOutput,
-      f = f
-    )
 }

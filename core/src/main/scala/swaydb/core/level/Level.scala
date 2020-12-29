@@ -35,7 +35,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.level.compaction.reception.{LevelReception, LevelReservation}
+import swaydb.core.level.compaction.reception.LevelReception
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.serializer._
@@ -51,6 +51,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.defrag.DefragSegment
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Exceptions._
@@ -60,7 +61,6 @@ import swaydb.data.config.{Dir, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.LevelStorage
-import swaydb.data.util.FiniteDurations
 import swaydb.{Aggregator, Bag, Error, IO}
 
 import java.nio.channels.FileChannel
@@ -310,6 +310,9 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
 
 
+  import keyOrder._
+
+
   override val levelNumber: Int =
     pathDistributor
       .head
@@ -479,24 +482,37 @@ private[core] case class Level(dirs: Seq[Dir],
       maxKeyInclusive = segment.maxKey.inclusive
     )
 
-  /**
-   * Persists a [[Segment]] to this Level.
-   *
-   * @returns A Set of persisted Segment ID's
-   */
-  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
-    put(Seq(segment))
+  def reserve(segment: Segment): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
+    reserve(Seq(segment))
 
-  /**
-   * Persists multiple [[Segment]] to this Level.
-   *
-   * @returns A Set of persisted [[Segment]] ID's
-   */
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
+  def reserve(segments: Iterable[Assignable.Collection]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
+    LevelReception.reserve(
+      input = segments,
+      levelSegments = self.segments()
+    )
+
+  def reserve(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
+    LevelReception.reserve(
+      input = map,
+      levelSegments = self.segments()
+    )
+
+  def checkout(reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Unit] =
+    IO(reservations.remove(reservationKey))
+
+  def hasReservation(reservationKey: AtomicRanges.Key[Slice[Byte]]): Boolean =
+    reservations.contains(reservationKey)
+
+  def merge(segment: Segment,
+            reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+    merge(Seq(segment), reservationKey)
+
+  def merge(segments: Iterable[Segment],
+            reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
-    val targetSegments = self.segments()
+    val targetSegments = self.segmentsReserved(reservationKey)
 
-    LevelReception.reserve(segments, targetSegments) {
+    LevelReception.validateReservations(reservationKey = reservationKey, collections = segments) {
       assignMerge(
         assignablesCount = segments.size,
         assignables = segments,
@@ -505,11 +521,12 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def put(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] = {
+  def merge(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
+            reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
-    val targetSegments = self.segments()
+    val targetSegments = self.segmentsReserved(reservationKey)
 
-    LevelReception.reserve(map, targetSegments) {
+    LevelReception.validateMapReservation(reservationKey, map) {
       assignMerge(
         map = map,
         targetSegments = targetSegments
@@ -517,9 +534,10 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def refresh(segment: Segment): Either[Promise[Unit], LevelReservation[IO[Error.Level, Slice[TransientSegment]]]] = {
+  def refresh(segment: Segment,
+              reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Slice[TransientSegment]] = {
     logger.debug("{}: Running refresh.", pathDistributor.head)
-    LevelReception.reserve(Seq(segment), self.segments()) {
+    LevelReception.validateReservation(reservationKey, segment) {
       IO {
         segment match {
           case segment: MemorySegment =>
@@ -549,20 +567,15 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[LevelCollapseResult]]] = {
+  def collapse(segments: Iterable[Segment],
+               reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[LevelCollapseResult] = {
     logger.trace(s"{}: Collapsing '{}' segments", pathDistributor.head, segments.size)
     if (segments.isEmpty || appendix.cache.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      val reserved =
-        LevelReservation.Reserved(
-          result = Future.successful(LevelCollapseResult.Empty),
-          keyOrNull = null
-        )
-
-      scala.Right(reserved)
+      Future.successful(LevelCollapseResult.Empty)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
-      val levelSegments = self.segments()
-      val targetAppendixSegments = levelSegments.filterNot(map => segments.exists(_.path == map.path))
+      val reservedSegments = self.segmentsReserved(reservationKey)
+      val targetAppendixSegments = reservedSegments.filterNot(map => segments.exists(_.path == map.path))
 
       val (segmentsToMerge, targetSegments) =
         if (targetAppendixSegments.nonEmpty) {
@@ -577,7 +590,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
 
       //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
-      LevelReception.reserve(levelSegments, self.segments()) {
+      LevelReception.validateReservations(reservationKey, segmentsToMerge) {
         assignMerge(
           assignablesCount = segmentsToMerge.size,
           assignables = segmentsToMerge,
@@ -661,7 +674,7 @@ private[core] case class Level(dirs: Seq[Dir],
         targetSegments = targetSegments
       )
     else
-      assignMergePersistent(
+      assignMergePersist(
         assignablesCount = assignablesCount,
         assignables = assignables,
         targetSegments = targetSegments
@@ -710,9 +723,9 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
 
-  @inline private def assignMergePersistent(assignablesCount: Int,
-                                            assignables: Iterable[Assignable],
-                                            targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+  @inline private def assignMergePersist(assignablesCount: Int,
+                                         assignables: Iterable[Assignable],
+                                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
     Future {
       implicit val gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]]] =
         GapAggregator.persistent(removeDeletes = removeDeletedRecords)
@@ -725,8 +738,26 @@ private[core] case class Level(dirs: Seq[Dir],
     } flatMap {
       assignments =>
         if (assignments.isEmpty) {
-          logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", pathDistributor.head, assignables.size)
-          Future.failed(swaydb.Exception.MergeKeyValuesWithoutTargetSegment(assignables.size))
+          val gap = GapAggregator.persistent(removeDeletes = removeDeletedRecords).createNew()
+          assignables foreach gap.add
+
+          implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig
+          implicit val sortedIndexConfigImplicit: SortedIndexBlock.Config = sortedIndexConfig
+          implicit val binarySearchIndexConfigImplicit: BinarySearchIndexBlock.Config = binarySearchIndexConfig
+          implicit val hashIndexConfigImplicit: HashIndexBlock.Config = hashIndexConfig
+          implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
+          implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
+
+          DefragSegment.runOne[Segment, SegmentOption](
+            segment = None,
+            nullSegment = Segment.Null,
+            headGap = gap.result,
+            tailGap = ListBuffer.empty,
+            mergeableCount = 0,
+            mergeable = Assignable.emptyIterator,
+            removeDeletes = removeDeletedRecords,
+            createdInLevel = self.levelNumber
+          ).map(Seq(_))
         } else {
           Future.traverse(assignments) {
             assignment =>
@@ -753,7 +784,6 @@ private[core] case class Level(dirs: Seq[Dir],
           }
         }
     }
-
 
   override def commitMerged(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     persistAndCommit(
@@ -1204,6 +1234,14 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def segments(): Iterable[Segment] =
     appendix.cache.values()
+
+  def segmentsReserved(reservationKey: AtomicRanges.Key[Slice[Byte]]): Iterable[Segment] =
+    self.appendix.cache.subMapValues(
+      from = reservationKey.fromKey,
+      fromInclusive = true,
+      to = reservationKey.toKey,
+      toInclusive = reservationKey.toKeyInclusive
+    )
 
   def hasNextLevel: Boolean =
     nextLevel.isDefined

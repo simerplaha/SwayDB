@@ -127,9 +127,9 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
                       TestCaseSweeper {
                         implicit sweeper =>
                           val level: Level = TestLevel()
-                          level.putKeyValuesTest(level2KeyValues).runRandomIO.right.value
-                          level.putKeyValuesTest(level1KeyValues).runRandomIO.right.value
-                          level.putKeyValuesTest(level0KeyValues).runRandomIO.right.value
+                          level.put(level2KeyValues).runRandomIO.right.value
+                          level.put(level1KeyValues).runRandomIO.right.value
+                          level.put(level0KeyValues).runRandomIO.right.value
 
                           //if after merging into a single Level the result is not empty then print all the failed exceptions.
                           Try(IO.Defer(level.get(update.key, ThreadReadState.random).toOptionPut).runIO.runRandomIO.right.value shouldBe empty).failed foreach {

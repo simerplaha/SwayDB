@@ -26,11 +26,12 @@ package swaydb.core.level
 
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.level.compaction.reception.LevelReservation
 import swaydb.core.level.zero.LevelZeroMapCache
+import swaydb.core.map
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.segment.{Segment, SegmentOption}
+import swaydb.core.util.AtomicRanges
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.PushForwardStrategy
 import swaydb.data.slice.{Slice, SliceOption}
@@ -38,7 +39,7 @@ import swaydb.{Error, IO}
 
 import java.nio.file.{Path, Paths}
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future}
 
 private[core] case object TrashLevel extends NextLevel {
 
@@ -169,29 +170,6 @@ private[core] case object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  /**
-   * Return empty Set here because it's Trash level and does not require compaction.
-   */
-  override def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
-  //    Right(Future.successful(Iterable.empty))
-    ???
-
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
-  //    Right(Future.successful(Iterable.empty))
-    ???
-
-  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]]] =
-  //    Right(Future.successful(Iterable.empty))
-    ???
-
-  def refresh(segment: Segment): Either[Promise[Unit], LevelReservation[IO[Error.Level, Slice[TransientSegment]]]] =
-  //    Right(IO.Right(Slice.empty[TransientSegment]))
-    ???
-
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], LevelReservation[Future[LevelCollapseResult]]] =
-  //    Right(Future.successful(LevelCollapseResult.Empty))
-    ???
-
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Unit] =
     IO.unit
 
@@ -258,4 +236,9 @@ private[core] case object TrashLevel extends NextLevel {
 
   override def commitReplaced(old: Iterable[Segment], merged: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     ???
+  override def merge(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = ???
+  override def merge(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = ???
+  override def merge(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = ???
+  override def refresh(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Slice[TransientSegment]] = ???
+  override def collapse(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[LevelCollapseResult] = ???
 }

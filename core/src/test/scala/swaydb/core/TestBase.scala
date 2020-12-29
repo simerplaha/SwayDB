@@ -427,7 +427,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
       level.flatMap {
         level =>
-          level.putKeyValuesTest(keyValues) map {
+          level.put(keyValues) map {
             _ =>
               level
           }
@@ -805,11 +805,11 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                  levelSweeper: TestCaseSweeper): Unit = {
     println("level3.putKeyValues")
-    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).runRandomIO.right.value
+    if (level3KeyValues.nonEmpty) level3.put(level3KeyValues).runRandomIO.right.value
     println("level2.putKeyValues")
-    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).runRandomIO.right.value
+    if (level2KeyValues.nonEmpty) level2.put(level2KeyValues).runRandomIO.right.value
     println("level1.putKeyValues")
-    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).runRandomIO.right.value
+    if (level1KeyValues.nonEmpty) level1.put(level1KeyValues).runRandomIO.right.value
     println("level0.putKeyValues")
     if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).runRandomIO.right.value
     import swaydb.data.RunThis._

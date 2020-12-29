@@ -69,6 +69,9 @@ private[core] abstract class SkipListNavigable[OK, OV, K <: OK, V <: OV] private
   def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[(K, V)] =
     skipList.subMap(from, fromInclusive, to, toInclusive).asScala
 
+  def subMapValues(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): Iterable[V] =
+    skipList.subMap(from, fromInclusive, to, toInclusive).values().asScala
+
   override def floor(key: K): OV =
     toOptionValue(skipList.floorEntry(key))
 

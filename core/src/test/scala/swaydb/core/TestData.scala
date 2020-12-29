@@ -26,6 +26,7 @@ package swaydb.core
 
 import org.scalatest.OptionValues._
 import org.scalatest.matchers.should.Matchers._
+import swaydb.EitherValues._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._
@@ -54,10 +55,10 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.entry.writer.EntryWriter
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO, SegmentWritePersistentIO}
+import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
-import swaydb.core.util.IDGenerator
+import swaydb.core.util.{AtomicRanges, IDGenerator}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.cache.Cache
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -82,6 +83,8 @@ import scala.reflect.ClassTag
 import scala.util.Random
 
 object TestData {
+
+  val unit: Unit = ()
 
   /**
    * Sequential time bytes generator.
@@ -166,10 +169,11 @@ object TestData {
                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long) {
 
     import swaydb.Error.Level.ExceptionHandler
+    import swaydb.data.RunThis._
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def putKeyValuesTest(keyValues: Slice[Memory])(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Unit] = {
+    def put(keyValues: Iterable[Memory])(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Unit] = {
 
       implicit val idGenerator = level.segmentIDGenerator
 
@@ -187,74 +191,64 @@ object TestData {
       implicit val forceSaveApplier = level.forceSaveApplier
       implicit val ec = TestExecutionContext.executionContext
 
-      //      if (keyValues.isEmpty)
-      //        IO.unit
-      //      else if (!level.isEmpty)
-      //        level.assignAndPut(
-      //          assignablesCount = keyValues.size,
-      //          assignables = keyValues,
-      //          targetSegments = level.segmentsInLevel(),
-      //          appendEntry = None,
-      //          parallelMerge = randomParallelMerge()
-      //        )
-      //      else if (level.inMemory)
-      //        IO {
-      //          Segment.copyToMemory(
-      //            keyValues = keyValues.iterator,
-      //            //            fetchNextPath = fetchNextPath,
-      //            pathsDistributor = level.pathDistributor,
-      //            removeDeletes = false,
-      //            minSegmentSize = Int.MaxValue,
-      //            maxKeyValueCountPerSegment = Int.MaxValue,
-      //            createdInLevel = level.levelNumber
-      //          )
-      //        } flatMap {
-      //          segments =>
-      //            segments should have size 1
-      //            segments mapRecoverIO {
-      //              segment =>
-      //                level.assignAndPut(
-      //                  assignablesCount = keyValues.size,
-      //                  assignables = keyValues,
-      //                  targetSegments = Seq(segment),
-      //                  appendEntry = None,
-      //                  parallelMerge = randomParallelMerge()
-      //                )
-      //            } transform {
-      //              _ => ()
-      //            }
-      //        }
-      //      else
-      //        IO {
-      //          Segment.copyToPersist(
-      //            keyValues = keyValues,
-      //            createdInLevel = level.levelNumber,
-      //            pathsDistributor = level.pathDistributor,
-      //            removeDeletes = false,
-      //            valuesConfig = level.valuesConfig,
-      //            sortedIndexConfig = level.sortedIndexConfig,
-      //            binarySearchIndexConfig = level.binarySearchIndexConfig,
-      //            hashIndexConfig = level.hashIndexConfig,
-      //            bloomFilterConfig = level.bloomFilterConfig,
-      //            segmentConfig = level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
-      //          ).map(_.sweep())
-      //        } flatMap {
-      //          segments =>
-      //            segments should have size 1
-      //            segments mapRecoverIO {
-      //              segment =>
-      //                level.assignAndPut(
-      //                  assignablesCount = keyValues.size,
-      //                  assignables = keyValues,
-      //                  targetSegments = Seq(segment),
-      //                  appendEntry = None,
-      //                  parallelMerge = randomParallelMerge()
-      //                )
-      //            } transform {
-      //              _ => ()
-      //            }
-      //        }
-      ???
+      if (keyValues.isEmpty)
+        IO.unit
+      else {
+        val segments =
+          if (level.inMemory)
+            Segment.copyToMemory(
+              keyValues = keyValues.iterator,
+              //            fetchNextPath = fetchNextPath,
+              pathsDistributor = level.pathDistributor,
+              removeDeletes = false,
+              minSegmentSize = Int.MaxValue,
+              maxKeyValueCountPerSegment = Int.MaxValue,
+              createdInLevel = level.levelNumber
+            )
+          else
+            Segment.copyToPersist(
+              keyValues = keyValues,
+              createdInLevel = level.levelNumber,
+              pathsDistributor = level.pathDistributor,
+              removeDeletes = false,
+              valuesConfig = level.valuesConfig,
+              sortedIndexConfig = level.sortedIndexConfig,
+              binarySearchIndexConfig = level.binarySearchIndexConfig,
+              hashIndexConfig = level.hashIndexConfig,
+              bloomFilterConfig = level.bloomFilterConfig,
+              segmentConfig = level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+            ).map(_.sweep())
+
+        segments should have size 1
+
+        level.putSegments(segments) onRightSideEffect {
+          _ =>
+            segments.foreach(_.delete)
+        }
+      }
+    }
+
+    def put(segment: Segment)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Unit] =
+      putSegments(Seq(segment))
+
+    def putSegments(segments: Iterable[Segment])(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Unit] = {
+      implicit val ec = TestExecutionContext.executionContext
+
+      if (segments.isEmpty)
+        IO.unit
+      else {
+        segments should have size 1
+
+        val reservation = level.reserve(segments).value.rightValue
+
+        val compactionResult =
+          level.merge(
+            segments = segments,
+            reservationKey = reservation
+          ).await
+
+        level.commitMerged(compactionResult)
+      }
     }
 
     def reopen(implicit sweeper: TestCaseSweeper): Level =
@@ -537,6 +531,9 @@ object TestData {
         compressions = compressions
       )
   }
+
+  def randomAtomicRangesAction(): AtomicRanges.Action =
+    eitherOne(AtomicRanges.Action.Write, new AtomicRanges.Action.Read())
 
   def randomStringOption: Option[Slice[Byte]] =
     if (randomBoolean())

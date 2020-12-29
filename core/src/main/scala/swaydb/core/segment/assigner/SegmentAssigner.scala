@@ -40,7 +40,7 @@ import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentAssigner {
 
-  def assignMinMaxOnlyUnsafeNoGaps(inputSegments: Iterable[Segment],
+  def assignMinMaxOnlyUnsafeNoGaps(inputSegments: Iterable[Assignable.Collection],
                                    targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
     SegmentAssigner.assignUnsafeNoGaps(2 * inputSegments.size, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.segment)
 

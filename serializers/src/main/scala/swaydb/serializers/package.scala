@@ -29,13 +29,13 @@ import swaydb.data.util.TupleOrNone
 
 package object serializers {
 
-  @inline implicit def toSlice[T](data: T)(implicit serializer: Serializer[T]): Slice[Byte] =
+  @inline implicit def toByteSlice[T](data: T)(implicit serializer: Serializer[T]): Slice[Byte] =
     serializer.write(data)
 
-  @inline implicit def toSlice[T](data: Option[T])(implicit serializer: Serializer[T]): Option[Slice[Byte]] =
+  @inline implicit def toByteSlice[T](data: Option[T])(implicit serializer: Serializer[T]): Option[Slice[Byte]] =
     data.map(serializer.write)
 
-  @inline implicit def toSliceOption[T](data: Option[T])(implicit serializer: Serializer[T]): SliceOption[Byte] =
+  @inline implicit def toByteSliceOption[T](data: Option[T])(implicit serializer: Serializer[T]): SliceOption[Byte] =
     data match {
       case Some(value) =>
         value: Slice[Byte]
@@ -47,6 +47,11 @@ package object serializers {
   implicit class Decode(slice: Slice[Byte]) {
     @inline final def read[T](implicit serializer: Serializer[T]): T =
       serializer.read(slice)
+  }
+
+  implicit class SerialiseImplicits[T](data: T) {
+    def toBytes(implicit serializer: Serializer[T]): Slice[Byte] =
+      toByteSlice(data)
   }
 
   def read[K, V](tupleOptional: TupleOrNone[Slice[Byte], SliceOption[Byte]])(implicit keySerialiser: Serializer[K],

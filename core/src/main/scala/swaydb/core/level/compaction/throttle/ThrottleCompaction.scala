@@ -29,7 +29,6 @@ import swaydb.core.data.Memory
 import swaydb.core.level._
 import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.reception.LevelReservation
 import swaydb.core.level.compaction.selector.{CollapseSegmentSelector, CompactSegmentSelector}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.segment.Segment
@@ -241,80 +240,81 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                     stateId: Long,
                                     map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext,
                                                                                                       committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
-    nextLevel.put(map = map) match {
-      case Right(reserved @ LevelReservation.Reserved(mergeResultFuture, _)) =>
-        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
-        mergeResultFuture
-          .flatMap {
-            mergeResult =>
-              committer
-                .ask
-                .flatMap {
-                  (impl, _) =>
-                    impl.commit(
-                      fromLevel = zero,
-                      toLevel = nextLevel,
-                      mergeResult = mergeResult
-                    )
-                }
-                .mapUnit {
-                  // If there is a failure removing the last map, maps will add the same map back into the queue and print
-                  // error message to be handled by the User.
-                  // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
-                  // Maps are ALWAYS required to be processed sequentially in the order of write.
-                  // Random order merging of maps should NOT be allowed.
-                  zero.maps.removeLast(map) onLeftSideEffect {
-                    error =>
-                      val mapPath: String =
-                        zero
-                          .maps
-                          .nextJob()
-                          .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
-
-                      logger.error(
-                        s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
-                          "No more maps will be pushed to Level1 until this error is fixed " +
-                          "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
-                          "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
-                        error.exception
-                      )
-                  }
-
-                  ThrottleLevelState.Sleeping(
-                    sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
-                    stateId = stateId
-                  )
-                }
-          }
-          .withCallback(reserved.checkout())
-
-      case Right(failed: LevelReservation.Failed) =>
-        failed.error match {
-          case _ if zero.coreState.isNotRunning =>
-            logger.debug(s"Level(${zero.levelNumber}): Failed to push due to shutdown.", failed.error.exception)
-
-          //do not log the stack if the IO.Left to merge was ContainsOverlappingBusySegments.
-          case swaydb.Error.OverlappingPushSegment =>
-            logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
-
-          case _ =>
-            logger.error(s"Level(${zero.levelNumber}): Failed to push", failed.error.exception)
-        }
-
-        ThrottleLevelState.Sleeping(
-          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
-          stateId = stateId
-        ).toFuture
-
-      case Left(promise) =>
-        logger.debug(s"Level(${zero.levelNumber}): Awaiting pull. stateId: $stateId.")
-
-        ThrottleLevelState.AwaitingPull(
-          promise = promise,
-          timeout = awaitPullTimeout.fromNow,
-          stateId = stateId
-        ).toFuture
-    }
+  //    nextLevel.put(map = map) match {
+  //      case Right(reserved @ LevelReservation.Reservation(mergeResultFuture, _)) =>
+  //        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
+  //        mergeResultFuture
+  //          .flatMap {
+  //            mergeResult =>
+  //              committer
+  //                .ask
+  //                .flatMap {
+  //                  (impl, _) =>
+  //                    impl.commit(
+  //                      fromLevel = zero,
+  //                      toLevel = nextLevel,
+  //                      mergeResult = mergeResult
+  //                    )
+  //                }
+  //                .mapUnit {
+  //                  // If there is a failure removing the last map, maps will add the same map back into the queue and print
+  //                  // error message to be handled by the User.
+  //                  // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
+  //                  // Maps are ALWAYS required to be processed sequentially in the order of write.
+  //                  // Random order merging of maps should NOT be allowed.
+  //                  zero.maps.removeLast(map) onLeftSideEffect {
+  //                    error =>
+  //                      val mapPath: String =
+  //                        zero
+  //                          .maps
+  //                          .nextJob()
+  //                          .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
+  //
+  //                      logger.error(
+  //                        s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
+  //                          "No more maps will be pushed to Level1 until this error is fixed " +
+  //                          "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
+  //                          "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
+  //                        error.exception
+  //                      )
+  //                  }
+  //
+  //                  ThrottleLevelState.Sleeping(
+  //                    sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
+  //                    stateId = stateId
+  //                  )
+  //                }
+  //          }
+  //          .withCallback(reserved.checkout())
+  //
+  //      case Right(failed: LevelReservation.Failed) =>
+  //        failed.error match {
+  //          case _ if zero.coreState.isNotRunning =>
+  //            logger.debug(s"Level(${zero.levelNumber}): Failed to push due to shutdown.", failed.error.exception)
+  //
+  //          //do not log the stack if the IO.Left to merge was ContainsOverlappingBusySegments.
+  //          case swaydb.Error.OverlappingPushSegment =>
+  //            logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
+  //
+  //          case _ =>
+  //            logger.error(s"Level(${zero.levelNumber}): Failed to push", failed.error.exception)
+  //        }
+  //
+  //        ThrottleLevelState.Sleeping(
+  //          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
+  //          stateId = stateId
+  //        ).toFuture
+  //
+  //      case Left(promise) =>
+  //        logger.debug(s"Level(${zero.levelNumber}): Awaiting pull. stateId: $stateId.")
+  //
+  //        ThrottleLevelState.AwaitingPull(
+  //          promise = promise,
+  //          timeout = awaitPullTimeout.fromNow,
+  //          stateId = stateId
+  //        ).toFuture
+  //    }
+    ???
 
   private[throttle] def pushForward(level: NextLevel,
                                     stateId: Long)(implicit ec: ExecutionContext,
@@ -400,124 +400,127 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   def runLastLevelExpirationCheck(level: NextLevel,
                                   remainingCompactions: Int)(implicit ec: ExecutionContext,
                                                              committer: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] = {
-    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
-    if (level.hasNextLevel || remainingCompactions <= 0)
-      Futures.rightUnitFuture
-    else
-      Segment.getNearestDeadlineSegment(level.segments()) match {
-        case segment: Segment if segment.nearestPutDeadline.exists(!_.hasTimeLeft()) =>
-          level.refresh(segment) match {
-            case scala.Right(reserved @ LevelReservation.Reserved(result, key)) =>
-              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
-
-              result match {
-                case IO.Right(newSegments) =>
-                  committer
-                    .ask
-                    .flatMap {
-                      (impl, _) =>
-                        impl.replace(
-                          level = level,
-                          old = segment,
-                          neu = newSegments
-                        ).withCallback(reserved.checkout())
-                    }
-                    .flatMapUnit(
-                      runLastLevelExpirationCheck(
-                        level = level,
-                        remainingCompactions = remainingCompactions - 1
-                      )
-                    )
-
-                case IO.Left(error) =>
-                  logger.debug(s"Level(${level.levelNumber}): Failed to refresh", error.exception)
-                  Futures.rightUnitFuture
-              }
-
-            case scala.Right(failed: LevelReservation.Failed) =>
-              logger.debug(s"Level(${level.levelNumber}): Refresh failed.", failed.error.exception)
-              Future.successful(Right(Future.failed(failed.error.exception)))
-
-            case scala.Left(promise) =>
-              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
-              Future.successful(scala.Left(promise))
-          }
-
-        case Segment.Null | _: Segment =>
-          logger.debug(s"Level(${level.levelNumber}): Check expired complete.")
-          Futures.rightUnitFuture
-      }
+    //    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
+    //    if (level.hasNextLevel || remainingCompactions <= 0)
+    //      Futures.rightUnitFuture
+    //    else
+    //      Segment.getNearestDeadlineSegment(level.segments()) match {
+    //        case segment: Segment if segment.nearestPutDeadline.exists(!_.hasTimeLeft()) =>
+    //          level.refresh(segment) match {
+    //            case scala.Right(reserved @ LevelReservation.Reservation(result, key)) =>
+    //              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
+    //
+    //              result match {
+    //                case IO.Right(newSegments) =>
+    //                  committer
+    //                    .ask
+    //                    .flatMap {
+    //                      (impl, _) =>
+    //                        impl.replace(
+    //                          level = level,
+    //                          old = segment,
+    //                          neu = newSegments
+    //                        ).withCallback(reserved.checkout())
+    //                    }
+    //                    .flatMapUnit(
+    //                      runLastLevelExpirationCheck(
+    //                        level = level,
+    //                        remainingCompactions = remainingCompactions - 1
+    //                      )
+    //                    )
+    //
+    //                case IO.Left(error) =>
+    //                  logger.debug(s"Level(${level.levelNumber}): Failed to refresh", error.exception)
+    //                  Futures.rightUnitFuture
+    //              }
+    //
+    //            case scala.Right(failed: LevelReservation.Failed) =>
+    //              logger.debug(s"Level(${level.levelNumber}): Refresh failed.", failed.error.exception)
+    //              Future.successful(Right(Future.failed(failed.error.exception)))
+    //
+    //            case scala.Left(promise) =>
+    //              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
+    //              Future.successful(scala.Left(promise))
+    //          }
+    //
+    //        case Segment.Null | _: Segment =>
+    //          logger.debug(s"Level(${level.levelNumber}): Check expired complete.")
+    //          Futures.rightUnitFuture
+    //      }
+    ???
   }
 
   def runLastLevelCollapseCheck(level: NextLevel,
                                 remainingCompactions: Int)(implicit ec: ExecutionContext,
                                                            committer: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] = {
-    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
-    if (level.hasNextLevel || remainingCompactions <= 0) {
-      Futures.rightUnitFuture
-    } else {
-      logger.debug(s"Level(${level.levelNumber}): Collapse run.")
-      level.collapse(segments = CollapseSegmentSelector.select(level, remainingCompactions max 2)) match { //need at least 2 for collapse.
-        case scala.Right(reserved @ LevelReservation.Reserved(result, key)) =>
-          result flatMap {
-            case LevelCollapseResult.Empty =>
-              Futures.rightUnitFuture
-
-            case LevelCollapseResult.Collapsed(sourceSegments, mergeResult) =>
-              logger.debug(s"Level(${level.levelNumber}): Collapsed ${sourceSegments.size} small segments.")
-              committer.ask
-                .flatMap {
-                  (impl, _) =>
-                    impl.replace(
-                      level = level,
-                      old = sourceSegments,
-                      neu = mergeResult
-                    ).withCallback(reserved.checkout())
-                }
-                .flatMapUnit {
-                  runLastLevelCollapseCheck(
-                    level = level,
-                    remainingCompactions = remainingCompactions - 1
-                  )
-                }
-          }
-
-        case scala.Right(failed: LevelReservation.Failed) =>
-          logger.debug(s"Level(${level.levelNumber}): Collpase failed.", failed.error.exception)
-          Future.successful(Right(Future.failed(failed.error.exception)))
-
-        case scala.Left(promise) =>
-          logger.debug(s"Level(${level.levelNumber}): Later on collpase.")
-          Future.successful(scala.Left(promise))
-      }
-    }
+    //    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
+    //    if (level.hasNextLevel || remainingCompactions <= 0) {
+    //      Futures.rightUnitFuture
+    //    } else {
+    //      logger.debug(s"Level(${level.levelNumber}): Collapse run.")
+    //      level.collapse(segments = CollapseSegmentSelector.select(level, remainingCompactions max 2)) match { //need at least 2 for collapse.
+    //        case scala.Right(reserved @ LevelReservation.Reservation(result, key)) =>
+    //          result flatMap {
+    //            case LevelCollapseResult.Empty =>
+    //              Futures.rightUnitFuture
+    //
+    //            case LevelCollapseResult.Collapsed(sourceSegments, mergeResult) =>
+    //              logger.debug(s"Level(${level.levelNumber}): Collapsed ${sourceSegments.size} small segments.")
+    //              committer.ask
+    //                .flatMap {
+    //                  (impl, _) =>
+    //                    impl.replace(
+    //                      level = level,
+    //                      old = sourceSegments,
+    //                      neu = mergeResult
+    //                    ).withCallback(reserved.checkout())
+    //                }
+    //                .flatMapUnit {
+    //                  runLastLevelCollapseCheck(
+    //                    level = level,
+    //                    remainingCompactions = remainingCompactions - 1
+    //                  )
+    //                }
+    //          }
+    //
+    //        case scala.Right(failed: LevelReservation.Failed) =>
+    //          logger.debug(s"Level(${level.levelNumber}): Collpase failed.", failed.error.exception)
+    //          Future.successful(Right(Future.failed(failed.error.exception)))
+    //
+    //        case scala.Left(promise) =>
+    //          logger.debug(s"Level(${level.levelNumber}): Later on collpase.")
+    //          Future.successful(scala.Left(promise))
+    //      }
+    //    }
+    ???
   }
 
   private[throttle] def putForward(segments: Iterable[Segment],
                                    thisLevel: NextLevel,
                                    nextLevel: NextLevel)(implicit executionContext: ExecutionContext,
                                                          committer: ActorWire[CompactionCommitter, Unit]): Either[Promise[Unit], Future[Unit]] =
-    if (segments.isEmpty)
-      Right(Future.unit)
-    else
-      nextLevel.put(segments = segments) map {
-        case reserved @ LevelReservation.Reserved(mergeResultFuture, _) =>
-          mergeResultFuture
-            .flatMap {
-              mergeResult =>
-                committer.ask flatMap {
-                  (impl, _) =>
-                    impl.commit(
-                      fromLevel = thisLevel,
-                      segments = segments,
-                      toLevel = nextLevel,
-                      mergeResult = mergeResult
-                    )
-                }
-            }
-            .withCallback(reserved.checkout())
-
-        case failed: LevelReservation.Failed =>
-          Future.failed(failed.error.exception)
-      }
+  //    if (segments.isEmpty)
+  //      Right(Future.unit)
+  //    else
+  //      nextLevel.put(segments = segments) map {
+  //        case reserved @ LevelReservation.Reservation(mergeResultFuture, _) =>
+  //          mergeResultFuture
+  //            .flatMap {
+  //              mergeResult =>
+  //                committer.ask flatMap {
+  //                  (impl, _) =>
+  //                    impl.commit(
+  //                      fromLevel = thisLevel,
+  //                      segments = segments,
+  //                      toLevel = nextLevel,
+  //                      mergeResult = mergeResult
+  //                    )
+  //                }
+  //            }
+  //            .withCallback(reserved.checkout())
+  //
+  //        case failed: LevelReservation.Failed =>
+  //          Future.failed(failed.error.exception)
+  //      }
+    ???
 }

@@ -45,6 +45,9 @@ object RunThis extends Eventually {
 
     def runThisRandomly =
       Random.shuffle(input).foreach(_ ())
+
+    def runThisRandomlyValue: Iterable[T] =
+      Random.shuffle(input).map(_ ())
   }
 
   implicit class FutureImplicits[T](f: => Future[T]) {

@@ -22,37 +22,17 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.reception
+package swaydb
 
-import swaydb.core.util.AtomicRanges
-import swaydb.data.order.KeyOrder
+object EitherValues {
 
-sealed trait LevelReservation[+A] {
-  @inline def map[B](f: A => B): LevelReservation[B]
-}
+  implicit class EitherTestUtils[+L, +R](either: Either[L, R]) {
 
-case object LevelReservation {
+    def rightValue: R =
+      either.getOrElse(throw new Exception(s"Value is not right $either"))
 
-  case class Reserved[A, K](result: A,
-                            keyOrNull: AtomicRanges.Key[K])(implicit reserve: AtomicRanges[K]) extends LevelReservation[A] {
-    def checkout(): Unit =
-      if (keyOrNull != null)
-        reserve.remove(keyOrNull)
-
-    @inline def map[B](f: A => B): LevelReservation.Reserved[B, K] =
-      new Reserved[B, K](
-        result = f(result),
-        keyOrNull = keyOrNull
-      )
+    def leftValue: L =
+      either.left.getOrElse(throw new Exception(s"Value is not left $either"))
   }
 
-  object Failed {
-    @inline def apply(error: swaydb.Error.Level): LevelReservation.Failed =
-      new Failed(error)
-  }
-
-  class Failed(val error: swaydb.Error.Level) extends LevelReservation[Nothing] {
-    @inline override def map[B](f: Nothing => B): LevelReservation[B] =
-      this
-  }
 }

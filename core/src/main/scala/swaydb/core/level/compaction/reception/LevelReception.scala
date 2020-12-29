@@ -29,13 +29,13 @@ import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
-import swaydb.core.segment.assigner.SegmentAssigner
+import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
 import swaydb.core.util.AtomicRanges
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 
 private[core] sealed trait LevelReception[-A] {
 
@@ -53,9 +53,9 @@ private[core] case object LevelReception {
    * @return Either a Promise which is complete when this Segment becomes available or returns the key which
    *         can be used to free the Segment.
    */
-  implicit object SegmentReception extends LevelReception[Iterable[Segment]] {
+  implicit object SegmentReception extends LevelReception[Iterable[Assignable.Collection]] {
 
-    override def reserve(segments: Iterable[Segment],
+    override def reserve(segments: Iterable[Assignable.Collection],
                          levelSegments: Iterable[Segment])(implicit reservations: AtomicRanges[Slice[Byte]],
                                                            keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] = {
       IO {
@@ -118,44 +118,60 @@ private[core] case object LevelReception {
       }
   }
 
+  @inline def validateReservations[A](reservationKey: AtomicRanges.Key[Slice[Byte]],
+                                      collections: Iterable[Assignable.Collection])(f: => Future[A])(implicit reservations: AtomicRanges[Slice[Byte]],
+                                                                                                     keyOrder: KeyOrder[Slice[Byte]]): Future[A] = {
+    import keyOrder._
+
+    if (!reservations.contains(reservationKey))
+      Future.failed(new Exception("Key is not reserved."))
+    else if (reservationKey.fromKey > collections.head.key)
+      Future.failed(new Exception("Incorrect reservation. MinKey is lesser."))
+    else if (reservationKey.toKey < collections.head.maxKey.maxKey)
+      Future.failed(new Exception("Incorrect reservation. MaxKey is lesser."))
+    else
+      f
+  }
+
+  @inline def validateMapReservation[A](reservationKey: AtomicRanges.Key[Slice[Byte]],
+                                        map: Map[Slice[Byte], Memory, LevelZeroMapCache])(f: => Future[A])(implicit reservations: AtomicRanges[Slice[Byte]],
+                                                                                                           keyOrder: KeyOrder[Slice[Byte]]): Future[A] = {
+    import keyOrder._
+
+    if (!reservations.contains(reservationKey))
+      Future.failed(new Exception("Key is not reserved."))
+    else if (reservationKey.fromKey > map.cache.skipList.headKey.getC)
+      Future.failed(new Exception("Incorrect reservation. MinKey is lesser."))
+    else if (reservationKey.toKey < map.cache.skipList.last().getS.toKey)
+      Future.failed(new Exception("Incorrect reservation. MaxKey is lesser."))
+    else
+      f
+  }
+
+  @inline def validateReservation[E: IO.ExceptionHandler, A](reservationKey: AtomicRanges.Key[Slice[Byte]],
+                                                             collection: Assignable.Collection)(f: => IO[E, A])(implicit reservations: AtomicRanges[Slice[Byte]],
+                                                                                                                keyOrder: KeyOrder[Slice[Byte]]): IO[E, A] = {
+    import keyOrder._
+
+    if (!reservations.contains(reservationKey))
+      IO.failed[E, A]("Key is not reserved.")
+    else if (reservationKey.fromKey > collection.key)
+      IO.failed[E, A]("Incorrect reservation. MinKey is lesser.")
+    else if (reservationKey.toKey < collection.maxKey.maxKey)
+      IO.failed[E, A]("Incorrect reservation. MaxKey is lesser.")
+    else
+      f
+  }
+
   /**
    * Reserves the input [[I]] and executes the block if reservation was successful.
-   *
-   * On successful reservation the invoker should always execute [[LevelReservation.Reserved.checkout()]]
-   * to free the segment.
    */
-  @inline def reserve[I, O](segment: I,
-                            levelSegments: Iterable[Segment])(block: => O)(implicit reception: LevelReception[I],
-                                                                           reservations: AtomicRanges[Slice[Byte]],
-                                                                           keyOrder: KeyOrder[Slice[Byte]]): Either[Promise[Unit], LevelReservation[O]] =
+  @inline def reserve[I](input: I,
+                         levelSegments: Iterable[Segment])(implicit reception: LevelReception[I],
+                                                           reservations: AtomicRanges[Slice[Byte]],
+                                                           keyOrder: KeyOrder[Slice[Byte]]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
     reception.reserve(
-      item = segment,
+      item = input,
       levelSegments = levelSegments
-    ) map {
-      reserveOutcome =>
-        reserveOutcome map {
-          atomicKey =>
-            //currently all block inputs provide safe execution so exceptions should never occur
-            //but still wrapping this with try catch for any future changes to ensure that atomic
-            //range key is always freed on all failures.
-            try
-              LevelReservation.Reserved(
-                result = block,
-                keyOrNull = atomicKey
-              )
-            catch {
-              case throwable: Throwable =>
-                //release the key if there was a failure.
-                reservations.remove(atomicKey)
-                val error = Error.Level.ExceptionHandler.toError(throwable)
-                LevelReservation.Failed(error)
-            }
-        }
-    } match {
-      case IO.Right(either) =>
-        either
-
-      case IO.Left(error) =>
-        scala.Right(LevelReservation.Failed(error))
-    }
+    )
 }

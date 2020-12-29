@@ -67,7 +67,7 @@ class AppendixRepairerSpec extends TestBase {
           implicit sweeper =>
             import sweeper._
             val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, pushForward = PushForwardStrategy.Off, mmap = MMAP.Off(TestForceSave.channel())))
-            level.putKeyValuesTest(randomizedKeyValues(10000)).value
+            level.put(randomizedKeyValues(10000)).value
 
             if (level.hasMMAP && OperatingSystem.isWindows)
               level.close[Glass]()
@@ -133,7 +133,7 @@ class AppendixRepairerSpec extends TestBase {
             )
 
             val keyValues = randomizedKeyValues(1000)
-            level.putKeyValuesTest(keyValues).value
+            level.put(keyValues).value
 
             if (level.hasMMAP && OperatingSystem.isWindows)
               level.close[Glass]()
@@ -185,7 +185,7 @@ class AppendixRepairerSpec extends TestBase {
             throttle = (_) => Throttle(Duration.Zero, 0)
           )
 
-          level.putKeyValuesTest(keyValues).value
+          level.put(keyValues).value
 
           level.segmentsCount() should be > 2
           val segmentsBeforeRepair = level.segments()

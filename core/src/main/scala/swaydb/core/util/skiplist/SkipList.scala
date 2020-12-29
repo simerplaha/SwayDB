@@ -80,10 +80,10 @@ private[core] trait SkipList[OK, OV, K <: OK, V <: OV] {
   def valuesIterator: Iterator[V]
 
   def atomicWrite[T, BAG[_]](from: K, to: K, toInclusive: Boolean)(f: => T)(implicit bag: Bag[BAG]): BAG[T] =
-    AtomicRanges.write(from, to, toInclusive, f)(bag, ranges)
+    AtomicRanges.writeAndRelease(from, to, toInclusive, f)(bag, ranges)
 
   def atomicRead[BAG[_]](getKeys: V => (K, K, Boolean))(f: SkipList[OK, OV, K, V] => OV)(implicit bag: Bag[BAG]): BAG[OV] =
-    AtomicRanges.read(getKeys, nullValue, f(this))(bag, ranges)
+    AtomicRanges.readAndRelease(getKeys, nullValue, f(this))(bag, ranges)
 
   @inline final def toOptionValue(entry: java.util.Map.Entry[K, V]): OV =
     if (entry == null)
