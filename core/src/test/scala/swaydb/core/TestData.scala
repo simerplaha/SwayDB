@@ -174,7 +174,7 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def put(keyValues: Iterable[Memory])(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Unit] = {
+    def put(keyValues: Iterable[Memory])(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, AtomicRanges.Key[Slice[Byte]]] = {
 
       implicit val idGenerator = level.segmentIDGenerator
 
@@ -193,7 +193,7 @@ object TestData {
       implicit val ec = TestExecutionContext.executionContext
 
       if (keyValues.isEmpty)
-        IO.unit
+        IO.failed("KeyValues are empty")
       else {
         val segments =
           if (level.inMemory)
@@ -202,8 +202,8 @@ object TestData {
               //            fetchNextPath = fetchNextPath,
               pathsDistributor = level.pathDistributor,
               removeDeletes = false,
-              minSegmentSize = Int.MaxValue,
-              maxKeyValueCountPerSegment = Int.MaxValue,
+              minSegmentSize = level.segmentConfig.minSize,
+              maxKeyValueCountPerSegment = level.segmentConfig.maxCount,
               createdInLevel = level.levelNumber
             )
           else
@@ -217,10 +217,10 @@ object TestData {
               binarySearchIndexConfig = level.binarySearchIndexConfig,
               hashIndexConfig = level.hashIndexConfig,
               bloomFilterConfig = level.bloomFilterConfig,
-              segmentConfig = level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+              segmentConfig = level.segmentConfig //level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
             ).map(_.sweep())
 
-        segments should have size 1
+//        segments should have size 1
 
         level.putSegments(segments) onRightSideEffect {
           _ =>
@@ -229,18 +229,18 @@ object TestData {
       }
     }
 
-    def put(segment: Segment)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Unit] =
-      putSegments(Seq(segment))
+    def put(segment: Segment, checkout: Boolean = true)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, AtomicRanges.Key[Slice[Byte]]] =
+      putSegments(Seq(segment), checkout)
 
-    def putSegments(segments: Iterable[Segment])(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, Unit] = {
+    def putSegments(segments: Iterable[Segment], checkout: Boolean = true)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, AtomicRanges.Key[Slice[Byte]]] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (segments.isEmpty)
-        IO.unit
+        IO.failed("Segments are empty")
       else {
-        segments should have size 1
+        //        segments should have size 1
 
-        val reservation = level.reserve(segments).value.rightValue
+        val reservation: AtomicRanges.Key[Slice[Byte]] = level.reserve(segments).value.rightValue
 
         val compactionResult =
           level.merge(
@@ -248,7 +248,13 @@ object TestData {
             reservationKey = reservation
           ).await
 
-        level.commitMerged(compactionResult)
+        level.commit(compactionResult) map {
+          _ =>
+            if (checkout)
+              level.checkout(reservation).get shouldBe unit
+
+            reservation
+        }
       }
     }
 
@@ -2185,7 +2191,7 @@ object TestData {
             removeDeletes = removeDeletes,
             createdInLevel = createdInLevel,
             segmentConfig = segmentConfig
-          )
+          ).result
 
         case segment: PersistentSegment =>
           val putResult =
@@ -2198,7 +2204,7 @@ object TestData {
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
               segmentConfig = segmentConfig
-            )
+            ).result
 
           putResult.persist(pathDistributor).value
       }

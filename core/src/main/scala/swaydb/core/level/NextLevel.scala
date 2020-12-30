@@ -91,19 +91,18 @@ trait NextLevel extends LevelRef {
 
   def merge(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def refresh(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Slice[TransientSegment]]
+  def refresh(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, CompactResult[Segment, Slice[TransientSegment]]]
 
   def collapse(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[LevelCollapseResult]
 
-  def commitMerged(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit]
+  def commit(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit]
 
-  def commitReplaced(old: Iterable[Segment],
-                     merged: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit]
+  def commit(collapseResult: LevelCollapseResult.Collapsed): IO[Error.Level, Unit]
 
-  def commitReplaced(old: Segment,
-                     neu: Slice[TransientSegment]): IO[Error.Level, Unit]
+  def commit(old: Iterable[Segment],
+             merged: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit]
 
-  def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Unit]
+  def remove(segments: Iterable[Segment]): IO[swaydb.Error.Level, Unit]
 
   def meter: LevelMeter
 

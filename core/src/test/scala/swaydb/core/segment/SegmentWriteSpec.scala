@@ -2075,7 +2075,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               hashIndexConfig = HashIndexBlock.Config.random,
               bloomFilterConfig = BloomFilterBlock.Config.random,
               segmentConfig = SegmentBlock.Config.random
-            ) shouldBe empty
+            ).result shouldBe empty
         }
       }
     }

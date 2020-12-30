@@ -170,7 +170,7 @@ private[core] case object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Unit] =
+  override def remove(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Unit] =
     IO.unit
 
   override val meter: LevelMeter =
@@ -228,17 +228,27 @@ private[core] case object TrashLevel extends NextLevel {
   override def cachedKeyValuesSize(): Option[Long] =
     None
 
-  override def commitReplaced(old: Segment, neu: Slice[TransientSegment]): IO[Error.Level, Unit] =
+  override def commit(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     ???
 
-  override def commitMerged(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
+  override def commit(old: Iterable[Segment], merged: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     ???
 
-  override def commitReplaced(old: Iterable[Segment], merged: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
+  override def merge(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
     ???
-  override def merge(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = ???
-  override def merge(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = ???
-  override def merge(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = ???
-  override def refresh(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Slice[TransientSegment]] = ???
-  override def collapse(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[LevelCollapseResult] = ???
+
+  override def merge(map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+    ???
+
+  override def merge(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+    ???
+
+  override def refresh(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, CompactResult[Segment, Slice[TransientSegment]]] =
+    ???
+
+  override def collapse(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[LevelCollapseResult] =
+    ???
+
+  override def commit(collapseResult: LevelCollapseResult.Collapsed): IO[Error.Level, Unit] =
+    ???
 }

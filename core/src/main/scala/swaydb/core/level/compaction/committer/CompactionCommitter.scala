@@ -29,7 +29,6 @@ import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.data.slice.Slice
 import swaydb.{Actor, ActorWire}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -46,10 +45,6 @@ trait CompactionCommitter {
   def commit(fromLevel: LevelZero,
              toLevel: NextLevel,
              mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
-
-  def replace(level: NextLevel,
-              old: Segment,
-              neu: Slice[TransientSegment]): Future[Unit]
 
   def replace(level: NextLevel,
               old: Iterable[Segment],

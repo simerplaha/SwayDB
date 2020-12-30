@@ -62,7 +62,7 @@ import swaydb.data.storage.{Level0Storage, LevelStorage}
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{Atomic, NonEmptyList, OptimiseWrites}
-import swaydb.{ActorWire, Glass}
+import swaydb.{ActorWire, Glass, IO}
 
 import java.nio.file._
 import java.util.concurrent.atomic.AtomicInteger
@@ -427,10 +427,13 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
 
       level.flatMap {
         level =>
-          level.put(keyValues) map {
-            _ =>
-              level
-          }
+          if (keyValues.nonEmpty)
+            level.put(keyValues) map {
+              _ =>
+                level
+            }
+          else
+            IO[swaydb.Error.Level, Level](level)
       }.right.value.sweep()
     }
   }

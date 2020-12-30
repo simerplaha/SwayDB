@@ -1290,6 +1290,8 @@ private[core] trait Segment extends FileSweeperItem with SegmentOption with Assi
 
   def existsOnDisk: Boolean
 
+  def existsOnDiskOrMemory: Boolean
+
   def hasBloomFilter: Boolean
 
   override def isNoneS: Boolean =

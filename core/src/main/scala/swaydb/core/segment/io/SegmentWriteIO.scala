@@ -98,33 +98,27 @@ object SegmentWriteIO extends SegmentWriteIO[TransientSegment, Segment] {
                                                                        blockCacheSweeper: Option[MemorySweeper.Block],
                                                                        segmentReadIO: SegmentReadIO,
                                                                        idGenerator: IDGenerator,
-                                                                       forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[Segment]] = {
-    val transientIterator = transient.iterator
+                                                                       forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[Segment]] =
+    transient.headOption match {
+      case Some(_: TransientSegment.Persistent) =>
+        SegmentWritePersistentIO.persistTransient(
+          pathsDistributor = pathsDistributor,
+          segmentRefCacheWeight = segmentRefCacheWeight,
+          mmap = mmap,
+          transient = transient.asInstanceOf[Iterable[TransientSegment.Persistent]]
+        )
 
-    if (!transientIterator.hasNext) {
-      IO.Right(Slice.empty)
-    } else {
-      val headOrNull = transientIterator.next()
+      case Some(_: TransientSegment.Memory) =>
+        SegmentWriteMemoryIO.persistTransient(
+          pathsDistributor = pathsDistributor,
+          segmentRefCacheWeight = segmentRefCacheWeight,
+          mmap = mmap,
+          transient = transient.asInstanceOf[Iterable[TransientSegment.Memory]]
+        )
 
-      headOrNull match {
-        case _: TransientSegment.Persistent =>
-          SegmentWritePersistentIO.persistTransient(
-            pathsDistributor = pathsDistributor,
-            segmentRefCacheWeight = segmentRefCacheWeight,
-            mmap = mmap,
-            transient = transient.asInstanceOf[Iterable[TransientSegment.Persistent]]
-          )
-
-        case _: TransientSegment.Memory =>
-          SegmentWriteMemoryIO.persistTransient(
-            pathsDistributor = pathsDistributor,
-            segmentRefCacheWeight = segmentRefCacheWeight,
-            mmap = mmap,
-            transient = transient.asInstanceOf[Iterable[TransientSegment.Memory]]
-          )
-      }
+      case None =>
+        IO.Right(Iterable.empty)
     }
-  }
 
   override def persistMerged(pathsDistributor: PathsDistributor,
                              segmentRefCacheWeight: Int,
@@ -138,32 +132,35 @@ object SegmentWriteIO extends SegmentWriteIO[TransientSegment, Segment] {
                                                                                                               blockCacheSweeper: Option[MemorySweeper.Block],
                                                                                                               segmentReadIO: SegmentReadIO,
                                                                                                               idGenerator: IDGenerator,
-                                                                                                              forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[Segment]]]] = {
-    val transientIterator = mergeResult.iterator
+                                                                                                              forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[Segment]]]] =
+    mergeResult.headOption match {
+      case Some(headCompactionResult) =>
+        headCompactionResult.result.headOption match {
+          case Some(_: TransientSegment.Persistent) =>
+            SegmentWritePersistentIO.persistMerged(
+              pathsDistributor = pathsDistributor,
+              segmentRefCacheWeight = segmentRefCacheWeight,
+              mmap = mmap,
+              mergeResult = mergeResult.asInstanceOf[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]]]
+            )
 
-    if (!transientIterator.hasNext) {
-      IO.Right(Slice.empty)
-    } else {
-      val headOrNull = transientIterator.next().result.head
+          case Some(_: TransientSegment.Memory) =>
+            SegmentWriteMemoryIO.persistMerged(
+              pathsDistributor = pathsDistributor,
+              segmentRefCacheWeight = segmentRefCacheWeight,
+              mmap = mmap,
+              mergeResult = mergeResult.asInstanceOf[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Memory]]]]
+            )
 
-      headOrNull match {
-        case _: TransientSegment.Persistent =>
-          SegmentWritePersistentIO.persistMerged(
-            pathsDistributor = pathsDistributor,
-            segmentRefCacheWeight = segmentRefCacheWeight,
-            mmap = mmap,
-            mergeResult = mergeResult.asInstanceOf[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]]]
-          )
+          case None =>
+            //if source is defined then return the CompactionResult with Source but with no persisted Segments.
+            if (headCompactionResult.source.isSomeS)
+              IO.Right(Seq(headCompactionResult.updateResult(Seq.empty)))
+            else
+              IO.Right(Iterable.empty)
+        }
 
-        case _: TransientSegment.Memory =>
-          SegmentWriteMemoryIO.persistMerged(
-            pathsDistributor = pathsDistributor,
-            segmentRefCacheWeight = segmentRefCacheWeight,
-            mmap = mmap,
-            mergeResult = mergeResult.asInstanceOf[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Memory]]]]
-          )
-      }
+      case None =>
+        IO.Right(Iterable.empty)
     }
-  }
-
 }

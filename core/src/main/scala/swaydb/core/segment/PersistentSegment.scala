@@ -58,6 +58,9 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
   override def asSegmentOption: SegmentOption =
     this
 
+  override def existsOnDiskOrMemory: Boolean =
+    this.existsOnDisk
+
   def put(headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           tailGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
           mergeableCount: Int,
@@ -79,7 +82,7 @@ trait PersistentSegment extends Segment with PersistentSegmentOption {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.OneOrRemoteRefOrMany]
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): CompactResult[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]]
 
 
 }

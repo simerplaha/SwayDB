@@ -332,24 +332,15 @@ protected case class PersistentSegmentOne(file: DBFile,
     implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
     DefragPersistentSegment.runOne(
-      segment = Some(ref),
-      nullSegment = SegmentRef.Null,
+      segment = Some(this),
+      nullSegment = PersistentSegment.Null,
       headGap = headGap,
       tailGap = tailGap,
       mergeableCount = mergeableCount,
       mergeable = mergeable,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel
-    ) map {
-      result =>
-        result.source match {
-          case SegmentRef.Null =>
-            result.updateSource(PersistentSegment.Null)
-
-          case _: SegmentRef =>
-            result.updateSource(this)
-        }
-    }
+    )
   }
 
   def refresh(removeDeletes: Boolean,
@@ -359,7 +350,7 @@ protected case class PersistentSegmentOne(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.OneOrRemoteRefOrMany] = {
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): CompactResult[PersistentSegment, Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
     //    val footer = ref.getFooter()
     val iterator = ref.iterator()
     //if it's created in the same level the required spaces for sortedIndex and values
@@ -383,17 +374,21 @@ protected case class PersistentSegmentOne(file: DBFile,
     //        segmentConfig = segmentConfig
     //      )
     //    else
-    Segment.refreshForNewLevel(
-      keyValues = iterator,
-      removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentConfig = segmentConfig
-    )
+
+    val refreshed =
+      Segment.refreshForNewLevel(
+        keyValues = iterator,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
+      )
+
+    CompactResult(this, refreshed)
   }
 
   def getFromCache(key: Slice[Byte]): PersistentOption =

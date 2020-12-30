@@ -880,18 +880,22 @@ protected case class PersistentSegmentMany(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[TransientSegment.OneOrRemoteRefOrMany] =
-    Segment.refreshForNewLevel(
-      keyValues = iterator(),
-      removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentConfig = segmentConfig
-    )
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): CompactResult[PersistentSegmentMany, Slice[TransientSegment.OneOrRemoteRefOrMany]] = {
+    val refreshed =
+      Segment.refreshForNewLevel(
+        keyValues = iterator(),
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
+      )
+
+    CompactResult(this, refreshed)
+  }
 
   def getFromCache(key: Slice[Byte]): PersistentOption = {
     segmentsCache.forEach {

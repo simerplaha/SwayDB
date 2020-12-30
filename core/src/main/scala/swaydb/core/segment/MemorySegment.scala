@@ -112,7 +112,7 @@ private[core] final case class MemorySegment(path: Path,
 
   def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
-              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): Slice[MemorySegment] =
+              segmentConfig: SegmentBlock.Config)(implicit idGenerator: IDGenerator): CompactResult[MemorySegment, Slice[MemorySegment]] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -122,13 +122,16 @@ private[core] final case class MemorySegment(path: Path,
           keyValues = Segment.toMemoryIterator(iterator(), removeDeletes)
         )
 
-      Segment.memory(
-        minSegmentSize = segmentConfig.minSize,
-        maxKeyValueCountPerSegment = segmentConfig.maxCount,
-        pathsDistributor = pathsDistributor,
-        createdInLevel = createdInLevel,
-        stats = mergeStats
-      )
+      val refreshed =
+        Segment.memory(
+          minSegmentSize = segmentConfig.minSize,
+          maxKeyValueCountPerSegment = segmentConfig.maxCount,
+          pathsDistributor = pathsDistributor,
+          createdInLevel = createdInLevel,
+          stats = mergeStats
+        )
+
+      CompactResult(this, refreshed)
     }
 
   override def getFromCache(key: Slice[Byte]): MemoryOption =
@@ -251,6 +254,9 @@ private[core] final case class MemorySegment(path: Path,
 
   override def existsOnDisk: Boolean =
     false
+
+  override def existsOnDiskOrMemory: Boolean =
+    !deleted
 
   override def isFooterDefined: Boolean =
     !deleted
