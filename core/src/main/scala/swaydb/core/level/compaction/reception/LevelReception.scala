@@ -53,7 +53,7 @@ private[core] case object LevelReception {
    * @return Either a Promise which is completed when this Segment becomes available or returns the key which
    *         can be used to free the Segment.
    */
-  implicit object SegmentReception extends LevelReception[Iterable[Assignable.Collection]] {
+  implicit object AssignableCollectionReception extends LevelReception[Iterable[Assignable.Collection]] {
 
     override def reserve(segments: Iterable[Assignable.Collection],
                          levelSegments: Iterable[Segment])(implicit reservations: AtomicRanges[Slice[Byte]],
@@ -77,7 +77,7 @@ private[core] case object LevelReception {
               )
 
             case None =>
-              scala.Left(Promise.successful(()))
+              scala.Left(Promise.failed(throw new Exception(s"Failed to reserve assigned size: ${assigned.size}")))
           }
       }
     }
@@ -113,54 +113,9 @@ private[core] case object LevelReception {
               )
 
             case None =>
-              scala.Left(Promise.successful(()))
+              scala.Left(Promise.failed(throw new Exception(s"Failed to reserve assigned size: ${assigned.size}")))
           }
       }
-  }
-
-  @inline def validateReservations[A](reservationKey: AtomicRanges.Key[Slice[Byte]],
-                                      collections: Iterable[Assignable.Collection])(f: => Future[A])(implicit reservations: AtomicRanges[Slice[Byte]],
-                                                                                                     keyOrder: KeyOrder[Slice[Byte]]): Future[A] = {
-    import keyOrder._
-
-    if (!reservations.contains(reservationKey))
-      Future.failed(new Exception("Key is not reserved."))
-    else if (reservationKey.fromKey > collections.head.key)
-      Future.failed(new Exception("Incorrect reservation. MinKey is lesser."))
-    else if (reservationKey.toKey < collections.head.maxKey.maxKey)
-      Future.failed(new Exception("Incorrect reservation. MaxKey is lesser."))
-    else
-      f
-  }
-
-  @inline def validateMapReservation[A](reservationKey: AtomicRanges.Key[Slice[Byte]],
-                                        map: Map[Slice[Byte], Memory, LevelZeroMapCache])(f: => Future[A])(implicit reservations: AtomicRanges[Slice[Byte]],
-                                                                                                           keyOrder: KeyOrder[Slice[Byte]]): Future[A] = {
-    import keyOrder._
-
-    if (!reservations.contains(reservationKey))
-      Future.failed(new Exception("Key is not reserved."))
-    else if (reservationKey.fromKey > map.cache.skipList.headKey.getC)
-      Future.failed(new Exception("Incorrect reservation. MinKey is lesser."))
-    else if (reservationKey.toKey < map.cache.skipList.last().getS.toKey)
-      Future.failed(new Exception("Incorrect reservation. MaxKey is lesser."))
-    else
-      f
-  }
-
-  @inline def validateReservation[E: IO.ExceptionHandler, A](reservationKey: AtomicRanges.Key[Slice[Byte]],
-                                                             collection: Assignable.Collection)(f: => IO[E, A])(implicit reservations: AtomicRanges[Slice[Byte]],
-                                                                                                                keyOrder: KeyOrder[Slice[Byte]]): IO[E, A] = {
-    import keyOrder._
-
-    if (!reservations.contains(reservationKey))
-      IO.failed[E, A]("Key is not reserved.")
-    else if (reservationKey.fromKey > collection.key)
-      IO.failed[E, A]("Incorrect reservation. MinKey is lesser.")
-    else if (reservationKey.toKey < collection.maxKey.maxKey)
-      IO.failed[E, A]("Incorrect reservation. MaxKey is lesser.")
-    else
-      f
   }
 
   /**

@@ -195,7 +195,7 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     else
       Effect.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextId.toString + ".map")
 
-  def farOut = new Exception("Far out! Something went wrong")
+  def farOut = new Exception("Far out!")
 
   def testClassDir: Path =
     if (inMemoryStorage)

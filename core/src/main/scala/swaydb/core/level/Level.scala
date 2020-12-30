@@ -35,7 +35,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.level.compaction.reception.LevelReception
+import swaydb.core.level.compaction.reception.{LevelReception, LevelReceptionKeyValidator}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.serializer._
@@ -509,7 +509,7 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
     val targetSegments = self.segmentsReserved(reservationKey)
 
-    LevelReception.validateReservations(reservationKey = reservationKey, collections = segments) {
+    LevelReceptionKeyValidator.validateFuture(reservedItems = segments, reservationKey = reservationKey) {
       assignMerge(
         assignablesCount = segments.size,
         assignables = segments,
@@ -523,7 +523,7 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
     val targetSegments = self.segmentsReserved(reservationKey)
 
-    LevelReception.validateMapReservation(reservationKey, map) {
+    LevelReceptionKeyValidator.validateFuture(map, reservationKey) {
       assignMerge(
         map = map,
         targetSegments = targetSegments
@@ -534,7 +534,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def refresh(segment: Segment,
               reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Slice[TransientSegment]] = {
     logger.debug("{}: Running refresh.", pathDistributor.head)
-    LevelReception.validateReservation(reservationKey, segment) {
+    LevelReceptionKeyValidator.validateIO(segment, reservationKey) {
       IO {
         segment match {
           case segment: MemorySegment =>
@@ -587,7 +587,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
 
       //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
-      LevelReception.validateReservations(reservationKey, segmentsToMerge) {
+      LevelReceptionKeyValidator.validateFuture(segmentsToMerge, reservationKey) {
         assignMerge(
           assignablesCount = segmentsToMerge.size,
           assignables = segmentsToMerge,

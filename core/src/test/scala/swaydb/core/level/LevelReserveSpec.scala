@@ -147,7 +147,7 @@ sealed trait LevelReserveSpec extends TestBase with MockFactory with PrivateMeth
             //10 to 19
             val promise1 = level.reserve(TestMap(Slice(randomFixedKeyValue(10)))).get.leftValue
             val promise2 = level.reserve(TestMap(Slice(randomFixedKeyValue(11)))).get.leftValue
-            val promise3 = level.reserve(TestMap(Slice(randomFixedKeyValue(15)))).get.leftValue
+            val promise3 = level.reserve(TestSegment(Slice(randomFixedKeyValue(15)))).get.leftValue
             val promise4 = level.reserve(TestMap(Slice(randomFixedKeyValue(19)))).get.leftValue
 
             //failed to reserve
@@ -157,7 +157,7 @@ sealed trait LevelReserveSpec extends TestBase with MockFactory with PrivateMeth
             //reserve key 20 passes
             val reservationToKey20 = level.reserve(TestMap(Slice(randomFixedKeyValue(20)))).get.rightValue
             //again
-            val promise5 = level.reserve(TestMap(Slice(randomFixedKeyValue(20)))).get.leftValue
+            val promise5 = level.reserve(TestSegment(Slice(randomFixedKeyValue(20)))).get.leftValue
             promise5.isCompleted shouldBe false
 
             //release original
@@ -188,27 +188,27 @@ sealed trait LevelReserveSpec extends TestBase with MockFactory with PrivateMeth
             reservation.toKey shouldBe 30.toBytes
             reservation.toKeyInclusive shouldBe true
 
-            //10 to 19
+            //10 to 40
             val promise1 = level.reserve(TestMap(Slice(randomFixedKeyValue(10)))).get.leftValue
-            val promise2 = level.reserve(TestMap(Slice(randomFixedKeyValue(11)))).get.leftValue
+            val promise2 = level.reserve(TestSegment(Slice(randomFixedKeyValue(11)))).get.leftValue
             val promise3 = level.reserve(TestMap(Slice(randomFixedKeyValue(15)))).get.leftValue
-            val promise4 = level.reserve(TestMap(Slice(randomFixedKeyValue(19)))).get.leftValue
-            val promise5 = level.reserve(TestMap(Slice(randomFixedKeyValue(20)))).get.leftValue
+            val promise4 = level.reserve(TestSegment(Slice(randomFixedKeyValue(19)))).get.leftValue
+            val promise5 = level.reserve(TestSegment(Slice(randomFixedKeyValue(20)))).get.leftValue
             val promise6 = level.reserve(TestMap(Slice(randomFixedKeyValue(21)))).get.leftValue
             val promise7 = level.reserve(TestMap(Slice(randomFixedKeyValue(25)))).get.leftValue
             val promise8 = level.reserve(TestMap(Slice(randomFixedKeyValue(30)))).get.leftValue
-            val promise9 = level.reserve(TestMap(Slice(randomRangeKeyValue(1, 11)))).get.leftValue
+            val promise9 = level.reserve(TestSegment(Slice(randomRangeKeyValue(1, 11)))).get.leftValue
             val promise10 = level.reserve(TestMap(Slice(randomRangeKeyValue(10, 25)))).get.leftValue
-            val promise11 = level.reserve(TestMap(Slice(randomRangeKeyValue(10, 40)))).get.leftValue
+            val promise11 = level.reserve(TestSegment(Slice(randomRangeKeyValue(10, 40)))).get.leftValue
 
             //failed to reserve
             val promises = Seq(promise1, promise2, promise3, promise4, promise5, promise6, promise7, promise8, promise9, promise10, promise11)
             promises.foreach(_.isCompleted shouldBe false)
 
-            //reserve key 31 passes
-            val reservationToKey31 = level.reserve(TestMap(Slice(randomFixedKeyValue(31)))).get.rightValue
+            //reserve key 41 passes
+            val reservationToKey41 = level.reserve(TestMap(Slice(randomFixedKeyValue(41)))).get.rightValue
             //again
-            val promise12 = level.reserve(TestMap(Slice(randomFixedKeyValue(31)))).get.leftValue
+            val promise12 = level.reserve(TestMap(Slice(randomFixedKeyValue(41)))).get.leftValue
             promise12.isCompleted shouldBe false
 
             //release original
@@ -217,8 +217,8 @@ sealed trait LevelReserveSpec extends TestBase with MockFactory with PrivateMeth
 
             //still waiting
             promise12.isCompleted shouldBe false
-            //release 31
-            level.checkout(reservationToKey31)
+            //release 41
+            level.checkout(reservationToKey41)
             //finally released
             promise12.isCompleted shouldBe true
         }

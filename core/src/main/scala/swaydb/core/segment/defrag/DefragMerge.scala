@@ -48,6 +48,10 @@ import scala.collection.mutable.ListBuffer
 
 private[segment] object DefragMerge {
 
+  /**
+   * @return the input [[SEG]] if the merge occurred else returns [[NULL_SEG]] indicating
+   *         no merge occurred.
+   */
   def run[SEG, NULL_SEG >: SEG, S <: MergeStats.Segment[Memory, ListBuffer]](segment: SEG,
                                                                              nullSegment: NULL_SEG,
                                                                              mergeableCount: Int,

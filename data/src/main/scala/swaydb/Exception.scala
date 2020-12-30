@@ -115,4 +115,6 @@ object Exception {
 
   case class MissingBuildInfo(buildInfoFileName: String, version: String) extends Exception(s"Missing $buildInfoFileName file. This directory might be an incompatible older version of SwayDB. Current version: v$version.")
 
+  case class InvalidLevelReservation(message: String) extends Exception(message)
+
 }

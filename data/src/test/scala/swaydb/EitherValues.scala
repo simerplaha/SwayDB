@@ -29,10 +29,10 @@ object EitherValues {
   implicit class EitherTestUtils[+L, +R](either: Either[L, R]) {
 
     def rightValue: R =
-      either.getOrElse(throw new Exception(s"Value is not right $either"))
+      either.getOrElse(throw new Exception(s"Value is not right. Actual: $either"))
 
     def leftValue: L =
-      either.left.getOrElse(throw new Exception(s"Value is not left $either"))
+      either.left.getOrElse(throw new Exception(s"Value is not left. Actual: $either"))
   }
 
 }

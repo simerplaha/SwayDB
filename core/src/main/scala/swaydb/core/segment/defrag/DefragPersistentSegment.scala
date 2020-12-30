@@ -49,6 +49,13 @@ import swaydb.data.util.Futures._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+ * Runs defragmentation on [[PersistentSegment]] types.
+ *
+ * It optimises the file [[TransientSegment.Persistent]] such that we defer
+ * byte transfer to OS as much as possible and expand segments only if it's
+ * too small or have key-values that can be cleared/removed.
+ */
 object DefragPersistentSegment {
 
   /**
@@ -189,6 +196,9 @@ object DefragPersistentSegment {
   case class HeadDefragAndAssignments[SEG >: Null](headFragments: ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                                    midAssignments: ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], SEG]])
 
+  /**
+   * Run headGap's defragmentation and mid key-values assignment concurrently.
+   */
   private def runHeadDefragAndAssignments[NULL_SEG >: SEG, SEG >: Null](headGap: ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
                                                                         segments: => Iterator[SEG],
                                                                         assignableCount: Int,
@@ -229,6 +239,9 @@ object DefragPersistentSegment {
     } yield HeadDefragAndAssignments(headFragments, assignments)
   }
 
+  /**
+   * Run defragmentation on assigned key-values and combine headGap's fragments.
+   */
   private def defragAssignedAndMergeHead[NULL_SEG >: SEG, SEG >: Null](nullSegment: NULL_SEG,
                                                                        removeDeletes: Boolean,
                                                                        createdInLevel: Int,
