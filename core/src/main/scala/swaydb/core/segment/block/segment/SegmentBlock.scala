@@ -178,7 +178,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       compressionInfo = header.compressionInfo
     )
 
-  def writeOneOrMany(mergeStats: MergeStats.Persistent.Closed[Iterable],
+  def writeOneOrMany(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                      createdInLevel: Int,
                      bloomFilterConfig: BloomFilterBlock.Config,
                      hashIndexConfig: HashIndexBlock.Config,
@@ -307,7 +307,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       many
     }
 
-  def writeOnes(mergeStats: MergeStats.Persistent.Closed[Iterable],
+  def writeOnes(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                 createdInLevel: Int,
                 bloomFilterConfig: BloomFilterBlock.Config,
                 hashIndexConfig: HashIndexBlock.Config,
@@ -319,7 +319,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       Slice.empty
     else
       writeSegmentRefs(
-        keyValues = mergeStats,
+        mergeStats = mergeStats,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
@@ -336,7 +336,7 @@ private[core] case object SegmentBlock extends LazyLogging {
           )
       }
 
-  def writeSegmentRefs(keyValues: MergeStats.Persistent.Closed[Iterable],
+  def writeSegmentRefs(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
                        createdInLevel: Int,
                        bloomFilterConfig: BloomFilterBlock.Config,
                        hashIndexConfig: HashIndexBlock.Config,
@@ -344,7 +344,7 @@ private[core] case object SegmentBlock extends LazyLogging {
                        sortedIndexConfig: SortedIndexBlock.Config,
                        valuesConfig: ValuesBlock.Config,
                        segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegmentRef] =
-    if (keyValues.isEmpty) {
+    if (mergeStats.isEmpty) {
       Slice.empty
     } else {
       //IMPORTANT! - The following is critical for compaction performance!
@@ -352,7 +352,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       //start sortedIndex for a new Segment.
       var sortedIndex =
         SortedIndexBlock.init(
-          keyValues = keyValues,
+          stats = mergeStats,
           valuesConfig = valuesConfig,
           sortedIndexConfig = sortedIndexConfig
         )
@@ -360,12 +360,12 @@ private[core] case object SegmentBlock extends LazyLogging {
       //start valuesBlock for a new Segment.
       var values =
         ValuesBlock.init(
-          keyValues = keyValues,
+          stats = mergeStats,
           valuesConfig = valuesConfig,
           builder = sortedIndex.builder
         )
 
-      val keyValuesCount = keyValues.keyValuesCount
+      val keyValuesCount = mergeStats.keyValuesCount
 
       val totalAllocatedSize = sortedIndex.compressibleBytes.allocatedSize + values.fold(0)(_.compressibleBytes.allocatedSize)
       val maxSegmentCountBasedOnSize = totalAllocatedSize / segmentConfig.minSize
@@ -391,7 +391,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       var closed = true
 
       //start building the segment.
-      keyValues.keyValues foreach {
+      mergeStats.keyValues foreach {
         keyValue =>
           closed = false
           totalProcessedCount += 1

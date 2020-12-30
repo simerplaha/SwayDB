@@ -57,7 +57,7 @@ class ValuesBlockSpec extends TestBase {
         keyValues.totalValuesSize shouldBe 0
 
         ValuesBlock.init(
-          keyValues = keyValues,
+          stats = keyValues,
           valuesConfig = ValuesBlock.Config.random,
           builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
         ) shouldBe empty
@@ -72,7 +72,7 @@ class ValuesBlockSpec extends TestBase {
             .close(randomBoolean(), randomBoolean())
 
         ValuesBlock.init(
-          keyValues = keyValues,
+          stats = keyValues,
           valuesConfig = ValuesBlock.Config.random,
           builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
         ) shouldBe defined
@@ -90,7 +90,7 @@ class ValuesBlockSpec extends TestBase {
 
         val state =
           ValuesBlock.init(
-            keyValues = stats,
+            stats = stats,
             valuesConfig = ValuesBlock.Config.random,
             builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
           ).get

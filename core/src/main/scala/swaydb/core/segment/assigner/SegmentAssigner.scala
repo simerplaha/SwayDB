@@ -38,6 +38,10 @@ import swaydb.data.slice.{Slice, SliceOption}
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
+/**
+ * Assigns [[Assignable]] types to Segments.
+ */
+
 private[core] object SegmentAssigner {
 
   def assignMinMaxOnlyUnsafeNoGaps(inputSegments: Iterable[Assignable.Collection],
@@ -127,8 +131,17 @@ private[core] object SegmentAssigner {
     )
 
   /**
-   * @param assignablesCount keyValuesCount is needed here because keyValues could be a [[ConcurrentSkipList]]
-   *                         where calculating size is not constant time.
+   * Assigns [[Assignable]] to target Segments.
+   *
+   * It avoids Segment expansion as much as possible and assign collections
+   * of key-values [[Assignable.Collection]] directly to a Segment so that
+   * the Segment can decide if expansion is required. Assigned Segments that
+   * are not expanded can be directly transferred onto a new Segments during
+   * compaction without reading them into JVM heap.
+   *
+   * @param assignablesCount keyValuesCount is needed here because keyValues
+   *                         could be a ConcurrentSkipList where calculating
+   *                         size is not constant time.
    */
   private def assignUnsafe[GAP, SEG >: Null](assignablesCount: Int,
                                              assignables: Iterator[Assignable],

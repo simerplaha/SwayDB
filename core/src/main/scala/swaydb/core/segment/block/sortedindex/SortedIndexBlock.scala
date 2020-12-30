@@ -234,11 +234,11 @@ private[core] case object SortedIndexBlock extends LazyLogging {
   //    Bytes.sizeOfUnsignedInt(size) + size
   //  }
 
-  def init(keyValues: MergeStats.Persistent.Closed[Iterable],
+  def init(stats: MergeStats.Persistent.ClosedStatsOnly,
            valuesConfig: ValuesBlock.Config,
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State =
     init(
-      maxSize = keyValues.maxSortedIndexSize,
+      maxSize = stats.maxSortedIndexSize,
       compressDuplicateValues = valuesConfig.compressDuplicateValues,
       compressDuplicateRangeValues = valuesConfig.compressDuplicateRangeValues,
       sortedIndexConfig = sortedIndexConfig

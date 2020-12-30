@@ -475,16 +475,11 @@ private[core] case object Segment extends LazyLogging {
           0
       }
 
-    val keyValues =
-      Segment
-        .toMemoryIterator(iterator, removeDeletes)
-        .to(Iterable)
-
     val mergeStats =
-      new MergeStats.Persistent.Closed[Iterable](
+      new MergeStats.Persistent.Closed[Iterator](
         isEmpty = false,
         keyValuesCount = keyValuesCount,
-        keyValues = keyValues,
+        keyValues = Segment.toMemoryIterator(iterator, removeDeletes),
         totalValuesSize = valuesSize,
         maxSortedIndexSize = sortedIndexSize
       )
@@ -510,14 +505,9 @@ private[core] case object Segment extends LazyLogging {
                          hashIndexConfig: HashIndexBlock.Config,
                          bloomFilterConfig: BloomFilterBlock.Config,
                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.OneOrRemoteRefOrMany] = {
-    val memoryKeyValues =
-      Segment
-        .toMemoryIterator(keyValues, removeDeletes)
-        .to(Iterable)
-
     val builder =
       MergeStats
-        .persistentBuilder(memoryKeyValues)
+        .persistentBuilder(Segment.toMemoryIterator(keyValues, removeDeletes))
         .close(
           hasAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
           optimiseForReverseIteration = sortedIndexConfig.optimiseForReverseIteration

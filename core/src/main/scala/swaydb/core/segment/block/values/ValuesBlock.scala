@@ -104,11 +104,11 @@ private[core] case object ValuesBlock {
   //      size
   //  }
 
-  def init(keyValues: MergeStats.Persistent.Closed[Iterable],
+  def init(stats: MergeStats.Persistent.ClosedStatsOnly,
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): Option[ValuesBlock.State] = {
-    val totalValuesSize = keyValues.totalValuesSize
+    val totalValuesSize = stats.totalValuesSize
     if (totalValuesSize > 0) {
       val bytes = Slice.of[Byte](totalValuesSize)
       val state =

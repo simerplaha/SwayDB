@@ -457,7 +457,7 @@ object DefragPersistentSegment {
                                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                                 hashIndexConfig: HashIndexBlock.Config,
                                                 segmentConfig: SegmentBlock.Config): Future[Slice[TransientSegment.Persistent]] =
-    Future.traverse(Slice.from(groups, groups.size)) {
+    Future.traverse(groups) {
       ones =>
         Future {
           SegmentBlock.writeOneOrMany(

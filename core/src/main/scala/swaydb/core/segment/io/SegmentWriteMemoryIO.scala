@@ -49,16 +49,16 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
                                 segmentRefCacheWeight: Int,
                                 mmap: MMAP.Segment,
                                 transient: Iterable[TransientSegment.Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                                                              functionStore: FunctionStore,
-                                                                                              fileSweeper: FileSweeper,
-                                                                                              bufferCleaner: ByteBufferSweeperActor,
-                                                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                              blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                              segmentReadIO: SegmentReadIO,
-                                                                                              idGenerator: IDGenerator,
-                                                                                              forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[MemorySegment]] =
-    IO {
+                                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                                              functionStore: FunctionStore,
+                                                                              fileSweeper: FileSweeper,
+                                                                              bufferCleaner: ByteBufferSweeperActor,
+                                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                              blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                              segmentReadIO: SegmentReadIO,
+                                                                              idGenerator: IDGenerator,
+                                                                              forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[MemorySegment]] =
+    IO.Right {
       transient.map(_.segment)
     }
 
@@ -66,16 +66,16 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
                              segmentRefCacheWeight: Int,
                              mmap: MMAP.Segment,
                              mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Memory]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                     functionStore: FunctionStore,
-                                                                                                                                     fileSweeper: FileSweeper,
-                                                                                                                                     bufferCleaner: ByteBufferSweeperActor,
-                                                                                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                                     blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                                                                     segmentReadIO: SegmentReadIO,
-                                                                                                                                     idGenerator: IDGenerator,
-                                                                                                                                     forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[MemorySegment]]]] =
-    IO {
+                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                     functionStore: FunctionStore,
+                                                                                                                     fileSweeper: FileSweeper,
+                                                                                                                     bufferCleaner: ByteBufferSweeperActor,
+                                                                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                                     blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                                                                     segmentReadIO: SegmentReadIO,
+                                                                                                                     idGenerator: IDGenerator,
+                                                                                                                     forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[MemorySegment]]]] =
+    IO.Right {
       mergeResult map {
         mergeResult =>
           val segments = mergeResult.result.map(_.segment)
