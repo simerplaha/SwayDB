@@ -178,7 +178,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       compressionInfo = header.compressionInfo
     )
 
-  def writeOneOrMany(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
+  def writeOneOrMany(mergeStats: MergeStats.Persistent.Closed[TraversableOnce],
                      createdInLevel: Int,
                      bloomFilterConfig: BloomFilterBlock.Config,
                      hashIndexConfig: HashIndexBlock.Config,
@@ -307,7 +307,7 @@ private[core] case object SegmentBlock extends LazyLogging {
       many
     }
 
-  def writeOnes(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
+  def writeOnes(mergeStats: MergeStats.Persistent.Closed[TraversableOnce],
                 createdInLevel: Int,
                 bloomFilterConfig: BloomFilterBlock.Config,
                 hashIndexConfig: HashIndexBlock.Config,
@@ -336,7 +336,7 @@ private[core] case object SegmentBlock extends LazyLogging {
           )
       }
 
-  def writeSegmentRefs(mergeStats: MergeStats.Persistent.Closed[IterableOnce],
+  def writeSegmentRefs(mergeStats: MergeStats.Persistent.Closed[TraversableOnce],
                        createdInLevel: Int,
                        bloomFilterConfig: BloomFilterBlock.Config,
                        hashIndexConfig: HashIndexBlock.Config,

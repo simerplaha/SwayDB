@@ -65,19 +65,19 @@ private[core] case object MergeStats {
   implicit val memoryToMemory: data.Memory => data.Memory =
     (memory: data.Memory) => memory
 
-  def persistentBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, ListBuffer] = {
+  def persistentBuilder[FROM](keyValues: TraversableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, ListBuffer] = {
     val stats = persistent[FROM, ListBuffer](Aggregator.listBuffer)
     keyValues foreach stats.add
     stats
   }
 
-  def memoryBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Memory.Builder[FROM, ListBuffer] = {
+  def memoryBuilder[FROM](keyValues: TraversableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Memory.Builder[FROM, ListBuffer] = {
     val stats = memory[FROM, ListBuffer](Aggregator.listBuffer)
     keyValues foreach stats.add
     stats
   }
 
-  def bufferBuilder[FROM](keyValues: IterableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Buffer[FROM, ListBuffer] = {
+  def bufferBuilder[FROM](keyValues: TraversableOnce[FROM])(implicit convert: FROM => data.Memory): MergeStats.Buffer[FROM, ListBuffer] = {
     val stats = buffer[FROM, ListBuffer](Aggregator.listBuffer)
     keyValues foreach stats.add
     stats
@@ -210,7 +210,7 @@ private[core] case object MergeStats {
     /**
      * Does not expose [[Closed.keyValues]] to handle
      * cases where the collection type T[_] type might
-     * be [[IterableOnce]]
+     * be [[TraversableOnce]]
      */
     sealed trait ClosedStatsOnly {
       def isEmpty: Boolean

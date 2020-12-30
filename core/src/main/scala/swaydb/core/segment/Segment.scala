@@ -81,11 +81,11 @@ private[core] case object Segment extends LazyLogging {
              maxKeyValueCountPerSegment: Int,
              pathsDistributor: PathsDistributor,
              createdInLevel: Long,
-             stats: MergeStats.Memory.ClosedIgnoreStats[IterableOnce])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                       functionStore: FunctionStore,
-                                                                       fileSweeper: FileSweeper,
-                                                                       idGenerator: IDGenerator): Slice[MemorySegment] =
+             stats: MergeStats.Memory.ClosedIgnoreStats[TraversableOnce])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                                          functionStore: FunctionStore,
+                                                                          fileSweeper: FileSweeper,
+                                                                          idGenerator: IDGenerator): Slice[MemorySegment] =
     if (stats.isEmpty) {
       throw IO.throwable("Empty key-values submitted to memory Segment.")
     } else {
