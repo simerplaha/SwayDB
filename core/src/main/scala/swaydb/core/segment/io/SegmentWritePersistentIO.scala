@@ -62,7 +62,12 @@ object SegmentWritePersistentIO extends SegmentWriteIO[TransientSegment.Persiste
                                                                                                                 segmentReadIO: SegmentReadIO,
                                                                                                                 idGenerator: IDGenerator,
                                                                                                                 forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[PersistentSegment]]]] =
-    mergeResult.mapRecoverIO[CompactResult[SegmentOption, Iterable[PersistentSegment]]](
+    mergeResult collect {
+      //collect the ones with source set or has new segments to write
+      case mergeResult if mergeResult.source.isSomeS || mergeResult.result.nonEmpty =>
+        mergeResult
+
+    } mapRecoverIO[CompactResult[SegmentOption, Iterable[PersistentSegment]]](
       mergeResult =>
         persistTransient(
           pathsDistributor = pathsDistributor,

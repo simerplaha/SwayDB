@@ -52,7 +52,7 @@ import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.defrag.{DefragMemorySegment, DefragPersistentSegment}
-import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteIO}
+import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteMemoryIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.search.ThreadReadState
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
@@ -498,7 +498,7 @@ private[core] case class Level(dirs: Seq[Dir],
     IO(reservations.remove(reservationKey))
 
   def hasReservation(reservationKey: AtomicRanges.Key[Slice[Byte]]): Boolean =
-    reservations.contains(reservationKey)
+    reservations.containsExact(reservationKey)
 
   def merge(segment: Segment,
             reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
@@ -804,16 +804,19 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
 
+  override def commit(mergeResult: CompactResult[SegmentOption, Iterable[TransientSegment]]): IO[Error.Level, Unit] =
+    commit(Seq(mergeResult))
+
   override def commit(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     persistAndCommit(
       mergeResult = mergeResult,
       appendEntry = None
     )
 
-  def commit(collapseResult: LevelCollapseResult.Collapsed): IO[Error.Level, Unit] =
+  def commit(collapsed: LevelCollapseResult.Collapsed): IO[Error.Level, Unit] =
     commit(
-      old = collapseResult.sourceSegments,
-      merged = collapseResult.mergeResult
+      old = collapsed.sourceSegments,
+      merged = collapsed.mergeResult
     )
 
   override def commit(old: Iterable[Segment],
@@ -906,12 +909,20 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   def persist(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[Segment]]]] =
-    SegmentWriteIO.persistMerged(
-      pathsDistributor = pathDistributor,
-      segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
-      mmap = segmentConfig.mmap,
-      mergeResult = mergeResult
-    )
+    if (inMemory)
+      SegmentWriteMemoryIO.persistMerged(
+        pathsDistributor = pathDistributor,
+        segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+        mmap = segmentConfig.mmap,
+        mergeResult = mergeResult.asInstanceOf[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Memory]]]]
+      )
+    else
+      SegmentWritePersistentIO.persistMerged(
+        pathsDistributor = pathDistributor,
+        segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight,
+        mmap = segmentConfig.mmap,
+        mergeResult = mergeResult.asInstanceOf[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]]]
+      )
 
   def prepareCommit(result: Iterable[CompactResult[SegmentOption, Iterable[Segment]]],
                     appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, MapEntry[Slice[Byte], Segment]] = {

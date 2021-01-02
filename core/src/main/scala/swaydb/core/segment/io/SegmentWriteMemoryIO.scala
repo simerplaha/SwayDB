@@ -76,11 +76,11 @@ object SegmentWriteMemoryIO extends SegmentWriteIO[TransientSegment.Memory, Memo
                                                                                                                      idGenerator: IDGenerator,
                                                                                                                      forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[MemorySegment]]]] =
     IO.Right {
-      mergeResult map {
-        mergeResult =>
+      mergeResult collect {
+        //collect the ones with source set or has new segments to write
+        case mergeResult if mergeResult.source.isSomeS || mergeResult.result.nonEmpty =>
           val segments = mergeResult.result.map(_.segment)
           mergeResult.updateResult(segments)
       }
     }
-
 }

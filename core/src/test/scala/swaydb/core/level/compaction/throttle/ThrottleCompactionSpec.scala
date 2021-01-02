@@ -171,7 +171,7 @@
 //      "it's the last Level and is empty" in {
 //        TestCaseSweeper {
 //          implicit sweeper =>
-//            ThrottleCompaction.copyForwardForEach(Slice(TestLevel()), randomParallelMerge()) shouldBe 0
+//            ThrottleCompaction.copyForwardForEach(Slice(TestLevel())) shouldBe 0
 //        }
 //      }
 //
@@ -321,7 +321,7 @@
 //
 //            val level = mock[NextLevel]("level")
 //            (level.hasNextLevel _).expects() returns false repeat 6.times
-//            (level.segmentsInLevel _).expects() returning segments repeat 5.times
+//            (level.segments _).expects() returning segments repeat 5.times
 //
 //            (level.refresh(_: Segment)) expects * onCall {
 //              segment: Segment =>

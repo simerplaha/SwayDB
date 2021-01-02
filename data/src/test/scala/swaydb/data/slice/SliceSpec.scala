@@ -516,6 +516,92 @@ class SliceSpec extends AnyWordSpec with Matchers {
       //  1 - (10 - 20)
       Slice.within(key = 21, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe false
     }
+
+    "fixed on maxKey" in {
+      //0
+      //        10   -   20
+      Slice.within(MaxKey.Fixed(0), MaxKey.Range(10, 20)) shouldBe false
+      //        10
+      //        10   -   20
+      Slice.within(MaxKey.Fixed(10), MaxKey.Range(10, 20)) shouldBe true
+      //           11
+      //        10   -   20
+      Slice.within(MaxKey.Fixed(11), MaxKey.Range(10, 20)) shouldBe true
+      //              19
+      //        10   -   20
+      Slice.within(MaxKey.Fixed(19), MaxKey.Range(10, 20)) shouldBe true
+      //                 20
+      //        10   -   20
+      Slice.within(MaxKey.Fixed(20), MaxKey.Range(10, 20)) shouldBe false
+      //                    21
+      //        10   -   20
+      Slice.within(MaxKey.Fixed(21), MaxKey.Range(10, 20)) shouldBe false
+
+    }
+
+    "maxKey on maxKey" in {
+      //0   -   10
+      //        10   -   20
+      Slice.within(MaxKey.Range(0, 10), MaxKey.Range(10, 20)) shouldBe false
+      //0    -    11
+      //        10   -   20
+      Slice.within(MaxKey.Range(0, 11), MaxKey.Range(10, 20)) shouldBe false
+      //0           -    20
+      //        10   -   20
+      Slice.within(MaxKey.Range(0, 20), MaxKey.Range(10, 20)) shouldBe false
+      //0           -       21
+      //        10   -   20
+      Slice.within(MaxKey.Range(0, 21), MaxKey.Range(10, 20)) shouldBe false
+      //        10|10
+      //        10   -   20
+      Slice.within(MaxKey.Range(10, 10), MaxKey.Range(10, 20)) shouldBe true
+      //        10 - 11
+      //        10   -   20
+      Slice.within(MaxKey.Range(10, 11), MaxKey.Range(10, 20)) shouldBe true
+      //        10   - 19
+      //        10   -   20
+      Slice.within(MaxKey.Range(10, 19), MaxKey.Range(10, 20)) shouldBe true
+      //        10   -   20
+      //        10   -   20
+      Slice.within(MaxKey.Range(10, 20), MaxKey.Range(10, 20)) shouldBe true
+      //        10   -     21
+      //        10   -   20
+      Slice.within(MaxKey.Range(10, 21), MaxKey.Range(10, 20)) shouldBe false
+      //          11 - 12
+      //        10   -   20
+      Slice.within(MaxKey.Range(11, 12), MaxKey.Range(10, 20)) shouldBe true
+      //          11 -   20
+      //        10   -   20
+      Slice.within(MaxKey.Range(11, 20), MaxKey.Range(10, 20)) shouldBe true
+      //             19- 20
+      //        10   -   20
+      Slice.within(MaxKey.Range(19, 20), MaxKey.Range(10, 20)) shouldBe true
+      //                 20|20
+      //        10   -   20
+      Slice.within(MaxKey.Range(20, 20), MaxKey.Range(10, 20)) shouldBe false
+      //                 20  - 21
+      //        10   -   20
+      Slice.within(MaxKey.Range(20, 21), MaxKey.Range(10, 20)) shouldBe false
+
+    }
+
+    "maxKey on fixed" in {
+      //0   -   10
+      //        10
+      Slice.within(MaxKey.Range(0, 10), MaxKey.Fixed(10)) shouldBe false
+      //0    -    11
+      //        10
+      Slice.within(MaxKey.Range(0, 11), MaxKey.Fixed(10)) shouldBe false
+      //        10|10
+      //        10
+      Slice.within(MaxKey.Range(10, 10), MaxKey.Fixed(10)) shouldBe true
+      //        10 - 11
+      //        10
+      Slice.within(MaxKey.Range(10, 11), MaxKey.Fixed(10)) shouldBe false
+      //           11 - 12
+      //        10
+      Slice.within(MaxKey.Range(11, 12), MaxKey.Fixed(10)) shouldBe false
+    }
   }
 
   "reverse" should {

@@ -60,7 +60,7 @@ private[core] case object LevelReceptionKeyValidator {
                                                                                     keyOrder: KeyOrder[Slice[Byte]]): InvalidLevelReservation = {
     import keyOrder._
 
-    if (!reservations.contains(reservationKey))
+    if (!reservations.containsExact(reservationKey))
       InvalidLevelReservation("Key is not reserved.")
     else if (reservationKey.fromKey > minKey)
       InvalidLevelReservation("Incorrect reservation. MinKey is lesser.")

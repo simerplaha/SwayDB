@@ -75,9 +75,9 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
         implicit sweeper =>
 
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = mmapSegments))
-          level.put(randomPutKeyValues(keyValuesCount)).runRandomIO.right.value
+          level.put(randomPutKeyValues(keyValuesCount)).get.toKeyInclusive shouldBe true
 
-          level.remove(level.segments()).runRandomIO.right.value
+          level.remove(level.segments()).get shouldBe unit
 
           level.isEmpty shouldBe true
 

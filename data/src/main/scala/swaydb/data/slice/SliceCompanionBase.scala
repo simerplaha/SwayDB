@@ -26,8 +26,8 @@ package swaydb.data.slice
 
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
-
 import swaydb.Aggregator
+import swaydb.Exception.InvalidLevelReservation
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteOps, ByteSizeOf}
 import swaydb.data.{MaxKey, slice}
@@ -191,15 +191,73 @@ trait SliceCompanionBase {
 
   def within[T](key: Slice[T],
                 minKey: Slice[T],
-                maxKey: MaxKey[Slice[T]])(implicit keyOrder: KeyOrder[Slice[T]]): Boolean = {
+                maxKey: MaxKey[Slice[T]])(implicit keyOrder: Ordering[Slice[T]]): Boolean =
+    within(
+      key = key,
+      minKey = minKey,
+      maxKey = maxKey.maxKey,
+      maxKeyInclusive = maxKey.inclusive
+    )
+
+  def within[T](key: Slice[T],
+                minKey: Slice[T],
+                maxKey: Slice[T],
+                maxKeyInclusive: Boolean)(implicit keyOrder: Ordering[Slice[T]]): Boolean = {
     import keyOrder._
     key >= minKey && {
-      maxKey match {
-        case swaydb.data.MaxKey.Fixed(maxKey) =>
-          key <= maxKey
-        case swaydb.data.MaxKey.Range(_, maxKey) =>
-          key < maxKey
-      }
+      if (maxKeyInclusive)
+        key <= maxKey
+      else
+        key < maxKey
+    }
+  }
+
+  def within[T](key: T,
+                minKey: T,
+                maxKey: T,
+                maxKeyInclusive: Boolean)(implicit keyOrder: Ordering[T]): Boolean = {
+    import keyOrder._
+    key >= minKey && {
+      if (maxKeyInclusive)
+        key <= maxKey
+      else
+        key < maxKey
+    }
+  }
+
+  def within[T](source: MaxKey[T],
+                target: MaxKey[T])(implicit keyOrder: Ordering[T]): Boolean = {
+    import keyOrder._
+
+    source match {
+      case MaxKey.Fixed(sourceMaxKey) =>
+        target match {
+          case MaxKey.Fixed(targetMaxKey) =>
+            keyOrder.equiv(sourceMaxKey, targetMaxKey)
+
+          case MaxKey.Range(targetFromKey, targetMaxKey) =>
+            Slice.within(
+              key = sourceMaxKey,
+              minKey = targetFromKey,
+              maxKey = targetMaxKey,
+              maxKeyInclusive = false
+            )
+        }
+
+      case MaxKey.Range(sourceFromKey, sourceMaxKey) =>
+        target match {
+          case MaxKey.Fixed(targetMaxKey) =>
+            keyOrder.equiv(sourceFromKey, targetMaxKey) &&
+              keyOrder.equiv(sourceMaxKey, targetMaxKey)
+
+          case MaxKey.Range(targetFromKey, targetMaxKey) =>
+            Slice.within(
+              key = sourceFromKey,
+              minKey = targetFromKey,
+              maxKey = targetMaxKey,
+              maxKeyInclusive = false
+            ) && sourceMaxKey <= targetMaxKey
+        }
     }
   }
 

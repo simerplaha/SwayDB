@@ -249,6 +249,9 @@ private[core] case object TrashLevel extends NextLevel {
   override def collapse(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[LevelCollapseResult] =
     ???
 
-  override def commit(collapseResult: LevelCollapseResult.Collapsed): IO[Error.Level, Unit] =
+  override def commit(collapsed: LevelCollapseResult.Collapsed): IO[Error.Level, Unit] =
+    ???
+
+  override def commit(mergeResult: CompactResult[SegmentOption, Iterable[TransientSegment]]): IO[Error.Level, Unit] =
     ???
 }

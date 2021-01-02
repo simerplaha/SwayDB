@@ -74,7 +74,6 @@ class LevelReceptionKeyValidatorSpec extends TestBase {
       }
     }
 
-
     "[1]" in {
       runThis(10.times, log = true) {
         TestCaseSweeper {
@@ -91,6 +90,7 @@ class LevelReceptionKeyValidatorSpec extends TestBase {
             //validate the Segment passes
             LevelReceptionKeyValidator.validateIO(segment, key)(IO.unit) shouldBe IO.unit
 
+            LevelReceptionKeyValidator.validateIO(TestSegment(Slice(randomFixedKeyValue(0))), key)(IO.unit).left.get shouldBe a[InvalidLevelReservation]
             LevelReceptionKeyValidator.validateIO(TestSegment(Slice(randomFixedKeyValue(2))), key)(IO.unit).left.get shouldBe a[InvalidLevelReservation]
         }
       }
@@ -361,8 +361,6 @@ class LevelReceptionKeyValidatorSpec extends TestBase {
 
                   LevelReceptionKeyValidator.validateIO(TestSegment(Slice(keyValue)), key)(IO.unit).left.get shouldBe a[InvalidLevelReservation]
               }
-
-
           }
         }
       }

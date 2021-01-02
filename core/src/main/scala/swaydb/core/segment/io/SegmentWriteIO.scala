@@ -24,7 +24,6 @@
 
 package swaydb.core.segment.io
 
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
@@ -78,89 +77,4 @@ trait SegmentWriteIO[T <: TransientSegment, S] {
                                                segmentReadIO: SegmentReadIO,
                                                idGenerator: IDGenerator,
                                                forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[S]]
-}
-
-
-object SegmentWriteIO extends SegmentWriteIO[TransientSegment, Segment] {
-
-  override def minKey(segment: Segment): Slice[Byte] =
-    segment.minKey
-
-  override def persistTransient(pathsDistributor: PathsDistributor,
-                                segmentRefCacheWeight: Int,
-                                mmap: MMAP.Segment,
-                                transient: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                       functionStore: FunctionStore,
-                                                                       fileSweeper: FileSweeper,
-                                                                       bufferCleaner: ByteBufferSweeperActor,
-                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                       blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                       segmentReadIO: SegmentReadIO,
-                                                                       idGenerator: IDGenerator,
-                                                                       forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[Segment]] =
-    transient.headOption match {
-      case Some(_: TransientSegment.Persistent) =>
-        SegmentWritePersistentIO.persistTransient(
-          pathsDistributor = pathsDistributor,
-          segmentRefCacheWeight = segmentRefCacheWeight,
-          mmap = mmap,
-          transient = transient.asInstanceOf[Iterable[TransientSegment.Persistent]]
-        )
-
-      case Some(_: TransientSegment.Memory) =>
-        SegmentWriteMemoryIO.persistTransient(
-          pathsDistributor = pathsDistributor,
-          segmentRefCacheWeight = segmentRefCacheWeight,
-          mmap = mmap,
-          transient = transient.asInstanceOf[Iterable[TransientSegment.Memory]]
-        )
-
-      case None =>
-        IO.Right(Iterable.empty)
-    }
-
-  override def persistMerged(pathsDistributor: PathsDistributor,
-                             segmentRefCacheWeight: Int,
-                             mmap: MMAP.Segment,
-                             mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                              functionStore: FunctionStore,
-                                                                                                              fileSweeper: FileSweeper,
-                                                                                                              bufferCleaner: ByteBufferSweeperActor,
-                                                                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                              blockCacheSweeper: Option[MemorySweeper.Block],
-                                                                                                              segmentReadIO: SegmentReadIO,
-                                                                                                              idGenerator: IDGenerator,
-                                                                                                              forceSaveApplier: ForceSaveApplier): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[Segment]]]] =
-    mergeResult.headOption match {
-      case Some(headCompactionResult) =>
-        headCompactionResult.result.headOption match {
-          case Some(_: TransientSegment.Persistent) =>
-            SegmentWritePersistentIO.persistMerged(
-              pathsDistributor = pathsDistributor,
-              segmentRefCacheWeight = segmentRefCacheWeight,
-              mmap = mmap,
-              mergeResult = mergeResult.asInstanceOf[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]]]
-            )
-
-          case Some(_: TransientSegment.Memory) =>
-            SegmentWriteMemoryIO.persistMerged(
-              pathsDistributor = pathsDistributor,
-              segmentRefCacheWeight = segmentRefCacheWeight,
-              mmap = mmap,
-              mergeResult = mergeResult.asInstanceOf[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Memory]]]]
-            )
-
-          case None =>
-            //if source is defined then return the CompactionResult with Source but with no persisted Segments.
-            if (headCompactionResult.source.isSomeS)
-              IO.Right(Seq(headCompactionResult.updateResult(Seq.empty)))
-            else
-              IO.Right(Iterable.empty)
-        }
-
-      case None =>
-        IO.Right(Iterable.empty)
-    }
 }

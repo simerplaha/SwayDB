@@ -39,8 +39,9 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.seek._
-import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, NextLevel, PathsDistributor}
+import swaydb.core.map.Map
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.merge.{KeyValueGrouper, KeyValueMerger}
 import swaydb.core.segment._
@@ -246,7 +247,33 @@ object TestData {
           level.merge(
             segments = segments,
             reservationKey = reservation
-          ).await
+          ).await(10.seconds)
+
+        level.commit(compactionResult) map {
+          _ =>
+            if (checkout)
+              level.checkout(reservation).get shouldBe unit
+
+            reservation
+        }
+      }
+    }
+
+    def putMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache], checkout: Boolean = true)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, AtomicRanges.Key[Slice[Byte]]] = {
+      implicit val ec = TestExecutionContext.executionContext
+
+      if (map.cache.isEmpty)
+        IO.failed("Map is empty")
+      else {
+        //        segments should have size 1
+
+        val reservation: AtomicRanges.Key[Slice[Byte]] = level.reserve(map).value.rightValue
+
+        val compactionResult =
+          level.merge(
+            map = map,
+            reservationKey = reservation
+          ).await(10.seconds)
 
         level.commit(compactionResult) map {
           _ =>

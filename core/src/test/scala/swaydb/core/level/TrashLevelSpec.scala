@@ -76,7 +76,7 @@
 //          val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10), segmentConfig = SegmentBlock.Config.random(pushForward = PushForwardStrategy.On, mmap = mmapSegments)).sweep()
 //
 //          val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.right.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.right.value)
-//          level.put(segments, randomParallelMerge()).right.right.value.right.value
+//          level.put(segments).right.right.value.right.value
 //
 //          //throttle is Duration.Zero, Segments value merged to lower ExpiryLevel and deleted from Level.
 //          eventual(15.seconds)(level.isEmpty shouldBe true)

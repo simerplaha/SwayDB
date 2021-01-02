@@ -183,11 +183,11 @@
 //      deleteDelay = Duration.Zero
 //    )
 //
-//  level.putKeyValuesTest(keyValues).runRandomIO.right.value
+//  level.put(keyValues).runRandomIO.right.value
 //
 //  def reopenLevel() = {
 //    println("Re-opening Level")
-//    level.segmentsInLevel().foreach {
+//    level.segments().foreach {
 //      segment =>
 //        segment.clearCachedKeyValues()
 //        segment.close.runRandomIO.right.value

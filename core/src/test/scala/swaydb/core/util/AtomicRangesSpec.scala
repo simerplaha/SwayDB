@@ -523,7 +523,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
               action = randomAtomicRangesAction()
             )
 
-          ranges.contains(key) shouldBe false
+          ranges.containsExact(key) shouldBe false
         }
       }
 
@@ -551,7 +551,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
                 )
 
               //does not contain
-              ranges.contains(key) shouldBe false
+              ranges.containsExact(key) shouldBe false
 
               //but cannot write because there exists an overlapping key
               ranges.isWritable(5, 11, randomBoolean()) shouldBe false
@@ -584,7 +584,7 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
           val writtenKey = ranges.writeOrPromise(fromKey = 1, toKey = 2, toKeyInclusive = true).rightValue
           writtenKey shouldBe key
 
-          ranges.contains(key) shouldBe true
+          ranges.containsExact(key) shouldBe true
         }
       }
 
@@ -596,11 +596,11 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
           ranges.writeOrPromise(5, 10, toKeyInclusive = true).rightValue
 
           //1 - 4
-          ranges.contains(AtomicRanges.Key.write(1, 4, randomBoolean())) shouldBe false
+          ranges.containsExact(AtomicRanges.Key.write(1, 4, randomBoolean())) shouldBe false
           //1 -   5
-          ranges.contains(AtomicRanges.Key.write(1, 5, toKeyInclusive = false)) shouldBe false
+          ranges.containsExact(AtomicRanges.Key.write(1, 5, toKeyInclusive = false)) shouldBe false
           //               11 -   20
-          ranges.contains(AtomicRanges.Key.write(11, 20, toKeyInclusive = randomBoolean())) shouldBe false
+          ranges.containsExact(AtomicRanges.Key.write(11, 20, toKeyInclusive = randomBoolean())) shouldBe false
 
         }
       }
@@ -613,11 +613,11 @@ abstract class AtomicRangesSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordS
           ranges.writeOrPromise(5, 10, toKeyInclusive = false).rightValue
 
           //1 - 4
-          ranges.contains(AtomicRanges.Key.write(1, 4, randomBoolean())) shouldBe false
+          ranges.containsExact(AtomicRanges.Key.write(1, 4, randomBoolean())) shouldBe false
           //1 -   5
-          ranges.contains(AtomicRanges.Key.write(1, 5, toKeyInclusive = false)) shouldBe false
+          ranges.containsExact(AtomicRanges.Key.write(1, 5, toKeyInclusive = false)) shouldBe false
           //               11 -   20
-          ranges.contains(AtomicRanges.Key.write(10, 20, toKeyInclusive = randomBoolean())) shouldBe false
+          ranges.containsExact(AtomicRanges.Key.write(10, 20, toKeyInclusive = randomBoolean())) shouldBe false
         }
       }
     }

@@ -28,8 +28,8 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.Bag.Implicits._
 import swaydb.core.util.AtomicRanges.{Action, Value}
-import swaydb.data.{MaxKey, Reserve}
 import swaydb.data.slice.Slice
+import swaydb.data.{MaxKey, Reserve}
 
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong
@@ -111,11 +111,12 @@ private[core] case object AtomicRanges extends LazyLogging {
   }
 
 
-  case class Key[K](val fromKey: K, val toKey: K, val toKeyInclusive: Boolean, val action: Action)
+  case class Key[K](fromKey: K, toKey: K, toKeyInclusive: Boolean, action: Action)
+
   private[util] class Value[V](val value: V)
 
   def apply[K]()(implicit ordering: Ordering[K]): AtomicRanges[K] = {
-    val keyOrder = Key.order(ordering)
+    implicit val keyOrder = Key.order(ordering)
     val transactions = new ConcurrentSkipListMap[Key[K], Value[Reserve[Unit]]](keyOrder)
     new AtomicRanges[K](transactions)
   }
@@ -280,7 +281,8 @@ private[core] case object AtomicRanges extends LazyLogging {
   }
 }
 
-private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val ordering: Ordering[K]) {
+private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipListMap[AtomicRanges.Key[K], Value[Reserve[Unit]]])(implicit val keyRangeOrdering: Ordering[AtomicRanges.Key[K]],
+                                                                                                                                keyOrder: Ordering[K]) {
 
   private implicit val self: AtomicRanges[K] =
     this
@@ -314,7 +316,7 @@ private[core] class AtomicRanges[K](private val transactions: ConcurrentSkipList
    * Eg: if 10 - 20 exists for Action.Write. Searching 11 would return true
    * but here we want to check if the action [[AtomicRanges.Key]] exists.
    */
-  def contains(key: AtomicRanges.Key[K]): Boolean =
+  def containsExact(key: AtomicRanges.Key[K]): Boolean =
     transactions.floorKey(key) == key
 
   def writeOrPromise(fromKey: K, toKey: K, toKeyInclusive: Boolean): Either[Promise[Unit], AtomicRanges.Key[K]] =
