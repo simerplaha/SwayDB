@@ -331,8 +331,8 @@ protected case class PersistentSegmentOne(file: DBFile,
     implicit val bloomFilterConfigImplicit: BloomFilterBlock.Config = bloomFilterConfig
     implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
-    DefragPersistentSegment.runOne(
-      segment = Some(this),
+    DefragPersistentSegment.runOnSegment(
+      segment = this,
       nullSegment = PersistentSegment.Null,
       headGap = headGap,
       tailGap = tailGap,

@@ -247,7 +247,7 @@ object TestData {
           level.merge(
             segments = segments,
             reservationKey = reservation
-          ).await(10.seconds)
+          ).awaitInf
 
         level.commit(compactionResult) map {
           _ =>

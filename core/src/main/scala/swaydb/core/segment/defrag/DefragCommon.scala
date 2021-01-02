@@ -47,5 +47,4 @@ private[core] object DefragCommon {
       case Some(_) | None =>
         null
     }
-
 }

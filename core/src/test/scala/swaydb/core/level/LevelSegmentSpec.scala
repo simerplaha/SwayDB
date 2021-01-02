@@ -24,30 +24,27 @@
 
 package swaydb.core.level
 
-import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import org.scalamock.scalatest.MockFactory
-import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper.TestLevelPathSweeperImplicits
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
-import swaydb.core.segment.Segment
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.util.PipeOps._
 import swaydb.core.util.{Extension, IDGenerator}
-import swaydb.core._
 import swaydb.data.RunThis._
-import swaydb.data.config.{Dir, MMAP, PushForwardStrategy}
+import swaydb.data.config.{Dir, MMAP}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.data.util.OperatingSystem
 import swaydb.data.util.StorageUnits._
 
-import scala.concurrent.ExecutionContext
+import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.Random
 
@@ -97,21 +94,23 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       }
 
       "level is non-empty" in {
-        TestCaseSweeper {
-          implicit sweeper =>
-            //small Segment size so that small Segments do not collapse when running this test
-            // as reads do not value retried on failure in Level, they only value retried in LevelZero.
-            val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.bytes, mmap = mmapSegments))
-            val keyValues = randomIntKeyStringValues(keyValuesCount)
-            val segment = TestSegment(keyValues)
-            level.put(segment).get.fromKey shouldBe segment.minKey
+        runThis(10.times, log = true) {
+          TestCaseSweeper {
+            implicit sweeper =>
+              //small Segment size so that small Segments do not collapse when running this test
+              // as reads do not value retried on failure in Level, they only value retried in LevelZero.
+              val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.bytes, mmap = mmapSegments))
+              val keyValues = randomIntKeyStringValues(keyValuesCount)
+              val segment = TestSegment(keyValues)
+              level.put(segment).get.fromKey shouldBe segment.minKey
 
-            val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
-            val segment2 = TestSegment(keyValues2).runRandomIO.right.value
-            level.put(segment2).get.fromKey shouldBe segment2.minKey
+              val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
+              val segment2 = TestSegment(keyValues2).runRandomIO.right.value
+              level.put(segment2).get
 
-            assertGet(keyValues, level)
-            assertGet(keyValues2, level)
+              assertGet(keyValues, level)
+              assertGet(keyValues2, level)
+          }
         }
       }
 

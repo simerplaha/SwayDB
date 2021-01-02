@@ -97,8 +97,8 @@ private[core] final case class MemorySegment(path: Path,
     else {
       implicit val segmentConfigImplicit: SegmentBlock.Config = segmentConfig
 
-      DefragMemorySegment.run(
-        segment = Some(this),
+      DefragMemorySegment.runOnSegment(
+        segment = this,
         nullSegment = MemorySegment.Null,
         headGap = headGap,
         tailGap = tailGap,

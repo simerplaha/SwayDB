@@ -29,11 +29,9 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.level.zero.LevelZeroMapCache
-import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.core.util.AtomicRanges
-import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave, TestTimer}
+import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core._
 import swaydb.data.RunThis._
 import swaydb.data.config.{MMAP, PushForwardStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -143,23 +141,16 @@ sealed trait LevelCollapseSpec extends TestBase {
             //reopen the Level with larger min segment size
             val reopenLevel = level.reopen(segmentSize = 20.mb)
 
-            def runCollapse() = {
-              val segments = reopenLevel.segments()
-              val reservation = reopenLevel.reserve(segments).rightValue
+            val segments = reopenLevel.segments()
+            val reserve = reopenLevel.reserve(segments).rightValue
 
-              reopenLevel.collapse(segments, reservation).await match {
-                case LevelCollapseResult.Empty =>
-                  fail(s"Expected: ${LevelCollapseResult.Collapsed.getClass.getSimpleName}. Actor: ${LevelCollapseResult.Empty.productPrefix}")
+            reopenLevel.collapse(segments, reserve).await match {
+              case LevelCollapseResult.Empty =>
+                fail(s"Expected: ${LevelCollapseResult.Collapsed.getClass.getSimpleName}. Actor: ${LevelCollapseResult.Empty.productPrefix}")
 
-                case collapsed: LevelCollapseResult.Collapsed =>
-                  reopenLevel.commit(collapsed).get shouldBe unit
-              }
-
-              reopenLevel.checkout(reservation).get shouldBe unit
+              case collapsed: LevelCollapseResult.Collapsed =>
+                reopenLevel.commit(collapsed).get shouldBe unit
             }
-
-            runCollapse()
-            runCollapse()
 
             //resulting segments is 1
             eventually {
@@ -173,62 +164,81 @@ sealed trait LevelCollapseSpec extends TestBase {
         }
       }
   }
-  //
-  //    "clear expired key-values" in {
-  //      //this test is similar as the above collapsing small Segment test.
-  //      //Remove or expiring key-values should have the same result
-  //      TestCaseSweeper {
-  //        implicit sweeper =>
-  //          val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
-  //          val expiryAt = 5.seconds.fromNow
-  //          val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
-  //          level.put(keyValues).runRandomIO.right.value
-  //          val segmentCountBeforeDelete = level.segmentsCount()
-  //          segmentCountBeforeDelete > 1 shouldBe true
-  //
-  //          val keyValuesNotExpired = ListBuffer.empty[KeyValue]
-  //          val expireEverySecond =
-  //            keyValues.zipWithIndex flatMap {
-  //              case (keyValue, index) =>
-  //                if (index % 2 == 0)
-  //                  Some(Memory.Remove(keyValue.key, Some(expiryAt + index.millisecond), Time.empty))
-  //                else {
-  //                  keyValuesNotExpired += keyValue
-  //                  None
-  //                }
-  //            }
-  //
-  //          //delete half of the key values which will create small Segments
-  //          level.put(Slice(expireEverySecond.toArray)).runRandomIO.right.value
-  //          keyValues.zipWithIndex foreach {
-  //            case (keyValue, index) =>
-  //              if (index % 2 == 0)
-  //                level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut.value.deadline should contain(expiryAt + index.millisecond)
-  //          }
-  //
-  //          sleep(20.seconds)
-  //          level.collapse(level.segments()).right.right.value.right.value
-  //          level.segmentFilesInAppendix should be <= ((segmentCountBeforeDelete / 2) + 1)
-  //
-  //          assertReads(Slice(keyValuesNotExpired.toArray), level)
-  //      }
-  //    }
-  //  }
-  //
-  //  "update createdInLevel" in {
-  //    TestCaseSweeper {
-  //      implicit sweeper =>
-  //        val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
-  //
-  //        val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
-  //        val maps = TestMap(keyValues)
-  //        level.put(maps).right.right.value.right.value
-  //
-  //        val nextLevel = TestLevel()
-  //        nextLevel.put(level.segments()).right.right.value.right.value
-  //
-  //        if (persistent) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
-  //        nextLevel.collapse(nextLevel.segments()).right.right.value.right.value
-  //        nextLevel.segments() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)
-  //    }
+
+  "clear expired key-values" in {
+    //this test is similar as the above collapsing small Segment test.
+    //Remove or expiring key-values should have the same result
+    TestCaseSweeper {
+      implicit sweeper =>
+        val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+        val expiryAt = 5.seconds.fromNow
+        val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
+        level.put(keyValues).runRandomIO.right.value
+        val segmentCountBeforeDelete = level.segmentsCount()
+        segmentCountBeforeDelete > 1 shouldBe true
+
+        val keyValuesNotExpired = ListBuffer.empty[KeyValue]
+        val expireEverySecond =
+          keyValues.zipWithIndex flatMap {
+            case (keyValue, index) =>
+              if (index % 2 == 0)
+                Some(Memory.Remove(keyValue.key, Some(expiryAt + index.millisecond), Time.empty))
+              else {
+                keyValuesNotExpired += keyValue
+                None
+              }
+          }
+
+        //delete half of the key values which will create small Segments
+        level.put(Slice(expireEverySecond.toArray)).runRandomIO.right.value
+        keyValues.zipWithIndex foreach {
+          case (keyValue, index) =>
+            if (index % 2 == 0)
+              level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut.value.deadline should contain(expiryAt + index.millisecond)
+        }
+
+        sleep(20.seconds)
+        val reservation = level.reserve(level.segments()).rightValue
+
+        level.collapse(level.segments(), reservation).awaitInf match {
+          case LevelCollapseResult.Empty =>
+            fail("")
+
+          case collapsed: LevelCollapseResult.Collapsed =>
+            level.commit(collapsed).get shouldBe unit
+        }
+
+        level.segmentFilesInAppendix should be <= ((segmentCountBeforeDelete / 2) + 1)
+
+        assertReads(Slice(keyValuesNotExpired.toArray), level)
+    }
+  }
+
+  "update createdInLevel" in {
+    TestCaseSweeper {
+      implicit sweeper =>
+        val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
+
+        val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
+        val maps = TestMap(keyValues)
+        level.putMap(maps).get
+
+        val nextLevel = TestLevel()
+        nextLevel.putSegments(level.segments()).get
+
+        if (persistent) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
+
+        val reservation = nextLevel.reserve(nextLevel.segments()).rightValue
+
+        nextLevel.collapse(nextLevel.segments(), reservation).awaitInf match {
+          case LevelCollapseResult.Empty =>
+            fail("")
+
+          case collapsed: LevelCollapseResult.Collapsed =>
+            nextLevel.commit(collapsed).get shouldBe unit
+        }
+
+        nextLevel.segments() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)
+    }
+  }
 }

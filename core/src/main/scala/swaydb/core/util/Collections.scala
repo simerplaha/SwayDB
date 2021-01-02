@@ -26,11 +26,18 @@ package swaydb.core.util
 
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 private[swaydb] object Collections {
 
   val emptyStringSeq = Seq.empty[String]
+
+  def ensureNotNull[T](buffer: ListBuffer[T]): ListBuffer[T] =
+    if (buffer == null)
+      ListBuffer.empty[T]
+    else
+      buffer
 
   implicit class IterableImplicit[T](items: Iterable[T]) {
 

@@ -858,19 +858,12 @@ protected case class PersistentSegmentMany(file: DBFile,
     DefragPersistentSegment.runMany(
       headGap = headGap,
       tailGap = tailGap,
-      nullSegment = SegmentRef.Null,
-      segments = segmentRefsIterator(),
-      assignableCount = mergeableCount,
-      assignables = mergeable,
+      segment = this,
+      mergeableCount = mergeableCount,
+      mergeables = mergeable,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel
-    ) map {
-      result =>
-        if (result.source)
-          result.updateSource(this)
-        else
-          result.updateSource(PersistentSegment.Null)
-    }
+    )
   }
 
   def refresh(removeDeletes: Boolean,

@@ -46,24 +46,24 @@ object DefragMemorySegment {
   /**
    * Default [[MergeStats.Memory]] and build new [[MemorySegment]].
    */
-  def run[SEG, NULL_SEG >: SEG](segment: Option[SEG],
-                                nullSegment: NULL_SEG,
-                                headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
-                                tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
-                                mergeableCount: Int,
-                                mergeable: Iterator[Assignable],
-                                removeDeletes: Boolean,
-                                createdInLevel: Int,
-                                pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
-                                                                    keyOrder: KeyOrder[Slice[Byte]],
-                                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                                    functionStore: FunctionStore,
-                                                                    segmentSource: SegmentSource[SEG],
-                                                                    segmentConfig: SegmentBlock.Config,
-                                                                    fileSweeper: FileSweeper,
-                                                                    idGenerator: IDGenerator): Future[CompactResult[NULL_SEG, Iterable[MemorySegment]]] =
+  def runOnSegment[SEG, NULL_SEG >: SEG](segment: SEG,
+                                         nullSegment: NULL_SEG,
+                                         headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                         tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                         mergeableCount: Int,
+                                         mergeable: => Iterator[Assignable],
+                                         removeDeletes: Boolean,
+                                         createdInLevel: Int,
+                                         pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
+                                                                             keyOrder: KeyOrder[Slice[Byte]],
+                                                                             timeOrder: TimeOrder[Slice[Byte]],
+                                                                             functionStore: FunctionStore,
+                                                                             segmentSource: SegmentSource[SEG],
+                                                                             segmentConfig: SegmentBlock.Config,
+                                                                             fileSweeper: FileSweeper,
+                                                                             idGenerator: IDGenerator): Future[CompactResult[NULL_SEG, Iterable[MemorySegment]]] =
     Future {
-      Defrag.run(
+      Defrag.runOnSegment(
         segment = segment,
         nullSegment = nullSegment,
         fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
@@ -72,9 +72,46 @@ object DefragMemorySegment {
         mergeableCount = mergeableCount,
         mergeable = mergeable,
         removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel
+        createdInLevel = createdInLevel,
+        createFence = (_: SEG) => TransientSegment.Fence
       )
     } flatMap {
+      mergeResult =>
+        commitSegments(
+          mergeResult = mergeResult.result,
+          removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel,
+          pathsDistributor = pathsDistributor
+        ) map {
+          result =>
+            mergeResult.updateResult(result.flatten)
+        }
+    }
+
+  /**
+   * Default [[MergeStats.Memory]] and build new [[MemorySegment]].
+   */
+  def runOnGaps[SEG, NULL_SEG >: SEG](nullSegment: NULL_SEG,
+                                      headGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                      tailGap: ListBuffer[Assignable.Gap[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+                                      removeDeletes: Boolean,
+                                      createdInLevel: Int,
+                                      pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
+                                                                          keyOrder: KeyOrder[Slice[Byte]],
+                                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                                          functionStore: FunctionStore,
+                                                                          segmentSource: SegmentSource[SEG],
+                                                                          segmentConfig: SegmentBlock.Config,
+                                                                          fileSweeper: FileSweeper,
+                                                                          idGenerator: IDGenerator): Future[CompactResult[NULL_SEG, Iterable[MemorySegment]]] =
+    Defrag.runOnGaps(
+      fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
+      headGap = headGap,
+      tailGap = tailGap,
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      fence = TransientSegment.Fence
+    ) flatMap {
       mergeResult =>
         commitSegments(
           mergeResult = mergeResult,
@@ -83,7 +120,10 @@ object DefragMemorySegment {
           pathsDistributor = pathsDistributor
         ) map {
           result =>
-            mergeResult.updateResult(result.flatten)
+            CompactResult(
+              source = nullSegment,
+              result = result.flatten
+            )
         }
     }
 
@@ -96,7 +136,7 @@ object DefragMemorySegment {
    * [[swaydb.core.segment.io.SegmentWriteMemoryIO]] because we can have more concurrency here as
    * [[swaydb.core.segment.io.SegmentWriteIO]] instances are not concurrent.
    */
-  private def commitSegments[NULL_SEG >: SEG, SEG](mergeResult: CompactResult[NULL_SEG, ListBuffer[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]]],
+  private def commitSegments[NULL_SEG >: SEG, SEG](mergeResult: ListBuffer[TransientSegment.Fragment[MergeStats.Memory.Builder[Memory, ListBuffer]]],
                                                    removeDeletes: Boolean,
                                                    createdInLevel: Int,
                                                    pathsDistributor: PathsDistributor)(implicit executionContext: ExecutionContext,
@@ -106,7 +146,7 @@ object DefragMemorySegment {
                                                                                        segmentConfig: SegmentBlock.Config,
                                                                                        fileSweeper: FileSweeper,
                                                                                        idGenerator: IDGenerator): Future[ListBuffer[Slice[MemorySegment]]] =
-    Future.traverse(mergeResult.result) {
+    Future.traverse(mergeResult) {
       case remote: TransientSegment.Remote =>
         Future {
           remote match {
@@ -132,9 +172,6 @@ object DefragMemorySegment {
           }
         }
 
-      case TransientSegment.Fence =>
-        Future.successful(Slice.empty)
-
       case TransientSegment.Stats(stats) =>
         if (stats.isEmpty)
           Future.successful(Slice.empty)
@@ -148,5 +185,8 @@ object DefragMemorySegment {
               stats = stats.close
             )
           }
+
+      case TransientSegment.Fence =>
+        Future.successful(Slice.empty)
     }
 }
