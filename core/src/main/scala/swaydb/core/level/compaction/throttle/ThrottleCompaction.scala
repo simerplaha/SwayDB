@@ -182,14 +182,6 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
           level = level,
           stateId = stateId
         )
-
-      case TrashLevel =>
-        logger.error(s"Level(${level.levelNumber}):Received job for ${TrashLevel.getClass.getSimpleName}.")
-        //trash Levels should are never submitted for compaction anyway. Give it a long delay.
-        ThrottleLevelState.Sleeping(
-          sleepDeadline = ThrottleLevelState.longSleep,
-          stateId = stateId
-        ).toFuture
     }
 
   private[throttle] def pushForward(zero: LevelZero,

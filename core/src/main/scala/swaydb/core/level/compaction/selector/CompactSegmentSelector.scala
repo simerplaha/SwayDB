@@ -24,7 +24,7 @@
 
 package swaydb.core.level.compaction.selector
 
-import swaydb.core.level.{Level, NextLevel, TrashLevel}
+import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Collections._
 import swaydb.data.order.KeyOrder
@@ -44,9 +44,6 @@ case object CompactSegmentSelector {
           nextLevel = nextLevel,
           take = take
         )
-
-      case TrashLevel =>
-        throw new Exception(s"Invalid ${Level.productPrefix} hierarchy. Parent ${Level.productPrefix} cannot be a ${TrashLevel.productPrefix}")
     }
 
   @inline private def select(level: Level,

@@ -272,8 +272,6 @@ case class MemoryLevelZeroConfig(mapSize: Long,
 
 sealed trait LevelConfig
 
-case object TrashLevelConfig extends LevelConfig
-
 object MemoryLevelConfig {
   def builder(): MemoryLevelConfigBuilder.Step0 =
     MemoryLevelConfigBuilder.builder()
@@ -372,9 +370,6 @@ sealed trait SwayDBConfig {
 
   def hasMMAP(levelConfig: LevelConfig): Boolean =
     levelConfig match {
-      case TrashLevelConfig =>
-        false
-
       case _: MemoryLevelConfig =>
         false
 
@@ -448,9 +443,6 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
       )
     )
 
-  def withTrashLevel(): SwayDBMemoryConfig =
-    copy(otherLevels = otherLevels :+ TrashLevelConfig)
-
   override def persistent: Boolean = false
 }
 
@@ -512,9 +504,6 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           throttle = throttle
         )
     )
-
-  def withTrashLevel(): SwayDBPersistentConfig =
-    copy(otherLevels = otherLevels :+ TrashLevelConfig)
 
   override def persistent: Boolean = true
 }

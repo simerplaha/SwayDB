@@ -36,7 +36,7 @@ import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{Level, LevelCloser, NextLevel, TrashLevel}
+import swaydb.core.level.{Level, LevelCloser, NextLevel}
 import swaydb.core.segment.block
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.segment.SegmentBlock
@@ -64,22 +64,18 @@ private[core] object CoreInitializer extends LazyLogging {
   /**
    * Based on the configuration returns execution context for the Level.
    */
-  def executionContext(levelConfig: LevelConfig): Option[CompactionExecutionContext] =
+  def executionContext(levelConfig: LevelConfig): CompactionExecutionContext =
     levelConfig match {
-      case TrashLevelConfig =>
-        None
-
       case config: MemoryLevelConfig =>
-        Some(config.compactionExecutionContext)
+        config.compactionExecutionContext
 
       case config: PersistentLevelConfig =>
-        Some(config.compactionExecutionContext)
+        config.compactionExecutionContext
     }
 
   def executionContexts(config: SwayDBConfig): List[CompactionExecutionContext] =
-    List(config.level0.compactionExecutionContext) ++
-      executionContext(config.level1).toList ++
-      config.otherLevels.flatMap(executionContext)
+    List(config.level0.compactionExecutionContext, executionContext(config.level1)) ++
+      config.otherLevels.map(executionContext)
 
   /**
    * Boots up compaction Actor and start listening to changes in levels.
@@ -266,9 +262,6 @@ private[core] object CoreInitializer extends LazyLogging {
                     throttle = config.throttle
                   )
                 }
-
-              case TrashLevelConfig =>
-                IO.Right(TrashLevel)
             }
 
           def createLevels(levelConfigs: List[LevelConfig],

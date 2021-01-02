@@ -26,7 +26,7 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{Level, LevelRef, TrashLevel}
+import swaydb.core.level.{Level, LevelRef}
 import swaydb.data.util.FiniteDurations._
 
 private[throttle] object ThrottleLevelOrdering extends LazyLogging {
@@ -41,15 +41,9 @@ private[throttle] object ThrottleLevelOrdering extends LazyLogging {
           //Level
           case (left: Level, right: Level) => order(left, right, levelState(left), levelState(right))
           case (left: Level, right: LevelZero) => order(right, left, levelState(left), levelState(right)) * -1
-          case (_: Level, TrashLevel) => 1
           //LevelZero
           case (left: LevelZero, right: Level) => order(left, right, levelState(left), levelState(right))
           case (_: LevelZero, _: LevelZero) => 0
-          case (_: LevelZero, TrashLevel) => 1
-          //LevelZero
-          case (TrashLevel, _: Level) => -1
-          case (TrashLevel, _: LevelZero) => -1
-          case (TrashLevel, TrashLevel) => 0
         }
       }
     }
