@@ -190,7 +190,7 @@ object DefragPersistentSegment {
               nullSegment = SegmentRef.Null,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
-              headAndAssignments = headDefragAndAssignments,
+              headFragmentsAndAssignments = headDefragAndAssignments,
               //for PersistentSegmentMany transfer unexpanded Refs so always copy them forward.
               createFence = ref => TransientSegment.RemoteRef(ref)
             )
@@ -223,9 +223,6 @@ object DefragPersistentSegment {
             }
         }
 
-  case class HeadDefragAndAssignments[SEG >: Null](headFragments: ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
-                                                   midAssignments: ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], SEG]])
-
   /**
    * Run headGap's defragmentation and mid key-values assignment concurrently.
    */
@@ -238,7 +235,7 @@ object DefragPersistentSegment {
                                                                                              keyOrder: KeyOrder[Slice[Byte]],
                                                                                              segmentSource: SegmentSource[SEG],
                                                                                              sortedIndexConfig: SortedIndexBlock.Config,
-                                                                                             segmentConfig: SegmentBlock.Config): Future[HeadDefragAndAssignments[SEG]] = {
+                                                                                             segmentConfig: SegmentBlock.Config): Future[FragmentAndAssignment[SEG]] = {
     val headFragmentsFuture =
       if (headGap.isEmpty)
         Future.successful(ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]])
@@ -266,7 +263,7 @@ object DefragPersistentSegment {
     for {
       headFragments <- headFragmentsFuture
       assignments <- assignmentsFuture
-    } yield HeadDefragAndAssignments(headFragments, assignments)
+    } yield FragmentAndAssignment(headFragments, assignments)
   }
 
   /**
@@ -275,7 +272,7 @@ object DefragPersistentSegment {
   private def defragAssignedAndMergeHead[NULL_SEG >: SEG, SEG >: Null](nullSegment: NULL_SEG,
                                                                        removeDeletes: Boolean,
                                                                        createdInLevel: Int,
-                                                                       headAndAssignments: HeadDefragAndAssignments[SEG],
+                                                                       headFragmentsAndAssignments: FragmentAndAssignment[SEG],
                                                                        createFence: SEG => TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]])(implicit segmentSource: SegmentSource[SEG],
                                                                                                                                                                          keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
@@ -283,7 +280,7 @@ object DefragPersistentSegment {
                                                                                                                                                                          executionContext: ExecutionContext,
                                                                                                                                                                          sortedIndexConfig: SortedIndexBlock.Config,
                                                                                                                                                                          segmentConfig: SegmentBlock.Config): Future[ListBuffer[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
-    Future.traverse(headAndAssignments.midAssignments) {
+    Future.traverse(headFragmentsAndAssignments.assignments) {
       assignment =>
         //Segments that did not get assign a key-value should be converted to Fragment straight away.
         if (assignment.headGap.result.isEmpty && assignment.tailGap.result.isEmpty && assignment.midOverlap.isEmpty)
@@ -315,10 +312,10 @@ object DefragPersistentSegment {
           }
     } map {
       buffer =>
-        if (headAndAssignments.headFragments.isEmpty)
+        if (headFragmentsAndAssignments.fragments.isEmpty)
           buffer.flatten
         else
-          headAndAssignments.headFragments ++= buffer.flatten
+          headFragmentsAndAssignments.fragments ++= buffer.flatten
     }
 
   /**
