@@ -447,7 +447,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
       finder = matcher
     )
 
-  def nextJob(): Option[Map[K, V, C]] = {
+  def last(): Option[Map[K, V, C]] = {
     val last = queue.lastOrNull()
     if (last == null || queue.size == 1)
       None

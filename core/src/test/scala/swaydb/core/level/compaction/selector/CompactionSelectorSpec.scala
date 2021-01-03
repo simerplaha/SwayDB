@@ -26,7 +26,7 @@ package swaydb.core.level.compaction.selector
 
 import swaydb.core.TestBase
 
-class CompactSegmentSelectorSpec extends TestBase {
+class CompactionSelectorSpec extends TestBase {
 
   //  "optimalSegmentsToPushForward" should {
   //    "return empty if there Levels are empty" in {

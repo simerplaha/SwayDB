@@ -533,12 +533,12 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def refresh(segment: Segment,
-              reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, CompactResult[Segment, Slice[TransientSegment]]] = {
+  def refresh(segments: Iterable[Segment],
+              reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]] = {
     logger.debug("{}: Running refresh.", pathDistributor.head)
-    LevelReceptionKeyValidator.validateIO(segment, reservationKey) {
+    LevelReceptionKeyValidator.validateIO(segments, reservationKey) {
       IO {
-        segment match {
+        segments map {
           case segment: MemorySegment =>
             assert(inMemory) //yea should be typed
 

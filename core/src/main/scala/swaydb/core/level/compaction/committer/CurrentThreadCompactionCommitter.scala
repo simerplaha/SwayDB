@@ -54,7 +54,10 @@ protected case object CurrentThreadCompactionCommitter extends CompactionCommitt
 
   override def replace(level: NextLevel,
                        old: Iterable[Segment],
-                       neu: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
+                       result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
     ???
 
+  override def commit(level: NextLevel,
+                      result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
+    ???
 }

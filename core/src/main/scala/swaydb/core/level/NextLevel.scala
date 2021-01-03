@@ -91,7 +91,7 @@ trait NextLevel extends LevelRef {
 
   def merge(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def refresh(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, CompactResult[Segment, Slice[TransientSegment]]]
+  def refresh(segment: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]]
 
   def collapse(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[LevelCollapseResult]
 

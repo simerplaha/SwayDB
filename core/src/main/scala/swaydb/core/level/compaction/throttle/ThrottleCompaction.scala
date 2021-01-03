@@ -29,7 +29,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level._
 import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.selector.{CollapseSegmentSelector, CompactSegmentSelector}
+import swaydb.core.level.compaction.selector.{CollapseSegmentSelector, CompactionSelector, CompactionTask}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
@@ -177,7 +177,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
           stateId = stateId
         )
 
-      case level: NextLevel =>
+      case level: Level =>
         pushForward(
           level = level,
           stateId = stateId
@@ -188,7 +188,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                     stateId: Long)(implicit ec: ExecutionContext,
                                                    committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
     zero.nextLevel match {
-      case Some(nextLevel) =>
+      case Some(nextLevel: Level) =>
         pushForward(
           zero = zero,
           nextLevel = nextLevel,
@@ -204,10 +204,10 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     }
 
   private[throttle] def pushForward(zero: LevelZero,
-                                    nextLevel: NextLevel,
+                                    nextLevel: Level,
                                     stateId: Long)(implicit ec: ExecutionContext,
                                                    committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
-    zero.maps.nextJob() match {
+    zero.maps.last() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
 
@@ -228,7 +228,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     }
 
   private[throttle] def pushForward(zero: LevelZero,
-                                    nextLevel: NextLevel,
+                                    nextLevel: Level,
                                     stateId: Long,
                                     map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext,
                                                                                                       committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
@@ -308,14 +308,14 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   //    }
     ???
 
-  private[throttle] def pushForward(level: NextLevel,
+  private[throttle] def pushForward(level: Level,
                                     stateId: Long)(implicit ec: ExecutionContext,
                                                    committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
     pushForward(
       level = level,
       stateId = stateId,
       segmentsToPush = level.nextThrottlePushCount max 1,
-    ) flatMap {
+    ) match {
       case Right(future) =>
         future mapUnit {
           logger.debug(s"Level(${level.levelNumber}): pushed Segments.")
@@ -339,180 +339,150 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         ).toFuture
     }
 
-  private def pushForward(level: NextLevel,
+  private def pushForward(level: Level,
                           stateId: Long,
                           segmentsToPush: Int)(implicit ec: ExecutionContext,
-                                               committer: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] =
-    level.nextLevel match {
-      case Some(nextLevel) =>
-        val segmentsToMerge = CompactSegmentSelector.select(level, nextLevel, segmentsToPush)
-        logger.debug(s"Level(${level.levelNumber}): mergeable: ${segmentsToMerge.size} ")
+                                               committer: ActorWire[CompactionCommitter, Unit]): Either[Promise[Unit], Future[Unit]] =
+    CompactionSelector
+      .select(level, segmentsToPush)
+      .map(runSegmentTask)
 
-        Future {
-          putForward(
-            segments = segmentsToMerge,
-            thisLevel = level,
-            nextLevel = nextLevel
-          )
+  private[throttle] def runSegmentTask(task: CompactionTask.Segments)(implicit executionContext: ExecutionContext,
+                                                                      committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+    task match {
+      case task: CompactionTask.CompactSegments =>
+        runSegmentTask(task)
+
+      case task: CompactionTask.CollapseSegments =>
+        runSegmentTask(task)
+
+      case task: CompactionTask.RefreshSegments =>
+        runSegmentTask(task)
+    }
+
+  private[throttle] def runSegmentTask(task: CompactionTask.CompactSegments)(implicit executionContext: ExecutionContext,
+                                                                             committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+    if (task.sourceSegments.isEmpty)
+      Future.unit
+    else
+      task
+        .targetLevel
+        .merge(task.sourceSegments, task.targetReservation)
+        .flatMap {
+          compactionResult =>
+            committer
+              .ask
+              .flatMap {
+                (impl, _) =>
+                  impl.commit(
+                    fromLevel = task.sourceLevel,
+                    segments = task.sourceSegments,
+                    toLevel = task.targetLevel,
+                    mergeResult = compactionResult
+                  )
+              }
+              .withCallback {
+                task.sourceLevel.checkout(task.sourceReservation) onLeftSideEffect {
+                  error =>
+                    logger.error("Failed to checkout source reservation", error.exception)
+                }
+
+                task.targetLevel.checkout(task.targetReservation) onLeftSideEffect {
+                  error =>
+                    logger.error("Failed to checkout target reservation", error.exception)
+                }
+              }
+
         }
 
-      case None =>
-        runLastLevelCompaction(
-          level = level,
-          remainingCompactions = segmentsToPush
-        )
-    }
+  private[throttle] def runSegmentTask(task: CompactionTask.CollapseSegments)(implicit executionContext: ExecutionContext,
+                                                                              committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+    if (task.segments.isEmpty)
+      Future.unit
+    else
+      task
+        .level
+        .collapse(task.segments, task.reservation)
+        .flatMap {
+          case LevelCollapseResult.Empty =>
+            Future.failed(new Exception(s"Collapse failed: ${LevelCollapseResult.productPrefix}.${LevelCollapseResult.Empty.productPrefix}"))
 
-  def runLastLevelCompaction(level: NextLevel,
-                             remainingCompactions: Int)(implicit ec: ExecutionContext,
-                                                        committer: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] = {
-    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
-    if (level.hasNextLevel || remainingCompactions <= 0) {
-      Futures.rightUnitFuture
-    } else {
-      runLastLevelExpirationCheck(
-        level = level,
-        remainingCompactions = remainingCompactions
-      ) flatMap {
-        case Right(future) =>
-          future
-            .flatMapUnit {
-              runLastLevelCollapseCheck(
-                level = level,
-                remainingCompactions = remainingCompactions
-              )
-            }
+          case LevelCollapseResult.Collapsed(sourceSegments, mergeResult) =>
+            committer
+              .ask
+              .flatMap {
+                (impl, _) =>
+                  impl.replace(
+                    level = task.level,
+                    old = sourceSegments,
+                    result = mergeResult
+                  )
+              }
+              .withCallback {
+                task.level.checkout(task.reservation) onLeftSideEffect {
+                  error =>
+                    logger.error("Failed to checkout source reservation", error.exception)
+                }
+              }
+        }
 
-        case Left(promise) =>
-          Future.successful(Left(promise))
-      }
-    }
-  }
+  private[throttle] def runSegmentTask(task: CompactionTask.RefreshSegments)(implicit executionContext: ExecutionContext,
+                                                                             committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+    if (task.segments.isEmpty)
+      Future.unit
+    else
+      task
+        .level
+        .refresh(task.segments, task.reservation) //execute on current thread.
+        .toFuture
+        .flatMap {
+          result =>
+            committer
+              .ask
+              .flatMap {
+                (impl, _) =>
+                  impl.commit(
+                    level = task.level,
+                    result = result
+                  )
+              }
+              .withCallback {
+                task.level.checkout(task.reservation) onLeftSideEffect {
+                  error =>
+                    logger.error("Failed to checkout source reservation", error.exception)
+                }
+              }
 
-  def runLastLevelExpirationCheck(level: NextLevel,
-                                  remainingCompactions: Int)(implicit ec: ExecutionContext,
-                                                             committer: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] = {
-    //    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
-    //    if (level.hasNextLevel || remainingCompactions <= 0)
-    //      Futures.rightUnitFuture
-    //    else
-    //      Segment.getNearestDeadlineSegment(level.segments()) match {
-    //        case segment: Segment if segment.nearestPutDeadline.exists(!_.hasTimeLeft()) =>
-    //          level.refresh(segment) match {
-    //            case scala.Right(reserved @ LevelReservation.Reservation(result, key)) =>
-    //              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
-    //
-    //              result match {
-    //                case IO.Right(newSegments) =>
-    //                  committer
-    //                    .ask
-    //                    .flatMap {
-    //                      (impl, _) =>
-    //                        impl.replace(
-    //                          level = level,
-    //                          old = segment,
-    //                          neu = newSegments
-    //                        ).withCallback(reserved.checkout())
-    //                    }
-    //                    .flatMapUnit(
-    //                      runLastLevelExpirationCheck(
-    //                        level = level,
-    //                        remainingCompactions = remainingCompactions - 1
-    //                      )
-    //                    )
-    //
-    //                case IO.Left(error) =>
-    //                  logger.debug(s"Level(${level.levelNumber}): Failed to refresh", error.exception)
-    //                  Futures.rightUnitFuture
-    //              }
-    //
-    //            case scala.Right(failed: LevelReservation.Failed) =>
-    //              logger.debug(s"Level(${level.levelNumber}): Refresh failed.", failed.error.exception)
-    //              Future.successful(Right(Future.failed(failed.error.exception)))
-    //
-    //            case scala.Left(promise) =>
-    //              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
-    //              Future.successful(scala.Left(promise))
-    //          }
-    //
-    //        case Segment.Null | _: Segment =>
-    //          logger.debug(s"Level(${level.levelNumber}): Check expired complete.")
-    //          Futures.rightUnitFuture
-    //      }
-    ???
-  }
+        }
 
-  def runLastLevelCollapseCheck(level: NextLevel,
-                                remainingCompactions: Int)(implicit ec: ExecutionContext,
-                                                           committer: ActorWire[CompactionCommitter, Unit]): Future[Either[Promise[Unit], Future[Unit]]] = {
-    //    logger.debug(s"Level(${level.levelNumber}): Last level compaction. remainingCompactions = $remainingCompactions.")
-    //    if (level.hasNextLevel || remainingCompactions <= 0) {
-    //      Futures.rightUnitFuture
-    //    } else {
-    //      logger.debug(s"Level(${level.levelNumber}): Collapse run.")
-    //      level.collapse(segments = CollapseSegmentSelector.select(level, remainingCompactions max 2)) match { //need at least 2 for collapse.
-    //        case scala.Right(reserved @ LevelReservation.Reservation(result, key)) =>
-    //          result flatMap {
-    //            case LevelCollapseResult.Empty =>
-    //              Futures.rightUnitFuture
-    //
-    //            case LevelCollapseResult.Collapsed(sourceSegments, mergeResult) =>
-    //              logger.debug(s"Level(${level.levelNumber}): Collapsed ${sourceSegments.size} small segments.")
-    //              committer.ask
-    //                .flatMap {
-    //                  (impl, _) =>
-    //                    impl.replace(
-    //                      level = level,
-    //                      old = sourceSegments,
-    //                      neu = mergeResult
-    //                    ).withCallback(reserved.checkout())
-    //                }
-    //                .flatMapUnit {
-    //                  runLastLevelCollapseCheck(
-    //                    level = level,
-    //                    remainingCompactions = remainingCompactions - 1
-    //                  )
-    //                }
-    //          }
-    //
-    //        case scala.Right(failed: LevelReservation.Failed) =>
-    //          logger.debug(s"Level(${level.levelNumber}): Collpase failed.", failed.error.exception)
-    //          Future.successful(Right(Future.failed(failed.error.exception)))
-    //
-    //        case scala.Left(promise) =>
-    //          logger.debug(s"Level(${level.levelNumber}): Later on collpase.")
-    //          Future.successful(scala.Left(promise))
-    //      }
-    //    }
-    ???
-  }
-
-  private[throttle] def putForward(segments: Iterable[Segment],
-                                   thisLevel: NextLevel,
-                                   nextLevel: NextLevel)(implicit executionContext: ExecutionContext,
-                                                         committer: ActorWire[CompactionCommitter, Unit]): Either[Promise[Unit], Future[Unit]] =
-  //    if (segments.isEmpty)
-  //      Right(Future.unit)
+  private[throttle] def runMapTask(task: CompactionTask.CompactMaps)(implicit executionContext: ExecutionContext,
+                                                                     committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+  //    if (task.segments.isEmpty)
+  //      Future.unit
   //    else
-  //      nextLevel.put(segments = segments) map {
-  //        case reserved @ LevelReservation.Reservation(mergeResultFuture, _) =>
-  //          mergeResultFuture
-  //            .flatMap {
-  //              mergeResult =>
-  //                committer.ask flatMap {
-  //                  (impl, _) =>
-  //                    impl.commit(
-  //                      fromLevel = thisLevel,
-  //                      segments = segments,
-  //                      toLevel = nextLevel,
-  //                      mergeResult = mergeResult
-  //                    )
+  //      task
+  //        .targetLevel
+  //        .merge(task.segments, task.reservation) //execute on current thread.
+  //        .toFuture
+  //        .flatMap {
+  //          result =>
+  //            committer
+  //              .ask
+  //              .flatMap {
+  //                (impl, _) =>
+  //                  impl.commit(
+  //                    level = task.levelZero,
+  //                    result = result
+  //                  )
+  //              }
+  //              .withCallback {
+  //                task.levelZero.checkout(task.reservation) onLeftSideEffect {
+  //                  error =>
+  //                    logger.error("Failed to checkout source reservation", error.exception)
   //                }
-  //            }
-  //            .withCallback(reserved.checkout())
+  //              }
   //
-  //        case failed: LevelReservation.Failed =>
-  //          Future.failed(failed.error.exception)
-  //      }
+  //        }
     ???
+
 }

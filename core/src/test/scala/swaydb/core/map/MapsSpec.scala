@@ -326,7 +326,7 @@ class MapsSpec extends TestBase {
             maps.mapsCount shouldBe 5
             //maps value added
             getMaps(maps).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
-            maps.nextJob().value.pathOption.value.folderId shouldBe 0
+            maps.last().value.pathOption.value.folderId shouldBe 0
 
             if (maps.mmap.hasMMAP && OperatingSystem.isWindows) {
               maps.close().value
@@ -345,7 +345,7 @@ class MapsSpec extends TestBase {
             getMaps(recovered1).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
             recovered1.map.pathOption.value.folderId shouldBe 5
             recovered1.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
-            recovered1.nextJob().value.pathOption.value.folderId shouldBe 0
+            recovered1.last().value.pathOption.value.folderId shouldBe 0
 
             if (recovered1.mmap.hasMMAP && OperatingSystem.isWindows) {
               recovered1.close().value
@@ -363,7 +363,7 @@ class MapsSpec extends TestBase {
 
             getMaps(recovered2).iterator.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(6, 5, 4, 3, 2, 1, 0)
             recovered2.map.pathOption.value.folderId shouldBe 6
-            recovered2.nextJob().value.pathOption.value.folderId shouldBe 0
+            recovered2.last().value.pathOption.value.folderId shouldBe 0
         }
       }
     }
