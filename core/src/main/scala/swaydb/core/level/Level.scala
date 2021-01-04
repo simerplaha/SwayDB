@@ -131,12 +131,9 @@ private[core] case object Level extends LazyLogging {
         //initialise readers & writers
         import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
 
-        val removeDeletes = Level.removeDeletes(nextLevel)
-
         val appendixReader =
           new AppendixMapEntryReader(
             mmapSegment = segmentConfig.mmap,
-            removeDeletes = removeDeletes,
             segmentRefCacheWeight = segmentConfig.segmentRefCacheWeight
           )
 
@@ -213,7 +210,7 @@ private[core] case object Level extends LazyLogging {
                       appendix = appendix,
                       lock = lock,
                       pathDistributor = paths,
-                      removeDeletedRecords = removeDeletes
+                      removeDeletedRecords = Level.removeDeletes(nextLevel)
                     )
                   }
                   .onLeftSideEffect {
@@ -932,7 +929,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
       }
 
-  def persist(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[Segment]]]] =
+  private def persist(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[Segment]]]] =
     if (inMemory)
       SegmentWriteMemoryIO.persistMerged(
         pathsDistributor = pathDistributor,
@@ -948,8 +945,8 @@ private[core] case class Level(dirs: Seq[Dir],
         mergeResult = mergeResult.asInstanceOf[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]]]
       )
 
-  def prepareCommit(result: Iterable[CompactResult[SegmentOption, Iterable[Segment]]],
-                    appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, MapEntry[Slice[Byte], Segment]] = {
+  private def prepareCommit(result: Iterable[CompactResult[SegmentOption, Iterable[Segment]]],
+                            appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, MapEntry[Slice[Byte], Segment]] = {
     logger.trace(s"${pathDistributor.head}: Committing Segments. ${result.map { result => s"""${result.source.toOptionS.map(_.path)} -> ${result.result.map(_.path.toString).mkString(", ")}""" }.mkString("\n")}.")
 
     result.foldLeftRecoverIO(MapEntry.noneSegment) {
