@@ -545,20 +545,11 @@ object SegmentRefReader {
         keyOrder.lt(key, ref.maxKey.maxKey)
     }
 
+  //TODO - NEEDS test-cases
   @inline def containsLower(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
-    keyOrder.gt(key, ref.minKey) && {
-      if (ref.maxKey.inclusive)
-        keyOrder.lteq(key, ref.maxKey.maxKey)
-      else
-        keyOrder.lt(key, ref.maxKey.maxKey)
-    }
+    keyOrder.gt(key, ref.minKey) && keyOrder.lteq(key, ref.maxKey.maxKey)
 
   @inline def containsHigher(key: Slice[Byte], ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]]) =
-    keyOrder.gteq(key, ref.minKey) && {
-      if (ref.maxKey.inclusive)
-        keyOrder.lteq(key, ref.maxKey.maxKey)
-      else
-        keyOrder.lt(key, ref.maxKey.maxKey)
-    }
+    keyOrder.gteq(key, ref.minKey) && keyOrder.lt(key, ref.maxKey.maxKey)
 
 }
