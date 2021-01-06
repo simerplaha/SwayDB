@@ -28,11 +28,10 @@ import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator, MergeStatsSizeCalculator}
-import swaydb.core.segment.SegmentSource
-import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.defrag.DefragSource._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -86,7 +85,7 @@ object Defrag {
                                                                                               createFence: SEG => TransientSegment.Fragment[S])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                                                 functionStore: FunctionStore,
-                                                                                                                                                segmentSource: SegmentSource[SEG],
+                                                                                                                                                defragSource: DefragSource[SEG],
                                                                                                                                                 segmentConfig: SegmentBlock.Config,
                                                                                                                                                 mergeStatsCreator: MergeStatsCreator[S],
                                                                                                                                                 mergeStatsSizeCalculator: MergeStatsSizeCalculator[S]): CompactResult[NULL_SEG, ListBuffer[TransientSegment.Fragment[S]]] = {

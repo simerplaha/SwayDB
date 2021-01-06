@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,25 +22,18 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.defrag
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.assigner.{Assignable, SegmentAssigner}
+import swaydb.core.segment.Segment
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
 import scala.annotation.implicitNotFound
 
-/**
- * [[SegmentSource]] implements functions that [[SegmentAssigner]]
- * uses to assign [[Assignable]] to target [[A]] types.
- *
- * Currently the following type classes allow [[SegmentAssigner]] to assign
- * [[Assignable]] to [[Segment]] and [[SegmentRef]].
- */
-@implicitNotFound("Type class implementation not found for SegmentType of type ${A}")
-sealed trait SegmentSource[-A] {
+@implicitNotFound("Type class implementation not found for DefragSource of type ${A}")
+sealed trait DefragSource[-A] {
   def minKey(segment: A): Slice[Byte]
   def maxKey(segment: A): MaxKey[Slice[Byte]]
   def segmentSize(segment: A): Int
@@ -49,29 +42,29 @@ sealed trait SegmentSource[-A] {
   def iterator(segment: A): Iterator[KeyValue]
 }
 
-object SegmentSource {
+object DefragSource {
 
   implicit class SegmentTypeImplicits[A](target: A) {
-    @inline def minKey(implicit targetType: SegmentSource[A]) =
+    @inline def minKey(implicit targetType: DefragSource[A]) =
       targetType.minKey(target)
 
-    @inline def maxKey(implicit targetType: SegmentSource[A]) =
+    @inline def maxKey(implicit targetType: DefragSource[A]) =
       targetType.maxKey(target)
 
-    @inline def segmentSize(implicit targetType: SegmentSource[A]) =
+    @inline def segmentSize(implicit targetType: DefragSource[A]) =
       targetType.segmentSize(target)
 
-    @inline def keyValueCount(implicit targetType: SegmentSource[A]) =
+    @inline def keyValueCount(implicit targetType: DefragSource[A]) =
       targetType.keyValueCount(target)
 
-    @inline def hasUpdateOrRange(implicit targetType: SegmentSource[A]) =
+    @inline def hasUpdateOrRange(implicit targetType: DefragSource[A]) =
       targetType.hasUpdateOrRange(target)
 
-    @inline def iterator()(implicit targetType: SegmentSource[A]) =
+    @inline def iterator()(implicit targetType: DefragSource[A]) =
       targetType.iterator(target)
   }
 
-  implicit object SegmentTarget extends SegmentSource[Segment] {
+  implicit object SegmentTarget extends DefragSource[Segment] {
     override def minKey(segment: Segment): Slice[Byte] =
       segment.minKey
 
@@ -91,7 +84,7 @@ object SegmentSource {
       segment.hasUpdateOrRange
   }
 
-  implicit object SegmentRefTarget extends SegmentSource[SegmentRef] {
+  implicit object SegmentRefTarget extends DefragSource[SegmentRef] {
     override def minKey(ref: SegmentRef): Slice[Byte] =
       ref.minKey
 

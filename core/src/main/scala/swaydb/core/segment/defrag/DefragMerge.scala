@@ -28,10 +28,9 @@ import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.{MergeStats, MergeStatsCreator}
-import swaydb.core.segment.SegmentSource
-import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.segment.defrag.DefragSource._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -61,7 +60,7 @@ private[segment] object DefragMerge {
                                                                              fragments: ListBuffer[TransientSegment.Fragment[S]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                                   functionStore: FunctionStore,
-                                                                                                                                  segmentSource: SegmentSource[SEG],
+                                                                                                                                  defragSource: DefragSource[SEG],
                                                                                                                                   mergeStatsCreator: MergeStatsCreator[S]): NULL_SEG =
     if (mergeableCount > 0)
       fragments.lastOption match {

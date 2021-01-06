@@ -26,8 +26,8 @@ package swaydb.core.segment.assigner
 
 import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory, MemoryOption, Value}
-import swaydb.core.segment.{PersistentSegmentMany, Segment, SegmentSource}
-import swaydb.core.segment.SegmentSource._
+import swaydb.core.segment.{PersistentSegmentMany, Segment}
+import swaydb.core.segment.assigner.AssignmentTarget._
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.util.DropIterator
 import swaydb.core.util.skiplist.SkipList
@@ -122,7 +122,7 @@ private[core] object SegmentAssigner {
                                          assignables: Iterator[Assignable],
                                          segments: Iterator[SEG])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                   gapCreator: Aggregator.Creator[Assignable, GAP],
-                                                                  segmentSource: SegmentSource[SEG]): ListBuffer[SegmentAssignment[GAP, SEG]] =
+                                                                  assignmentTarget: AssignmentTarget[SEG]): ListBuffer[SegmentAssignment[GAP, SEG]] =
     assignUnsafe[GAP, SEG](
       assignablesCount = assignablesCount,
       assignables = assignables,
@@ -148,7 +148,7 @@ private[core] object SegmentAssigner {
                                              segmentsIterator: Iterator[SEG],
                                              noGaps: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               gapCreator: Aggregator.Creator[Assignable, GAP],
-                                                              segmentSource: SegmentSource[SEG]): ListBuffer[SegmentAssignment[GAP, SEG]] = {
+                                                              assignmentTarget: AssignmentTarget[SEG]): ListBuffer[SegmentAssignment[GAP, SEG]] = {
     import keyOrder._
 
     val assignments = ListBuffer.empty[SegmentAssignment[GAP, SEG]]

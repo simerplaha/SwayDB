@@ -29,9 +29,8 @@ import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.compaction.CompactResult
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.SegmentSource._
 import swaydb.core.segment._
-import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner, SegmentAssignment}
+import swaydb.core.segment.assigner.{Assignable, AssignmentTarget, GapAggregator, SegmentAssigner, SegmentAssignment}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.block.hashindex.HashIndexBlock
@@ -39,6 +38,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.defrag.DefragSource._
 import swaydb.core.segment.ref.{SegmentRef, SegmentRefOption}
 import swaydb.core.util.IDGenerator
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -72,7 +72,7 @@ object DefragPersistentSegment {
                                                               keyOrder: KeyOrder[Slice[Byte]],
                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                               functionStore: FunctionStore,
-                                                              segmentSource: SegmentSource[SEG],
+                                                              source: DefragSource[SEG],
                                                               valuesConfig: ValuesBlock.Config,
                                                               sortedIndexConfig: SortedIndexBlock.Config,
                                                               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -114,7 +114,7 @@ object DefragPersistentSegment {
                                                            keyOrder: KeyOrder[Slice[Byte]],
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            functionStore: FunctionStore,
-                                                           segmentSource: SegmentSource[SEG],
+                                                           source: DefragSource[SEG],
                                                            valuesConfig: ValuesBlock.Config,
                                                            sortedIndexConfig: SortedIndexBlock.Config,
                                                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -233,7 +233,8 @@ object DefragPersistentSegment {
                                                                         removeDeletes: Boolean,
                                                                         createdInLevel: Int)(implicit executionContext: ExecutionContext,
                                                                                              keyOrder: KeyOrder[Slice[Byte]],
-                                                                                             segmentSource: SegmentSource[SEG],
+                                                                                             assignmentTarget: AssignmentTarget[SEG],
+                                                                                             defragSource: DefragSource[SEG],
                                                                                              sortedIndexConfig: SortedIndexBlock.Config,
                                                                                              segmentConfig: SegmentBlock.Config): Future[FragmentAndAssignment[SEG]] = {
     val headFragmentsFuture =
@@ -273,7 +274,7 @@ object DefragPersistentSegment {
                                                                        removeDeletes: Boolean,
                                                                        createdInLevel: Int,
                                                                        headFragmentsAndAssignments: FragmentAndAssignment[SEG],
-                                                                       createFence: SEG => TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]])(implicit segmentSource: SegmentSource[SEG],
+                                                                       createFence: SEG => TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]])(implicit defragSource: DefragSource[SEG],
                                                                                                                                                                          keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                                                                          functionStore: FunctionStore,
@@ -284,14 +285,14 @@ object DefragPersistentSegment {
       assignment =>
         //Segments that did not get assign a key-value should be converted to Fragment straight away.
         if (assignment.headGap.result.isEmpty && assignment.tailGap.result.isEmpty && assignment.midOverlap.isEmpty)
-          segmentSource match {
-            case SegmentSource.SegmentTarget =>
+          defragSource match {
+            case DefragSource.SegmentTarget =>
               val remoteSegment =
                 TransientSegment.RemotePersistentSegment(segment = assignment.segment.asInstanceOf[PersistentSegment])
 
               Future.successful(ListBuffer(remoteSegment))
 
-            case SegmentSource.SegmentRefTarget =>
+            case DefragSource.SegmentRefTarget =>
               val remoteRef = TransientSegment.RemoteRef(assignment.segment.asInstanceOf[SegmentRef])
               Future.successful(ListBuffer(remoteRef))
           }
@@ -331,7 +332,8 @@ object DefragPersistentSegment {
                                      assignableCount: Int,
                                      mergeables: Iterator[Assignable],
                                      removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             segmentSource: SegmentSource[SEG]): ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], SEG]] = {
+                                                             assignmentTarget: AssignmentTarget[SEG],
+                                                             defragSource: DefragSource[SEG]): ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], SEG]] = {
     implicit val creator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
       GapAggregator.create(removeDeletes)
 

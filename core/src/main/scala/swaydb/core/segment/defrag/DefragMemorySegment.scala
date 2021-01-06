@@ -58,7 +58,7 @@ object DefragMemorySegment {
                                                                              keyOrder: KeyOrder[Slice[Byte]],
                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                              functionStore: FunctionStore,
-                                                                             segmentSource: SegmentSource[SEG],
+                                                                             defragSource: DefragSource[SEG],
                                                                              segmentConfig: SegmentBlock.Config,
                                                                              fileSweeper: FileSweeper,
                                                                              idGenerator: IDGenerator): Future[CompactResult[NULL_SEG, Iterable[MemorySegment]]] =
@@ -100,7 +100,7 @@ object DefragMemorySegment {
                                                                           keyOrder: KeyOrder[Slice[Byte]],
                                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                                           functionStore: FunctionStore,
-                                                                          segmentSource: SegmentSource[SEG],
+                                                                          defragSource: DefragSource[SEG],
                                                                           segmentConfig: SegmentBlock.Config,
                                                                           fileSweeper: FileSweeper,
                                                                           idGenerator: IDGenerator): Future[CompactResult[NULL_SEG, Iterable[MemorySegment]]] =
