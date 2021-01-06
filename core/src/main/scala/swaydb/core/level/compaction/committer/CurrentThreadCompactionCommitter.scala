@@ -52,12 +52,14 @@ protected case object CurrentThreadCompactionCommitter extends CompactionCommitt
                       mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
     ???
 
+  override def commit(level: NextLevel,
+                      result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
+    ???
+
   override def replace(level: NextLevel,
                        old: Iterable[Segment],
                        result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
     ???
 
-  override def commit(level: NextLevel,
-                      result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
-    ???
+
 }

@@ -46,12 +46,13 @@ trait CompactionCommitter {
              toLevel: NextLevel,
              mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
 
+  def commit(level: NextLevel,
+             result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
+
   def replace(level: NextLevel,
               old: Iterable[Segment],
               result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
 
-  def commit(level: NextLevel,
-             result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit]
 }
 
 case object CompactionCommitter {

@@ -616,7 +616,7 @@ private[swaydb] object Memory {
       else
         PendingApply(
           key = key.unslice(),
-          applies = applies.map(_.unslice)
+          applies = applies.map(_.unslice())
         )
 
     override val deadline =
@@ -742,8 +742,8 @@ private[swaydb] object Memory {
         Range(
           fromKey = fromKey.unslice(),
           toKey = toKey.unslice(),
-          fromValue = fromValue.flatMapS(_.unslice),
-          rangeValue = rangeValue.unslice
+          fromValue = fromValue.flatMapS(_.unslice()),
+          rangeValue = rangeValue.unslice()
         )
 
     override lazy val mergedKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
@@ -1412,7 +1412,7 @@ private[core] object Persistent {
 
                 ValueSerializer
                   .read[Slice[Value.Apply]](bytes)
-                  .map(_.unslice)
+                  .map(_.unslice())
               }
           },
         nextIndexOffset = nextIndexOffset,
@@ -1548,7 +1548,7 @@ private[core] object Persistent {
                 val (from, range) =
                   RangeValueSerializer.read(bytes)
 
-                (from.flatMapS(_.unslice), range.unslice)
+                (from.flatMapS(_.unslice()), range.unslice())
               }
 
           },

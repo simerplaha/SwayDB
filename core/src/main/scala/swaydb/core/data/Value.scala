@@ -59,7 +59,7 @@ private[swaydb] object Value {
     }
 
   private[swaydb] sealed trait RangeValue extends FromValue {
-    def unslice: RangeValue
+    def unslice(): RangeValue
   }
 
   sealed trait FromValueOption extends SomeOrNone[FromValueOption, Value.FromValue] {
@@ -80,7 +80,7 @@ private[swaydb] object Value {
 
   private[swaydb] sealed trait FromValue extends Value with FromValueOption {
     def isPut: Boolean
-    def unslice: FromValue
+    def unslice(): FromValue
     def toMemory(key: Slice[Byte]): Memory.Fixed
     def toPutMayBe(key: Slice[Byte]): Option[Memory.Put]
 
@@ -91,7 +91,7 @@ private[swaydb] object Value {
   }
 
   private[swaydb] sealed trait Apply extends RangeValue {
-    def unslice: Apply
+    def unslice(): Apply
     def time: Time
   }
 
@@ -218,7 +218,7 @@ private[swaydb] object Value {
     override def time = Time.fromApplies(applies)
 
     def unslice(): Value.PendingApply =
-      PendingApply(applies.map(_.unslice))
+      PendingApply(applies.map(_.unslice()))
 
     override def isUnsliced: Boolean =
       applies.forall(_.isUnsliced)

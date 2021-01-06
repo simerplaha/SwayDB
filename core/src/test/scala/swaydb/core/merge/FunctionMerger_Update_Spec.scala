@@ -28,6 +28,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
+import swaydb.OK
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -220,6 +221,89 @@ class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFact
                 lastLevelExpect = Memory.Null
               )
           }
+        }
+      }
+    }
+
+    "result in pure final value" when {
+      "multiple levels merge the same function multiple times" in {
+        runThis(10.times) {
+          //Suppose Level1 and Level2 merge a function which Level2 and Level3
+          //had already merge resulting in a new function in Level3.
+          //The final merge between the previous two merges
+          //should still result in the same value
+
+          val function =
+            SwayFunction.KeyValue(
+              (key, value) => {
+                key shouldBe 1.serialise
+                SwayFunctionOutput.Update(value.getC.readInt() + 1, None)
+              }
+            )
+
+          val functionId = functionIdGenerator.incrementAndGet()
+          functionStore.put(functionId, function) shouldBe OK.instance
+
+          val functionLevel1 = Memory.Function(1, function = functionId, time = Time(3))
+          val functionLevel2 = Memory.Function(1, function = functionId, time = Time(2))
+          val functionLevel3 = Memory.Function(1, function = functionId, time = Time(1))
+
+          //merge LEVEL1 and LEVEL2
+          val level1And2Merge =
+            merge(
+              newKeyValues = Slice(functionLevel1),
+              oldKeyValues = Slice(functionLevel2),
+              isLastLevel = false
+            )
+
+          level1And2Merge should contain only Memory.PendingApply(1, Slice(Value.Function(functionId, Time(2)), Value.Function(functionId, Time(3))))
+
+          //merge LEVEL3 and LEVEL3
+          val level2And3Merge =
+            merge(
+              newKeyValues = Slice(functionLevel2),
+              oldKeyValues = Slice(functionLevel3),
+              isLastLevel = false
+            )
+
+          level2And3Merge should contain only Memory.PendingApply(1, Slice(Value.Function(functionId, Time(1)), Value.Function(functionId, Time(2))))
+
+          //merge the result of above two merges
+          val finalFunctionMerge =
+            merge(
+              newKeyValues = level1And2Merge.toSlice,
+              oldKeyValues = level2And3Merge.toSlice,
+              isLastLevel = false
+            )
+
+          //final merge results in pending functions
+          finalFunctionMerge should contain only
+            Memory.PendingApply(
+              key = 1,
+              applies =
+                Slice(
+                  Value.Function(functionId, Time(1)),
+                  //pending apply merges do not check for duplicate timed
+                  //values because this is a very rare occurrence.
+                  Value.Function(functionId, Time(2)),
+                  Value.Function(functionId, Time(2)),
+                  Value.Function(functionId, Time(3))
+                )
+            )
+
+          val randomDeadline = randomDeadlineOption(expired = false)
+
+          //put collapses all functions
+          val putMerge =
+            merge(
+              newKeyValues = finalFunctionMerge.toSlice,
+              oldKeyValues = Slice(Memory.Put(1, 0, randomDeadline, Time(0))),
+              isLastLevel = randomBoolean()
+            )
+
+          //since there were 3 functions the final result is 3 even though the
+          //functions were merge in random order.
+          putMerge should contain only Memory.Put(1, 3, randomDeadline, Time(3))
         }
       }
     }

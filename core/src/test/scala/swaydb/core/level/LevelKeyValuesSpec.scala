@@ -222,7 +222,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
           level.segments() foreach {
             segment =>
-              level.commit(level.refresh(segment, level.reserve(segment).rightValue).get).get shouldBe unit
+              level.commit(level.refresh(Seq(segment), level.reserve(segment).rightValue).get).get shouldBe unit
           }
 
           //expired key-values return empty after 2.seconds
@@ -301,10 +301,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
             }
           }
 
-          level.segments() foreach {
-            segment =>
-              level.commit(level.refresh(segment, level.reserve(segment).rightValue).get).get shouldBe unit
-          }
+          level.commit(level.refresh(level.segments(), level.reserve(level.segments()).rightValue).get).get shouldBe unit
 
           level.segmentFilesInAppendix shouldBe 0
 

@@ -107,8 +107,8 @@ sealed trait LevelReceptionSpec extends TestBase {
 
             //[1]
             val key1 = this.reserve(Slice(Slice(randomFixedKeyValue(1))), Iterable.empty).rightValue
-            key1.fromKey shouldBe 1.toBytes
-            key1.toKey shouldBe 1.toBytes
+            key1.fromKey shouldBe 1.serialise
+            key1.toKey shouldBe 1.serialise
             key1.toKeyInclusive shouldBe true
 
             //[1] - fails
@@ -129,8 +129,8 @@ sealed trait LevelReceptionSpec extends TestBase {
 
             //[2] - passes
             val key2 = this.reserve(Slice(Slice(randomFixedKeyValue(2))), Iterable.empty).rightValue
-            key2.fromKey shouldBe 2.toBytes
-            key2.toKey shouldBe 2.toBytes
+            key2.fromKey shouldBe 2.serialise
+            key2.toKey shouldBe 2.serialise
             key2.toKeyInclusive shouldBe true
 
             //[1] - fails still
@@ -156,8 +156,8 @@ sealed trait LevelReceptionSpec extends TestBase {
 
             //[10 - 20]
             val key1 = this.reserve(Slice(Slice(randomRangeKeyValue(10, 20))), Iterable.empty).rightValue
-            key1.fromKey shouldBe 10.toBytes
-            key1.toKey shouldBe 20.toBytes
+            key1.fromKey shouldBe 10.serialise
+            key1.toKey shouldBe 20.serialise
             key1.toKeyInclusive shouldBe false
 
             val promises =

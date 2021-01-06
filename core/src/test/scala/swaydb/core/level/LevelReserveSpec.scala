@@ -140,8 +140,8 @@ sealed trait LevelReserveSpec extends TestBase with MockFactory with PrivateMeth
 
             val reservation = level.reserve(Seq(segment)).rightValue
 
-            reservation.fromKey shouldBe 10.toBytes
-            reservation.toKey shouldBe 20.toBytes
+            reservation.fromKey shouldBe 10.serialise
+            reservation.toKey shouldBe 20.serialise
             reservation.toKeyInclusive shouldBe false
 
             //10 to 19
@@ -184,8 +184,8 @@ sealed trait LevelReserveSpec extends TestBase with MockFactory with PrivateMeth
 
             val reservation = level.reserve(Seq(segment)).rightValue
 
-            reservation.fromKey shouldBe 10.toBytes
-            reservation.toKey shouldBe 30.toBytes
+            reservation.fromKey shouldBe 10.serialise
+            reservation.toKey shouldBe 30.serialise
             reservation.toKeyInclusive shouldBe true
 
             //10 to 40

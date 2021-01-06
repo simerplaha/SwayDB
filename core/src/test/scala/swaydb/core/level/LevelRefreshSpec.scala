@@ -40,6 +40,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class LevelRefreshSpec0 extends LevelRefreshSpec
@@ -92,11 +93,9 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
             //small number of segments to be refreshed at a time.
             var attempts = 20
             while (level.segmentFilesInAppendix != 0 && attempts > 0) {
-              level.segments() foreach {
-                segment =>
-                  val compact = level.refresh(segment, level.reserve(segment).rightValue).get
-                  level.commit(compact).get shouldBe unit
-              }
+              val segments = level.segments()
+              val compact = level.refresh(segments, level.reserve(segments).rightValue).get
+              level.commit(compact).get shouldBe unit
               attempts -= 1
             }
 
@@ -125,7 +124,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
           nextLevel.segments() foreach {
             segment =>
-              val compactResult = nextLevel.refresh(segment, nextLevel.reserve(segment).rightValue).get
+              val compactResult = nextLevel.refresh(Seq(segment), nextLevel.reserve(segment).rightValue).get
               nextLevel.commit(compactResult).get shouldBe unit
           }
           nextLevel.segments() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)

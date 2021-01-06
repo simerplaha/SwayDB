@@ -37,6 +37,8 @@ object CompactionTask {
 
   sealed trait Segments extends CompactionTask
 
+  case object Idle extends Segments
+
   case class CompactSegments(sourceLevel: Level,
                              sourceReservation: AtomicRanges.Key[Slice[Byte]],
                              sourceSegments: Iterable[Segment],

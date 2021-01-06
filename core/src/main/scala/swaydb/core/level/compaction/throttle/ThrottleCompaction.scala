@@ -25,17 +25,15 @@
 package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.ActorWire
 import swaydb.core.data.Memory
 import swaydb.core.level._
 import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.selector.{CollapseSegmentSelector, CompactionSelector, CompactionTask}
+import swaydb.core.level.compaction.selector.{CompactionSelector, CompactionTask}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
-import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
-import swaydb.data.util.Futures
 import swaydb.data.util.Futures._
-import swaydb.{ActorWire, IO}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -358,6 +356,9 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
       case task: CompactionTask.RefreshSegments =>
         runSegmentTask(task)
+
+      case CompactionTask.Idle =>
+        Future.unit
     }
 
   private[throttle] def runSegmentTask(task: CompactionTask.CompactSegments)(implicit executionContext: ExecutionContext,
@@ -392,7 +393,6 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                     logger.error("Failed to checkout target reservation", error.exception)
                 }
               }
-
         }
 
   private[throttle] def runSegmentTask(task: CompactionTask.CollapseSegments)(implicit executionContext: ExecutionContext,
@@ -481,7 +481,6 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   //                    logger.error("Failed to checkout source reservation", error.exception)
   //                }
   //              }
-  //
   //        }
     ???
 

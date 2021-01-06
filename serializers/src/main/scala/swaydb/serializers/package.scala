@@ -50,7 +50,7 @@ package object serializers {
   }
 
   implicit class SerialiseImplicits[T](data: T) {
-    def toBytes(implicit serializer: Serializer[T]): Slice[Byte] =
+    def serialise(implicit serializer: Serializer[T]): Slice[Byte] =
       toByteSlice(data)
   }
 
