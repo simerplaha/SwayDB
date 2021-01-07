@@ -92,7 +92,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
              */
             val noGaps = SegmentAssigner.assignUnsafeNoGaps(keyValues, Slice(segment))
             noGaps should have size 1
-            noGaps.head.midOverlap.expectKeyValues() shouldBe keyValues
+            noGaps.head.midOverlap.result.expectKeyValues() shouldBe keyValues
 
             /**
              * Test with gaps
@@ -100,7 +100,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
             val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](keyValues, Slice(segment))
             gaps should have size 1
             gaps.head.headGap.result shouldBe empty
-            gaps.head.midOverlap.expectKeyValues() shouldBe keyValues
+            gaps.head.midOverlap.result.expectKeyValues() shouldBe keyValues
             gaps.head.tailGap.result shouldBe empty
         }
       }
@@ -120,7 +120,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
             val noGaps = SegmentAssigner.assignUnsafeNoGaps(Slice(segment), Slice(segment))
             noGaps should have size 1
 
-            val assignedSegments = noGaps.head.midOverlap.expectSegments()
+            val assignedSegments = noGaps.head.midOverlap.result.expectSegments()
             assignedSegments should have size 1
             assignedSegments.head.segmentNumber shouldBe segment.segmentNumber
 
@@ -132,7 +132,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
             gaps.head.headGap.result shouldBe empty
             gaps.head.tailGap.result shouldBe empty
 
-            val assignedSegments2 = noGaps.head.midOverlap.expectSegments()
+            val assignedSegments2 = noGaps.head.midOverlap.result.expectSegments()
             assignedSegments2 should have size 1
             assignedSegments2.head.segmentNumber shouldBe segment.segmentNumber
         }
@@ -154,7 +154,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
           val assignment = result.head
           assignment.segment.path shouldBe segment.path
 
-          assignment.midOverlap.expectKeyValues() shouldBe keyValues.toList
+          assignment.midOverlap.result.expectKeyValues() shouldBe keyValues.toList
       }
     }
 
@@ -177,7 +177,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
             assignment.segment.path shouldBe segment.path
 
             assignment.headGap.result.expectKeyValues() shouldBe headGap
-            assignment.midOverlap.expectKeyValues() shouldBe midKeyValues
+            assignment.midOverlap.result.expectKeyValues() shouldBe midKeyValues
             assignment.tailGap.result.expectKeyValues() shouldBe tailGap
         }
       }
@@ -225,7 +225,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
         val result = SegmentAssigner.assignUnsafeNoGaps(keyValues, segments)
         result.size shouldBe 1
         result.head.segment.path shouldBe segment1.path
-        result.head.midOverlap.expectKeyValues() shouldBe keyValues
+        result.head.midOverlap.result.expectKeyValues() shouldBe keyValues
     }
   }
 
@@ -250,7 +250,7 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
           val result = SegmentAssigner.assignUnsafeNoGaps(keyValues, segments)
           result.size shouldBe 1
           result.head.segment.path shouldBe segment2.path
-          result.head.midOverlap.expectKeyValues() shouldBe keyValues
+          result.head.midOverlap.result.expectKeyValues() shouldBe keyValues
       }
     }
   }
@@ -277,11 +277,11 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
           Memory.Range(15, 50, Value.remove(None), Value.update(10))
         )
 
-        def assertResult(assignments: Iterable[SegmentAssignment[Nothing, Segment]]) = {
+        def assertResult(assignments: Iterable[SegmentAssignment[Nothing, ListBuffer[Assignable], Segment]]) = {
           assignments.size shouldBe 3
-          assignments.find(_.segment == segment2).value.midOverlap.expectKeyValues() should contain only Memory.Range(15, 21, Value.remove(None), Value.update(10))
-          assignments.find(_.segment == segment3).value.midOverlap.expectKeyValues() should contain only Memory.Range(21, 40, Value.FromValue.Null, Value.update(10))
-          assignments.find(_.segment == segment4).value.midOverlap.expectKeyValues() should contain only Memory.Range(40, 50, Value.FromValue.Null, Value.update(10))
+          assignments.find(_.segment == segment2).value.midOverlap.result.expectKeyValues() should contain only Memory.Range(15, 21, Value.remove(None), Value.update(10))
+          assignments.find(_.segment == segment3).value.midOverlap.result.expectKeyValues() should contain only Memory.Range(21, 40, Value.FromValue.Null, Value.update(10))
+          assignments.find(_.segment == segment4).value.midOverlap.result.expectKeyValues() should contain only Memory.Range(40, 50, Value.FromValue.Null, Value.update(10))
         }
 
         assertResult(SegmentAssigner.assignUnsafeNoGaps(keyValues, segments))
@@ -319,9 +319,9 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
         //insert range 0 - 20. This overlaps all 3 Segment and key-values will value sliced and distributed to all Segments.
         val assignments = SegmentAssigner.assignUnsafeNoGaps(Slice(Memory.Range(0, 20, Value.put(0), Value.remove(None))), segments)
         assignments.size shouldBe 3
-        assignments.find(_.segment == segment1).value.midOverlap.expectKeyValues() should contain only Memory.Range(0, 4, Value.put(0), Value.remove(None))
-        assignments.find(_.segment == segment2).value.midOverlap.expectKeyValues() should contain only Memory.Range(4, 6, Value.FromValue.Null, Value.remove(None))
-        assignments.find(_.segment == segment3).value.midOverlap.expectKeyValues() should contain only Memory.Range(6, 20, Value.FromValue.Null, Value.remove(None))
+        assignments.find(_.segment == segment1).value.midOverlap.result.expectKeyValues() should contain only Memory.Range(0, 4, Value.put(0), Value.remove(None))
+        assignments.find(_.segment == segment2).value.midOverlap.result.expectKeyValues() should contain only Memory.Range(4, 6, Value.FromValue.Null, Value.remove(None))
+        assignments.find(_.segment == segment3).value.midOverlap.result.expectKeyValues() should contain only Memory.Range(6, 20, Value.FromValue.Null, Value.remove(None))
     }
   }
 
@@ -338,8 +338,8 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
 
         val assignments = SegmentAssigner.assignUnsafeNoGaps(Slice(Memory.put(1), Memory.put(100000)), segments)
         assignments.size shouldBe 2
-        assignments.find(_.segment == segment1).value.midOverlap.expectKeyValues() should contain only Memory.put(1)
-        assignments.find(_.segment == segment5).value.midOverlap.expectKeyValues() should contain only Memory.put(100000)
+        assignments.find(_.segment == segment1).value.midOverlap.result.expectKeyValues() should contain only Memory.put(1)
+        assignments.find(_.segment == segment5).value.midOverlap.result.expectKeyValues() should contain only Memory.put(100000)
     }
   }
 
@@ -356,21 +356,21 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
           assignments =>
             assignments.size shouldBe 1
             assignments.head.segment.path shouldBe segment4.path
-            assignments.head.midOverlap.expectKeyValues() should contain only Memory.put(10, "ten")
+            assignments.head.midOverlap.result.expectKeyValues() should contain only Memory.put(10, "ten")
         }
 
         SegmentAssigner.assignUnsafeNoGaps(Slice(Memory.remove(10)), segments) ==> {
           assignments =>
             assignments.size shouldBe 1
             assignments.head.segment.path shouldBe segment4.path
-            assignments.head.midOverlap.expectKeyValues() should contain only Memory.remove(10)
+            assignments.head.midOverlap.result.expectKeyValues() should contain only Memory.remove(10)
         }
 
         SegmentAssigner.assignUnsafeNoGaps(Slice(Memory.Range(10, 20, Value.put(10), Value.remove(None))), segments) ==> {
           assignments =>
             assignments.size shouldBe 1
             assignments.head.segment.path shouldBe segment4.path
-            assignments.head.midOverlap.expectKeyValues() should contain only Memory.Range(10, 20, Value.put(10), Value.remove(None))
+            assignments.head.midOverlap.result.expectKeyValues() should contain only Memory.Range(10, 20, Value.put(10), Value.remove(None))
         }
     }
   }
@@ -394,24 +394,24 @@ sealed trait SegmentAssigner_AssignKeyValues_Spec extends TestBase {
         val resultArray = result.toArray.sortBy(_.segment.path.fileId._1)
 
         resultArray(0).segment.path shouldBe segment1.path
-        resultArray(0).midOverlap should have size 1
-        resultArray(0).midOverlap.head.key shouldBe (1: Slice[Byte])
+        resultArray(0).midOverlap.result should have size 1
+        resultArray(0).midOverlap.result.head.key shouldBe (1: Slice[Byte])
 
         resultArray(1).segment.path shouldBe segment2.path
-        resultArray(1).midOverlap should have size 1
-        resultArray(1).midOverlap.head.key shouldBe (2: Slice[Byte])
+        resultArray(1).midOverlap.result should have size 1
+        resultArray(1).midOverlap.result.head.key shouldBe (2: Slice[Byte])
 
         resultArray(2).segment.path shouldBe segment3.path
-        resultArray(2).midOverlap should have size 1
-        resultArray(2).midOverlap.head.key shouldBe (3: Slice[Byte])
+        resultArray(2).midOverlap.result should have size 1
+        resultArray(2).midOverlap.result.head.key shouldBe (3: Slice[Byte])
 
         resultArray(3).segment.path shouldBe segment4.path
-        resultArray(3).midOverlap should have size 1
-        resultArray(3).midOverlap.head.key shouldBe (4: Slice[Byte])
+        resultArray(3).midOverlap.result should have size 1
+        resultArray(3).midOverlap.result.head.key shouldBe (4: Slice[Byte])
 
         resultArray(4).segment.path shouldBe segment5.path
-        resultArray(4).midOverlap should have size 1
-        resultArray(4).midOverlap.head.key shouldBe (5: Slice[Byte])
+        resultArray(4).midOverlap.result should have size 1
+        resultArray(4).midOverlap.result.head.key shouldBe (5: Slice[Byte])
     }
   }
 }

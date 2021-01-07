@@ -59,7 +59,14 @@ protected case object Aggregator {
    * Allows creating [[Aggregator]] instances on demand.
    */
   trait Creator[-A, T] {
+
     def createNew(): Aggregator[A, T]
+
+    def createNew(item: A): Aggregator[A, T] = {
+      val fresh = createNew()
+      fresh add item
+      fresh
+    }
   }
 
   case object Creator {
@@ -105,6 +112,15 @@ protected case object Aggregator {
         throw new Exception(s"Cannot fetch Nothing ${Aggregator.productPrefix}")
     }
 
+
   def listBuffer[A]: Aggregator[A, ListBuffer[A]] =
-    Aggregator.fromBuilder(ListBuffer.newBuilder)
+    new Aggregator[A, ListBuffer[A]] {
+      val buffer = ListBuffer.empty[A]
+
+      override def add(item: A): Unit =
+        buffer += item
+
+      override def result: ListBuffer[A] =
+        buffer
+    }
 }

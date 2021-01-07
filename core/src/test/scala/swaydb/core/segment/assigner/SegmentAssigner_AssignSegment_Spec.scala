@@ -87,7 +87,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             {
               val noGaps = SegmentAssigner.assignUnsafeNoGaps(Slice(segment), Slice(segment))
               noGaps should have size 1
-              val assignedSegments = noGaps.head.midOverlap.expectSegments()
+              val assignedSegments = noGaps.head.midOverlap.result.expectSegments()
               assignedSegments should have size 1
               assignedSegments.head shouldBe segment
               //just to reduce GC workload. Do not create gap instances when it's noGap is true.
@@ -102,7 +102,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
             {
               val gaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segment), Slice(segment))
               gaps should have size 1
-              val assignedSegments = gaps.head.midOverlap.expectSegments()
+              val assignedSegments = gaps.head.midOverlap.result.expectSegments()
               assignedSegments.head shouldBe segment
 
               gaps.head.headGap.result shouldBe empty
@@ -126,7 +126,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                */
               val noGaps = SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable]](Slice(segmentRef), Slice(segment))
               noGaps should have size 1
-              val assignedSegments = noGaps.head.midOverlap.expectSegmentRefs()
+              val assignedSegments = noGaps.head.midOverlap.result.expectSegmentRefs()
               assignedSegments.head.path shouldBe segmentRef.path
               assignedSegments.head.hashCode() shouldBe segmentRef.hashCode()
 
@@ -158,7 +158,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
 
                 //first segment is segment1
                 val assignment1 = noGaps.head
-                val assignedSegmentsHead = assignment1.midOverlap.expectSegments()
+                val assignedSegmentsHead = assignment1.midOverlap.result.expectSegments()
                 assignedSegmentsHead should have size 1
                 assignedSegmentsHead.head shouldBe segment1
                 assignment1.segment shouldBe segment1
@@ -166,7 +166,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 assignment1.tailGap shouldBe null
 
                 val assignment2 = noGaps.last
-                val assignedSegmentsLast = assignment2.midOverlap.expectSegments()
+                val assignedSegmentsLast = assignment2.midOverlap.result.expectSegments()
                 assignedSegmentsLast should have size 1
                 assignedSegmentsLast.head shouldBe segment2
                 assignment2.segment shouldBe segment2
@@ -183,7 +183,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
 
                 //first segment is segment1
                 val assignment1 = gaps.head
-                val assignedSegmentsHead = assignment1.midOverlap.expectSegments()
+                val assignedSegmentsHead = assignment1.midOverlap.result.expectSegments()
                 assignedSegmentsHead should have size 1
                 assignedSegmentsHead.head shouldBe segment1
                 assignment1.segment shouldBe segment1
@@ -191,7 +191,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 assignment1.tailGap.result shouldBe empty
 
                 val assignment2 = gaps.last
-                val assignedSegmentsLast = assignment2.midOverlap.expectSegments()
+                val assignedSegmentsLast = assignment2.midOverlap.result.expectSegments()
                 assignedSegmentsLast should have size 1
                 assignedSegmentsLast.head shouldBe segment2
                 assignment2.segment shouldBe segment2
@@ -226,13 +226,13 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
 
                 //first segment is segment1
                 val assignment1 = noGaps.head
-                assignment1.midOverlap.expectKeyValues() shouldBe keyValuesGrouped.head
+                assignment1.midOverlap.result.expectKeyValues() shouldBe keyValuesGrouped.head
                 assignment1.segment shouldBe segment1
                 assignment1.headGap shouldBe null
                 assignment1.tailGap shouldBe null
 
                 val assignment2 = noGaps.last
-                assignment2.midOverlap.expectKeyValues() shouldBe keyValuesGrouped.last
+                assignment2.midOverlap.result.expectKeyValues() shouldBe keyValuesGrouped.last
                 assignment2.segment shouldBe segment2
                 assignment2.headGap shouldBe null
                 assignment2.tailGap shouldBe null
@@ -247,13 +247,13 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
 
                 //first segment is segment1
                 val assignment1 = gaps.head
-                assignment1.midOverlap.expectKeyValues() shouldBe keyValuesGrouped.head
+                assignment1.midOverlap.result.expectKeyValues() shouldBe keyValuesGrouped.head
                 assignment1.segment shouldBe segment1
                 assignment1.headGap.result shouldBe empty
                 assignment1.tailGap.result shouldBe empty
 
                 val assignment2 = gaps.last
-                assignment2.midOverlap.expectKeyValues() shouldBe keyValuesGrouped.last
+                assignment2.midOverlap.result.expectKeyValues() shouldBe keyValuesGrouped.last
                 assignment2.segment shouldBe segment2
                 assignment2.headGap.result shouldBe empty
                 assignment2.tailGap.result shouldBe empty
@@ -283,7 +283,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 noGaps should have size 1
 
                 val assignment = noGaps.head
-                val assignedSegments = assignment.midOverlap.expectSegments()
+                val assignedSegments = assignment.midOverlap.result.expectSegments()
                 assignedSegments should have size 1
                 assignedSegments.head shouldBe inputSegment
                 assignment.segment shouldBe segment2
@@ -299,7 +299,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 gaps should have size 1
 
                 val assignment = gaps.head
-                val assignedSegments = assignment.midOverlap.expectSegments()
+                val assignedSegments = assignment.midOverlap.result.expectSegments()
                 assignedSegments should have size 1
                 assignedSegments.head shouldBe inputSegment
                 assignment.segment shouldBe segment2
@@ -349,7 +349,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 assignments.zipWithIndex foreach {
                   case (assignment, index) =>
                     assignment.segment shouldBe segments.get(index)
-                    val assignedSegments = assignment.midOverlap.expectSegments()
+                    val assignedSegments = assignment.midOverlap.result.expectSegments()
                     assignedSegments should have size 1
                     assignedSegments.head shouldBe inputSegments.get(index)
                     assignment.headGap shouldBe null
@@ -367,7 +367,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 assignments.zipWithIndex foreach {
                   case (assignment, index) =>
                     assignment.segment shouldBe segments.get(index)
-                    val assignedSegments = assignment.midOverlap.expectSegments()
+                    val assignedSegments = assignment.midOverlap.result.expectSegments()
                     assignedSegments should have size 1
                     assignedSegments.head shouldBe inputSegments.get(index)
                     assignment.headGap.result shouldBe empty
@@ -425,7 +425,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 assignments.zipWithIndex foreach {
                   case (assignment, index) =>
                     assignment.segment shouldBe existingSegments.get(index)
-                    val assignedSegments = assignment.midOverlap.expectSegments()
+                    val assignedSegments = assignment.midOverlap.result.expectSegments()
 
                     if (index == 0) //first will get 2 assigned since tail gap get assigned to next Segment
                       assignedSegments should have size 2
@@ -449,7 +449,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 assignments.zipWithIndex foreach {
                   case (assignment, index) =>
                     assignment.segment shouldBe existingSegments.get(index)
-                    val assignedSegments = assignment.midOverlap.expectSegments()
+                    val assignedSegments = assignment.midOverlap.result.expectSegments()
 
                     assignedSegments should have size 1
 
@@ -495,7 +495,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
 
                 gaps.head.headGap.result should have size 1
                 gaps.head.headGap.result.toSlice shouldBe inputSegment
-                gaps.head.midOverlap shouldBe empty
+                gaps.head.midOverlap.result shouldBe empty
                 gaps.head.tailGap.result shouldBe empty
             }
           }
@@ -530,7 +530,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 gaps should have size 1
 
                 gaps.head.headGap.result shouldBe empty
-                gaps.head.midOverlap shouldBe empty
+                gaps.head.midOverlap.result shouldBe empty
                 gaps.head.tailGap.result should have size 1
                 gaps.head.tailGap.result.toSlice shouldBe inputSegment
             }
@@ -567,7 +567,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
 
                 gaps.head.headGap.result.expectSegmentRefs() should have size 1
                 gaps.head.headGap.result.expectSegmentRefs() should contain only inputSegment.head.segmentRefsIterator().toList.head
-                gaps.head.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(1)
+                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(1)
                 gaps.head.tailGap.result shouldBe empty
             }
           }
@@ -602,7 +602,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 gaps should have size 1
 
                 gaps.head.headGap.result shouldBe empty
-                gaps.head.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.dropRight(1)
+                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.dropRight(1)
                 gaps.head.tailGap.result.expectSegmentRefs() should have size 1
                 gaps.head.tailGap.result.expectSegmentRefs() should contain only inputSegment.head.segmentRefsIterator().toList.last
             }
@@ -640,7 +640,7 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 gaps should have size 1
 
                 gaps.head.headGap.result shouldBe empty
-                gaps.head.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList
+                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList
                 gaps.head.tailGap.result shouldBe empty
             }
           }
@@ -683,11 +683,11 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
                 gaps should have size 2
 
                 gaps.head.headGap.result shouldBe empty
-                gaps.head.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.take(2)
+                gaps.head.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.take(2)
                 gaps.head.tailGap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(2).take(2)
 
                 gaps.last.headGap.result shouldBe empty
-                gaps.last.midOverlap.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(4)
+                gaps.last.midOverlap.result.expectSegmentRefs() shouldBe inputSegment.head.segmentRefsIterator().toList.drop(4)
                 gaps.last.tailGap.result shouldBe empty
             }
           }
@@ -741,11 +741,11 @@ sealed trait SegmentAssigner_AssignSegment_Spec extends TestBase {
 
 
                 gaps.head.headGap.result shouldBe empty
-                gaps.head.midOverlap.expectKeyValues() shouldBe inputKeyValues
+                gaps.head.midOverlap.result.expectKeyValues() shouldBe inputKeyValues
                 gaps.head.tailGap.result.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefsIterator().take(2).toList
 
                 gaps.last.headGap.result shouldBe empty
-                gaps.last.midOverlap.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefsIterator().drop(2).take(2).toList
+                gaps.last.midOverlap.result.expectSegmentRefs() shouldBe inputSegment1.head.segmentRefsIterator().drop(2).take(2).toList
                 gaps.last.tailGap.result should have size 2 //one SegmentRef from inputSegment1 gets assigned and the entire PersistentSegmentMany (inputSegment2)
                 gaps.last.tailGap.result.head shouldBe inputSegment1.head.segmentRefsIterator().toList.last
                 gaps.last.tailGap.result.last shouldBe inputSegment2.head

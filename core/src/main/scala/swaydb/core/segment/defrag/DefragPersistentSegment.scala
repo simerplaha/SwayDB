@@ -284,7 +284,7 @@ object DefragPersistentSegment {
     Future.traverse(headFragmentsAndAssignments.assignments) {
       assignment =>
         //Segments that did not get assign a key-value should be converted to Fragment straight away.
-        if (assignment.headGap.result.isEmpty && assignment.tailGap.result.isEmpty && assignment.midOverlap.isEmpty)
+        if (assignment.headGap.result.isEmpty && assignment.tailGap.result.isEmpty && assignment.midOverlap.result.isEmpty)
           defragSource match {
             case DefragSource.SegmentTarget =>
               val remoteSegment =
@@ -304,8 +304,8 @@ object DefragPersistentSegment {
               fragments = ListBuffer.empty[TransientSegment.Fragment[MergeStats.Persistent.Builder[Memory, ListBuffer]]],
               headGap = assignment.headGap.result,
               tailGap = assignment.tailGap.result,
-              mergeableCount = assignment.midOverlap.size,
-              mergeable = assignment.midOverlap.iterator,
+              mergeableCount = assignment.midOverlap.result.size,
+              mergeable = assignment.midOverlap.result.iterator,
               removeDeletes = removeDeletes,
               createdInLevel = createdInLevel,
               createFence = createFence
@@ -333,7 +333,7 @@ object DefragPersistentSegment {
                                      mergeables: Iterator[Assignable],
                                      removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              assignmentTarget: AssignmentTarget[SEG],
-                                                             defragSource: DefragSource[SEG]): ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], SEG]] = {
+                                                             defragSource: DefragSource[SEG]): ListBuffer[SegmentAssignment[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG]] = {
     implicit val creator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
       GapAggregator.create(removeDeletes)
 
@@ -341,7 +341,7 @@ object DefragPersistentSegment {
 
     //assign key-values to Segment and then perform merge.
     val assignments =
-      SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], SEG](
+      SegmentAssigner.assignUnsafeGaps[ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]], ListBuffer[Assignable], SEG](
         assignablesCount = assignableCount,
         assignables = mergeables,
         segments = segmentsIterator
@@ -356,7 +356,7 @@ object DefragPersistentSegment {
               SegmentAssignment(
                 segment = segment,
                 headGap = creator.createNew(),
-                midOverlap = ListBuffer.empty,
+                midOverlap = Aggregator.listBuffer,
                 tailGap = creator.createNew()
               )
 
