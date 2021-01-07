@@ -760,8 +760,8 @@ private[core] case class Level(dirs: Seq[Dir],
                                          targetSegments: Iterable[Segment],
                                          noGaps: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]]] =
     Future {
-      implicit def gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Persistent.Builder[Memory, ListBuffer]]]] =
-        GapAggregator.create[Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords)
+      implicit def gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
+        GapAggregator.create[MergeStats.Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords)
 
       if (noGaps)
         SegmentAssigner.assignUnsafeNoGaps(
@@ -779,7 +779,7 @@ private[core] case class Level(dirs: Seq[Dir],
       assignments =>
         if (assignments.isEmpty) {
           //if there were not assignments then write new key-values are gap and run Defrag to avoid creating small Segments.
-          val gap = GapAggregator.create[Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
+          val gap = GapAggregator.create[MergeStats.Persistent.Builder[Memory, ListBuffer]](removeDeletes = removeDeletedRecords).createNew()
           assignables foreach gap.add
 
           implicit val valuesConfigImplicit: ValuesBlock.Config = valuesConfig

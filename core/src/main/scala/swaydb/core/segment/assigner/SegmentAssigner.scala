@@ -264,7 +264,7 @@ private[core] object SegmentAssigner {
                   nextSegmentMayBe match {
                     case nextSegment: SEG if spreadToNextSegment(assignable, nextSegment) => //if Segment spreads onto next Segment
                       assignable match {
-                        case many: PersistentSegmentMany if !noGaps => //always expand to cover cases when last SegmentRef is a gap Segment.
+                        case many: PersistentSegmentMany => //always expand to cover cases when last SegmentRef is a gap Segment.
                           val segmentRefs = many.segmentRefsMutable()
                           val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
 
@@ -360,7 +360,7 @@ private[core] object SegmentAssigner {
                             assign(remaining, nextSegmentMayBe, getNextSegmentMayBe())
                           else
                             assignable match {
-                              case many: PersistentSegmentMany if !noGaps => //always expand to cover cases when last SegmentRef is a gap Segment.
+                              case many: PersistentSegmentMany => //always expand to cover cases when last SegmentRef is a gap Segment.
                                 val segmentRefs = many.segmentRefsMutable()
                                 val segmentIterator = DropIterator[Memory.Range, Assignable](segmentRefs.length, segmentRefs.iterator)
 
