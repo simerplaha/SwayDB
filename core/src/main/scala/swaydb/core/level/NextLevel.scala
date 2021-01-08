@@ -73,11 +73,7 @@ trait NextLevel extends LevelRef {
 
   def isCopyable(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Boolean
 
-  def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
-
-  def isUnreserved(segment: Segment): Boolean
-
-  def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
+  def partitionCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
   def isNonEmpty(): Boolean
 
@@ -85,15 +81,17 @@ trait NextLevel extends LevelRef {
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def merge(segment: Segment, reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def merge(segment: Segment)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def merge(map: Map[Slice[Byte], Memory, LevelZeroMapCache], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def mergeMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def merge(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def mergeMaps(map: Iterable[Map[Slice[Byte], Memory, LevelZeroMapCache]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def refresh(segment: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]]
+  def merge(segments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def collapse(segments: Iterable[Segment], reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[LevelCollapseResult]
+  def refresh(segment: Iterable[Segment]): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]]
+
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Future[LevelCollapseResult]
 
   def commit(mergeResult: CompactResult[SegmentOption, Iterable[TransientSegment]]): IO[Error.Level, Unit]
 

@@ -26,7 +26,7 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.IOValues._
+import swaydb.IO
 import swaydb.core.TestData._
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave, TestTimer}
@@ -75,9 +75,9 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
         implicit sweeper =>
 
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, deleteDelay = Duration.Zero, mmap = mmapSegments))
-          level.put(randomPutKeyValues(keyValuesCount)).get.toKeyInclusive shouldBe true
+          level.put(randomPutKeyValues(keyValuesCount)) shouldBe IO.unit
 
-          level.remove(level.segments()).get shouldBe unit
+          level.remove(level.segments()) shouldBe IO.unit
 
           level.isEmpty shouldBe true
 

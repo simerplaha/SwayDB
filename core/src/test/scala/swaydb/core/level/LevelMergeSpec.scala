@@ -26,7 +26,7 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.IOValues._
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core._
@@ -83,11 +83,8 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             level.isEmpty shouldBe true
             assertEmpty(keyValues, level)
 
-            //reserve
-            val reservation = level.reserve(segment).rightValue
-
             //merge
-            val compactionResult = level.merge(segment, reservation).await
+            val compactionResult = level.merge(segment).await
             compactionResult should have size 1
 
             //level is still empty because nothing is committed.
@@ -97,7 +94,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             segment.existsOnDiskOrMemory shouldBe true
 
             //commit
-            level.commit(compactionResult).get shouldBe unit
+            level.commit(compactionResult) shouldBe IO.unit
 
             level.isEmpty shouldBe false
             assertReads(keyValues, level)
@@ -118,11 +115,8 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             //level is empty
             level.isEmpty shouldBe true
 
-            //reserve
-            val reservation = level.reserve(segment).rightValue
-
             //merge
-            val compactionResult = level.merge(segment, reservation).awaitInf
+            val compactionResult = level.merge(segment).awaitInf
             compactionResult should have size 1
 
             //level is still empty because nothing is committed.
@@ -132,7 +126,7 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             segment.existsOnDiskOrMemory shouldBe true
 
             //commit
-            level.commit(compactionResult).get shouldBe unit
+            level.commit(compactionResult) shouldBe IO.unit
 
             level.isEmpty shouldBe true
         }
@@ -151,16 +145,14 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             val keyValues = randomPutKeyValues(startId = Some(0))
             val segment = TestSegment(keyValues)
 
-            val reservation = level.reserve(segment).rightValue
-
-            val segmentMergeResult = level.merge(segment, reservation).awaitInf
-            level.commit(segmentMergeResult).get shouldBe unit
+            val segmentMergeResult = level.merge(segment).awaitInf
+            level.commit(segmentMergeResult) shouldBe IO.unit
 
             assertGet(keyValues, level)
 
             val map = TestMap(keyValues)
-            val mapMergeResult = level.merge(map, reservation).awaitInf
-            level.commit(mapMergeResult).get shouldBe unit
+            val mapMergeResult = level.mergeMap(map).awaitInf
+            level.commit(mapMergeResult) shouldBe IO.unit
 
             assertGet(keyValues, level)
 
@@ -180,13 +172,10 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             val keyValues1 = randomPutKeyValues(startId = Some(0), count = 100)
             val segment = TestSegment(keyValues1)
 
-            val reservation1 = level.reserve(segment).rightValue
-
-            val segmentMergeResult = level.merge(segment, reservation1).awaitInf
-            level.commit(segmentMergeResult).get shouldBe unit
+            val segmentMergeResult = level.merge(segment).awaitInf
+            level.commit(segmentMergeResult) shouldBe IO.unit
 
             assertGet(keyValues1, level)
-            level.checkout(reservation1)
 
             val oldSegments = level.segments().toList //toList so that it's immutable
             oldSegments.foreach(_.existsOnDiskOrMemory shouldBe true)
@@ -197,10 +186,9 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             val keyValues2 = randomPutKeyValues(startId = Some(0), count = 200)
 
             val map = TestMap(keyValues2)
-            val reservation2 = level.reserve(map).rightValue
 
-            val mapMergeResult = level.merge(map, reservation2).awaitInf
-            level.commit(mapMergeResult).get shouldBe unit
+            val mapMergeResult = level.mergeMap(map).awaitInf
+            level.commit(mapMergeResult) shouldBe IO.unit
 
             assertGet(keyValues2, level)
 
@@ -222,13 +210,10 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
             val keyValues1 = randomPutKeyValues(startId = Some(0), count = 100)
             val segment = TestSegment(keyValues1)
 
-            val reservation1 = level.reserve(segment).rightValue
-
-            val segmentMergeResult = level.merge(segment, reservation1).awaitInf
-            level.commit(segmentMergeResult).get shouldBe unit
+            val segmentMergeResult = level.merge(segment).awaitInf
+            level.commit(segmentMergeResult) shouldBe IO.unit
 
             assertGet(keyValues1, level)
-            level.checkout(reservation1)
 
             val oldSegments = level.segments().toList //toList so that it's immutable
             oldSegments.foreach(_.existsOnDiskOrMemory shouldBe true)
@@ -237,10 +222,9 @@ sealed trait LevelMergeSpec extends TestBase with MockFactory with PrivateMethod
              * SECOND with 200 key-values
              */
             val map = TestMap(Slice(randomRemoveRange(0, Int.MaxValue)))
-            val reservation2 = level.reserve(map).rightValue
 
-            val mapMergeResult = level.merge(map, reservation2).awaitInf
-            level.commit(mapMergeResult).get shouldBe unit
+            val mapMergeResult = level.mergeMap(map).awaitInf
+            level.commit(mapMergeResult) shouldBe IO.unit
 
             level.isEmpty shouldBe true
 

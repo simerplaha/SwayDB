@@ -26,11 +26,12 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
+import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.TestData._
+import swaydb.core._
 import swaydb.core.data._
 import swaydb.core.segment.block.segment.SegmentBlock
-import swaydb.core._
 import swaydb.data.RunThis._
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -40,7 +41,6 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class LevelRefreshSpec0 extends LevelRefreshSpec
@@ -94,8 +94,8 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
             var attempts = 20
             while (level.segmentFilesInAppendix != 0 && attempts > 0) {
               val segments = level.segments()
-              val compact = level.refresh(segments, level.reserve(segments).rightValue).get
-              level.commit(compact).get shouldBe unit
+              val compact = level.refresh(segments).get
+              level.commit(compact) shouldBe IO.unit
               attempts -= 1
             }
 
@@ -120,12 +120,12 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
           level.putMap(map).right.right.value
 
           val nextLevel = TestLevel()
-          nextLevel.putSegments(level.segments()).get.fromKey shouldBe level.segments().head.minKey
+          nextLevel.putSegments(level.segments()) shouldBe IO.unit
 
           nextLevel.segments() foreach {
             segment =>
-              val compactResult = nextLevel.refresh(Seq(segment), nextLevel.reserve(segment).rightValue).get
-              nextLevel.commit(compactResult).get shouldBe unit
+              val compactResult = nextLevel.refresh(Seq(segment)).get
+              nextLevel.commit(compactResult) shouldBe IO.unit
           }
           nextLevel.segments() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)
       }

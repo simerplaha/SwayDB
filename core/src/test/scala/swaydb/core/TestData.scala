@@ -175,7 +175,7 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def put(keyValues: Iterable[Memory])(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, AtomicRanges.Key[Slice[Byte]]] = {
+    def put(keyValues: Iterable[Memory])(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
 
       implicit val idGenerator = level.segmentIDGenerator
 
@@ -221,7 +221,7 @@ object TestData {
               segmentConfig = level.segmentConfig //level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
             ).map(_.sweep())
 
-//        segments should have size 1
+        //        segments should have size 1
 
         level.putSegments(segments) onRightSideEffect {
           _ =>
@@ -230,59 +230,25 @@ object TestData {
       }
     }
 
-    def put(segment: Segment, checkout: Boolean = true)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, AtomicRanges.Key[Slice[Byte]]] =
-      putSegments(Seq(segment), checkout)
+    def put(segment: Segment)(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] =
+      putSegments(Seq(segment))
 
-    def putSegments(segments: Iterable[Segment], checkout: Boolean = true)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, AtomicRanges.Key[Slice[Byte]]] = {
+    def putSegments(segments: Iterable[Segment])(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (segments.isEmpty)
         IO.failed("Segments are empty")
-      else {
-        //        segments should have size 1
-
-        val reservation: AtomicRanges.Key[Slice[Byte]] = level.reserve(segments).value.rightValue
-
-        val compactionResult =
-          level.merge(
-            segments = segments,
-            reservationKey = reservation
-          ).awaitInf
-
-        level.commit(compactionResult) map {
-          _ =>
-            if (checkout)
-              level.checkout(reservation).get shouldBe unit
-
-            reservation
-        }
-      }
+      else
+        level.commit(level.merge(segments = segments).awaitInf)
     }
 
-    def putMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache], checkout: Boolean = true)(implicit sweeper: TestCaseSweeper): IO[swaydb.Error.Level, AtomicRanges.Key[Slice[Byte]]] = {
+    def putMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
       implicit val ec = TestExecutionContext.executionContext
 
       if (map.cache.isEmpty)
         IO.failed("Map is empty")
-      else {
-        //        segments should have size 1
-
-        val reservation: AtomicRanges.Key[Slice[Byte]] = level.reserve(map).value.rightValue
-
-        val compactionResult =
-          level.merge(
-            map = map,
-            reservationKey = reservation
-          ).await(10.seconds)
-
-        level.commit(compactionResult) map {
-          _ =>
-            if (checkout)
-              level.checkout(reservation).get shouldBe unit
-
-            reservation
-        }
-      }
+      else
+        level.commit(level.mergeMap(map = map).awaitInf)
     }
 
     def reopen(implicit sweeper: TestCaseSweeper): Level =

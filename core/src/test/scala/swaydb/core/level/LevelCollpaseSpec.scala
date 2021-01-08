@@ -25,6 +25,7 @@
 package swaydb.core.level
 
 import org.scalatest.OptionValues._
+import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -100,14 +101,12 @@ sealed trait LevelCollapseSpec extends TestBase {
         //delete half of the key values which will create small Segments
         level.put(Slice(deleteEverySecond.toArray)).runRandomIO.right.value
 
-        val reservation = level.reserve(level.segments()).rightValue
-
-        level.collapse(level.segments(), reservation).awaitInf match {
+        level.collapse(level.segments()).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail(s"Expected: ${LevelCollapseResult.Collapsed.getClass.getSimpleName}. Actor: ${LevelCollapseResult.Empty.productPrefix}")
 
           case collapsed: LevelCollapseResult.Collapsed =>
-            level.commit(collapsed).get shouldBe unit
+            level.commit(collapsed) shouldBe IO.unit
         }
 
         //since every second key-value was delete, the number of Segments is reduced to half
@@ -130,7 +129,7 @@ sealed trait LevelCollapseSpec extends TestBase {
             assertAllSegmentsCreatedInLevel(level)
 
             val keyValues = randomPutKeyValues(1000, startId = Some(0), valueSize = 0, addPutDeadlines = false)(TestTimer.Empty)
-            level.put(keyValues).get.fromKey shouldBe keyValues.head.key
+            level.put(keyValues) shouldBe IO.unit
 
             level.segmentsCount() > 1 shouldBe true
             level.closeNoSweep().runRandomIO.right.value
@@ -141,15 +140,12 @@ sealed trait LevelCollapseSpec extends TestBase {
             //reopen the Level with larger min segment size
             val reopenLevel = level.reopen(segmentSize = 20.mb)
 
-            val segments = reopenLevel.segments()
-            val reserve = reopenLevel.reserve(segments).rightValue
-
-            reopenLevel.collapse(segments, reserve).await match {
+            reopenLevel.collapse(reopenLevel.segments()).await match {
               case LevelCollapseResult.Empty =>
                 fail(s"Expected: ${LevelCollapseResult.Collapsed.getClass.getSimpleName}. Actor: ${LevelCollapseResult.Empty.productPrefix}")
 
               case collapsed: LevelCollapseResult.Collapsed =>
-                reopenLevel.commit(collapsed).get shouldBe unit
+                reopenLevel.commit(collapsed) shouldBe IO.unit
             }
 
             //resulting segments is 1
@@ -198,14 +194,12 @@ sealed trait LevelCollapseSpec extends TestBase {
         }
 
         sleep(20.seconds)
-        val reservation = level.reserve(level.segments()).rightValue
-
-        level.collapse(level.segments(), reservation).awaitInf match {
+        level.collapse(level.segments()).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail("")
 
           case collapsed: LevelCollapseResult.Collapsed =>
-            level.commit(collapsed).get shouldBe unit
+            level.commit(collapsed) shouldBe IO.unit
         }
 
         level.segmentFilesInAppendix should be <= ((segmentCountBeforeDelete / 2) + 1)
@@ -228,14 +222,12 @@ sealed trait LevelCollapseSpec extends TestBase {
 
         if (persistent) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
 
-        val reservation = nextLevel.reserve(nextLevel.segments()).rightValue
-
-        nextLevel.collapse(nextLevel.segments(), reservation).awaitInf match {
+        nextLevel.collapse(nextLevel.segments()).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail("")
 
           case collapsed: LevelCollapseResult.Collapsed =>
-            nextLevel.commit(collapsed).get shouldBe unit
+            nextLevel.commit(collapsed) shouldBe IO.unit
         }
 
         nextLevel.segments() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)

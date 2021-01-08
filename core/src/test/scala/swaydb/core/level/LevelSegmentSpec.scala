@@ -25,6 +25,7 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper.TestLevelPathSweeperImplicits
@@ -88,7 +89,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val keyValues = randomIntKeyStringValues(keyValuesCount)
             val segment = TestSegment(keyValues)
             segment.close.runRandomIO.right.value
-            level.put(segment).get.fromKey shouldBe segment.minKey
+            level.put(segment) shouldBe IO.unit
             assertReads(keyValues, level)
         }
       }
@@ -102,7 +103,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
               val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.bytes, mmap = mmapSegments))
               val keyValues = randomIntKeyStringValues(keyValuesCount)
               val segment = TestSegment(keyValues)
-              level.put(segment).get.fromKey shouldBe segment.minKey
+              level.put(segment) shouldBe IO.unit
 
               val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
               val segment2 = TestSegment(keyValues2).runRandomIO.right.value
@@ -130,7 +131,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 }
 
             val segments = Seq(TestSegment(keyValues1).runRandomIO.right.value, TestSegment(keyValues2).runRandomIO.right.value, TestSegment(keyValues3).runRandomIO.right.value)
-            level.putSegments(segments).get.fromKey shouldBe segments.head.minKey
+            level.putSegments(segments) shouldBe IO.unit
 
             assertReads(keyValues, level)
         }
@@ -147,7 +148,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             val keyValues3 = slicedKeyValues(2)
 
             //create a level with key-values
-            level.put(keyValues2).get.fromKey shouldBe keyValues2.head.key
+            level.put(keyValues2) shouldBe IO.unit
             level.isEmpty shouldBe false
 
             val segments =
@@ -156,7 +157,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 TestSegment(keyValues3, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, mmap = mmapSegments))
               )
 
-            level.putSegments(segments).get.fromKey shouldBe segments.head.minKey
+            level.putSegments(segments) shouldBe IO.unit
 
             assertReads(allKeyValues, level)
         }
@@ -268,7 +269,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 val segmentToMerge = keyValues map (keyValues => TestSegment(keyValues))
 
                 val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 150.bytes, deleteDelay = Duration.Zero, mmap = mmapSegments))
-                level.putSegments(segmentToMerge).get.fromKey shouldBe segmentToMerge.head.minKey
+                level.putSegments(segmentToMerge) shouldBe IO.unit
 
                 //segment to copy
                 val id = IDGenerator.segment(level.segmentIDGenerator.next + 9)

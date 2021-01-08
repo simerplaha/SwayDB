@@ -266,17 +266,10 @@ private[core] case object Level extends LazyLogging {
       .getOrElse(IO.unit)
 
   def shouldCollapse(level: NextLevel,
-                     segment: Segment)(implicit reserve: AtomicRanges[Slice[Byte]],
-                                       keyOrder: KeyOrder[Slice[Byte]]): Boolean =
-    reserve.isWritable(
-      fromKey = segment.minKey,
-      toKey = segment.maxKey.maxKey,
-      toKeyInclusive = segment.maxKey.inclusive
-    ) && {
-      isSmallSegment(segment, level.minSegmentSize) ||
-        //if the Segment was not created in this level.
-        segment.createdInLevel != level.levelNumber
-    }
+                     segment: Segment): Boolean =
+    isSmallSegment(segment, level.minSegmentSize) ||
+      //if the Segment was not created in this level.
+      segment.createdInLevel != level.levelNumber
 }
 
 private[core] case class Level(dirs: Seq[Dir],
@@ -303,7 +296,6 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               val blockCacheSweeper: Option[MemorySweeper.Block],
                                                               val segmentIDGenerator: IDGenerator,
                                                               val segmentIO: SegmentReadIO,
-                                                              reservations: AtomicRanges[Slice[Byte]],
                                                               val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
 
 
@@ -409,37 +401,25 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * Partitions [[Segment]]s that can be copied into this Segment without requiring merge.
    */
-  def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
+  def partitionCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     segments partition {
       segment =>
-        reservations.isWritable(
-          fromKey = segment.minKey,
-          toKey = segment.maxKey.maxKey,
-          toKeyInclusive = segment.maxKey.inclusive
-        ) && {
-          !Segment.overlaps(
-            segment = segment,
-            segments2 = self.segments()
-          )
-        }
+        !Segment.overlaps(
+          segment = segment,
+          segments2 = self.segments()
+        )
     }
 
   /**
    * Quick lookup to check if the keys are copyable.
    */
   def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
-    reservations.isWritable(
-      fromKey = minKey,
-      toKey = maxKey,
-      toKeyInclusive = maxKeyInclusive
-    ) && {
-      !Segment.overlaps(
-        minKey = minKey,
-        maxKey = maxKey,
-        maxKeyInclusive = maxKeyInclusive,
-        segments = self.segments()
-      )
-    }
+    !Segment.overlaps(
+      minKey = minKey,
+      maxKey = maxKey,
+      maxKeyInclusive = maxKeyInclusive,
+      segments = self.segments()
+    )
 
   /**
    * Quick lookup to check if the [[Map]] can be copied without merge.
@@ -456,121 +436,77 @@ private[core] case class Level(dirs: Seq[Dir],
           )
       }
 
-  /**
-   * Are the keys available for compaction into this Level.
-   */
-  def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
-    reservations.isWritable(
-      fromKey = minKey,
-      toKey = maxKey,
-      toKeyInclusive = maxKeyInclusive
-    )
+  def merge(segment: Segment)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+    merge(Seq(segment))
 
-  /**
-   * Is the input [[Segment]]'s keys available for compaction into this Level.
-   */
-  def isUnreserved(segment: Segment): Boolean =
-    isUnreserved(
-      minKey = segment.minKey,
-      maxKey = segment.maxKey.maxKey,
-      maxKeyInclusive = segment.maxKey.inclusive
-    )
-
-  def reserve(segment: Segment): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
-    reserve(Seq(segment))
-
-  def reserve(segments: Iterable[Assignable.Collection]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
-    LevelReception.reserve(
-      input = segments,
-      levelSegments = self.segments()
-    )
-
-  def reserve(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): IO[Error.Level, Either[Promise[Unit], AtomicRanges.Key[Slice[Byte]]]] =
-    LevelReception.reserve(
-      input = map,
-      levelSegments = self.segments()
-    )
-
-  def checkout(reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Unit] =
-    IO(reservations.remove(reservationKey))
-
-  def hasReservation(reservationKey: AtomicRanges.Key[Slice[Byte]]): Boolean =
-    reservations.containsExact(reservationKey)
-
-  def merge(segment: Segment,
-            reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
-    merge(Seq(segment), reservationKey)
-
-  def merge(segments: Iterable[Segment],
-            reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
+  def merge(segments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
-    val targetSegments = self.segmentsReserved(reservationKey)
-
-    LevelReceptionKeyValidator.validateFuture(reservedItems = segments, reservationKey = reservationKey) {
-      assignMerge(
-        assignablesCount = segments.size,
-        assignables = segments,
-        targetSegments = targetSegments,
-        noGaps = false
-      )
-    }
+    assignMerge(
+      assignablesCount = segments.size,
+      assignables = segments,
+      targetSegments = self.segments(),
+      noGaps = false
+    )
   }
 
-  def merge(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-            reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
+  def mergeMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
-    val targetSegments = self.segmentsReserved(reservationKey)
 
-    LevelReceptionKeyValidator.validateFuture(map, reservationKey) {
-      assignMerge(
-        map = map,
-        targetSegments = targetSegments,
-        noGaps = false
-      )
-    }
+    assignMerge(
+      assignablesCount = 1,
+      assignables = Seq(Assignable.Collection.fromMap(map)),
+      targetSegments = self.segments(),
+      noGaps = false
+    )
   }
 
-  def refresh(segments: Iterable[Segment],
-              reservationKey: AtomicRanges.Key[Slice[Byte]]): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]] = {
+  def mergeMaps(maps: Iterable[Map[Slice[Byte], Memory, LevelZeroMapCache]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
+    logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, maps.foldLeft(0)(_ + _.cache.skipList.size))
+    assignMerge(
+      assignablesCount = maps.size,
+      assignables = maps.map(Assignable.Collection.fromMap),
+      targetSegments = self.segments(),
+      noGaps = false
+    )
+  }
+
+  def refresh(segments: Iterable[Segment]): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]] = {
     logger.debug("{}: Running refresh.", pathDistributor.head)
-    LevelReceptionKeyValidator.validateIO(segments, reservationKey) {
-      IO {
-        segments map {
-          case segment: MemorySegment =>
-            assert(inMemory) //yea should be typed
+    IO {
+      segments map {
+        case segment: MemorySegment =>
+          assert(inMemory) //yea should be typed
 
-            segment.refresh(
-              removeDeletes = removeDeletedRecords,
-              createdInLevel = levelNumber,
-              segmentConfig = segmentConfig
-            ).map(_.map(TransientSegment.Memory))
+          segment.refresh(
+            removeDeletes = removeDeletedRecords,
+            createdInLevel = levelNumber,
+            segmentConfig = segmentConfig
+          ).map(_.map(TransientSegment.Memory))
 
-          case segment: PersistentSegment =>
-            assert(!inMemory) //yea should be typed
+        case segment: PersistentSegment =>
+          assert(!inMemory) //yea should be typed
 
-            segment.refresh(
-              removeDeletes = removeDeletedRecords,
-              createdInLevel = levelNumber,
-              valuesConfig = valuesConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig,
-              segmentConfig = segmentConfig
-            )
-        }
+          segment.refresh(
+            removeDeletes = removeDeletedRecords,
+            createdInLevel = levelNumber,
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig,
+            segmentConfig = segmentConfig
+          )
       }
     }
   }
 
-  def collapse(segments: Iterable[Segment],
-               reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit ec: ExecutionContext): Future[LevelCollapseResult] = {
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Future[LevelCollapseResult] = {
     logger.trace(s"{}: Collapsing '{}' segments", pathDistributor.head, segments.size)
     if (segments.isEmpty || appendix.cache.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       Future.successful(LevelCollapseResult.Empty)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
-      val reservedSegments = self.segmentsReserved(reservationKey)
+      val reservedSegments = self.segments()
       val targetAppendixSegments = reservedSegments.filterNot(map => segments.exists(_.path == map.path))
 
       val (segmentsToMerge, targetSegments) =
@@ -586,19 +522,17 @@ private[core] case class Level(dirs: Seq[Dir],
         }
 
       //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
-      LevelReceptionKeyValidator.validateFuture(segmentsToMerge, reservationKey) {
-        assignMerge(
-          assignablesCount = segmentsToMerge.size,
-          assignables = segmentsToMerge,
-          targetSegments = targetSegments,
-          noGaps = true
-        ) map {
-          mergeResult =>
-            LevelCollapseResult.Collapsed(
-              sourceSegments = segmentsToMerge,
-              mergeResult = mergeResult
-            )
-        }
+      assignMerge(
+        assignablesCount = segmentsToMerge.size,
+        assignables = segmentsToMerge,
+        targetSegments = targetSegments,
+        noGaps = true
+      ) map {
+        mergeResult =>
+          LevelCollapseResult.Collapsed(
+            sourceSegments = segmentsToMerge,
+            mergeResult = mergeResult
+          )
       }
     }
   }
@@ -647,17 +581,6 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.Left[swaydb.Error.Level, Unit](swaydb.Error.NoSegmentsRemoved)
     }
   }
-
-  @inline private def assignMerge(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
-                                  targetSegments: Iterable[Segment],
-                                  noGaps: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
-
-    assignMerge(
-      assignablesCount = 1,
-      assignables = Seq(Assignable.Collection.fromMap(map)),
-      targetSegments = targetSegments,
-      noGaps = noGaps
-    )
 
   /**
    * Assign new data to existing segments in this Level.

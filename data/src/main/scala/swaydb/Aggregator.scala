@@ -39,6 +39,9 @@ import scala.reflect.ClassTag
 protected trait Aggregator[-A, +T] extends ForEach[A] {
   def add(item: A): Unit
 
+  final def addAll(items: Iterable[A]): Unit =
+    items foreach add
+
   def result: T
 
   final override def apply(item: A): Unit =

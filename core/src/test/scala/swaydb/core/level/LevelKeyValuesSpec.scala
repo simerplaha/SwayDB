@@ -26,6 +26,7 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
+import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -104,7 +105,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           val level = TestLevel(segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
 
           val keyValues = randomPutKeyValues(keyValuesCount)
-          level.put(keyValues).get.fromKey shouldBe keyValues.head.key
+          level.put(keyValues) shouldBe IO.unit
 
           val deleteKeyValues = Slice.of[Memory](keyValues.size * 2)
           keyValues foreach {
@@ -222,7 +223,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
           level.segments() foreach {
             segment =>
-              level.commit(level.refresh(Seq(segment), level.reserve(segment).rightValue).get).get shouldBe unit
+              level.commit(level.refresh(Seq(segment)).get) shouldBe IO.unit
           }
 
           //expired key-values return empty after 2.seconds
@@ -301,7 +302,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
             }
           }
 
-          level.commit(level.refresh(level.segments(), level.reserve(level.segments()).rightValue).get).get shouldBe unit
+          level.commit(level.refresh(level.segments()).get) shouldBe IO.unit
 
           level.segmentFilesInAppendix shouldBe 0
 
