@@ -29,6 +29,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
+import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
@@ -40,7 +41,6 @@ import swaydb.core.io.file.Effect._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.KeyValueMerger
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment._
 import swaydb.core.segment.block.BlockCache
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.block.bloomfilter.BloomFilterBlock
@@ -1891,7 +1891,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               bloomFilterConfig = BloomFilterBlock.Config.random,
               segmentConfig = SegmentBlock.Config.random.copy(minSize = 4.mb),
               pathDistributor = createPathDistributor
-            ).result shouldBe empty
+            ).result.isEmpty shouldBe true
         }
       }
     }
@@ -2100,7 +2100,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             segmentConfig = SegmentBlock.Config.random,
             pathDistributor = createPathDistributor
-          ) shouldBe empty
+          ).isEmpty shouldBe true
       }
     }
 

@@ -297,7 +297,7 @@ private[core] class Maps[K, V, C <: MapCache[K, V]](private val queue: VolatileQ
                                                                                                     val bufferCleaner: ByteBufferSweeperActor,
                                                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                     cacheBuilder: MapCacheBuilder[C],
-                                                                                                    val timer: Timer,
+                                                                                                    private val timer: Timer,
                                                                                                     forceSaveApplier: ForceSaveApplier) extends LazyLogging { self =>
 
   @volatile private var closed: Boolean = false

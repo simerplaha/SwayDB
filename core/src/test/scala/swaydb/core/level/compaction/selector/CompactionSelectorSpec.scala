@@ -24,109 +24,33 @@
 
 package swaydb.core.level.compaction.selector
 
-import swaydb.core.TestBase
+import swaydb.IO
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.NonEmptyList
 
 class CompactionSelectorSpec extends TestBase {
 
-  //  "optimalSegmentsToPushForward" should {
-  //    "return empty if there Levels are empty" in {
-  //      TestCaseSweeper {
-  //        implicit sweeper =>
-  //          val nextLevel = TestLevel()
-  //          val level = TestLevel()
-  //          implicit val reserve = ReserveRange.create[Unit]()
-  //
-  //          Level.optimalSegmentsToPushForward(
-  //            level = level,
-  //            nextLevel = nextLevel,
-  //            take = 10
-  //          ) shouldBe Level.emptySegmentsToPush
-  //      }
-  //    }
-  //
-  //    "return all Segments to copy if next Level is empty" in {
-  //      TestCaseSweeper {
-  //        implicit sweeper =>
-  //          val nextLevel = TestLevel()
-  //          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
-  //          //      level.segmentsCount() should be >= 2
-  //
-  //          implicit val reserve = ReserveRange.create[Unit]()
-  //
-  //          val (toCopy, toMerge) =
-  //            Level.optimalSegmentsToPushForward(
-  //              level = level,
-  //              nextLevel = nextLevel,
-  //              take = 10
-  //            )
-  //
-  //          toMerge shouldBe empty
-  //          toCopy.map(_.path) shouldBe level.segments().take(10).map(_.path)
-  //      }
-  //    }
-  //
-  //    "return all unreserved Segments to copy if next Level is empty" in {
-  //      TestCaseSweeper {
-  //        implicit sweeper =>
-  //          val nextLevel = TestLevel()
-  //          val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
-  //
-  //          level.segmentsCount() should be >= 2
-  //
-  //          implicit val reserve = ReserveRange.create[Unit]()
-  //          val firstSegment = level.segments().head
-  //
-  //          ReserveRange.reserveOrGet(firstSegment.minKey, firstSegment.maxKey.maxKey, firstSegment.maxKey.inclusive, ()) shouldBe empty //reserve first segment
-  //
-  //          val (toCopy, toMerge) =
-  //            Level.optimalSegmentsToPushForward(
-  //              level = level,
-  //              nextLevel = nextLevel,
-  //              take = 10
-  //            )
-  //
-  //          toMerge shouldBe empty
-  //          toCopy.map(_.path) shouldBe level.segments().drop(1).take(10).map(_.path)
-  //      }
-  //    }
-  //  }
-  //
-  //  "optimalSegmentsToCollapse" should {
-  //    "return empty if there Levels are empty" in {
-  //      TestCaseSweeper {
-  //        implicit sweeper =>
-  //          val level = TestLevel()
-  //
-  //          implicit val reserve = ReserveRange.create[Unit]()
-  //
-  //          Level.optimalSegmentsToCollapse(
-  //            level = level,
-  //            take = 10
-  //          ) shouldBe empty
-  //      }
-  //    }
-  //
-  //    "return empty if all segments were reserved" in {
-  //      TestCaseSweeper {
-  //        implicit sweeper =>
-  //          val keyValues = randomizedKeyValues(count = 10000, startId = Some(1))
-  //          val level = TestLevel(keyValues = keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb, mmap = mmapSegments))
-  //
-  //          level.segmentsCount() should be >= 2
-  //
-  //          implicit val reserve = ReserveRange.create[Unit]()
-  //
-  //          val minKey = keyValues.head.key
-  //          val maxKey = Segment.minMaxKey(level.segments()).get
-  //          ReserveRange.reserveOrGet(minKey, maxKey._2, maxKey._3, ()) shouldBe empty
-  //
-  //          Level.optimalSegmentsToCollapse(
-  //            level = level,
-  //            take = 10
-  //          ) shouldBe empty
-  //      }
-  //    }
-  //  }
+  "ass" in {
+    TestCaseSweeper {
+      implicit sweeper =>
+        val level = TestLevel()
+        level.put(randomizedKeyValues()) shouldBe IO.unit
+        val segmentsInLevel = level.segments()
 
+        val nextLevel = TestLevel()
 
+        val selection =
+          CompactionSegmentSelector.select(
+            source = level,
+            nextLevels = NonEmptyList(nextLevel),
+            sourceOverflow = Int.MaxValue
+          )
+
+        selection should have size 1
+        selection.head.segments shouldBe segmentsInLevel
+        selection.head.targetLevel shouldBe nextLevel
+    }
+  }
 }

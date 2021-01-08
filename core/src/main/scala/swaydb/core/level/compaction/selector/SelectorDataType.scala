@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,16 +22,29 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.selector
 
-import swaydb.ActorWire
-import swaydb.core.level.compaction.committer.CompactionCommitter
+import swaydb.core.segment.Segment
 
-import scala.concurrent.Future
+/**
+ * Type that can be selected for compaction. Currently
+ * this can either be files that are managed by [[swaydb.core.level.zero.LevelZero]]
+ * and [[swaydb.core.level.Level]] which are [[swaydb.core.map.Map]] and [[Segment]]
+ * respectively.
+ */
+sealed trait SelectorDataType[-A] {
+  @inline def segmentSize(segment: A): Int
+}
 
-protected trait Compaction[S] {
+object SelectorDataType {
 
-  def run(state: S,
-          forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit]
+  implicit class SelectorDataTypeImplicits[A](target: A) {
+    @inline def segmentSize(implicit targetType: SelectorDataType[A]) =
+      targetType.segmentSize(target)
+  }
 
+  implicit object SegmentSelectorDataType extends SelectorDataType[Segment] {
+    @inline override def segmentSize(segment: Segment): Int =
+      segment.segmentSize
+  }
 }

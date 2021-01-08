@@ -94,7 +94,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
             var attempts = 20
             while (level.segmentFilesInAppendix != 0 && attempts > 0) {
               val segments = level.segments()
-              val compact = level.refresh(segments).get
+              val compact = level.refresh(segments, removeDeletedRecords = false).get
               level.commit(compact) shouldBe IO.unit
               attempts -= 1
             }
@@ -124,7 +124,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
           nextLevel.segments() foreach {
             segment =>
-              val compactResult = nextLevel.refresh(Seq(segment)).get
+              val compactResult = nextLevel.refresh(Seq(segment), removeDeletedRecords = false).get
               nextLevel.commit(compactResult) shouldBe IO.unit
           }
           nextLevel.segments() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)

@@ -1099,9 +1099,6 @@ private[swaydb] case class LevelZero(path: Path,
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     nextLevel.flatMap(_.meterFor(levelNumber))
 
-  override def isTrash: Boolean =
-    false
-
   override def levelNumber: Int = 0
 
   override def isZero: Boolean = true

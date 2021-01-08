@@ -82,13 +82,13 @@ private[core] object CoreInitializer extends LazyLogging {
    */
   def initialiseCompaction(zero: LevelZero,
                            executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState],
-                                                                                committer: ActorWire[CompactionCommitter, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
+                                                                                committer: ActorWire[CompactionCommitter.type, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
       executionContexts = executionContexts
     )
 
-  def sendInitialWakeUp(compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter, Unit]): Unit =
+  def sendInitialWakeUp(compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Unit =
     compactor send {
       (impl, state, self) =>
         impl.wakeUp(
@@ -180,7 +180,7 @@ private[core] object CoreInitializer extends LazyLogging {
             ThrottleCompactor
 
           //TODO make configurable and terminate
-          implicit val committer: ActorWire[CompactionCommitter, Unit] =
+          implicit val committer: ActorWire[CompactionCommitter.type, Unit] =
             CompactionCommitter.createActor(???)
 
           implicit val bufferSweeper: ByteBufferSweeperActor =

@@ -28,6 +28,7 @@ import java.nio.file.NoSuchFileException
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
+import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._

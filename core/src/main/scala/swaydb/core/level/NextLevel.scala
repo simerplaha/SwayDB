@@ -81,17 +81,23 @@ trait NextLevel extends LevelRef {
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def merge(segment: Segment)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def merge(segment: Segment,
+            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def mergeMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def mergeMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
+               removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def mergeMaps(map: Iterable[Map[Slice[Byte], Memory, LevelZeroMapCache]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def mergeMaps(map: Iterable[Map[Slice[Byte], Memory, LevelZeroMapCache]],
+                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def merge(segments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
+  def merge(segments: Iterable[Segment],
+            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def refresh(segment: Iterable[Segment]): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]]
+  def refresh(segment: Iterable[Segment],
+              removeDeletedRecords: Boolean): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]]
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Future[LevelCollapseResult]
+  def collapse(segments: Iterable[Segment],
+               removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[LevelCollapseResult]
 
   def commit(mergeResult: CompactResult[SegmentOption, Iterable[TransientSegment]]): IO[Error.Level, Unit]
 

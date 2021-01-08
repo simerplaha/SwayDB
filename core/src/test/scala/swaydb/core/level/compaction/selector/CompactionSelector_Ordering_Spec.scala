@@ -22,16 +22,25 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.selector
 
-import swaydb.ActorWire
-import swaydb.core.level.compaction.committer.CompactionCommitter
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import swaydb.core.segment.Segment
+import swaydb.core.segment.assigner.SegmentAssignment
 
-import scala.concurrent.Future
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
-protected trait Compaction[S] {
+class CompactionSelector_Ordering_Spec extends AnyWordSpec with Matchers with MockFactory {
 
-  def run(state: S,
-          forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit]
+  "Narrow 1" in {
+
+    //    SegmentAssignment[mutable.SortedSet[Segment], mutable.SortedSet[Segment], ListBuffer[Segment]](
+    //
+    //    )
+
+  }
 
 }

@@ -181,10 +181,12 @@ private[core] object KeyValueMerger extends LazyLogging {
           add(value)
       }
 
+    //TODO - remove this assert
     if (headGap.nonEmpty) {
       assert(headGap.last.key < oldKeyValues.headOrNull.key)
-      addAll(headGap.iterator)
     }
+
+    addAll(headGap.iterator)
 
     @tailrec
     def doMerge(newKeyValues: DropIterator[Memory.Range, Assignable],
@@ -515,6 +517,7 @@ private[core] object KeyValueMerger extends LazyLogging {
 
     doMerge(newKeyValues, oldKeyValues)
 
+    //TODO - remove this assert
     if (tailGap.nonEmpty) {
       if (isLastLevel) {
         builder.result.asInstanceOf[ListBuffer[Memory]].lastOption foreach {

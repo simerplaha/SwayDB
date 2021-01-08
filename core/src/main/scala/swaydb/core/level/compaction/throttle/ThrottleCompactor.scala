@@ -64,7 +64,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
    * @return return the root parent Actor with child Actors.
    */
   def createActors(levels: List[LevelRef],
-                   executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter, Unit]): IO[swaydb.Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
+                   executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): IO[swaydb.Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
     if (levels.size != executionContexts.size)
       IO.Left(swaydb.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
     else
@@ -124,7 +124,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
         }
 
   def scheduleNextWakeUp(state: ThrottleState,
-                         self: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter, Unit]): Unit = {
+                         self: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Unit = {
     logger.debug(s"${state.name}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
 
     val levelsToCompact =
@@ -139,7 +139,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
 
     val nextDeadline =
       levelsToCompact.foldLeft(Option.empty[Deadline]) {
-        case (nearestDeadline, (_, waiting @ ThrottleLevelState.AwaitingPull(promise, timeout, _))) =>
+        case (nearestDeadline, (_, waiting @ ThrottleLevelState.AwaitingJoin(promise, timeout, _))) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {
             waiting.listenerInitialised = true
@@ -202,7 +202,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
       }
   }
 
-  def wakeUpChild(state: ThrottleState)(implicit committer: ActorWire[CompactionCommitter, Unit]): Unit = {
+  def wakeUpChild(state: ThrottleState)(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Unit = {
     logger.debug(s"${state.name}: Waking up child: ${state.child.map(_ => "child")}.")
     state
       .child
@@ -216,7 +216,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
   }
 
   def postCompaction[T](state: ThrottleState,
-                        self: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter, Unit]): Unit =
+                        self: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Unit =
     try
       scheduleNextWakeUp( //schedule the next compaction for current Compaction group levels
         state = state,
@@ -228,7 +228,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
       )
 
   def sendWakeUp(forwardCopyOnAllLevels: Boolean,
-                 compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter, Unit]): Unit =
+                 compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Unit =
     compactor send {
       (impl, state, self) =>
         impl.wakeUp(
@@ -239,12 +239,12 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     }
 
   def createCompactor(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
+                      executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
     zero.nextLevel match {
       case Some(nextLevel) =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
         ThrottleCompactor.createActors(
-          levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
+          levels = zero +: LevelRef.getLevels(nextLevel),
           executionContexts = executionContexts
         )
 
@@ -257,7 +257,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
    * called on the same thread as LevelZero's initialisation thread.
    */
   def listen(zero: LevelZero,
-             actor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter, Unit]): Unit =
+             actor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Unit =
     zero onNextMapCallback (
       event =
         () =>
@@ -268,7 +268,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
       )
 
   def doCreateAndListen(zero: LevelZero,
-                        executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter, Unit]): IO[swaydb.Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
+                        executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): IO[swaydb.Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
     createCompactor(
       zero = zero,
       executionContexts = executionContexts
@@ -286,7 +286,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
   def doWakeUp(state: ThrottleState,
                forwardCopyOnAllLevels: Boolean,
                self: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState],
-                                                                         committer: ActorWire[CompactionCommitter, Unit]): Unit =
+                                                                         committer: ActorWire[CompactionCommitter.type, Unit]): Unit =
     compaction.run(
       state = state,
       forwardCopyOnAllLevels = forwardCopyOnAllLevels
@@ -299,7 +299,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     }(state.executionContext)
 
   def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
+                      executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
     doCreateAndListen(
       zero = zero,
       executionContexts = executionContexts
@@ -307,7 +307,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
 
   override def wakeUp(state: ThrottleState,
                       forwardCopyOnAllLevels: Boolean,
-                      self: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter, Unit]): Unit =
+                      self: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Unit =
     doWakeUp(
       state = state,
       forwardCopyOnAllLevels = forwardCopyOnAllLevels,

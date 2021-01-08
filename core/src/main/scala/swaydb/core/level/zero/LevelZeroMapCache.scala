@@ -126,10 +126,16 @@ private[core] object LevelZeroMapCache {
  * when concurrently writing and reading in-memory SkipList is very cheap.
  * The maximum time blocking time on benchmarking was between 0.006 to 0.019642 seconds.
  */
-private[core] class LevelZeroMapCache private(state: LevelZeroMapCache.State)(implicit val keyOrder: KeyOrder[Slice[Byte]],
-                                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                                              functionStore: FunctionStore,
-                                                                              atomic: Atomic) extends MapCache[Slice[Byte], Memory] {
+private[core] class LevelZeroMapCache private(@volatile private var state: LevelZeroMapCache.State)(implicit val keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                    functionStore: FunctionStore,
+                                                                                                    atomic: Atomic) extends MapCache[Slice[Byte], Memory] {
+
+  /**
+   * Should only be invoked after the [[Map]] is compacted.
+   */
+  def delete(): Unit =
+    this.state = LevelZeroMapCache.State()(keyOrder = keyOrder, optimiseWrites = OptimiseWrites.RandomOrder)
 
   @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit = {
     val entries = entry.entries

@@ -29,6 +29,7 @@ import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
+import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.file.Effect
@@ -439,7 +440,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
             implicit sweeper =>
               val zero = TestLevelZero(None, enableTimer = true)
               zero.path.folderId shouldBe 0
-              zero.maps.timer.isEmptyTimer shouldBe false
+              getTimer(zero.maps).isEmptyTimer shouldBe false
 
               //applied functions are disabled for in-memory
               zero.appliedFunctionsMap shouldBe empty
@@ -501,7 +502,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
               val zero = TestLevelZero(None, enableTimer = false)
               import Effect._
               zero.path.folderId shouldBe 0
-              zero.maps.timer.isEmptyTimer shouldBe true
+              getTimer(zero.maps).isEmptyTimer shouldBe true
           }
       }
     }

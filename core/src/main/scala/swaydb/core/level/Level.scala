@@ -35,13 +35,12 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, FileLocker, ForceSaveApplier}
 import swaydb.core.level.compaction.CompactResult
-import swaydb.core.level.compaction.reception.{LevelReception, LevelReceptionKeyValidator}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.merge.stats.MergeStats.{Memory, Persistent}
+import swaydb.core.merge.stats.MergeStats.Memory
 import swaydb.core.segment._
 import swaydb.core.segment.assigner.{Assignable, GapAggregator, SegmentAssigner}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -67,7 +66,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future}
 
 private[core] case object Level extends LazyLogging {
 
@@ -209,8 +208,7 @@ private[core] case object Level extends LazyLogging {
                       nextLevel = nextLevel,
                       appendix = appendix,
                       lock = lock,
-                      pathDistributor = paths,
-                      removeDeletedRecords = Level.removeDeletes(nextLevel)
+                      pathDistributor = paths
                     )
                   }
                   .onLeftSideEffect {
@@ -223,7 +221,7 @@ private[core] case object Level extends LazyLogging {
   }
 
   def removeDeletes(nextLevel: Option[LevelRef]): Boolean =
-    nextLevel.isEmpty || nextLevel.exists(_.isTrash)
+    nextLevel.isEmpty
 
   def largestSegmentId(appendix: Iterable[Segment]): Long =
     appendix.foldLeft(0L) {
@@ -284,19 +282,18 @@ private[core] case class Level(dirs: Seq[Dir],
                                nextLevel: Option[NextLevel],
                                appendix: Map[Slice[Byte], Segment, AppendixMapCache],
                                lock: Option[FileLocker],
-                               pathDistributor: PathsDistributor,
-                               removeDeletedRecords: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              functionStore: FunctionStore,
-                                                              removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
-                                                              addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                              val keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                              val fileSweeper: FileSweeper,
-                                                              val bufferCleaner: ByteBufferSweeperActor,
-                                                              val blockCacheSweeper: Option[MemorySweeper.Block],
-                                                              val segmentIDGenerator: IDGenerator,
-                                                              val segmentIO: SegmentReadIO,
-                                                              val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
+                               pathDistributor: PathsDistributor)(implicit val keyOrder: KeyOrder[Slice[Byte]],
+                                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                                  functionStore: FunctionStore,
+                                                                  removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
+                                                                  addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
+                                                                  val keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                  val fileSweeper: FileSweeper,
+                                                                  val bufferCleaner: ByteBufferSweeperActor,
+                                                                  val blockCacheSweeper: Option[MemorySweeper.Block],
+                                                                  val segmentIDGenerator: IDGenerator,
+                                                                  val segmentIO: SegmentReadIO,
+                                                                  val forceSaveApplier: ForceSaveApplier) extends NextLevel with LazyLogging { self =>
 
 
   override val levelNumber: Int =
@@ -436,41 +433,52 @@ private[core] case class Level(dirs: Seq[Dir],
           )
       }
 
-  def merge(segment: Segment)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
-    merge(Seq(segment))
+  def merge(segment: Segment,
+            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
+    merge(
+      Seq(segment),
+      removeDeletedRecords = removeDeletedRecords
+    )
 
-  def merge(segments: Iterable[Segment])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
+  def merge(segments: Iterable[Segment],
+            removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
     assignMerge(
       assignablesCount = segments.size,
       assignables = segments,
       targetSegments = self.segments(),
+      removeDeletedRecords = removeDeletedRecords,
       noGaps = false
     )
   }
 
-  def mergeMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
+  def mergeMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
+               removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.cache.skipList.size)
 
     assignMerge(
       assignablesCount = 1,
       assignables = Seq(Assignable.Collection.fromMap(map)),
       targetSegments = self.segments(),
+      removeDeletedRecords = removeDeletedRecords,
       noGaps = false
     )
   }
 
-  def mergeMaps(maps: Iterable[Map[Slice[Byte], Memory, LevelZeroMapCache]])(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
+  def mergeMaps(maps: Iterable[Map[Slice[Byte], Memory, LevelZeroMapCache]],
+                removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, maps.foldLeft(0)(_ + _.cache.skipList.size))
     assignMerge(
       assignablesCount = maps.size,
       assignables = maps.map(Assignable.Collection.fromMap),
       targetSegments = self.segments(),
+      removeDeletedRecords = removeDeletedRecords,
       noGaps = false
     )
   }
 
-  def refresh(segments: Iterable[Segment]): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]] = {
+  def refresh(segments: Iterable[Segment],
+              removeDeletedRecords: Boolean): IO[Error.Level, Iterable[CompactResult[Segment, Slice[TransientSegment]]]] = {
     logger.debug("{}: Running refresh.", pathDistributor.head)
     IO {
       segments map {
@@ -500,7 +508,8 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Future[LevelCollapseResult] = {
+  def collapse(segments: Iterable[Segment],
+               removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[LevelCollapseResult] = {
     logger.trace(s"{}: Collapsing '{}' segments", pathDistributor.head, segments.size)
     if (segments.isEmpty || appendix.cache.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       Future.successful(LevelCollapseResult.Empty)
@@ -526,6 +535,7 @@ private[core] case class Level(dirs: Seq[Dir],
         assignablesCount = segmentsToMerge.size,
         assignables = segmentsToMerge,
         targetSegments = targetSegments,
+        removeDeletedRecords = removeDeletedRecords,
         noGaps = true
       ) map {
         mergeResult =>
@@ -592,6 +602,7 @@ private[core] case class Level(dirs: Seq[Dir],
   private def assignMerge(assignablesCount: Int,
                           assignables: Iterable[Assignable],
                           targetSegments: Iterable[Segment],
+                          removeDeletedRecords: Boolean,
                           noGaps: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, assignables.size)
     if (inMemory)
@@ -599,6 +610,7 @@ private[core] case class Level(dirs: Seq[Dir],
         assignablesCount = assignablesCount,
         assignables = assignables,
         targetSegments = targetSegments,
+        removeDeletedRecords = removeDeletedRecords,
         noGaps = noGaps
       )
     else
@@ -606,6 +618,7 @@ private[core] case class Level(dirs: Seq[Dir],
         assignablesCount = assignablesCount,
         assignables = assignables,
         targetSegments = targetSegments,
+        removeDeletedRecords = removeDeletedRecords,
         noGaps = noGaps
       )
   }
@@ -613,6 +626,7 @@ private[core] case class Level(dirs: Seq[Dir],
   @inline private def assignMergeMemory(assignablesCount: Int,
                                         assignables: Iterable[Assignable],
                                         targetSegments: Iterable[Segment],
+                                        removeDeletedRecords: Boolean,
                                         noGaps: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Memory]]]] =
     Future {
       implicit def gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[Memory.Builder[Memory, ListBuffer]]]] =
@@ -681,6 +695,7 @@ private[core] case class Level(dirs: Seq[Dir],
   @inline private def assignMergePersist(assignablesCount: Int,
                                          assignables: Iterable[Assignable],
                                          targetSegments: Iterable[Segment],
+                                         removeDeletedRecords: Boolean,
                                          noGaps: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment.Persistent]]]] =
     Future {
       implicit def gapCreator: Aggregator.Creator[Assignable, ListBuffer[Assignable.Gap[MergeStats.Persistent.Builder[Memory, ListBuffer]]]] =
@@ -793,66 +808,70 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def persistAndCommit(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]],
                                appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, Unit] =
-    persist(mergeResult)
-      .flatMap {
-        result => {
-          if (result.isEmpty && appendEntry.isEmpty)
-            IO.unit
-          else
-            prepareCommit(
-              result = result,
-              appendEntry = appendEntry
-            ) flatMap {
-              entry =>
-                appendix
-                  .writeSafe(entry)
-                  .flatMap {
-                    success =>
-                      if (!success)
-                        IO.failed("Failed to write mapEntry.")
-                      else
-                        IO.unit
-                  }
-            }
-        } andThen {
-          logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, result.map(_.source.mapS(_.path)))
-          //delete assigned segments as they are replaced with new segments.
-          if (segmentConfig.isDeleteEventually)
-            result foreach {
-              mergeResult =>
-                if (mergeResult.source.isSomeS)
-                  IO(mergeResult.source.getS.delete(segmentConfig.deleteDelay)) onLeftSideEffect {
-                    exception =>
-                      logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, mergeResult.source.getS.path, exception)
-                  }
-            }
-          else
-            result foreach {
-              mergeResult =>
-                if (mergeResult.source.isSomeS)
-                  IO(mergeResult.source.getS.delete) onLeftSideEffect {
-                    exception =>
-                      logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, mergeResult.source.getS.path, exception)
-                  }
-            }
-        } onLeftSideEffect {
-          error =>
-            logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", error)
+    persist(mergeResult).flatMap(result => commitPersisted(result, appendEntry))
 
-            result foreach {
-              result =>
-                result.result foreach {
-                  segment =>
-                    IO(segment.delete) onLeftSideEffect {
-                      exception =>
-                        logger.error(s"${pathDistributor.head}: Failed to delete Segment ${segment.path}", exception)
-                    }
+  def commitPersisted(result: Iterable[CompactResult[SegmentOption, Iterable[Segment]]],
+                      appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Error.Level, Unit] = {
+
+    val persistentAndCommitResult =
+      if (result.isEmpty && appendEntry.isEmpty)
+        IO.unit
+      else
+        prepareCommit(
+          result = result,
+          appendEntry = appendEntry
+        ) flatMap {
+          entry =>
+            appendix
+              .writeSafe(entry)
+              .flatMap {
+                success =>
+                  if (!success)
+                    IO.failed("Failed to write mapEntry.")
+                  else
+                    IO.unit
+              }
+        }
+
+    persistentAndCommitResult andThen {
+      logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, result.map(_.source.mapS(_.path)))
+      //delete assigned segments as they are replaced with new segments.
+      if (segmentConfig.isDeleteEventually)
+        result foreach {
+          mergeResult =>
+            if (mergeResult.source.isSomeS)
+              IO(mergeResult.source.getS.delete(segmentConfig.deleteDelay)) onLeftSideEffect {
+                exception =>
+                  logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, mergeResult.source.getS.path, exception)
+              }
+        }
+      else
+        result foreach {
+          mergeResult =>
+            if (mergeResult.source.isSomeS)
+              IO(mergeResult.source.getS.delete) onLeftSideEffect {
+                exception =>
+                  logger.error(s"{}: Failed to delete Segment {}", pathDistributor.head, mergeResult.source.getS.path, exception)
+              }
+        }
+    } onLeftSideEffect {
+      error =>
+        logFailure(s"${pathDistributor.head}: Failed to write key-values. Reverting", error)
+
+        result foreach {
+          result =>
+            result.result foreach {
+              segment =>
+                IO(segment.delete) onLeftSideEffect {
+                  exception =>
+                    logger.error(s"${pathDistributor.head}: Failed to delete Segment ${segment.path}", exception)
                 }
             }
         }
-      }
+    }
+  }
 
-  private def persist(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[Segment]]]] =
+  def persist(mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Segment, Iterable[CompactResult[SegmentOption, Iterable[Segment]]]] =
     if (inMemory)
       SegmentWriteMemoryIO.persistMerged(
         pathsDistributor = pathDistributor,
@@ -1249,9 +1268,6 @@ private[core] case class Level(dirs: Seq[Dir],
     Segment
       .getNearestDeadlineSegment(segments())
       .isSomeS
-
-  override val isTrash: Boolean =
-    false
 
   override def isZero: Boolean =
     false

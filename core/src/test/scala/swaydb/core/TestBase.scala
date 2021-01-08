@@ -40,6 +40,7 @@ import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
+import swaydb.core.map.timer.Timer
 import swaydb.core.map.{Map, MapCache, MapEntry, Maps}
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -129,24 +130,6 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
       Level0Storage.Memory
     else
       Level0Storage.Persistent(mmap = level0MMAP, randomIntDirectory, RecoveryMode.ReportFailure)
-
-  def getMaps[K, V, C <: MapCache[K, V]](maps: Maps[K, V, C]): VolatileQueue[Map[K, V, C]] = {
-    import org.scalatest.PrivateMethodTester._
-    val function = PrivateMethod[VolatileQueue[Map[K, V, C]]](Symbol("queue"))
-    maps.invokePrivate(function())
-  }
-
-  def getJavaMap[K, OV, V <: OV](maps: HashedMap.Concurrent[K, OV, V]): ConcurrentHashMap[K, V] = {
-    import org.scalatest.PrivateMethodTester._
-    val function = PrivateMethod[ConcurrentHashMap[K, V]](Symbol("map"))
-    maps.invokePrivate(function())
-  }
-
-  def getSegmentsCache(segment: PersistentSegment): ConcurrentSkipListMap[Slice[Byte], SegmentRef] = {
-    import org.scalatest.PrivateMethodTester._
-    val function = PrivateMethod[ConcurrentSkipListMap[Slice[Byte], SegmentRef]](Symbol("segmentsCache"))
-    segment.invokePrivate(function())
-  }
 
   def persistent = levelStorage.persistent
 
@@ -645,9 +628,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterAll with Bef
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[(NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]], ActorWire[CompactionCommitter, Unit])] =
+    val compaction: Option[(NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]], ActorWire[CompactionCommitter.type, Unit])] =
       if (throttleOn) {
-        implicit val committer: ActorWire[CompactionCommitter, Unit] =
+        implicit val committer: ActorWire[CompactionCommitter.type, Unit] =
           CompactionCommitter.createActor(TestExecutionContext.executionContext)
 
         val compactors =

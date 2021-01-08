@@ -25,6 +25,8 @@
 package swaydb.core.segment.block
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.OptionValues._
+import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.Bytes
@@ -32,7 +34,6 @@ import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import org.scalatest.OptionValues._
 
 import scala.jdk.CollectionConverters._
 

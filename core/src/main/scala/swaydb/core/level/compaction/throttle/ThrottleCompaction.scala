@@ -30,7 +30,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level._
 import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.selector.{CompactionSelector, CompactionTask}
+import swaydb.core.level.compaction.selector.{CompactionSegmentSelector, CompactionTask}
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.data.slice.Slice
 import swaydb.data.util.Futures._
@@ -51,7 +51,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   val awaitPullTimeout = 6.seconds
 
   override def run(state: ThrottleState,
-                   forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+                   forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     if (state.terminate) {
       logger.debug(s"${state.name}: Ignoring wakeUp call. Compaction is terminated!")
       Future.unit
@@ -82,7 +82,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     }
 
   private[throttle] def runNow(state: ThrottleState,
-                               forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter, Unit],
+                               forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
                                                                 executionContext: ExecutionContext): Future[Unit] = {
     logger.debug(s"\n\n\n\n\n\n${state.name}: Running compaction now! forwardCopyOnAllLevels = $forwardCopyOnAllLevels!")
 
@@ -108,7 +108,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
   def shouldRun(level: LevelRef, newStateId: Long, state: ThrottleLevelState): Boolean =
     state match {
-      case awaitingPull @ ThrottleLevelState.AwaitingPull(_, timeout, stateId) =>
+      case awaitingPull @ ThrottleLevelState.AwaitingJoin(_, timeout, stateId) =>
         logger.debug(s"Level(${level.levelNumber}): $state")
         awaitingPull.listenerInvoked || timeout.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
 
@@ -118,7 +118,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     }
 
   private[throttle] def runJobs(state: ThrottleState,
-                                currentJobs: Slice[LevelRef])(implicit committer: ActorWire[CompactionCommitter, Unit],
+                                currentJobs: Slice[LevelRef])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
                                                               executionContext: ExecutionContext): Future[Unit] =
     if (state.terminate) {
       logger.warn(s"${state.name}: Cannot run jobs. Compaction is terminated.")
@@ -167,7 +167,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
    */
   private[throttle] def runJob(level: LevelRef,
                                stateId: Long)(implicit ec: ExecutionContext,
-                                              committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
+                                              committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
     level match {
       case zero: LevelZero =>
         pushForward(
@@ -184,7 +184,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
   private[throttle] def pushForward(zero: LevelZero,
                                     stateId: Long)(implicit ec: ExecutionContext,
-                                                   committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
+                                                   committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
     zero.nextLevel match {
       case Some(nextLevel: Level) =>
         pushForward(
@@ -204,7 +204,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[throttle] def pushForward(zero: LevelZero,
                                     nextLevel: Level,
                                     stateId: Long)(implicit ec: ExecutionContext,
-                                                   committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
+                                                   committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
     zero.maps.last() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
@@ -229,7 +229,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                     nextLevel: Level,
                                     stateId: Long,
                                     map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext,
-                                                                                                      committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
+                                                                                                      committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
   //    nextLevel.put(map = map) match {
   //      case Right(reserved @ LevelReservation.Reservation(mergeResultFuture, _)) =>
   //        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
@@ -308,45 +308,37 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
   private[throttle] def pushForward(level: Level,
                                     stateId: Long)(implicit ec: ExecutionContext,
-                                                   committer: ActorWire[CompactionCommitter, Unit]): Future[ThrottleLevelState] =
+                                                   committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
     pushForward(
       level = level,
       stateId = stateId,
       segmentsToPush = level.nextThrottlePushCount max 1,
-    ) match {
-      case Right(future) =>
-        future mapUnit {
-          logger.debug(s"Level(${level.levelNumber}): pushed Segments.")
-          ThrottleLevelState.Sleeping(
-            sleepDeadline = if (level.isEmpty) ThrottleLevelState.longSleep else level.nextCompactionDelay.fromNow,
-            stateId = stateId
-          )
-        } recover {
-          case _ =>
-            ThrottleLevelState.Sleeping(
-              sleepDeadline = if (level.isEmpty) ThrottleLevelState.longSleep else (ThrottleLevelState.failureSleepDuration min level.nextCompactionDelay).fromNow,
-              stateId = stateId
-            )
-        }
-
-      case Left(promise) =>
-        ThrottleLevelState.AwaitingPull(
-          promise = promise,
-          timeout = awaitPullTimeout.fromNow,
+    ) mapUnit {
+      logger.debug(s"Level(${level.levelNumber}): pushed Segments.")
+      ThrottleLevelState.Sleeping(
+        sleepDeadline = if (level.isEmpty) ThrottleLevelState.longSleep else level.nextCompactionDelay.fromNow,
+        stateId = stateId
+      )
+    } recover {
+      case _ =>
+        ThrottleLevelState.Sleeping(
+          sleepDeadline = if (level.isEmpty) ThrottleLevelState.longSleep else (ThrottleLevelState.failureSleepDuration min level.nextCompactionDelay).fromNow,
           stateId = stateId
-        ).toFuture
+        )
     }
 
   private def pushForward(level: Level,
                           stateId: Long,
                           segmentsToPush: Int)(implicit ec: ExecutionContext,
-                                               committer: ActorWire[CompactionCommitter, Unit]): Either[Promise[Unit], Future[Unit]] =
-    CompactionSelector
-      .select(level, segmentsToPush)
-      .map(runSegmentTask)
+                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+    if (level.isEmpty)
+      Future.unit
+    else
+    //      runSegmentTask(CompactionSelector.select(level, segmentsToPush))
+      ???
 
   private[throttle] def runSegmentTask(task: CompactionTask.Segments)(implicit executionContext: ExecutionContext,
-                                                                      committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+                                                                      committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     task match {
       case task: CompactionTask.CompactSegments =>
         runSegmentTask(task)
@@ -357,52 +349,46 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       case task: CompactionTask.RefreshSegments =>
         runSegmentTask(task)
 
+      case task: CompactionTask.CompactMaps =>
+        runSegmentTask(task)
+
       case CompactionTask.Idle =>
         Future.unit
     }
 
   private[throttle] def runSegmentTask(task: CompactionTask.CompactSegments)(implicit executionContext: ExecutionContext,
-                                                                             committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
-    if (task.sourceSegments.isEmpty)
+                                                                             committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+    if (task.tasks.isEmpty)
       Future.unit
     else
-      task
-        .targetLevel
-        .merge(task.sourceSegments, task.targetReservation)
-        .flatMap {
-          compactionResult =>
-            committer
-              .ask
-              .flatMap {
-                (impl, _) =>
-                  impl.commit(
-                    fromLevel = task.sourceLevel,
-                    segments = task.sourceSegments,
-                    toLevel = task.targetLevel,
-                    mergeResult = compactionResult
-                  )
-              }
-              .withCallback {
-                task.sourceLevel.checkout(task.sourceReservation) onLeftSideEffect {
-                  error =>
-                    logger.error("Failed to checkout source reservation", error.exception)
-                }
-
-                task.targetLevel.checkout(task.targetReservation) onLeftSideEffect {
-                  error =>
-                    logger.error("Failed to checkout target reservation", error.exception)
-                }
-              }
-        }
+      Future.traverse(task.tasks) {
+        task =>
+          task.targetLevel.merge(task.segments, removeDeletedRecords = false) map {
+            result =>
+              (task.targetLevel, result)
+          }
+      } flatMap {
+        result =>
+          committer
+            .ask
+            .flatMap {
+              (impl, _) =>
+                impl.commit(
+                  fromLevel = task.sourceLevel,
+                  segments = task.tasks.flatMap(_.segments),
+                  mergeResults = result
+                )
+            }
+      }
 
   private[throttle] def runSegmentTask(task: CompactionTask.CollapseSegments)(implicit executionContext: ExecutionContext,
-                                                                              committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+                                                                              committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
     else
       task
         .level
-        .collapse(task.segments, task.reservation)
+        .collapse(segments = task.segments, removeDeletedRecords = false)
         .flatMap {
           case LevelCollapseResult.Empty =>
             Future.failed(new Exception(s"Collapse failed: ${LevelCollapseResult.productPrefix}.${LevelCollapseResult.Empty.productPrefix}"))
@@ -418,22 +404,16 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                     result = mergeResult
                   )
               }
-              .withCallback {
-                task.level.checkout(task.reservation) onLeftSideEffect {
-                  error =>
-                    logger.error("Failed to checkout source reservation", error.exception)
-                }
-              }
         }
 
   private[throttle] def runSegmentTask(task: CompactionTask.RefreshSegments)(implicit executionContext: ExecutionContext,
-                                                                             committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
+                                                                             committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
     else
       task
         .level
-        .refresh(task.segments, task.reservation) //execute on current thread.
+        .refresh(segments = task.segments, removeDeletedRecords = false) //execute on current thread.
         .toFuture
         .flatMap {
           result =>
@@ -446,24 +426,16 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                     result = result
                   )
               }
-              .withCallback {
-                task.level.checkout(task.reservation) onLeftSideEffect {
-                  error =>
-                    logger.error("Failed to checkout source reservation", error.exception)
-                }
-              }
-
         }
 
   private[throttle] def runMapTask(task: CompactionTask.CompactMaps)(implicit executionContext: ExecutionContext,
-                                                                     committer: ActorWire[CompactionCommitter, Unit]): Future[Unit] =
-  //    if (task.segments.isEmpty)
+                                                                     committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+  //    if (task.maps.isEmpty)
   //      Future.unit
   //    else
   //      task
   //        .targetLevel
-  //        .merge(task.segments, task.reservation) //execute on current thread.
-  //        .toFuture
+  //        .mergeMaps(task.maps)
   //        .flatMap {
   //          result =>
   //            committer
@@ -474,12 +446,6 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   //                    level = task.levelZero,
   //                    result = result
   //                  )
-  //              }
-  //              .withCallback {
-  //                task.levelZero.checkout(task.reservation) onLeftSideEffect {
-  //                  error =>
-  //                    logger.error("Failed to checkout source reservation", error.exception)
-  //                }
   //              }
   //        }
     ???

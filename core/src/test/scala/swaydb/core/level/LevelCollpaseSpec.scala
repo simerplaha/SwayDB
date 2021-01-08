@@ -101,7 +101,7 @@ sealed trait LevelCollapseSpec extends TestBase {
         //delete half of the key values which will create small Segments
         level.put(Slice(deleteEverySecond.toArray)).runRandomIO.right.value
 
-        level.collapse(level.segments()).awaitInf match {
+        level.collapse(level.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail(s"Expected: ${LevelCollapseResult.Collapsed.getClass.getSimpleName}. Actor: ${LevelCollapseResult.Empty.productPrefix}")
 
@@ -140,7 +140,7 @@ sealed trait LevelCollapseSpec extends TestBase {
             //reopen the Level with larger min segment size
             val reopenLevel = level.reopen(segmentSize = 20.mb)
 
-            reopenLevel.collapse(reopenLevel.segments()).await match {
+            reopenLevel.collapse(reopenLevel.segments(), removeDeletedRecords = false).await match {
               case LevelCollapseResult.Empty =>
                 fail(s"Expected: ${LevelCollapseResult.Collapsed.getClass.getSimpleName}. Actor: ${LevelCollapseResult.Empty.productPrefix}")
 
@@ -194,7 +194,7 @@ sealed trait LevelCollapseSpec extends TestBase {
         }
 
         sleep(20.seconds)
-        level.collapse(level.segments()).awaitInf match {
+        level.collapse(level.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail("")
 
@@ -222,7 +222,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
         if (persistent) nextLevel.segments() foreach (_.createdInLevel shouldBe level.levelNumber)
 
-        nextLevel.collapse(nextLevel.segments()).awaitInf match {
+        nextLevel.collapse(nextLevel.segments(), removeDeletedRecords = false).awaitInf match {
           case LevelCollapseResult.Empty =>
             fail("")
 

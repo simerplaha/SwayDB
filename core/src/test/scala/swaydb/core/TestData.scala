@@ -239,7 +239,7 @@ object TestData {
       if (segments.isEmpty)
         IO.failed("Segments are empty")
       else
-        level.commit(level.merge(segments = segments).awaitInf)
+        level.commit(level.merge(segments = segments, removeDeletedRecords = false).awaitInf)
     }
 
     def putMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit sweeper: TestCaseSweeper): IO[Error.Level, Unit] = {
@@ -248,7 +248,7 @@ object TestData {
       if (map.cache.isEmpty)
         IO.failed("Map is empty")
       else
-        level.commit(level.mergeMap(map = map).awaitInf)
+        level.commit(level.mergeMap(map = map, removeDeletedRecords = false).awaitInf)
     }
 
     def reopen(implicit sweeper: TestCaseSweeper): Level =

@@ -143,7 +143,6 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
           }
 
           level.segments() shouldBe empty
-          level.removeDeletedRecords shouldBe true
       }
     }
 

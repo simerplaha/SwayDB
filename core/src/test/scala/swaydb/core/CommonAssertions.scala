@@ -526,6 +526,12 @@ object CommonAssertions {
 
   implicit class SegmentsImplicits(actual: Iterable[Segment]) {
 
+    def shouldBe(expected: Iterable[Segment]): Unit =
+      actual.zip(expected) foreach {
+        case (left, right) =>
+          left shouldBe right
+      }
+
     def shouldHaveSameKeyValuesAs(expected: Iterable[Segment]): Unit =
       actual.flatMap(_.iterator()).runRandomIO.right.value shouldBe expected.flatMap(_.iterator()).runRandomIO.right.value
   }

@@ -159,7 +159,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
                                    private val sequencer: Sequencer[BAG],
                                    val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
                                                                                  compactors: NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]],
-                                                                                 committer: ActorWire[CompactionCommitter, Unit],
+                                                                                 committer: ActorWire[CompactionCommitter.type, Unit],
                                                                                  private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
 
   def zeroPath: Path =

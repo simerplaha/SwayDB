@@ -275,8 +275,6 @@ private[core] trait LevelRef {
 
   def levelNumber: Int
 
-  def isTrash: Boolean
-
   def isZero: Boolean
 
   def stateId: Long

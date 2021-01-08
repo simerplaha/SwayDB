@@ -42,7 +42,7 @@ private[level] object ThrottleLevelState {
 
   val longSleepFiniteDuration: FiniteDuration = 1.hour
 
-  case class AwaitingPull(promise: Promise[Unit],
+  case class AwaitingJoin(promise: Promise[Unit],
                           timeout: Deadline,
                           stateId: Long) extends ThrottleLevelState {
     @volatile var listenerInvoked: Boolean = false
@@ -55,7 +55,7 @@ private[level] object ThrottleLevelState {
         s"listenerInvoked: $listenerInvoked, " +
         s"listenerInitialised: $listenerInitialised"
 
-    override def toFuture: Future[AwaitingPull] =
+    override def toFuture: Future[AwaitingJoin] =
       Future.successful(this)
   }
 

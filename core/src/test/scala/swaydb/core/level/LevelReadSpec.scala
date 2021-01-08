@@ -124,7 +124,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
             // This test is to ensure that returned List is not a java Iterable which is only iterable once.
             reopen.takeSmallSegments(10000) should not be empty
 
-            reopen.reopen(segmentSize = 10.mb).takeLargeSegments(1) shouldBe empty
+            reopen.reopen(segmentSize = 10.mb).takeLargeSegments(1).isEmpty shouldBe true
           }
       }
     }
