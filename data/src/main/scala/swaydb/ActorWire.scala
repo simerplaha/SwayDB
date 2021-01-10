@@ -134,6 +134,20 @@ final class ActorWire[I, S] private[swaydb](name: String,
 
   final val ask = new Ask
 
+  def send[R](function: I => R): Unit =
+    actor
+      .send {
+        (impl: I, _: S) =>
+          function(impl)
+      }
+
+  def sendWithSelf(function: I => ActorWire[I, S] => Unit): Unit =
+    actor
+      .send {
+        (impl: I, _: S) =>
+          function(impl)(this)
+      }
+
   def send[R](function: (I, S) => R): Unit =
     actor
       .send {

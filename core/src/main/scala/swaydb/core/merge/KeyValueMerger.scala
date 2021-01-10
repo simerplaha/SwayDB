@@ -137,8 +137,8 @@ private[core] object KeyValueMerger extends LazyLogging {
       isLastLevel = isLastLevel
     )
 
-  def merge[T[_]](mergeableCount: Int,
-                  mergeable: Iterator[Assignable],
+  def merge[T[_]](newKeyValuesCount: Int,
+                  newKeyValues: Iterator[Assignable],
                   oldKeyValuesCount: Int,
                   oldKeyValues: Iterator[KeyValue],
                   stats: MergeStats[Memory, T],
@@ -148,7 +148,7 @@ private[core] object KeyValueMerger extends LazyLogging {
     merge(
       headGap = Assignable.emptyIterable,
       tailGap = Assignable.emptyIterable,
-      newKeyValues = DropIterator[Memory.Range, Assignable](mergeableCount, mergeable),
+      newKeyValues = DropIterator[Memory.Range, Assignable](newKeyValuesCount, newKeyValues),
       oldKeyValues = DropIterator[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel

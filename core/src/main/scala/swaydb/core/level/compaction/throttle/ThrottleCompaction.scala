@@ -30,28 +30,22 @@ import swaydb.core.data.Memory
 import swaydb.core.level._
 import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.selector.{CompactionSegmentSelector, CompactionTask}
+import swaydb.core.level.compaction.tasker.CompactionTask
 import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
 import swaydb.data.slice.Slice
 import swaydb.data.util.Futures._
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * [[ThrottleCompaction]] does not implement any concurrency which should be handled by an Actor (see [[ThrottleCompactor.createActors]]).
- *
- * This just implements compaction functions that mutate the state ([[ThrottleState]]) of Levels by executing compaction functions
- * of a Level.
- *
- * This process cannot be immutable because we want to minimise garbage workload during compaction.
+ * Implements compaction functions.
  */
-private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] with LazyLogging {
+private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactorState.Active] with LazyLogging {
 
   val awaitPullTimeout = 6.seconds
 
-  override def run(state: ThrottleState,
-                   forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+  override def run(state: ThrottleCompactorState.Active)(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     if (state.terminate) {
       logger.debug(s"${state.name}: Ignoring wakeUp call. Compaction is terminated!")
       Future.unit
@@ -63,17 +57,11 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         .flatMapUnit {
           state.wakeUp.set(false)
 
-          runNow(
-            state = state,
-            forwardCopyOnAllLevels = forwardCopyOnAllLevels
-          ) withCallback {
+          runNow(state = state) withCallback {
             state.running.set(false)
 
             if (state.wakeUp.get())
-              run(
-                state = state,
-                forwardCopyOnAllLevels = forwardCopyOnAllLevels
-              )
+              run(state = state)
           }
         }
     } else {
@@ -81,10 +69,9 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       Future.unit
     }
 
-  private[throttle] def runNow(state: ThrottleState,
-                               forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                executionContext: ExecutionContext): Future[Unit] = {
-    logger.debug(s"\n\n\n\n\n\n${state.name}: Running compaction now! forwardCopyOnAllLevels = $forwardCopyOnAllLevels!")
+  private[throttle] def runNow(state: ThrottleCompactorState.Active)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                                     executionContext: ExecutionContext): Future[Unit] = {
+    logger.debug(s"\n\n\n\n\n\n${state.name}: Running compaction now!")
 
     val levels = state.levels.sorted(state.ordering)
 
@@ -117,7 +104,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         sleepDeadline.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
     }
 
-  private[throttle] def runJobs(state: ThrottleState,
+  private[throttle] def runJobs(state: ThrottleCompactorState.Active,
                                 currentJobs: Slice[LevelRef])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
                                                               executionContext: ExecutionContext): Future[Unit] =
     if (state.terminate) {
@@ -348,12 +335,6 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
       case task: CompactionTask.RefreshSegments =>
         runSegmentTask(task)
-
-      case task: CompactionTask.CompactMaps =>
-        runSegmentTask(task)
-
-      case CompactionTask.Idle =>
-        Future.unit
     }
 
   private[throttle] def runSegmentTask(task: CompactionTask.CompactSegments)(implicit executionContext: ExecutionContext,
@@ -363,7 +344,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     else
       Future.traverse(task.tasks) {
         task =>
-          task.targetLevel.merge(task.segments, removeDeletedRecords = false) map {
+          task.targetLevel.merge(task.data, removeDeletedRecords = false) map {
             result =>
               (task.targetLevel, result)
           }
@@ -375,9 +356,9 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
               (impl, _) =>
                 impl.commit(
                   fromLevel = task.sourceLevel,
-                  segments = task.tasks.flatMap(_.segments),
+                  segments = task.tasks.flatMap(_.data),
                   mergeResults = result
-                )
+                ).toFuture
             }
       }
 
@@ -402,7 +383,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                     level = task.level,
                     old = sourceSegments,
                     result = mergeResult
-                  )
+                  ).toFuture
               }
         }
 
@@ -424,30 +405,33 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                   impl.commit(
                     level = task.level,
                     result = result
-                  )
+                  ).toFuture
               }
         }
 
   private[throttle] def runMapTask(task: CompactionTask.CompactMaps)(implicit executionContext: ExecutionContext,
                                                                      committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
-  //    if (task.maps.isEmpty)
-  //      Future.unit
-  //    else
-  //      task
-  //        .targetLevel
-  //        .mergeMaps(task.maps)
-  //        .flatMap {
-  //          result =>
-  //            committer
-  //              .ask
-  //              .flatMap {
-  //                (impl, _) =>
-  //                  impl.commit(
-  //                    level = task.levelZero,
-  //                    result = result
-  //                  )
-  //              }
-  //        }
-    ???
+    if (task.maps.isEmpty)
+      Future.unit
+    else
+      Future.traverse(task.tasks) {
+        task =>
+          task.targetLevel.merge(task.data, removeDeletedRecords = false) map {
+            result =>
+              (task.targetLevel, result)
+          }
+      } flatMap {
+        result =>
+          committer
+            .ask
+            .flatMap {
+              (impl, _) =>
+                impl.commit(
+                  fromLevel = task.levelZero,
+                  maps = task.maps,
+                  mergeResults = result
+                ).toFuture
+            }
+      }
 
 }

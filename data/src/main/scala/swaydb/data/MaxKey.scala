@@ -28,11 +28,11 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.SomeOrNoneCovariant
 
-sealed trait MaxKeyOrNull[+T] extends SomeOrNoneCovariant[MaxKeyOrNull[T], MaxKey[T]] {
-  override def noneC: MaxKeyOrNull[Nothing] = MaxKey.Null
+sealed trait MaxKeyOption[+T] extends SomeOrNoneCovariant[MaxKeyOption[T], MaxKey[T]] {
+  override def noneC: MaxKeyOption[Nothing] = MaxKey.Null
 }
 
-sealed trait MaxKey[+T] extends MaxKeyOrNull[T] {
+sealed trait MaxKey[+T] extends MaxKeyOption[T] {
   def maxKey: T
   def inclusive: Boolean
   override def isNoneC: Boolean = false
@@ -41,7 +41,7 @@ sealed trait MaxKey[+T] extends MaxKeyOrNull[T] {
 
 object MaxKey {
 
-  final case object Null extends MaxKeyOrNull[Nothing] {
+  final case object Null extends MaxKeyOption[Nothing] {
     override def isNoneC: Boolean = true
     override def getC: MaxKey[Nothing] = throw new Exception("MaxKey is of type Null")
   }

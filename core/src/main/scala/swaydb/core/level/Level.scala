@@ -433,16 +433,16 @@ private[core] case class Level(dirs: Seq[Dir],
           )
       }
 
-  def merge(segment: Segment,
+  def merge(segment: Assignable.Collection,
             removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] =
     merge(
-      Seq(segment),
+      segments = Seq(segment),
       removeDeletedRecords = removeDeletedRecords
     )
 
-  def merge(segments: Iterable[Segment],
+  def merge(segments: Iterable[Assignable.Collection],
             removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]] = {
-    logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
+    logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.size)
     assignMerge(
       assignablesCount = segments.size,
       assignables = segments,

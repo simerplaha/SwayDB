@@ -91,13 +91,7 @@ object Assignable {
     def fromMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache]): Assignable.Collection =
       new Collection {
         override def maxKey: MaxKey[Slice[Byte]] =
-          map.cache.skipList.last().getS match {
-            case fixed: Memory.Fixed =>
-              MaxKey.Fixed(fixed.key)
-
-            case Memory.Range(fromKey, toKey, _, _) =>
-              MaxKey.Range(fromKey, toKey)
-          }
+          map.cache.maxKey().getC
 
         override def iterator(): Iterator[KeyValue] =
           map.cache.skipList.valuesIterator

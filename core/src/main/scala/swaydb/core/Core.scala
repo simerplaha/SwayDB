@@ -33,7 +33,7 @@ import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.throttle.ThrottleState
+import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
@@ -158,8 +158,9 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
                                    threadStateCache: ThreadStateCache,
                                    private val sequencer: Sequencer[BAG],
                                    val readStates: ThreadLocal[ThreadReadState])(implicit bag: Bag[BAG],
-                                                                                 compactors: NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]],
+                                                                                 compactors: NonEmptyList[ActorWire[Compactor, Unit]],
                                                                                  committer: ActorWire[CompactionCommitter.type, Unit],
+                                                                                 locker: ActorWire[LastLevelLocker, Unit],
                                                                                  private[swaydb] val bufferSweeper: ByteBufferSweeperActor) extends LazyLogging {
 
   def zeroPath: Path =
@@ -360,14 +361,17 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
           coreState setState CoreState.Closing
           sequencer.terminate()
         }
-        .andThen {
+        .and {
           compactors.foldLeft(bag.unit) {
             case (result, compactor) =>
               result and compactor.terminateAndClear()
           }
         }
-        .andThen {
+        .and {
           committer.terminateAndClear()
+        }
+        .and {
+          locker.terminateAndClear()
         }
         .andTransform {
           logger.info("Compaction terminated!")
@@ -395,6 +399,7 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
     )(bag = bag2,
       compactors = compactors,
       committer = committer,
+      locker = locker,
       bufferSweeper = bufferSweeper)
 
   def toBag[BAG2[_]](serialOrNull: Sequencer[BAG2])(implicit bag2: Bag[BAG2]): Core[BAG2] =
@@ -407,5 +412,6 @@ private[swaydb] class Core[BAG[_]](private val zero: LevelZero,
     )(bag = bag2,
       compactors = compactors,
       committer = committer,
+      locker = locker,
       bufferSweeper = bufferSweeper)
 }

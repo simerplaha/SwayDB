@@ -34,7 +34,8 @@ import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
+import swaydb.core.level.compaction.lock.LastLevelLocker
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorCreator, ThrottleCompactorState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelCloser, NextLevel}
 import swaydb.core.segment.block
@@ -81,21 +82,18 @@ private[core] object CoreInitializer extends LazyLogging {
    * Boots up compaction Actor and start listening to changes in levels.
    */
   def initialiseCompaction(zero: LevelZero,
-                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState],
-                                                                                committer: ActorWire[CompactionCommitter.type, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
-    compactionStrategy.createAndListen(
+                           executionContexts: List[CompactionExecutionContext])(implicit compactorCreator: CompactorCreator,
+                                                                                committer: ActorWire[CompactionCommitter.type, Unit],
+                                                                                locker: ActorWire[LastLevelLocker, Unit]): IO[Error.Level, NonEmptyList[ActorWire[Compactor, Unit]]] =
+    compactorCreator.createAndListen(
       zero = zero,
       executionContexts = executionContexts
     )
 
-  def sendInitialWakeUp(compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Unit =
+  def sendInitialWakeUp(compactor: ActorWire[Compactor, Unit]): Unit =
     compactor send {
       (impl, state, self) =>
-        impl.wakeUp(
-          state = state,
-          forwardCopyOnAllLevels = true,
-          self = self
-        )
+        impl.wakeUp(self = self)
     }
 
   def addShutdownHook[BAG[_]](core: Core[BAG]): ShutdownHookThread =
@@ -176,8 +174,8 @@ private[core] object CoreInitializer extends LazyLogging {
                 }
             }
 
-          implicit val compactionStrategy: Compactor[ThrottleState] =
-            ThrottleCompactor
+          implicit val compactorCreator: CompactorCreator =
+            ThrottleCompactorCreator
 
           //TODO make configurable and terminate
           implicit val committer: ActorWire[CompactionCommitter.type, Unit] =
@@ -294,6 +292,9 @@ private[core] object CoreInitializer extends LazyLogging {
                       throttle = config.level0.throttle
                     ) flatMap {
                       zero: LevelZero =>
+
+                        implicit val locker: ActorWire[LastLevelLocker, Unit] =
+                          LastLevelLocker.createActor(zero)(???)
 
                         initialiseCompaction(
                           zero = zero,

@@ -43,6 +43,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.segment.entry.id.BaseEntryId.Format.A
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
@@ -769,14 +770,6 @@ private[core] case object Segment extends LazyLogging {
   }
 
   def overlaps(assignable: Assignable,
-               segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
-    overlaps(
-      assignable = assignable,
-      minKey = segment.minKey,
-      maxKey = segment.maxKey
-    )
-
-  def overlaps(assignable: Assignable,
                minKey: Slice[Byte],
                maxKey: MaxKey[Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     assignable match {
@@ -856,28 +849,28 @@ private[core] case object Segment extends LazyLogging {
         )
     }
 
-  def overlaps(segment1: Segment,
-               segment2: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+  def overlaps(segment1: Assignable.Collection,
+               segment2: Assignable.Collection)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     Slice.intersects(
-      range1 = (segment1.minKey, segment1.maxKey.maxKey, segment1.maxKey.inclusive),
-      range2 = (segment2.minKey, segment2.maxKey.maxKey, segment2.maxKey.inclusive)
+      range1 = (segment1.key, segment1.maxKey.maxKey, segment1.maxKey.inclusive),
+      range2 = (segment2.key, segment2.maxKey.maxKey, segment2.maxKey.inclusive)
     )
 
-  def partitionOverlapping(segments1: Iterable[Segment],
-                           segments2: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): (Iterable[Segment], Iterable[Segment]) =
+  def partitionOverlapping[A <: Assignable.Collection](segments1: Iterable[A],
+                                                       segments2: Iterable[A])(implicit keyOrder: KeyOrder[Slice[Byte]]): (Iterable[A], Iterable[A]) =
     segments1.partition(segmentToWrite => segments2.exists(existingSegment => Segment.overlaps(segmentToWrite, existingSegment)))
 
-  def nonOverlapping(segments1: Iterable[Segment],
-                     segments2: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+  def nonOverlapping[A <: Assignable.Collection](segments1: Iterable[A],
+                                                 segments2: Iterable[A])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[A] =
     nonOverlapping(segments1, segments2, segments1.size)
 
-  def nonOverlapping(segments1: Iterable[Segment],
-                     segments2: Iterable[Segment],
-                     count: Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] = {
+  def nonOverlapping[A <: Assignable.Collection](segments1: Iterable[A],
+                                                 segments2: Iterable[A],
+                                                 count: Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[A] = {
     if (count == 0)
       Iterable.empty
     else {
-      val resultSegments = ListBuffer.empty[Segment]
+      val resultSegments = ListBuffer.empty[A]
       segments1 foreachBreak {
         segment1 =>
           if (!segments2.exists(segment2 => overlaps(segment1, segment2)))
@@ -888,25 +881,25 @@ private[core] case object Segment extends LazyLogging {
     }
   }
 
-  def overlaps(segments1: Iterable[Segment],
-               segments2: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+  def overlaps[A <: Assignable.Collection](segments1: Iterable[A],
+                                           segments2: Iterable[A])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[A] =
     segments1.filter(segment1 => segments2.exists(segment2 => overlaps(segment1, segment2)))
 
-  def overlaps(segment: Segment,
-               segments2: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+  def overlaps(segment: Assignable.Collection,
+               segments2: Iterable[Assignable.Collection])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     segments2.exists(segment2 => overlaps(segment, segment2))
 
-  def overlapsCount(segment: Segment,
-                    segments2: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Int =
+  def overlapsCount(segment: Assignable.Collection,
+                    segments2: Iterable[Assignable.Collection])(implicit keyOrder: KeyOrder[Slice[Byte]]): Int =
     segments2.count(segment2 => overlaps(segment, segment2))
 
-  def intersects(segments1: Iterable[Segment], segments2: Iterable[Segment]): Boolean =
+  def containsOne(segments1: Iterable[Segment], segments2: Iterable[Segment]): Boolean =
     if (segments1.isEmpty || segments2.isEmpty)
       false
     else
       segments1.exists(segment1 => segments2.exists(_.path == segment1.path))
 
-  def intersects(segment: Segment, segments2: Iterable[Segment]): Boolean =
+  def contains(segment: Segment, segments2: Iterable[Segment]): Boolean =
     segments2.exists(_.path == segment.path)
 
   def deleteSegments(segments: Iterable[Segment]): Int =
@@ -916,6 +909,7 @@ private[core] case object Segment extends LazyLogging {
         deleteCount + 1
     }
 
+  //NOTE: segments should be ordered.
   def tempMinMaxKeyValues(segments: Iterable[Assignable.Collection]): Slice[Memory] =
     segments.foldLeft(Slice.of[Memory](segments.size * 2)) {
       case (keyValues, segment) =>

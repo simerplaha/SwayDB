@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -29,9 +29,11 @@ import swaydb.core.level.compaction.committer.CompactionCommitter
 
 import scala.concurrent.Future
 
+/**
+ * Implements compaction for the given [[S]].
+ */
 protected trait Compaction[S] {
 
-  def run(state: S,
-          forwardCopyOnAllLevels: Boolean)(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit]
+  def run(state: S)(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit]
 
 }

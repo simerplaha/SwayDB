@@ -22,15 +22,30 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.tasker
 
-import swaydb.ActorWire
+import swaydb.core.level.Level
+import swaydb.core.level.compaction.tasker.CompactionDataType._
+import swaydb.core.segment.Segment
+import swaydb.data.NonEmptyList
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 
-/**
- * A compaction Action instance.
- */
-private[core] trait Compactor {
+case object CompactionLevelTasker {
 
-  def wakeUp(self: ActorWire[Compactor, Unit]): Unit
+  /**
+   * @return optimal [[Segment]]s to compact to
+   *         control the overflow.
+   */
+  @inline def run(source: Level,
+                  nextLevels: NonEmptyList[Level],
+                  sourceOverflow: Long): Iterable[CompactionTask.Task[Segment]] = {
+    implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
 
+    CompactionTasker.run[Segment](
+      data = source.segments(),
+      lowerLevels = nextLevels,
+      dataOverflow = sourceOverflow
+    )
+  }
 }

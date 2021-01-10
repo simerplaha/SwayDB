@@ -29,9 +29,12 @@ import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.level.Level
 import swaydb.core.level.compaction.CompactResult
+import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.{Actor, ActorWire, IO}
+import swaydb.data.slice.Slice
+import swaydb.{Actor, ActorWire, Error, IO}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,18 +46,7 @@ case object CompactionCommitter extends LazyLogging {
       impl = CompactionCommitter
     )(ec)
 
-  def commit(fromLevel: Level,
-             segments: Iterable[Segment],
-             toLevel: Level,
-             mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
-    toLevel
-      .commit(mergeResult)
-      .and(fromLevel.remove(segments))
-      .toFuture
-
-  def commit(fromLevel: Level,
-             segments: Iterable[Segment],
-             mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): Future[Unit] =
+  private def commitMergeResult(mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Slice[Unit]] =
     mergeResults
       .mapRecoverIO[(Level, Iterable[CompactResult[SegmentOption, Iterable[Segment]]])](
         block = {
@@ -89,22 +81,46 @@ case object CompactionCommitter extends LazyLogging {
               level.commitPersisted(persistedResult, None)
           }
       }
-      .and(
-        fromLevel.remove(segments)
-      )
-      .toFuture
+
+  def commit(fromLevel: Level,
+             segments: Iterable[Segment],
+             toLevel: Level,
+             mergeResult: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
+    toLevel
+      .commit(mergeResult)
+      .and(fromLevel.remove(segments))
+
+  def commit(fromLevel: Level,
+             segments: Iterable[Segment],
+             mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Unit] =
+    commitMergeResult(mergeResults)
+      .and(fromLevel.remove(segments))
+
+  def commit(fromLevel: LevelZero,
+             maps: Iterable[LevelZeroMap],
+             mergeResults: Iterable[(Level, Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]])]): IO[Error.Level, Unit] =
+    commitMergeResult(mergeResults)
+      .and {
+        maps
+          .toList
+          .reverse
+          .mapRecoverIO {
+            map =>
+              fromLevel.maps.removeLast(map)
+          }.transform(_ => ())
+      }
 
   def commit(level: Level,
-             result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
-    level.commit(result).toFuture
+             result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
+    level.commit(result)
 
   def replace(level: Level,
               old: Iterable[Segment],
-              result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): Future[Unit] =
+              result: Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]): IO[Error.Level, Unit] =
     level.commit(
       old = old,
       merged = result
-    ).toFuture
+    )
 
 }
 

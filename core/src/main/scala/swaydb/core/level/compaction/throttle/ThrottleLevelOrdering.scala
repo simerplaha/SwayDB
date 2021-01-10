@@ -70,4 +70,3 @@ private[throttle] object ThrottleLevelOrdering extends LazyLogging {
     compare
   }
 }
-

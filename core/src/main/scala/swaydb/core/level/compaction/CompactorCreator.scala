@@ -22,35 +22,22 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.selector
+package swaydb.core.level.compaction
 
-import swaydb.IO
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.core.level.compaction.committer.CompactionCommitter
+import swaydb.core.level.compaction.lock.LastLevelLocker
+import swaydb.core.level.zero.LevelZero
+import swaydb.{ActorWire, IO}
 import swaydb.data.NonEmptyList
+import swaydb.data.compaction.CompactionExecutionContext
 
-class CompactionSelectorSpec extends TestBase {
+/**
+ * Creates Compaction Actors.
+ */
+private[core] trait CompactorCreator {
 
-  "ass" in {
-    TestCaseSweeper {
-      implicit sweeper =>
-        val level = TestLevel()
-        level.put(randomizedKeyValues()) shouldBe IO.unit
-        val segmentsInLevel = level.segments()
+  def createAndListen(zero: LevelZero,
+                      executionContexts: List[CompactionExecutionContext])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                                           locker: ActorWire[LastLevelLocker, Unit]): IO[swaydb.Error.Level, NonEmptyList[ActorWire[Compactor, Unit]]]
 
-        val nextLevel = TestLevel()
-
-        val selection =
-          CompactionSegmentSelector.select(
-            source = level,
-            nextLevels = NonEmptyList(nextLevel),
-            sourceOverflow = Int.MaxValue
-          )
-
-        selection should have size 1
-        selection.head.segments shouldBe segmentsInLevel
-        selection.head.targetLevel shouldBe nextLevel
-    }
-  }
 }

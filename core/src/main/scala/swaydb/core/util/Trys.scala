@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
+ * Copyright (c) 2021 Simer JS Plaha (simer.j@gmail.com - @simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -22,15 +22,12 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.util
 
-import swaydb.ActorWire
+import scala.util.Success
 
-/**
- * A compaction Action instance.
- */
-private[core] trait Compactor {
+object Trys {
 
-  def wakeUp(self: ActorWire[Compactor, Unit]): Unit
+  val unit: Success[Unit] = Success(())
 
 }

@@ -22,29 +22,42 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.selector
+package swaydb.core.level.compaction.tasker
 
 import swaydb.core.segment.Segment
+import swaydb.core.segment.assigner.Assignable
 
 /**
- * Type that can be selected for compaction. Currently
- * this can either be files that are managed by [[swaydb.core.level.zero.LevelZero]]
- * and [[swaydb.core.level.Level]] which are [[swaydb.core.map.Map]] and [[Segment]]
- * respectively.
+ * Provides segmentSize implementation for different source data types.
+ *
+ * Source data type can be any type that can be submitted to a [[swaydb.core.level.Level]]
+ * for merge.
+ *
+ * [[A]] cannot be a contravariant type because [[CompactionDataType.TooSmallCollectionCompactionDataType]] is a
+ * super type of [[Segment]].
  */
-sealed trait SelectorDataType[-A] {
+protected sealed trait CompactionDataType[A] {
   @inline def segmentSize(segment: A): Int
 }
 
-object SelectorDataType {
+protected object CompactionDataType {
 
-  implicit class SelectorDataTypeImplicits[A](target: A) {
-    @inline def segmentSize(implicit targetType: SelectorDataType[A]) =
+  implicit class SelectorTypeImplicits[A](target: A) {
+    @inline def segmentSize(implicit targetType: CompactionDataType[A]) =
       targetType.segmentSize(target)
   }
 
-  implicit object SegmentSelectorDataType extends SelectorDataType[Segment] {
+  implicit object SegmentCompactionDataType extends CompactionDataType[Segment] {
     @inline override def segmentSize(segment: Segment): Int =
       segment.segmentSize
+  }
+
+  /**
+   * SegmentSize being 1 for all Collection types will ensure that all
+   * collections are compacted
+   */
+  implicit object TooSmallCollectionCompactionDataType extends CompactionDataType[Assignable.Collection] {
+    @inline override def segmentSize(segment: Assignable.Collection): Int =
+      1
   }
 }

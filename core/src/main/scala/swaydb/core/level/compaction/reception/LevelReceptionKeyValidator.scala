@@ -107,7 +107,6 @@ private[core] case object LevelReceptionKeyValidator {
     protected override def validateOrNull(collection: Assignable.Collection,
                                           reservationKey: AtomicRanges.Key[Slice[Byte]])(implicit reservations: AtomicRanges[Slice[Byte]],
                                                                                          keyOrder: KeyOrder[Slice[Byte]]): InvalidLevelReservation =
-
       LevelReceptionKeyValidator.validateOrNull(
         minKey = collection.key,
         maxKey = collection.maxKey,

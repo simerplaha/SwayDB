@@ -30,13 +30,15 @@ import swaydb.core.segment.ref.SegmentRef
 /**
  * Stores assign gap and mergeable (overlapping) key-value of a Segment.
  *
- * @param segment    Segment this assignment belong sto
- * @param headGap    Head key-values that can be added directly to the Segment without merge
- * @param midOverlap Overlapping key-values that require merge.
- * @param tailGap    Tail key-values that can be added directly to the Segment without merge
+ * @param segment    Segment this assignment belongs to.
+ * @param headGap    Head key-values that can be added directly to the Segment without merge.
+ * @param midOverlap Overlapping key-values that require merge with that target [[segment]]'s
+ *                   key-values.
+ * @param tailGap    Tail key-values that can be added directly to the Segment without merge.
  * @tparam GAP [[Aggregator]]'s result type that will store all gap key-values.
+ * @tparam MID [[Aggregator]]'s result type that will store all mergeable/overlapping key-values.
  * @tparam SEG Target Segment to which key-values should be assigned to.
- *             This can be a [[swaydb.core.segment.Segment]] or [[SegmentRef]]
+ *             This can be a [[swaydb.core.segment.Segment]] or [[SegmentRef]].
  */
 case class SegmentAssignment[+GAP, +MID, +SEG](segment: SEG,
                                                headGap: Aggregator[Assignable, GAP],

@@ -22,27 +22,35 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.selector
+package swaydb.core.level.compaction.tasker
 
-import swaydb.core.data.Memory
 import swaydb.core.level.Level
-import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
+import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.zero.LevelZero.LevelZeroMap
 import swaydb.core.segment.Segment
-import swaydb.data.slice.Slice
+import swaydb.core.segment.assigner.Assignable
 
 sealed trait CompactionTask
 
+/**
+ * Tasks that can be submitted to [[swaydb.core.level.compaction.Compaction]]
+ * to move [[Segment]]s and [[LevelZeroMap]]s to lower [[Level]]s.
+ */
 object CompactionTask {
 
   sealed trait Segments extends CompactionTask
 
-  case object Idle extends Segments
-
-  case class Task(targetLevel: Level,
-                  segments: Iterable[Segment])
+  /**
+   * Compaction task which is executed to perform compaction.
+   *
+   * @param targetLevel [[Level]] where the [[data]] should be written to.
+   * @param data        data to merge.
+   */
+  case class Task[A <: Assignable.Collection](targetLevel: Level,
+                                              data: Iterable[A])
 
   case class CompactSegments(sourceLevel: Level,
-                             tasks: Iterable[Task]) extends CompactionTask.Segments
+                             tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments
 
   case class CollapseSegments(level: Level,
                               segments: Iterable[Segment]) extends CompactionTask.Segments
@@ -51,7 +59,7 @@ object CompactionTask {
                              segments: Iterable[Segment]) extends CompactionTask.Segments
 
   case class CompactMaps(levelZero: LevelZero,
-                         targetLevel: Level,
-                         maps: Iterable[swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) extends CompactionTask.Segments
+                         maps: Iterable[LevelZeroMap],
+                         tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask
 
 }

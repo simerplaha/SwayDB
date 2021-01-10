@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.selector
+package swaydb.core.level.compaction.tasker
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers

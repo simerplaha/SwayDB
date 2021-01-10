@@ -22,15 +22,35 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.tasker
 
-import swaydb.ActorWire
+import swaydb.IO
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.{TestBase, TestCaseSweeper}
+import swaydb.data.NonEmptyList
 
-/**
- * A compaction Action instance.
- */
-private[core] trait Compactor {
+class CompactionSelectorSpec extends TestBase {
 
-  def wakeUp(self: ActorWire[Compactor, Unit]): Unit
+  "ass" in {
+    TestCaseSweeper {
+      implicit sweeper =>
+        val level = TestLevel()
+        level.put(randomizedKeyValues()) shouldBe IO.unit
+        val segmentsInLevel = level.segments()
 
+        val nextLevel = TestLevel()
+
+        val selection =
+          CompactionLevelTasker.run(
+            source = level,
+            nextLevels = NonEmptyList(nextLevel),
+            sourceOverflow = Int.MaxValue
+          )
+
+        selection should have size 1
+        selection.head.data shouldBe segmentsInLevel
+        selection.head.targetLevel shouldBe nextLevel
+    }
+  }
 }

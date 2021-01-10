@@ -274,7 +274,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
         value
     }
 
-  def dropIterator: DropIterator.Single[Null, A] = {
+  def dropIterator: DropIterator.Flat[Null, A] = {
     val iterator = self.iterator
     DropIterator(self.size, iterator)
   }

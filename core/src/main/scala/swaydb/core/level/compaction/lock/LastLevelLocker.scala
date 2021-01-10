@@ -27,10 +27,11 @@ package swaydb.core.level.compaction.lock
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
+import swaydb.core.util.Trys
 import swaydb.{Actor, ActorWire}
 
-import scala.collection.mutable
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.ExecutionContext
+import scala.util.{Failure, Try}
 
 object LastLevelLocker {
 
@@ -67,7 +68,7 @@ object LastLevelLocker {
         lastLevel = lastLevel,
         locks = 0,
         zero = zero,
-        promises = mutable.Queue.empty
+        replyToRequest = None
       )
 
     Actor.wire[LastLevelLocker](
@@ -78,10 +79,17 @@ object LastLevelLocker {
 
 }
 
+/**
+ * Locks the last Level i.e. the last non-empty level.
+ */
+
+//TODO - Make last level reset during runtime to handle cases
+//       where all last level key-values were removed or expired.
+
 class LastLevelLocker private(private var lastLevel: Level,
                               private var locks: Int,
                               zero: LevelZero,
-                              promises: mutable.Queue[Promise[Unit]])(implicit ec: ExecutionContext) extends LazyLogging {
+                              private var replyToRequest: Option[() => Unit])(implicit ec: ExecutionContext) extends LazyLogging {
 
   def lock(): Level = {
     locks += 1
@@ -93,33 +101,26 @@ class LastLevelLocker private(private var lastLevel: Level,
       throw new Exception("No existing locks. Failed to unlock.")
 
     locks -= 1
-    if (locks == 0)
-      promises.dequeueAll {
-        promise =>
-          promise.completeWith(Future.unit)
-          true
-      }
-  }
-
-  def resetLastLevel(): Level = {
-    this.lastLevel = LastLevelLocker.fetchLastLevel(zero)
-    this.lastLevel
-  }
-
-  def extend(newLast: Level): Promise[Unit] = {
-    if (newLast.levelNumber == lastLevel.levelNumber) {
-      Promise.successful(())
-    } else if (locks == 0) {
-      if (newLast.levelNumber < this.lastLevel.levelNumber) {
-        Promise.failed(new Exception(s"New last level: ${newLast.levelNumber} is smaller than ${this.lastLevel.levelNumber}"))
-      } else {
-        this.lastLevel = newLast
-        Promise.successful(())
-      }
-    } else {
-      val promise = Promise[Unit]()
-      promises += promise
-      promise
+    if (locks == 0) {
+      val request = replyToRequest
+      this.replyToRequest = None
+      request.foreach(_.apply())
     }
   }
+
+  def update(newLast: Level)(replyTo: Try[Unit] => Unit): Unit =
+    if (newLast.levelNumber == lastLevel.levelNumber) {
+      replyTo(Trys.unit)
+    } else if (locks == 0) {
+      this.lastLevel = newLast
+      replyTo(Trys.unit)
+    } else {
+      this.replyToRequest match {
+        case Some(_) =>
+          replyTo(Failure(new Exception("An extension request already exists.")))
+
+        case None =>
+          this.replyToRequest = Some(() => update(newLast)(replyTo))
+      }
+    }
 }

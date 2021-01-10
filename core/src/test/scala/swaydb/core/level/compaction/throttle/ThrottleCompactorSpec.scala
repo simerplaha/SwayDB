@@ -232,10 +232,10 @@
 //
 //            val (level, nextLevel, testState) = createTestLevel()
 //
-//            val compactor = mock[Compactor[ThrottleState]]
+//            val compactor = mock[Compactor]
 //
 //            val actor =
-//              Actor.wire[Compactor[ThrottleState], ThrottleState](
+//              Actor.wire[Compactor](
 //                name = "test",
 //                impl = compactor,
 //                state = testState
@@ -256,7 +256,7 @@
 //
 //            val (level, nextLevel, testState) = createTestLevel()
 //
-//            val compactor = mock[Compactor[ThrottleState]]
+//            val compactor = mock[Compactor]
 //            val state =
 //              testState.copy(
 //                compactionStates =
@@ -269,7 +269,7 @@
 //            state.sleepTask = Some(null)
 //
 //            val actor =
-//              Actor.wire[Compactor[ThrottleState], ThrottleState](
+//              Actor.wire[Compactor](
 //                name = "test",
 //                impl = compactor,
 //                state = state
@@ -292,7 +292,7 @@
 //
 //            val (level, nextLevel, testState) = createTestLevel()
 //
-//            val compactor = mock[Compactor[ThrottleState]]
+//            val compactor = mock[Compactor]
 //
 //            val state =
 //              testState.copy(
@@ -304,7 +304,7 @@
 //              )
 //
 //            val actor =
-//              Actor.wire[Compactor[ThrottleState], ThrottleState](
+//              Actor.wire[Compactor](
 //                name = "",
 //                impl = compactor,
 //                state = state
@@ -356,7 +356,7 @@
 //                  )
 //              )
 //            //mock the compaction that should expect a wakeUp call
-//            val compactor = mock[Compactor[ThrottleState]]
+//            val compactor = mock[Compactor]
 //            compactor.wakeUp _ expects(*, *, *) onCall {
 //              (callState, doCopy, _) =>
 //                callState shouldBe state
@@ -365,7 +365,7 @@
 //
 //            //initialise Compactor with the mocked class
 //            val actor =
-//              Actor.wire[Compactor[ThrottleState], ThrottleState](
+//              Actor.wire[Compactor](
 //                name = "test",
 //                impl = compactor,
 //                state = state
@@ -414,7 +414,7 @@
 //                  )
 //              )
 //            //mock the compaction that should expect a wakeUp call
-//            val compactor = mock[Compactor[ThrottleState]]
+//            val compactor = mock[Compactor]
 //            compactor.wakeUp _ expects(*, *, *) onCall {
 //              (callState, doCopy, _) =>
 //                callState shouldBe state
@@ -423,7 +423,7 @@
 //
 //            //initialise Compactor with the mocked class
 //            val actor =
-//              Actor.wire[Compactor[ThrottleState], ThrottleState](
+//              Actor.wire[Compactor](
 //                name = "test",
 //                impl = compactor,
 //                state = state
@@ -469,13 +469,13 @@
 //
 //          implicit val compaction = mock[Compaction[ThrottleState]]
 //
-//          val parentCompactor = mock[Compactor[ThrottleState]]
-//          val childCompactor = mock[Compactor[ThrottleState]]
+//          val parentCompactor = mock[Compactor]
+//          val childCompactor = mock[Compactor]
 //
 //          val copyForward = randomBoolean()
 //
 //          val childActor =
-//            Actor.wire[Compactor[ThrottleState], ThrottleState](
+//            Actor.wire[Compactor](
 //              name = "test",
 //              impl = childCompactor,
 //              state = testState
@@ -485,7 +485,7 @@
 //            testState.copy(compactionStates = mutable.Map.empty, child = Some(childActor))
 //
 //          val actor =
-//            Actor.wire[Compactor[ThrottleState], ThrottleState](
+//            Actor.wire[Compactor](
 //              name = "test",
 //              impl = parentCompactor,
 //              state = state

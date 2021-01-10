@@ -31,7 +31,7 @@ import swaydb.core.map.{MapCache, MapCacheBuilder, MapEntry}
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListSeries}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.{Atomic, OptimiseWrites}
+import swaydb.data.{Atomic, MaxKey, MaxKeyOption, OptimiseWrites}
 
 import scala.collection.mutable.ListBuffer
 
@@ -130,12 +130,6 @@ private[core] class LevelZeroMapCache private(@volatile private var state: Level
                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                                                                     functionStore: FunctionStore,
                                                                                                     atomic: Atomic) extends MapCache[Slice[Byte], Memory] {
-
-  /**
-   * Should only be invoked after the [[Map]] is compacted.
-   */
-  def delete(): Unit =
-    this.state = LevelZeroMapCache.State()(keyOrder = keyOrder, optimiseWrites = OptimiseWrites.RandomOrder)
 
   @inline private def write(entry: MapEntry[Slice[Byte], Memory], atomic: Boolean): Unit = {
     val entries = entry.entries
@@ -264,6 +258,21 @@ private[core] class LevelZeroMapCache private(@volatile private var state: Level
       state.skipList.atomicRead(getRangeKeys)(_.ceiling(key))(Bag.glass)
     else
       state.skipList.ceiling(key)
+
+  def maxKey(): MaxKeyOption[Slice[Byte]] =
+    skipList.last() match {
+      case memory: Memory =>
+        memory match {
+          case fixed: Memory.Fixed =>
+            MaxKey.Fixed(fixed.key)
+
+          case Memory.Range(fromKey, toKey, _, _) =>
+            MaxKey.Range(fromKey, toKey)
+        }
+
+      case Memory.Null =>
+        MaxKey.Null
+    }
 
   def skipList =
     state.skipList

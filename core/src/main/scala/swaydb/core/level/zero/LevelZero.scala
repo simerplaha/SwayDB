@@ -64,6 +64,8 @@ import scala.concurrent.duration._
 
 private[core] case object LevelZero extends LazyLogging {
 
+  type LevelZeroMap = map.Map[Slice[Byte], Memory, LevelZeroMapCache]
+
   def apply(mapSize: Long,
             appliedFunctionsMapSize: Long,
             clearAppliedFunctionsOnBoot: Boolean,
@@ -267,9 +269,9 @@ private[swaydb] case class LevelZero(path: Path,
                                      throttle: LevelZeroMeter => FiniteDuration,
                                      appliedFunctionsMap: Option[map.Map[Slice[Byte], Slice.Null.type, AppliedFunctionsMapCache]],
                                      coreState: CoreState,
-                                     private val lock: Option[FileLocker])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                                           functionStore: FunctionStore) extends LevelRef with LazyLogging {
+                                     private val lock: Option[FileLocker])(implicit val keyOrder: KeyOrder[Slice[Byte]],
+                                                                           val timeOrder: TimeOrder[Slice[Byte]],
+                                                                           val functionStore: FunctionStore) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
 
@@ -569,7 +571,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   private def getFromNextLevel(key: Slice[Byte],
                                readState: ThreadReadState,
-                               tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+                               tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
     val headOrNull = tailMaps.headOrNull
 
     if (headOrNull == null)
@@ -595,7 +597,7 @@ private[swaydb] case class LevelZero(path: Path,
         getFromMap(key, theMap)
     }
 
-  def nextGetter(tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) =
+  def nextGetter(tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) =
     new NextGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState, tailMaps)
@@ -604,7 +606,7 @@ private[swaydb] case class LevelZero(path: Path,
   private def find(key: Slice[Byte],
                    readState: ThreadReadState,
                    headMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                   tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption =
+                   tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption =
     Get.seek(
       key = key,
       readState = readState,
@@ -716,7 +718,7 @@ private[swaydb] case class LevelZero(path: Path,
   def ceiling(key: Slice[Byte],
               readState: ThreadReadState,
               headMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-              tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+              tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
     val (left, right) = tailMaps.duplicate()
 
     find(
@@ -749,7 +751,7 @@ private[swaydb] case class LevelZero(path: Path,
   def floor(key: Slice[Byte],
             readState: ThreadReadState,
             headMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-            tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+            tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
     val (left, right) = tailMaps.duplicate()
 
     find(
@@ -782,7 +784,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findHigherInNextLevel(key: Slice[Byte],
                             readState: ThreadReadState,
-                            tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+                            tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull
 
     if (nextMapOrNull == null)
@@ -803,7 +805,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   def currentWalker(currentMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                    tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) =
+                    tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) =
     new CurrentWalker {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         find(
@@ -829,7 +831,7 @@ private[swaydb] case class LevelZero(path: Path,
         "current"
     }
 
-  def nextWalker(tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) =
+  def nextWalker(tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]) =
     new NextWalker {
       override def higher(key: Slice[Byte],
                           readState: ThreadReadState): KeyValue.PutOption =
@@ -850,7 +852,7 @@ private[swaydb] case class LevelZero(path: Path,
   def findHigher(key: Slice[Byte],
                  readState: ThreadReadState,
                  currentMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                 tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption =
+                 tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption =
     Higher.seek(
       key = key,
       readState = readState,
@@ -896,7 +898,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findLowerInNextLevel(key: Slice[Byte],
                            readState: ThreadReadState,
-                           tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
+                           tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption = {
     val nextMapOrNull = tailMaps.headOrNull
 
     if (nextMapOrNull == null)
@@ -919,7 +921,7 @@ private[swaydb] case class LevelZero(path: Path,
   def findLower(key: Slice[Byte],
                 readState: ThreadReadState,
                 currentMap: map.Map[Slice[Byte], Memory, LevelZeroMapCache],
-                tailMaps: DropIterator.Single[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption =
+                tailMaps: DropIterator.Flat[Null, map.Map[Slice[Byte], Memory, LevelZeroMapCache]]): KeyValue.PutOption =
     Lower.seek(
       key = key,
       readState = readState,

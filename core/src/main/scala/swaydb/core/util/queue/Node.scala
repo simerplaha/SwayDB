@@ -24,14 +24,14 @@
 
 package swaydb.core.util.queue
 
-private[queue] sealed trait Node[+A] {
+protected sealed trait Node[+A] {
   def isEmpty: Boolean
   def previous: Node[A]
   def next: Node[A]
   def value: A
 }
 
-private[queue] case object Node {
+protected case object Node {
 
   final case object Empty extends Node[Nothing] {
     override val isEmpty: Boolean = true

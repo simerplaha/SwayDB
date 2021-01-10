@@ -55,13 +55,13 @@ private[core] sealed trait DropIterator[H >: Null <: T, T >: Null] {
 private[core] object DropIterator {
 
   @inline final def empty[H >: Null <: T, T >: Null] =
-    new Single[H, T](0, null, null, Iterator.empty)
+    new Flat[H, T](0, null, null, Iterator.empty)
 
-  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator.Single[H, T] =
-    new Single[H, T](keyValues.size, null, null, keyValues.iterator)
+  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator.Flat[H, T] =
+    new Flat[H, T](keyValues.size, null, null, keyValues.iterator)
 
-  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator.Single[H, T] =
-    new Single[H, T](size, null, null, keyValues)
+  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator.Flat[H, T] =
+    new Flat[H, T](size, null, null, keyValues)
 
   implicit class DropIteratorImplicit[H >: Null <: T, T >: Null](left: DropIterator[H, T]) {
     @inline final def append(right: DropIterator[H, T]): DropIterator[H, T] =
@@ -70,13 +70,13 @@ private[core] object DropIterator {
       else if (right.isEmpty)
         left
       else
-        new Multiple(left, right)
+        new Nest(left, right)
   }
 
-  class Single[H >: Null <: T, T >: Null] private[DropIterator](var size: Int,
-                                                                private var headRangeOrNull: H,
-                                                                private var tailHead: T,
-                                                                private var tailKeyValues: Iterator[T]) extends DropIterator[H, T] {
+  class Flat[H >: Null <: T, T >: Null] private[DropIterator](var size: Int,
+                                                              private var headRangeOrNull: H,
+                                                              private var tailHead: T,
+                                                              private var tailKeyValues: Iterator[T]) extends DropIterator[H, T] {
 
     override val depth: Int = 1
 
@@ -92,7 +92,7 @@ private[core] object DropIterator {
       else
         headRangeOrNull
 
-    def dropHead(): DropIterator.Single[H, T] = {
+    def dropHead(): DropIterator.Flat[H, T] = {
       if (headRangeOrNull != null) {
         headRangeOrNull = null
         size -= 1
@@ -107,7 +107,7 @@ private[core] object DropIterator {
       this
     }
 
-    def dropHeadDuplicate(): DropIterator.Single[H, T] = {
+    def dropHeadDuplicate(): DropIterator.Flat[H, T] = {
       this.headOrNull //ensure that head is fetched.
 
       val (left, right) = tailKeyValues.duplicate
@@ -121,7 +121,7 @@ private[core] object DropIterator {
       duplicated
     }
 
-    def duplicate(): (Single[H, T], Single[H, T]) = {
+    def duplicate(): (Flat[H, T], Flat[H, T]) = {
       val (left, right) = tailKeyValues.duplicate
 
       val leftIterator = DropIterator[H, T](size = size, keyValues = left)
@@ -135,7 +135,7 @@ private[core] object DropIterator {
       (leftIterator, rightIterator)
     }
 
-    def dropPrepend(head: H): DropIterator.Single[H, T] =
+    def dropPrepend(head: H): DropIterator.Flat[H, T] =
       if (headRangeOrNull != null) {
         headRangeOrNull = head
         this
@@ -172,8 +172,8 @@ private[core] object DropIterator {
       }
   }
 
-  private[core] class Multiple[H >: Null <: T, T >: Null] private[DropIterator](private var left: DropIterator[H, T],
-                                                                                right: DropIterator[H, T]) extends DropIterator[H, T] {
+  private[core] class Nest[H >: Null <: T, T >: Null] private[DropIterator](private var left: DropIterator[H, T],
+                                                                            right: DropIterator[H, T]) extends DropIterator[H, T] {
 
     override def dropHead(): DropIterator[H, T] =
       (left.isEmpty, right.isEmpty) match {
@@ -191,7 +191,7 @@ private[core] object DropIterator {
     override def dropPrepend(head: H): DropIterator[H, T] =
       (left.isEmpty, right.isEmpty) match {
         case (true, true) =>
-          new Single[H, T](1, head, null, Iterator.empty)
+          new Flat[H, T](1, head, null, Iterator.empty)
         case (true, false) =>
           right.dropPrepend(head)
         case (false, true) =>

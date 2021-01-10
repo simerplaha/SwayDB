@@ -28,6 +28,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level.compaction.CompactResult
 import swaydb.core.level.zero.LevelZeroMapCache
 import swaydb.core.map.Map
+import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.data.TransientSegment
 import swaydb.core.segment.{Segment, SegmentOption}
 import swaydb.core.util.AtomicRanges
@@ -81,7 +82,7 @@ trait NextLevel extends LevelRef {
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def merge(segment: Segment,
+  def merge(segment: Assignable.Collection,
             removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
   def mergeMap(map: Map[Slice[Byte], Memory, LevelZeroMapCache],
@@ -90,7 +91,7 @@ trait NextLevel extends LevelRef {
   def mergeMaps(map: Iterable[Map[Slice[Byte], Memory, LevelZeroMapCache]],
                 removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
-  def merge(segments: Iterable[Segment],
+  def merge(segments: Iterable[Assignable.Collection],
             removeDeletedRecords: Boolean)(implicit ec: ExecutionContext): Future[Iterable[CompactResult[SegmentOption, Iterable[TransientSegment]]]]
 
   def refresh(segment: Iterable[Segment],
