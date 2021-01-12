@@ -148,7 +148,7 @@ lazy val SwayDB =
       configs,
       serializers,
       `data-java`,
-      //      `swaydb-java`,
+      `swaydb-java`,
       `serializer-boopickle`,
       `swaydb-monix`,
       `swaydb-zio`,
@@ -234,13 +234,13 @@ lazy val `swaydb-stress` =
     .dependsOn(core, configs)
     .dependsOn(swaydb, core % "test->test")
 
-//lazy val `swaydb-java` =
-//  project
-//    .settings(name := "java")
-//    .settings(commonSettings)
-//    .settings(publishSettings)
-//    .settings(libraryDependencies ++= commonJavaDependencies)
-//    .dependsOn(swaydb, `data-java`)
+lazy val `swaydb-java` =
+  project
+    .settings(name := "java")
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(libraryDependencies ++= commonJavaDependencies)
+    .dependsOn(swaydb, `data-java`)
 
 /**
  * Support modules - Effect
