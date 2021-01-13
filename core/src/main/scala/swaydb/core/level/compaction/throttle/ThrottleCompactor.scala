@@ -26,114 +26,61 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorWire
+import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.{Compaction, Compactor}
-import swaydb.data.util.FiniteDurations
-import swaydb.data.util.FiniteDurations._
+import swaydb.core.level.compaction.throttle.ThrottleCompactor.PauseResponse
 
-import scala.concurrent.duration.Deadline
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Compactor = Compaction Actor.
  *
  * Implements Actor functions.
  */
-private[core] class ThrottleCompactor(@volatile private var state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                                           locker: ActorWire[LastLevelLocker, Unit],
-                                                                                           compaction: Compaction[ThrottleCompactorState.Active]) extends Compactor with LazyLogging {
 
-  def scheduleNextWakeUp(self: ActorWire[Compactor, Unit]): Unit = {
-    //    logger.debug(s"${state.name}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
-    //
-    //    val levelsToCompact =
-    //      state
-    //        .compactionStates
-    //        .collect {
-    //          case (level, levelState) if levelState.stateId != level.stateId || state.sleepTask.isEmpty =>
-    //            (level, levelState)
-    //        }
-    //
-    //    logger.debug(s"${state.name}: Levels to compact: \t\n${levelsToCompact.map { case (level, state) => (level.levelNumber, state) }.mkString("\t\n")}")
-    //
-    //    val nextDeadline =
-    //      levelsToCompact.foldLeft(Option.empty[Deadline]) {
-    //        case (nearestDeadline, (_, waiting @ ThrottleLevelState.AwaitingJoin(promise, timeout, _))) =>
-    //          //do not create another hook if a future was already initialised to invoke wakeUp.
-    //          if (!waiting.listenerInitialised) {
-    //            waiting.listenerInitialised = true
-    //            promise.future.foreach {
-    //              _ =>
-    //                logger.debug(s"${state.name}: received pull request. Sending wakeUp now.")
-    //                waiting.listenerInvoked = true
-    //                self send {
-    //                  (instance, _, self) => {
-    //                    logger.debug(s"${state.name}: Wake up executed.")
-    //                    instance.wakeUp(self)
-    //                  }
-    //                }
-    //            }(self.ec) //use the execution context of the same Actor.
-    //          } else {
-    //            logger.debug(s"${state.name}: listener already initialised.")
-    //          }
-    //
-    //          FiniteDurations.getNearestDeadline(
-    //            deadline = nearestDeadline,
-    //            next = Some(timeout)
-    //          )
-    //
-    //        case (nearestDeadline, (_, ThrottleLevelState.Sleeping(sleepDeadline, _))) =>
-    //          FiniteDurations.getNearestDeadline(
-    //            deadline = nearestDeadline,
-    //            next = Some(sleepDeadline)
-    //          )
-    //      }
-    //
-    //    logger.debug(s"${state.name}: Time left for new deadline ${nextDeadline.map(_.timeLeft.asString)}")
-    //
-    //    nextDeadline
-    //      .foreach {
-    //        newWakeUpDeadline =>
-    //          //if the wakeUp deadlines are the same do not trigger another wakeUp.
-    //          if (state.sleepTask.forall(_._2 > newWakeUpDeadline)) {
-    //            state.sleepTask foreach (_._1.cancel())
-    //
-    //            val newTask =
-    //              self.send(newWakeUpDeadline.timeLeft) {
-    //                (instance, _) =>
-    //                  state.sleepTask = None
-    //                  instance.wakeUp(self)
-    //              }
-    //
-    //            state.sleepTask = Some((newTask, newWakeUpDeadline))
-    //            logger.debug(s"${state.name}: Next wakeup scheduled!. Current scheduled: ${newWakeUpDeadline.timeLeft.asString}")
-    //          } else {
-    //            logger.debug(s"${state.name}: Some or later deadline. Ignoring re-scheduling. Keeping currently scheduled.")
-    //          }
-    //      }
-    ???
+object ThrottleCompactor {
+  sealed trait PauseResponse {
+    def paused(): Unit
   }
 
-  def postCompaction[T](self: ActorWire[Compactor, Unit]): Unit =
-  //    try
-  //      scheduleNextWakeUp(self = self) //schedule the next compaction for current Compaction group levels
-  //    finally
-  //      state.child.foreach(child => child.send(_.wakeUp(child))) //wake up child compaction.
-    ???
+  def apply(state: ThrottleCompactorState.Compacting)(self: ActorWire[Compactor, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                                                        locker: ActorWire[LastLevelLocker, Unit]) =
+    new ThrottleCompactor(state, Future.unit)(self, committer, locker)
+}
 
-  def pause(self: ActorWire[Compactor, Unit])(replyTo: => Unit): Unit =
-    ???
+private[core] class ThrottleCompactor private(@volatile private var state: ThrottleCompactorState,
+                                              @volatile private var currentFuture: Future[Unit])(implicit self: ActorWire[Compactor, Unit],
+                                                                                                 committer: ActorWire[CompactionCommitter.type, Unit],
+                                                                                                 locker: ActorWire[LastLevelLocker, Unit]) extends Compactor with PauseResponse with LastLevelLocker.ExtensionResponse with LazyLogging {
 
-  def pauseRequestGranted(self: ActorWire[Compactor, Unit]): Unit =
-    ???
+  implicit val ec = self.ec
 
-  def resume(self: ActorWire[Compactor, Unit]): Unit =
-    ???
+  @inline private def executeSequential(f: => Future[ThrottleCompactorState]): Unit =
+    currentFuture onComplete {
+      _ =>
+        this.currentFuture =
+          f map {
+            newState =>
+              this.state = newState
+          }
+    }
 
-  override def wakeUp(self: ActorWire[Compactor, Unit]): Unit =
-  //    compaction.run(state = state).onComplete {
-  //      _ =>
-  //        postCompaction(self = self)
-  //    }(state.executionContext)
-    ???
+  def pause(replyTo: ActorWire[PauseResponse, Unit]): Unit =
+    executeSequential(ThrottleCompaction.pause(state, replyTo))
+
+  override def paused(): Unit =
+    executeSequential(ThrottleCompaction.pauseSuccessful(state))
+
+  def resume(): Unit =
+    executeSequential(ThrottleCompaction.resume(state))
+
+  override def extensionSuccessful(): Unit =
+    executeSequential(ThrottleCompaction.extensionSuccessful(state))
+
+  override def extensionFailed(): Unit =
+    executeSequential(ThrottleCompaction.extensionFailed(state))
+
+  override def wakeUp(): Unit =
+    executeSequential(ThrottleCompaction.wakeUp(state))
 }

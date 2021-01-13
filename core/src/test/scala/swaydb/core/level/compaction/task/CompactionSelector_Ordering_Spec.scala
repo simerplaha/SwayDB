@@ -22,30 +22,25 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.tasker
+package swaydb.core.level.compaction.task
 
-import swaydb.core.level.Level
-import swaydb.core.level.compaction.tasker.CompactionDataType._
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.segment.Segment
-import swaydb.data.NonEmptyList
-import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.core.segment.assigner.SegmentAssignment
 
-case object CompactionLevelTasker {
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
-  /**
-   * @return optimal [[Segment]]s to compact to
-   *         control the overflow.
-   */
-  @inline def run(source: Level,
-                  nextLevels: NonEmptyList[Level],
-                  sourceOverflow: Long): Iterable[CompactionTask.Task[Segment]] = {
-    implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
+class CompactionSelector_Ordering_Spec extends AnyWordSpec with Matchers with MockFactory {
 
-    CompactionTasker.run[Segment](
-      data = source.segments(),
-      lowerLevels = nextLevels,
-      dataOverflow = sourceOverflow
-    )
+  "Narrow 1" in {
+
+    //    SegmentAssignment[mutable.SortedSet[Segment], mutable.SortedSet[Segment], ListBuffer[Segment]](
+    //
+    //    )
+
   }
+
 }

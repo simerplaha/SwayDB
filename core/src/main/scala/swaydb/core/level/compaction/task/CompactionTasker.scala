@@ -22,13 +22,13 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.tasker
+package swaydb.core.level.compaction.task
 
 import swaydb.Aggregator
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.level.Level
-import swaydb.core.level.compaction.tasker.CompactionDataType._
+import swaydb.core.level.compaction.task.CompactionDataType._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.{Assignable, SegmentAssigner, SegmentAssignment}
 import swaydb.core.util.Collections._

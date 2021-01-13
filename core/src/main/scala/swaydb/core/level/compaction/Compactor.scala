@@ -24,13 +24,11 @@
 
 package swaydb.core.level.compaction
 
-import swaydb.ActorWire
-
 /**
  * A compaction Action instance.
  */
 private[core] trait Compactor {
 
-  def wakeUp(self: ActorWire[Compactor, Unit]): Unit
+  def wakeUp(): Unit
 
 }

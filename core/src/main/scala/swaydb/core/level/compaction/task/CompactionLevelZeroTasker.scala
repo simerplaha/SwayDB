@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.tasker
+package swaydb.core.level.compaction.task
 
 import swaydb.Aggregator
 import swaydb.core.data.{KeyValue, Memory}
@@ -104,23 +104,34 @@ case object CompactionLevelZeroTasker {
         val mapMaxKey = map.cache.maxKey().getC
         val overlappingMaps = stacks.subMap(mapMinKey, true, mapMaxKey.maxKey, mapMaxKey.inclusive)
 
-        if (overlappingMaps.isEmpty) //no overlap create a fresh entry
+        if (overlappingMaps.isEmpty) { //no overlap create a fresh entry
           stacks.put(mapMinKey, (mapMaxKey, ListBuffer(Left(map))))
-        else //distribute new key-values to their overlapping stacked maps.
-          overlappingMaps.values().asScala.foldLeft((mapMinKey, true)) {
+        } else { //distribute new key-values to their overlapping stacked maps.
+          val valuesIterator = overlappingMaps.values().iterator().asScala
+
+          valuesIterator.foldLeft((mapMinKey, true)) {
             case ((takeFrom, fromInclusive), (overlappingMaxKey, stack)) =>
               val overlappingKeyValues =
-                map.cache.skipList.subMap(
-                  from = takeFrom,
-                  fromInclusive = fromInclusive,
-                  to = overlappingMaxKey.maxKey,
-                  toInclusive = overlappingMaxKey.inclusive
-                )
+                if (valuesIterator.hasNext)
+                  map.cache.skipList.subMap(
+                    from = takeFrom,
+                    fromInclusive = fromInclusive,
+                    to = overlappingMaxKey.maxKey,
+                    toInclusive = overlappingMaxKey.inclusive
+                  )
+                else //if it does not has next assign all.
+                  map.cache.skipList.subMap(
+                    from = takeFrom,
+                    fromInclusive = fromInclusive,
+                    to = mapMaxKey.maxKey,
+                    toInclusive = true
+                  )
 
               stack += Right(overlappingKeyValues.map(_._2))
 
               (overlappingMaxKey.maxKey, !overlappingMaxKey.inclusive)
           }
+        }
     }
 
     stacks.values().asScala.map(_._2)

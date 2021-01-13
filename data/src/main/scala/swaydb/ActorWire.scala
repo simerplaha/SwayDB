@@ -33,10 +33,25 @@ import scala.concurrent.{ExecutionContext, Promise}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
-final class ActorWire[I, S] private[swaydb](name: String,
-                                            impl: I,
-                                            interval: Option[(FiniteDuration, Long)],
-                                            state: S)(implicit val ec: ExecutionContext) { wire =>
+object ActorWire {
+  @inline def apply[I, S](name: String,
+                          init: ActorWire[I, S] => I,
+                          interval: Option[(FiniteDuration, Long)],
+                          state: S)(implicit ec: ExecutionContext): ActorWire[I, S] =
+    new ActorWire[I, S](
+      name = name,
+      initialiser = init,
+      interval = interval,
+      state = state
+    )
+}
+
+final class ActorWire[I, S] private(name: String,
+                                    initialiser: ActorWire[I, S] => I,
+                                    interval: Option[(FiniteDuration, Long)],
+                                    state: S)(implicit val ec: ExecutionContext) { wire =>
+
+  private val impl = initialiser(this)
 
   private val actor: ActorRef[(I, S) => Unit, S] =
     interval match {

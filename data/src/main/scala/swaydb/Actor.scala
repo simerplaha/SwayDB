@@ -394,18 +394,18 @@ object Actor {
       recovery = None
     )
 
-  def wire[T](name: String, impl: T)(implicit ec: ExecutionContext): ActorWire[T, Unit] =
-    new ActorWire(
+  def wire[T](name: String, init: ActorWire[T, Unit] => T)(implicit ec: ExecutionContext): ActorWire[T, Unit] =
+    ActorWire(
       name = name,
-      impl = impl,
+      init = init,
       interval = None,
       state = ()
     )
 
-  def wire[T, S](name: String, impl: T, state: S)(implicit ec: ExecutionContext): ActorWire[T, S] =
-    new ActorWire(
+  def wire[T, S](name: String, state: S, init: ActorWire[T, S] => T)(implicit ec: ExecutionContext): ActorWire[T, S] =
+    ActorWire(
       name = name,
-      impl = impl,
+      init = init,
       interval = None,
       state = state
     )
@@ -413,10 +413,10 @@ object Actor {
   def wireTimer[T](name: String,
                    interval: FiniteDuration,
                    stashCapacity: Long,
-                   impl: T)(implicit ec: ExecutionContext): ActorWire[T, Unit] =
-    new ActorWire(
+                   init: ActorWire[T, Unit] => T)(implicit ec: ExecutionContext): ActorWire[T, Unit] =
+    ActorWire(
       name = name,
-      impl = impl,
+      init = init,
       interval = Some((interval, stashCapacity)),
       state = ()
     )
@@ -424,11 +424,11 @@ object Actor {
   def wireTimer[T, S](name: String,
                       interval: FiniteDuration,
                       stashCapacity: Long,
-                      impl: T,
-                      state: S)(implicit ec: ExecutionContext): ActorWire[T, S] =
-    new ActorWire(
+                      state: S,
+                      init: ActorWire[T, S] => T)(implicit ec: ExecutionContext): ActorWire[T, S] =
+    ActorWire(
       name = name,
-      impl = impl,
+      init = init,
       interval = Some((interval, stashCapacity)),
       state = state
     )

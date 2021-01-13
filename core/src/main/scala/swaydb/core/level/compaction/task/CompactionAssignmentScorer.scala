@@ -22,9 +22,9 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.tasker
+package swaydb.core.level.compaction.task
 
-import swaydb.core.level.compaction.tasker.CompactionDataType._
+import swaydb.core.level.compaction.task.CompactionDataType._
 import swaydb.core.segment.assigner.SegmentAssignment
 
 case object CompactionAssignmentScorer {

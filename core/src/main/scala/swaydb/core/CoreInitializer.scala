@@ -91,10 +91,7 @@ private[core] object CoreInitializer extends LazyLogging {
     )
 
   def sendInitialWakeUp(compactor: ActorWire[Compactor, Unit]): Unit =
-    compactor send {
-      (impl, state, self) =>
-        impl.wakeUp(self = self)
-    }
+    compactor.send(_.wakeUp())
 
   def addShutdownHook[BAG[_]](core: Core[BAG]): ShutdownHookThread =
     sys.addShutdownHook {

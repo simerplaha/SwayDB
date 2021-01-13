@@ -35,6 +35,12 @@ import scala.util.{Failure, Try}
 
 object LastLevelLocker {
 
+  trait ExtensionResponse {
+    def extensionSuccessful(): Unit
+
+    def extensionFailed(): Unit
+  }
+
   def fetchLastLevel(zero: LevelZero): Level = {
     var lastLevel: Level = null
 
@@ -68,12 +74,12 @@ object LastLevelLocker {
         lastLevel = lastLevel,
         locks = 0,
         zero = zero,
-        replyToRequest = None
+        delayedExtensionOrNull = null
       )
 
     Actor.wire[LastLevelLocker](
       name = this.getClass.getSimpleName,
-      impl = state
+      init = _ => state
     )(ec)
   }
 
@@ -81,15 +87,16 @@ object LastLevelLocker {
 
 /**
  * Locks the last Level i.e. the last non-empty level.
+ *
+ * TODO
+ * Make last level reset during runtime to handle cases
+ * where all last level key-values were removed or expired.
  */
-
-//TODO - Make last level reset during runtime to handle cases
-//       where all last level key-values were removed or expired.
 
 class LastLevelLocker private(private var lastLevel: Level,
                               private var locks: Int,
                               zero: LevelZero,
-                              private var replyToRequest: Option[() => Unit])(implicit ec: ExecutionContext) extends LazyLogging {
+                              private var delayedExtensionOrNull: () => Unit)(implicit ec: ExecutionContext) extends LazyLogging {
 
   def lock(): Level = {
     locks += 1
@@ -101,26 +108,23 @@ class LastLevelLocker private(private var lastLevel: Level,
       throw new Exception("No existing locks. Failed to unlock.")
 
     locks -= 1
-    if (locks == 0) {
-      val request = replyToRequest
-      this.replyToRequest = None
-      request.foreach(_.apply())
+    if (locks == 0 && delayedExtensionOrNull != null) {
+      val request = delayedExtensionOrNull
+      this.delayedExtensionOrNull = null
+      request.apply()
     }
   }
 
-  def update(newLast: Level)(replyTo: Try[Unit] => Unit): Unit =
+  def extend(newLast: Level)(replyTo: ActorWire[LastLevelLocker.ExtensionResponse, Nothing]): Unit =
     if (newLast.levelNumber == lastLevel.levelNumber) {
-      replyTo(Trys.unit)
+      replyTo.send(_.extensionSuccessful())
     } else if (locks == 0) {
       this.lastLevel = newLast
-      replyTo(Trys.unit)
+      replyTo.send(_.extensionSuccessful())
+    } else if (this.delayedExtensionOrNull != null) {
+      logger.error("Update request already exists.")
+      replyTo.send(_.extensionFailed())
     } else {
-      this.replyToRequest match {
-        case Some(_) =>
-          replyTo(Failure(new Exception("An extension request already exists.")))
-
-        case None =>
-          this.replyToRequest = Some(() => update(newLast)(replyTo))
-      }
+      this.delayedExtensionOrNull = () => this.extend(newLast)(replyTo)
     }
 }

@@ -44,7 +44,6 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
       TestCaseSweeper {
         implicit sweeper =>
 
-
           class MyImpl(message: ListBuffer[Int]) {
             def message(int: Int): Unit =
               message += int
@@ -52,7 +51,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
             def get(): Iterable[Int] = message
           }
 
-          val actor = Actor.wire("", new MyImpl(ListBuffer.empty)).sweep()
+          val actor = Actor.wire[MyImpl]("", _ => new MyImpl(ListBuffer.empty)).sweep()
 
           actor
             .ask
@@ -71,20 +70,18 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
                 impl.get()
             }.await.toList should contain theSameElementsInOrderAs (1 to 100)
       }
-
     }
 
     "ask" in {
       TestCaseSweeper {
         implicit sweeper =>
 
-
           object MyImpl {
             def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): String =
               s"Hello $name"
           }
 
-          Actor.wire("", MyImpl).sweep()
+          Actor.wire[MyImpl.type]("", _ => MyImpl).sweep()
             .ask
             .map {
               (impl, state, self) =>
@@ -104,7 +101,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
               Future(s"Hello $name")
           }
 
-          Actor.wire("", MyImpl).sweep()
+          Actor.wire[MyImpl.type]("", _ => MyImpl).sweep()
             .ask
             .flatMap {
               (impl, _, self) =>
@@ -130,7 +127,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
               Future(name)
           }
 
-          val actor = Actor.wire("", new MyImpl("")).sweep()
+          val actor = Actor.wire[MyImpl]("", _ => new MyImpl("")).sweep()
 
           actor.send {
             (impl, state) =>
@@ -161,7 +158,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
               invoked
           }
 
-          val actor = Actor.wire("", new MyImpl(invoked = false)).sweep()
+          val actor = Actor.wire[MyImpl]("", _ => new MyImpl(invoked = false)).sweep()
 
           actor.send(2.second) {
             (impl, _) =>
@@ -209,7 +206,7 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
               invoked
           }
 
-          val actor = Actor.wire("", new MyImpl(invoked = false)).sweep()
+          val actor = Actor.wire[MyImpl]("", _ => new MyImpl(invoked = false)).sweep()
 
           val result =
             actor
@@ -270,13 +267,13 @@ class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
               invoked
           }
 
-          val actor = Actor.wire("", new MyImpl()).sweep()
+          val actor = Actor.wire[MyImpl]("", _ => new MyImpl()).sweep()
 
           val result =
             actor
               .ask
               .flatMap(2.second) {
-                (impl, state, self) =>
+                (impl, _, self) =>
                   impl.invoke(self)
               }
 

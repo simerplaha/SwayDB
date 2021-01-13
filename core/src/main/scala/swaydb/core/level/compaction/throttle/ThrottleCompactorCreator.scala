@@ -90,24 +90,21 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
                 .zipWithIndex
                 .foldRight(List.empty[ActorWire[Compactor, Unit]]) {
                   case (((jobs, executionContext, resetCompactionPriorityAtInterval), index), children) =>
-                    val statesMap = mutable.Map.empty[LevelRef, ThrottleLevelState]
+                    val statesMap = collection.concurrent.TrieMap.empty[LevelRef, ThrottleLevelState]
 
                     val state =
-                      ThrottleCompactorState.Active(
+                      ThrottleCompactorState.Compacting(
                         levels = Slice(jobs.toArray),
                         resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
                         child = children.headOption,
-                        executionContext = executionContext,
-                        compactionStates = statesMap,
-                        wakeUp = new AtomicBoolean(),
-                        running = new AtomicBoolean()
+                        compactionStates = statesMap
                       )
 
                     val actor =
                       Actor.wire[Compactor](
-                        name = s"Compaction$index",
-                        impl = new ThrottleCompactor(state)
-                      )(state.executionContext)
+                        name = s"Compaction Actor$index",
+                        init = ThrottleCompactor(state)
+                      )(executionContext)
 
                     actor :: children
                 }
@@ -148,7 +145,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
             zero onNextMapCallback (
               event =
                 () =>
-                  headActor.send(_.wakeUp(headActor))
+                  headActor.send(_.wakeUp())
               )
 
             IO.Right(actors)

@@ -261,6 +261,7 @@ private[core] class VolatileQueue[A >: Null](@volatile private var _head: Node[A
       var node: Node[A] = self._head
       var value: A = _
 
+      //TODO - handle if hasNext is called multiple times.
       override def hasNext: Boolean =
         if (node.isEmpty) {
           false

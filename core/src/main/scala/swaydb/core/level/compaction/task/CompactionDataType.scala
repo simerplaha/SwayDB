@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.level.compaction.tasker
+package swaydb.core.level.compaction.task
 
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.Assignable

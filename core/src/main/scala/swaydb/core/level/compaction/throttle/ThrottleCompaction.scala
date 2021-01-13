@@ -26,13 +26,17 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorWire
-import swaydb.core.data.Memory
 import swaydb.core.level._
-import swaydb.core.level.compaction.Compaction
+import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.committer.CompactionCommitter
-import swaydb.core.level.compaction.tasker.CompactionTask
-import swaydb.core.level.zero.{LevelZero, LevelZeroMapCache}
+import swaydb.core.level.compaction.lock.LastLevelLocker
+import swaydb.core.level.compaction.task.{CompactionLevelTasker, CompactionLevelZeroTasker, CompactionTask}
+import swaydb.core.level.compaction.throttle.ThrottleCompactor.PauseResponse
+import swaydb.core.level.zero.LevelZero
+import swaydb.data.NonEmptyList
 import swaydb.data.slice.Slice
+import swaydb.data.util.FiniteDurations
+import swaydb.data.util.FiniteDurations.FiniteDurationImplicits
 import swaydb.data.util.Futures._
 
 import scala.concurrent.duration._
@@ -41,36 +45,61 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * Implements compaction functions.
  */
-private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactorState.Active] with LazyLogging {
+private[throttle] object ThrottleCompaction extends LazyLogging {
 
   val awaitPullTimeout = 6.seconds
 
-  override def run(state: ThrottleCompactorState.Active)(implicit committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
-    if (state.terminate) {
-      logger.debug(s"${state.name}: Ignoring wakeUp call. Compaction is terminated!")
-      Future.unit
-    } else if (state.running.compareAndSet(false, true)) {
-      implicit val executionContext: ExecutionContext = state.executionContext
+  def wakeUp(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                            locker: ActorWire[LastLevelLocker, Unit],
+                                            ec: ExecutionContext,
+                                            self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+    state match {
+      case ThrottleCompactorState.Terminated(levels) =>
+        ???
 
-      Future
-        .unit
-        .flatMapUnit {
-          state.wakeUp.set(false)
+      case ThrottleCompactorState.Paused(oldState) =>
+        ???
 
-          runNow(state = state) withCallback {
-            state.running.set(false)
+      case ThrottleCompactorState.Sleeping(oldState) =>
+        ???
 
-            if (state.wakeUp.get())
-              run(state = state)
-          }
-        }
-    } else {
-      state.wakeUp.set(true)
-      Future.unit
+      case ThrottleCompactorState.Compacting(levels, resetCompactionPriorityAtInterval, child, compactionStates) =>
+        ???
     }
 
-  private[throttle] def runNow(state: ThrottleCompactorState.Active)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                     executionContext: ExecutionContext): Future[Unit] = {
+  def pause(state: ThrottleCompactorState,
+            replyTo: ActorWire[PauseResponse, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                     locker: ActorWire[LastLevelLocker, Unit],
+                                                     ec: ExecutionContext,
+                                                     self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+    ???
+
+  def pauseSuccessful(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                     locker: ActorWire[LastLevelLocker, Unit],
+                                                     ec: ExecutionContext,
+                                                     self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+    ???
+
+  def resume(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                            locker: ActorWire[LastLevelLocker, Unit],
+                                            ec: ExecutionContext,
+                                            self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+    ???
+
+  def extensionSuccessful(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                         locker: ActorWire[LastLevelLocker, Unit],
+                                                         ec: ExecutionContext,
+                                                         self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+    ???
+
+  def extensionFailed(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                     locker: ActorWire[LastLevelLocker, Unit],
+                                                     ec: ExecutionContext,
+                                                     self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+    ???
+
+  private[throttle] def runNow(state: ThrottleCompactorState.Compacting)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                                         ec: ExecutionContext): Future[Unit] = {
     logger.debug(s"\n\n\n\n\n\n${state.name}: Running compaction now!")
 
     val levels = state.levels.sorted(state.ordering)
@@ -95,18 +124,74 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
 
   def shouldRun(level: LevelRef, newStateId: Long, state: ThrottleLevelState): Boolean =
     state match {
-      case awaitingPull @ ThrottleLevelState.AwaitingJoin(_, timeout, stateId) =>
+      case awaitingPull @ ThrottleLevelState.AwaitingExtension(stateId) =>
         logger.debug(s"Level(${level.levelNumber}): $state")
-        awaitingPull.listenerInvoked || timeout.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
+        newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue()
 
       case ThrottleLevelState.Sleeping(sleepDeadline, stateId) =>
         logger.debug(s"Level(${level.levelNumber}): $state")
         sleepDeadline.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
     }
 
-  private[throttle] def runJobs(state: ThrottleCompactorState.Active,
+  def wakeUpChild(state: ThrottleCompactorState.Compacting)(implicit self: ActorWire[Compactor, Unit]): Unit = {
+    logger.debug(s"${state.name}: Waking up child: ${state.child.map(_ => "child")}.")
+    state.child.foreach(_.send(_.wakeUp()))
+  }
+
+  def postCompaction(state: ThrottleCompactorState.Compacting)(implicit self: ActorWire[Compactor, Unit]): Unit = {
+    logger.debug(s"${state.name}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
+
+    val levelsToCompact =
+      state
+        .compactionStates
+        .collect {
+          case (level, levelState) if levelState.stateId != level.stateId || state.sleepTask.isEmpty =>
+            (level, levelState)
+        }
+
+    logger.debug(s"${state.name}: Levels to compact: \t\n${levelsToCompact.map { case (level, state) => (level.levelNumber, state) }.mkString("\t\n")}")
+
+    val nextDeadline =
+      levelsToCompact.foldLeft(Option.empty[Deadline]) {
+        case (nearestDeadline, (_, ThrottleLevelState.Sleeping(sleepDeadline, _))) =>
+          FiniteDurations.getNearestDeadline(
+            deadline = nearestDeadline,
+            next = Some(sleepDeadline)
+          )
+
+        case (nearestDeadline, (_, _)) =>
+          nearestDeadline
+      }
+
+    logger.debug(s"${state.name}: Time left for new deadline ${nextDeadline.map(_.timeLeft.asString)}")
+
+    nextDeadline
+      .foreach {
+        newWakeUpDeadline =>
+          //if the wakeUp deadlines are the same do not trigger another wakeUp.
+          if (state.sleepTask.forall(_._2 > newWakeUpDeadline)) {
+            state.sleepTask foreach (_._1.cancel())
+
+            val newTask =
+              self.send(newWakeUpDeadline.timeLeft) {
+                (instance, _) =>
+                  state.sleepTask = None
+                  instance.wakeUp()
+              }
+
+            state.sleepTask = Some((newTask, newWakeUpDeadline))
+            logger.debug(s"${state.name}: Next wakeup scheduled!. Current scheduled: ${newWakeUpDeadline.timeLeft.asString}")
+          } else {
+            logger.debug(s"${state.name}: Some or later deadline. Ignoring re-scheduling. Keeping currently scheduled.")
+          }
+      }
+
+    wakeUpChild(state)
+  }
+
+  private[throttle] def runJobs(state: ThrottleCompactorState.Compacting,
                                 currentJobs: Slice[LevelRef])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                              executionContext: ExecutionContext): Future[Unit] =
+                                                              ec: ExecutionContext): Future[Unit] =
     if (state.terminate) {
       logger.warn(s"${state.name}: Cannot run jobs. Compaction is terminated.")
       Future.unit
@@ -125,11 +210,14 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
         //Level's stateId should only be accessed here before compaction starts for the level.
         val stateId = level.stateId
 
+        val nextLevels = currentJobs.dropHead().asInstanceOf[Slice[Level]]
+
         if ((currentState.isEmpty && level.nextCompactionDelay.fromNow.isOverdue()) || currentState.exists(state => shouldRun(level, stateId, state))) {
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: ${if (currentState.isEmpty) "Initial run" else "shouldRun = true"}.")
 
           runJob(
             level = level,
+            nextLevels = nextLevels,
             stateId = stateId
           ) flatMap {
             nextState =>
@@ -139,12 +227,12 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
                 value = nextState
               )
 
-              runJobs(state, currentJobs.dropHead())
+              runJobs(state, nextLevels)
           }
 
         } else {
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: shouldRun = false.")
-          runJobs(state, currentJobs.dropHead())
+          runJobs(state, nextLevels)
         }
       }
     }
@@ -153,153 +241,55 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
    * It should be be re-fetched for the same compaction.
    */
   private[throttle] def runJob(level: LevelRef,
+                               nextLevels: Slice[Level],
                                stateId: Long)(implicit ec: ExecutionContext,
                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
     level match {
       case zero: LevelZero =>
         pushForward(
           zero = zero,
+          nextLevels = nextLevels,
           stateId = stateId
         )
 
       case level: Level =>
         pushForward(
           level = level,
+          nextLevels = nextLevels,
           stateId = stateId
         )
     }
 
   private[throttle] def pushForward(zero: LevelZero,
+                                    nextLevels: Slice[Level],
                                     stateId: Long)(implicit ec: ExecutionContext,
                                                    committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
-    zero.nextLevel match {
-      case Some(nextLevel: Level) =>
-        pushForward(
-          zero = zero,
-          nextLevel = nextLevel,
+    runTasks(
+      zero = zero,
+      nextLevels = nextLevels,
+      stateId = stateId
+    ) mapUnit {
+      logger.debug(s"LevelZero: pushed Maps.")
+      ThrottleLevelState.Sleeping(
+        sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
+        stateId = stateId
+      )
+    } recover {
+      case _ =>
+        ThrottleLevelState.Sleeping(
+          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else (ThrottleLevelState.failureSleepDuration min zero.nextCompactionDelay).fromNow,
           stateId = stateId
         )
-
-      case None =>
-        //no nextLevel, no compaction!
-        ThrottleLevelState.Sleeping(
-          sleepDeadline = ThrottleLevelState.longSleep,
-          stateId = stateId
-        ).toFuture
     }
-
-  private[throttle] def pushForward(zero: LevelZero,
-                                    nextLevel: Level,
-                                    stateId: Long)(implicit ec: ExecutionContext,
-                                                   committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
-    zero.maps.last() match {
-      case Some(map) =>
-        logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
-
-        pushForward(
-          zero = zero,
-          nextLevel = nextLevel,
-          stateId = stateId,
-          map = map
-        )
-
-      case None =>
-        logger.debug(s"Level(${zero.levelNumber}): NO LAST MAP. No more maps to merge.")
-
-        ThrottleLevelState.Sleeping(
-          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
-          stateId = stateId
-        ).toFuture
-    }
-
-  private[throttle] def pushForward(zero: LevelZero,
-                                    nextLevel: Level,
-                                    stateId: Long,
-                                    map: swaydb.core.map.Map[Slice[Byte], Memory, LevelZeroMapCache])(implicit ec: ExecutionContext,
-                                                                                                      committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
-  //    nextLevel.put(map = map) match {
-  //      case Right(reserved @ LevelReservation.Reservation(mergeResultFuture, _)) =>
-  //        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
-  //        mergeResultFuture
-  //          .flatMap {
-  //            mergeResult =>
-  //              committer
-  //                .ask
-  //                .flatMap {
-  //                  (impl, _) =>
-  //                    impl.commit(
-  //                      fromLevel = zero,
-  //                      toLevel = nextLevel,
-  //                      mergeResult = mergeResult
-  //                    )
-  //                }
-  //                .mapUnit {
-  //                  // If there is a failure removing the last map, maps will add the same map back into the queue and print
-  //                  // error message to be handled by the User.
-  //                  // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
-  //                  // Maps are ALWAYS required to be processed sequentially in the order of write.
-  //                  // Random order merging of maps should NOT be allowed.
-  //                  zero.maps.removeLast(map) onLeftSideEffect {
-  //                    error =>
-  //                      val mapPath: String =
-  //                        zero
-  //                          .maps
-  //                          .nextJob()
-  //                          .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
-  //
-  //                      logger.error(
-  //                        s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
-  //                          "No more maps will be pushed to Level1 until this error is fixed " +
-  //                          "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
-  //                          "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
-  //                        error.exception
-  //                      )
-  //                  }
-  //
-  //                  ThrottleLevelState.Sleeping(
-  //                    sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
-  //                    stateId = stateId
-  //                  )
-  //                }
-  //          }
-  //          .withCallback(reserved.checkout())
-  //
-  //      case Right(failed: LevelReservation.Failed) =>
-  //        failed.error match {
-  //          case _ if zero.coreState.isNotRunning =>
-  //            logger.debug(s"Level(${zero.levelNumber}): Failed to push due to shutdown.", failed.error.exception)
-  //
-  //          //do not log the stack if the IO.Left to merge was ContainsOverlappingBusySegments.
-  //          case swaydb.Error.OverlappingPushSegment =>
-  //            logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
-  //
-  //          case _ =>
-  //            logger.error(s"Level(${zero.levelNumber}): Failed to push", failed.error.exception)
-  //        }
-  //
-  //        ThrottleLevelState.Sleeping(
-  //          sleepDeadline = if (zero.levelZeroMeter.mapsCount == 1) ThrottleLevelState.longSleep else zero.nextCompactionDelay.fromNow,
-  //          stateId = stateId
-  //        ).toFuture
-  //
-  //      case Left(promise) =>
-  //        logger.debug(s"Level(${zero.levelNumber}): Awaiting pull. stateId: $stateId.")
-  //
-  //        ThrottleLevelState.AwaitingPull(
-  //          promise = promise,
-  //          timeout = awaitPullTimeout.fromNow,
-  //          stateId = stateId
-  //        ).toFuture
-  //    }
-    ???
 
   private[throttle] def pushForward(level: Level,
+                                    nextLevels: Slice[Level],
                                     stateId: Long)(implicit ec: ExecutionContext,
                                                    committer: ActorWire[CompactionCommitter.type, Unit]): Future[ThrottleLevelState] =
-    pushForward(
+    runTasks(
       level = level,
-      stateId = stateId,
-      segmentsToPush = level.nextThrottlePushCount max 1,
+      nextLevels = nextLevels,
+      stateId = stateId
     ) mapUnit {
       logger.debug(s"Level(${level.levelNumber}): pushed Segments.")
       ThrottleLevelState.Sleeping(
@@ -314,17 +304,45 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
         )
     }
 
-  private def pushForward(level: Level,
-                          stateId: Long,
-                          segmentsToPush: Int)(implicit ec: ExecutionContext,
-                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
-    if (level.isEmpty)
+  private def runTasks(zero: LevelZero,
+                       nextLevels: Slice[Level],
+                       stateId: Long)(implicit ec: ExecutionContext,
+                                      committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+    if (zero.isEmpty)
       Future.unit
     else
-    //      runSegmentTask(CompactionSelector.select(level, segmentsToPush))
-      ???
+      CompactionLevelZeroTasker.run(
+        source = zero,
+        lowerLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead())
+      ) flatMap {
+        tasks =>
+          runMapTask(tasks)
+      }
 
-  private[throttle] def runSegmentTask(task: CompactionTask.Segments)(implicit executionContext: ExecutionContext,
+  private def runTasks(level: Level,
+                       nextLevels: Slice[Level],
+                       stateId: Long)(implicit ec: ExecutionContext,
+                                      committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
+    if (level.isEmpty) {
+      Future.unit
+    } else {
+      val tasks =
+        if (nextLevels.isEmpty)
+          CompactionLevelTasker.run(
+            source = level,
+            sourceOverflow = 10000
+          )
+        else
+          CompactionLevelTasker.run(
+            source = level,
+            nextLevels = NonEmptyList(nextLevels.head, nextLevels.dropHead()),
+            sourceOverflow = 10000
+          )
+
+      runSegmentTask(tasks)
+    }
+
+  private[throttle] def runSegmentTask(task: CompactionTask.Segments)(implicit ec: ExecutionContext,
                                                                       committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     task match {
       case task: CompactionTask.CompactSegments =>
@@ -337,7 +355,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
         runSegmentTask(task)
     }
 
-  private[throttle] def runSegmentTask(task: CompactionTask.CompactSegments)(implicit executionContext: ExecutionContext,
+  private[throttle] def runSegmentTask(task: CompactionTask.CompactSegments)(implicit ec: ExecutionContext,
                                                                              committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.tasks.isEmpty)
       Future.unit
@@ -362,7 +380,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
             }
       }
 
-  private[throttle] def runSegmentTask(task: CompactionTask.CollapseSegments)(implicit executionContext: ExecutionContext,
+  private[throttle] def runSegmentTask(task: CompactionTask.CollapseSegments)(implicit ec: ExecutionContext,
                                                                               committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
@@ -387,7 +405,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
               }
         }
 
-  private[throttle] def runSegmentTask(task: CompactionTask.RefreshSegments)(implicit executionContext: ExecutionContext,
+  private[throttle] def runSegmentTask(task: CompactionTask.RefreshSegments)(implicit ec: ExecutionContext,
                                                                              committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.segments.isEmpty)
       Future.unit
@@ -409,7 +427,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
               }
         }
 
-  private[throttle] def runMapTask(task: CompactionTask.CompactMaps)(implicit executionContext: ExecutionContext,
+  private[throttle] def runMapTask(task: CompactionTask.CompactMaps)(implicit ec: ExecutionContext,
                                                                      committer: ActorWire[CompactionCommitter.type, Unit]): Future[Unit] =
     if (task.maps.isEmpty)
       Future.unit
@@ -433,5 +451,4 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleCompactor
                 ).toFuture
             }
       }
-
 }
