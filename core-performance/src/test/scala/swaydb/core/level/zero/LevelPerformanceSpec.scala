@@ -21,7 +21,7 @@
 //
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
-//import swaydb.core.actor.MemorySweeper
+//import swaydb.core.sweeper.MemorySweeper
 //import swaydb.core.segment.ReadState
 //import swaydb.core.util.{Benchmark, SkipList}
 //import swaydb.core.{TestBase, TestSweeper}

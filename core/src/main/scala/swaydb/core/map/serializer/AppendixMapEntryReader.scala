@@ -24,14 +24,13 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.{Segment, SegmentSerialiser}
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}

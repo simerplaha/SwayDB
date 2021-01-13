@@ -28,9 +28,8 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
-
 import swaydb.core.TestData.randomBytesSlice
-import swaydb.core.actor.ByteBufferCleaner
+import swaydb.core.sweeper.ByteBufferCleaner
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._

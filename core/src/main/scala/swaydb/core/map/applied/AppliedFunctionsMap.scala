@@ -25,15 +25,14 @@
 package swaydb.core.map.applied
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map
 import swaydb.core.map.RecoveryResult
 import swaydb.core.map.serializer.{AppliedFunctionsMapEntryReader, AppliedFunctionsMapEntryWriter}
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.FileSweeper
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

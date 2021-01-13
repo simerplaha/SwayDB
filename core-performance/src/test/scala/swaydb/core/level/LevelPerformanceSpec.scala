@@ -23,7 +23,7 @@
 //import swaydb.data.RunThis._
 //import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.core.TestData._
-//import swaydb.core.actor.MemorySweeper
+//import swaydb.core.sweeper.MemorySweeper
 //import swaydb.core.segment.ReadState
 //import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 //import swaydb.core.segment.block.{BloomFilterBlock, SegmentBlock, SortedIndexBlock, ValuesBlock}

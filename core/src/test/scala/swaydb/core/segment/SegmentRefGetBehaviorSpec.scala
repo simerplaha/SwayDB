@@ -29,7 +29,7 @@
 //import org.scalamock.scalatest.MockFactory
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
-//import swaydb.core.actor.MemorySweeper
+//import swaydb.core.sweeper.MemorySweeper
 //import swaydb.core.data.{Persistent, PersistentOption, Time}
 //import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
 //import swaydb.core.segment.block.bloomfilter.BloomFilterBlock

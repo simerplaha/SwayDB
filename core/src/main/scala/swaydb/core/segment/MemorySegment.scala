@@ -25,7 +25,6 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
@@ -36,6 +35,7 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.defrag.DefragMemorySegment
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util._
 import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey

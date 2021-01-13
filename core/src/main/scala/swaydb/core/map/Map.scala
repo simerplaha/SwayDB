@@ -25,13 +25,12 @@
 package swaydb.core.map
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.MMAP
 import swaydb.data.order.KeyOrder

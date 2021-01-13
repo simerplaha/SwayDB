@@ -24,14 +24,14 @@
 
 package swaydb.core.segment.io
 
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.PathsDistributor
 import swaydb.core.level.compaction.CompactResult
 import swaydb.core.segment._
 import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.IDGenerator
 import swaydb.data.config.MMAP
 import swaydb.data.order.{KeyOrder, TimeOrder}

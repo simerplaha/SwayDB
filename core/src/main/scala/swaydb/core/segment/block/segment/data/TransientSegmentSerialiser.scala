@@ -24,7 +24,6 @@
 
 package swaydb.core.segment.block.segment.data
 
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Memory, Persistent, Time, Value}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
@@ -39,6 +38,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
+import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder

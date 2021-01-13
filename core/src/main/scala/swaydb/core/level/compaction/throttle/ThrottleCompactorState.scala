@@ -40,8 +40,6 @@ import scala.concurrent.duration.Deadline
 private[core] sealed trait ThrottleCompactorState {
   def levels: Slice[LevelRef]
 
-  def isPaused: Boolean = false
-
   final def name =
     if (levels.size == 1)
       "Level(" + levels.map(_.levelNumber).mkString(", ") + ")"
@@ -51,32 +49,38 @@ private[core] sealed trait ThrottleCompactorState {
 
 private[core] object ThrottleCompactorState {
 
-  case class Terminated(levels: Slice[LevelRef]) extends ThrottleCompactorState
+  sealed trait Active extends ThrottleCompactorState
 
-  case class Paused(oldState: Compacting) extends ThrottleCompactorState {
-    final override def isPaused: Boolean =
-      true
-
+  case class Terminated(context: Context) extends ThrottleCompactorState {
     override def levels: Slice[LevelRef] =
-      oldState.levels
+      context.levels
   }
 
-  case class Sleeping(oldState: Compacting) extends ThrottleCompactorState {
-    final override def isPaused: Boolean =
-      false
+  sealed trait Idle extends Active {
+    def context: Context
+  }
 
+  case class Paused(oldState: Sleeping) extends Idle {
     override def levels: Slice[LevelRef] =
       oldState.levels
+
+    override def context: Context =
+      oldState.context
+  }
+
+  case class Sleeping(context: Context) extends Idle {
+    override def levels: Slice[LevelRef] =
+      context.levels
   }
 
   /**
    * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
    */
-  case class Compacting(levels: Slice[LevelRef],
-                        resetCompactionPriorityAtInterval: Int,
-                        child: Option[ActorWire[Compactor, Unit]],
-                        compactionStates: collection.concurrent.Map[LevelRef, ThrottleLevelState]) extends ThrottleCompactorState with LazyLogging {
-    @volatile private[compaction] var terminate: Boolean = false
+  case class Context(levels: Slice[LevelRef],
+                     resetCompactionPriorityAtInterval: Int,
+                     child: Option[ActorWire[Compactor, Unit]],
+                     compactionStates: collection.concurrent.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {
+    @volatile private[compaction] var stopped: Boolean = false
 
     @volatile private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
 
@@ -97,6 +101,12 @@ private[core] object ThrottleCompactorState {
           )
       )
 
+    final def name =
+      if (levels.size == 1)
+        "Level(" + levels.map(_.levelNumber).mkString(", ") + ")"
+      else
+        "Levels(" + levels.map(_.levelNumber).mkString(", ") + ")"
+
     def nextThrottleDeadline: Deadline =
       if (levels.isEmpty)
       //Yep there needs to be a type-safe way of doing this and not thrown exception using a NonEmptyList.
@@ -112,7 +122,7 @@ private[core] object ThrottleCompactorState {
             ) getOrElse deadline
         }
 
-    def terminateCompaction() =
-      terminate = true
+    def stopASAP() =
+      stopped = true
   }
 }

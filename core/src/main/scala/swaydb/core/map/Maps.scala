@@ -25,17 +25,16 @@
 package swaydb.core.map
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO._
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
 import swaydb.core.brake.BrakePedal
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.DropIterator
 import swaydb.core.util.queue.VolatileQueue
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}

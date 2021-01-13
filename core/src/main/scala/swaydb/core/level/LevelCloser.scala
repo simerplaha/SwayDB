@@ -27,8 +27,8 @@ package swaydb.core.level
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag
 import swaydb.Bag.Implicits._
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 
 object LevelCloser extends LazyLogging {
 

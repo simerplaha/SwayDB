@@ -22,29 +22,28 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.actor
-
-import java.io.FileNotFoundException
-import java.nio.file.{AccessDeniedException, NoSuchFileException, Path}
-import java.nio.{ByteBuffer, MappedByteBuffer}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
+package swaydb.core.sweeper
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.IO.ExceptionHandler
 import swaydb._
-import swaydb.core.actor.ByteBufferCleaner.Cleaner
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
+import swaydb.core.sweeper.ByteBufferCleaner.Cleaner
 import swaydb.core.util.English
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.ForceSave
 import swaydb.data.util.FiniteDurations._
 
+import java.io.FileNotFoundException
+import java.nio.file.{AccessDeniedException, NoSuchFileException, Path}
+import java.nio.{ByteBuffer, MappedByteBuffer}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 
 private[swaydb] case object ByteBufferSweeper extends LazyLogging {
 

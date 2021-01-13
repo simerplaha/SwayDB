@@ -27,7 +27,6 @@ package swaydb.core
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb._
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.build.BuildValidator
 import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
@@ -39,6 +38,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.NonEmptyList
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter

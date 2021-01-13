@@ -31,7 +31,7 @@ import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.compaction.throttle.ThrottleCompactor.PauseResponse
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 /**
  * Compactor = Compaction Actor.
@@ -41,22 +41,24 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object ThrottleCompactor {
   sealed trait PauseResponse {
-    def paused(): Unit
+    def pauseSuccessful(from: ActorWire[PauseResponse, Unit]): Unit
+
+    def pauseFailed(from: ActorWire[PauseResponse, Unit]): Unit
   }
 
-  def apply(state: ThrottleCompactorState.Compacting)(self: ActorWire[Compactor, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                                        locker: ActorWire[LastLevelLocker, Unit]) =
+  def apply(state: ThrottleCompactorState.Sleeping)(self: ActorWire[ThrottleCompactor, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                                                              locker: ActorWire[LastLevelLocker, Unit]) =
     new ThrottleCompactor(state, Future.unit)(self, committer, locker)
 }
 
 private[core] class ThrottleCompactor private(@volatile private var state: ThrottleCompactorState,
-                                              @volatile private var currentFuture: Future[Unit])(implicit self: ActorWire[Compactor, Unit],
+                                              @volatile private var currentFuture: Future[Unit])(implicit self: ActorWire[ThrottleCompactor, Unit],
                                                                                                  committer: ActorWire[CompactionCommitter.type, Unit],
                                                                                                  locker: ActorWire[LastLevelLocker, Unit]) extends Compactor with PauseResponse with LastLevelLocker.ExtensionResponse with LazyLogging {
 
   implicit val ec = self.ec
 
-  @inline private def executeSequential(f: => Future[ThrottleCompactorState]): Unit =
+  @inline private def onComplete(f: => Future[ThrottleCompactorState]): Unit =
     currentFuture onComplete {
       _ =>
         this.currentFuture =
@@ -67,20 +69,23 @@ private[core] class ThrottleCompactor private(@volatile private var state: Throt
     }
 
   def pause(replyTo: ActorWire[PauseResponse, Unit]): Unit =
-    executeSequential(ThrottleCompaction.pause(state, replyTo))
+    onComplete(ThrottleCompactorBehavior.requestPause(state, replyTo))
 
-  override def paused(): Unit =
-    executeSequential(ThrottleCompaction.pauseSuccessful(state))
+  override def pauseSuccessful(from: ActorWire[PauseResponse, Unit]): Unit =
+    onComplete(ThrottleCompactorBehavior.pauseSuccessful(from, state))
+
+  override def pauseFailed(from: ActorWire[PauseResponse, Unit]): Unit =
+    onComplete(ThrottleCompactorBehavior.pauseFailed(from, state))
 
   def resume(): Unit =
-    executeSequential(ThrottleCompaction.resume(state))
+    onComplete(ThrottleCompactorBehavior.requestResume(state))
 
   override def extensionSuccessful(): Unit =
-    executeSequential(ThrottleCompaction.extensionSuccessful(state))
+    onComplete(ThrottleCompactorBehavior.extensionSuccessful(state))
 
   override def extensionFailed(): Unit =
-    executeSequential(ThrottleCompaction.extensionFailed(state))
+    onComplete(ThrottleCompactorBehavior.extensionFailed(state))
 
   override def wakeUp(): Unit =
-    executeSequential(ThrottleCompaction.wakeUp(state))
+    onComplete(ThrottleCompactorBehavior.requestWakeUp(state))
 }

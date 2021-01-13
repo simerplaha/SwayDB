@@ -25,11 +25,10 @@
 package swaydb
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.FileSweeper
 import swaydb.core.build.Build
 import swaydb.core.level.tool.AppendixRepairer
+import swaydb.core.sweeper.FileSweeper
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments

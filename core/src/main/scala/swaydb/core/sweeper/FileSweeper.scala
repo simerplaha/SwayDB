@@ -21,7 +21,7 @@
  * it with separate works, the licensors of this Program grant you additional
  * permission to convey the resulting work.
  */
-package swaydb.core.actor
+package swaydb.core.sweeper
 
 import java.nio.file.Path
 

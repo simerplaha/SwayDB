@@ -26,8 +26,6 @@ package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.core.build.{Build, BuildValidator}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
@@ -35,7 +33,7 @@ import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleCompactorCreator, ThrottleCompactorState}
+import swaydb.core.level.compaction.throttle.ThrottleCompactorCreator
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelCloser, NextLevel}
 import swaydb.core.segment.block
@@ -44,6 +42,8 @@ import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}

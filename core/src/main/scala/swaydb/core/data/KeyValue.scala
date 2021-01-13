@@ -31,6 +31,7 @@ import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.ref.search.KeyMatcher
+import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.cache.{Cache, CacheNoIO}
@@ -70,7 +71,7 @@ private[core] object KeyValue {
   sealed trait Null extends KeyValueOption
 
   /**
-   * Key-values that can be added to [[swaydb.core.actor.MemorySweeper]].
+   * Key-values that can be added to [[MemorySweeper]].
    *
    * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
    */

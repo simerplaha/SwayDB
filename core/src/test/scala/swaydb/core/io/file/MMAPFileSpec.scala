@@ -28,12 +28,11 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
-
 import org.scalamock.scalatest.MockFactory
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.actor.ByteBufferCleaner
+import swaydb.core.sweeper.ByteBufferCleaner
 import swaydb.core.{TestBase, TestCaseSweeper, TestForceSave}
 import swaydb.data.RunThis._
 import swaydb.data.util.StorageUnits._

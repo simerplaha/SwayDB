@@ -24,8 +24,12 @@
 
 package swaydb.core.level.compaction.throttle
 
+import swaydb.ActorWire
+import swaydb.core.level.compaction.throttle.ThrottleCompactor.PauseResponse
 import swaydb.data.util.FiniteDurations._
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.{Deadline, _}
 
@@ -42,7 +46,10 @@ private[level] object ThrottleLevelState {
 
   val longSleepFiniteDuration: FiniteDuration = 1.hour
 
-  case class AwaitingPause(stateId: Long) extends ThrottleLevelState {
+  sealed trait AwaitingState extends ThrottleLevelState
+
+  case class AwaitingPause(stateId: Long,
+                           fromActors: mutable.HashSet[ActorWire[PauseResponse, Unit]]) extends AwaitingState {
     override def toString: String =
       this.productPrefix +
         s"stateId: $stateId, "
@@ -51,7 +58,7 @@ private[level] object ThrottleLevelState {
       Future.successful(this)
   }
 
-  case class AwaitingExtension(stateId: Long) extends ThrottleLevelState {
+  case class AwaitingExtension(stateId: Long) extends AwaitingState {
     override def toString: String =
       this.productPrefix +
         s"stateId: $stateId, "

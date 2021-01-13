@@ -27,7 +27,6 @@ package swaydb.core.level.compaction.throttle
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorWire
 import swaydb.core.level._
-import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
 import swaydb.core.level.compaction.task.{CompactionLevelTasker, CompactionLevelZeroTasker, CompactionTask}
@@ -45,61 +44,157 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * Implements compaction functions.
  */
-private[throttle] object ThrottleCompaction extends LazyLogging {
+private[throttle] object ThrottleCompactorBehavior extends LazyLogging {
 
   val awaitPullTimeout = 6.seconds
 
-  def wakeUp(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                            locker: ActorWire[LastLevelLocker, Unit],
-                                            ec: ExecutionContext,
-                                            self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+  def requestWakeUp(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                   locker: ActorWire[LastLevelLocker, Unit],
+                                                   ec: ExecutionContext,
+                                                   self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
     state match {
-      case ThrottleCompactorState.Terminated(levels) =>
-        ???
+      case _: ThrottleCompactorState.Terminated =>
+        logger.error(s"${state.name}: Wake-up failed because compaction is terminated!")
+        Future.successful(state)
 
-      case ThrottleCompactorState.Paused(oldState) =>
-        ???
+      case state: ThrottleCompactorState.Paused =>
+        logger.error(s"${state.name}: Wake-up failed because compaction is Paused!")
+        Future.successful(state)
 
-      case ThrottleCompactorState.Sleeping(oldState) =>
-        ???
-
-      case ThrottleCompactorState.Compacting(levels, resetCompactionPriorityAtInterval, child, compactionStates) =>
-        ???
+      case state: ThrottleCompactorState.Sleeping =>
+        logger.debug(s"${state.name}: Wake-up successful!")
+        runCompaction(state.context)
     }
 
-  def pause(state: ThrottleCompactorState,
-            replyTo: ActorWire[PauseResponse, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+  def requestPause(state: ThrottleCompactorState,
+                   replyTo: ActorWire[PauseResponse, Unit])(implicit self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
+    state match {
+      case _: ThrottleCompactorState.Terminated =>
+        logger.error(s"${state.name}: Pause failed because compaction is terminated!")
+        replyTo.send(_.pauseFailed(self))
+        Future.successful(state)
+
+      case _: ThrottleCompactorState.Paused =>
+        logger.debug(s"${state.name}: Already paused!")
+        replyTo.send(_.pauseSuccessful(self))
+        Future.successful(state)
+
+      case state: ThrottleCompactorState.Sleeping =>
+        replyTo.send(_.pauseSuccessful(self))
+        Future.successful(ThrottleCompactorState.Paused(state))
+    }
+
+  def clearPaused(from: ActorWire[PauseResponse, Unit],
+                  state: ThrottleCompactorState.Idle)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                      locker: ActorWire[LastLevelLocker, Unit],
+                                                      ec: ExecutionContext,
+                                                      self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] = {
+    logger.debug(s"${state.name}: Pause successful.")
+
+    val compactionStates = state.context.compactionStates.toList
+
+    val removed =
+      compactionStates.foldLeft(false) {
+        case (removed, (level, awaiting: ThrottleLevelState.AwaitingPause)) =>
+          //execute remove first so that all awaits a removed.
+          val removeResult = awaiting.fromActors.remove(from)
+
+          if (awaiting.fromActors.isEmpty)
+            state.context.compactionStates.put(level, ThrottleLevelState.Sleeping(level.nextCompactionDelay.fromNow, awaiting.stateId))
+
+          removeResult || removed
+      }
+
+    if (!removed) {
+      logger.error("Unexpected pause successful request")
+      Future.successful(state)
+    } else {
+      runCompaction(state.context)
+    }
+  }
+
+  def pauseSuccessful(from: ActorWire[PauseResponse, Unit],
+                      state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
                                                      locker: ActorWire[LastLevelLocker, Unit],
                                                      ec: ExecutionContext,
-                                                     self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
-    ???
+                                                     self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
+    state match {
+      case _: ThrottleCompactorState.Terminated =>
+        logger.debug(s"${state.name}: Terminated!")
+        Future.successful(state)
 
-  def pauseSuccessful(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                     locker: ActorWire[LastLevelLocker, Unit],
-                                                     ec: ExecutionContext,
-                                                     self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
-    ???
+      case state: ThrottleCompactorState.Idle =>
+        logger.debug(s"${state.name}: Pause successful.")
 
-  def resume(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                            locker: ActorWire[LastLevelLocker, Unit],
-                                            ec: ExecutionContext,
-                                            self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+        val compactionStates = state.context.compactionStates.toList
+
+        val removed =
+          compactionStates.foldLeft(false) {
+            case (removed, (level, awaiting: ThrottleLevelState.AwaitingPause)) =>
+              //execute remove first so that all awaits a removed.
+              val removeResult = awaiting.fromActors.remove(from)
+
+              if (awaiting.fromActors.isEmpty)
+                state.context.compactionStates.put(level, ThrottleLevelState.Sleeping(level.nextCompactionDelay.fromNow, awaiting.stateId))
+
+              removeResult || removed
+          }
+
+        if (!removed) {
+          logger.error("Unexpected pause successful request")
+          Future.successful(state)
+        } else {
+          runCompaction(state.context)
+        }
+    }
+
+  def pauseFailed(from: ActorWire[PauseResponse, Unit],
+                  state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                 locker: ActorWire[LastLevelLocker, Unit],
+                                                 ec: ExecutionContext,
+                                                 self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
+    state match {
+      case _: ThrottleCompactorState.Terminated =>
+        logger.debug(s"${state.name}: Terminated!")
+        Future.successful(state)
+
+      case state: ThrottleCompactorState.Idle =>
+        logger.debug(s"${state.name}: Pause successful.")
+
+        val removed =
+          state.context.compactionStates.foldLeft(false) {
+            case (removed, (_, state: ThrottleLevelState.AwaitingPause)) =>
+              //execute remove first so that all awaits a removed.
+              state.fromActors.remove(from) || removed
+          }
+
+        if (!removed)
+          logger.error("Unexpected pause successful request")
+
+        Future.successful(state)
+    }
+
+  def requestResume(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                   locker: ActorWire[LastLevelLocker, Unit],
+                                                   ec: ExecutionContext,
+                                                   self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
     ???
 
   def extensionSuccessful(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
                                                          locker: ActorWire[LastLevelLocker, Unit],
                                                          ec: ExecutionContext,
-                                                         self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+                                                         self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
     ???
 
   def extensionFailed(state: ThrottleCompactorState)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
                                                      locker: ActorWire[LastLevelLocker, Unit],
                                                      ec: ExecutionContext,
-                                                     self: ActorWire[Compactor, Unit]): Future[ThrottleCompactorState] =
+                                                     self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
     ???
 
-  private[throttle] def runNow(state: ThrottleCompactorState.Compacting)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                         ec: ExecutionContext): Future[Unit] = {
+
+  private[throttle] def runCompaction(state: ThrottleCompactorState.Context)(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+                                                                             ec: ExecutionContext): Future[ThrottleCompactorState] = {
     logger.debug(s"\n\n\n\n\n\n${state.name}: Running compaction now!")
 
     val levels = state.levels.sorted(state.ordering)
@@ -117,28 +212,28 @@ private[throttle] object ThrottleCompaction extends LazyLogging {
 
     //run compaction jobs
     runJobs(
-      state = state,
+      context = state,
       currentJobs = jobs
     )
   }
 
   def shouldRun(level: LevelRef, newStateId: Long, state: ThrottleLevelState): Boolean =
     state match {
-      case awaitingPull @ ThrottleLevelState.AwaitingExtension(stateId) =>
+      case awaitingState: ThrottleLevelState.AwaitingState =>
         logger.debug(s"Level(${level.levelNumber}): $state")
-        newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue()
+        newStateId != awaitingState.stateId && level.nextCompactionDelay.fromNow.isOverdue()
 
       case ThrottleLevelState.Sleeping(sleepDeadline, stateId) =>
         logger.debug(s"Level(${level.levelNumber}): $state")
         sleepDeadline.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
     }
 
-  def wakeUpChild(state: ThrottleCompactorState.Compacting)(implicit self: ActorWire[Compactor, Unit]): Unit = {
+  def wakeUpChild(state: ThrottleCompactorState.Context)(implicit self: ActorWire[ThrottleCompactor, Unit]): Unit = {
     logger.debug(s"${state.name}: Waking up child: ${state.child.map(_ => "child")}.")
     state.child.foreach(_.send(_.wakeUp()))
   }
 
-  def postCompaction(state: ThrottleCompactorState.Compacting)(implicit self: ActorWire[Compactor, Unit]): Unit = {
+  def scheduleWakeUp(state: ThrottleCompactorState.Context)(implicit self: ActorWire[ThrottleCompactor, Unit]): Unit = {
     logger.debug(s"${state.name}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
 
     val levelsToCompact =
@@ -159,7 +254,7 @@ private[throttle] object ThrottleCompaction extends LazyLogging {
             next = Some(sleepDeadline)
           )
 
-        case (nearestDeadline, (_, _)) =>
+        case (nearestDeadline, (_, _: ThrottleLevelState.AwaitingState)) =>
           nearestDeadline
       }
 
@@ -185,27 +280,25 @@ private[throttle] object ThrottleCompaction extends LazyLogging {
             logger.debug(s"${state.name}: Some or later deadline. Ignoring re-scheduling. Keeping currently scheduled.")
           }
       }
-
-    wakeUpChild(state)
   }
 
-  private[throttle] def runJobs(state: ThrottleCompactorState.Compacting,
+  private[throttle] def runJobs(context: ThrottleCompactorState.Context,
                                 currentJobs: Slice[LevelRef])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
-                                                              ec: ExecutionContext): Future[Unit] =
-    if (state.terminate) {
-      logger.warn(s"${state.name}: Cannot run jobs. Compaction is terminated.")
-      Future.unit
+                                                              ec: ExecutionContext): Future[ThrottleCompactorState] =
+    if (context.stopped) {
+      logger.warn(s"${context.name}: Cannot run jobs. Compaction is terminated.")
+      Future.successful(ThrottleCompactorState.Sleeping(context))
     } else {
-      logger.debug(s"${state.name}: Compaction order: ${currentJobs.map(_.levelNumber).mkString(", ")}")
+      logger.debug(s"${context.name}: Compaction order: ${currentJobs.map(_.levelNumber).mkString(", ")}")
 
       val level = currentJobs.headOrNull
 
       if (level == null) {
-        logger.debug(s"${state.name}: Compaction round complete.") //all jobs complete.
-        Future.unit
+        logger.debug(s"${context.name}: Compaction round complete.") //all jobs complete.
+        Future.successful(ThrottleCompactorState.Sleeping(context))
       } else {
-        logger.debug(s"Level(${level.levelNumber}): ${state.name}: Running compaction.")
-        val currentState = state.compactionStates.get(level)
+        logger.debug(s"Level(${level.levelNumber}): ${context.name}: Running compaction.")
+        val currentState = context.compactionStates.get(level)
 
         //Level's stateId should only be accessed here before compaction starts for the level.
         val stateId = level.stateId
@@ -213,7 +306,7 @@ private[throttle] object ThrottleCompaction extends LazyLogging {
         val nextLevels = currentJobs.dropHead().asInstanceOf[Slice[Level]]
 
         if ((currentState.isEmpty && level.nextCompactionDelay.fromNow.isOverdue()) || currentState.exists(state => shouldRun(level, stateId, state))) {
-          logger.debug(s"Level(${level.levelNumber}): ${state.name}: ${if (currentState.isEmpty) "Initial run" else "shouldRun = true"}.")
+          logger.debug(s"Level(${level.levelNumber}): ${context.name}: ${if (currentState.isEmpty) "Initial run" else "shouldRun = true"}.")
 
           runJob(
             level = level,
@@ -221,18 +314,18 @@ private[throttle] object ThrottleCompaction extends LazyLogging {
             stateId = stateId
           ) flatMap {
             nextState =>
-              logger.debug(s"Level(${level.levelNumber}): ${state.name}: next state $nextState.")
-              state.compactionStates.put(
+              logger.debug(s"Level(${level.levelNumber}): ${context.name}: next state $nextState.")
+              context.compactionStates.put(
                 key = level,
                 value = nextState
               )
 
-              runJobs(state, nextLevels)
+              runJobs(context, nextLevels)
           }
 
         } else {
-          logger.debug(s"Level(${level.levelNumber}): ${state.name}: shouldRun = false.")
-          runJobs(state, nextLevels)
+          logger.debug(s"Level(${level.levelNumber}): ${context.name}: shouldRun = false.")
+          runJobs(context, nextLevels)
         }
       }
     }

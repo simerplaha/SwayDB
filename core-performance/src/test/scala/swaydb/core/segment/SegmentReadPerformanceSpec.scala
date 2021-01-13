@@ -26,8 +26,6 @@ package swaydb.core.segment
 
 import java.nio.file.Path
 import swaydb.core.TestData._
-import swaydb.core.actor.FileSweeper
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Memory
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.segment.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
@@ -49,6 +47,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.merge.stats.MergeStats
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._

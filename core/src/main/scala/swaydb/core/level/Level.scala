@@ -28,8 +28,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Bag.Implicits._
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
@@ -53,6 +51,8 @@ import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.defrag.{DefragMemorySegment, DefragPersistentSegment}
 import swaydb.core.segment.io.{SegmentReadIO, SegmentWriteMemoryIO, SegmentWritePersistentIO}
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}

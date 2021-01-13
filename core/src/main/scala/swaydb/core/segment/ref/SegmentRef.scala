@@ -25,7 +25,6 @@
 package swaydb.core.segment.ref
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.BlockCache
@@ -39,6 +38,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.search.{SegmentSearcher, ThreadReadState}
+import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.MinMax
 import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent, SkipListConcurrentLimit}
 import swaydb.data.MaxKey

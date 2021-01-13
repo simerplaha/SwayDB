@@ -26,7 +26,6 @@ package swaydb.core.segment.block.segment
 
 import java.nio.file.Path
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -38,6 +37,7 @@ import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.block.{Block, BlockCache, BlockOffset, BlockOps}
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.sweeper.MemorySweeper
 import swaydb.data.Reserve
 import swaydb.data.cache.{Cache, Lazy}
 import swaydb.data.config.{IOAction, IOStrategy}

@@ -22,7 +22,7 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb.core.actor
+package swaydb.core.sweeper
 
 import swaydb.core.TestExecutionContext
 import swaydb.data.RunThis._

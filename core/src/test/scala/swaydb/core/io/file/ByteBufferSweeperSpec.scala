@@ -30,8 +30,9 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomThreadSafeIOStrategy
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.actor.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
-import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
+import swaydb.core.sweeper.ByteBufferSweeper.{ByteBufferSweeperActor, Command}
+import swaydb.core.sweeper.FileSweeper
+import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestForceSave}
 import swaydb.data.RunThis._
 import swaydb.data.config.ActorConfig

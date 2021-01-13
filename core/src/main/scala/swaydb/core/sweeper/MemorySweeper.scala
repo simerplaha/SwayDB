@@ -22,7 +22,7 @@
  * permission to convey the resulting work.
  */
 
-package swaydb.core.actor
+package swaydb.core.sweeper
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Persistent
@@ -40,19 +40,19 @@ import scala.ref.WeakReference
 private[core] sealed trait Command
 private[core] object Command {
 
-  private[actor] class KeyValue(val keyValueRef: WeakReference[Persistent],
-                                val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]) extends Command
+  private[sweeper] class KeyValue(val keyValueRef: WeakReference[Persistent],
+                                  val skipListRef: WeakReference[SkipList[_, _, Slice[Byte], _]]) extends Command
 
-  private[actor] class Cache(val weight: Int,
-                             val cache: WeakReference[swaydb.data.cache.Cache[_, _, _]]) extends Command
+  private[sweeper] class Cache(val weight: Int,
+                               val cache: WeakReference[swaydb.data.cache.Cache[_, _, _]]) extends Command
 
-  private[actor] class SkipListMap(val key: Slice[Byte],
-                                   val weight: Int,
-                                   val cache: WeakReference[ConcurrentSkipListMap[Slice[Byte], _]]) extends Command
+  private[sweeper] class SkipListMap(val key: Slice[Byte],
+                                     val weight: Int,
+                                     val cache: WeakReference[ConcurrentSkipListMap[Slice[Byte], _]]) extends Command
 
-  private[actor] class BlockCache(val key: Long,
-                                  val valueSize: Int,
-                                  val map: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]) extends Command
+  private[sweeper] class BlockCache(val key: Long,
+                                    val valueSize: Int,
+                                    val map: CacheNoIO[Unit, HashedMap.Concurrent[Long, SliceOption[Byte], Slice[Byte]]]) extends Command
 
 }
 

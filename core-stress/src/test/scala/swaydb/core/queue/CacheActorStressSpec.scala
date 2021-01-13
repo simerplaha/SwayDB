@@ -17,7 +17,7 @@
 // * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
 // */
 //
-//package swaydb.core.actor
+//package swaydb.core.sweeper
 //
 //import swaydb.data.RunThis._
 //import swaydb.core.TestBase

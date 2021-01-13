@@ -25,14 +25,13 @@
 package swaydb.core.map.timer
 
 import java.nio.file.Path
-
 import swaydb.IO
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.data.Time
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.counter.{CounterMap, PersistentCounterMap}
 import swaydb.core.map.serializer.{CounterMapEntryReader, CounterMapEntryWriter, MapEntryReader, MapEntryWriter}
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

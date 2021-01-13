@@ -82,8 +82,8 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
         }
         .flatMap {
           jobs =>
-            implicit val compaction: ThrottleCompaction.type =
-              ThrottleCompaction
+            implicit val compaction: ThrottleCompactorBehavior.type =
+              ThrottleCompactorBehavior
 
             val actors =
               jobs
@@ -92,8 +92,8 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
                   case (((jobs, executionContext, resetCompactionPriorityAtInterval), index), children) =>
                     val statesMap = collection.concurrent.TrieMap.empty[LevelRef, ThrottleLevelState]
 
-                    val state =
-                      ThrottleCompactorState.Compacting(
+                    val context =
+                      ThrottleCompactorState.Context(
                         levels = Slice(jobs.toArray),
                         resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
                         child = children.headOption,
@@ -101,9 +101,9 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
                       )
 
                     val actor =
-                      Actor.wire[Compactor](
+                      Actor.wire[ThrottleCompactor](
                         name = s"Compaction Actor$index",
-                        init = ThrottleCompactor(state)
+                        init = ThrottleCompactor(ThrottleCompactorState.Sleeping(context))
                       )(executionContext)
 
                     actor :: children

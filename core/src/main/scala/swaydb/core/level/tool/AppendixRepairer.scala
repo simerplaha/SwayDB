@@ -25,19 +25,17 @@
 package swaydb.core.level.tool
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.FileSweeper
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.io.file.{Effect, ForceSaveApplier}
 import swaydb.core.level.AppendixMapCache
 import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.{FileSweeper, MemorySweeper}
 import swaydb.core.util.Extension
 import swaydb.data.config.{ForceSave, MMAP}
 import swaydb.data.order.KeyOrder
@@ -53,10 +51,10 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                               fileSweeper: FileSweeper): IO[swaydb.Error.Level, Unit] = {
 
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
-    implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
+    implicit val memorySweeper: Option[MemorySweeper.KeyValue] = Option.empty
     //mmap is false. FIXME - use ByteBufferCleaner.Disabled instead
     implicit val bufferCleaner: ByteBufferSweeperActor = null
-    implicit val forceSaveApplier = ForceSaveApplier.On
+    implicit val forceSaveApplier: ForceSaveApplier.On.type = ForceSaveApplier.On
 
     IO(Effect.files(levelPath, Extension.Seg)) flatMap {
       files =>

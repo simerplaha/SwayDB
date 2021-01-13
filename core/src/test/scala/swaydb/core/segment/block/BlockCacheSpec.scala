@@ -28,7 +28,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestData._
-import swaydb.core.actor.MemorySweeper
+import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.util.Bytes
 import swaydb.core.{TestBase, TestCaseSweeper}
 import swaydb.data.RunThis._

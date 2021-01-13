@@ -27,14 +27,15 @@ package swaydb.core
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultExecutionContext
 import swaydb.core.TestSweeper._
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
-import swaydb.core.actor.{ByteBufferSweeper, FileSweeper, MemorySweeper}
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.io.file.{DBFile, Effect, ForceSaveApplier}
 import swaydb.core.level.LevelRef
 import swaydb.core.map.Maps
 import swaydb.core.map.counter.CounterMap
 import swaydb.core.segment.Segment
 import swaydb.core.segment.block.BlockCache
+import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper, MemorySweeper}
 import swaydb.data.RunThis._
 import swaydb.data.cache.{Cache, CacheNoIO}
 import swaydb.{ActorRef, ActorWire, Bag, Glass, Scheduler}

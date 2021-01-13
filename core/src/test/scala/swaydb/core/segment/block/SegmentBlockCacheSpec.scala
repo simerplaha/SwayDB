@@ -1,13 +1,11 @@
 package swaydb.core.segment.block
 
 import java.util.concurrent.ConcurrentLinkedQueue
-
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Memory
 import swaydb.core.segment.{MemorySegment, PersistentSegment, PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -17,6 +15,7 @@ import swaydb.core.segment.block.reader.UnblockedReader
 import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
+import swaydb.core.sweeper.MemorySweeper
 import swaydb.core.{TestBase, TestCaseSweeper, TestExecutionContext, TestTimer}
 import swaydb.data.RunThis._
 import swaydb.data.config.{ActorConfig, MemoryCache}

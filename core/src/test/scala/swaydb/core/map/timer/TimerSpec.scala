@@ -26,7 +26,7 @@ package swaydb.core.map.timer
 
 import java.nio.file.Path
 
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.ForceSaveApplier
 import swaydb.core.map.MapEntry

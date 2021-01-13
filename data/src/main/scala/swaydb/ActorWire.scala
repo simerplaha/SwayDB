@@ -24,8 +24,7 @@
 
 package swaydb
 
-import java.util.TimerTask
-
+import java.util.{TimerTask, UUID}
 import swaydb.Actor.Task
 import swaydb.data.config.ActorConfig.QueueOrder
 
@@ -34,6 +33,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 object ActorWire {
+
   @inline def apply[I, S](name: String,
                           init: ActorWire[I, S] => I,
                           interval: Option[(FiniteDuration, Long)],
@@ -46,10 +46,12 @@ object ActorWire {
     )
 }
 
-final class ActorWire[I, S] private(name: String,
-                                    initialiser: ActorWire[I, S] => I,
-                                    interval: Option[(FiniteDuration, Long)],
-                                    state: S)(implicit val ec: ExecutionContext) { wire =>
+final class ActorWire[+I, S] private(name: String,
+                                     initialiser: ActorWire[I, S] => I,
+                                     interval: Option[(FiniteDuration, Long)],
+                                     state: S)(implicit val ec: ExecutionContext) { wire =>
+
+  val uniqueId: UUID = UUID.randomUUID()
 
   private val impl = initialiser(this)
 
@@ -201,4 +203,16 @@ final class ActorWire[I, S] private(name: String,
 
   def isTerminated =
     actor.isTerminated
+
+  override def hashCode(): Int =
+    uniqueId.hashCode()
+
+  override def equals(other: Any): Boolean =
+    other match {
+      case other: ActorWire[I, S] =>
+        this.uniqueId == other.uniqueId
+
+      case _ =>
+        false
+    }
 }

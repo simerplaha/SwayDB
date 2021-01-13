@@ -24,7 +24,6 @@
 
 package swaydb.core.segment.defrag
 
-import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
@@ -34,6 +33,7 @@ import swaydb.core.segment._
 import swaydb.core.segment.assigner.Assignable
 import swaydb.core.segment.block.segment.SegmentBlock
 import swaydb.core.segment.block.segment.data.TransientSegment
+import swaydb.core.sweeper.FileSweeper
 import swaydb.core.util.IDGenerator
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice

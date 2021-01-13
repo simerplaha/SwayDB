@@ -29,10 +29,9 @@ import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{Path, StandardOpenOption}
 import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
-
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.ByteBufferSweeper
-import swaydb.core.actor.ByteBufferSweeper.ByteBufferSweeperActor
+import swaydb.core.sweeper.ByteBufferSweeper
+import swaydb.core.sweeper.ByteBufferSweeper.ByteBufferSweeperActor
 import swaydb.data.Reserve
 import swaydb.data.config.ForceSave
 import swaydb.data.slice.Slice

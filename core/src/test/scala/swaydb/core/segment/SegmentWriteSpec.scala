@@ -33,7 +33,7 @@ import swaydb.core.PrivateMethodInvokers._
 import swaydb.core.TestCaseSweeper._
 import swaydb.core.TestData._
 import swaydb.core._
-import swaydb.core.actor.{ByteBufferSweeper, FileSweeper}
+import swaydb.core.sweeper.FileSweeper
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.io.file.Effect
@@ -51,6 +51,7 @@ import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
 import swaydb.core.segment.ref.SegmentRef
 import swaydb.core.segment.ref.search.ThreadReadState
+import swaydb.core.sweeper.{ByteBufferSweeper, FileSweeper}
 import swaydb.core.util.{Benchmark, Extension, IDGenerator}
 import swaydb.data.MaxKey
 import swaydb.data.RunThis._

@@ -31,7 +31,6 @@ import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.actor.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{KeyValue, Memory, Value, _}
@@ -43,7 +42,6 @@ import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSe
 import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.merge._
 import swaydb.core.merge.stats.MergeStats
-import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment._
 import swaydb.core.segment.block._
 import swaydb.core.segment.block.binarysearch.BinarySearchIndexBlock
@@ -56,7 +54,9 @@ import swaydb.core.segment.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.block.values.ValuesBlock
 import swaydb.core.segment.io.SegmentReadIO
+import swaydb.core.segment.ref.search.KeyMatcher.Result
 import swaydb.core.segment.ref.search.{KeyMatcher, SegmentSearcher, ThreadReadState}
+import swaydb.core.sweeper.{ByteBufferSweeper, MemorySweeper}
 import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.RunThis._
 import swaydb.data.config.{IOStrategy, PushForwardStrategy}
