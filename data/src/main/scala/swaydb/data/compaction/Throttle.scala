@@ -26,5 +26,5 @@ package swaydb.data.compaction
 
 import scala.concurrent.duration.FiniteDuration
 
-case class Throttle(pushDelay: FiniteDuration,
-                    segmentsToPush: Int)
+case class Throttle(compactionDelay: FiniteDuration,
+                    compactDataSize: Long)

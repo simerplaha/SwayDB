@@ -660,17 +660,24 @@ abstract class SliceBase[+T](array: Array[T],
   @inline final def createReader[B >: T]()(implicit byteOps: ByteOps[B]): SliceReader[B] =
     SliceReader[B](selfSlice)
 
-  @inline final def append[B >: T : ClassTag](other: Slice[B]): Slice[B] = {
-    val merged = Slice.of[B](selfSlice.size + other.size)
+  @inline final def append[B >: T : ClassTag](tail: Slice[B]): Slice[B] = {
+    val merged = Slice.of[B](selfSlice.size + tail.size)
     merged addAll selfSlice
-    merged addAll other
+    merged addAll tail
     merged
   }
 
-  @inline final def append[B >: T : ClassTag](other: B): Slice[B] = {
+  @inline final def append[B >: T : ClassTag](last: B): Slice[B] = {
     val merged = Slice.of[B](selfSlice.size + 1)
     merged addAll selfSlice
-    merged add other
+    merged add last
+    merged
+  }
+
+  @inline final def prepend[B >: T : ClassTag](head: B): Slice[B] = {
+    val merged = Slice.of[B](selfSlice.size + 1)
+    merged add head
+    merged addAll selfSlice
     merged
   }
 

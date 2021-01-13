@@ -34,37 +34,33 @@ private[throttle] object ThrottleLevelOrdering extends LazyLogging {
   /**
    * Given the Level returns the ordering for [[LevelRef]].
    */
-  def ordering(levelState: LevelRef => ThrottleLevelState) =
+  val ordering =
     new Ordering[LevelRef] {
       override def compare(left: LevelRef, right: LevelRef): Int = {
         (left, right) match {
           //Level
-          case (left: Level, right: Level) => order(left, right, levelState(left), levelState(right))
-          case (left: Level, right: LevelZero) => order(right, left, levelState(left), levelState(right)) * -1
+          case (left: Level, right: Level) => order(left, right)
+          case (left: Level, right: LevelZero) => order(right, left) * -1
           //LevelZero
-          case (left: LevelZero, right: Level) => order(left, right, levelState(left), levelState(right))
+          case (left: LevelZero, right: Level) => order(left, right)
           case (_: LevelZero, _: LevelZero) => 0
         }
       }
     }
 
   def order(left: LevelZero,
-            right: Level,
-            leftState: ThrottleLevelState,
-            rightState: ThrottleLevelState): Int = {
+            right: Level): Int = {
     val leftPushDelay = left.throttle(left.levelZeroMeter)
-    val rightPushDelay = right.throttle(right.meter).pushDelay
+    val rightPushDelay = right.throttle(right.meter).compactionDelay
     val compare = leftPushDelay compare rightPushDelay
     logger.debug(s"Levels (${left.levelNumber} -> ${right.levelNumber}) - leftPushDelay: ${leftPushDelay.asString}/${leftPushDelay.toNanos} -> rightPushDelay: ${rightPushDelay.asString}/${rightPushDelay.toNanos} = $compare ")
     compare
   }
 
   def order(left: Level,
-            right: Level,
-            leftState: ThrottleLevelState,
-            rightState: ThrottleLevelState): Int = {
-    val leftPushDelay = left.throttle(left.meter).pushDelay
-    val rightPushDelay = right.throttle(right.meter).pushDelay
+            right: Level): Int = {
+    val leftPushDelay = left.throttle(left.meter).compactionDelay
+    val rightPushDelay = right.throttle(right.meter).compactionDelay
     val compare = leftPushDelay compare rightPushDelay
     logger.debug(s"Levels (${left.levelNumber} -> ${right.levelNumber}) - leftPushDelay: ${leftPushDelay.asString}/${leftPushDelay.toNanos} -> rightPushDelay: ${rightPushDelay.asString}/${rightPushDelay.toNanos} = $compare ")
     compare

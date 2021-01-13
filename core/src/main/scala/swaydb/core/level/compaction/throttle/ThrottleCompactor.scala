@@ -26,10 +26,12 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ActorWire
+import swaydb.core.level.Level
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.level.compaction.committer.CompactionCommitter
 import swaydb.core.level.compaction.lock.LastLevelLocker
-import swaydb.core.level.compaction.throttle.ThrottleCompactor.PauseResponse
+import swaydb.core.level.compaction.throttle.ThrottleCompactor.ForwardResponse
+import swaydb.core.level.compaction.throttle.behaviour._
 
 import scala.concurrent.Future
 
@@ -40,10 +42,10 @@ import scala.concurrent.Future
  */
 
 object ThrottleCompactor {
-  sealed trait PauseResponse {
-    def pauseSuccessful(from: ActorWire[PauseResponse, Unit]): Unit
+  sealed trait ForwardResponse {
+    def forwardSuccessful(level: Level): Unit
 
-    def pauseFailed(from: ActorWire[PauseResponse, Unit]): Unit
+    def forwardFailed(level: Level): Unit
   }
 
   def apply(state: ThrottleCompactorState.Sleeping)(self: ActorWire[ThrottleCompactor, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
@@ -54,7 +56,7 @@ object ThrottleCompactor {
 private[core] class ThrottleCompactor private(@volatile private var state: ThrottleCompactorState,
                                               @volatile private var currentFuture: Future[Unit])(implicit self: ActorWire[ThrottleCompactor, Unit],
                                                                                                  committer: ActorWire[CompactionCommitter.type, Unit],
-                                                                                                 locker: ActorWire[LastLevelLocker, Unit]) extends Compactor with PauseResponse with LastLevelLocker.ExtensionResponse with LazyLogging {
+                                                                                                 locker: ActorWire[LastLevelLocker, Unit]) extends Compactor with ForwardResponse with LastLevelLocker.LastLevelSetResponse with LazyLogging {
 
   implicit val ec = self.ec
 
@@ -68,24 +70,21 @@ private[core] class ThrottleCompactor private(@volatile private var state: Throt
           }
     }
 
-  def pause(replyTo: ActorWire[PauseResponse, Unit]): Unit =
-    onComplete(ThrottleCompactorBehavior.requestPause(state, replyTo))
-
-  override def pauseSuccessful(from: ActorWire[PauseResponse, Unit]): Unit =
-    onComplete(ThrottleCompactorBehavior.pauseSuccessful(from, state))
-
-  override def pauseFailed(from: ActorWire[PauseResponse, Unit]): Unit =
-    onComplete(ThrottleCompactorBehavior.pauseFailed(from, state))
-
-  def resume(): Unit =
-    onComplete(ThrottleCompactorBehavior.requestResume(state))
-
-  override def extensionSuccessful(): Unit =
-    onComplete(ThrottleCompactorBehavior.extensionSuccessful(state))
-
-  override def extensionFailed(): Unit =
-    onComplete(ThrottleCompactorBehavior.extensionFailed(state))
-
   override def wakeUp(): Unit =
-    onComplete(ThrottleCompactorBehavior.requestWakeUp(state))
+    onComplete(ThrottleWakeUpBehavior.wakeUp(state))
+
+  def forward(level: Level, replyTo: ActorWire[ForwardResponse, Unit]): Unit =
+    onComplete(ThrottleForwardBehavior.forward(level, state, replyTo))
+
+  override def forwardSuccessful(level: Level): Unit =
+    onComplete(ThrottleForwardBehavior.forwardSuccessful(level, state))
+
+  override def forwardFailed(level: Level): Unit =
+    onComplete(ThrottleForwardBehavior.forwardFailed(level, state))
+
+  override def levelSetSuccessful(): Unit =
+    onComplete(ThrottleExtendBehavior.extensionSuccessful(state))
+
+  override def levelSetFailed(): Unit =
+    onComplete(ThrottleExtendBehavior.extensionFailed(state))
 }

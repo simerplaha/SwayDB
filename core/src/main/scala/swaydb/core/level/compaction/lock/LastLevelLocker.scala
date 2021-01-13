@@ -27,18 +27,16 @@ package swaydb.core.level.compaction.lock
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.util.Trys
 import swaydb.{Actor, ActorWire}
 
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Try}
 
 object LastLevelLocker {
 
-  trait ExtensionResponse {
-    def extensionSuccessful(): Unit
+  trait LastLevelSetResponse {
+    def levelSetSuccessful(): Unit
 
-    def extensionFailed(): Unit
+    def levelSetFailed(): Unit
   }
 
   def fetchLastLevel(zero: LevelZero): Level = {
@@ -48,7 +46,7 @@ object LastLevelLocker {
       case Some(nextLevel) =>
         nextLevel.foreachLevel {
           case level: Level =>
-            if (level.isNonEmpty())
+            if (lastLevel == null || level.isNonEmpty())
               lastLevel = level
 
           case level =>
@@ -56,7 +54,7 @@ object LastLevelLocker {
         }
 
       case None =>
-        //Not sure if this should be support in the future but currently at API
+        //Not sure if this should be supported in the future but currently at API
         //level we do not allow creating LevelZero without a NextLevel.
         throw new Exception(s"${LevelZero.productPrefix} with no lower level.")
     }
@@ -69,12 +67,13 @@ object LastLevelLocker {
 
   def createActor(zero: LevelZero)(implicit ec: ExecutionContext): ActorWire[LastLevelLocker, Unit] = {
     val lastLevel = fetchLastLevel(zero)
+
     val state =
       new LastLevelLocker(
         lastLevel = lastLevel,
         locks = 0,
         zero = zero,
-        delayedExtensionOrNull = null
+        delayedSetOrNull = null
       )
 
     Actor.wire[LastLevelLocker](
@@ -87,16 +86,12 @@ object LastLevelLocker {
 
 /**
  * Locks the last Level i.e. the last non-empty level.
- *
- * TODO
- * Make last level reset during runtime to handle cases
- * where all last level key-values were removed or expired.
  */
 
 class LastLevelLocker private(private var lastLevel: Level,
                               private var locks: Int,
                               zero: LevelZero,
-                              private var delayedExtensionOrNull: () => Unit)(implicit ec: ExecutionContext) extends LazyLogging {
+                              private var delayedSetOrNull: () => Unit) extends LazyLogging {
 
   def lock(): Level = {
     locks += 1
@@ -104,27 +99,28 @@ class LastLevelLocker private(private var lastLevel: Level,
   }
 
   def unlock(): Unit = {
-    if (locks == 0)
-      throw new Exception("No existing locks. Failed to unlock.")
-
-    locks -= 1
-    if (locks == 0 && delayedExtensionOrNull != null) {
-      val request = delayedExtensionOrNull
-      this.delayedExtensionOrNull = null
-      request.apply()
+    if (locks <= 0) {
+      logger.error(s"No existing locks. Failed to unlock. Locks $locks.")
+    } else {
+      locks -= 1
+      if (locks == 0 && delayedSetOrNull != null) {
+        val request = delayedSetOrNull
+        this.delayedSetOrNull = null
+        request.apply()
+      }
     }
   }
 
-  def extend(newLast: Level)(replyTo: ActorWire[LastLevelLocker.ExtensionResponse, Nothing]): Unit =
+  def set(newLast: Level, replyTo: ActorWire[LastLevelLocker.LastLevelSetResponse, Unit]): Unit =
     if (newLast.levelNumber == lastLevel.levelNumber) {
-      replyTo.send(_.extensionSuccessful())
+      replyTo.send(_.levelSetSuccessful())
     } else if (locks == 0) {
       this.lastLevel = newLast
-      replyTo.send(_.extensionSuccessful())
-    } else if (this.delayedExtensionOrNull != null) {
-      logger.error("Update request already exists.")
-      replyTo.send(_.extensionFailed())
+      replyTo.send(_.levelSetSuccessful())
+    } else if (this.delayedSetOrNull != null) {
+      logger.error("Extension request already exists.")
+      replyTo.send(_.levelSetFailed())
     } else {
-      this.delayedExtensionOrNull = () => this.extend(newLast)(replyTo)
+      this.delayedSetOrNull = () => this.set(newLast, replyTo)
     }
 }

@@ -37,8 +37,6 @@ import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
 import swaydb.{Actor, ActorWire, Error, IO}
 
-import java.util.concurrent.atomic.AtomicBoolean
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 
@@ -82,22 +80,17 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
         }
         .flatMap {
           jobs =>
-            implicit val compaction: ThrottleCompactorBehavior.type =
-              ThrottleCompactorBehavior
-
             val actors =
               jobs
                 .zipWithIndex
                 .foldRight(List.empty[ActorWire[Compactor, Unit]]) {
                   case (((jobs, executionContext, resetCompactionPriorityAtInterval), index), children) =>
-                    val statesMap = collection.concurrent.TrieMap.empty[LevelRef, ThrottleLevelState]
-
                     val context =
                       ThrottleCompactorState.Context(
                         levels = Slice(jobs.toArray),
                         resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
                         child = children.headOption,
-                        compactionStates = statesMap
+                        compactionStates = Map.empty
                       )
 
                     val actor =

@@ -25,52 +25,41 @@
 package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.ActorWire
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.Compactor
 import swaydb.data.slice.Slice
-import swaydb.data.util.FiniteDurations
-import swaydb.{ActorWire, IO}
 
 import java.util.TimerTask
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicLong}
-import scala.collection.mutable
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
 
 private[core] sealed trait ThrottleCompactorState {
   def levels: Slice[LevelRef]
 
+  def context: ThrottleCompactorState.Context
+
+  def updateContext(context: ThrottleCompactorState.Context): ThrottleCompactorState
+
   final def name =
-    if (levels.size == 1)
-      "Level(" + levels.map(_.levelNumber).mkString(", ") + ")"
-    else
-      "Levels(" + levels.map(_.levelNumber).mkString(", ") + ")"
+    context.name
 }
 
 private[core] object ThrottleCompactorState {
 
-  sealed trait Active extends ThrottleCompactorState
-
   case class Terminated(context: Context) extends ThrottleCompactorState {
     override def levels: Slice[LevelRef] =
       context.levels
+
+    override def updateContext(context: Context): Terminated =
+      copy(context = context)
   }
 
-  sealed trait Idle extends Active {
-    def context: Context
-  }
-
-  case class Paused(oldState: Sleeping) extends Idle {
-    override def levels: Slice[LevelRef] =
-      oldState.levels
-
-    override def context: Context =
-      oldState.context
-  }
-
-  case class Sleeping(context: Context) extends Idle {
+  case class Sleeping(context: Context) extends ThrottleCompactorState {
     override def levels: Slice[LevelRef] =
       context.levels
+
+    override def updateContext(context: Context): Sleeping =
+      copy(context = context)
   }
 
   /**
@@ -79,50 +68,23 @@ private[core] object ThrottleCompactorState {
   case class Context(levels: Slice[LevelRef],
                      resetCompactionPriorityAtInterval: Int,
                      child: Option[ActorWire[Compactor, Unit]],
-                     compactionStates: collection.concurrent.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {
-    @volatile private[compaction] var stopped: Boolean = false
+                     compactionStates: Map[LevelRef, ThrottleLevelState],
+                     sleepTask: Option[(TimerTask, Deadline)] = None,
+                     @volatile private var _terminateASAP: Boolean = false) extends LazyLogging {
 
-    @volatile private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
+    final def name = {
+      val info = levels.map(_.levelNumber).mkString(", ")
 
-    val hasLevelZero: Boolean = levels.exists(_.isZero)
-
-    val levelsReversed = Slice(levels.reverse.toArray)
-
-    val ordering: Ordering[LevelRef] =
-      ThrottleLevelOrdering.ordering(
-        level =>
-          compactionStates.getOrElse(
-            key = level,
-            default =
-              ThrottleLevelState.Sleeping(
-                sleepDeadline = level.nextCompactionDelay.fromNow,
-                stateId = -1
-              )
-          )
-      )
-
-    final def name =
       if (levels.size == 1)
-        "Level(" + levels.map(_.levelNumber).mkString(", ") + ")"
+        s"Level($info)"
       else
-        "Levels(" + levels.map(_.levelNumber).mkString(", ") + ")"
+        s"Levels($info)"
+    }
 
-    def nextThrottleDeadline: Deadline =
-      if (levels.isEmpty)
-      //Yep there needs to be a type-safe way of doing this and not thrown exception using a NonEmptyList.
-      //But since levels are created internally this should never really occur. There will never be a
-      //empty levels in CompactorState.
-        throw IO.throwable("CompactorState created without Levels.")
-      else
-        levels.foldLeft(ThrottleLevelState.longSleep) {
-          case (deadline, level) =>
-            FiniteDurations.getNearestDeadline(
-              deadline = Some(deadline),
-              next = Some(level.nextCompactionDelay.fromNow)
-            ) getOrElse deadline
-        }
+    def setTerminated() =
+      _terminateASAP = true
 
-    def stopASAP() =
-      stopped = true
+    def terminateASAP(): Boolean =
+      _terminateASAP
   }
 }

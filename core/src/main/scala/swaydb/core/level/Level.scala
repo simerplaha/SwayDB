@@ -377,23 +377,10 @@ private[core] case class Level(dirs: Seq[Dir],
     rootPath.resolve("appendix")
 
   def nextPushDelay: FiniteDuration =
-    throttle(meter).pushDelay
+    throttle(meter).compactionDelay
 
-  def nextBatchSize: Int =
-    throttle(meter).segmentsToPush
-
-  def nextPushDelayAndBatchSize =
-    throttle(meter)
-
-  def nextPushDelayAndSegmentsCount: (FiniteDuration, Int) = {
-    val stats = meter
-    (throttle(stats).pushDelay, stats.segmentsCount)
-  }
-
-  def nextBatchSizeAndSegmentsCount: (Int, Int) = {
-    val stats = meter
-    (throttle(stats).segmentsToPush, stats.segmentsCount)
-  }
+  def compactDataSize: Long =
+    throttle(meter).compactDataSize
 
   /**
    * Partitions [[Segment]]s that can be copied into this Segment without requiring merge.
@@ -1282,10 +1269,7 @@ private[core] case class Level(dirs: Seq[Dir],
     segmentIDGenerator.current
 
   override def nextCompactionDelay: FiniteDuration =
-    throttle(meter).pushDelay
-
-  override def nextThrottlePushCount: Int =
-    throttle(meter).segmentsToPush
+    throttle(meter).compactionDelay
 
   override def minSegmentSize: Int =
     segmentConfig.minSize

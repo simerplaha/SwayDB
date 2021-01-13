@@ -60,7 +60,7 @@ case object CompactionLevelZeroTasker {
         )
 
         CompactionTask.CompactMaps(
-          levelZero = source,
+          targetLevel = source,
           maps = processedMapsIterator.toList,
           tasks = tasks
         )

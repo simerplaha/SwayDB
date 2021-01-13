@@ -24,13 +24,15 @@
 
 package swaydb.core.level.compaction.task
 
-import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.zero.LevelZero.LevelZeroMap
+import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.assigner.Assignable
 
-sealed trait CompactionTask
+sealed trait CompactionTask {
+  def targetLevel: LevelRef
+}
 
 /**
  * Tasks that can be submitted to [[swaydb.core.level.compaction.Compaction]]
@@ -49,16 +51,16 @@ object CompactionTask {
   case class Task[A <: Assignable.Collection](targetLevel: Level,
                                               data: Iterable[A])
 
-  case class CompactSegments(sourceLevel: Level,
+  case class CompactSegments(targetLevel: Level,
                              tasks: Iterable[Task[Segment]]) extends CompactionTask.Segments
 
-  case class CollapseSegments(level: Level,
+  case class CollapseSegments(targetLevel: Level,
                               segments: Iterable[Segment]) extends CompactionTask.Segments
 
-  case class RefreshSegments(level: Level,
+  case class RefreshSegments(targetLevel: Level,
                              segments: Iterable[Segment]) extends CompactionTask.Segments
 
-  case class CompactMaps(levelZero: LevelZero,
+  case class CompactMaps(targetLevel: LevelZero,
                          maps: Iterable[LevelZeroMap],
                          tasks: Iterable[Task[Assignable.Collection]]) extends CompactionTask
 

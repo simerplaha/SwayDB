@@ -183,17 +183,21 @@ object DefaultConfigs {
    * The lower the [[FiniteDuration]] the higher it's priority.
    */
 
-  val idle = Throttle(pushDelay = 365.day, segmentsToPush = 1)
+  val idle = Throttle(compactionDelay = 365.day, compactDataSize = 0)
 
-  @inline def calculateThrottle(maxLevelSize: Double, meter: LevelMeter) = {
-    val overflow = ((maxLevelSize / meter.levelSize) * 100D) - 100
-    if (overflow == Double.PositiveInfinity || (overflow >= 0 && meter.pushForwardStrategy == PushForwardStrategy.OnOverflow))
+  @inline def calculateThrottle(maxLevelSize: Long, meter: LevelMeter) = {
+    val levelSize = meter.levelSize
+    val delay = ((maxLevelSize.toDouble / levelSize) * 100D) - 100
+    if (delay == Double.PositiveInfinity || (delay >= 0 && meter.pushForwardStrategy == PushForwardStrategy.OnOverflow))
       idle
     else
-      Throttle(overflow.seconds, 1)
+      Throttle(
+        compactionDelay = delay.seconds,
+        compactDataSize = levelSize - maxLevelSize
+      )
   }
 
-  val levelOneSize = 600.mb.toDouble
+  val levelOneSize = 600.mb
 
   def levelOneThrottle(meter: LevelMeter): Throttle =
     calculateThrottle(maxLevelSize = levelOneSize, meter = meter)

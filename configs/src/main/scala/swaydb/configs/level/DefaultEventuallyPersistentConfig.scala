@@ -102,8 +102,8 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         throttle =
           (_: LevelMeter) =>
             Throttle(
-              pushDelay = 10.seconds,
-              segmentsToPush = maxSegmentsToPush
+              compactionDelay = 10.seconds,
+              compactDataSize = maxSegmentsToPush
             )
       )
 }

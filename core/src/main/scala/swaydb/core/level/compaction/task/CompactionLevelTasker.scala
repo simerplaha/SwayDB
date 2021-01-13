@@ -52,8 +52,7 @@ case object CompactionLevelTasker {
     CompactionTask.CompactSegments(source, tasks)
   }
 
-  @inline def run(source: Level,
-                  sourceOverflow: Long): CompactionTask.CompactSegments = {
+  @inline def run(source: Level): CompactionTask.CompactSegments = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = source.keyOrder
     ???
   }
