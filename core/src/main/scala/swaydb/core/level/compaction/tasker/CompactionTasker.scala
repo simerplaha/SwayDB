@@ -189,26 +189,26 @@ protected case object CompactionTasker {
     val segmentIndex = mutable.Map.empty[Int, A]
     var index = 0
 
-    data.iterator foreach {
+    data foreach {
       segment =>
         val indexBytes = Slice.writeUnsignedInt[Byte](index)
         segmentIndex.put(index, segment)
 
         if (segment.keyValueCount == 1)
           segment.maxKey match {
-            case MaxKey.Fixed(maxKey) =>
+            case MaxKey.Fixed(maxKey: Slice[Byte]) =>
               segmentKeyValues += Memory.Put(maxKey, indexBytes, None, Time.empty)
 
-            case MaxKey.Range(fromKey, maxKey) =>
+            case MaxKey.Range(fromKey: Slice[Byte], maxKey: Slice[Byte]) =>
               segmentKeyValues += Memory.Range(fromKey, maxKey, FromValue.Null, Value.Update(indexBytes, None, Time.empty))
           }
         else
           segment.maxKey match {
-            case MaxKey.Fixed(maxKey) =>
+            case MaxKey.Fixed(maxKey: Slice[Byte]) =>
               segmentKeyValues += Memory.Range(segment.key, maxKey, FromValue.Null, Value.Update(indexBytes, None, Time.empty))
               segmentKeyValues += Memory.Put(maxKey, indexBytes, None, Time.empty)
 
-            case MaxKey.Range(_, maxKey) =>
+            case MaxKey.Range(_, maxKey: Slice[Byte]) =>
               segmentKeyValues += Memory.Range(segment.key, maxKey, FromValue.Null, Value.Update(indexBytes, None, Time.empty))
           }
 

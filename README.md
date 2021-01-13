@@ -12,27 +12,20 @@
 [build-badge]: https://github.com/simerplaha/SwayDB/workflows/Build/badge.svg
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-Embeddable **persistent** and **in-memory** key-value storage engine for **high performance** & **resource efficiency**. 
+**Persistent** and **in-memory** key-value storage engine for the JVM. 
 
-**Status**: Testing & performance optimisations. See [project status](#Project-status).
+**Status**: Under testing & performance optimisations. See [project status](#Project-status).
 
-_We aim to be efficient at **managing bytes** on-disk and in-memory by recognising reoccurring patterns 
-in serialised bytes without restricting the **core** implementation to any specific data model (SQL, NoSQL etc) 
-or storage type (Disk or RAM). The core provides many configurations that can be manually tuned for custom use-cases, 
-but we aim to eventually implement automatic runtime tuning when we are able to collect and analyse runtime machine
-statistics & read-write patterns._
-
-Manage data by creating familiar typed data structures like `Map`, `Set`, `Queue` `MultiMap`, `SetMap` that can easily be converted 
+**Typed data structures**: `Map`, `Set`, `Queue` `MultiMap`, `SetMap` that can easily be converted 
 to native Java and Scala collections.
-  
-Perform conditional updates/data modifications with any **Java**, **Scala**, **Kotlin** or any **native JVM** code - **No query language**.
 
-__Scalable on a single machine__ - Data can be stored on multiple local __HDD/SSD__ and, single or multiple __Threads__ 
-can be allocated for reads, caching & compaction.
+**Conditional updates**: Using any **Java**, **Scala**, **Kotlin** or any **native JVM** type-safe code - **No query language**.
 
-SwayDB's core is **non-blocking**, but the APIs are configurable to be blocking, non-blocking and/or reactive.   
+__Distribute data locally__ - Data can be stored on multiple local __HDD/SSD__.
 
-Configurable to suit **different workloads**. Some use-cases are:
+**Non-blocking** core with configurable APIs for blocking, non-blocking and/or reactive use-cases.   
+
+Highly configurable to suit **different workloads**. Some use-cases are:
 - General key-value storage
 - Message queues
 - Time-series or Events data
