@@ -48,7 +48,7 @@ object ThrottleCompactor {
     def forwardFailed(level: Level): Unit
   }
 
-  def apply(state: ThrottleCompactorState.Sleeping)(self: ActorWire[ThrottleCompactor, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
+  def apply(state: ThrottleCompactorState)(self: ActorWire[ThrottleCompactor, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
                                                                                               locker: ActorWire[LastLevelLocker, Unit]) =
     new ThrottleCompactor(state, Future.unit)(self, committer, locker)
 }

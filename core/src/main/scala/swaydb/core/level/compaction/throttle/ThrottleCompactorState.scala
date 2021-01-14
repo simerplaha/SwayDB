@@ -33,58 +33,25 @@ import swaydb.data.slice.Slice
 import java.util.TimerTask
 import scala.concurrent.duration.Deadline
 
-private[core] sealed trait ThrottleCompactorState {
-  def levels: Slice[LevelRef]
+case class ThrottleCompactorState(levels: Slice[LevelRef],
+                                  resetCompactionPriorityAtInterval: Int,
+                                  child: Option[ActorWire[Compactor, Unit]],
+                                  compactionStates: Map[LevelRef, ThrottleLevelState],
+                                  sleepTask: Option[(TimerTask, Deadline)] = None,
+                                  @volatile private var _terminateASAP: Boolean = false) extends LazyLogging {
 
-  def context: ThrottleCompactorState.Context
+  final def name = {
+    val info = levels.map(_.levelNumber).mkString(", ")
 
-  def updateContext(context: ThrottleCompactorState.Context): ThrottleCompactorState
-
-  final def name =
-    context.name
-}
-
-private[core] object ThrottleCompactorState {
-
-  case class Terminated(context: Context) extends ThrottleCompactorState {
-    override def levels: Slice[LevelRef] =
-      context.levels
-
-    override def updateContext(context: Context): Terminated =
-      copy(context = context)
+    if (levels.size == 1)
+      s"Level($info)"
+    else
+      s"Levels($info)"
   }
 
-  case class Sleeping(context: Context) extends ThrottleCompactorState {
-    override def levels: Slice[LevelRef] =
-      context.levels
+  def setTerminated() =
+    _terminateASAP = true
 
-    override def updateContext(context: Context): Sleeping =
-      copy(context = context)
-  }
-
-  /**
-   * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
-   */
-  case class Context(levels: Slice[LevelRef],
-                     resetCompactionPriorityAtInterval: Int,
-                     child: Option[ActorWire[Compactor, Unit]],
-                     compactionStates: Map[LevelRef, ThrottleLevelState],
-                     sleepTask: Option[(TimerTask, Deadline)] = None,
-                     @volatile private var _terminateASAP: Boolean = false) extends LazyLogging {
-
-    final def name = {
-      val info = levels.map(_.levelNumber).mkString(", ")
-
-      if (levels.size == 1)
-        s"Level($info)"
-      else
-        s"Levels($info)"
-    }
-
-    def setTerminated() =
-      _terminateASAP = true
-
-    def terminateASAP(): Boolean =
-      _terminateASAP
-  }
+  def terminateASAP(): Boolean =
+    _terminateASAP
 }

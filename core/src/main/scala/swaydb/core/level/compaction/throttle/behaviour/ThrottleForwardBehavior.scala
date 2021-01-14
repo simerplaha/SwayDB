@@ -45,50 +45,37 @@ private[throttle] object ThrottleForwardBehavior extends LazyLogging {
               replyTo: ActorWire[ForwardResponse, Unit])(implicit committer: ActorWire[CompactionCommitter.type, Unit],
                                                          locker: ActorWire[LastLevelLocker, Unit],
                                                          ec: ExecutionContext,
-                                                         self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] =
-    state match {
-      case _: ThrottleCompactorState.Terminated =>
-        logger.error(s"${state.name}: Forward failed because compaction is terminated!")
-        replyTo.send(_.forwardFailed(level))
-        Future.successful(state)
+                                                         self: ActorWire[ThrottleCompactor, Unit]): Future[ThrottleCompactorState] = {
+    if (level.levelNumber + 1 != state.levels.head.levelNumber) {
+      logger.error(s"${state.name}: Cannot forward Level. Forward Level(${level.levelNumber}) is not previous level of Level(${state.levels.head.levelNumber})")
+      replyTo.send(_.forwardFailed(level))
+      Future.successful(state)
+    } else {
+      ThrottleWakeUpBehavior
+        .wakeUp(state.copy(levels = state.levels prepend level))
+        .map {
+          newState =>
+            val updatedState =
+              state.copy(
+                levels = state.levels,
+                compactionStates = newState.compactionStates.filter(_._1 == level)
+              )
 
-      case state: ThrottleCompactorState.Sleeping =>
-        if (level.levelNumber + 1 != state.levels.head.levelNumber) {
-          logger.error(s"${state.name}: Cannot forward Level. Forward Level(${level.levelNumber}) is not previous level of Level(${state.levels.head.levelNumber})")
-          replyTo.send(_.forwardFailed(level))
-          Future.successful(state)
-        } else {
-          ThrottleWakeUpBehavior
-            .wakeUp(state.copy(context = state.context.copy(levels = state.context.levels prepend level)))
-            .map {
-              newState =>
-                val newContext =
-                  newState.context.copy(
-                    levels = state.context.levels,
-                    compactionStates = newState.context.compactionStates.filter(_._1 == level)
-                  )
-
-                replyTo.send(_.forwardSuccessful(level))
-                newState.updateContext(newContext)
-            }
+            replyTo.send(_.forwardSuccessful(level))
+            updatedState
         }
     }
+  }
 
   def forwardSuccessful(level: Level,
-                        state: ThrottleCompactorState): Future[ThrottleCompactorState] =
-    state match {
-      case _: ThrottleCompactorState.Terminated =>
-        logger.error(s"${state.name}: Forward success ignored because compaction is terminated!")
-        Future.successful(state)
-
-      case state: ThrottleCompactorState.Sleeping =>
-        if (state.levels.last.levelNumber + 1 != level.levelNumber) {
-          logger.error(s"${state.name}: Forward success update failed because Level(${state.levels.last.levelNumber}) + 1 != Leve(${level.levelNumber})")
-          Future.successful(state)
-        } else {
-          Future.successful(state.copy(state.context.copy(levels = state.context.levels append level)))
-        }
+                        state: ThrottleCompactorState): Future[ThrottleCompactorState] = {
+    if (state.levels.last.levelNumber + 1 != level.levelNumber) {
+      logger.error(s"${state.name}: Forward success update failed because Level(${state.levels.last.levelNumber}) + 1 != Leve(${level.levelNumber})")
+      Future.successful(state)
+    } else {
+      Future.successful(state.copy(levels = state.levels append level))
     }
+  }
 
   def forwardFailed(level: Level,
                     state: ThrottleCompactorState): Future[ThrottleCompactorState] =
@@ -96,7 +83,6 @@ private[throttle] object ThrottleForwardBehavior extends LazyLogging {
       logger.error(s"${state.name}: Forward success update failed because Level(${state.levels.last.levelNumber}) + 1 != Leve(${level.levelNumber})")
       Future.successful(state)
     } else {
-      Future.successful(state.updateContext(state.context.copy(levels = state.context.levels append level)))
+      Future.successful(state.copy(levels = state.levels append level))
     }
-
 }

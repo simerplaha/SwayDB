@@ -85,8 +85,8 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
                 .zipWithIndex
                 .foldRight(List.empty[ActorWire[Compactor, Unit]]) {
                   case (((jobs, executionContext, resetCompactionPriorityAtInterval), index), children) =>
-                    val context =
-                      ThrottleCompactorState.Context(
+                    val state =
+                      ThrottleCompactorState(
                         levels = Slice(jobs.toArray),
                         resetCompactionPriorityAtInterval = resetCompactionPriorityAtInterval,
                         child = children.headOption,
@@ -96,7 +96,7 @@ private[core] object ThrottleCompactorCreator extends CompactorCreator with Lazy
                     val actor =
                       Actor.wire[ThrottleCompactor](
                         name = s"Compaction Actor$index",
-                        init = ThrottleCompactor(ThrottleCompactorState.Sleeping(context))
+                        init = ThrottleCompactor(state)
                       )(executionContext)
 
                     actor :: children
